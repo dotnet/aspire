@@ -11,7 +11,6 @@ using Aspire.Cli.Agents;
 using Aspire.Cli.Agents.AspireSkills;
 using Aspire.Cli.Agents.ClaudeCode;
 using Aspire.Cli.Agents.Copilot;
-using Aspire.Cli.Agents.Hooks;
 using Aspire.Cli.Agents.OpenCode;
 using Aspire.Cli.Agents.Playwright;
 using Aspire.Cli.Agents.VsCode;
@@ -619,19 +618,19 @@ public class Program
         builder.Services.AddSingleton<IAspireSkillsInstaller, AspireSkillsInstaller>();
         builder.Services.AddSingleton<IPlaywrightCliRunner, PlaywrightCliRunner>();
         builder.Services.AddSingleton<PlaywrightCliInstaller>();
-        builder.Services.AddSingleton<IAgentSkillInstaller, AgentSkillInstaller>();
-        builder.Services.AddSingleton<AgentConfigurationWriter>();
-        builder.Services.AddSingleton<AgentSetupService>();
-        builder.Services.AddSingleton<ITelemetryHookInstaller, TelemetryHookInstaller>();
-        builder.Services.AddSingleton<ITelemetryHookConfigurator, TelemetryHookConfigurator>();
 
-        // One implementation per agent supplies both discovery and configuration.
+        // Agent environment detection.
+        builder.Services.AddSingleton<IAgentEnvironmentDetector, AgentEnvironmentDetector>();
         builder.Services.AddSingleton<ICopilotCliRunner, CopilotCliRunner>();
         builder.Services.AddSingleton<ICopilotAppInstallationDetector, CopilotAppInstallationDetector>();
-        builder.Services.AddSingleton<IAgentEnvironmentScanner, CopilotAgentEnvironmentScanner>();
-        builder.Services.AddSingleton<IAgentEnvironmentScanner, ClaudeCodeAgentEnvironmentScanner>();
-        builder.Services.AddSingleton<IAgentEnvironmentScanner, OpenCodeAgentEnvironmentScanner>();
-        builder.Services.AddSingleton<IAgentEnvironmentDetector, AgentEnvironmentDetector>();
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, VsCodeAgentEnvironmentScanner>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, CopilotAgentEnvironmentScanner>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, OpenCodeAgentEnvironmentScanner>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IAgentEnvironmentScanner, ClaudeCodeAgentEnvironmentScanner>());
+
+        // Agent telemetry hook installation/configuration.
+        builder.Services.AddSingleton<Aspire.Cli.Agents.Hooks.ITelemetryHookInstaller, Aspire.Cli.Agents.Hooks.TelemetryHookInstaller>();
+        builder.Services.AddSingleton<Aspire.Cli.Agents.Hooks.ITelemetryHookConfigurator, Aspire.Cli.Agents.Hooks.TelemetryHookConfigurator>();
 
         // Template factories.
         builder.Services.AddSingleton<TemplateNuGetConfigService>();

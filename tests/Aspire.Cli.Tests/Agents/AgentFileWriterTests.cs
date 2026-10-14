@@ -3,11 +3,10 @@
 
 using System.Security.AccessControl;
 using System.Security.Principal;
+using System.Text.Json.Nodes;
 using Aspire.Cli.Agents;
-using Aspire.Cli.Agents.Hooks;
-using Aspire.Cli.Resources;
 using Aspire.Cli.Tests.TestServices;
-using Microsoft.Extensions.Logging.Abstractions;
+using Aspire.Cli.Resources;
 
 namespace Aspire.Cli.Tests.Agents;
 
@@ -16,47 +15,39 @@ public class AgentFileWriterTests(ITestOutputHelper outputHelper)
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task WriteAsync_ValidatesClosedStagingFileBeforePublication(bool destinationExists)
+    public async Task WriteAsync_StagesNativeJsonBeforePublication(bool destinationExists)
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var path = Path.Combine(workspace.Path, "payload");
         if (destinationExists)
         {
-            await File.WriteAllTextAsync(path, "original");
+            await File.WriteAllTextAsync(path, "{}");
         }
-        string? stagingPath = null;
-        var validations = 0;
-
-        await AgentFileWriter.WriteAsync(
-            path,
-            destinationExists,
-            async (stream, token) =>
+        var reader = new AgentConfigurationJson.ReadContext();
+        var document = await reader.ReadAsync(path, CancellationToken.None);
+        var serializations = 0;
+        var root = new JsonObject
+        {
+            ["value"] = CallbackJsonConverter.CreateValue(() =>
             {
-                stagingPath = Assert.IsType<FileStream>(stream).Name;
+                serializations++;
+                var stagingPath = Assert.Single(Directory.EnumerateFiles(workspace.Path, ".payload.aspire-*.tmp"));
                 Assert.Equal(Path.GetDirectoryName(path), Path.GetDirectoryName(stagingPath));
-                await stream.WriteAsync("replacement"u8.ToArray(), token);
                 if (destinationExists)
                 {
-                    Assert.Equal("original", await File.ReadAllTextAsync(path, token));
+                    Assert.Equal("{}", File.ReadAllText(path));
                 }
                 else
                 {
                     Assert.False(File.Exists(path));
                 }
-            },
-            async token =>
-            {
-                validations++;
-                // Exclusive access proves the staging writer was disposed before validation.
-                await using var stream = new FileStream(stagingPath!, FileMode.Open, FileAccess.Read, FileShare.None);
-                using var reader = new StreamReader(stream);
-                Assert.Equal("replacement", await reader.ReadToEndAsync(token));
-            },
-            newFileMode: null,
-            CancellationToken.None);
+            })
+        };
 
-        Assert.Equal(1, validations);
-        Assert.Equal("replacement", await File.ReadAllTextAsync(path));
+        await reader.SaveAsync(document, root, CancellationToken.None);
+
+        Assert.Equal(1, serializations);
+        Assert.Equal(1, JsonNode.Parse(await File.ReadAllTextAsync(path))!["value"]!.GetValue<int>());
         Assert.Equal(["payload"], workspace.WorkspaceRoot.EnumerateFileSystemInfos().Select(static entry => entry.Name));
     }
 
@@ -68,54 +59,34 @@ public class AgentFileWriterTests(ITestOutputHelper outputHelper)
         cancellation.Cancel();
         var path = Path.Combine(workspace.Path, "missing", "payload");
         var writes = 0;
+        var reader = new AgentConfigurationJson.ReadContext();
+        var document = await reader.ReadAsync(path, CancellationToken.None);
+        var root = new JsonObject { ["value"] = CallbackJsonConverter.CreateValue(() => writes++) };
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => AgentFileWriter.WriteAsync(
-            path,
-            destinationExists: false,
-            (_, _) =>
-            {
-                writes++;
-                return Task.CompletedTask;
-            },
-            _ => Task.CompletedTask,
-            newFileMode: null,
-            cancellation.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            reader.SaveAsync(document, root, cancellation.Token));
 
         Assert.Equal(0, writes);
         Assert.Empty(workspace.WorkspaceRoot.EnumerateFileSystemInfos());
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task WriteAsync_CancelledBeforeReplacement_PreservesOriginalAndCleansStaging(bool duringWrite)
+    [Fact]
+    public async Task WriteAsync_CancelledDuringSerialization_PreservesOriginalAndCleansStaging()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         using var cancellation = new CancellationTokenSource();
         var path = Path.Combine(workspace.Path, "payload");
-        await File.WriteAllTextAsync(path, "working content");
+        const string original = """{"working":"content"}""";
+        await File.WriteAllTextAsync(path, original);
         var originalTimestamp = File.GetLastWriteTimeUtc(path);
+        var reader = new AgentConfigurationJson.ReadContext();
+        var document = await reader.ReadAsync(path, CancellationToken.None);
+        var root = new JsonObject { ["value"] = CallbackJsonConverter.CreateValue(cancellation.Cancel) };
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => AgentFileWriter.WriteAsync(
-            path,
-            destinationExists: true,
-            async (stream, token) =>
-            {
-                await stream.WriteAsync("partial replacement"u8.ToArray(), token);
-                if (duringWrite)
-                {
-                    cancellation.Cancel();
-                }
-            },
-            _ =>
-            {
-                cancellation.Cancel();
-                return Task.CompletedTask;
-            },
-            newFileMode: null,
-            cancellation.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            reader.SaveAsync(document, root, cancellation.Token));
 
-        Assert.Equal("working content", await File.ReadAllTextAsync(path));
+        Assert.Equal(original, await File.ReadAllTextAsync(path));
         Assert.Equal(originalTimestamp, File.GetLastWriteTimeUtc(path));
         Assert.Equal(["payload"], workspace.WorkspaceRoot.EnumerateFileSystemInfos().Select(static entry => entry.Name));
     }
@@ -125,24 +96,21 @@ public class AgentFileWriterTests(ITestOutputHelper outputHelper)
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var path = Path.Combine(workspace.Path, "payload");
-        await File.WriteAllTextAsync(path, "working content");
+        const string original = """{"working":"content"}""";
+        await File.WriteAllTextAsync(path, original);
         var unownedPath = Path.Combine(workspace.Path, ".payload.aspire-other.tmp");
         await File.WriteAllTextAsync(unownedPath, "another invocation");
+        var reader = new AgentConfigurationJson.ReadContext();
+        var document = await reader.ReadAsync(path, CancellationToken.None);
+        var root = new JsonObject
+        {
+            ["value"] = CallbackJsonConverter.CreateValue(() => throw new IOException("content writer failed"))
+        };
 
-        var error = await Assert.ThrowsAsync<IOException>(() => AgentFileWriter.WriteAsync(
-            path,
-            destinationExists: true,
-            async (stream, token) =>
-            {
-                await stream.WriteAsync("partial replacement"u8.ToArray(), token);
-                throw new IOException("content writer failed");
-            },
-            _ => Task.CompletedTask,
-            newFileMode: null,
-            CancellationToken.None));
+        var error = await Assert.ThrowsAsync<IOException>(() => reader.SaveAsync(document, root, CancellationToken.None));
 
         Assert.Equal("content writer failed", error.Message);
-        Assert.Equal("working content", await File.ReadAllTextAsync(path));
+        Assert.Equal(original, await File.ReadAllTextAsync(path));
         Assert.Equal("another invocation", await File.ReadAllTextAsync(unownedPath));
         Assert.Equal([".payload.aspire-other.tmp", "payload"],
             workspace.WorkspaceRoot.EnumerateFileSystemInfos().Select(static entry => entry.Name).Order(StringComparer.Ordinal));
@@ -153,30 +121,17 @@ public class AgentFileWriterTests(ITestOutputHelper outputHelper)
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var path = Path.Combine(workspace.Path, "payload");
-        await File.WriteAllTextAsync(path, "original");
-        var original = await File.ReadAllBytesAsync(path);
+        await File.WriteAllTextAsync(path, "{}");
+        var reader = new AgentConfigurationJson.ReadContext();
+        var document = await reader.ReadAsync(path, CancellationToken.None);
+        const string concurrent = """{"concurrent":"edit"}""";
+        var root = new JsonObject { ["value"] = CallbackJsonConverter.CreateValue(() => File.WriteAllText(path, concurrent)) };
 
-        var error = await Assert.ThrowsAsync<IOException>(() => AgentFileWriter.WriteAsync(
-            path,
-            destinationExists: true,
-            async (stream, token) =>
-            {
-                await stream.WriteAsync("replacement"u8.ToArray(), token);
-                await File.WriteAllTextAsync(path, "concurrent edit", token);
-            },
-            async token =>
-            {
-                var current = await File.ReadAllBytesAsync(path, token);
-                if (!original.AsSpan().SequenceEqual(current))
-                {
-                    throw new IOException(AgentCommandStrings.Configuration_ConcurrentChange);
-                }
-            },
-            newFileMode: null,
-            CancellationToken.None));
+        var error = await Assert.ThrowsAsync<AgentConfigurationException>(() =>
+            reader.SaveAsync(document, root, CancellationToken.None));
 
         Assert.Equal(AgentCommandStrings.Configuration_ConcurrentChange, error.Message);
-        Assert.Equal("concurrent edit", await File.ReadAllTextAsync(path));
+        Assert.Equal(concurrent, await File.ReadAllTextAsync(path));
         Assert.Equal(["payload"], workspace.WorkspaceRoot.EnumerateFileSystemInfos().Select(static entry => entry.Name));
     }
 
@@ -188,54 +143,46 @@ public class AgentFileWriterTests(ITestOutputHelper outputHelper)
         var replacement = workspace.CreateDirectory("replacement");
         var originalPath = Path.Combine(original.FullName, "payload");
         var replacementPath = Path.Combine(replacement.FullName, "payload");
-        await File.WriteAllTextAsync(originalPath, "original destination");
-        await File.WriteAllTextAsync(replacementPath, "replacement destination");
+        const string originalContent = """{"original":"destination"}""";
+        const string replacementContent = """{"replacement":"destination"}""";
+        await File.WriteAllTextAsync(originalPath, originalContent);
+        await File.WriteAllTextAsync(replacementPath, replacementContent);
         var link = Path.Combine(workspace.Path, "linked");
         TestSymlinkHelper.TryCreateSymlink(link, original.FullName);
         var logicalPath = Path.Combine(link, "payload");
-        var physicalPath = AgentPath.Resolve(logicalPath);
-
-        await Assert.ThrowsAsync<IOException>(() => AgentFileWriter.WriteAsync(
-            physicalPath,
-            destinationExists: true,
-            async (stream, token) =>
+        var reader = new AgentConfigurationJson.ReadContext();
+        var document = await reader.ReadAsync(logicalPath, CancellationToken.None);
+        var root = new JsonObject
+        {
+            ["value"] = CallbackJsonConverter.CreateValue(() =>
             {
-                await stream.WriteAsync("new content"u8.ToArray(), token);
                 Directory.Delete(link);
                 Directory.CreateSymbolicLink(link, replacement.FullName);
-            },
-            _ =>
-            {
-                if (!AgentPath.Comparer.Equals(physicalPath, AgentPath.Resolve(logicalPath)))
-                {
-                    throw new IOException(AgentCommandStrings.Configuration_ConcurrentChange);
-                }
-                return Task.CompletedTask;
-            },
-            newFileMode: null,
-            CancellationToken.None));
+            })
+        };
 
-        Assert.Equal("original destination", await File.ReadAllTextAsync(originalPath));
-        Assert.Equal("replacement destination", await File.ReadAllTextAsync(replacementPath));
+        await Assert.ThrowsAsync<AgentConfigurationException>(() => reader.SaveAsync(document, root, CancellationToken.None));
+
+        Assert.Equal(originalContent, await File.ReadAllTextAsync(originalPath));
+        Assert.Equal(replacementContent, await File.ReadAllTextAsync(replacementPath));
         Assert.Equal(["payload"], original.EnumerateFileSystemInfos().Select(static entry => entry.Name));
         Assert.Equal(["payload"], replacement.EnumerateFileSystemInfos().Select(static entry => entry.Name));
     }
 
     [Fact]
-    public async Task WriteAsync_NewDestinationAppearsAfterValidation_DoesNotOverwriteIt()
+    public async Task WriteAsync_ConcurrentCreation_DoesNotOverwriteIt()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var path = Path.Combine(workspace.Path, "payload");
 
-        await Assert.ThrowsAsync<IOException>(() => AgentFileWriter.WriteAsync(
-            path,
-            destinationExists: false,
-            (stream, token) => stream.WriteAsync("our content"u8.ToArray(), token).AsTask(),
-            token => File.WriteAllTextAsync(path, "concurrent creation", token),
-            newFileMode: null,
-            CancellationToken.None));
+        var reader = new AgentConfigurationJson.ReadContext();
+        var document = await reader.ReadAsync(path, CancellationToken.None);
+        const string concurrent = """{"concurrent":"creation"}""";
+        var root = new JsonObject { ["value"] = CallbackJsonConverter.CreateValue(() => File.WriteAllText(path, concurrent)) };
 
-        Assert.Equal("concurrent creation", await File.ReadAllTextAsync(path));
+        await Assert.ThrowsAsync<AgentConfigurationException>(() => reader.SaveAsync(document, root, CancellationToken.None));
+
+        Assert.Equal(concurrent, await File.ReadAllTextAsync(path));
         Assert.Equal(["payload"], workspace.WorkspaceRoot.EnumerateFileSystemInfos().Select(static entry => entry.Name));
     }
 
@@ -243,51 +190,21 @@ public class AgentFileWriterTests(ITestOutputHelper outputHelper)
     public async Task WriteAsync_ReplacementFails_DoesNotRemoveDestinationDirectory()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var destination = workspace.CreateDirectory("payload");
-        var marker = Path.Combine(destination.FullName, "user-file");
+        var path = Path.Combine(workspace.Path, "payload");
+        await File.WriteAllTextAsync(path, "{}");
+        var reader = new AgentConfigurationJson.ReadContext();
+        var document = await reader.ReadAsync(path, CancellationToken.None);
+        File.Delete(path);
+        Directory.CreateDirectory(path);
+        var marker = Path.Combine(path, "user-file");
         await File.WriteAllTextAsync(marker, "keep");
 
-        var error = await Record.ExceptionAsync(() => AgentFileWriter.WriteAsync(
-            destination.FullName,
-            destinationExists: true,
-            (stream, token) => stream.WriteAsync("replacement"u8.ToArray(), token).AsTask(),
-            _ => Task.CompletedTask,
-            newFileMode: null,
-            CancellationToken.None));
+        var error = await Record.ExceptionAsync(() =>
+            reader.SaveAsync(document, new JsonObject { ["ours"] = true }, CancellationToken.None));
 
         Assert.True(error is IOException or UnauthorizedAccessException, error?.ToString());
         Assert.Equal("keep", await File.ReadAllTextAsync(marker));
         Assert.Equal(["payload"], workspace.WorkspaceRoot.EnumerateFileSystemInfos().Select(static entry => entry.Name));
-    }
-
-    [Fact]
-    public async Task WriteAsync_CleanupFailure_IsNotReportedAsSuccessOrRecursivelyDeleted()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var path = Path.Combine(workspace.Path, "payload");
-        await File.WriteAllTextAsync(path, "working content");
-        string? stagingPath = null;
-
-        var error = await Record.ExceptionAsync(() => AgentFileWriter.WriteAsync(
-            path,
-            destinationExists: true,
-            async (stream, token) =>
-            {
-                stagingPath = Assert.IsType<FileStream>(stream).Name;
-                await stream.WriteAsync("replacement"u8.ToArray(), token);
-            },
-            async token =>
-            {
-                File.Delete(stagingPath!);
-                Directory.CreateDirectory(stagingPath!);
-                await File.WriteAllTextAsync(Path.Combine(stagingPath!, "unowned"), "keep", token);
-            },
-            newFileMode: null,
-            CancellationToken.None));
-
-        Assert.True(error is IOException or UnauthorizedAccessException, error?.ToString());
-        Assert.Equal("working content", await File.ReadAllTextAsync(path));
-        Assert.Equal("keep", await File.ReadAllTextAsync(Path.Combine(stagingPath!, "unowned")));
     }
 
     [Fact]
@@ -301,33 +218,17 @@ public class AgentFileWriterTests(ITestOutputHelper outputHelper)
 
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var path = Path.Combine(workspace.Path, "payload");
-        await File.WriteAllTextAsync(path, "original");
+        await File.WriteAllTextAsync(path, "{}");
         var mode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
             UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute;
         File.SetUnixFileMode(path, mode);
-        string? stagingPath = null;
+        var reader = new AgentConfigurationJson.ReadContext();
+        var document = await reader.ReadAsync(path, CancellationToken.None);
 
-        await AgentFileWriter.WriteAsync(
-            path,
-            destinationExists: true,
-            async (stream, token) =>
-            {
-                stagingPath = Assert.IsType<FileStream>(stream).Name;
-                await stream.WriteAsync("replacement"u8.ToArray(), token);
-            },
-            _ =>
-            {
-                if (!OperatingSystem.IsWindows())
-                {
-                    Assert.Equal(mode, File.GetUnixFileMode(stagingPath!));
-                }
-                return Task.CompletedTask;
-            },
-            newFileMode: null,
-            CancellationToken.None);
+        await reader.SaveAsync(document, new JsonObject { ["replacement"] = true }, CancellationToken.None);
 
         Assert.Equal(mode, File.GetUnixFileMode(path));
-        Assert.Equal("replacement", await File.ReadAllTextAsync(path));
+        Assert.True(JsonNode.Parse(await File.ReadAllTextAsync(path))!["replacement"]!.GetValue<bool>());
     }
 
     [Fact]
@@ -341,7 +242,7 @@ public class AgentFileWriterTests(ITestOutputHelper outputHelper)
 
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var path = Path.Combine(workspace.Path, "payload");
-        await File.WriteAllTextAsync(path, "original");
+        await File.WriteAllTextAsync(path, "{}");
         using var identity = WindowsIdentity.GetCurrent();
         var user = Assert.IsType<SecurityIdentifier>(identity.User);
         var security = new FileSecurity();
@@ -352,96 +253,43 @@ public class AgentFileWriterTests(ITestOutputHelper outputHelper)
         var originalDacl = destination.GetAccessControl(AccessControlSections.Access)
             .GetSecurityDescriptorSddlForm(AccessControlSections.Access);
 
-        await AgentFileWriter.WriteAsync(
-            path,
-            destinationExists: true,
-            async (stream, token) =>
+        var reader = new AgentConfigurationJson.ReadContext();
+        var document = await reader.ReadAsync(path, CancellationToken.None);
+        var root = new JsonObject
+        {
+            ["value"] = CallbackJsonConverter.CreateValue(() =>
             {
                 if (OperatingSystem.IsWindows())
                 {
-                    var staging = new FileInfo(Assert.IsType<FileStream>(stream).Name);
+                    var staging = new FileInfo(Assert.Single(Directory.EnumerateFiles(workspace.Path, ".payload.aspire-*.tmp")));
                     // A distinct staging DACL proves replacement preserves the destination's
                     // protected access rules rather than publishing the inherited defaults.
                     Assert.NotEqual(originalDacl, staging.GetAccessControl(AccessControlSections.Access)
                         .GetSecurityDescriptorSddlForm(AccessControlSections.Access));
                 }
-                await stream.WriteAsync("replacement"u8.ToArray(), token);
-            },
-            _ => Task.CompletedTask,
-            newFileMode: null,
-            CancellationToken.None);
+            })
+        };
+
+        await reader.SaveAsync(document, root, CancellationToken.None);
 
         Assert.Equal(originalDacl, destination.GetAccessControl(AccessControlSections.Access)
             .GetSecurityDescriptorSddlForm(AccessControlSections.Access));
-        Assert.Equal("replacement", await File.ReadAllTextAsync(path));
+        Assert.Equal(1, JsonNode.Parse(await File.ReadAllTextAsync(path))!["value"]!.GetValue<int>());
         Assert.Equal(["payload"], workspace.WorkspaceRoot.EnumerateFileSystemInfos().Select(static entry => entry.Name));
     }
 
     [Fact]
     public async Task NativeWriter_NewFile_UsesPrivateUnixMode()
     {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var path = Path.Combine(workspace.Path, "settings.json");
-        var target = new AgentConfigurationTarget(
-            path,
-            AgentConfigurationScope.Project,
-            AgentAssetKind.Mcp,
-            [new TestAgentEnvironmentScanner(AgentClient.Copilot)],
-            "test",
-            (root, _, _) =>
-            {
-                root["added"] = true;
-                return Task.FromResult(AgentConfigurationEdit.Applied("configured"));
-            });
-        var writer = new AgentConfigurationWriter(NullLogger<AgentConfigurationWriter>.Instance);
-
-        var results = await writer.ApplyAsync([target], CancellationToken.None);
+        using var context = new AgentConfigurationTestContext(outputHelper);
+        var results = await context.ConfigureNativeAsync(context.Request(AgentConfigurationScope.Global, [context.Copilot]));
+        var path = Assert.Single(results).TargetPath;
 
         Assert.Equal(AgentConfigurationStatus.Configured, Assert.Single(results).Status);
         if (!OperatingSystem.IsWindows())
         {
             Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(path));
         }
-        Assert.Equal(["settings.json"], workspace.WorkspaceRoot.EnumerateFileSystemInfos().Select(static entry => entry.Name));
-    }
-
-    [Fact]
-    public async Task HookInstaller_ReplacementPreservesLinkPermissionsAndSubsequentNoOp()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var project = workspace.CreateDirectory("project");
-        var home = workspace.CreateDirectory("home");
-        var context = new CliExecutionContext(
-            project, home, home, home, home, Path.Combine(home.FullName, "test.log"), "test", homeDirectory: home);
-        var installer = new TelemetryHookInstaller(context, NullLogger<TelemetryHookInstaller>.Instance);
-        var scripts = await installer.EnsureInstalledAsync(CancellationToken.None);
-        var canonical = await File.ReadAllBytesAsync(scripts.PowerShellScriptPath);
-        var physicalPath = Path.Combine(Path.GetDirectoryName(scripts.PowerShellScriptPath)!, "physical.ps1");
-        await File.WriteAllTextAsync(physicalPath, "old script");
-        File.Delete(scripts.PowerShellScriptPath);
-        TestSymlinkHelper.TryCreateSymlink(scripts.PowerShellScriptPath, physicalPath, isDirectory: false);
-        var mode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.GroupWrite;
-        if (!OperatingSystem.IsWindows())
-        {
-            File.SetUnixFileMode(physicalPath, mode);
-        }
-
-        await installer.EnsureInstalledAsync(CancellationToken.None);
-
-        Assert.Equal(canonical, await File.ReadAllBytesAsync(physicalPath));
-        Assert.NotNull(new FileInfo(scripts.PowerShellScriptPath).LinkTarget);
-        if (!OperatingSystem.IsWindows())
-        {
-            Assert.Equal(mode, File.GetUnixFileMode(physicalPath));
-        }
-        File.SetLastWriteTimeUtc(physicalPath, new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc));
-        var timestamp = File.GetLastWriteTimeUtc(physicalPath);
-
-        await installer.EnsureInstalledAsync(CancellationToken.None);
-
-        Assert.Equal(canonical, await File.ReadAllBytesAsync(physicalPath));
-        Assert.Equal(timestamp, File.GetLastWriteTimeUtc(physicalPath));
-        Assert.Equal(["physical.ps1", "track-telemetry.ps1", "track-telemetry.sh"],
-            Directory.EnumerateFileSystemEntries(Path.GetDirectoryName(physicalPath)!).Select(Path.GetFileName).Order(StringComparer.Ordinal));
+        Assert.Equal([path], Directory.EnumerateFiles(context.Home.FullName, "*", SearchOption.AllDirectories));
     }
 }

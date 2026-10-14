@@ -75,55 +75,26 @@ internal static class AgentPath
         return Path.IsPathFullyQualified(path) ? path : Path.Combine(workingDirectory, path);
     }
 
-    public static string GetManagedDirectory(CliExecutionContext executionContext, IEnvironment environment, string productName, string unixName)
+    public static string Resolve(string path)
     {
-        if (environment.IsWindows())
-        {
-            return Path.Combine(GetOverride("ProgramFiles", executionContext, environment) ??
-                Path.Combine(Path.GetPathRoot(executionContext.HomeDirectory.FullName)!, "Program Files"), productName);
-        }
-
-        return environment.IsMacOS()
-            ? Path.Combine(Path.DirectorySeparatorChar.ToString(), "Library", "Application Support", productName)
-            : Path.Combine(Path.DirectorySeparatorChar.ToString(), "etc", unixName);
-    }
-
-    public static string Resolve(string path) => ResolveCasing(Resolve(path, 0));
-
-    private static string Resolve(string path, int depth)
-    {
-        if (depth > 40)
+        var fullPath = Path.GetFullPath(path);
+        if (!PathNormalizer.TryResolveSymlinks(fullPath, out var resolved))
         {
             throw new AgentConfigurationException(string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.Configuration_UnsafeLink, path));
         }
 
-        var fullPath = Path.GetFullPath(path);
-        var root = Path.GetPathRoot(fullPath)!;
-        var parts = fullPath[root.Length..].Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries);
-        var resolved = root;
-        for (var index = 0; index < parts.Length; index++)
+        // The shared resolver permits ordinary missing suffixes. A dangling link is
+        // different: initializing its missing destination would change user-owned intent.
+        for (var current = fullPath; current is not null; current = Path.GetDirectoryName(current))
         {
-            resolved = Path.Combine(resolved, parts[index]);
-            FileSystemInfo info = index < parts.Length - 1 || Directory.Exists(resolved)
-                ? new DirectoryInfo(resolved)
-                : new FileInfo(resolved);
-            if (info.LinkTarget is null)
+            FileSystemInfo info = Directory.Exists(current) ? new DirectoryInfo(current) : new FileInfo(current);
+            if (info.LinkTarget is not null && info.ResolveLinkTarget(returnFinalTarget: true) is not { Exists: true })
             {
-                continue;
+                throw new AgentConfigurationException(string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.Configuration_UnsafeLink, current));
             }
-
-            // Following only the leaf is insufficient for dotfile managers that symlink the
-            // entire configuration directory. A dangling link cannot safely be initialized.
-            var target = info.ResolveLinkTarget(returnFinalTarget: true);
-            if (target is null || !target.Exists)
-            {
-                throw new AgentConfigurationException(string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.Configuration_UnsafeLink, resolved));
-            }
-
-            resolved = Resolve(target.FullName, depth + 1);
         }
 
-        return resolved;
+        return ResolveCasing(resolved);
     }
 
     private static string ResolveCasing(string path)

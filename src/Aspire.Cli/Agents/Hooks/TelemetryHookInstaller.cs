@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text;
-using Aspire.Cli.Resources;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Agents.Hooks;
@@ -37,7 +36,6 @@ internal sealed class TelemetryHookInstaller : ITelemetryHookInstaller
     /// <inheritdoc />
     public async Task<TelemetryHookScripts> EnsureInstalledAsync(CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
         var hooksDirectory = Path.Combine(_executionContext.AspireHomeDirectory.FullName, HooksDirectoryName);
         Directory.CreateDirectory(hooksDirectory);
 
@@ -70,40 +68,31 @@ internal sealed class TelemetryHookInstaller : ITelemetryHookInstaller
         return reader.ReadToEnd();
     }
 
-    private static async Task WriteFileIfChangedAsync(string path, string content, CancellationToken cancellationToken)
+    private async Task WriteFileIfChangedAsync(string path, string content, CancellationToken cancellationToken)
     {
         // Skip the write when the content already matches so a running hook isn't disturbed and the
         // file mtime stays stable across repeated `agent init` runs.
-        var physicalPath = AgentPath.Resolve(path);
-        var existing = await AgentFileWriter.ReadExistingAsync(physicalPath, cancellationToken);
-        var bytes = s_utf8NoBom.GetBytes(content);
-        if (existing is not null && existing.AsSpan().SequenceEqual(bytes))
+        if (File.Exists(path))
         {
-            await ValidateBeforePublishAsync(cancellationToken);
-            return;
-        }
-
-        await AgentFileWriter.WriteAsync(
-            physicalPath,
-            destinationExists: existing is not null,
-            (stream, token) => stream.WriteAsync(bytes, token).AsTask(),
-            ValidateBeforePublishAsync,
-            newFileMode: null,
-            cancellationToken);
-
-        async Task ValidateBeforePublishAsync(CancellationToken token)
-        {
-            if (!AgentPath.Comparer.Equals(physicalPath, AgentPath.Resolve(path)))
+            try
             {
-                throw new IOException(AgentCommandStrings.Configuration_ConcurrentChange);
+                var existing = await File.ReadAllTextAsync(path, s_utf8NoBom, cancellationToken);
+                if (string.Equals(existing, content, StringComparison.Ordinal))
+                {
+                    return;
+                }
             }
-
-            var current = await AgentFileWriter.ReadExistingAsync(physicalPath, token);
-            if (existing is null ? current is not null : current is null || !existing.AsSpan().SequenceEqual(current))
+            catch (IOException ex)
             {
-                throw new IOException(AgentCommandStrings.Configuration_ConcurrentChange);
+                _logger.LogDebug(ex, "Could not read existing telemetry hook script at {Path}; it will be rewritten.", path);
             }
         }
+
+        // Write to a sibling temp file then atomically move into place so a concurrently executing
+        // hook never observes a partially written script.
+        var tempPath = path + ".tmp-" + Guid.NewGuid().ToString("N");
+        await File.WriteAllTextAsync(tempPath, content, s_utf8NoBom, cancellationToken);
+        File.Move(tempPath, path, overwrite: true);
     }
 
     private void TrySetExecutable(string path)
@@ -116,11 +105,7 @@ internal sealed class TelemetryHookInstaller : ITelemetryHookInstaller
         try
         {
             var mode = File.GetUnixFileMode(path);
-            var executableMode = mode | UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute;
-            if (mode != executableMode)
-            {
-                File.SetUnixFileMode(path, executableMode);
-            }
+            File.SetUnixFileMode(path, mode | UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or PlatformNotSupportedException)
         {

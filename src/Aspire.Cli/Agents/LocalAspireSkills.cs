@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using Aspire.Cli.Agents.Copilot;
-using Aspire.Cli.Agents.OpenCode;
 using Aspire.Cli.Resources;
 
 namespace Aspire.Cli.Agents;
@@ -22,7 +20,7 @@ internal static class LocalAspireSkills
     public static async Task<LocalAspireSkillScan> FindAsync(
         DirectoryInfo workingDirectory,
         DirectoryInfo? workspaceRoot,
-        IEnumerable<IAgentEnvironmentScanner> agents,
+        IEnumerable<AgentClient> agents,
         CliExecutionContext executionContext,
         IEnvironment environment,
         CancellationToken cancellationToken)
@@ -44,8 +42,8 @@ internal static class LocalAspireSkills
                 try
                 {
                     directories = scope is AgentConfigurationScope.Project
-                        ? projectDirectories.SelectMany(directory => GetDirectories(agent.Client, scope, directory, executionContext, environment)).ToArray()
-                        : GetDirectories(agent.Client, scope, workspaceRoot, executionContext, environment).ToArray();
+                        ? projectDirectories.SelectMany(directory => GetDirectories(agent, scope, directory, executionContext, environment)).ToArray()
+                        : GetDirectories(agent, scope, workspaceRoot, executionContext, environment).ToArray();
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
                 {
@@ -100,7 +98,14 @@ internal static class LocalAspireSkills
             yield break;
         }
 
-        yield return agent.GetSkillBaseDirectory(scope, workspaceRoot, executionContext, environment);
+        if (scope is AgentConfigurationScope.Project)
+        {
+            yield return agent.GetSkillBaseDirectory(scope, AgentPath.RequireWorkspaceRoot(workspaceRoot), executionContext, environment);
+        }
+        else
+        {
+            yield return agent.GlobalSkillsDirectory(executionContext, environment);
+        }
 
         // Native clients also discover compatibility locations, independently of where this
         // CLI would install a new skill. Never search unrelated repositories recursively.
@@ -115,14 +120,14 @@ internal static class LocalAspireSkills
         {
             yield return scope is AgentConfigurationScope.Project
                 ? Path.Combine(root, ".github", "skills")
-                : Path.Combine(CopilotPaths.GetConfigDirectory(executionContext, environment), "skills");
+                : Path.Combine(agent.GlobalPluginDirectory(executionContext, environment), "skills");
         }
 
         if (agent == AgentClient.OpenCode)
         {
             var openCodeRoot = scope is AgentConfigurationScope.Project
                 ? Path.Combine(root, ".opencode")
-                : OpenCodePaths.GetConfigDirectory(executionContext, environment);
+                : agent.GlobalPluginDirectory(executionContext, environment);
             yield return Path.Combine(openCodeRoot, "skill");
             yield return Path.Combine(openCodeRoot, "skills");
             if (scope is AgentConfigurationScope.Global &&

@@ -186,7 +186,7 @@ public class LocalAspireSkillsTests(ITestOutputHelper output) : IDisposable
         Assert.Empty(_context.Home.EnumerateFileSystemInfos());
     }
 
-    private Task<LocalAspireSkillScan> ScanAsync(IEnumerable<IAgentEnvironmentScanner> agents)
+    private Task<LocalAspireSkillScan> ScanAsync(IEnumerable<AgentClient> agents)
         => LocalAspireSkills.FindAsync(_context.Project, _context.Project, agents, _context.ExecutionContext, _context.Environment, TestContext.Current.CancellationToken);
 
     public void Dispose() => _context.Dispose();

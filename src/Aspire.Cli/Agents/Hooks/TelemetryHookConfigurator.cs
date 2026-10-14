@@ -1,175 +1,378 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Globalization;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Cli.Agents.ClaudeCode;
 using Aspire.Cli.Agents.Copilot;
-using Aspire.Cli.Resources;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Agents.Hooks;
 
 /// <summary>
-/// Contributes one user-level hook per detected supported client, sharing Copilot App/CLI targets.
+/// Default <see cref="ITelemetryHookConfigurator"/>. Refreshes compatibility scripts and writes the native
+/// <c>PostToolUse</c> hook into each supported client's <b>user-level</b> configuration.
 /// </summary>
-internal sealed class TelemetryHookConfigurator(
-    ITelemetryHookInstaller installer,
-    IEnumerable<IAgentEnvironmentScanner> environmentScanners,
-    CliExecutionContext executionContext,
-    ILogger<TelemetryHookConfigurator> logger) : ITelemetryHookConfigurator
+/// <remarks>
+/// Only user-level configuration is ever written. The GitHub Copilot CLI hooks reference confirms that
+/// Copilot reads cross-tool <c>.claude/settings.json</c> only at the repository level (never <c>~/.claude</c>),
+/// so the Copilot user hook (<c>~/.copilot/hooks/aspire-telemetry.json</c>) and the Claude user hook
+/// (<c>~/.claude/settings.json</c>) cannot both fire for the same event — the hook is registered exactly
+/// once per client by construction.
+/// See https://docs.github.com/en/copilot/reference/hooks-reference.
+/// </remarks>
+internal sealed class TelemetryHookConfigurator : ITelemetryHookConfigurator
 {
-    internal const int HookTimeoutSeconds = 30;
+    private const string CopilotHooksDirectoryName = "hooks";
+    private const string CopilotHookFileName = "aspire-telemetry.json";
 
-    public IEnumerable<AgentConfigurationTarget> Plan(AgentInitRequest request)
+    private const string ClaudeSettingsFileName = "settings.json";
+    private const string ClaudePostToolUseKey = "PostToolUse";
+
+    private const int HookTimeoutSeconds = 30;
+
+    private readonly ITelemetryHookInstaller _installer;
+    private readonly CliExecutionContext _executionContext;
+    private readonly IEnvironment _environment;
+    private readonly ILogger<TelemetryHookConfigurator> _logger;
+
+    public TelemetryHookConfigurator(
+        ITelemetryHookInstaller installer,
+        CliExecutionContext executionContext,
+        IEnvironment environment,
+        ILogger<TelemetryHookConfigurator> logger)
     {
-        if (request.Scope is not AgentConfigurationScope.Global || !request.Assets.HasAssets || request.Environments.Count == 0)
+        ArgumentNullException.ThrowIfNull(installer);
+        ArgumentNullException.ThrowIfNull(executionContext);
+        ArgumentNullException.ThrowIfNull(environment);
+        ArgumentNullException.ThrowIfNull(logger);
+        _installer = installer;
+        _executionContext = executionContext;
+        _environment = environment;
+        _logger = logger;
+    }
+
+    /// <inheritdoc />
+    public async Task<TelemetryHookConfigurationResult> ConfigureAsync(
+        AgentEnvironment detectedEnvironments,
+        CancellationToken cancellationToken)
+    {
+        var configured = AgentEnvironment.None;
+        var skipped = new List<TelemetryHookSkip>();
+
+        // VS Code and OpenCode hook schemas are not yet verified, so they are intentionally not
+        // configured here even though they are detected/marked. The Copilot App and CLI share the
+        // same ~/.copilot hook location, so prefer the App display name when both are detected.
+        // This identifies the configuration target, not the hook event's client-name: the canonical
+        // scripts currently report App events as copilot-cli. See https://github.com/microsoft/aspire-skills/issues/71.
+        var supported = new List<AgentEnvironment>();
+        if (detectedEnvironments.HasFlag(AgentEnvironment.CopilotApp))
         {
-            yield break;
+            supported.Add(AgentEnvironment.CopilotApp);
+        }
+        else if (detectedEnvironments.HasFlag(AgentEnvironment.CopilotCli))
+        {
+            supported.Add(AgentEnvironment.CopilotCli);
         }
 
-        Task<TelemetryHookScripts>? installation = null;
-        // User-scoped setup instruments detected clients independently of the selected
-        // assets. Project-only setup must not register or repair files in the user's home.
-        // Selecting an undetected client must not create its hook, and detection
-        // does not authorize changes to unselected clients.
-        foreach (var scanner in environmentScanners.Where(request.Environments.Contains))
+        if (detectedEnvironments.HasFlag(AgentEnvironment.ClaudeCode))
         {
-            if (scanner.GetHookConfiguration(request) is { } configuration)
+            supported.Add(AgentEnvironment.ClaudeCode);
+        }
+
+        if (supported.Count == 0)
+        {
+            return new TelemetryHookConfigurationResult(configured, skipped);
+        }
+
+        // Keep compatibility scripts current for existing registrations and older clients.
+        await _installer.EnsureInstalledAsync(cancellationToken);
+
+        foreach (var environment in supported)
+        {
+            switch (environment)
             {
-                yield return Target(scanner, configuration);
+                case AgentEnvironment.CopilotApp:
+                case AgentEnvironment.CopilotCli:
+                    if (await TryConfigureCopilotAsync(cancellationToken))
+                    {
+                        configured |= environment;
+                    }
+                    else
+                    {
+                        skipped.Add(new TelemetryHookSkip(environment, TelemetryHookSkipReason.WriteFailed));
+                    }
+                    break;
+
+                case AgentEnvironment.ClaudeCode:
+                    var claudeSkipReason = await ConfigureClaudeAsync(cancellationToken);
+                    if (claudeSkipReason is { } reason)
+                    {
+                        skipped.Add(new TelemetryHookSkip(environment, reason));
+                    }
+                    else
+                    {
+                        configured |= environment;
+                    }
+                    break;
             }
         }
 
-        AgentConfigurationTarget Target(IAgentEnvironmentScanner scanner, AgentHookConfiguration configuration)
-            => new(configuration.Path, AgentConfigurationScope.Global, AgentAssetKind.TelemetryHooks, [scanner], "hooks:aspire",
-                async (root, context, cancellationToken) =>
-                {
-                    var settings = await AgentConfigurationJson.ReadSettingsAsync(context, configuration.PolicyPaths, cancellationToken);
-                    if (settings.Append(root).Any(config =>
-                        AgentConfigurationJson.Boolean(config, "disableAllHooks") is true ||
-                        AgentConfigurationJson.Boolean(config, "allowManagedHooksOnly") is true))
-                    {
-                        return AgentConfigurationEdit.Skipped(AgentCommandStrings.Configuration_PolicyBlocked);
-                    }
-
-                    var hasProjectHook = false;
-                    foreach (var configPath in configuration.ExistingHookPaths)
-                    {
-                        // A project/user alias can point at the same physical Claude file.
-                        if (AgentPath.Comparer.Equals(AgentPath.Resolve(configPath), AgentPath.Resolve(configuration.Path)))
-                        {
-                            continue;
-                        }
-
-                        if (await context.ReadOptionalAsync(configPath, cancellationToken) is { } config &&
-                            ContainsAspireHook(config))
-                        {
-                            hasProjectHook = true;
-                            break;
-                        }
-                    }
-
-                    if (!hasProjectHook)
-                    {
-                        configuration.Validate(root);
-                    }
-
-                    TelemetryHookScripts scripts;
-                    try
-                    {
-                        // The lazily materialized scripts are shared by every target in this
-                        // setup invocation, including failures. Cancellation is never caught.
-                        scripts = await (installation ??= installer.EnsureInstalledAsync(cancellationToken));
-                    }
-                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
-                    {
-                        logger.LogDebug(ex, "Could not install the embedded Aspire telemetry hooks.");
-                        return new AgentConfigurationEdit(AgentConfigurationStatus.Failed,
-                            string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.Configuration_HookInstallationFailed, ex.Message));
-                    }
-
-                    // Existing project hooks still need their embedded scripts repaired or
-                    // refreshed after a CLI upgrade, even though no user hook should be added.
-                    if (hasProjectHook)
-                    {
-                        return AgentConfigurationEdit.Skipped(AgentCommandStrings.Configuration_ExistingProjectHook);
-                    }
-
-                    configuration.Apply(root, scripts, IsAspireHook);
-
-                    return AgentConfigurationEdit.Applied();
-                });
+        return new TelemetryHookConfigurationResult(configured, skipped);
     }
 
-    private bool ContainsAspireHook(JsonObject root)
+    private async Task<bool> TryConfigureCopilotAsync(CancellationToken cancellationToken)
     {
-        if (AgentConfigurationJson.OptionalObject(root, "hooks") is not { } hooks)
+        try
+        {
+            var hooksDirectory = ResolveCopilotHooksDirectory();
+            Directory.CreateDirectory(hooksDirectory);
+
+            var filePath = Path.Combine(hooksDirectory, CopilotHookFileName);
+
+            // Direct exec avoids shell cold starts on every tool call while keeping all-event coverage.
+            // https://docs.github.com/en/copilot/reference/hooks-reference#command-hooks
+            var (command, args) = AgentTelemetryHook.GetCommand(AgentTelemetryProtocol.HookOptionName);
+            var config = new JsonObject
+            {
+                ["version"] = 1,
+                ["hooks"] = new JsonObject
+                {
+                    ["postToolUse"] = new JsonArray(
+                        new JsonObject
+                        {
+                            ["type"] = "command",
+                            ["exec"] = command,
+                            ["args"] = new JsonArray(args.Select(arg => (JsonNode?)JsonValue.Create(arg)).ToArray()),
+                            ["timeoutSec"] = HookTimeoutSeconds,
+                        }),
+                },
+            };
+
+            await WriteJsonAtomicAsync(filePath, config, cancellationToken);
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _logger.LogDebug(ex, "Failed to write Copilot CLI telemetry hook configuration.");
+            return false;
+        }
+    }
+
+    private async Task<TelemetryHookSkipReason?> ConfigureClaudeAsync(CancellationToken cancellationToken)
+    {
+        var claudeDirectory = ClaudeCodePaths.GetConfigDirectory(_executionContext, _environment);
+        var settingsPath = Path.Combine(claudeDirectory, ClaudeSettingsFileName);
+
+        JsonObject settings;
+        if (File.Exists(settingsPath))
+        {
+            string content;
+            try
+            {
+                content = await File.ReadAllTextAsync(settingsPath, cancellationToken);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                _logger.LogDebug(ex, "Failed to read Claude settings at {Path}.", settingsPath);
+                return TelemetryHookSkipReason.WriteFailed;
+            }
+
+            JsonNode? parsed;
+            try
+            {
+                parsed = JsonNode.Parse(content);
+            }
+            catch (JsonException ex)
+            {
+                // Never clobber a file we can't understand; leave it untouched and report the skip.
+                _logger.LogDebug(ex, "Claude settings at {Path} contained malformed JSON; skipping hook registration.", settingsPath);
+                return TelemetryHookSkipReason.MalformedConfig;
+            }
+
+            switch (parsed)
+            {
+                // An empty file or a literal `null` document: start from a fresh object.
+                case null:
+                    settings = new JsonObject();
+                    break;
+                case JsonObject existing:
+                    settings = existing;
+                    break;
+                // Root is valid JSON but not an object (array/string/number/bool): another tool owns this
+                // file in a shape we don't recognize. AsObject() would throw InvalidOperationException (not
+                // JsonException), escape the best-effort callers, and crash `agent init`. Skip instead.
+                default:
+                    return TelemetryHookSkipReason.UnexpectedConfigShape;
+            }
+        }
+        else
+        {
+            settings = new JsonObject();
+        }
+
+        // `hooks` and its `PostToolUse` child must have the documented shapes; an unexpected shape means
+        // another tool owns the file, so skip rather than risk corrupting it.
+        JsonObject hooks;
+        if (settings.TryGetPropertyValue("hooks", out var hooksNode))
+        {
+            if (hooksNode is not JsonObject hooksObject)
+            {
+                return TelemetryHookSkipReason.UnexpectedConfigShape;
+            }
+
+            hooks = hooksObject;
+        }
+        else
+        {
+            hooks = new JsonObject();
+            settings["hooks"] = hooks;
+        }
+
+        JsonArray postToolUse;
+        if (hooks.TryGetPropertyValue(ClaudePostToolUseKey, out var postToolUseNode))
+        {
+            if (postToolUseNode is not JsonArray postToolUseArray)
+            {
+                return TelemetryHookSkipReason.UnexpectedConfigShape;
+            }
+
+            postToolUse = postToolUseArray;
+        }
+        else
+        {
+            postToolUse = new JsonArray();
+            hooks[ClaudePostToolUseKey] = postToolUse;
+        }
+
+        // Idempotent: replace both legacy scripts and native Aspire entries, preserving user hooks.
+        RemoveExistingAspireEntries(postToolUse);
+
+        // Keep exec form and wildcard coverage, but run the CLI directly instead of a shell.
+        // https://docs.claude.com/en/docs/claude-code/hooks.
+        var (command, args) = AgentTelemetryHook.GetCommand(AgentTelemetryProtocol.HookOptionName);
+
+        postToolUse.Add((JsonNode?)new JsonObject
+        {
+            ["matcher"] = "*",
+            ["hooks"] = new JsonArray(
+                new JsonObject
+                {
+                    ["type"] = "command",
+                    ["command"] = command,
+                    ["args"] = new JsonArray(args.Select(arg => (JsonNode?)JsonValue.Create(arg)).ToArray()),
+                    ["timeout"] = HookTimeoutSeconds,
+                }),
+        });
+
+        try
+        {
+            Directory.CreateDirectory(claudeDirectory);
+            await WriteJsonAtomicAsync(settingsPath, settings, cancellationToken);
+            return null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _logger.LogDebug(ex, "Failed to write Claude settings at {Path}.", settingsPath);
+            return TelemetryHookSkipReason.WriteFailed;
+        }
+    }
+
+    private string ResolveCopilotHooksDirectory()
+    {
+        // The Copilot CLI hooks reference resolves the user-level hooks directory from COPILOT_HOME when
+        // set, otherwise ~/.copilot/hooks. Mirror that so the hook lands where Copilot actually reads it.
+        var configDirectory = CopilotPaths.GetConfigDirectory(_executionContext.HomeDirectory, _environment);
+        return Path.Combine(configDirectory, CopilotHooksDirectoryName);
+    }
+
+    private static void RemoveExistingAspireEntries(JsonArray postToolUse)
+    {
+        // Iterate in reverse so removals don't shift indices we still need to visit. Remove individual
+        // Aspire hook entries (not whole groups) so a user-authored hook sharing a matcher group survives,
+        // then drop any group left empty by that removal.
+        for (var groupIndex = postToolUse.Count - 1; groupIndex >= 0; groupIndex--)
+        {
+            if (postToolUse[groupIndex] is not JsonObject group
+                || !group.TryGetPropertyValue("hooks", out var innerNode)
+                || innerNode is not JsonArray innerHooks)
+            {
+                continue;
+            }
+
+            for (var hookIndex = innerHooks.Count - 1; hookIndex >= 0; hookIndex--)
+            {
+                if (IsAspireHook(innerHooks[hookIndex]))
+                {
+                    innerHooks.RemoveAt(hookIndex);
+                }
+            }
+
+            if (innerHooks.Count == 0)
+            {
+                postToolUse.RemoveAt(groupIndex);
+            }
+        }
+    }
+
+    private static bool IsAspireHook(JsonNode? node)
+    {
+        // Recognize legacy scripts and our exact native command, not arbitrary Aspire commands.
+        if (node is not JsonObject hook)
         {
             return false;
         }
 
-        foreach (var key in new[] { ClaudeCodeAgentEnvironmentScanner.HookEventName, CopilotAgentEnvironmentScanner.HookEventName })
+        if (hook.TryGetPropertyValue("command", out var commandNode)
+            && commandNode is JsonValue commandValue
+            && commandValue.TryGetValue<string>(out var command)
+            && ReferencesTelemetryScript(command))
         {
-            if (hooks[key] is JsonArray entries && entries.Any(entry => IsAspireHook(entry) ||
-                (entry is JsonObject group && group["hooks"] is JsonArray inner && inner.Any(IsAspireHook))))
+            return true;
+        }
+
+        if (hook.TryGetPropertyValue("args", out var argsNode) && argsNode is JsonArray args)
+        {
+            var values = args.Select(arg => arg is JsonValue value && value.TryGetValue<string>(out var text) ? text : null).ToArray();
+            var executable = hook["command"] is JsonValue executableValue && executableValue.TryGetValue<string>(out var executableText)
+                ? executableText : null;
+            var (currentCommand, _) = AgentTelemetryHook.GetCommand(AgentTelemetryProtocol.HookOptionName);
+            var executableName = Path.GetFileNameWithoutExtension(executable);
+            var isDotnet = string.Equals(executableName, "dotnet", StringComparison.OrdinalIgnoreCase);
+            if ((values is [AgentTelemetryProtocol.AgentCommandName, AgentTelemetryProtocol.TelemetryCommandName, AgentTelemetryProtocol.HookOptionName] && !isDotnet
+                    && (executable == currentCommand || string.Equals(executableName, "aspire", StringComparison.OrdinalIgnoreCase)))
+                || (values is [var assemblyPath, AgentTelemetryProtocol.AgentCommandName, AgentTelemetryProtocol.TelemetryCommandName, AgentTelemetryProtocol.HookOptionName] && isDotnet
+                    && string.Equals(Path.GetFileName(assemblyPath), "aspire.dll", StringComparison.OrdinalIgnoreCase)))
             {
                 return true;
+            }
+            foreach (var arg in args)
+            {
+                if (arg is JsonValue argValue
+                    && argValue.TryGetValue<string>(out var argString)
+                    && ReferencesTelemetryScript(argString))
+                {
+                    return true;
+                }
             }
         }
 
         return false;
     }
 
-    private bool IsAspireHook(JsonNode? node)
+    private static bool ReferencesTelemetryScript(string? value)
+        => value is not null
+            && (value.Contains(TelemetryHookInstaller.ShellResourceName, StringComparison.OrdinalIgnoreCase)
+                || value.Contains(TelemetryHookInstaller.PowerShellResourceName, StringComparison.OrdinalIgnoreCase));
+
+    private static async Task WriteJsonAtomicAsync(string path, JsonObject config, CancellationToken cancellationToken)
     {
-        if (node is not JsonObject hook)
-        {
-            return false;
-        }
+        var json = JsonSerializer.Serialize(config, JsonSourceGenerationContext.Default.JsonObject);
 
-        if (ReferencesAspireScript(AgentConfigurationJson.String(hook["command"])) ||
-            ReferencesAspireScript(AgentConfigurationJson.String(hook["bash"])) ||
-            ReferencesAspireScript(AgentConfigurationJson.String(hook["powershell"])) ||
-            (hook["args"] is JsonArray scriptArgs && scriptArgs.Any(value => ReferencesAspireScript(AgentConfigurationJson.String(value)))))
-        {
-            return true;
-        }
-
-        if (hook["args"] is not JsonArray args)
-        {
-            return false;
-        }
-
-        // Native registrations use ["agent", "telemetry", "--hook"], prefixed by aspire.dll
-        // for a dotnet host. Matching the host alone must not claim another managed application.
-        var values = args.Select(AgentConfigurationJson.String).ToArray();
-        var executable = AgentConfigurationJson.String(hook["exec"] ?? hook["command"]);
-        var executableName = Path.GetFileNameWithoutExtension(executable);
-        var isDotnet = string.Equals(executableName, "dotnet", StringComparison.OrdinalIgnoreCase);
-        var (currentCommand, _) = AgentTelemetryHook.GetCommand(AgentTelemetryProtocol.HookOptionName);
-
-        return (values is [AgentTelemetryProtocol.AgentCommandName, AgentTelemetryProtocol.TelemetryCommandName, AgentTelemetryProtocol.HookOptionName]
-                && !isDotnet
-                && (executable == currentCommand || string.Equals(executableName, "aspire", StringComparison.OrdinalIgnoreCase)))
-            || (values is [var assemblyPath, AgentTelemetryProtocol.AgentCommandName, AgentTelemetryProtocol.TelemetryCommandName, AgentTelemetryProtocol.HookOptionName]
-                && isDotnet
-                && string.Equals(Path.GetFileName(assemblyPath), "aspire.dll", StringComparison.OrdinalIgnoreCase));
-    }
-
-    private bool ReferencesAspireScript(string? value)
-    {
-        if (value is null)
-        {
-            return false;
-        }
-
-        // Shell commands contain quoted paths, for example bash '/home/o'\''brien/.aspire/hooks/track-telemetry.sh'.
-        // Match Aspire's directory as well as the filename: other products also ship track-telemetry scripts.
-        var normalized = value.Replace("'\\''", "'").Replace("''", "'").Replace('\\', '/');
-        var current = Path.Combine(executionContext.AspireHomeDirectory.FullName, "hooks").Replace('\\', '/');
-        return new[] { "track-telemetry.sh", "track-telemetry.ps1" }.Any(name =>
-            normalized.Contains($"{current}/{name}", StringComparison.OrdinalIgnoreCase) ||
-            normalized.Contains($"/.aspire/hooks/{name}", StringComparison.OrdinalIgnoreCase));
+        // Write to a sibling temp file then move into place so a concurrently firing hook never reads a
+        // half-written config.
+        var tempPath = path + ".tmp-" + Guid.NewGuid().ToString("N");
+        await File.WriteAllTextAsync(tempPath, json, cancellationToken);
+        File.Move(tempPath, path, overwrite: true);
     }
 }

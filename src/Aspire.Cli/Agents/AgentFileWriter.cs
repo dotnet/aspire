@@ -1,10 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json;
+using System.Text.Json.Nodes;
+
 namespace Aspire.Cli.Agents;
 
 /// <summary>
-/// Stages and atomically publishes one file after the caller validates its original inputs.
+/// Atomically publishes native JSON after revalidating its tracked inputs.
 /// </summary>
 internal static class AgentFileWriter
 {
@@ -22,14 +25,14 @@ internal static class AgentFileWriter
     }
 
     public static async Task WriteAsync(
-        string physicalPath,
-        bool destinationExists,
-        Func<Stream, CancellationToken, Task> writeContent,
-        Func<CancellationToken, Task> validateBeforePublish,
-        UnixFileMode? newFileMode,
+        AgentConfigurationJson.ReadContext.Document document,
+        JsonObject root,
+        AgentConfigurationJson.ReadContext context,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        var physicalPath = document.Path;
+        var destinationExists = document.Bytes is not null;
         var directory = Path.GetDirectoryName(physicalPath)!;
         Directory.CreateDirectory(directory);
 
@@ -49,13 +52,13 @@ internal static class AgentFileWriter
             };
             if (!OperatingSystem.IsWindows())
             {
-                options.UnixCreateMode = destinationExists ? File.GetUnixFileMode(physicalPath) : newFileMode;
+                options.UnixCreateMode = destinationExists ? File.GetUnixFileMode(physicalPath) : UnixFileMode.UserRead | UnixFileMode.UserWrite;
             }
 
             await using (var stream = new FileStream(stagingPath, options))
             {
                 ownsStagingFile = true;
-                await writeContent(stream, cancellationToken);
+                await JsonSerializer.SerializeAsync(stream, root, JsonSourceGenerationContext.Default.JsonObject, cancellationToken);
                 await stream.FlushAsync(cancellationToken);
             }
 
@@ -66,9 +69,8 @@ internal static class AgentFileWriter
                 File.SetUnixFileMode(stagingPath, File.GetUnixFileMode(physicalPath));
             }
 
-            // The caller owns byte snapshots, logical-link evidence and any additional
-            // read-only inputs (for example native policy files). Recheck after staging.
-            await validateBeforePublish(cancellationToken);
+            // Recheck byte snapshots, logical links and policy inputs after staging.
+            await context.ValidateAsync(cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
 
             if (destinationExists)

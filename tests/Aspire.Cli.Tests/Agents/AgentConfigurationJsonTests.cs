@@ -27,7 +27,7 @@ public class AgentConfigurationJsonTests(ITestOutputHelper output)
         await File.WriteAllBytesAsync(path, bytes).DefaultTimeout();
 
         var inline = AgentConfigurationJson.ParseObject(bytes);
-        var file = await new AgentConfigurationWriter.ReadContext().ReadAsync(path, CancellationToken.None).DefaultTimeout();
+        var file = await new AgentConfigurationJson.ReadContext().ReadAsync(path, CancellationToken.None).DefaultTimeout();
 
         Assert.True(JsonNode.DeepEquals(inline, file.Root));
         Assert.True((bool)inline["nested"]!["value"]!);
@@ -53,7 +53,7 @@ public class AgentConfigurationJsonTests(ITestOutputHelper output)
 
         var inline = Assert.Throws<AgentConfigurationException>(() => AgentConfigurationJson.ParseObject(bytes));
         var file = await Assert.ThrowsAsync<AgentConfigurationException>(() =>
-            new AgentConfigurationWriter.ReadContext().ReadAsync(path, CancellationToken.None)).DefaultTimeout();
+            new AgentConfigurationJson.ReadContext().ReadAsync(path, CancellationToken.None)).DefaultTimeout();
 
         Assert.Equal($"{path}: {inline.Message}", file.Message);
         Assert.Equal(bytes, await File.ReadAllBytesAsync(path).DefaultTimeout());

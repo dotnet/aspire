@@ -102,34 +102,6 @@ public class ConsoleInteractionServiceTests
             interactionService.PromptForSelectionsAsync("Select items:", choices, x => x, cancellationToken: CancellationToken.None));
     }
 
-    [Theory]
-    [InlineData(50)]
-    [InlineData(100)]
-    public async Task PromptForSelectionsAsync_MultilineChoices_ShowDestinationsBeforeSelection(int width)
-    {
-        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
-        cancellation.CancelAfter(TimeSpan.FromSeconds(10));
-        var output = new StringBuilder();
-        var console = CreateInteractiveConsoleWithInput(output, " \n");
-        console.Profile.Capabilities.Ansi = true;
-        console.Profile.Width = width;
-        var interactionService = CreateInteractionService(console);
-        TestItem[] choices =
-        [
-            new("copilot", "GitHub Copilot (CLI and App)\n  project: .github/copilot/settings.json\n  user: ~/.copilot/settings.json"),
-            new("vscode", "VS Code (native settings)\n  user: ~/.config/Code/User/settings.json")
-        ];
-
-        var result = await interactionService.PromptForSelectionsAsync(
-            "Select environments:", choices, choice => choice.Display, echoSelected: false, cancellationToken: cancellation.Token);
-
-        Assert.Same(choices[0], Assert.Single(result));
-        var rendered = output.ToString();
-        Assert.Contains(".github/copilot/settings.json", rendered);
-        Assert.Contains("~/.copilot/settings.json", rendered);
-        Assert.Contains("~/.config/Code/User/settings.json", rendered);
-    }
-
     [Fact]
     public void DisplayError_WithMarkupCharacters_DoesNotCauseMarkupParsingError()
     {
@@ -2019,7 +1991,6 @@ public class ConsoleInteractionServiceTests
             ColorSystem = ColorSystemSupport.NoColors,
             Interactive = InteractionSupport.Yes,
             Out = new AnsiConsoleOutput(new StringWriter(output)),
-            Enrichment = new ProfileEnrichment { UseDefaultEnrichers = false },
         };
         var console = AnsiConsole.Create(settings);
         console.Profile.Width = int.MaxValue;
@@ -2073,7 +2044,6 @@ file sealed class TestAnsiConsoleWithInput : IAnsiConsole
             var key = ch switch
             {
                 '\n' or '\r' => ConsoleKey.Enter,
-                ' '          => ConsoleKey.Spacebar,
                 'y' or 'Y'   => ConsoleKey.Y,
                 'n' or 'N'   => ConsoleKey.N,
                 _            => ConsoleKey.Enter,
@@ -2082,9 +2052,6 @@ file sealed class TestAnsiConsoleWithInput : IAnsiConsole
         }
 
         public Task<ConsoleKeyInfo?> ReadKeyAsync(bool intercept, CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            return Task.FromResult(ReadKey(intercept));
-        }
+            => Task.FromResult(ReadKey(intercept));
     }
 }

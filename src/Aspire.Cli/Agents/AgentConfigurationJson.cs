@@ -85,7 +85,7 @@ internal static class AgentConfigurationJson
         => new(string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.Configuration_UnexpectedShape, key));
 
     public static async Task<IReadOnlyList<JsonObject>> ReadSettingsAsync(
-        AgentConfigurationWriter.ReadContext context,
+        ReadContext context,
         IEnumerable<string> paths,
         CancellationToken cancellationToken)
     {
@@ -99,5 +99,65 @@ internal static class AgentConfigurationJson
         }
 
         return settings;
+    }
+
+    internal sealed class ReadContext
+    {
+        private readonly Dictionary<string, Document> _documents = new(AgentPath.Comparer);
+        private readonly Dictionary<string, string> _aliases = new(AgentPath.Comparer);
+
+        public async Task<Document> ReadAsync(string path, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var physicalPath = AgentPath.Resolve(path);
+            _aliases[path] = physicalPath;
+            if (_documents.TryGetValue(physicalPath, out var existing))
+            {
+                return existing;
+            }
+
+            var bytes = await AgentFileWriter.ReadExistingAsync(physicalPath, cancellationToken);
+            JsonObject? root;
+            try
+            {
+                root = bytes is null ? null : ParseObject(bytes);
+            }
+            catch (AgentConfigurationException ex)
+            {
+                throw new AgentConfigurationException($"{physicalPath}: {ex.Message}");
+            }
+
+            var document = new Document(physicalPath, bytes, root);
+            _documents.Add(physicalPath, document);
+            return document;
+        }
+
+        public async Task<JsonObject?> ReadOptionalAsync(string path, CancellationToken cancellationToken)
+            => (await ReadAsync(path, cancellationToken)).Root?.DeepClone().AsObject();
+
+        public async Task ValidateAsync(CancellationToken cancellationToken)
+        {
+            foreach (var (alias, physicalPath) in _aliases)
+            {
+                if (!AgentPath.Comparer.Equals(AgentPath.Resolve(alias), physicalPath))
+                {
+                    throw new AgentConfigurationException(AgentCommandStrings.Configuration_ConcurrentChange);
+                }
+            }
+
+            foreach (var document in _documents.Values)
+            {
+                var current = await AgentFileWriter.ReadExistingAsync(document.Path, cancellationToken);
+                if (document.Bytes is null ? current is not null : current is null || !document.Bytes.AsSpan().SequenceEqual(current))
+                {
+                    throw new AgentConfigurationException(AgentCommandStrings.Configuration_ConcurrentChange);
+                }
+            }
+        }
+
+        public Task SaveAsync(Document document, JsonObject root, CancellationToken cancellationToken)
+            => AgentFileWriter.WriteAsync(document, root, this, cancellationToken);
+
+        internal sealed record Document(string Path, byte[]? Bytes, JsonObject? Root);
     }
 }

@@ -142,11 +142,6 @@ internal static class McpConfigFileHelper
             return false;
         }
 
-        return UpdateDeprecatedCommand(aspire);
-    }
-
-    internal static bool UpdateDeprecatedCommand(JsonObject aspire)
-    {
         // Legacy MCP entries use command: "aspire", args: ["mcp", "start"], or OpenCode's
         // command: ["aspire", "mcp", "start"]. Only these exact deprecated forms are repaired;
         // custom commands and version-pinned server definitions are left intact.

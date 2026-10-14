@@ -38,20 +38,22 @@ disable plugins, migrate installations, or fall back to a different mode.
 
 ## Native configuration and shared files
 
-`AgentClient` is the static, localized client catalog. Native scanners handle
-read-only discovery, version evidence, and each client's configuration schema.
-`AgentSetupService` shares selection and the atomic configuration pipeline between
-standalone initialization and the chained `new` / `init` flows.
+`AgentClient` is the static, localized client catalog, including native settings
+destinations and inherited policy locations. The existing
+`AgentInitCommand` retains client discovery, bundled skill publishing, tool
+acquisition, MCP configuration, and telemetry hooks. There is no shared setup or
+onboarding service.
 
-Scan inputs contain only the working directory and repository boundary. Scanners
-return independent, read-only version evidence; native schema and catalog checks
-reuse that evidence without probing clients again. A missing repository boundary
-keeps workspace-free Global setup from inspecting project markers.
+`NativeAgentPluginConfiguration` performs only offline plugin/catalog registration
+and source-conflict checks. It uses `AgentFileWriter` for atomic publication,
+preserving semantic no-op bytes, permissions, physical path aliases, and inputs
+that change concurrently. It does not replace the existing MCP, skill, or hook
+writers.
 
-Explicit Project selections do not probe clients for copied tool skills or
-Copilot/Claude registration. Native OpenCode settings require version evidence
-after asset consent; Global setup also discovers eligible selected-client hooks.
-Detection is reused once when both defaults and native policy or hooks need it.
+Explicit Project selections do not probe clients for copied skills or native
+registration. OpenCode catalog registration uses existing configuration to select
+its schema, defaulting to stable V1 when there is no evidence, without running
+OpenCode. Global setup retains existing discovery for eligible hooks.
 
 Native registration does not download or activate Aspire skills or canvases.
 Agents retain responsibility for trust, acquisition, activation, caching, and
@@ -63,6 +65,10 @@ OpenCode MCP updates reuse the shared effective-document reader: exact legacy
 commands are repaired in their owning JSON file without adding a shadowing
 default to JSONC. Catalog registration still follows JSONC precedence, and
 existing pins and explicit configuration-file overrides remain authoritative.
+Global catalog registration uses the same single destination declared for the
+client's MCP configuration: explicit `OPENCODE_CONFIG`, then `OPENCODE_CONFIG_DIR`,
+then the normal user configuration. Other configuration layers are read-only.
+Schema selection does not validate or rewrite unrelated MCP server definitions.
 
 New Copilot and OpenCode tool skills use `.agents/skills` within the selected
 Project or Global root. Claude Code uses `.claude/skills`, with its Global
@@ -72,10 +78,9 @@ not authorize private configuration, native registration, or hooks for unselecte
 agents. Existing compatibility skill directories are inspected for collisions,
 not rewritten or deleted.
 
-Global telemetry hooks are eligible only for selected, actually detected
-environments. Copilot CLI and App share a hook target; VS Code hints do not invent
-CLI/App detection. New registrations execute the CLI directly, while embedded
-scripts remain available to refresh existing compatible registrations.
+Global telemetry hooks retain their existing installer and configurator and are
+eligible only for selected, actually detected environments. Copilot CLI and App
+share a hook target; VS Code hints do not invent CLI/App detection.
 
 ## Chained initialization
 

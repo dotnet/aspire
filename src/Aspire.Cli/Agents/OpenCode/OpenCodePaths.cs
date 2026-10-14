@@ -14,34 +14,22 @@ internal static class OpenCodePaths
         return File.Exists(jsoncPath) || !File.Exists(jsonPath) ? jsoncPath : jsonPath;
     }
 
-    public static string GetConfigDirectory(CliExecutionContext executionContext, IEnvironment environment)
-        => Path.Combine(AgentPath.GetOverride("XDG_CONFIG_HOME", executionContext, environment) ??
-            Path.Combine(executionContext.HomeDirectory.FullName, ".config"), "opencode");
-
     public static string GetGlobalMcpConfigPath(CliExecutionContext executionContext, IEnvironment environment)
     {
-        if (AgentPath.GetOverride("OPENCODE_CONFIG", executionContext, environment) is { } configFile)
+        if (GetOverride("OPENCODE_CONFIG") is { } configFile)
         {
             return configFile;
         }
 
-        var configDirectory = AgentPath.GetOverride("OPENCODE_CONFIG_DIR", executionContext, environment)
-            ?? GetConfigDirectory(executionContext, environment);
+        var configDirectory = GetOverride("OPENCODE_CONFIG_DIR")
+            ?? Path.Combine(GetOverride("XDG_CONFIG_HOME")
+                ?? Path.Combine(executionContext.HomeDirectory.FullName, ".config"), "opencode");
 
         return GetMcpConfigPath(new DirectoryInfo(configDirectory));
-    }
 
-    public static string GetManagedDirectory(CliExecutionContext executionContext, IEnvironment environment)
-    {
-        // https://opencode.ai/docs/config/#managed-settings
-        if (environment.IsWindows())
-        {
-            return Path.Combine(AgentPath.GetOverride("ProgramData", executionContext, environment) ??
-                Path.Combine(Path.GetPathRoot(executionContext.HomeDirectory.FullName)!, "ProgramData"), "opencode");
-        }
-
-        return environment.IsMacOS()
-            ? Path.Combine(Path.DirectorySeparatorChar.ToString(), "Library", "Application Support", "opencode")
-            : Path.Combine(Path.DirectorySeparatorChar.ToString(), "etc", "opencode");
+        string? GetOverride(string name)
+            => environment.GetEnvironmentVariable(name) is { Length: > 0 } value
+                ? Path.GetFullPath(value, executionContext.WorkingDirectory.FullName)
+                : null;
     }
 }

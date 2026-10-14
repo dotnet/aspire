@@ -21,5 +21,7 @@ internal static class ClaudeCodePaths
     }
 
     private static string? GetConfigDirectoryOverride(CliExecutionContext executionContext, IEnvironment environment)
-        => AgentPath.GetOverride("CLAUDE_CONFIG_DIR", executionContext, environment);
+        => environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR") is { Length: > 0 } value
+            ? Path.GetFullPath(AgentPath.Expand(value, executionContext))
+            : null;
 }

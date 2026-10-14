@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Agents;
+using Aspire.Cli.Agents.ClaudeCode;
 using Aspire.Cli.Tests.TestServices;
 using Microsoft.AspNetCore.InternalTesting;
 
@@ -27,7 +28,7 @@ public class AgentPathTests(ITestOutputHelper output) : IDisposable
             : Path.Combine(_context.Home.FullName, relative.Replace('/', Path.DirectorySeparatorChar));
 
         Assert.Equal(expected, _context.ClaudeDirectory);
-        Assert.Equal(Path.Combine(expected, ".claude.json"), _context.ClaudeMcpFile);
+        Assert.Equal(Path.Combine(expected, ".claude.json"), ClaudeCodePaths.GetGlobalMcpConfigPath(_context.ExecutionContext, _context.Environment));
         Assert.Equal(expected, AgentPath.Expand(value, _context.ExecutionContext));
         Assert.Empty(_context.Project.EnumerateFileSystemInfos());
         Assert.Empty(_context.Home.EnumerateFileSystemInfos());
@@ -70,7 +71,7 @@ public class AgentPathTests(ITestOutputHelper output) : IDisposable
 
         var target = Assert.Single(result);
         Assert.Equal(AgentConfigurationStatus.Configured, target.Status);
-        Assert.Equal(AgentConfigurationScope.Global, target.Scope);
+        Assert.Equal(AgentConfigurationScope.Project, target.Scope);
         Assert.NotNull(new DirectoryInfo(alias).LinkTarget);
         Assert.True(File.Exists(Path.Combine(projectDirectory.FullName, "settings.json")));
     }

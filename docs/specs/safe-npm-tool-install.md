@@ -92,17 +92,11 @@ Our verification chain relies on these trust anchors:
 
 **Trust basis:** All preceding verification steps have passed. The Sigstore attestation verifies the local archive digest and confirms the correct source repository, workflow, and build system.
 
-### Step 6: Generate and publish skill files
+### Step 6: Generate and mirror skill files
 
-**Action:** Run `playwright-cli install --skills` once in an owned temporary workspace, where it generates `.claude/skills/playwright-cli/`. Capture the complete payload, including supporting files, and publish it only to the selected agents' deduplicated skill directories in the requested scope (`--scope project|global`, default `project`). Copilot and OpenCode share `.agents/skills/playwright-cli/`; Claude uses `.claude/skills/playwright-cli/` and honors its user configuration-directory override. These common skill locations also work with compatible editor-hosted agents, without a separate VS Code installation target.
+**Action:** Run `playwright-cli install --skills` in an isolated temporary directory, then copy the generated `.claude/skills/playwright-cli/` directory only to the selected clients' skill destinations in the selected project or global scope. Copilot and OpenCode share `.agents/skills/playwright-cli/`; Claude Code uses `.claude/skills/playwright-cli/`. Shared destinations are written once. The mirror is a full sync — files are created, updated, and stale files are removed in selected destinations. Unselected clients, the other scope, and legacy skill locations remain untouched.
 
-Scope controls configuration and generated skill destinations. The verified Playwright CLI prerequisite remains a global npm tool installation; selecting project scope does not change that acquisition model.
-
-Each changed file is staged beside its destination, checked for concurrent changes, and replaced atomically. Unchanged files retain their timestamps, and user-owned extra files are not pruned. Generation cannot create unselected-client directories in the user's workspace. Acquisition, generation, and destination failures are reported separately from successful installation.
-
-Replacement preserves the destination DACL on Windows and mode bits on Unix. Unix ownership, custom ACLs, and extended attributes are not preserved; files relying on that metadata should be configured manually instead.
-
-**What this establishes:** The complete Playwright CLI skill is available at the successfully configured targets. Selecting Copilot and OpenCode publishes their shared skill destination once per scope.
+**What this establishes:** The Playwright CLI skill files are available for the selected clients and scope. Copy failures are reported as warnings when some destinations succeed, or as a failure when none succeed.
 
 ## Verification Chain Summary
 

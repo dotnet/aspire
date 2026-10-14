@@ -7,7 +7,6 @@ using System.Security.Cryptography;
 using System.Security.Principal;
 using System.Text.Json;
 using Aspire.Cli.Acquisition;
-using Aspire.Cli.Agents;
 using Aspire.Cli.Agents.AspireSkills;
 using Aspire.Cli.Agents.Playwright;
 using Aspire.Cli.Certificates;
@@ -92,18 +91,6 @@ public class CliBootstrapTests(ITestOutputHelper outputHelper)
 
         Assert.NotNull(reader);
         Assert.IsType<IdentityChannelReader>(reader);
-    }
-
-    [Fact]
-    public async Task BuildApplication_RegistersConfigurationEnvironmentScanners()
-    {
-        using var host = await BuildHostAsync();
-        var environments = host.Services.GetServices<IAgentEnvironmentScanner>().ToArray();
-
-        Assert.Equal(
-            AgentClient.All,
-            environments.Select(environment => environment.Client));
-        Assert.Equal(environments, host.Services.GetServices<IAgentEnvironmentScanner>());
     }
 
     [Fact]
