@@ -352,13 +352,6 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
         {
             PromptForSelectionsCallback = (prompt, choices, formatter, _) =>
             {
-                if (prompt == AgentCommandStrings.InitCommand_SelectSkills)
-                {
-                    return installSkills
-                        ? choices.Cast<object>().OfType<SkillDefinition>().Where(static skill => skill.HasName("aspire")).Cast<object>().ToArray()
-                        : [];
-                }
-
                 Assert.Equal(AgentCommandStrings.InitCommand_SelectAgentsPrompt, prompt);
                 labels.AddRange(choices.Cast<object>().Select(formatter));
                 return [AgentClient.Copilot];
@@ -406,9 +399,9 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
             PromptForSelectionsCallback = (prompt, choices, _, _) =>
             {
                 prompts.Add(prompt);
-                return prompt == AgentCommandStrings.InitCommand_SelectSkills
-                    ? choices.Cast<object>().OfType<SkillDefinition>().Where(skill => skill.HasName("aspire")).Cast<object>().ToArray()
-                    : [AgentClient.Copilot];
+                Assert.Equal(AgentCommandStrings.InitCommand_SelectAgentsPrompt, prompt);
+                Assert.Equal(AgentClient.All, choices.Cast<AgentClient>());
+                return [AgentClient.Copilot];
             },
             ConfirmCallback = (prompt, _) =>
             {

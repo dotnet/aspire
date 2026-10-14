@@ -106,6 +106,15 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to The following agent configurations use the deprecated &apos;mcp start&apos; command. Update them?.
+        /// </summary>
+        internal static string ConfigUpdatesSelectPrompt {
+            get {
+                return ResourceManager.GetString("ConfigUpdatesSelectPrompt", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Configuration completed with errors. Please fix the reported issues and re-run the command..
         /// </summary>
         internal static string ConfigurationCompletedWithErrors {
@@ -853,105 +862,6 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Configure Aspire MCP for {0} at {1}.
-        /// </summary>
-        internal static string InitCommand_McpConfigurationDescription {
-            get {
-                return ResourceManager.GetString("InitCommand_McpConfigurationDescription", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Install Aspire MCP server.
-        /// </summary>
-        internal static string InitCommand_ConfigureMcpServer {
-            get {
-                return ResourceManager.GetString("InitCommand_ConfigureMcpServer", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Installed Aspire agent skills:.
-        /// </summary>
-        internal static string InitCommand_InstalledSkillsSummary {
-            get {
-                return ResourceManager.GetString("InitCommand_InstalledSkillsSummary", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Locations: {0}.
-        /// </summary>
-        internal static string InitCommand_InstalledSkillsSummaryLocations {
-            get {
-                return ResourceManager.GetString("InitCommand_InstalledSkillsSummaryLocations", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Skills: {0}.
-        /// </summary>
-        internal static string InitCommand_InstalledSkillsSummarySkills {
-            get {
-                return ResourceManager.GetString("InitCommand_InstalledSkillsSummarySkills", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Which skills should be installed?.
-        /// </summary>
-        internal static string InitCommand_SelectSkills {
-            get {
-                return ResourceManager.GetString("InitCommand_SelectSkills", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Comma-separated list of skills to install. Bundle skills are loaded dynamically; CLI-provided skills include {0}. Use &apos;{1}&apos; or &apos;{2}&apos;.
-        /// </summary>
-        internal static string InitCommand_SkillsOptionDescription {
-            get {
-                return ResourceManager.GetString("InitCommand_SkillsOptionDescription", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Installed Aspire agent telemetry hooks for: {0}. Only Aspire skill, MCP tool, and reference-file usage is recorded. Opt out anytime by setting ASPIRE_CLI_TELEMETRY_OPTOUT=true..
-        /// </summary>
-        internal static string InitCommand_TelemetryHooksInstalled {
-            get {
-                return ResourceManager.GetString("InitCommand_TelemetryHooksInstalled", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Skipped the telemetry hook for {0} because its configuration file contains malformed JSON..
-        /// </summary>
-        internal static string InitCommand_TelemetryHookSkippedMalformedConfig {
-            get {
-                return ResourceManager.GetString("InitCommand_TelemetryHookSkippedMalformedConfig", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Skipped the telemetry hook for {0} because its configuration has an unexpected shape..
-        /// </summary>
-        internal static string InitCommand_TelemetryHookSkippedUnexpectedShape {
-            get {
-                return ResourceManager.GetString("InitCommand_TelemetryHookSkippedUnexpectedShape", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Skipped the telemetry hook for {0} because its configuration could not be written..
-        /// </summary>
-        internal static string InitCommand_TelemetryHookWriteFailed {
-            get {
-                return ResourceManager.GetString("InitCommand_TelemetryHookWriteFailed", resourceCulture);
-            }
-        }
-
-        /// <summary>
         ///   Looks up a localized string similar to The configuration file &apos;{0}&apos; contains malformed JSON. Please fix the file manually and re-run the command..
         /// </summary>
         internal static string MalformedConfigFileError {
@@ -1083,6 +993,15 @@ namespace Aspire.Cli.Resources {
         ///   Reports a local skill inspection failure.
         /// </summary>
         internal static string LocalSkills_ReadFailed => ResourceManager.GetString("LocalSkills_ReadFailed", resourceCulture);
+
+        /// <summary>
+        ///   Looks up a localized string similar to Skipping update of &apos;{0}&apos;..
+        /// </summary>
+        internal static string SkippedMalformedConfigFile {
+            get {
+                return ResourceManager.GetString("SkippedMalformedConfigFile", resourceCulture);
+            }
+        }
 
     }
 }
