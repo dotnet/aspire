@@ -9,11 +9,9 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
-using Aspire.Cli.DotNet;
-using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Cli.Telemetry;
+namespace Aspire.Shared.Telemetry;
 
 /// <summary>
 /// Detects whether the current user or machine appears to be Microsoft internal.
@@ -50,41 +48,46 @@ internal sealed partial class InternalMicrosoftDetector : IInternalMicrosoftDete
     private static readonly TimeSpan s_gitHubCandidateTimeout = TimeSpan.FromSeconds(5);
 
     private readonly string _cacheFilePath;
-    private readonly CliExecutionContext _executionContext;
-    private readonly IEnvironment _environment;
-    private readonly IProcessExecutionFactory _processExecutionFactory;
+    private readonly DirectoryInfo _homeDirectory;
+    private readonly DirectoryInfo _workingDirectory;
+    private readonly ITelemetryEnvironment _environment;
+    private readonly Func<ProcessStartInfo, Action<string>, Action<string>, IChildProcess> _createProcess;
     private readonly HttpMessageHandler? _gitHubHttpMessageHandler;
     private readonly TimeSpan _gitHubCandidateTimeout;
     private readonly TimeSpan _gitHubHttpTimeout;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<InternalMicrosoftDetector> _logger;
-    private readonly ICIEnvironmentDetector _ciEnvironmentDetector;
+    private readonly bool _isCIEnvironment;
     private readonly IReadOnlyList<IReadOnlyList<InternalMicrosoftProbe>>? _probeStages;
     private readonly TimeSpan _probeStageTimeout;
     private readonly string _macPlatformSsoPath;
 
-    public InternalMicrosoftDetector(CliExecutionContext executionContext, IEnvironment environment, TimeProvider timeProvider, ILogger<InternalMicrosoftDetector> logger, IProcessExecutionFactory processExecutionFactory, ICIEnvironmentDetector ciEnvironmentDetector)
+    public InternalMicrosoftDetector(DirectoryInfo homeDirectory, DirectoryInfo workingDirectory, DirectoryInfo cacheDirectory,
+        ITelemetryEnvironment environment, TimeProvider timeProvider, ILogger<InternalMicrosoftDetector> logger,
+        Func<ProcessStartInfo, Action<string>, Action<string>, IChildProcess> createProcess, bool isCIEnvironment)
         : this(
-            executionContext,
+            homeDirectory,
+            workingDirectory,
             environment,
-            Path.Combine(executionContext.CacheDirectory.FullName, CacheSubdirectoryName, CacheFileName),
+            Path.Combine(cacheDirectory.FullName, CacheSubdirectoryName, CacheFileName),
             timeProvider,
             logger,
-            processExecutionFactory,
-            ciEnvironmentDetector,
+            createProcess,
+            isCIEnvironment,
             MacPlatformSsoPath,
             probeStages: null)
     {
     }
 
     internal InternalMicrosoftDetector(
-        CliExecutionContext executionContext,
-        IEnvironment environment,
+        DirectoryInfo homeDirectory,
+        DirectoryInfo workingDirectory,
+        ITelemetryEnvironment environment,
         string cacheFilePath,
         TimeProvider timeProvider,
         ILogger<InternalMicrosoftDetector> logger,
-        IProcessExecutionFactory processExecutionFactory,
-        ICIEnvironmentDetector ciEnvironmentDetector,
+        Func<ProcessStartInfo, Action<string>, Action<string>, IChildProcess> createProcess,
+        bool isCIEnvironment,
         string macPlatformSsoPath,
         IReadOnlyList<IReadOnlyList<InternalMicrosoftProbe>>? probeStages,
         HttpMessageHandler? gitHubHttpMessageHandler = null,
@@ -93,15 +96,16 @@ internal sealed partial class InternalMicrosoftDetector : IInternalMicrosoftDete
         TimeSpan? probeStageTimeout = null)
     {
         _cacheFilePath = cacheFilePath;
-        _executionContext = executionContext;
+        _homeDirectory = homeDirectory;
+        _workingDirectory = workingDirectory;
         _environment = environment;
-        _processExecutionFactory = processExecutionFactory;
+        _createProcess = createProcess;
         _gitHubHttpMessageHandler = gitHubHttpMessageHandler;
         _gitHubCandidateTimeout = gitHubCandidateTimeout ?? s_gitHubCandidateTimeout;
         _gitHubHttpTimeout = gitHubHttpTimeout ?? s_gitHubHttpTimeout;
         _timeProvider = timeProvider;
         _logger = logger;
-        _ciEnvironmentDetector = ciEnvironmentDetector;
+        _isCIEnvironment = isCIEnvironment;
         _probeStageTimeout = probeStageTimeout ?? s_probeStageTimeout;
         _macPlatformSsoPath = macPlatformSsoPath;
         _probeStages = probeStages;
@@ -496,7 +500,7 @@ internal sealed partial class InternalMicrosoftDetector : IInternalMicrosoftDete
         try
         {
             var json = await File.ReadAllTextAsync(_cacheFilePath, cancellationToken).ConfigureAwait(false);
-            var entry = JsonSerializer.Deserialize(json, JsonSourceGenerationContext.Default.InternalMicrosoftDetectorCacheEntry);
+            var entry = JsonSerializer.Deserialize(json, InternalMicrosoftDetectorJsonContext.Default.InternalMicrosoftDetectorCacheEntry);
             if (entry is null)
             {
                 return new InternalMicrosoftCacheReadResult(null, InternalMicrosoftDetectorCacheStatus.Stale);
@@ -567,7 +571,7 @@ internal sealed partial class InternalMicrosoftDetector : IInternalMicrosoftDete
                 IsCIEnvironment = IsCIEnvironment(),
                 LastRunUtc = _timeProvider.GetUtcNow()
             };
-            var json = JsonSerializer.Serialize(entry, JsonSourceGenerationContext.Default.InternalMicrosoftDetectorCacheEntry);
+            var json = JsonSerializer.Serialize(entry, InternalMicrosoftDetectorJsonContext.Default.InternalMicrosoftDetectorCacheEntry);
             await File.WriteAllTextAsync(tempPath, json, cancellationToken).ConfigureAwait(false);
             File.Move(tempPath, _cacheFilePath, overwrite: true);
         }
@@ -580,7 +584,14 @@ internal sealed partial class InternalMicrosoftDetector : IInternalMicrosoftDete
         }
         finally
         {
-            FileDeleteHelper.TryDeleteFile(tempPath);
+            try
+            {
+                File.Delete(tempPath);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                _logger.LogDebug(ex, "Failed to clean up Microsoft internal detector cache temporary file.");
+            }
         }
     }
 
@@ -891,7 +902,7 @@ internal sealed partial class InternalMicrosoftDetector : IInternalMicrosoftDete
             }
         }
 
-        var copilotHome = Path.Combine(_executionContext.HomeDirectory.FullName, ".copilot");
+        var copilotHome = Path.Combine(_homeDirectory.FullName, ".copilot");
         foreach (var path in EnumerateExistingFiles(copilotHome, cancellationToken, "config.json", "settings.json"))
         {
             tokenCandidates.AddRange(ExtractGitHubTokenCandidates(path, cancellationToken));
@@ -1124,21 +1135,28 @@ internal sealed partial class InternalMicrosoftDetector : IInternalMicrosoftDete
     {
         var stdout = new StringBuilder();
         var stderr = new StringBuilder();
-        var options = new ProcessInvocationOptions
+        var startInfo = new ProcessStartInfo
         {
-            SuppressLogging = true,
-            StandardOutputCallback = line => stdout.AppendLine(line),
-            StandardErrorCallback = line => stderr.AppendLine(line)
+            FileName = fileName,
+            WorkingDirectory = _workingDirectory.FullName,
+            CreateNoWindow = true,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            // The shared runner consumes this start info directly; CLI launch policy also pins UTF-8.
+            StandardOutputEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false),
+            StandardErrorEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false)
         };
+        foreach (var argument in arguments)
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
 
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutCts.CancelAfter(s_processProbeTimeout);
-        await using var execution = _processExecutionFactory.CreateExecution(
-            fileName,
-            arguments,
-            env: null,
-            _executionContext.WorkingDirectory,
-            options);
+        var execution = _createProcess(startInfo,
+            line => stdout.AppendLine(line), line => stderr.AppendLine(line));
+        await using var executionScope = execution.ConfigureAwait(false);
 
         var started = false;
         try
@@ -1600,7 +1618,7 @@ internal sealed partial class InternalMicrosoftDetector : IInternalMicrosoftDete
     }
 
     private bool IsCIEnvironment()
-        => _ciEnvironmentDetector.IsCIEnvironment();
+        => _isCIEnvironment;
 
     private bool CommandExists(string command)
     {

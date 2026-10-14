@@ -571,6 +571,10 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
 
             // Pass synthetic UserSecretsId so AppHost Server can read secrets set via 'aspire secret'
             launchSettingsEnvVars[KnownConfigNames.AspireUserSecretsId] = UserSecretsPathHelper.ComputeSyntheticUserSecretsId(appHostFile.FullName);
+            if (context.EnvironmentVariables.TryGetValue(KnownConfigNames.AspireSecretsFile, out var aspireSecretsFile))
+            {
+                launchSettingsEnvVars[KnownConfigNames.AspireSecretsFile] = aspireSecretsFile;
+            }
 
             // Check if hot reload (watch mode) is enabled
             var enableHotReload = _features.IsFeatureEnabled(KnownFeatures.DefaultWatchEnabled, defaultValue: false);
@@ -1366,6 +1370,10 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
 
             // Pass synthetic UserSecretsId so AppHost Server can read secrets set via 'aspire secret'
             launchSettingsEnvVars[KnownConfigNames.AspireUserSecretsId] = UserSecretsPathHelper.ComputeSyntheticUserSecretsId(appHostFile.FullName);
+            if (context.EnvironmentVariables.TryGetValue(KnownConfigNames.AspireSecretsFile, out var aspireSecretsFile))
+            {
+                launchSettingsEnvVars[KnownConfigNames.AspireSecretsFile] = aspireSecretsFile;
+            }
 
             var environmentVariables = CreateGuestEnvironmentVariables(
                 context.EnvironmentVariables,

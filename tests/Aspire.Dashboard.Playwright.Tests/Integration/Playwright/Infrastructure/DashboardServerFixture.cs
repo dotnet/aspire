@@ -4,7 +4,6 @@
 using System.Reflection;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Telemetry;
 using Aspire.Hosting;
 using Aspire.DashboardService.Proto.V1;
 using Google.Protobuf.WellKnownTypes;
@@ -74,7 +73,7 @@ public class DashboardServerFixture : IAsyncLifetime
 
         var config = new ConfigurationManager().AddInMemoryCollection(new Dictionary<string, string?>
         {
-            [DashboardTelemetryService.TelemetryOptOutConfigKey] = "true"
+            [KnownConfigNames.DashboardTelemetryOptOut] = "true"
         }).AddInMemoryCollection(configuration).Build();
 
         // Add services to the container.

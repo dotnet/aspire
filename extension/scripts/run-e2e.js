@@ -142,10 +142,12 @@ const WINDOWS_COMMAND_INERT_PATH_PATTERN = /^[A-Za-z0-9._\\/:+@~-]+$/;
 const isWindows = process.platform === 'win32';
 const enableAzureFunctionsE2E = process.env.ASPIRE_EXTENSION_E2E_ENABLE_AZURE_FUNCTIONS === 'true';
 const enableResourceDebugE2E = process.env.ASPIRE_EXTENSION_E2E_ENABLE_RESOURCE_DEBUG === 'true';
+const installAzureFunctionsVsix = process.env.ASPIRE_EXTENSION_E2E_INSTALL_AZURE_FUNCTIONS_VSIX === 'true';
 const enableWinUiE2E = process.env.ASPIRE_EXTENSION_E2E_ENABLE_WINUI === 'true';
 const enableBrowserDebuggerE2E = shardName === 'browser-debugger';
+const enableNodeFunctionsE2E = shardName === 'azure-functions-node';
 const browserDebuggerTargetFramework = 'net11.0';
-const enableDebuggerExtensions = enableAzureFunctionsE2E || enableBrowserDebuggerE2E || enableWinUiE2E || enableResourceDebugE2E;
+const enableDebuggerExtensions = installAzureFunctionsVsix || enableBrowserDebuggerE2E || enableNodeFunctionsE2E || enableWinUiE2E || enableResourceDebugE2E;
 const e2eBrowser = process.platform === 'win32' ? 'msedge' : 'chrome';
 const COMMAND_INERT_PATH_PATTERN = isWindows ? WINDOWS_COMMAND_INERT_PATH_PATTERN : POSIX_SHELL_INERT_PATH_PATTERN;
 const COMMAND_INTERPRETER_NAME = isWindows ? 'cmd.exe' : '/bin/sh';
@@ -945,10 +947,12 @@ function resolveDebuggerVsixPaths() {
     return [];
   }
 
-  // .NET resource shards need the C# extension and its .NET runtime dependency. Azure Functions
-  // additionally needs the Azure Resource Groups and Functions extensions before Aspire advertises
-  // that launch capability, while resource attach also needs Go. All dependencies must be explicit
-  // because the E2E instance runs offline, and shared dependencies only need to be installed once.
+  // AppHost debugging needs the C# extension and its .NET runtime dependency. The .NET Functions
+  // shard additionally needs the Azure Resource Groups and Functions extensions before Aspire
+  // advertises that launch capability. The Node Functions shard attaches through pwa-node and must
+  // not install that extension because its Function Host Exceptions Debugger intercepts AppHost
+  // exception stops. Resource attach also needs Go. All dependencies must be explicit because the
+  // E2E instance runs offline, and shared dependencies only need to be installed once.
   const selectingFeatureFlag = enableAzureFunctionsE2E
     ? 'ASPIRE_EXTENSION_E2E_ENABLE_AZURE_FUNCTIONS'
     : enableResourceDebugE2E ? 'ASPIRE_EXTENSION_E2E_ENABLE_RESOURCE_DEBUG' : undefined;
@@ -962,7 +966,7 @@ function resolveDebuggerVsixPaths() {
       path: resolveRequiredVsixPath('ASPIRE_EXTENSION_E2E_CSHARP_VSIX', selectingFeatureFlag),
     },
   ];
-  if (enableAzureFunctionsE2E) {
+  if (installAzureFunctionsVsix) {
     vsixPaths.push({
       displayName: 'Azure Resource Groups',
       path: resolveRequiredVsixPath('ASPIRE_EXTENSION_E2E_AZURE_RESOURCE_GROUPS_VSIX', 'ASPIRE_EXTENSION_E2E_ENABLE_AZURE_FUNCTIONS'),

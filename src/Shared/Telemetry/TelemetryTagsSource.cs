@@ -4,12 +4,11 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Cli.Telemetry;
+namespace Aspire.Shared.Telemetry;
 
 /// <summary>
 /// Holds the background task that calculates default telemetry tags (machine ID, OS info, etc.).
-/// Shared between <see cref="AspireCliTelemetry"/> (which starts the calculation) and
-/// <see cref="CliTagEnrichmentProcessor"/> (which applies the tags to activities before export).
+/// Shared by product recording services and their activity and log-record enrichment processors.
 /// </summary>
 internal sealed class TelemetryTagsSource
 {
