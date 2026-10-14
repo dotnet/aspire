@@ -198,6 +198,9 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         var project = CreateProject(root, rid);
         var dashboardProject = Path.Combine(root, "ColdProtobufFixture.csproj");
         var generatedDirectory = Path.Combine(root, "generated");
+        // Block ancestor discovery so repository-local workspaces also reproduce
+        // CI workspaces outside the repository's central package configuration.
+        File.WriteAllText(Path.Combine(root, "Directory.Packages.props"), "<Project />");
         File.WriteAllText(Path.Combine(root, "fixture.proto"), """
             syntax = "proto3";
             option csharp_namespace = "ColdBundle";
@@ -206,6 +209,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         new XDocument(new XElement("Project",
             new XElement("PropertyGroup",
                 Property("BaseIntermediateOutputPath", Path.Combine(root, "obj") + Path.DirectorySeparatorChar),
+                Property("DirectoryPackagesPropsPath", Path.Combine(RepoRoot.Path, "Directory.Packages.props")),
                 Property("NuGetPackageRoot", Path.Combine(root, ".packages") + Path.DirectorySeparatorChar)),
             new XElement("Import", new XAttribute("Project", "Sdk.props"), new XAttribute("Sdk", "Microsoft.NET.Sdk")),
             new XElement("PropertyGroup",
