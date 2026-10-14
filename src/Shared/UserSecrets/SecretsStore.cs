@@ -100,10 +100,15 @@ internal sealed class SecretsStore
         var directory = Path.GetDirectoryName(filePath);
         if (!string.IsNullOrEmpty(directory))
         {
-            Directory.CreateDirectory(directory);
-            if (!OperatingSystem.IsWindows())
+            if (OperatingSystem.IsWindows())
             {
-                File.SetUnixFileMode(directory, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+                Directory.CreateDirectory(directory);
+            }
+            else
+            {
+                // Explicit secrets files can live in caller-owned shared directories.
+                // Apply private permissions only when creating directories, never chmod existing parents.
+                Directory.CreateDirectory(directory, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
             }
         }
 

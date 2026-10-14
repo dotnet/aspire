@@ -322,6 +322,66 @@ public class SecretStoreResolverTests(ITestOutputHelper outputHelper)
             AspireSecretsPathHelper.CreateSafePathSegment("apphost."));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SavingSecretsPreservesExistingParentPermissions(bool saveState)
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Unix file permissions are not supported on Windows.");
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var directory = Directory.CreateDirectory(Path.Combine(workspace.WorkspaceRoot.FullName, "shared"));
+        var sharedMode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+            UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+            UnixFileMode.OtherRead | UnixFileMode.OtherExecute;
+        File.SetUnixFileMode(directory.FullName, sharedMode);
+        var path = Path.Combine(directory.FullName, "secrets.json");
+
+        for (var i = 0; i < 2; i++)
+        {
+            if (saveState)
+            {
+                SecretsStore.SaveJson(path, new System.Text.Json.Nodes.JsonObject { ["Count"] = i });
+            }
+            else
+            {
+                var store = new SecretsStore(path);
+                store.Set("Parameters:key", i.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                store.Save();
+            }
+
+            Assert.Equal(sharedMode, File.GetUnixFileMode(directory.FullName));
+            Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(path));
+        }
+
+        Assert.Single(Directory.EnumerateFiles(directory.FullName));
+    }
+
+    [Fact]
+    public void SavingSecretsCreatesPrivateDirectories()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Unix file permissions are not supported on Windows.");
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var directory = Path.Combine(workspace.WorkspaceRoot.FullName, "new", "nested");
+        var path = Path.Combine(directory, "secrets.json");
+        var store = new SecretsStore(path);
+        store.Set("Parameters:key", "value");
+        store.Save();
+
+        var privateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute;
+        Assert.Equal(privateMode, File.GetUnixFileMode(directory));
+        Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(path));
+    }
+
     private ServiceProvider CreateDotNetServices(TemporaryWorkspace workspace, string userSecretsId)
     {
         // Exercise the real .NET project, runner, and metadata cache. Only process execution is
