@@ -1,0 +1,44 @@
+{
+  "run_id": 38497053049,
+  "run_attempt": 1,
+  "run_url": "https://github.com/microsoft/aspire/actions/runs/38497053049",
+  "run_scope": "main",
+  "analyzed_at": "2026-10-14T02:52:46Z",
+  "verdict": "main-repository-breakage",
+  "pr": null,
+  "triggering_merge_pr": null,
+  "main_context": {
+    "last_successful_main_sha": "88ff9ba57c2841cce759adffa849373f9406b0f5",
+    "failed_sha": "4de47f1f1b0078ee62dc25f5a03b30e1e1ee9471",
+    "candidate_merge_history_state": "incomplete",
+    "candidate_merges": null
+  },
+  "failed_jobs": [
+    {
+      "name": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x)",
+      "id": 115648980495,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38497053049/job/115648980495",
+      "classification": "main-repository-breakage",
+      "reason": "After 59/59 TypeScript AppHosts validated successfully, the Nuxt integration's 'aspire publish' Docker build deterministically fails at 'RUN npm ci' in the generated Nuxt web Dockerfile with exit code 1.",
+      "failed_steps": [
+        "Run TypeScript SDK validation"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / Polyglot Validation Results",
+      "id": 115651444849,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38497053049/job/115651444849",
+      "classification": "main-repository-breakage",
+      "reason": "Downstream aggregation job fails deterministically because it reports TypeScript validation as failed, propagating the upstream Nuxt Docker build breakage.",
+      "failed_steps": [
+        "Check validation results"
+      ]
+    }
+  ],
+  "failed_tests": [],
+  "causes": [
+    "typescript-sdk-nuxt-integration-npm-ci-docker-build-failure"
+  ]
+}
