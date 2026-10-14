@@ -135,6 +135,10 @@ export function getLaunchConfigurationTargetPath(configuration: ExecutableLaunch
         return getNonEmptyPath(configuration.project_path);
     }
 
+    if (isAzureFunctionsNodeLaunchConfiguration(configuration)) {
+        return getNonEmptyPath(configuration.app_directory);
+    }
+
     if (isJavaScriptRuntimeLaunchConfiguration(configuration)) {
         return getNonEmptyPath(configuration.script_path) ??
             getNonEmptyPath(configuration.working_directory);
