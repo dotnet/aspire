@@ -503,14 +503,15 @@ internal sealed class AgentInitCommand : BaseCommand
                     AgentCommandStrings.InitCommand_McpConfigurationDescription, firstTarget.Client.DisplayName, targets.Key);
                 try
                 {
-                    var config = await McpConfigFileHelper.ReadConfigAsync(targets.Key, firstTarget.Client.McpJsonDocumentOptions, cancellationToken);
+                    var (config, configFilePath) = await McpConfigFileHelper.ReadSelectedConfigAsync(
+                        targets.Key, firstTarget.Client, scope, _environment, cancellationToken);
                     var notifications = new List<(KnownEmoji Emoji, string Message)>();
                     // Legacy repairs share the same selection, scope, and consent as new configuration.
                     foreach (var (client, _, serversPropertyName, configureServer) in targets)
                     {
                         var updated = McpConfigFileHelper.UpdateDeprecatedCommand(config, serversPropertyName);
-                        var configured = configureServer && await McpConfigFileHelper.ConfigureMcpServerAsync(
-                            config, client, scope, targets.Key, _environment, cancellationToken);
+                        var configured = configureServer && McpConfigFileHelper.ConfigureMcpServer(
+                            config, client, scope, configFilePath);
 
                         if (updated)
                         {
@@ -521,13 +522,13 @@ internal sealed class AgentInitCommand : BaseCommand
                         if (configured)
                         {
                             notifications.Add((KnownEmojis.CheckMarkButton, string.Format(CultureInfo.CurrentCulture,
-                                AgentCommandStrings.InitCommand_McpConfigurationDescription, client.DisplayName, targets.Key)));
+                                AgentCommandStrings.InitCommand_McpConfigurationDescription, client.DisplayName, configFilePath)));
                         }
                     }
 
                     if (notifications.Count > 0)
                     {
-                        await ConfigurationHelper.WriteSettingsFileAsync(targets.Key, config, cancellationToken);
+                        await ConfigurationHelper.WriteSettingsFileAsync(configFilePath, config, cancellationToken);
                     }
 
                     foreach (var (emoji, message) in notifications)
