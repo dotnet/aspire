@@ -292,7 +292,7 @@ internal class ResourceSnapshotBuilder
                 break;
             }
 
-            // RID and MSBuild property overrides can change the output path or assembly identity.
+            // Runtime, artifact layout, and MSBuild property overrides can change the output path or assembly identity.
             // A hidden launcher input cannot be replaced by the evaluator's default either.
             if (sensitiveArgumentIndexes.Contains(index) || ChangesUnreportedTargetInputs(argument))
             {
@@ -348,10 +348,10 @@ internal class ResourceSnapshotBuilder
 
         static bool ChangesUnreportedTargetInputs(string argument)
         {
-            // Examples: --runtime win-x64, --arch=arm64, -p:OutputPath=custom, /property:AssemblyName=Custom.
+            // Examples: --runtime win-x64, --artifacts-path=custom, -p:OutputPath=custom, /property:AssemblyName=Custom.
             // Both colon and equals spellings are accepted by the dotnet/MSBuild launchers.
             var option = argument.Split(['=', ':'], 2)[0].ToLowerInvariant();
-            return option is "--runtime" or "-r" or "--arch" or "-a" or "--os"
+            return option is "--runtime" or "-r" or "--arch" or "-a" or "--os" or "--artifacts-path"
                 or "--property" or "--properties" or "-p" or "/p" or "-property" or "/property";
         }
 

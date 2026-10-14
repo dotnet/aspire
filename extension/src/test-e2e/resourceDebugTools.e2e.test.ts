@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import * as fs from 'fs';
 import * as path from 'path';
-import { findResource, waitForCommandOutcome, waitForNoDebugSessions, waitForNoRunningAppHost, waitForRepositoryIdle, waitForResourceState, waitForWorkspaceAppHost } from './helpers/assertions';
+import { findResource, getCommandInvocationCount, waitForCommandOutcome, waitForNoDebugSessions, waitForNoRunningAppHost, waitForRepositoryIdle, waitForResourceState, waitForWorkspaceAppHost } from './helpers/assertions';
 import { executeE2eControlCommand, restoreWorkspaceCliPath, runE2eTeardown, stopPrimaryAppHostIfRunning } from './helpers/fixtures';
 import { invokeLanguageModelTool, prepareLanguageModelToolInvocation } from './helpers/languageModelTools';
 import { getPrimaryAppHostProjectPath, getWorkspaceRoot } from './helpers/paths';
@@ -326,6 +326,37 @@ suite('Aspire resource debug language model tool E2E', function () {
             assert.strictEqual(proof.resourceResponseAfterDetach, scenario.expectedResponse);
             assert.strictEqual(proof.sessionTerminated, true);
         }
+
+        await stopPrimaryAppHostIfRunning();
+        await waitForNoDebugSessions(120000);
+        await waitForNoRunningAppHost(120000, appHostPath);
+    });
+
+    test('attaches to a .NET resource launched with Run Without Debugging', async function () {
+        if (!resourceDebugPrerequisitesInstalled) {
+            this.skip();
+        }
+
+        await openAspireView();
+        await waitForRepositoryIdle();
+        const discovered = await waitForWorkspaceAppHost();
+        const appHostPath = discovered.state.workspaceAppHostPath ?? getPrimaryAppHostProjectPath();
+        const runBefore = getCommandInvocationCount('aspire-vscode.runAppHost');
+        await executeE2eControlCommand({ name: 'runAppHost', appHostPath }, { waitFor: 'started' });
+        await waitForCommandOutcome('aspire-vscode.runAppHost', 'success', 180000, runBefore);
+        const running = await waitForResourceState('e2e-worker', ['Running'], 180000);
+        const worker = findResource(running.state, 'e2e-worker');
+        assert.ok(worker);
+
+        const invocation = await invokeLanguageModelTool<ResourceDebugToolResult>(resourceDebugToolName, {
+            appHostPath: toWorkspaceRelativePath(appHostPath),
+            resourceName: worker.name,
+            strategy: 'attach',
+        }, { expectedConfirmations: 1 });
+        assert.strictEqual(invocation.results.length, 1);
+        const result = invocation.results[0];
+        assert.strictEqual(result.outcome, 'started');
+        assertSafeResourceDebugResult(result);
 
         await stopPrimaryAppHostIfRunning();
         await waitForNoDebugSessions(120000);

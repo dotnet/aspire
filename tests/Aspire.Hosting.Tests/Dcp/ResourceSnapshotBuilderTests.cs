@@ -261,6 +261,8 @@ public class ResourceSnapshotBuilderTests
     [InlineData("-r", "linux-arm64")]
     [InlineData("--arch=arm64")]
     [InlineData("--os", "linux")]
+    [InlineData("--artifacts-path", "custom")]
+    [InlineData("--artifacts-path=custom")]
     [InlineData("-p:AssemblyName=Custom")]
     [InlineData("/property:OutputPath=custom")]
     [InlineData("--property:RuntimeIdentifier=win-x64")]

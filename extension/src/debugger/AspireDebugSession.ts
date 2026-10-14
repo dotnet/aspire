@@ -341,12 +341,10 @@ export class AspireDebugSession implements vscode.DebugAdapter, DashboardLaunche
     return this._cliProcess?.pid;
   }
 
-  // Already-started debugger integrations report the actual debuggee PID back to DCP.
-  // Resource attach must recognize that PID as editor-owned rather than treating it as a launcher.
+  // Both DAP and already-started integrations report the debuggee PID. Only debugging-enabled
+  // sessions should claim that PID and prevent another attachment.
   hasResourceDebugSessionProcess(processId: number): boolean {
-    return [...this._resourceDebugSessionProcessIds.values()].includes(processId) ||
-      this._resourceDebugSessions.some(
-        session => (session as Partial<AlreadyStartedResourceDebugSession>).processId === processId);
+    return [...this._resourceDebugSessionProcessIds.values()].includes(processId);
   }
 
   constructor(session: vscode.DebugSession, rpcServer: AspireRpcServer, dcpServer: AspireDcpServer, terminalProvider: AspireTerminalProvider, removeAspireDebugSession: (session: AspireDebugSession) => void, trackAppHostDebugSession: AppHostDebugSessionTracker = () => { }, debugSessionId: string = generateDcpIdPrefix(), operationKind?: AspireOperationKind) {
@@ -1451,7 +1449,7 @@ export class AspireDebugSession implements vscode.DebugAdapter, DashboardLaunche
       debugAdapter,
       appHostTracker,
       (session, processId) => {
-        if (processId === undefined) {
+        if (processId === undefined || session.configuration.noDebug === true) {
           this._resourceDebugSessionProcessIds.delete(session.id);
         } else {
           this._resourceDebugSessionProcessIds.set(session.id, processId);
@@ -1756,6 +1754,10 @@ export class AspireDebugSession implements vscode.DebugAdapter, DashboardLaunche
       return undefined;
     }
 
+    if (debugConfig.noDebug !== true) {
+      this._resourceDebugSessionProcessIds.set(resourceDebugSession.id, resourceDebugSession.processId);
+    }
+
     if (debugConfig.debugSessionId === null) {
       extensionLogOutputChannel.warn(`Unable to report process start for run ${debugConfig.runId} because the DCP session ID is missing.`);
     }
@@ -1773,6 +1775,7 @@ export class AspireDebugSession implements vscode.DebugAdapter, DashboardLaunche
     this.trackEditorResourceSession(debugConfig, 'running');
     void resourceDebugSession.termination.then(exitCode => {
       this._resourceDebugSessions = this._resourceDebugSessions.filter(session => session !== resourceDebugSession);
+      this._resourceDebugSessionProcessIds.delete(resourceDebugSession.id);
       this.removeEditorResourceSession(debugConfig.runId);
       if (debugConfig.debugSessionId === null) {
         extensionLogOutputChannel.warn(`Unable to report termination for run ${debugConfig.runId} because the DCP session ID is missing.`);
