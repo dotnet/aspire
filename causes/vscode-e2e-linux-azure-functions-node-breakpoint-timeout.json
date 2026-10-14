@@ -1,0 +1,16 @@
+{
+  "id": "vscode-e2e-linux-azure-functions-node-breakpoint-timeout",
+  "type": "flaky-test",
+  "title": "Flaky: Aspire Node Functions debugger E2E times out waiting for HTTP breakpoint on Linux",
+  "test_name": "Aspire Node Functions debugger E2E starts Core Tools, attaches pwa-node, hits an HTTP breakpoint and cleans up the worker",
+  "error_pattern": "Failed to apply E2E control revision 1791970522994: Error: Timed out after 300000ms waiting for breakpoint in /tmp/aev-hFEDL4/workspace/AspireE2E.NodeFunctionsDebugger/Program.cs:4. Last error: <none>.",
+  "occurrences": [
+    {
+      "run_id": 38540541716,
+      "run_url": "https://github.com/microsoft/aspire/actions/runs/38540541716",
+      "job": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, azure-functions-node)",
+      "pr_number": 0,
+      "observed_at": "2026-10-14T10:03:53Z"
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "run_id": 38540541716,
+  "run_attempt": 1,
+  "run_url": "https://github.com/microsoft/aspire/actions/runs/38540541716",
+  "run_scope": "main",
+  "analyzed_at": "2026-10-14T10:03:53Z",
+  "verdict": "mixed",
+  "pr": null,
+  "triggering_merge_pr": null,
+  "main_context": {
+    "last_successful_main_sha": "88ff9ba57c2841cce759adffa849373f9406b0f5",
+    "failed_sha": "d751daa037a850428cd12ebf1efe309a8690df10",
+    "candidate_merge_history_state": "incomplete",
+    "candidate_merges": null
+  },
+  "failed_jobs": [
+    {
+      "name": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x)",
+      "id": 115778953853,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38540541716/job/115778953853",
+      "classification": "main-repository-breakage",
+      "reason": "Job failed with exit code 1 on 'Run TypeScript SDK validation' step after all 59 TypeScript validation AppHosts passed; the failure occurs later in the step while stopping the external Nuxt integration AppHost, matching the known recurring Nuxt integration Docker build breakage on main (issue #20866, 28 prior occurrences through 2026-10-14).",
+      "failed_steps": [
+        "Run TypeScript SDK validation"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, azure-functions-node)",
+      "id": 115781983113,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38540541716/job/115781983113",
+      "classification": "flaky-test",
+      "reason": "The 'Run extension E2E tests' step failed because the 'Aspire Node Functions debugger E2E' test timed out after 300000ms waiting for a breakpoint hit in Program.cs; this is a timing-dependent E2E debugger test with no code evidence linking it to a repository change, consistent with the pattern of other debugger E2E timeout flakes.",
+      "failed_steps": [
+        "Run extension E2E tests"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / Polyglot Validation Results",
+      "id": 115783248609,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38540541716/job/115783248609",
+      "classification": "main-repository-breakage",
+      "reason": "Aggregation job fails deterministically ('Check validation results' step, exit 1) solely because it reports TypeScript: failure, reflecting the upstream TypeScript SDK Validation (Node 22.x) job failure; it carries no independent root cause.",
+      "failed_steps": [
+        "Check validation results"
+      ]
+    }
+  ],
+  "failed_tests": [
+    {
+      "name": "Aspire Node Functions debugger E2E starts Core Tools, attaches pwa-node, hits an HTTP breakpoint and cleans up the worker",
+      "job": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, azure-functions-node)",
+      "error": "Failed to apply E2E control revision 1791970522994: Error: Timed out after 300000ms waiting for breakpoint in /tmp/aev-hFEDL4/workspace/AspireE2E.NodeFunctionsDebugger/Program.cs:4. Last error: <none>.\nDiagnostics:\n{\n  \"supportedCapabilities\": [\n    \"prompting\",\n    \"baseline.v1\",\n    \"secret-prompts.v1\",\n    \"file-pickers.v1\",\n    \"message-actions.v1\",\n    \"build-dotnet-using-cli\",\n    \"apphost-log-output.v1\",\n    \"project\",\n    \"project-with-external-build.v1\",\n    \"ms-dotnettools.csharp\",\n    \"node\",\n    \"deno.v1\",\n    \"browser\",\n    \"azure-functions-node\",\n    \"deno\"\n  ],\n  \"debugSessions\": [\n    {\n      \"id\": \"bee4b391-377a-40d0-b380-119782d35d4e\",\n      \"type\": \"aspire\",\n      \"name\": \"Aspire run: AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n      \"configuration\": {\n        \"type\": \"aspire\",\n        \"name\": \"Aspire run: AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n        \"request\": \"launch\",\n        \"program\": \"/tmp/aev-hFE",
+      "stack_trace": "Error: Failed to apply E2E control revision 1791970522994: Error: Timed out after 300000ms waiting for breakpoint in /tmp/aev-hFEDL4/workspace/AspireE2E.NodeFunctionsDebugger/Program.cs:4. Last error: <none>.\nDiagnostics:\n{\n  \"supportedCapabilities\": [\n    \"prompting\",\n    \"baseline.v1\",\n    \"secret-prompts.v1\",\n    \"file-pickers.v1\",\n    \"message-actions.v1\",\n    \"build-dotnet-using-cli\",\n    \"apphost-log-output.v1\",\n    \"project\",\n    \"project-with-external-build.v1\",\n    \"ms-dotnettools.csharp\",\n    \"node\",\n    \"deno.v1\",\n    \"browser\",\n    \"azure-functions-node\",\n    \"deno\"\n  ],\n  \"debugSessions\": [\n    {\n      \"id\": \"bee4b391-377a-40d0-b380-119782d35d4e\",\n      \"type\": \"aspire\",\n      \"name\": \"Aspire run: AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n      \"configuration\": {\n        \"type\": \"aspire\",\n        \"name\": \"Aspire run: AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n        \"request\": \"launch\",\n        \"program\": \"/tmp/aev-hFEDL4/workspace/AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n        \"command\": \"run\",\n        \"noDebug\": false,\n        \"__aspireAppHostSelectionOrigin\": \"user-selection\",\n        \"__aspireAppHostLaunchToken\": 1,\n        \"__aspireAppHostLaunchReservationId\": \"1\",\n        \"resolvedCliPath\": \"/tmp/aev-hFEDL4/cli/aspire\"\n      }\n    }\n  ],\n  \"launchRequests\": [\n    {\n      \"sessionId\": \"bee4b391-377a-40d0-b380-119782d35d4e\",\n      \"sessionType\": \"aspire\",\n      \"sessionName\": \"Aspire run: AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n      \"arguments\": {\n        \"type\": \"aspire\",\n        \"name\": \"Aspire run: AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n        \"request\": \"launch\",\n        \"program\": \"/tmp/aev-hFEDL4/workspace/AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n        \"command\": \"run\",\n        \"noDebug\": false,\n        \"__aspireAppHostSelectionOrigin\": \"user-selec",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Timeout waiting for a debugger breakpoint hit in a Node Functions E2E scenario is a timing-dependent failure typical of debugger attach/race flakiness in this E2E suite; no main-branch code change is implicated and the job shows no deterministic error."
+    }
+  ],
+  "causes": [
+    "typescript-sdk-nuxt-integration-npm-ci-docker-build-failure",
+    "vscode-e2e-linux-azure-functions-node-breakpoint-timeout"
+  ]
+}
