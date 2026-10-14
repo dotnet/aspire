@@ -18,6 +18,13 @@
       "job": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, deno-debugger)",
       "pr_number": 0,
       "observed_at": "2026-10-13T03:46:41Z"
+    },
+    {
+      "run_id": 38491149008,
+      "run_url": "https://github.com/microsoft/aspire/actions/runs/38491149008",
+      "job": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, deno-debugger)",
+      "pr_number": 0,
+      "observed_at": "2026-10-14T01:33:10Z"
     }
   ],
   "issue_url": "https://github.com/microsoft/aspire/issues/20839"

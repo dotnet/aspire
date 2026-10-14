@@ -1,0 +1,89 @@
+{
+  "run_id": 38491149008,
+  "run_attempt": 1,
+  "run_url": "https://github.com/microsoft/aspire/actions/runs/38491149008",
+  "run_scope": "main",
+  "analyzed_at": "2026-10-14T01:33:10Z",
+  "verdict": "mixed",
+  "pr": null,
+  "triggering_merge_pr": null,
+  "main_context": {
+    "last_successful_main_sha": "88ff9ba57c2841cce759adffa849373f9406b0f5",
+    "failed_sha": "785cf4c7d38f54cacaf71cd35ceec04d83534679",
+    "candidate_merge_history_state": "incomplete",
+    "candidate_merges": null
+  },
+  "failed_jobs": [
+    {
+      "name": "Tests / No-package tests (collection, Aspire.Hosting.Tests, Hosting, Hosting, tests/Aspire.Hosting.Tests/... / Hosting (windows-latest)",
+      "id": 115621964214,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38491149008/job/115621964214",
+      "classification": "main-repository-breakage",
+      "reason": "KubernetesServiceTests.CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay deterministically fails asserting recorded HTTP methods [\"POST\",\"GET\"] but got [] — matches a prior recurring main-repository-breakage (16 prior occurrences) tied to the 'Recover ambiguous DCP creates with configurable timeouts' feature.",
+      "failed_steps": [
+        "Run tests (Windows)"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x)",
+      "id": 115624905252,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38491149008/job/115624905252",
+      "classification": "main-repository-breakage",
+      "reason": "After all 59 TypeScript validation AppHosts pass, the Nuxt integration Docker build deterministically fails at 'RUN npm ci' with exit code 1 — matches a prior recurring main-repository-breakage (24 prior occurrences).",
+      "failed_steps": [
+        "Run TypeScript SDK validation"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, deno-debugger)",
+      "id": 115626465673,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38491149008/job/115626465673",
+      "classification": "flaky-test",
+      "reason": "The Deno debugger E2E test timed out after 180000ms waiting for Aspire AppHost debug startup completion, a known intermittent timing issue matching a prior recurring flaky-test cause with 2 prior occurrences.",
+      "failed_steps": [
+        "Run extension E2E tests"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / Polyglot Validation Results",
+      "id": 115627473275,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38491149008/job/115627473275",
+      "classification": "main-repository-breakage",
+      "reason": "Downstream aggregation job fails because the TypeScript SDK Validation leg reported failure, directly caused by the same deterministic Nuxt 'npm ci' Docker build breakage.",
+      "failed_steps": [
+        "Check validation results"
+      ]
+    }
+  ],
+  "failed_tests": [
+    {
+      "name": "Aspire.Hosting.Tests.Dcp.KubernetesServiceTests.CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay(useHttpDate: False, retryAfterSeconds: 2147483647)",
+      "job": "Tests / No-package tests (collection, Aspire.Hosting.Tests, Hosting, Hosting, tests/Aspire.Hosting.Tests/... / Hosting (windows-latest)",
+      "error": "Assert.Equal() Failure: Collections differ\n           ↓ (pos 0)\nExpected: [\"POST\", \"GET\"]\nActual:   []",
+      "stack_trace": "at Aspire.Hosting.Tests.Dcp.KubernetesServiceTests.CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay(Boolean useHttpDate, Int32 retryAfterSeconds) in D:\\a\\aspire\\aspire\\tests\\Aspire.Hosting.Tests\\Dcp\\KubernetesServiceTests.cs:line 1444\n   at Aspire.Hosting.Tests.Dcp.KubernetesServiceTests.CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay(Boolean useHttpDate, Int32 retryAfterSeconds) in D:\\a\\aspire\\aspire\\tests\\Aspire.Hosting.Tests\\Dcp\\KubernetesServiceTests.cs:line 1444\n--- End of stack trace from previous location ---",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "code-issue",
+      "reason": "Deterministic repeated failure (16 prior occurrences) tied to a feature merged into main, matching a known main-repository-breakage, not a transient flake."
+    },
+    {
+      "name": "Aspire Deno debugger E2E attaches js-debug to a Deno resource and hits a TypeScript breakpoint",
+      "job": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, deno-debugger)",
+      "error": "Failed to apply E2E control revision 1791940426436: Error: Timed out after 180000ms waiting for Aspire AppHost debug startup completion. Last error: <none>.\n\tat K (/tmp/aev-om5U94/extensions/microsoft-aspire.aspire-vscode-1.24.0/dist/extension.js:2:1348286)\n\tat async V (/tmp/aev-om5U94/extensions/microsoft-aspire.aspire-vscode-1.24.0/dist/extension.js:2:1344979)\n\tat async L (/tmp/aev-om5U94/extensions/microsoft-aspire.aspire-vscode-1.24.0/dist/extension.js:2:1333425)\n\tat async /tmp/aev-om5U94/extensions/microsoft-aspire.aspire-vscode-1.24.0/dist/extension.js:2:1302313\n\tat async /tmp/aev-om5U94/extensions/microsoft-aspire.aspire-vscode-1.24.0/dist/extension.js:2:1300932",
+      "stack_trace": "Error: Failed to apply E2E control revision 1791940426436: Error: Timed out after 180000ms waiting for Aspire AppHost debug startup completion. Last error: <none>.\n\tat K (/tmp/aev-om5U94/extensions/microsoft-aspire.aspire-vscode-1.24.0/dist/extension.js:2:1348286)\n\tat async V (/tmp/aev-om5U94/extensions/microsoft-aspire.aspire-vscode-1.24.0/dist/extension.js:2:1344979)\n\tat async L (/tmp/aev-om5U94/extensions/microsoft-aspire.aspire-vscode-1.24.0/dist/extension.js:2:1333425)\n\tat async /tmp/aev-om5U94/extensions/microsoft-aspire.aspire-vscode-1.24.0/dist/extension.js:2:1302313\n\tat async /tmp/aev-om5U94/extensions/microsoft-aspire.aspire-vscode-1.24.0/dist/extension.js:2:1300932\n    at applyE2eControl (out/test-e2e/test-e2e/helpers/assertions.js:355:15)\n    at async executeE2eControlCommand (out/test-e2e/test-e2e/helpers/fixtures.js:170:12)\n    at async Context.<anonymous> (out/test-e2e/test-e2e/denoDebugger.e2e.test.js:86:23)",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Known intermittent timing-related E2E timeout waiting for AppHost debug startup; matches a prior recurring flaky-test cause seen 2 times previously."
+    }
+  ],
+  "causes": [
+    "kubernetesservicetests-recoverybudget-confirmationretrydelay-empty-methods",
+    "typescript-sdk-nuxt-integration-npm-ci-docker-build-failure",
+    "vscode-e2e-linux-deno-debugger-apphost-timeout"
+  ]
+}
