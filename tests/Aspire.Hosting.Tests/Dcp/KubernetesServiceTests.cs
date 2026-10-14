@@ -10,6 +10,7 @@ using System.Text.Json;
 using System.Threading.Channels;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
+using Aspire.Hosting.Tests.Utils;
 using k8s;
 using k8s.Autorest;
 using k8s.Models;
@@ -22,6 +23,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Polly.Timeout;
 
 namespace Aspire.Hosting.Tests.Dcp;
@@ -1382,7 +1384,8 @@ public class KubernetesServiceTests(DcpApiServerCertificateFixture certificateFi
     {
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
         var recoveryTimeout = TimeSpan.FromMilliseconds(500);
-        var (service, kubeconfigPath, fileSystem) = CreateService(createRecoveryTimeout: recoveryTimeout);
+        var timeProvider = new SignalingFakeTimeProvider(recoveryTimeout);
+        var (service, kubeconfigPath, fileSystem) = CreateService(createRecoveryTimeout: recoveryTimeout, timeProvider: timeProvider);
         using var disposableFileSystem = fileSystem;
         using var disposableService = service;
         var requests = new ConcurrentQueue<string>();
@@ -1396,14 +1399,20 @@ public class KubernetesServiceTests(DcpApiServerCertificateFixture certificateFi
             }
 
             context.Response.Headers.RetryAfter = useHttpDate
-                ? DateTimeOffset.UtcNow.AddHours(1).ToString("r", CultureInfo.InvariantCulture)
+                ? timeProvider.GetUtcNow().AddHours(1).ToString("r", CultureInfo.InvariantCulture)
                 : retryAfterSeconds.ToString(CultureInfo.InvariantCulture);
             await WriteStatusAsync(context, StatusCodes.Status504GatewayTimeout, "Timeout");
         });
         WriteKubeconfig(kubeconfigPath, server.Port);
 
-        var exception = await Assert.ThrowsAsync<TimeoutRejectedException>(
-            () => service.CreateAsync(Container.Create("frontend", "test-image"), cts.Token));
+        var createTask = service.CreateAsync(Container.Create("frontend", "test-image"), cts.Token);
+        // Let initialization and confirmation finish before expiring the budget inside the retry delay.
+        await timeProvider.TimerCreated.WaitAsync(cts.Token);
+        Assert.False(createTask.IsCompleted);
+        Assert.Equal(["POST", "GET"], requests.ToArray());
+        timeProvider.Advance(recoveryTimeout);
+
+        var exception = await Assert.ThrowsAsync<TimeoutRejectedException>(() => createTask);
 
         Assert.Equal(recoveryTimeout, exception.Timeout);
         Assert.Equal(["POST", "GET"], requests.ToArray());
@@ -1417,7 +1426,8 @@ public class KubernetesServiceTests(DcpApiServerCertificateFixture certificateFi
     {
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
         var recoveryTimeout = TimeSpan.FromMilliseconds(500);
-        var (service, kubeconfigPath, fileSystem) = CreateService(createRecoveryTimeout: recoveryTimeout);
+        var timeProvider = new SignalingFakeTimeProvider(recoveryTimeout);
+        var (service, kubeconfigPath, fileSystem) = CreateService(createRecoveryTimeout: recoveryTimeout, timeProvider: timeProvider);
         using var disposableFileSystem = fileSystem;
         using var disposableService = service;
         var requests = new ConcurrentQueue<string>();
@@ -1431,14 +1441,20 @@ public class KubernetesServiceTests(DcpApiServerCertificateFixture certificateFi
             }
 
             context.Response.Headers.RetryAfter = useHttpDate
-                ? DateTimeOffset.UtcNow.AddHours(1).ToString("r", CultureInfo.InvariantCulture)
+                ? timeProvider.GetUtcNow().AddHours(1).ToString("r", CultureInfo.InvariantCulture)
                 : retryAfterSeconds.ToString(CultureInfo.InvariantCulture);
             await WriteStatusAsync(context, StatusCodes.Status429TooManyRequests, "TooManyRequests");
         });
         WriteKubeconfig(kubeconfigPath, server.Port);
 
-        var exception = await Assert.ThrowsAsync<TimeoutRejectedException>(
-            () => service.CreateAsync(Container.Create("frontend", "test-image"), cts.Token));
+        var createTask = service.CreateAsync(Container.Create("frontend", "test-image"), cts.Token);
+        // The 429 response must reach the client and schedule its retry wait before time advances.
+        await timeProvider.TimerCreated.WaitAsync(cts.Token);
+        Assert.False(createTask.IsCompleted);
+        Assert.Equal(["POST", "GET"], requests.ToArray());
+        timeProvider.Advance(recoveryTimeout);
+
+        var exception = await Assert.ThrowsAsync<TimeoutRejectedException>(() => createTask);
 
         Assert.Equal(recoveryTimeout, exception.Timeout);
         Assert.Equal(["POST", "GET"], requests.ToArray());
@@ -1450,7 +1466,8 @@ public class KubernetesServiceTests(DcpApiServerCertificateFixture certificateFi
     public async Task CreateAsync_ConfirmationTimeCountsTowardRetryAfter(bool useHttpDate)
     {
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-        var (service, kubeconfigPath, fileSystem) = CreateService(createRecoveryTimeout: TimeSpan.FromSeconds(4.5));
+        var timeProvider = new FakeTimeProvider();
+        var (service, kubeconfigPath, fileSystem) = CreateService(createRecoveryTimeout: TimeSpan.FromSeconds(4.5), timeProvider: timeProvider);
         using var disposableFileSystem = fileSystem;
         using var disposableService = service;
         var requests = new ConcurrentQueue<string>();
@@ -1470,7 +1487,7 @@ public class KubernetesServiceTests(DcpApiServerCertificateFixture certificateFi
             {
                 // Both retry hints expire before confirmation finishes. Restarting the original delay
                 // after this read would exhaust the recovery budget before the second POST.
-                await Task.Delay(TimeSpan.FromSeconds(3.2), context.RequestAborted);
+                timeProvider.Advance(TimeSpan.FromSeconds(3.2));
                 await WriteStatusAsync(context, StatusCodes.Status404NotFound, "NotFound");
                 return;
             }
@@ -1479,7 +1496,7 @@ public class KubernetesServiceTests(DcpApiServerCertificateFixture certificateFi
             if (Interlocked.Increment(ref postCount) == 1)
             {
                 context.Response.Headers.RetryAfter = useHttpDate
-                    ? DateTimeOffset.FromUnixTimeSeconds(DateTimeOffset.UtcNow.ToUnixTimeSeconds() + 3).ToString("r", CultureInfo.InvariantCulture)
+                    ? DateTimeOffset.FromUnixTimeSeconds(timeProvider.GetUtcNow().ToUnixTimeSeconds() + 3).ToString("r", CultureInfo.InvariantCulture)
                     : "2";
                 await WriteStatusAsync(context, StatusCodes.Status504GatewayTimeout, "Timeout");
                 return;
@@ -2128,7 +2145,8 @@ public class KubernetesServiceTests(DcpApiServerCertificateFixture certificateFi
     private static (KubernetesService Service, string KubeconfigPath, IDisposable FileSystem) CreateService(
         TimeSpan? kubernetesApiTimeout = null,
         TimeSpan? kubernetesInitializationAdditionalTimeout = null,
-        TimeSpan? createRecoveryTimeout = null)
+        TimeSpan? createRecoveryTimeout = null,
+        TimeProvider? timeProvider = null)
     {
         var configuration = new ConfigurationBuilder().Build();
 
@@ -2148,7 +2166,7 @@ public class KubernetesServiceTests(DcpApiServerCertificateFixture certificateFi
                 KubernetesCreateRecoveryTimeout = createRecoveryTimeout ?? TimeSpan.FromMinutes(2),
             });
 
-            var service = new KubernetesService(NullLogger<KubernetesService>.Instance, dcpOptions, locations, configuration);
+            var service = new KubernetesService(NullLogger<KubernetesService>.Instance, dcpOptions, locations, configuration, timeProvider ?? TimeProvider.System);
 
             return (service, locations.DcpKubeconfigPath, fileSystem);
         }
