@@ -77,7 +77,10 @@
          dotnet restore otherwise uses the user cache. Match those locations on
          cold agents so Grpc.Tools targets are imported and protobufs generated.
          Respect an existing NUGET_PACKAGES cache supplied by the caller. -->
-    <_BundleChildArgs Condition="'$(ContinuousIntegrationBuild)' == 'true' and '$(NUGET_PACKAGES)' == ''">$(_BundleChildArgs) "/p:RestorePackagesPath=$(RepoRoot).packages"</_BundleChildArgs>
+    <_BundleNuGetCache Condition="'$(ContinuousIntegrationBuild)' == 'true' and '$(NUGET_PACKAGES)' == ''">$(RepoRoot).packages</_BundleNuGetCache>
+    <_BundleChildArgs Condition="'$(_BundleNuGetCache)' != ''">$(_BundleChildArgs) "/p:RestorePackagesPath=$(_BundleNuGetCache)"</_BundleChildArgs>
+    <!-- CreateLayout discovers DCP through the environment, not MSBuild properties. -->
+    <_BundleLayoutEnvironment Condition="'$(_BundleNuGetCache)' != ''">NUGET_PACKAGES=$(_BundleNuGetCache)</_BundleLayoutEnvironment>
     <_BundleChildArgs Condition="'$(VersionSuffix)' != ''">$(_BundleChildArgs) /p:VersionSuffix=$(VersionSuffix)</_BundleChildArgs>
     <_BundleChildArgs Condition="'$(OfficialBuildId)' != ''">$(_BundleChildArgs) /p:OfficialBuildId=$(OfficialBuildId)</_BundleChildArgs>
     <_BundleChildArgs Condition="'$(DotNetFinalVersionKind)' != ''">$(_BundleChildArgs) /p:DotNetFinalVersionKind=$(DotNetFinalVersionKind)</_BundleChildArgs>
@@ -238,7 +241,7 @@
     </PropertyGroup>
 
     <Message Importance="high" Text="Creating bundle layout..." />
-    <Exec Command="dotnet run --project &quot;$(CreateLayoutProjectPath)&quot; $(_BundleChildArgs) -- $(_CreateLayoutArgs)" />
+    <Exec EnvironmentVariables="$(_BundleLayoutEnvironment)" Command="dotnet run --project &quot;$(CreateLayoutProjectPath)&quot; $(_BundleChildArgs) -- $(_CreateLayoutArgs)" />
   </Target>
 
   <!-- Verify the actual tar payload, not the source app. This also runs in the
