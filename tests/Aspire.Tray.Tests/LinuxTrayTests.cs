@@ -13,6 +13,51 @@ public class LinuxTrayTests
 {
     public static bool SupportsLinux => OperatingSystem.IsLinux();
 
+    [Fact]
+    public async Task PendingShutdownSkipsDialog()
+    {
+        await using var controller = new TrayController(new TestAppHostClient());
+        using var application = new LinuxTrayApplication(controller, new MemoryTrayStartupSettings());
+        application.RequestQuit();
+
+        var response = application.RunDialog(42, _ => throw new InvalidOperationException("Dialog must not open during shutdown."));
+
+        Assert.Equal(-6, response);
+    }
+
+    [Theory]
+    [InlineData(-3)]
+    [InlineData(-6)]
+    [InlineData(-7)]
+    public async Task DialogResponseIsCanceledWhenShutdownIsRequested(int dialogResponse)
+    {
+        await using var controller = new TrayController(new TestAppHostClient());
+        using var application = new LinuxTrayApplication(controller, new MemoryTrayStartupSettings());
+
+        var response = application.RunDialog(42, _ =>
+        {
+            // Simulate shutdown arriving during the modal loop, before a GTK timer tick.
+            application.RequestQuit();
+            return dialogResponse;
+        });
+
+        Assert.Equal(-6, response);
+    }
+
+    [Theory]
+    [InlineData(-3)]
+    [InlineData(-6)]
+    [InlineData(-7)]
+    public async Task DialogResponseIsPreservedWithoutShutdown(int dialogResponse)
+    {
+        await using var controller = new TrayController(new TestAppHostClient());
+        using var application = new LinuxTrayApplication(controller, new MemoryTrayStartupSettings());
+
+        var response = application.RunDialog(42, _ => dialogResponse);
+
+        Assert.Equal(dialogResponse, response);
+    }
+
     [Fact(Skip = "Uses Unix absolute path syntax.", SkipUnless = nameof(SupportsLinux))]
     public Task AutostartEscapesDesktopArgumentsAndFieldCodes()
         => Verifier.Verify(LinuxTrayStartupSettings.Serialize("/opt/Aspire \"A & B\"/$100%`back\\slash/aspire"), "txt")

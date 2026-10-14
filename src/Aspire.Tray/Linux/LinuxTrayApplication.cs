@@ -30,6 +30,8 @@ internal sealed class LinuxTrayApplication(TrayController controller, ITrayStart
     private bool _reportedConnected;
     private Exception? _failure;
 
+    private bool IsQuitting => _quitting || Volatile.Read(ref _quitRequested) != 0;
+
     internal unsafe void Run()
     {
         Gtk.Load();
@@ -118,7 +120,7 @@ internal sealed class LinuxTrayApplication(TrayController controller, ITrayStart
         var app = s_current!;
         try
         {
-            if (app._quitting || Volatile.Read(ref app._quitRequested) != 0)
+            if (app.IsQuitting)
             {
                 app.Quit();
                 return 1;
@@ -132,7 +134,7 @@ internal sealed class LinuxTrayApplication(TrayController controller, ITrayStart
             {
                 action();
             }
-            if (!app._quitting)
+            if (!app.IsQuitting)
             {
                 if (app._reportedConnected && !app._connected)
                 {
@@ -285,7 +287,7 @@ internal sealed class LinuxTrayApplication(TrayController controller, ITrayStart
         var app = s_current!;
         try
         {
-            if (!app._quitting && app._dialog == 0
+            if (!app.IsQuitting && app._dialog == 0
                 && app._commands.TryGetValue(widget, out var item) && item.Enabled)
             {
                 app.Execute(item);
@@ -406,16 +408,28 @@ internal sealed class LinuxTrayApplication(TrayController controller, ITrayStart
     }
 
     private int RunDialog(nint dialog)
+        => RunDialog(dialog, static dialog =>
+        {
+            Gtk.gtk_widget_show_all(dialog);
+            return Gtk.gtk_dialog_run(dialog);
+        });
+
+    /// <summary>
+    /// Runs a modal dialog while rejecting responses after shutdown is requested.
+    /// </summary>
+    internal int RunDialog(nint dialog, Func<nint, int> runDialog)
     {
-        if (_quitting)
+        if (IsQuitting)
         {
             return -6;
         }
         _dialog = dialog;
         try
         {
-            Gtk.gtk_widget_show_all(dialog);
-            return Gtk.gtk_dialog_run(dialog);
+            var response = runDialog(dialog);
+            // IPC/signals can request shutdown before GTK's timer processes it.
+            // Do not commit an affirmative response during that interval.
+            return IsQuitting ? -6 : response;
         }
         finally
         {
