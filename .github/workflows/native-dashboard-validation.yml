@@ -1,103 +1,121 @@
-name: Native AOT Dashboard Validation
+name: Shared bundle phase validation
 
 on:
-  workflow_call:
+  workflow_dispatch:
     inputs:
-      runner:
-        required: true
+      targets:
         type: string
-      rid:
-        required: true
-        type: string
-      configuration:
-        required: false
-        type: string
-        default: Debug
+        default: >-
+          [
+            {"os":"ubuntu-latest","runner":"ubuntu-latest","rids":"linux-x64","validationRunner":"ubuntu-latest"},
+            {"os":"ubuntu-latest","runner":"ubuntu-24.04-arm","rids":"linux-arm64","validationRunner":"ubuntu-24.04-arm"},
+            {"os":"windows-latest","runner":"windows-latest","rids":"win-x64","validationRunner":"windows-latest"},
+            {"os":"windows-latest","runner":"windows-11-vs2026-arm","rids":"win-arm64","validationRunner":"windows-11-vs2026-arm"},
+            {"os":"macos-latest","runner":"macos-latest","rids":"osx-arm64","validationRunner":"macos-latest"},
+            {"os":"macos-latest","runner":"macos-latest","rids":"osx-x64","validationRunner":"macos-15-intel"}
+          ]
 
 permissions:
   actions: read
   contents: read
 
 jobs:
+  build:
+    uses: ./.github/workflows/build-cli-native-archives.yml
+    with:
+      configuration: Release
+      targets: ${{ inputs.targets }}
+
   validate:
-    name: Validate
-    runs-on: ${{ inputs.runner }}
-    timeout-minutes: 30
+    if: always() && !cancelled()
+    needs: build
+    name: Validate actual shared payload (${{ matrix.target.rids }})
+    runs-on: ${{ matrix.target.validationRunner }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJson(inputs.targets) }}
+    env:
+      TMPDIR: ${{ github.workspace }}/artifacts/tmp
+      TEMP: ${{ github.workspace }}/artifacts/tmp
+      TMP: ${{ github.workspace }}/artifacts/tmp
     steps:
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-
-      - name: Download Native AOT Dashboard archive
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - name: Restore repository toolchain
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts/tmp | Out-Null
+          & '${{ runner.os == 'Windows' && './restore.cmd' || './restore.sh' }}' -ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: native-dashboard-${{ inputs.rid }}
-          path: ${{ github.workspace }}/artifacts/native-dashboard
-
-      - name: Extract and smoke test Native AOT Dashboard
+          name: shared-phase-evidence-${{ matrix.target.rids }}
+          path: artifacts
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: built-nugets-for-${{ matrix.target.rids }}
+          path: artifacts/input/nugets
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: native-dashboard-${{ matrix.target.rids }}
+          path: artifacts/input/dashboard
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: cli-native-archives-${{ matrix.target.rids }}
+          path: artifacts/input/cli
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: cli-native-logs-${{ matrix.target.rids }}
+          path: artifacts/log
+      - name: Verify one native Dashboard compile and no packaging compile
         shell: pwsh
-        env:
-          ARTIFACTS_DIRECTORY: ${{ github.workspace }}/artifacts/native-dashboard
-          RID: ${{ inputs.rid }}
         run: |
-          $ErrorActionPreference = 'Stop'
-          $archive = @(Get-ChildItem -Path $env:ARTIFACTS_DIRECTORY -Filter "aspire-dashboard-$env:RID.zip" -File -Recurse)
-          if ($archive.Count -ne 1) {
-            throw "Expected one Native AOT Dashboard archive for $env:RID, found $($archive.Count): $($archive.FullName -join ', ')"
+          $dotnet = '${{ runner.os == 'Windows' && './dotnet.cmd' || './dotnet.sh' }}'
+          $log = 'artifacts/log/Release'
+          & $dotnet msbuild eng/scripts/verify-shared-dashboard-binlog.proj "/p:Binlog=$log/PublishBundleComponents.binlog" "/p:Report=$log/prepare-dashboard-compile.txt" /p:ExpectCompiler=false /p:ExpectPrepare=true
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $dotnet msbuild eng/scripts/verify-shared-dashboard-binlog.proj "/p:Binlog=$log/PublishDashboard.binlog" "/p:Report=$log/dashboard-compile.txt" /p:ExpectCompiler=true
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          foreach ($name in @('BundlePayload', 'BuildCli')) {
+            & $dotnet msbuild eng/scripts/verify-shared-dashboard-binlog.proj "/p:Binlog=$log/$name.binlog" "/p:Report=$log/$name-dashboard-compile.txt" /p:ExpectCompiler=false
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
-
-          $extractDirectory = Join-Path $env:ARTIFACTS_DIRECTORY 'extracted'
-          New-Item -ItemType Directory -Path $extractDirectory | Out-Null
-          if ($env:RUNNER_OS -eq 'Windows') {
-            Expand-Archive -LiteralPath $archive[0].FullName -DestinationPath $extractDirectory
-            $dashboardPath = Join-Path $extractDirectory 'Aspire.Dashboard.exe'
-          }
-          else {
-            & unzip -q $archive[0].FullName -d $extractDirectory
-            if ($LASTEXITCODE -ne 0) {
-              throw "Failed to extract Native AOT Dashboard archive '$($archive[0].FullName)'."
-            }
-            $dashboardPath = Join-Path $extractDirectory 'Aspire.Dashboard'
-          }
-
-          Add-Content -LiteralPath $env:GITHUB_ENV -Value "ASPIRE_NATIVE_DASHBOARD_PATH=$dashboardPath"
-          ./eng/scripts/test-native-dashboard.ps1 -DashboardPath $dashboardPath
-
-      - name: Test Native AOT Dashboard
-        if: ${{ inputs.rid == 'win-x64' }}
+      - name: Verify complete prepared package archive and embedded content
         shell: pwsh
-        env:
-          CONFIGURATION: ${{ inputs.configuration }}
-          NUGET_PACKAGES: ${{ format('{0}/.nuget/packages', github.workspace) }}
+        run: ./eng/scripts/validate-shared-bundle.ps1 -Stage Verify -Rid '${{ matrix.target.rids }}'
+      - name: Test actual embedded native Dashboard HTTP assets SQLite and OTLP
+        shell: pwsh
+        run: ./eng/scripts/validate-shared-bundle.ps1 -Stage Smoke -Rid '${{ matrix.target.rids }}'
+      - name: Test regular Dashboard suite on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
         run: |
-          & ./dotnet.cmd test `
-            --project tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj `
-            -c $env:CONFIGURATION `
-            --no-launch-profile `
-            /p:ContinuousIntegrationBuild=true `
-            /p:RunOuterloopTests=true `
-            -- `
-            --filter-method "*.NativeDashboard_*" `
-            --filter-not-trait "quarantined=true"
-
-          $testExitCode = $LASTEXITCODE
-          & .github/workflows/normalize-mtp-exit-code.ps1 -ExitCode $testExitCode
-
-      - name: Test Native AOT Dashboard interactivity
-        if: ${{ inputs.rid == 'win-x64' }}
+          ./dotnet.cmd test --project tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj -c Release --no-launch-profile /p:ContinuousIntegrationBuild=true -- --filter-not-trait "quarantined=true" --filter-not-trait "outerloop=true"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test actual embedded native Dashboard browser interactivity
+        if: matrix.target.rids == 'win-x64'
         shell: pwsh
-        env:
-          CONFIGURATION: ${{ inputs.configuration }}
-          NUGET_PACKAGES: ${{ format('{0}/.nuget/packages', github.workspace) }}
-        run: >
-          ./dotnet.cmd test
-          --project tests/Aspire.Dashboard.Playwright.Tests/Aspire.Dashboard.Playwright.Tests.csproj
-          -c $env:CONFIGURATION
-          --no-launch-profile
-          /p:ContinuousIntegrationBuild=true
-          /p:InstallBrowsersForPlaywright=true
-          /p:RunOuterloopTests=true
-          --
-          --filter-method "*.NativeDashboard_*"
-          --filter-not-trait "quarantined=true"
+        run: |
+          ./dotnet.cmd test --project tests/Aspire.Dashboard.Playwright.Tests/Aspire.Dashboard.Playwright.Tests.csproj -c Release --no-launch-profile --results-directory artifacts/TestResults/shared-native /p:ContinuousIntegrationBuild=true /p:InstallBrowsersForPlaywright=true /p:RunOuterloopTests=true -- --filter-method "*.NativeDashboard_LoadsInteractivePageWithoutBrowserErrors" --filter-not-trait "quarantined=true" --report-trx --report-trx-filename shared-native.trx
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $reports = @(Get-ChildItem artifacts/TestResults/shared-native -File -Filter shared-native.trx)
+          if ($reports.Count -ne 1) { throw "Expected exactly one native browser report, found $($reports.Count)." }
+          [xml]$report = Get-Content $reports[0].FullName
+          $counts = $report.TestRun.ResultSummary.Counters
+          if ($counts.total -ne '1' -or $counts.passed -ne '1' -or $counts.executed -ne '1' -or $counts.failed -ne '0') {
+            throw 'Expected one passed native browser test and zero failed/skipped tests.'
+          }
+      - name: Upload complete validation evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: shared-bundle-validation-${{ matrix.target.rids }}
+          path: |
+            artifacts/log/shared-bundle/
+            artifacts/log/Release/*compile.txt
+            artifacts/TestResults/
+          if-no-files-found: error
+          retention-days: 7

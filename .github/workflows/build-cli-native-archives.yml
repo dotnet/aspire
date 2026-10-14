@@ -33,6 +33,7 @@ jobs:
     name: Build CLI (${{ matrix.targets.rids }})
     runs-on: ${{ matrix.targets.runner }}
     strategy:
+      fail-fast: false
       matrix:
         targets: ${{ fromJson(inputs.targets) }}
     # Compute the Aspire CLI channel from the triggering GH Actions event,
@@ -91,6 +92,10 @@ jobs:
         run: >
           ./eng/scripts/verify-native-dashboard-warnings.ps1
           -BuildLog "${{ github.workspace }}/artifacts/log/${{ inputs.configuration }}/PublishNativeDashboard.log"
+
+      - name: Capture prepared Dashboard content
+        shell: pwsh
+        run: ./eng/scripts/validate-shared-bundle.ps1 -Stage Capture -Rid '${{ matrix.targets.rids }}'
 
       - name: Build bundle payload archive
         # This phase only consumes prepared files. Produce DCP packages locally
@@ -249,6 +254,21 @@ jobs:
             -PackagesDir artifacts/packages/${{ inputs.configuration }} `
             -Rid $rid `
             -ArchivePath $archive[0].FullName
+
+      - name: Capture prepared Dashboard after packaging
+        shell: pwsh
+        run: ./eng/scripts/validate-shared-bundle.ps1 -Stage Capture -Rid '${{ matrix.targets.rids }}' -SnapshotName after-publish.json
+
+      - name: Upload prepared content and payload evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: shared-phase-evidence-${{ matrix.targets.rids }}
+          path: |
+            artifacts/log/shared-bundle/*.json
+            artifacts/bundle/aspire-ci-bundlepayload-${{ matrix.targets.rids }}.tar.gz
+          if-no-files-found: error
+          retention-days: 7
 
       # Upload DCP, Dashboard, and CLI tool packages so test/polyglot jobs can download them
       - name: Upload RID-specific packages

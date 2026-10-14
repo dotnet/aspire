@@ -1,0 +1,89 @@
+<Project DefaultTargets="Verify">
+  <UsingTask TaskName="VerifySharedDashboardBinlog" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Binlog ParameterType="System.String" Required="true" />
+      <Report ParameterType="System.String" Required="true" />
+      <ExpectCompiler ParameterType="System.Boolean" Required="true" />
+      <ExpectPrepare ParameterType="System.Boolean" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="Microsoft.Build.Framework" />
+      <Using Namespace="System.Collections.Generic" />
+      <Using Namespace="System.IO" />
+      <Code Type="Method" Language="cs"><![CDATA[
+      public override bool Execute()
+      {
+        // Inline compilation targets netstandard; the pinned SDK's reader targets .NET 11.
+        // Reuse the host's loaded reader instead of referencing it during inline compilation.
+        var sourceType = Type.GetType("Microsoft.Build.Logging.BinaryLogReplayEventSource, Microsoft.Build", true);
+        var source = Activator.CreateInstance(sourceType);
+        var dashboardTasks = new HashSet<string>();
+        var commands = new HashSet<string>();
+        int csc = 0, ilc = 0, publishes = 0;
+        DateTime started = default, finished = default;
+        Func<BuildEventContext, string> key = c => $"{c.NodeId}/{c.ProjectContextId}/{c.TaskId}";
+        sourceType.GetEvent("BuildStarted").AddEventHandler(source, new BuildStartedEventHandler((_, e) => started = e.Timestamp));
+        sourceType.GetEvent("BuildFinished").AddEventHandler(source, new BuildFinishedEventHandler((_, e) => finished = e.Timestamp));
+        sourceType.GetEvent("TaskStarted").AddEventHandler(source, new TaskStartedEventHandler((_, e) =>
+        {
+            if (e.ProjectFile.EndsWith("Aspire.Dashboard.csproj", StringComparison.OrdinalIgnoreCase))
+            {
+                dashboardTasks.Add(key(e.BuildEventContext));
+            }
+        }));
+        sourceType.GetEvent("MessageRaised").AddEventHandler(source, new BuildMessageEventHandler((_, e) =>
+        {
+            if (!(e is TaskCommandLineEventArgs command) || !commands.Add(key(command.BuildEventContext) + command.CommandLine))
+            {
+                return;
+            }
+            var text = command.CommandLine;
+            // Dashboard also compiles localized satellite resource DLLs. Count only the main
+            // Csc command; satellite outputs end in ".../Aspire.Dashboard.resources.dll".
+            if (command.TaskName == "Csc" && dashboardTasks.Contains(key(command.BuildEventContext)) &&
+                !text.Contains("Aspire.Dashboard.resources.dll"))
+            {
+                csc++;
+            }
+            // Native AOT compilation is an Exec: "...ilcompiler.../ilc" @"...Aspire.Dashboard.ilc.rsp".
+            if (command.TaskName == "Exec" && text.Contains("ilcompiler") && text.Contains("Aspire.Dashboard"))
+            {
+                ilc++;
+            }
+            if (command.TaskName == "Exec" && text.Contains("dotnet publish") && text.Contains("Aspire.Dashboard.csproj"))
+            {
+                publishes++;
+            }
+        }));
+        sourceType.GetMethod("Replay", new[] { typeof(string) }).Invoke(source, new object[] { Binlog });
+        Directory.CreateDirectory(Path.GetDirectoryName(Report));
+        File.WriteAllLines(Report, new[] {
+            "Seconds=" + (finished - started).TotalSeconds,
+            "Csc=" + csc, "Ilc=" + ilc, "DashboardPublishCommands=" + publishes
+        });
+        Log.LogMessage(MessageImportance.High, "{0}: main Dashboard Csc={1}, ILC={2}, publish commands={3}", Binlog, csc, ilc, publishes);
+        bool invalid = ExpectPrepare
+            ? csc != 0 || ilc != 0 || publishes != 1
+            : ExpectCompiler ? csc != 1 || ilc != 1 : csc != 0 || ilc != 0 || publishes != 0;
+        if (invalid)
+        {
+            Log.LogError(ExpectPrepare ? "Expected exactly one Dashboard publish in the preparation parent log." : ExpectCompiler
+                ? "Expected exactly one main Dashboard Csc and ILC execution."
+                : "Packaging/CLI phase unexpectedly compiles or republishes Dashboard.");
+        }
+        return !Log.HasLoggedErrors;
+      }
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="Verify">
+    <PropertyGroup>
+      <_RepositoryRoot>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..', '..'))</_RepositoryRoot>
+      <_Binlog>$([MSBuild]::NormalizePath('$(_RepositoryRoot)', '$(Binlog)'))</_Binlog>
+      <_Report>$([MSBuild]::NormalizePath('$(_RepositoryRoot)', '$(Report)'))</_Report>
+      <ExpectPrepare Condition="'$(ExpectPrepare)' == ''">false</ExpectPrepare>
+    </PropertyGroup>
+    <VerifySharedDashboardBinlog Binlog="$(_Binlog)" Report="$(_Report)" ExpectCompiler="$(ExpectCompiler)" ExpectPrepare="$(ExpectPrepare)" />
+  </Target>
+</Project>
