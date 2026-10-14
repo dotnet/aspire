@@ -1,0 +1,67 @@
+{
+  "run_id": 38489568641,
+  "run_attempt": 1,
+  "run_url": "https://github.com/microsoft/aspire/actions/runs/38489568641",
+  "run_scope": "main",
+  "analyzed_at": "2026-10-14T00:59:47Z",
+  "verdict": "main-repository-breakage",
+  "pr": null,
+  "triggering_merge_pr": null,
+  "main_context": {
+    "last_successful_main_sha": "88ff9ba57c2841cce759adffa849373f9406b0f5",
+    "failed_sha": "edc62ce456313379082c3408d2f86039ac991443",
+    "candidate_merge_history_state": "incomplete",
+    "candidate_merges": null
+  },
+  "failed_jobs": [
+    {
+      "name": "Tests / No-package tests (collection, Aspire.Hosting.Tests, Hosting, Hosting, tests/Aspire.Hosting.Tests/... / Hosting (windows-latest)",
+      "id": 115611903047,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38489568641/job/115611903047",
+      "classification": "main-repository-breakage",
+      "reason": "Deterministic test failure: KubernetesServiceTests.CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay asserts recorded HTTP methods [\"POST\",\"GET\"] but none were recorded; matches prior recurring main-repository-breakage cause tied to the retry-delay feature merged into main.",
+      "failed_steps": [
+        "Run tests (Windows)"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x)",
+      "id": 115615054908,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38489568641/job/115615054908",
+      "classification": "main-repository-breakage",
+      "reason": "Deterministic Docker build failure at 'RUN npm ci' building the generated Nuxt integration 'web' publish image after all 59/59 TypeScript validation AppHosts passed; matches prior recurring Nuxt npm-ci build-failure cause.",
+      "failed_steps": [
+        "Run TypeScript SDK validation"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / Polyglot Validation Results",
+      "id": 115618055364,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38489568641/job/115618055364",
+      "classification": "main-repository-breakage",
+      "reason": "Aggregation job deterministically fails because the upstream TypeScript SDK Validation (Node 22.x) job failed; direct downstream consequence of the Nuxt npm-ci Docker build failure.",
+      "failed_steps": [
+        "Check validation results"
+      ]
+    }
+  ],
+  "failed_tests": [
+    {
+      "name": "Aspire.Hosting.Tests.Dcp.KubernetesServiceTests.CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay(useHttpDate: False, retryAfterSeconds: 2147483647)",
+      "job": "Tests / No-package tests (collection, Aspire.Hosting.Tests, Hosting, Hosting, tests/Aspire.Hosting.Tests/... / Hosting (windows-latest)",
+      "error": "Assert.Equal() Failure: Collections differ\n           ↓ (pos 0)\nExpected: [\"POST\", \"GET\"]\nActual:   []",
+      "stack_trace": "at Aspire.Hosting.Tests.Dcp.KubernetesServiceTests.CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay(Boolean useHttpDate, Int32 retryAfterSeconds) in D:\\a\\aspire\\aspire\\tests\\Aspire.Hosting.Tests\\Dcp\\KubernetesServiceTests.cs:line 663\n   at Aspire.Hosting.Tests.Dcp.KubernetesServiceTests.CreateAsync_RecoveryBudgetIncludesConfirmationRetryDelay(Boolean useHttpDate, Int32 retryAfterSeconds) in D:\\a\\aspire\\aspire\\tests\\Aspire.Hosting.Tests\\Dcp\\KubernetesServiceTests.cs:line 663\n--- End of stack trace from previous location ---",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "code-issue",
+      "reason": "Deterministic assertion failure on main matching a known recurring main-repository-breakage cause tied to the retry-delay feature; not timing/environment related."
+    }
+  ],
+  "causes": [
+    "kubernetesservicetests-recoverybudget-confirmationretrydelay-empty-methods",
+    "typescript-sdk-nuxt-integration-npm-ci-docker-build-failure"
+  ]
+}
