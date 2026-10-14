@@ -1422,6 +1422,55 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public async Task OnResourceStarting_WithUnresolvedParameterInOwnConnectionProperty_PublishesParameterName(bool parameterInModel)
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.WithTestAndResourceLogging(testOutputHelper);
+
+        var parameter = parameterInModel
+            ? builder.AddParameter("value", () => throw new MissingParameterValueException("Missing parameter.")).Resource
+            : ParameterResourceBuilderExtensions.CreateParameter(builder, "value", secret: false);
+        var resource = builder.AddResource(new TestResourceWithConnectionString(
+            "database", "Value=constant", unresolvedProperty: ReferenceExpression.Create($"{parameter}")));
+
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var events = new DcpExecutorEvents();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+        var appOrchestrator = CreateOrchestrator(distributedAppModel, resourceNotificationService, dcpEvents: events);
+        await appOrchestrator.RunApplicationAsync();
+        await events.PublishAsync(new OnResourcesPreparedContext(TestContext.Current.CancellationToken));
+        await events.PublishAsync(new OnResourceStartingContext(
+            TestContext.Current.CancellationToken, KnownResourceTypes.Executable, resource.Resource, resource.Resource.Name));
+
+        var connectionStringTask = events.PublishAsync(new OnConnectionStringAvailableContext(
+            TestContext.Current.CancellationToken, resource.Resource));
+        Assert.False(connectionStringTask.IsCompleted);
+        Assert.True(resourceNotificationService.TryGetCurrentState(resource.Resource.Name, out var unresolvedEvent));
+        Assert.Equal(KnownResourceStates.UnresolvedParameters, unresolvedEvent.Snapshot.State?.Text);
+        Assert.Equal(
+            ["value"],
+            Assert.IsType<string[]>(Assert.Single(unresolvedEvent.Snapshot.Properties, p => p.Name == KnownProperties.Resource.UnresolvedParameters).Value));
+
+        var startingTask = resourceNotificationService.WaitForResourceAsync(
+            resource.Resource.Name, KnownResourceStates.Starting, TestContext.Current.CancellationToken);
+        await parameter.SetValueAsync("resolved-value", TestContext.Current.CancellationToken).DefaultTimeout();
+        await connectionStringTask.DefaultTimeout();
+        await startingTask.DefaultTimeout();
+
+        Assert.True(resourceNotificationService.TryGetCurrentState(resource.Resource.Name, out var resolvedEvent));
+        var connectionProperties = Assert.IsAssignableFrom<IReadOnlyDictionary<string, string?>>(
+            Assert.Single(resolvedEvent.Snapshot.Properties, p => p.Name == KnownProperties.Resource.ConnectionProperties).Value);
+        Assert.Collection(connectionProperties, property =>
+        {
+            Assert.Equal("Unavailable", property.Key);
+            Assert.Equal("resolved-value", property.Value);
+        });
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public async Task OnResourceStarting_WithUnresolvedParameterAndWaitFor_WaitsForBothBlockers(bool dependencyResolvesFirst)
     {
         var builder = DistributedApplication.CreateBuilder();
@@ -1730,6 +1779,128 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
         Assert.DoesNotContain(startingEvent.Snapshot.Properties, p => p.Name == KnownProperties.Resource.UnresolvedParameters);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task MonitorUnresolvedParameters_WhenValueTaskIsReplaced_DoesNotOverwriteNewerBlockers(
+        bool replaceFirstParameter, bool keepThirdParameterUnresolved)
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.WithTestAndResourceLogging(testOutputHelper);
+
+        var first = builder.AddParameter("first", () => throw new MissingParameterValueException("Missing first parameter."));
+        var second = builder.AddParameter("second", () => "second-value");
+        var third = builder.AddParameter("third", () => keepThirdParameterUnresolved
+            ? throw new MissingParameterValueException("Missing third parameter.")
+            : "third-value");
+        var container = builder.AddContainer("api", "test-image")
+            .WithEnvironment("FIRST", first)
+            .WithEnvironment("SECOND", second)
+            .WithEnvironment("THIRD", third);
+
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var events = new DcpExecutorEvents();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+        var appOrchestrator = CreateOrchestrator(
+            distributedAppModel, resourceNotificationService, out var parameterProcessor, dcpEvents: events);
+        await appOrchestrator.RunApplicationAsync();
+        await events.PublishAsync(new OnResourcesPreparedContext(TestContext.Current.CancellationToken));
+        await events.PublishAsync(new OnResourceStartingContext(
+            TestContext.Current.CancellationToken, KnownResourceTypes.Container, container.Resource, container.Resource.Name));
+
+        var previousValueTasks = new Dictionary<ParameterResource, Task<string?>?>
+        {
+            [first.Resource] = first.Resource.WaitForValueTcs!.Task,
+            [second.Resource] = second.Resource.WaitForValueTcs!.Task,
+            [third.Resource] = third.Resource.WaitForValueTcs!.Task
+        };
+        await first.Resource.SetValueAsync("first-value", TestContext.Current.CancellationToken).DefaultTimeout();
+        var replacementParameter = replaceFirstParameter ? first.Resource : second.Resource;
+        var deleteResult = await parameterProcessor.DeleteParameterCoreAsync(
+            replacementParameter, new InteractionInputCollection([]), TestContext.Current.CancellationToken).DefaultTimeout();
+        Assert.True(deleteResult.Success);
+        Assert.False(replacementParameter.WaitForValueTcs!.Task.IsCompleted);
+
+        Assert.True(resourceNotificationService.TryGetCurrentState(container.Resource.Name, out var replacementEvent));
+        Assert.Equal(KnownResourceStates.UnresolvedParameters, replacementEvent.Snapshot.State?.Text);
+        var expectedParameters = keepThirdParameterUnresolved
+            ? new[] { replacementParameter.Name, third.Resource.Name }
+            : [replacementParameter.Name];
+        Assert.Equal(
+            expectedParameters,
+            Assert.IsType<string[]>(Assert.Single(replacementEvent.Snapshot.Properties, p => p.Name == KnownProperties.Resource.UnresolvedParameters).Value));
+
+        // Execute the old value-task continuation only after the replacement generation has published.
+        // The third parameter covers both an incomplete old list and an old list with no blockers left.
+        var staleMonitorTask = appOrchestrator.MonitorUnresolvedParametersAsync(
+            container.Resource, container.Resource.Name, previousValueTasks, TestContext.Current.CancellationToken);
+        Assert.True(resourceNotificationService.TryGetCurrentState(container.Resource.Name, out var currentEvent));
+        Assert.Equal(KnownResourceStates.UnresolvedParameters, currentEvent.Snapshot.State?.Text);
+        Assert.Equal(replacementEvent.Snapshot.Version, currentEvent.Snapshot.Version);
+        Assert.Equal(
+            expectedParameters,
+            Assert.IsType<string[]>(Assert.Single(currentEvent.Snapshot.Properties, p => p.Name == KnownProperties.Resource.UnresolvedParameters).Value));
+
+        var startingTask = resourceNotificationService.WaitForResourceAsync(
+            container.Resource.Name, KnownResourceStates.Starting, TestContext.Current.CancellationToken);
+        await replacementParameter.SetValueAsync("replacement-value", TestContext.Current.CancellationToken).DefaultTimeout();
+        if (keepThirdParameterUnresolved)
+        {
+            await third.Resource.SetValueAsync("third-value", TestContext.Current.CancellationToken).DefaultTimeout();
+        }
+
+        await staleMonitorTask.DefaultTimeout();
+        await startingTask.DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task MonitorUnresolvedParameters_WhenResolvedValueIsReassigned_StillClearsOtherBlockers()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.WithTestAndResourceLogging(testOutputHelper);
+
+        var first = builder.AddParameter("first", () => throw new MissingParameterValueException("Missing first parameter."));
+        var second = builder.AddParameter("second", () => throw new MissingParameterValueException("Missing second parameter."));
+        var container = builder.AddContainer("api", "test-image")
+            .WithEnvironment("FIRST", first)
+            .WithEnvironment("SECOND", second);
+
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var events = new DcpExecutorEvents();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+        var appOrchestrator = CreateOrchestrator(distributedAppModel, resourceNotificationService, dcpEvents: events);
+        await appOrchestrator.RunApplicationAsync();
+        await events.PublishAsync(new OnResourcesPreparedContext(TestContext.Current.CancellationToken));
+        await events.PublishAsync(new OnResourceStartingContext(
+            TestContext.Current.CancellationToken, KnownResourceTypes.Container, container.Resource, container.Resource.Name));
+
+        var previousValueTasks = new Dictionary<ParameterResource, Task<string?>?>
+        {
+            [first.Resource] = first.Resource.WaitForValueTcs!.Task,
+            [second.Resource] = second.Resource.WaitForValueTcs!.Task
+        };
+        await first.Resource.SetValueAsync("first-value", TestContext.Current.CancellationToken).DefaultTimeout();
+        await first.Resource.SetValueAsync("updated-value", TestContext.Current.CancellationToken).DefaultTimeout();
+        Assert.NotSame(previousValueTasks[first.Resource], first.Resource.WaitForValueTcs!.Task);
+
+        var monitorTask = appOrchestrator.MonitorUnresolvedParametersAsync(
+            container.Resource, container.Resource.Name, previousValueTasks, TestContext.Current.CancellationToken);
+        Assert.True(resourceNotificationService.TryGetCurrentState(container.Resource.Name, out var unresolvedEvent));
+        Assert.Equal(KnownResourceStates.UnresolvedParameters, unresolvedEvent.Snapshot.State?.Text);
+        Assert.Equal(
+            ["second"],
+            Assert.IsType<string[]>(Assert.Single(unresolvedEvent.Snapshot.Properties, p => p.Name == KnownProperties.Resource.UnresolvedParameters).Value));
+
+        await second.Resource.SetValueAsync("second-value", TestContext.Current.CancellationToken).DefaultTimeout();
+        await monitorTask.DefaultTimeout();
+        Assert.True(resourceNotificationService.TryGetCurrentState(container.Resource.Name, out var startingEvent));
+        Assert.Equal(KnownResourceStates.Starting, startingEvent.Snapshot.State?.Text);
+    }
+
     [Fact]
     public async Task MonitorUnresolvedParameters_WhenResourceLeavesUnresolvedParameters_DoesNotRegressState()
     {
@@ -1755,7 +1926,9 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
             Properties = s.Properties.SetResourceProperty(KnownProperties.Resource.UnresolvedParameters, new[] { parameter.Resource.Name })
         }).DefaultTimeout();
         var monitorTask = appOrchestrator.MonitorUnresolvedParametersAsync(
-            container.Resource, "api-dcp", [parameter.Resource], TestContext.Current.CancellationToken);
+            container.Resource, "api-dcp",
+            new Dictionary<ParameterResource, Task<string?>?> { [parameter.Resource] = parameter.Resource.WaitForValueTcs!.Task },
+            TestContext.Current.CancellationToken);
 
         Assert.True(resourceNotificationService.TryGetCurrentState("api-dcp", out var unresolvedEvent));
         Assert.Equal(KnownResourceStates.UnresolvedParameters, unresolvedEvent.Snapshot.State?.Text);
