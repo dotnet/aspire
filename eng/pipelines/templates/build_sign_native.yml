@@ -184,53 +184,21 @@ jobs:
             name: computeCliChannel
             displayName: 🟣Determine Aspire CLI channel
 
-          # Build, publish, and sign aspire-managed before creating the bundle layout.
-          # This ensures aspire-managed is signed before CreateLayout packs it into the bundle archive.
-          # Step 1: dotnet publish produces the self-contained single-file binary.
-          # Step 2: build.sh -sign runs Arcade's signing (only when codeSign is enabled).
-          # Step 3: Bundle.proj creates the bundle layout and archive using the signed binary.
+          # Both CI systems prepare the same component outputs. Signing stays
+          # between the shared phases so packaging never overwrites signed files.
           - script: >-
               $(Build.SourcesDirectory)/$(dotnetScript)
-              publish
-              $(Build.SourcesDirectory)/src/Aspire.Managed/Aspire.Managed.csproj
-              -c $(_BuildConfig)
-              -r ${{ targetRid }}
-              --self-contained
-              /p:GenerateDocumentationFile=false
-              /p:EnforceCodeStyleInBuild=false
+              msbuild
+              $(Build.SourcesDirectory)/eng/Bundle.proj
+              /t:PublishBundleComponents
+              /p:Configuration=$(_BuildConfig)
+              /p:TargetRid=${{ targetRid }}
+              /p:ContinuousIntegrationBuild=true
+              /p:AspireCliChannel=$(aspireCliChannel)
+              /p:DashboardPublishLogPath="$(Build.Arcade.LogsPath)PublishNativeDashboard.log"
               ${{ parameters.extraBuildArgs }}
-              /bl:$(Build.Arcade.LogsPath)PublishManaged.binlog
-            displayName: 🟣Prepare aspire-managed
-
-          - script: >-
-              $(Build.SourcesDirectory)/$(dotnetScript)
-              publish
-              $(Build.SourcesDirectory)/src/Aspire.TerminalHost/Aspire.TerminalHost.csproj
-              -c $(_BuildConfig)
-              -r ${{ targetRid }}
-              /p:GenerateDocumentationFile=false
-              /p:EnforceCodeStyleInBuild=false
-              ${{ parameters.extraBuildArgs }}
-              /bl:$(Build.Arcade.LogsPath)PublishTerminalHost.binlog
-            displayName: 🟣Prepare Native AOT TerminalHost
-
-          - pwsh: |
-              $ErrorActionPreference = 'Stop'
-              $buildLog = "$(Build.Arcade.LogsPath)PublishNativeDashboard.log"
-              & "$(Build.SourcesDirectory)/$(dotnetScript)" `
-                publish `
-                "$(Build.SourcesDirectory)/src/Aspire.Dashboard/Aspire.Dashboard.csproj" `
-                -c "$(_BuildConfig)" `
-                -r "${{ targetRid }}" `
-                /p:PlatformName=${{ targetRid }} `
-                /p:GenerateDocumentationFile=false `
-                /p:EnforceCodeStyleInBuild=false `
-                ${{ parameters.extraBuildArgs }} `
-                /bl:$(Build.Arcade.LogsPath)PublishDashboard.binlog 2>&1 | Tee-Object -FilePath $buildLog
-              if ($LASTEXITCODE -ne 0) {
-                exit $LASTEXITCODE
-              }
-            displayName: 🟣Prepare Native AOT Dashboard
+              /bl:$(Build.Arcade.LogsPath)PublishBundleComponents.binlog
+            displayName: 🟣Publish bundle components
 
           - pwsh: >-
               & "$(Build.SourcesDirectory)/eng/scripts/verify-native-dashboard-warnings.ps1"
@@ -249,27 +217,15 @@ jobs:
                 $(Build.SourcesDirectory)/artifacts/bin/Aspire.Managed/Release/net10.0/${{ targetRid }}/publish/aspire-managed
               displayName: 🟣Ad-hoc codesign aspire-managed with JIT entitlements
 
-          # Publish native tray payloads before signing and never republish afterward.
-          - ${{ if in(parameters.agentOs, 'macos', 'windows') }}:
+          - ${{ if and(eq(parameters.codeSign, true), eq(parameters.agentOs, 'macos')) }}:
             - script: >-
                 $(Build.SourcesDirectory)/$(dotnetScript)
                 msbuild
-                $(Build.SourcesDirectory)/eng/Bundle.proj
-                /t:_PublishNativeTray
+                $(Build.SourcesDirectory)/src/Aspire.Tray/Mac/Aspire.Tray.Mac.csproj
+                /t:PrepareTraySigning
                 /p:Configuration=$(_BuildConfig)
-                /p:TargetRid=${{ targetRid }}
-                ${{ parameters.extraBuildArgs }}
-                /bl:$(Build.Arcade.LogsPath)PublishTray.binlog
-              displayName: 🟣Prepare native tray app
-            - ${{ if and(eq(parameters.codeSign, true), eq(parameters.agentOs, 'macos')) }}:
-              - script: >-
-                  $(Build.SourcesDirectory)/$(dotnetScript)
-                  msbuild
-                  $(Build.SourcesDirectory)/src/Aspire.Tray/Mac/Aspire.Tray.Mac.csproj
-                  /t:PrepareTraySigning
-                  /p:Configuration=$(_BuildConfig)
-                  /p:RuntimeIdentifier=${{ targetRid }}
-                displayName: 🟣Prepare tray app signing input
+                /p:RuntimeIdentifier=${{ targetRid }}
+              displayName: 🟣Prepare tray app signing input
 
           # ESRP treats executable paths as discovery patterns and otherwise finds adjacent
           # .dSYM DWARF binaries with the same names. Native bundle components do not ship
@@ -329,18 +285,23 @@ jobs:
                 chmod +x $(Build.SourcesDirectory)/artifacts/bin/Aspire.TerminalHost/Release/net11.0/${{ targetRid }}/publish/Aspire.TerminalHost
               displayName: 🟣Restore execute permissions on managed executables
 
-          # Repack the already-published/signed Dashboard without republishing it,
-          # which would replace the signed executable. Common.projitems recreates
-          # the runtime ZIP with Overwrite=true, replacing the pre-signing archive.
+          # Packaging consumes the prepared/signed files without any publish
+          # dependency. Official DCP packages are owned by the managed build.
           - script: >-
               $(Build.SourcesDirectory)/$(dotnetScript)
-              build
-              $(Build.SourcesDirectory)/eng/dashboardpack/Aspire.Dashboard.Sdk.${{ targetRid }}.csproj
-              -c $(_BuildConfig)
-              /p:SkipDashboardPublish=true
+              msbuild
+              $(Build.SourcesDirectory)/eng/Bundle.proj
+              /t:PackageBundlePayload
+              /p:Configuration=$(_BuildConfig)
+              /p:TargetRid=${{ targetRid }}
+              /p:BundleVersion=ci-bundlepayload
+              /p:ContinuousIntegrationBuild=true
+              /p:AspireCliChannel=$(aspireCliChannel)
+              /p:RequireWindowsTraySignature=${{ parameters.codeSign }}
+              /p:RequireMacTraySignature=${{ parameters.codeSign }}
               ${{ parameters.extraBuildArgs }}
-              /bl:$(Build.Arcade.LogsPath)PackDashboard.binlog
-            displayName: 🟣Pack Native AOT Dashboard
+              /bl:$(Build.Arcade.LogsPath)PackageBundlePayload.binlog
+            displayName: 🟣Package bundle payload
 
           # The native_archives artifact publishes only artifacts/packages. Stage
           # the Dashboard runtime zip there so Assemble can recover it alongside
@@ -383,21 +344,6 @@ jobs:
             displayName: 🟣Install node.js
             inputs:
               versionSpec: '22.x'
-
-          - script: >-
-              $(Build.SourcesDirectory)/$(dotnetScript)
-              msbuild
-              $(Build.SourcesDirectory)/eng/Bundle.proj
-              "/t:_RestoreDcpPackage;_RunCreateLayout"
-              /p:Configuration=$(_BuildConfig)
-              /p:TargetRid=${{ targetRid }}
-              /p:BundleVersion=ci-bundlepayload
-              /p:SkipTrayBuild=true
-              /p:RequireWindowsTraySignature=${{ parameters.codeSign }}
-              /p:RequireMacTraySignature=${{ parameters.codeSign }}
-              /p:ContinuousIntegrationBuild=true
-              /bl:$(Build.Arcade.LogsPath)BundleLayout.binlog
-            displayName: 🟣Create bundle layout
 
           - pwsh: >-
               & "$(Build.SourcesDirectory)/eng/scripts/test-native-terminalhost.ps1"

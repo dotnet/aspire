@@ -253,6 +253,37 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
             result.RetryableJobs[0].Reason);
     }
 
+    [Theory]
+    [InlineData("Publish bundle components", true)]
+    [InlineData("Publish bundle components", false)]
+    [InlineData("Build bundle payload archive", true)]
+    [InlineData("Build bundle payload archive", false)]
+    [RequiresTools(["node"])]
+    public async Task BundlePhasesOnlyRetryWithHighConfidenceInfrastructureAnnotations(string failedStep, bool infrastructureFailure)
+    {
+        WorkflowJob job = CreateJob(failedSteps: [failedStep]);
+        var annotation = infrastructureFailure
+            ? "The hosted runner lost communication with the server."
+            : "Process completed with exit code 1.";
+
+        var result = await AnalyzeSingleJobAsync(job, annotation);
+
+        if (infrastructureFailure)
+        {
+            Assert.Empty(result.SkippedJobs);
+            Assert.Equal(
+                $"Ignored failed step '{failedStep}' matched the job-level infrastructure override allowlist.",
+                Assert.Single(result.RetryableJobs).Reason);
+        }
+        else
+        {
+            Assert.Empty(result.RetryableJobs);
+            Assert.Equal(
+                $"Failed step '{failedStep}' is only retried when the job shows a high-confidence infrastructure override, and none was found.",
+                Assert.Single(result.SkippedJobs).Reason);
+        }
+    }
+
     [Fact]
     [RequiresTools(["node"])]
     public async Task UsesLongerMarkdownFenceWhenMatchedPatternContainsBackticks()

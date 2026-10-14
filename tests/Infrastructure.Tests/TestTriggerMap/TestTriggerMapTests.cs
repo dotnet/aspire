@@ -747,7 +747,7 @@ public sealed class TestTriggerMapTests
         },
         {
             "eng/Bundle.proj",
-            ["test:Aspire.Cli.EndToEnd.Tests", "test:Infrastructure.Tests", "job:cli-starter-validation", "job:extension-e2e", "job:winget-installer", "job:homebrew-installer"]
+            ["test:Aspire.Cli.EndToEnd.Tests", "test:Aspire.Templates.Tests", "test:Infrastructure.Tests", "job:cli-starter-validation", "job:native-dashboard-validation", "job:extension-e2e", "job:winget-installer", "job:homebrew-installer"]
         },
         {
             "tools/CreateLayout/verify-tray-payload.sh",
@@ -1061,6 +1061,23 @@ public sealed class TestTriggerMapTests
             cause => cause.Kind == CauseKind.AffectedProject);
         Assert.Equal(
             ["job:cli-starter-validation", "job:extension-e2e", "job:homebrew-installer", "job:winget-installer"],
+            result.Jobs.Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void SharedBundlePhasesSelectRegularRuntimePackageConsumers()
+    {
+        var result = SelectWithRealMap("eng/Bundle.proj");
+
+        Assert.False(result.SelectsAll);
+        Assert.Empty(result.UnmatchedFiles);
+        Assert.Equal(
+            ["Aspire.Cli.EndToEnd.Tests", "Aspire.Templates.Tests", "Infrastructure.Tests"],
+            result.TestProjects.Order(StringComparer.Ordinal));
+        Assert.Contains(result.TestCauses["Aspire.Templates.Tests"],
+            cause => cause.Kind == CauseKind.PathRule && cause.Trigger == "eng/Bundle.proj");
+        Assert.Equal(
+            ["job:cli-starter-validation", "job:extension-e2e", "job:homebrew-installer", "job:native-dashboard-validation", "job:winget-installer"],
             result.Jobs.Order(StringComparer.Ordinal));
     }
 

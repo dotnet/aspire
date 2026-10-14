@@ -71,55 +71,41 @@ jobs:
         with:
           node-version: 22.x
 
-      # Build RID-specific NuGet packages (DCP + Dashboard) locally instead of
-      # downloading them from the build_packages job. This allows the CLI archive
-      # build to run in parallel with build_packages.
-      #
-      # Capture the complete build output so the expected framework-owned IL2026
-      # can remain visible while verification rejects any additional IL2026 warnings.
-      - name: Build RID-specific packages
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $buildLog = '${{ github.workspace }}/artifacts/log/${{ inputs.configuration }}/BuildBundleDeps.log'
-          # Repository cleanup can remove artifacts/log while the build is streaming output.
-          $temporaryLog = Join-Path '${{ runner.temp }}' 'BuildBundleDeps.log'
-          & '${{ runner.os == 'Windows' && './build.cmd' || './build.sh' }}' `
-            -ci `
-            -restore `
-            -build `
-            -pack `
-            -configuration '${{ inputs.configuration }}' `
-            '/bl:${{ github.workspace }}/artifacts/log/${{ inputs.configuration }}/BuildBundleDeps.binlog' `
-            /p:ContinuousIntegrationBuild=true `
-            /p:BuildBundleDepsOnly=true `
-            /p:TargetRids=${{ matrix.targets.rids }} `
-            /p:AspireCliChannel=${{ env.ASPIRE_CLI_CHANNEL }} `
-            ${{ inputs.versionOverrideArg }} 2>&1 | Tee-Object -FilePath $temporaryLog
-          $buildExitCode = $LASTEXITCODE
-          New-Item -ItemType Directory -Force -Path (Split-Path $buildLog -Parent) | Out-Null
-          Copy-Item -LiteralPath $temporaryLog -Destination $buildLog
-          exit $buildExitCode
+      # Use the same preparation phase as official builds. Only official builds
+      # insert signing between preparation and packaging.
+      - name: Publish bundle components
+        run: >
+          ${{ runner.os == 'Windows' && './dotnet.cmd' || './dotnet.sh' }}
+          msbuild
+          eng/Bundle.proj
+          /t:PublishBundleComponents
+          /p:Configuration=${{ inputs.configuration }}
+          /p:TargetRid=${{ matrix.targets.rids }}
+          /p:ContinuousIntegrationBuild=true
+          /p:AspireCliChannel=${{ env.ASPIRE_CLI_CHANNEL }}
+          /bl:${{ github.workspace }}/artifacts/log/${{ inputs.configuration }}/PublishBundleComponents.binlog
+          ${{ inputs.versionOverrideArg }}
 
       - name: Verify Native AOT Dashboard warnings
         shell: pwsh
         run: >
           ./eng/scripts/verify-native-dashboard-warnings.ps1
-          -BuildLog "${{ github.workspace }}/artifacts/log/${{ inputs.configuration }}/BuildBundleDeps.log"
+          -BuildLog "${{ github.workspace }}/artifacts/log/${{ inputs.configuration }}/PublishNativeDashboard.log"
 
       - name: Build bundle payload archive
-        # SkipNativeBuild skips only the outer CLI. Bundle.proj still publishes
-        # native tray payloads on Windows/macOS and verifies the actual archive.
+        # This phase only consumes prepared files. Produce DCP packages locally
+        # so the archive jobs remain independent of build_packages.
         run: >
           ${{ runner.os == 'Windows' && './dotnet.cmd' || './dotnet.sh' }}
           msbuild
           eng/Bundle.proj
-          /restore
+          /t:PackageBundlePayload
           /p:Configuration=${{ inputs.configuration }}
           /p:TargetRid=${{ matrix.targets.rids }}
           /p:BundleVersion=ci-bundlepayload
-          /p:SkipNativeBuild=true
+          /p:PackDcpPackage=true
           /p:ContinuousIntegrationBuild=true
+          /p:AspireCliChannel=${{ env.ASPIRE_CLI_CHANNEL }}
           /bl:${{ github.workspace }}/artifacts/log/${{ inputs.configuration }}/BundlePayload.binlog
           ${{ inputs.versionOverrideArg }}
 

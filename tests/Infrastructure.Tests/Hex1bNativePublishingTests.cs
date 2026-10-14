@@ -377,7 +377,7 @@ public sealed class Hex1bNativePublishingTests : IDisposable
         var pipeline = await File.ReadAllTextAsync(Path.Combine(
             RepoRoot.Path, "eng", "pipelines", "templates", "build_sign_native.yml"));
 
-        var prepareDashboardIndex = pipeline.IndexOf("displayName: 🟣Prepare Native AOT Dashboard", StringComparison.Ordinal);
+        var prepareDashboardIndex = pipeline.IndexOf("displayName: 🟣Publish bundle components", StringComparison.Ordinal);
         var removeSymbolsIndex = pipeline.IndexOf("displayName: 🟣Remove Native AOT bundle debug symbols", StringComparison.Ordinal);
         var signManagedIndex = pipeline.IndexOf("displayName: 🟣Sign bundle components", StringComparison.Ordinal);
         var buildNativeIndex = pipeline.IndexOf("displayName: 🟣Build native packages", StringComparison.Ordinal);

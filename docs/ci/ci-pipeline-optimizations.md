@@ -26,7 +26,7 @@ The main test workflow in `.github/workflows/tests.yml` is organized into these 
 
 3. `build_cli_archive_linux`, `build_cli_archive_windows`, `build_cli_archive_macos`
    - Build native CLI archives per RID
-   - Build the matching RID-specific DCP and Dashboard packages locally with `BuildBundleDepsOnly`
+   - Prepare and package RID-specific bundle components with the shared `eng/Bundle.proj` phases
    - Upload `built-nugets-for-{rid}` artifacts for downstream tests
    - Upload `cli-native-archives-{rid}` artifacts for archive consumers such as polyglot validation
 
@@ -102,7 +102,8 @@ That makes Linux the best place to spend extra build capacity: finishing the sha
 
 ### 2. `build_packages` skips RID-specific bundle dependencies
 
-`build_packages` uses `SkipBundleDeps=true`, while the CLI archive jobs use `BuildBundleDepsOnly=true`.
+`build_packages` uses `SkipBundleDeps=true`, while the CLI archive jobs prepare
+and package their RID-specific components through `eng/Bundle.proj`.
 
 Those two settings work together:
 
@@ -132,13 +133,51 @@ That keeps `build_packages` focused on the shared package feed, and because `ext
 
 Each CLI archive job:
 
-1. Builds RID-specific DCP and Dashboard packages locally
-2. Uploads them as `built-nugets-for-{rid}`
-3. Builds the bundle payload
-4. Builds the native CLI archive
-5. Uploads the native archive as `cli-native-archives-{rid}`
+1. Runs `PublishBundleComponents` to publish Managed, Dashboard, TerminalHost,
+   and the Windows/macOS tray once for the target RID.
+2. Verifies Dashboard warnings from that publish's `PublishNativeDashboard.log`.
+3. Runs `PackageBundlePayload` with `PackDcpPackage=true` to produce the
+   Dashboard/DCP packages and bundle archive without publishing components again.
+4. Builds the native CLI archive from the embedded bundle payload.
+5. Uploads packages as `built-nugets-for-{rid}` and archives as
+   `cli-native-archives-{rid}`.
 
 This makes the archive job self-sufficient for the RID-specific artifacts it needs.
+
+### Shared bundle phases and the official signing seam
+
+`eng/Bundle.proj` owns both phases, used by GitHub and
+`eng/pipelines/templates/build_sign_native.yml`:
+
+```bash
+./dotnet.sh msbuild eng/Bundle.proj /t:PublishBundleComponents /p:Configuration=Release /p:TargetRid=linux-x64 /p:ContinuousIntegrationBuild=true
+# Official builds sign the prepared components here.
+./dotnet.sh msbuild eng/Bundle.proj /t:PackageBundlePayload /p:Configuration=Release /p:TargetRid=linux-x64 /p:ContinuousIntegrationBuild=true /p:BundleVersion=ci-bundlepayload
+```
+
+Both phases require exactly one supported RID and enforce Release in CI.
+Child processes explicitly receive configuration, RID, CI identity, version
+suffix, official build ID, release-version policy, and CLI channel. Orchestration
+switches are not propagated into component builds.
+
+Packaging validates the expected RID/configuration publish files before doing
+work. Missing files fail rather than trigger a fallback publish.
+Dashboard packages, standalone ZIPs, and the bundle consume the same prepared
+Dashboard, excluding symbols. The default standalone `Build` retains its skip
+options and creates the bundle without adding Dashboard/DCP packages.
+
+Official signing remains between phases: macOS entitlements, symbol cleanup,
+Arcade signing, whole-app tray signing/notarization, signed tray restoration,
+and executable permissions are still pipeline-owned. `PackageBundlePayload`
+has no dependency on publishing, so these changes survive packaging.
+Official DCP packages remain managed-build-owned; only GitHub sets
+`PackDcpPackage=true`. Source indexing and canonical CLI archive/tool/npm
+packaging are unchanged.
+
+Matching build phases does not imply byte equality between unsigned CI and
+signed official outputs, or between different release identities/toolchains.
+The previous GitHub second Dashboard publish could lose CI/version properties;
+the shared preparation now keeps one explicit build identity for all surfaces.
 
 ### Native CLI packaging
 
