@@ -191,11 +191,63 @@ build tool: the server's MSBuild target scans ATS declarations offline, emits
 static C# dispatch and embeds its contract and core SDK. Roslyn and reflection
 stay in that build tool, not in the execution server.
 
-For provider-backed product AppHosts, the CLI invokes
+**Current implementation.** For provider-backed product AppHosts, the CLI invokes
 `aspire-managed apphost-codegen-v2` during preparation. This combines the bundled
 core contract and provider metadata with the same ATS TypeScript generator.
 The execution server exposes these prepared SDK files through its ordinary
 code-generation RPC.
+
+#### Planned Integration-Host Tooling
+
+The managed integration host will discover both integration contracts and
+language-generator plugins. The native server will delegate discovery and
+generation through the existing CLI RPC contract, keeping generators, assembly
+scanning and Roslyn outside the native execution server.
+
+```mermaid
+flowchart LR
+    CLI[Aspire CLI] <-->|Existing discovery / codegen RPC| Native[Native server broker]
+    Core[Bundled core ATS contract] --> Native
+    subgraph Host[Managed integration host]
+        Discovery[Discovery service]
+        Contracts[Integration contract catalog] --> Discovery
+        Generators[Language-generator catalog] --> Discovery
+        Contracts --> Generate[Generation service]
+        Generators --> Generate
+    end
+    Native <-->|Discover| Discovery
+    Native <-->|Generate: SDK files + diagnostics| Generate
+    CLI --> SDK[Generated AppHost SDK]
+```
+
+Each generator advertises its language, version and supported contract features.
+Generation selects a compatible generator for the combined core and selected
+integration contracts. Providers supply portable metadata; they do not each
+need generators for every consumer language. Runtime registration must agree
+with the contract used to generate the SDK.
+
+Discovery and generation do not execute the AppHost or start resources.
+Published packages can ship contracts; local integrations can refresh theirs
+during preparation.
+
+#### Planned Process Lifetimes
+
+Processes are scoped to a command or AppHost session, not machine-wide daemons.
+
+| Component | Lifetime |
+| --- | --- |
+| CLI | Owns the command/session and its child-process scope. |
+| Native server | Lives across composition revisions for the application session. |
+| Integration host | Starts lazily for discovery/generation; stays alive when needed for integration APIs, callbacks or controllers. A tooling-only host can exit after generation. |
+| Language generator | A plugin invoked inside the host, not a separate process per language or request. |
+| Guest AppHost | Runs composition; can restart while the server retains the workspace. |
+
+Shutdown retires the application while integrations are still available, drains
+callbacks/controllers and cleans up owned workloads, then stops hosts and the
+native server. The CLI enforces bounded shutdown and orphan cleanup. The current
+spike still uses a short-lived codegen command and separately activated providers.
+
+#### JSON Boundaries
 
 The core model has no JSON dependency. At the server boundary, `JsonElement`
 reads and validates immutable wire data, including rejecting duplicate keys.
