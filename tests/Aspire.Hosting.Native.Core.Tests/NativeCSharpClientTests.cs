@@ -55,6 +55,7 @@ public class NativeCSharpClientTests
                 .Count(method => method.Name.EndsWith("Async", StringComparison.Ordinal) && type != typeof(NativeClient))));
 
         Type ProjectType(Type source) => source.IsArray ? ProjectType(source.GetElementType()!).MakeArrayType() :
+            source.IsGenericType ? source.GetGenericTypeDefinition().MakeGenericType(source.GetGenericArguments().Select(ProjectType).ToArray()) :
             source.Assembly == typeof(Api.CompositionSession).Assembly
                 ? clientAssembly.GetType($"Aspire.Hosting.Native.Client.{source.Name}", throwOnError: true)! : source;
     }

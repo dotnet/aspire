@@ -96,7 +96,7 @@ internal sealed partial class NativeRpcConnection
             }
         }
 
-        return await NativeDispatch.InvokeAsync(_server, _handles, capabilityId, capabilityArguments).ConfigureAwait(false);
+        return await NativeDispatch.InvokeAsync(_server, _handles, this, this, capabilityId, capabilityArguments).ConfigureAwait(false);
     }
 
     private async Task<JsonNode?> InvokeProviderControlAsync(string method, JsonNode? parameters)

@@ -76,9 +76,17 @@ internal sealed class ApplicationModel : IDisposable
             EnsureMutable();
             var target = GetResource(resource);
             var prerequisite = GetResource(dependency);
-            if (resource == dependency || Reaches(prerequisite, resource.ResourceId))
+            var path = DependencyPath(prerequisite, resource.ResourceId);
+            if (path is not null)
             {
-                throw new InvalidOperationException($"Dependency '{target.Name}' -> '{prerequisite.Name}' would create a cycle.");
+                var steps = new List<string> { $"{target.Name}.Start" };
+                foreach (var id in path)
+                {
+                    var name = _resources[id].Name;
+                    steps.Add($"{name}.Ready");
+                    steps.Add($"{name}.Start");
+                }
+                throw new Runtime.ExecutionPlanException(string.Join(" -> ", steps));
             }
             target.Dependencies.Add(dependency.ResourceId);
         }
@@ -147,7 +155,7 @@ internal sealed class ApplicationModel : IDisposable
         }
     }
 
-    /// <summary>Atomically replaces one symbolic field and derives its readiness references without stale edges.</summary>
+    /// <summary>Atomically replaces one symbolic field without turning value availability into resource readiness.</summary>
     public void SetSymbolicConfiguration(ResourceHandle handle, string name, SymbolicValue value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -164,30 +172,7 @@ internal sealed class ApplicationModel : IDisposable
             {
                 throw new ArgumentException("The symbolic configuration exceeds capacity.");
             }
-            resource.SymbolicConfiguration.TryGetValue(name, out var previous);
             resource.SymbolicConfiguration[name] = value;
-            try
-            {
-                foreach (var dependency in Dependencies(resource))
-                {
-                    if (Reaches(_resources[dependency], handle.ResourceId))
-                    {
-                        throw new InvalidOperationException("The symbolic value dependency would create a cycle.");
-                    }
-                }
-            }
-            catch
-            {
-                if (previous is null)
-                {
-                    resource.SymbolicConfiguration.Remove(name);
-                }
-                else
-                {
-                    resource.SymbolicConfiguration[name] = previous;
-                }
-                throw;
-            }
         }
     }
 
@@ -286,28 +271,34 @@ internal sealed class ApplicationModel : IDisposable
         return resource;
     }
 
-    private bool Reaches(Resource start, Guid target)
+    private List<Guid>? DependencyPath(Resource start, Guid target)
     {
-        var visited = new HashSet<Guid>();
+        var parents = new Dictionary<Guid, Guid?> { [start.Handle.ResourceId] = null };
         var pending = new Stack<Guid>();
         pending.Push(start.Handle.ResourceId);
         while (pending.TryPop(out var id))
         {
             if (id == target)
             {
-                return true;
-            }
-            if (!visited.Add(id))
-            {
-                continue;
+                var path = new List<Guid>();
+                for (Guid? current = id; current is not null; current = parents[current.Value])
+                {
+                    path.Add(current.Value);
+                }
+                path.Reverse();
+
+                return path;
             }
             foreach (var dependency in Dependencies(_resources[id]))
             {
-                pending.Push(dependency);
+                if (parents.TryAdd(dependency, id))
+                {
+                    pending.Push(dependency);
+                }
             }
         }
 
-        return false;
+        return null;
     }
 
     private ApplicationSnapshot CreateSnapshot() => new(GenerationId,
@@ -327,9 +318,7 @@ internal sealed class ApplicationModel : IDisposable
             .Select(pair => new SymbolicConfigurationEntry(pair.Key, pair.Value)).ToImmutableArray()
     };
 
-    private static IEnumerable<Guid> Dependencies(Resource resource) => resource.Dependencies.Concat(
-        resource.SymbolicConfiguration.Values.SelectMany(value => value.References)
-            .Select(reference => reference.ResourceId).Where(id => id != resource.Handle.ResourceId)).Distinct();
+    private static IEnumerable<Guid> Dependencies(Resource resource) => resource.Dependencies;
 
     /// <summary>Validates and stores desired workload metadata without launching or acquiring runtime ownership.</summary>
     public void SetWorkload(ResourceHandle handle, DeclaredWorkload workload)
@@ -355,8 +344,8 @@ internal sealed class ApplicationModel : IDisposable
             var (workload, configuration) = mutation(current);
             Runtime.WorkloadDefinition.Validate(workload.Plan);
             workload.Bindings.Validate(workload.Plan);
-            // Validate the complete plan before changing symbolic state. Its cycle/capacity
-            // checks roll back on failure; the subsequent workload assignment cannot fail.
+            // Validate the complete plan before changing symbolic state so a failed
+            // workload or value validation cannot leave a partially applied binding.
             if (configuration is not null)
             {
                 SetSymbolicConfiguration(handle, configuration.Name, configuration.Value);

@@ -11,5 +11,6 @@
     <Compile Include="../Aspire.Hosting/Ats/AspireExportAttribute.cs" Link="AspireExportAttribute.cs" />
     <Compile Include="../Aspire.Hosting/Ats/AspireDtoAttribute.cs" Link="AspireDtoAttribute.cs" />
     <Compile Include="../Aspire.Hosting/Ats/AspireExportIgnoreAttribute.cs" Link="AspireExportIgnoreAttribute.cs" />
+    <Compile Include="../Aspire.Hosting/Ats/AspireUnionAttribute.cs" Link="AspireUnionAttribute.cs" />
   </ItemGroup>
 </Project>

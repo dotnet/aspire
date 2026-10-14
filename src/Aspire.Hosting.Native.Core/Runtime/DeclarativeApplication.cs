@@ -44,6 +44,8 @@ internal sealed partial class RuntimeGeneration
             {
                 throw new InvalidOperationException("The declared application has already started.");
             }
+            WorkloadExecutionPlan.Validate(_resources.Values.Select(resource => resource.Declaration),
+                executor is IWorkloadPreparationExecutor);
             _declaredActivation = StartDeclaredApplicationAsync();
             _ = _declaredActivation.ContinueWith(static task => _ = task.Exception, CancellationToken.None,
                 TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
@@ -120,7 +122,9 @@ internal sealed partial class RuntimeGeneration
     private async Task ApplyDeclaredRevisionAsync(Task removedCleanup)
     {
         await removedCleanup.ConfigureAwait(false);
-        List<Task<WorkloadEndpoint>> starts = [];
+        var stopping = new Dictionary<Guid, ResourceWorkload>();
+        Dictionary<Guid, ImmutableArray<Guid>> dependencies;
+        var activating = new List<Guid>();
         lock (_gate)
         {
             if (_declaredActivation is null)
@@ -129,14 +133,18 @@ internal sealed partial class RuntimeGeneration
             }
             EnsureAlive();
             _declaredOwners.RemoveWhere(id => !_resources.ContainsKey(id));
-            // Compute the affected DAG before scheduling replacements: a consumer
-            // may precede its producer in declaration order, but must receive the
-            // producer's newly allocated endpoint, never its previous address.
+            // Invalidation follows value references too, including cycles. Clear
+            // every affected allocation before any replacement can resolve values,
+            // otherwise a peer may configure itself with an obsolete address.
             foreach (var resource in _resources.Values.Where(resource => _declaredOwners.Contains(resource.Declaration.Handle.ResourceId) &&
                 resource.AppliedConfigurationRevision != resource.ConfigurationRevision).ToArray())
             {
                 InvalidateDependents(resource.Declaration.Handle.ResourceId, true);
             }
+            WorkloadExecutionPlan.Validate(_resources.Values.Select(resource => resource.Declaration),
+                executor is IWorkloadPreparationExecutor);
+            dependencies = _resources.ToDictionary(pair => pair.Key,
+                pair => pair.Value.Declaration.Dependencies.Select(handle => handle.ResourceId).ToImmutableArray());
             foreach (var resource in _resources.Values)
             {
                 var id = resource.Declaration.Handle.ResourceId;
@@ -148,13 +156,22 @@ internal sealed partial class RuntimeGeneration
                     }
                     continue;
                 }
-                var context = workload.Plan is ContainerWorkload ? ValueNetworkContext.Container : ValueNetworkContext.Host;
                 if (_declaredOwners.Contains(id))
                 {
                     if (resource.AppliedConfigurationRevision != resource.ConfigurationRevision)
                     {
-                        starts.Add(ReplaceSymbolicWorkloadAsync(id, resource.ConfigurationRevision,
-                            workload.Plan, context, workload.Bindings));
+                        if (_workloads.TryGetValue(id, out var previous))
+                        {
+                            stopping.Add(id, previous);
+                        }
+                        resource.Allocation = null;
+                        resource.AllocationPrepared = false;
+                        resource.State = ResourceState.Starting;
+                        resource.Healthy = false;
+                        resource.Urls = [];
+                        resource.Commands.Clear();
+                        CancelRequests(resource);
+                        activating.Add(id);
                     }
                 }
                 else
@@ -163,14 +180,41 @@ internal sealed partial class RuntimeGeneration
                     {
                         throw new InvalidOperationException("An external owner cannot be replaced by declarative ownership.");
                     }
-                    resource.Claimed = true;
-                    _declaredOwners.Add(id);
-                    starts.Add(StartSymbolicWorkload(id, resource.ConfigurationRevision, workload.Plan, context, workload.Bindings));
+                    activating.Add(id);
                 }
             }
-            _declaredActivation = Task.WhenAll(starts);
+            Changed();
         }
-        await _declaredActivation.ConfigureAwait(false);
+        await RetireDeclaredWorkloadsAsync(new(stopping), dependencies).ConfigureAwait(false);
+        var starts = new List<Task<WorkloadEndpoint>>();
+        lock (_gate)
+        {
+            EnsureAlive();
+            foreach (var id in activating)
+            {
+                if (stopping.TryGetValue(id, out var previous))
+                {
+                    _workloads.Remove(id);
+                    _retiredWorkloads.Add(previous);
+                }
+                var resource = GetResource(id);
+                resource.State = ResourceState.Unknown;
+                resource.Claimed = true;
+                _declaredOwners.Add(id);
+                var workload = resource.Declaration.Workload!;
+                var context = workload.Plan is ContainerWorkload ? ValueNetworkContext.Container : ValueNetworkContext.Host;
+                starts.Add(StartSymbolicWorkload(id, resource.ConfigurationRevision, workload.Plan, context, workload.Bindings));
+            }
+        }
+        try
+        {
+            await Task.WhenAll(starts).ConfigureAwait(false);
+        }
+        catch
+        {
+            Dispose();
+            throw;
+        }
     }
 
     private (Func<CancellationToken, Task> Initialize,
@@ -214,16 +258,16 @@ internal sealed partial class RuntimeGeneration
                 }
             }
         }
-        WorkloadPlan Resolve(DeclaredLifecycleCommand command, bool allocated) =>
+        WorkloadPlan Resolve(DeclaredLifecycleCommand command) =>
             ResolveSymbolicWorkload(resourceId, resource.ConfigurationRevision, command.Plan, ValueNetworkContext.Host,
-                command.Bindings, allocated);
-        async Task Execute(string phase, bool allocationAvailable, CancellationToken cancellationToken)
+                command.Bindings);
+        async Task Execute(string phase, CancellationToken cancellationToken)
         {
             if (lifecycle.SingleOrDefault(command => command.Phase == phase) is not { } command)
             {
                 return;
             }
-            var plan = Resolve(command, allocationAvailable);
+            var plan = Resolve(command);
             if (!await RunLifecycleCommandAsync(plan, cancellationToken).ConfigureAwait(false))
             {
                 throw new InvalidOperationException("An integration lifecycle command failed.");
@@ -237,17 +281,17 @@ internal sealed partial class RuntimeGeneration
             // authoritative. Retirement can then run after handle revocation.
             if (lifecycle.SingleOrDefault(command => command.Phase == LifecycleCommandPhases.Retire) is { } retirementCommand)
             {
-                retirement = (ExecutableWorkload)Resolve(retirementCommand, true);
+                retirement = (ExecutableWorkload)Resolve(retirementCommand);
             }
             if (lifecycle.SingleOrDefault(command => command.Phase == LifecycleCommandPhases.Health) is { } health)
             {
-                var plan = Resolve(health, true);
+                var plan = Resolve(health);
                 while (!await RunLifecycleCommandAsync(plan, cancellationToken).ConfigureAwait(false))
                 {
                     await Task.Delay(options.ObservationInterval, options.TimeProvider, cancellationToken).ConfigureAwait(false);
                 }
             }
-            await Execute(LifecycleCommandPhases.Ready, true, cancellationToken).ConfigureAwait(false);
+            await Execute(LifecycleCommandPhases.Ready, cancellationToken).ConfigureAwait(false);
             await InvokeProvider(ProviderLifecyclePhases.Ready, retirementValues, cancellationToken).ConfigureAwait(false);
             lock (_gate)
             {
@@ -298,9 +342,9 @@ internal sealed partial class RuntimeGeneration
                     .All(key => resource.Declaration.SymbolicConfiguration.Single(entry => entry.Name == key).Value.References
                         .All(handle => handle.ResourceId != resourceId)))
             {
-                retirement = (ExecutableWorkload)Resolve(retirementCommand, false);
+                retirement = (ExecutableWorkload)Resolve(retirementCommand);
             }
-            await Execute(LifecycleCommandPhases.Initialize, false, token).ConfigureAwait(false);
+            await Execute(LifecycleCommandPhases.Initialize, token).ConfigureAwait(false);
         }
 
         return (Initialize, Allocated, Retire);
@@ -317,8 +361,7 @@ internal sealed partial class RuntimeGeneration
                 {
                     continue;
                 }
-                var value = entry.Value.Resolve(ValueNetworkContext.Host,
-                    (handle, name, property) => ResolveEndpointValue(handle, name, property, allocated ? resourceId : null));
+                var value = entry.Value.Resolve(ValueNetworkContext.Host, ResolveEndpointValue);
                 if (entry.Value.IsSecret)
                 {
                     if (!_secretRedactions.Contains(value) && _secretRedactions.Count >= 4096)

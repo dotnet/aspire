@@ -29,7 +29,7 @@ public class NativeSymbolicValueClientTests
         Assert.True(metadata.IsSecret);
         Assert.Equal(["password"], metadata.ParameterReferences);
         Assert.Equal([(await source.InspectResourceAsync()).ResourceId], metadata.References);
-        Assert.Equal(metadata.References, (await target.InspectResourceAsync()).Dependencies);
+        Assert.Empty((await target.InspectResourceAsync()).Dependencies);
         Assert.Empty((await target.InspectResourceAsync()).Configuration);
         var otherSession = await client.Server.OpenApplicationAsync();
         var other = await otherSession.StartGenerationAsync();

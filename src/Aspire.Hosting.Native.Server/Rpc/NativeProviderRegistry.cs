@@ -331,7 +331,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
         {
             throw RpcFault.InvalidHandle("Provider core calls require delegated connection authority.");
         }
-        var result = await origin.InvokeCoreAsync(capability, translated).ConfigureAwait(false);
+        var result = await origin.InvokeCoreAsync(capability, translated, provider).ConfigureAwait(false);
         return DelegateResult(result);
 
         JsonNode? DelegateResult(JsonNode? value)

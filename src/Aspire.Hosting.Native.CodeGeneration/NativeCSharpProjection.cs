@@ -109,7 +109,18 @@ internal static class NativeCSharpProjection
             var resultName = ReserveName("result");
             var clientName = ReserveName("client");
             var cancellationName = ReserveName("cancellationToken");
-            var parameters = inputs.Select(parameter => $"{TypeName(parameter.Type!)} @{parameter.Name}");
+            var callbacks = inputs.Where(parameter => parameter.IsCallback).ToArray();
+            foreach (var callback in callbacks)
+            {
+                if (callback.CallbackParameters is not [{ Type.Category: AtsTypeCategory.Handle }] ||
+                    callback.CallbackReturnType?.TypeId != "void")
+                {
+                    throw new NotSupportedException($"Unsupported native callback: {capability.CapabilityId}.");
+                }
+            }
+            var callbackNames = callbacks.ToDictionary(parameter => parameter.Name,
+                parameter => ReserveName(parameter.Name + "Id"), StringComparer.Ordinal);
+            var parameters = inputs.Select(parameter => $"{(parameter.IsCallback ? $"Func<{TypeName(parameter.CallbackParameters![0].Type)}, Task>" : TypeName(parameter.Type!))} @{parameter.Name}");
             if (isStatic)
             {
                 parameters = new[] { $"NativeClient {clientName}" }.Concat(parameters);
@@ -137,27 +148,73 @@ internal static class NativeCSharpProjection
             }
             foreach (var parameter in inputs)
             {
-                var value = parameter.Type!.Category == AtsTypeCategory.Handle
+                if (parameter.IsCallback)
+                {
+                    continue;
+                }
+                var parameterType = TypeName(parameter.Type!);
+                if (parameterType == "string[]")
+                {
+                    scalarTypes.Add(parameterType);
+                }
+                var value = parameter.Type!.Category == AtsTypeCategory.Union
+                    ? $"@{parameter.Name} switch {{ {string.Join(", ", parameter.Type.UnionTypes!.Select(member =>
+                        member.TypeId == "string"
+                            ? $"string text => JsonSerializer.SerializeToElement(text, NativeClientJsonContext.Default.String)"
+                            : $"{TypeName(member)} remote => {connectionName}.GetHandle(remote)"))}, _ => throw new ArgumentException(\"Unsupported symbolic value.\", nameof(@{parameter.Name})) }}"
+                    : parameter.Type.Category == AtsTypeCategory.Handle
                     ? $"{connectionName}.GetHandle(@{parameter.Name})"
-                    : $"JsonSerializer.SerializeToElement(@{parameter.Name}, NativeClientJsonContext.Default.{JsonContextName(TypeName(parameter.Type))})";
+                    : $"JsonSerializer.SerializeToElement(@{parameter.Name}, NativeClientJsonContext.Default.{JsonContextName(parameterType)})";
                 code.AppendLine(CultureInfo.InvariantCulture, $"        {argumentsName}.Add({Literal(parameter.Name)}, {value});");
             }
+            foreach (var callback in callbacks)
+            {
+                var callbackType = TypeName(callback.CallbackParameters![0].Type);
+                var callbackName = callbackNames[callback.Name];
+                code.AppendLine(CultureInfo.InvariantCulture, $"        ArgumentNullException.ThrowIfNull(@{callback.Name});");
+                code.AppendLine(CultureInfo.InvariantCulture, $"        var {callbackName} = Guid.NewGuid().ToString(\"N\");");
+                code.AppendLine(CultureInfo.InvariantCulture, $"        {connectionName}.RegisterCallback({callbackName}, async callbackArguments =>");
+                code.AppendLine("        {");
+                code.AppendLine(CultureInfo.InvariantCulture,
+                    $"            await @{callback.Name}(new {callbackType}({connectionName}, callbackArguments.GetProperty(\"p0\"))).ConfigureAwait(false);");
+                code.AppendLine("            return JsonSerializer.SerializeToElement((string?)null, NativeClientJsonContext.Default.String);");
+                code.AppendLine("        });");
+                code.AppendLine(CultureInfo.InvariantCulture,
+                    $"        {argumentsName}.Add({Literal(callback.Name)}, JsonSerializer.SerializeToElement({callbackName}, NativeClientJsonContext.Default.String));");
+            }
+            if (callbacks.Length != 0)
+            {
+                code.AppendLine("        try");
+                code.AppendLine("        {");
+            }
+            var invocationIndent = callbacks.Length != 0 ? "            " : "        ";
             code.AppendLine(CultureInfo.InvariantCulture,
-                $"        var {resultName} = await {connectionName}.InvokeAsync({Literal(capability.CapabilityId)}, {argumentsName}, {cancellationName}).ConfigureAwait(false);");
+                $"{invocationIndent}var {resultName} = await {connectionName}.InvokeAsync({Literal(capability.CapabilityId)}, {argumentsName}, {cancellationName}).ConfigureAwait(false);");
             if (capability.ReturnType.Category == AtsTypeCategory.Handle)
             {
-                code.AppendLine(CultureInfo.InvariantCulture, $"        return new {resultType}({connectionName}, {resultName});");
+                code.AppendLine(CultureInfo.InvariantCulture, $"{invocationIndent}return new {resultType}({connectionName}, {resultName});");
             }
             else if (resultType == "void")
             {
-                code.AppendLine(CultureInfo.InvariantCulture, $"        if ({resultName}.ValueKind != JsonValueKind.Null) throw new InvalidDataException(\"The capability returned an unexpected result.\");");
+                code.AppendLine(CultureInfo.InvariantCulture, $"{invocationIndent}if ({resultName}.ValueKind != JsonValueKind.Null) throw new InvalidDataException(\"The capability returned an unexpected result.\");");
             }
             else
             {
-                var missingResult = resultType is "bool" or "int" or "long" ? "" :
+                var missingResult = resultType is "bool" or "int" or "long" || capability.ReturnType.IsNullable == true ? "" :
                     " ?? throw new InvalidDataException(\"The capability returned no result.\")";
                 code.AppendLine(CultureInfo.InvariantCulture,
-                    $"        return JsonSerializer.Deserialize({resultName}, NativeClientJsonContext.Default.{JsonContextName(resultType)}){missingResult};");
+                    $"{invocationIndent}return JsonSerializer.Deserialize({resultName}, NativeClientJsonContext.Default.{JsonContextName(resultType)}){missingResult};");
+            }
+            if (callbacks.Length != 0)
+            {
+                code.AppendLine("        }");
+                code.AppendLine("        finally");
+                code.AppendLine("        {");
+                foreach (var callbackName in callbackNames.Values)
+                {
+                    code.AppendLine(CultureInfo.InvariantCulture, $"            {connectionName}.UnregisterCallback({callbackName});");
+                }
+                code.AppendLine("        }");
             }
             code.AppendLine("    }");
 
@@ -180,6 +237,8 @@ internal static class NativeCSharpProjection
                 AtsTypeCategory.Handle when handles.TryGetValue(type.TypeId, out var handle) => handle,
                 AtsTypeCategory.Dto when dtos.TryGetValue(type.TypeId, out var dto) => dto,
                 AtsTypeCategory.Array => TypeName(type.ElementType!) + "[]",
+                AtsTypeCategory.Union => "object",
+                AtsTypeCategory.Callback => "Delegate",
                 AtsTypeCategory.Primitive => type.TypeId switch
                 {
                     "string" => "string",
@@ -200,13 +259,14 @@ internal static class NativeCSharpProjection
         type.ElementType is { } element && ContainsHandle(element) ||
         type.ValueType is { } value && ContainsHandle(value);
 
-    private static string JsonContextName(string type) => type switch
+    private static string JsonContextName(string type) => type.TrimEnd('?') switch
     {
         "string" => "String",
         "bool" => "Boolean",
         "int" => "Int32",
         "long" => "Int64",
-        _ => type
+        "string[]" => "StringArray",
+        _ => type.TrimEnd('?')
     };
 
     private static string Literal(string value) => JsonSerializer.Serialize(value);

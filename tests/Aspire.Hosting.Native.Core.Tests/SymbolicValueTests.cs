@@ -29,16 +29,15 @@ public class SymbolicValueTests
     }
 
     [Fact]
-    public void SymbolicReferencesReplaceDependenciesAtomicallyAndRejectCycles()
+    public void SymbolicReferencesAllowCyclesWithoutCreatingReadinessDependencies()
     {
         using var model = new ApplicationModel();
         var first = model.AddResource("first", "example/service");
         var second = model.AddResource("second", "example/service");
         model.SetSymbolicConfiguration(first, "target", SymbolicValue.Endpoint(second, "tcp", EndpointValueProperty.Port));
-        Assert.Equal([second], model.ReadResource(first).Dependencies);
-        Assert.Throws<InvalidOperationException>(() =>
-            model.SetSymbolicConfiguration(second, "target", SymbolicValue.Endpoint(first, "tcp", EndpointValueProperty.Port)));
-        Assert.Empty(model.ReadResource(second).SymbolicConfiguration);
+        Assert.Empty(model.ReadResource(first).Dependencies);
+        model.SetSymbolicConfiguration(second, "target", SymbolicValue.Endpoint(first, "tcp", EndpointValueProperty.Port));
+        Assert.Equal([first], Assert.Single(model.ReadResource(second).SymbolicConfiguration).Value.References);
         Assert.Empty(model.ReadResource(second).Dependencies);
         model.SetSymbolicConfiguration(first, "target", SymbolicValue.Literal(model.GenerationId, "replacement"));
         Assert.Empty(model.ReadResource(first).Dependencies);
@@ -63,7 +62,7 @@ public class SymbolicValueTests
     }
 
     [Fact]
-    public async Task SymbolicLaunchWaitsForReadinessAndResolvesEnvironmentAndArgumentServerSide()
+    public async Task SymbolicLaunchUsesAllocationWithoutImplicitReadinessAndResolvesValuesServerSide()
     {
         using var model = new ApplicationModel();
         var source = model.AddResource("source", "example/service");
@@ -82,10 +81,8 @@ public class SymbolicValueTests
         var executable = new ExecutableWorkload(Environment.ProcessPath!, AppContext.BaseDirectory, [], [""], []);
         var pending = targetOwner.StartSymbolicWorkload(1, executable, ValueNetworkContext.Host,
             new([new("CONNECTION", "connection")], [new(0, "connection")]));
-        Assert.False(pending.IsCompleted);
-        Assert.Single(executor.Plans);
-        sourceOwner.Publish(ResourceState.Running, true, []);
         await pending.WaitAsync(TimeSpan.FromSeconds(10), TimeProvider.System);
+        Assert.False(runtime.Read().Resources.Single(resource => resource.Name == "source").Healthy);
         var launched = Assert.IsType<ExecutableWorkload>(executor.Plans.Last());
         Assert.Equal("127.0.0.1:5050,password=launch-secret", Assert.Single(launched.Environment).Value);
         Assert.Equal("127.0.0.1:5050,password=launch-secret", Assert.Single(launched.Arguments));

@@ -101,8 +101,8 @@ public class ApplicationModelTests
         model.AddDependency(web, cache);
         model.AddDependency(proxy, web);
 
-        Assert.Throws<InvalidOperationException>(() => model.AddDependency(cache, proxy));
-        Assert.Throws<InvalidOperationException>(() => model.AddDependency(cache, cache));
+        Assert.Throws<Aspire.Hosting.Native.Runtime.ExecutionPlanException>(() => model.AddDependency(cache, proxy));
+        Assert.Throws<Aspire.Hosting.Native.Runtime.ExecutionPlanException>(() => model.AddDependency(cache, cache));
         Assert.Empty(model.ReadResource(cache).Dependencies);
         Assert.Equal(cache, Assert.Single(model.ReadResource(web).Dependencies));
         Assert.Equal(web, Assert.Single(model.ReadResource(proxy).Dependencies));

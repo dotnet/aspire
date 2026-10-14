@@ -254,6 +254,11 @@ public sealed class NativeClient : IAsyncDisposable
             throw new InvalidOperationException("The callback authority is already registered.");
         }
     }
+
+    /// <summary>Releases a completed guest callback's connection-local registration.</summary>
+    /// <param name="id">The identifier supplied when registering the callback.</param>
+    public void UnregisterCallback(string id) => _callbacks.TryRemove(id, out _);
+
     internal Task WaitForDisconnectAsync(CancellationToken cancellationToken) => _rpc.Completion.WaitAsync(cancellationToken);
     internal Task<JsonElement> InvokeGuestCallbackAsync(string callback, Dictionary<string, JsonElement> arguments) =>
         RequestAsync(() => _serverRpc.InvokeGuestCallbackAsync(callback, arguments), CancellationToken.None);

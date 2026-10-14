@@ -15,6 +15,42 @@ namespace Aspire.Hosting.Native.Core.Tests;
 public class DcpWorkloadCleanupTests
 {
     [Fact]
+    public async Task PreparedAllocationOwnsOnlyServicesUntilLaunchAndCleansUpWithoutStarting()
+    {
+        using var handler = new DcpCleanupTestHandler();
+        await using var client = handler.CreateClient(new());
+        var executor = new DcpWorkloadExecutor(client);
+        var plan = new ContainerWorkload("example:1", 6379, [], []);
+        var prepared = await executor.PrepareAsync(new(Guid.NewGuid(), Guid.NewGuid()), plan,
+            TestContext.Current.CancellationToken);
+        Assert.Equal("127.0.0.1", prepared.Endpoint.Host);
+        Assert.Equal(5050, prepared.Endpoint.Port);
+        Assert.StartsWith("services/", Assert.Single(handler.Resources.Keys));
+        await prepared.DisposeAsync();
+        Assert.Empty(handler.Resources);
+    }
+
+    [Fact]
+    public async Task PreparedAllocationRejectsEndpointChangesAndRepeatedLaunch()
+    {
+        using var handler = new DcpCleanupTestHandler();
+        await using var client = handler.CreateClient(new());
+        var executor = new DcpWorkloadExecutor(client);
+        var plan = new ContainerWorkload("example:1", 6379, [], []);
+        await using var prepared = await executor.PrepareAsync(new(Guid.NewGuid(), Guid.NewGuid()), plan,
+            TestContext.Current.CancellationToken);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => prepared.StartAsync(
+            plan with { Ports = [] }, TestContext.Current.CancellationToken));
+        Assert.StartsWith("services/", Assert.Single(handler.Resources.Keys));
+        await prepared.StartAsync(plan, TestContext.Current.CancellationToken);
+        Assert.Equal(2, handler.Resources.Count);
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            prepared.StartAsync(plan, TestContext.Current.CancellationToken));
+        await prepared.DisposeAsync();
+        Assert.Empty(handler.Resources);
+    }
+
+    [Fact]
     public async Task WorkspaceRetirementRetainsOnlyCleanupAuthorityUntilFailedDeletionIsRetried()
     {
         var options = new NativeServerOptions { CleanupTimeout = TimeSpan.FromSeconds(10) };
@@ -197,7 +233,7 @@ public class DcpWorkloadCleanupTests
             {
                 Interlocked.Increment(ref retirementCalls);
                 return Task.CompletedTask;
-            });
+            }, null, null, null);
 
         await Assert.ThrowsAsync<WorkloadCleanupException>(workload.Start);
         await Assert.ThrowsAsync<WorkloadCleanupException>(() => workload.Completion);

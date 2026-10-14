@@ -85,6 +85,12 @@ internal sealed partial class RuntimeGeneration(ApplicationSnapshot declarations
             {
                 throw new SymbolicValueException(SymbolicValueFailure.SecretHistoryLimit);
             }
+            if (_declaredActivation is not null)
+            {
+                // Reject an impossible execution plan before rebinding live
+                // declarations or beginning cleanup of removed workloads.
+                WorkloadExecutionPlan.Validate(revision.Resources, executor is IWorkloadPreparationExecutor);
+            }
             var previous = _resources.Values.ToDictionary(resource => resource.Declaration.Name, StringComparer.OrdinalIgnoreCase);
             var handles = revision.Resources.ToDictionary(resource => resource.Handle.ResourceId, resource =>
                 previous.TryGetValue(resource.Name, out var current) && current.Declaration.TypeId == resource.TypeId
@@ -149,7 +155,13 @@ internal sealed partial class RuntimeGeneration(ApplicationSnapshot declarations
             }
             Changed();
 
-            return ApplyDeclaredRevisionAsync(Task.WhenAll(cleanup));
+            var applying = ApplyDeclaredRevisionAsync(Task.WhenAll(cleanup));
+            if (_declaredActivation is not null)
+            {
+                _declaredActivation = applying;
+            }
+
+            return applying;
         }
     }
 
@@ -257,7 +269,7 @@ internal sealed partial class RuntimeGeneration(ApplicationSnapshot declarations
         {
             ValidateSymbolicBindings(resourceId, revision, template, context, bindings);
 
-            return StartWorkloadCore(resourceId, template, () => ResolveSymbolicWorkload(resourceId, revision, template, context, bindings, false));
+            return StartWorkloadCore(resourceId, template, () => ResolveSymbolicWorkload(resourceId, revision, template, context, bindings));
         }
     }
 
@@ -290,7 +302,7 @@ internal sealed partial class RuntimeGeneration(ApplicationSnapshot declarations
     }
 
     private WorkloadPlan ResolveSymbolicWorkload(Guid resourceId, long revision, WorkloadPlan template,
-        ValueNetworkContext context, SymbolicWorkloadBindings bindings, bool allowOwnAllocatedEndpoint)
+        ValueNetworkContext context, SymbolicWorkloadBindings bindings)
     {
         lock (_gate)
         {
@@ -299,8 +311,7 @@ internal sealed partial class RuntimeGeneration(ApplicationSnapshot declarations
             string Resolve(string key)
             {
                 var symbolic = values[key];
-                var value = symbolic.Resolve(context, (handle, name, property) =>
-                    ResolveEndpointValue(handle, name, property, allowOwnAllocatedEndpoint ? resourceId : null));
+                var value = symbolic.Resolve(context, ResolveEndpointValue);
                 if (symbolic.IsSecret)
                 {
                     if (!_secretRedactions.Contains(value) && _secretRedactions.Count >= 4096)
@@ -326,11 +337,12 @@ internal sealed partial class RuntimeGeneration(ApplicationSnapshot declarations
         }
     }
 
-    private string ResolveEndpointValue(ResourceHandle handle, string name, EndpointValueProperty property, Guid? allocatedOwner)
+    private string ResolveEndpointValue(ResourceHandle handle, string name, EndpointValueProperty property)
     {
         if (handle.GenerationId != GenerationId ||
             !_resources.TryGetValue(handle.ResourceId, out var resource) || resource.Allocation is null ||
-            !resource.Healthy && handle.ResourceId != allocatedOwner || resource.State != ResourceState.Running)
+            resource.State.IsTerminal() ||
+            resource.State != ResourceState.Running && !resource.AllocationPrepared)
         {
             throw new SymbolicValueException(SymbolicValueFailure.EndpointUnavailable);
         }
@@ -367,13 +379,54 @@ internal sealed partial class RuntimeGeneration(ApplicationSnapshot declarations
                 (stream, message) => AppendWorkloadLog(resourceId, stream, message),
                 resource.Declaration.Workload is null ? _ => Task.CompletedTask : lifecycle.Initialize,
                 resource.Declaration.Workload is null ? (_, _) => Task.CompletedTask : lifecycle.Allocated,
-                resource.Declaration.Workload is null ? () => Task.CompletedTask : lifecycle.Retire);
+                resource.Declaration.Workload is null ? () => Task.CompletedTask : lifecycle.Retire,
+                plan, endpoint => PublishAllocation(resourceId, endpoint),
+                token => WaitForValuesAsync(resourceId, token));
             _workloads.Add(resourceId, workload);
             resource.State = ResourceState.Starting;
             resource.Allocation = null;
+            resource.AllocationPrepared = false;
             Changed();
 
             return workload.Start();
+        }
+    }
+
+    private void PublishAllocation(Guid resourceId, WorkloadEndpoint endpoint)
+    {
+        lock (_gate)
+        {
+            EnsureAlive();
+            var resource = GetOwnedResource(resourceId);
+            resource.Allocation = endpoint;
+            resource.AllocationPrepared = true;
+            Changed();
+        }
+    }
+
+    private async Task WaitForValuesAsync(Guid resourceId, CancellationToken cancellationToken)
+    {
+        while (true)
+        {
+            Task changed;
+            lock (_gate)
+            {
+                EnsureAlive();
+                var resource = GetOwnedResource(resourceId);
+                var references = resource.Declaration.SymbolicConfiguration.SelectMany(entry => entry.Value.References)
+                    .Where(handle => handle.ResourceId != resourceId).Distinct()
+                    .Select(handle => GetResource(handle.ResourceId)).ToArray();
+                if (references.Any(source => source.State.IsTerminal()))
+                {
+                    throw new SymbolicValueException(SymbolicValueFailure.EndpointUnavailable);
+                }
+                if (references.All(source => source.Allocation is not null))
+                {
+                    return;
+                }
+                changed = _changed.Task;
+            }
+            await changed.WaitAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -413,7 +466,7 @@ internal sealed partial class RuntimeGeneration(ApplicationSnapshot declarations
         {
             ValidateSymbolicBindings(resourceId, revision, template, context, bindings);
 
-            return ReplaceWorkloadCoreAsync(resourceId, revision, template, () => ResolveSymbolicWorkload(resourceId, revision, template, context, bindings, false));
+            return ReplaceWorkloadCoreAsync(resourceId, revision, template, () => ResolveSymbolicWorkload(resourceId, revision, template, context, bindings));
         }
     }
 
@@ -480,7 +533,9 @@ internal sealed partial class RuntimeGeneration(ApplicationSnapshot declarations
             foreach (var resource in _resources.Values)
             {
                 var id = resource.Declaration.Handle.ResourceId;
-                if (!affected.Contains(id) && resource.Declaration.Dependencies.Any(handle => affected.Contains(handle.ResourceId)))
+                if (!affected.Contains(id) && resource.Declaration.Dependencies
+                    .Concat(resource.Declaration.SymbolicConfiguration.SelectMany(entry => entry.Value.References))
+                    .Any(handle => affected.Contains(handle.ResourceId)))
                 {
                     affected.Add(id);
                     if (!skipPendingRevisions || resource.ConfigurationStatus != ConfigurationStatus.Pending)
@@ -515,6 +570,7 @@ internal sealed partial class RuntimeGeneration(ApplicationSnapshot declarations
             }
             resource.State = state;
             resource.Allocation = endpoint;
+            resource.AllocationPrepared = false;
             resource.Healthy = false;
             resource.Urls = endpoint is null ? [] : endpoint.Endpoints.Select(port =>
                 new UriBuilder(port.UriScheme, port.Host, port.Port).Uri.AbsoluteUri.TrimEnd('/')).ToImmutableArray();
@@ -1004,6 +1060,7 @@ internal sealed partial class RuntimeGeneration(ApplicationSnapshot declarations
         public bool Healthy { get; set; }
         public ImmutableArray<string> Urls { get; set; } = [];
         public WorkloadEndpoint? Allocation { get; set; }
+        public bool AllocationPrepared { get; set; }
         public long LogSequence { get; set; }
         public Queue<RuntimeLogEntry> Logs { get; } = [];
         public Dictionary<string, string> Commands { get; } = new(StringComparer.Ordinal);

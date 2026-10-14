@@ -56,7 +56,8 @@ try {
     assert.equal(metadata.length, 1);
     assert.equal(metadata[0].isSecret, true);
     assert.deepEqual(metadata[0].parameterReferences, ['password']);
-    assert.deepEqual(metadata[0].references, (await target.inspectResource()).dependencies);
+    assert.deepEqual(metadata[0].references, [(await source.inspectResource()).resourceId]);
+    assert.deepEqual((await target.inspectResource()).dependencies, []);
     assert.deepEqual((await target.inspectResource()).configuration, []);
     await workspace.commitRevision(initial);
     const execution = await workspace.getApplicationExecution();

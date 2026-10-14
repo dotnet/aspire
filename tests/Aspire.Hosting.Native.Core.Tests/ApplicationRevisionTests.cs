@@ -112,7 +112,7 @@ public class ApplicationRevisionTests
         var a = context.Author.AddResource(revision, "a");
         var b = context.Author.AddResource(revision, "b");
         EnsureSuccess(context.Author.Invoke("waitFor", Arguments(("context", a), ("dependency", b))));
-        Assert.Equal("OPERATION_REJECTED", Error(context.Author.Invoke("waitFor", Arguments(("context", b), ("dependency", a)))));
+        Assert.Equal("EXECUTION_PREREQUISITE_CYCLE", Error(context.Author.Invoke("waitFor", Arguments(("context", b), ("dependency", a)))));
         Assert.Equal("OPERATION_REJECTED", Error(context.Author.Invoke("beginRevision", Arguments(("context", context.Workspace)))));
         EnsureSuccess(context.Author.Invoke("abortRevision", Arguments(("context", context.Workspace), ("revision", revision))));
         Assert.Equal("HANDLE_NOT_FOUND", Error(context.Author.Invoke("inspect", Arguments(("context", revision)))));

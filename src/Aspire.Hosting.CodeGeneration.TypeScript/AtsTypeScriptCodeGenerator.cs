@@ -107,6 +107,7 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     /// from the same context so documentation cannot drift from emitted source.
     /// </summary>
     private TypeScriptApiProjector _projector = null!;
+    private bool _invocationScopedCallbacks;
 
     private void WriteCapabilityDocComment(
         string indent,
@@ -436,7 +437,21 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         => GenerateDistributedApplication(context, includeManagedBootstrap: true);
 
     internal Dictionary<string, string> GenerateDistributedApplication(AtsContext context, bool includeManagedBootstrap)
+        => GenerateDistributedApplication(context, includeManagedBootstrap, invocationScopedCallbacks: false);
+
+    internal Dictionary<string, string> GenerateDistributedApplication(AtsContext context, bool includeManagedBootstrap, bool invocationScopedCallbacks)
     {
+        // Managed lifecycle callbacks outlive their registration call. Native
+        // authoring callbacks instead finish within that call and must release
+        // their guest registrations on success, rejection and cancellation.
+        _invocationScopedCallbacks = invocationScopedCallbacks;
+        if (invocationScopedCallbacks && context.Capabilities.Any(capability =>
+            capability.Parameters.Any(parameter => parameter.IsCallback) &&
+            (capability.TargetTypeId is null || capability.ReturnsBuilder ||
+                capability.ReturnType.TypeId != capability.TargetTypeId)))
+        {
+            throw new NotSupportedException("Invocation-scoped callbacks require self-returning handle instance capabilities.");
+        }
         var files = new Dictionary<string, string>();
 
         // Add the shared runtime files.
@@ -457,6 +472,11 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     {
         using var stringWriter = new StringWriter(CultureInfo.InvariantCulture);
         _writer = stringWriter;
+
+        if (_invocationScopedCallbacks)
+        {
+            WriteLine("import { unregisterCallback } from './transport.mjs';");
+        }
 
         // Header
         WriteLine("""
@@ -2904,17 +2924,36 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 GenerateCallbackRegistration(callbackParam);
             }
 
+            var scopedCallbacks = _invocationScopedCallbacks && callbackParams.Count > 0;
+            if (scopedCallbacks)
+            {
+                WriteLine("        try");
+                WriteLine("        {");
+            }
+            var bodyIndent = scopedCallbacks ? "            " : "        ";
+
             // Resolve any promise-like handle parameters
-            GeneratePromiseResolution(userParams);
+            GeneratePromiseResolution(userParams, bodyIndent);
 
             // Build args with conditional inclusion
-            GenerateArgsObjectWithConditionals(targetParamName, requiredParams, optionalParams);
+            GenerateArgsObjectWithConditionals(targetParamName, requiredParams, optionalParams, indent: bodyIndent);
 
-            WriteLine($"        const result = await this._client.invokeCapability<{returnHandleType}>(");
-            WriteLine($"            '{capability.CapabilityId}',");
-            WriteLine($"            rpcArgs");
-            WriteLine("        );");
-            WriteLine($"        return new {returnWrapperImplementationClass}(result, this._client);");
+            WriteLine($"{bodyIndent}const result = await this._client.invokeCapability<{returnHandleType}>(");
+            WriteLine($"{bodyIndent}    '{capability.CapabilityId}',");
+            WriteLine($"{bodyIndent}    rpcArgs");
+            WriteLine($"{bodyIndent});");
+            WriteLine($"{bodyIndent}return new {returnWrapperImplementationClass}(result, this._client);");
+            if (scopedCallbacks)
+            {
+                WriteLine("        }");
+                WriteLine("        finally");
+                WriteLine("        {");
+                foreach (var callback in callbackParams)
+                {
+                    WriteLine($"            if ({callback.Name}Id) unregisterCallback({callback.Name}Id);");
+                }
+                WriteLine("        }");
+            }
             WriteLine("    }");
             WriteLine();
 

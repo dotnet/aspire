@@ -31,6 +31,24 @@ internal static class RpcArguments
     public static bool Boolean(JsonNode? value) => value is JsonValue scalar && scalar.TryGetValue<bool>(out var result)
         ? result : throw RpcFault.InvalidArgument("A boolean argument is required.");
 
+    public static string[] Strings(JsonNode? value) => value is JsonArray array
+        ? array.Select(String).ToArray()
+        : throw RpcFault.InvalidArgument("A string array argument is required.");
+
+    public static object Union(JsonNode? value, NativeHandles handles, string[] typeIds)
+    {
+        if (value is JsonValue scalar && scalar.TryGetValue<string>(out var text))
+        {
+            return text;
+        }
+        if (value is JsonObject reference && typeIds.Contains(String(reference["$type"]), StringComparer.Ordinal))
+        {
+            return handles.ReadReference(reference);
+        }
+
+        throw RpcFault.InvalidArgument("A string or an applicable symbolic handle is required.");
+    }
+
     public static int Int32(JsonNode? value) => value is JsonValue scalar && scalar.TryGetValue<int>(out var result)
         ? result : throw RpcFault.InvalidArgument("An integer argument is required.");
 

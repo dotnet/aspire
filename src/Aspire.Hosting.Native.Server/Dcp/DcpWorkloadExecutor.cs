@@ -11,7 +11,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Aspire.Hosting.Native.Dcp;
 
 /// <summary>Projects standard native execution primitives to DCP-owned workloads.</summary>
-internal sealed class DcpWorkloadExecutor(DcpApiClient client, Task startup, NativeServerOptions options, ILogger logger) : IWorkloadExecutor
+internal sealed class DcpWorkloadExecutor(DcpApiClient client, Task startup, NativeServerOptions options, ILogger logger) :
+    IWorkloadExecutor, IWorkloadPreparationExecutor
 {
     public DcpWorkloadExecutor(DcpApiClient client, Task startup, NativeServerOptions options)
         : this(client, startup, options, NullLogger.Instance)
@@ -26,14 +27,77 @@ internal sealed class DcpWorkloadExecutor(DcpApiClient client, Task startup, Nat
     {
     }
 
-    public async Task<IWorkloadLease> StartAsync(WorkloadIdentity identity, WorkloadPlan plan, CancellationToken cancellationToken)
+    public Task<IWorkloadLease> StartAsync(WorkloadIdentity identity, WorkloadPlan plan, CancellationToken cancellationToken) =>
+        StartCoreAsync(identity, plan, cancellationToken, null);
+
+    public async Task<IWorkloadPreparation> PrepareAsync(WorkloadIdentity identity, WorkloadPlan template, CancellationToken cancellationToken)
+    {
+        WorkloadDefinition.Validate(template);
+        await startup.WaitAsync(cancellationToken).ConfigureAwait(false);
+        var name = "native-" + identity.ResourceId.ToString("N");
+        var collection = template is ContainerWorkload ? DcpResourceCollection.Containers : DcpResourceCollection.Executables;
+        var services = template.Endpoints.Select(endpoint => name + "-" + endpoint.Name.ToLowerInvariant()).ToArray();
+        var lease = new Lease(this, identity, template, client, collection, name, services, options, logger);
+        try
+        {
+            for (var index = 0; index < services.Length; index++)
+            {
+                var endpoint = template.Endpoints[index];
+                // A proxy owns the stable consumer address before its producer
+                // exists. Proxyless container ports are known only after launch
+                // and therefore cannot satisfy pre-launch value prerequisites.
+                await client.CreateAsync(DcpResourceCollection.Services, services[index], JsonSerializer.SerializeToElement(
+                    new DcpServiceSpec(endpoint.Protocol, DcpAddressAllocationMode.Localhost)
+                    {
+                        Port = endpoint.HostPort == 0 ? null : endpoint.HostPort
+                    }, DcpJsonContext.Default.DcpServiceSpec), null, cancellationToken).ConfigureAwait(false);
+            }
+            while (true)
+            {
+                var endpoints = ImmutableArray.CreateBuilder<AllocatedWorkloadPort>();
+                for (var index = 0; index < services.Length; index++)
+                {
+                    var service = await client.GetAsync(DcpResourceCollection.Services, services[index], cancellationToken).ConfigureAwait(false);
+                    if (service?.Status is not { EffectivePort: > 0 and <= 65535 } status)
+                    {
+                        break;
+                    }
+                    var address = ValidateAddress(status);
+                    var declaration = template.Endpoints[index];
+                    endpoints.Add(new(declaration.Name, declaration.Protocol, declaration.UriScheme, address, status.EffectivePort.Value));
+                }
+                if (endpoints.Count == services.Length)
+                {
+                    lease.Endpoint = new("", endpoints.ToImmutable());
+
+                    return lease;
+                }
+                await Task.Delay(options.RetryInterval, options.TimeProvider, cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch
+        {
+            try
+            {
+                await lease.DisposeAsync().ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                throw new WorkloadCleanupException(lease, exception);
+            }
+            throw;
+        }
+    }
+
+    private async Task<IWorkloadLease> StartCoreAsync(WorkloadIdentity identity, WorkloadPlan plan,
+        CancellationToken cancellationToken, Lease? preparation)
     {
         WorkloadDefinition.Validate(plan);
         await startup.WaitAsync(cancellationToken).ConfigureAwait(false);
         var name = "native-" + identity.ResourceId.ToString("N");
         var collection = plan is ContainerWorkload ? DcpResourceCollection.Containers : DcpResourceCollection.Executables;
         var services = plan.Endpoints.Select(endpoint => name + "-" + endpoint.Name.ToLowerInvariant()).ToArray();
-        var lease = new Lease(client, collection, name, services, options, logger);
+        var lease = preparation ?? new Lease(this, identity, plan, client, collection, name, services, options, logger);
         try
         {
             var spec = new DcpWorkloadSpec
@@ -44,7 +108,7 @@ internal sealed class DcpWorkloadExecutor(DcpApiClient client, Task startup, Nat
             Dictionary<string, string>? annotations = null;
             if (!plan.Endpoints.IsEmpty)
             {
-                for (var index = 0; index < plan.Endpoints.Length; index++)
+                for (var index = 0; preparation is null && index < plan.Endpoints.Length; index++)
                 {
                     var endpoint = plan.Endpoints[index];
                     await client.CreateAsync(DcpResourceCollection.Services, services[index], JsonSerializer.SerializeToElement(
@@ -73,7 +137,7 @@ internal sealed class DcpWorkloadExecutor(DcpApiClient client, Task startup, Nat
                     Ports = container.Endpoints.IsEmpty ? null : container.Endpoints.Select(endpoint =>
                         new DcpContainerPort(endpoint.TargetPort, System.Net.IPAddress.Loopback.ToString(), endpoint.Protocol)
                         {
-                            HostPort = endpoint.HostPort == 0 ? null : endpoint.HostPort
+                            HostPort = preparation is not null || endpoint.HostPort == 0 ? null : endpoint.HostPort
                         }).ToArray()
                 };
             }
@@ -134,13 +198,7 @@ internal sealed class DcpWorkloadExecutor(DcpApiClient client, Task startup, Nat
                         {
                             break;
                         }
-                        var address = status.EffectiveAddress
-                            ?? throw new InvalidDataException("DCP did not report an allocated endpoint address.");
-                        if (!address.Equals("localhost", StringComparison.OrdinalIgnoreCase) &&
-                            (!System.Net.IPAddress.TryParse(address, out var host) || !System.Net.IPAddress.IsLoopback(host)))
-                        {
-                            throw new InvalidOperationException("DCP must allocate a loopback workload endpoint.");
-                        }
+                        var address = ValidateAddress(status);
                         var declaration = plan.Endpoints[index];
                         endpoints.Add(new(declaration.Name, declaration.Protocol, declaration.UriScheme, address, status.EffectivePort.Value));
                     }
@@ -168,14 +226,43 @@ internal sealed class DcpWorkloadExecutor(DcpApiClient client, Task startup, Nat
         }
     }
 
-    private sealed class Lease(DcpApiClient client, DcpResourceCollection collection, string name, string[] services,
-        NativeServerOptions options, ILogger logger) : IWorkloadLease
+    private static string ValidateAddress(DcpStatus status)
+    {
+        var address = status.EffectiveAddress
+            ?? throw new InvalidDataException("DCP did not report an allocated endpoint address.");
+        if (!address.Equals("localhost", StringComparison.OrdinalIgnoreCase) &&
+            (!System.Net.IPAddress.TryParse(address, out var host) || !System.Net.IPAddress.IsLoopback(host)))
+        {
+            throw new InvalidOperationException("DCP must allocate a loopback workload endpoint.");
+        }
+
+        return address;
+    }
+
+    private sealed class Lease(DcpWorkloadExecutor executor, WorkloadIdentity identity, WorkloadPlan template,
+        DcpApiClient client, DcpResourceCollection collection, string name, string[] services,
+        NativeServerOptions options, ILogger logger) : IWorkloadPreparation
     {
         private long _stdout;
         private long _stderr;
         private readonly SemaphoreSlim _cleanupGate = new(1);
         private bool _disposed;
+        private int _started;
         public WorkloadEndpoint Endpoint { get; set; } = new(System.Net.IPAddress.Loopback.ToString(), 0, "");
+
+        public async Task StartAsync(WorkloadPlan plan, CancellationToken cancellationToken)
+        {
+            if (plan.GetType() != template.GetType() || !plan.Endpoints.SequenceEqual(template.Endpoints))
+            {
+                throw new InvalidOperationException("Prepared workload endpoints cannot change during configuration.");
+            }
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (Interlocked.Exchange(ref _started, 1) != 0)
+            {
+                throw new InvalidOperationException("The prepared workload has already started.");
+            }
+            await executor.StartCoreAsync(identity, plan, cancellationToken, this).ConfigureAwait(false);
+        }
 
         public async Task<WorkloadStatus> ReadStatusAsync(CancellationToken cancellationToken)
         {

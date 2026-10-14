@@ -50,6 +50,7 @@ separately rather than hidden behind invented SDK methods.
 
 - [Declare an external API and retain a secret reference](#declaring-a-resource-through-ats).
 - [Compose a service from generic workloads](#composing-an-integration-from-generic-workloads).
+- [Author directly through generated RPC handles](#direct-rpc-authoring).
 - [Design typed annotation data](#a-typed-annotation-contract).
 - [Build a deferred connection expression](#constructing-a-connection-expression).
 - [Register bounded lifecycle behavior](#a-bounded-provider-callback).
@@ -97,6 +98,71 @@ The [native integration examples](../../playground/NativeIntegrations/README.md)
 contain the current C# and TypeScript implementations. The C# builder records
 commands synchronously; generated core projection calls are asynchronous.
 Examples below label which surface they use.
+
+### Direct RPC Authoring
+
+**Current core projection.** `createRpcBuilder` provides an additive run-mode
+authoring surface whose calls immediately update the existing server-owned
+composition. Unlike the sample recorder, it does not construct a second
+client-side declaration graph. Its TypeScript interfaces, fluent promises,
+value unions and callbacks come from the existing ATS generator.
+
+```typescript
+const { client, server } = await connectNativeAppHost(connectionOptions);
+try {
+    const builder = await server.createRpcBuilder();
+    const cache = await builder.addContainer('cache', 'redis')
+        .withImageTag('8-alpine')
+        .withArgs(['--save', ''])
+        .withEndpoint({ name: 'tcp', targetPort: 6379, scheme: 'redis' })
+        .withSerializedAnnotation('example.cache/v1', '{"version":1}');
+
+    const endpoint = await cache.getEndpoint('tcp');
+    await cache.withConnectionString(endpoint.property('hostAndPort'));
+    await builder.addExecutable('consumer', executablePath, workingDirectory)
+        .withReference(cache)
+        .withEnvironment('CACHE_URL', endpoint)
+        .withEnvironmentCallback(async environment => {
+            await environment.set('CACHE_HOST', endpoint.property('host'));
+        })
+        .withArgsCallback(async args => {
+            await args.add('--cache');
+            await args.add(endpoint.property('hostAndPort'));
+        });
+
+    const execution = await builder.build().startApplication();
+    await execution.waitApplicationReady(15_000);
+    await builder.retire();
+} finally {
+    await client.flushPendingPromises();
+    client.disconnect();
+}
+```
+
+The RPC/ATS IDs are independent of today's hosting IDs. The compatibility goal
+is familiar authoring concepts, not wire compatibility or complete source
+compatibility. This projection currently uses one resource-builder handle
+type, `RpcResource`, for both container and executable declarations.
+
+Environment inputs and argument editor inputs accept literal strings,
+existing `DeclaredValue` handles, symbolic endpoints, and resources with a
+declared connection string. `withReference` currently handles connection-string
+producers, not the full managed service-discovery overload set. Endpoint
+properties are created through `property('host' | 'port' | 'hostAndPort' | 'url')`.
+Annotations retain their JSON payload in the existing resource configuration;
+there is no second annotation store or CLR annotation activation.
+
+These callbacks are **immediate composition edits**, not managed lifecycle
+callbacks. The server calls the guest over authenticated bidirectional RPC,
+and the callback uses a resource-scoped editor handle for nested RPC calls.
+The editor expires when the callback completes, fails, times out, or its
+generation retires. Building while a callback is active is rejected. Callback
+edits are not transactional: successful edits remain if a later edit fails.
+
+The projection does not add publishing, network-address resolution, richer
+callback service contexts, long-running controllers, or kernel dependencies.
+The sample recorder and the supported managed CLI path remain separate and
+unchanged.
 
 ## Architecture
 
@@ -534,9 +600,72 @@ These relationships are explicit, not inferred from names. A visual parent is
 not automatically a lifetime owner, and sharing a connection is not equivalent
 to requesting a readiness wait.
 
-Validation must distinguish allocation dependencies from execution
-dependencies. Mutually referenced public URLs, for example, should not
-necessarily become a startup cycle.
+**The native runtime distinguishes allocation from readiness.** Symbolic
+endpoint references wait for address allocation, not for the producer to start
+or become healthy. `WaitFor` separately declares a readiness prerequisite.
+The resource reference graph may contain cycles; the execution prerequisite
+graph must not.
+
+For example, these generated RPC calls configure mutually referencing HTTP
+executables without a readiness cycle:
+
+```typescript
+const builder = await server.createRpcBuilder();
+const alpha = await builder.addExecutable('alpha', process.execPath, process.cwd())
+    .withArgs(['alpha.mjs'])
+    .withEndpoint({ name: 'http', scheme: 'http', env: 'PORT' });
+const beta = await builder.addExecutable('beta', process.execPath, process.cwd())
+    .withArgs(['beta.mjs'])
+    .withEndpoint({ name: 'http', scheme: 'http', env: 'PORT' });
+
+const alphaEndpoint = await alpha.getEndpoint('http');
+const betaEndpoint = await beta.getEndpoint('http');
+await alpha.withEnvironment('SELF_URL', alphaEndpoint)
+    .withEnvironment('PEER_URL', betaEndpoint);
+await beta.withEnvironment('SELF_URL', betaEndpoint)
+    .withEnvironment('PEER_URL', alphaEndpoint);
+
+const application = await builder.build();
+await (await application.startApplication()).waitApplicationReady(30_000);
+```
+
+Each worker binds the DCP-supplied `PORT`. `SELF_URL` and `PEER_URL` are
+symbolic expressions resolved at launch, not strings obtained by starting the
+workers during composition. Neither worker requests `waitFor` on the other.
+
+The executor can prepare an owned allocation before launching a workload:
+
+```text
+declare -> allocate -> configure -> start -> ready
+```
+
+If A needs B's URL and B needs A's URL, each configuration waits for the other's
+allocation. Neither start waits for the other's readiness. An expression may
+also reference its own allocated endpoint. DCP reserves proxy addresses before
+submitting the executable or container; allocated addresses are not assertions
+that the workload is running or accepting connections.
+
+The combined operation graph is validated before workload side effects.
+An explicit mutual readiness wait fails with a named milestone diagnostic,
+for example:
+
+```text
+Execution prerequisite cycle: beta.Start -> alpha.Ready -> alpha.Start -> beta.Ready -> beta.Start
+```
+
+Preparation owns cleanup even when configuration fails or startup is canceled.
+Workspace revisions invalidate consumers through both value references and
+readiness edges, stop the affected workloads, clear their old allocations, and
+prepare replacements before resolving new launch values. Shutdown ordering
+follows explicit readiness prerequisites, not cyclic value relationships.
+
+The dedicated native validation lane runs `NativeMilestoneSmoke.mts` against
+the published NativeAOT server and real DCP. Two HTTP executables exchange
+their actual allocated URLs, including self references and symbolic arguments;
+a workspace revision proves rebinding; a Redis container proves prepared proxy
+routing; and a mutual `WaitFor` is rejected rather than hanging. This does not
+yet implement generic provider-produced output milestones or container-to-container
+address translation.
 
 **Current core projection.** A database can be declared independently and
 explicitly wait for its server:
@@ -1165,7 +1294,7 @@ graph. Watched reconciliation, replicas, shared container networks and
 prelaunch endpoint allocation remain gaps. Integration-specific preparation
 belongs in providers rather than service-specific branches in the executor.
 
-The remaining design work includes general resource schemas, portable
-annotations, supported integration packaging, consumer-network resolution,
+The remaining design work includes general resource schemas, typed portable
+annotation contracts, supported integration packaging, consumer-network resolution,
 automatic guest reload and publishing. These should extend the shared model,
 not introduce service-specific behavior into the core.

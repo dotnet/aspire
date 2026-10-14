@@ -164,13 +164,57 @@ internal sealed partial class NativeRpcConnection : IDisposable
         (_peer ?? throw RpcFault.NotSupported("Bidirectional RPC is not configured."))
         .RequestAsync(method, arguments, Closed);
 
-    internal async Task<JsonNode?> InvokeCoreAsync(string capability, JsonObject arguments)
+    internal JsonObject PublishCoreHandle(object value, string typeId)
+    {
+        lock (_gate)
+        {
+            if (_disposed || value is ICapabilityLifetime { IsRevoked: true })
+            {
+                throw RpcFault.HandleNotFound("The capability owner is retired.");
+            }
+            _handles.RemoveRevoked();
+
+            return _handles.Add(value, typeId);
+        }
+    }
+
+    internal Func<T, Task> CreateAuthoringCallback<T>(NativeRpcConnection callbackConnection, string callbackId, string typeId) where T : class =>
+        async context =>
+        {
+            // Delegated invocations execute under the resource owner's gate, but
+            // their callbacks belong to the provider. Yield before publishing
+            // across connections so their gates are never held together.
+            await Task.Yield();
+            var handle = PublishCoreHandle(context, typeId);
+            if (!ReferenceEquals(this, callbackConnection))
+            {
+                handle = callbackConnection.AddReference(new DelegatedCoreReference(this, handle), typeId);
+            }
+            using var deadline = new CancellationTokenSource(_options.ProviderInvocationTimeout, _options.TimeProvider);
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(Closed, callbackConnection.Closed, deadline.Token);
+            // Callback arguments use the same {"p0":{"$handle":...,"$type":...}}
+            // envelope as the generated ATS SDK. Await outside the connection
+            // gate so nested editor RPCs can complete on this connection.
+            var arguments = new JsonObject { ["p0"] = handle };
+            var response = await (callbackConnection._peer ?? throw RpcFault.NotSupported("Bidirectional RPC is not configured."))
+                .RequestAsync("invokeCallback", new JsonArray(callbackId, arguments), timeout.Token)
+                .ConfigureAwait(false);
+            // TS void callbacks echo their original positional arguments for ATS
+            // DTO writeback; C# void callbacks return null. Editors are handles,
+            // not DTOs, so accept only the unchanged echo and never apply it.
+            if (response is not null && !JsonNode.DeepEquals(arguments, response))
+            {
+                throw RpcFault.InvalidArgument("Authoring callbacks must return void.");
+            }
+        };
+
+    internal async Task<JsonNode?> InvokeCoreAsync(string capability, JsonObject arguments, NativeRpcConnection callbackConnection)
     {
         Task<JsonNode?> invocation;
         lock (_gate)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            invocation = NativeDispatch.InvokeAsync(_server, _handles, capability, arguments);
+            invocation = NativeDispatch.InvokeAsync(_server, _handles, this, callbackConnection, capability, arguments);
             ObserveFault(invocation);
         }
         return await invocation.WaitAsync(Closed).ConfigureAwait(false);

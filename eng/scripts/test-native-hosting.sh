@@ -93,7 +93,14 @@ fi
 run_logged browser-install "$sdk/node_modules/.bin/playwright" "${browser_args[@]}"
 run_logged sdk-compile "$sdk/node_modules/.bin/tsc" --module NodeNext --moduleResolution NodeNext \
     --target ES2022 --strict --skipLibCheck --esModuleInterop --outDir "$sdk/out" "$sdk/"*.mts
+run_logged rpc-authoring-projection-tests env ASPIRE_NATIVE_CSHARP_TEST_SERVER="$work/server/Aspire.Hosting.Native.Server" \
+    ASPIRE_NATIVE_RPC_AUTHORING_TYPESCRIPT="$sdk/out/NativeRpcAuthoringSmoke.mjs" \
+    ASPIRE_NATIVE_SYMBOLIC_TEST_NODE="$(command -v node)" \
+    dotnet test --project tests/Aspire.Hosting.Native.Core.Tests/Aspire.Hosting.Native.Core.Tests.csproj --no-build --no-launch-profile -- \
+    --filter-class '*.NativeRpcAuthoringTests' --filter-not-trait 'quarantined=true' --filter-not-trait 'outerloop=true'
 run_logged provider-shutdown-smoke node "$sdk/out/NativeProviderShutdownSmoke.mjs"
+run_logged milestone-cycle-smoke env ASPIRE_NATIVE_DCP_PATH="$ASPIRE_NATIVE_DCP_PATH" \
+    node "$sdk/out/NativeMilestoneSmoke.mjs" "$work/server/Aspire.Hosting.Native.Server"
 
 # Real integration authoring examples are separate from transport/workload fixtures.
 run_logged csharp-provider-build dotnet build playground/NativeIntegrations/CSharp/Provider/NativeIntegrations.Provider.csproj -c Debug

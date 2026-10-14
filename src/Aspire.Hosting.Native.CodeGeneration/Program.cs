@@ -55,11 +55,12 @@ var code = new StringBuilder("""
     using System.Text.Json.Nodes;
     using System.Text.Json.Serialization;
     using Aspire.Hosting.Native.Api;
+    using Aspire.Hosting.Native.Authoring;
     using Aspire.Hosting.Native.Model;
     namespace Aspire.Hosting.Native.Rpc;
     internal static class NativeDispatch
     {
-        public static async Task<JsonNode?> InvokeAsync(NativeApplicationServer server, NativeHandles handles, string capability, JsonObject arguments)
+        public static async Task<JsonNode?> InvokeAsync(NativeApplicationServer server, NativeHandles handles, NativeRpcConnection connection, NativeRpcConnection callbackConnection, string capability, JsonObject arguments)
         {
             try
             {
@@ -91,13 +92,17 @@ foreach (var capability in context.Capabilities.OrderBy(capability => capability
     }
     if (handles.Contains(capability.ReturnType.TypeId))
     {
-        if (asynchronous)
+        if (asynchronous && (method.IsStatic || returnType != method.DeclaringType))
         {
-            throw new NotSupportedException($"Asynchronous native exports cannot publish handles after connection retirement: {capability.CapabilityId}.");
+            throw new NotSupportedException($"Asynchronous native factories cannot publish new handle ownership: {capability.CapabilityId}.");
         }
-        code.AppendLine("                handles.EnsureCapacity();");
+        if (!asynchronous)
+        {
+            code.AppendLine("                handles.EnsureCapacity();");
+        }
     }
-    var parameters = method.GetParameters().Select(parameter => Read(parameter.ParameterType, parameter.Name!));
+    var parameters = method.GetParameters().Select(parameter => Read(parameter.ParameterType, parameter.Name!,
+        capability.Parameters.Single(input => input.Name == parameter.Name)));
     var invocation = $"{(method.IsStatic ? method.DeclaringType!.Name : "target")}.{method.Name}({string.Join(", ", parameters)})";
     if (capability.CapabilityId == $"{contractAssembly.GetName().Name}/createSession")
     {
@@ -117,7 +122,8 @@ foreach (var capability in context.Capabilities.OrderBy(capability => capability
             $"                var result = {(asynchronous ? "await " : "")}{invocation}{(asynchronous ? ".ConfigureAwait(false)" : "")};");
         if (handles.Contains(capability.ReturnType.TypeId))
         {
-            code.AppendLine(CultureInfo.InvariantCulture, $"                return handles.Add(result, {Literal(capability.ReturnType.TypeId)});");
+            code.AppendLine(CultureInfo.InvariantCulture,
+                $"                return {(asynchronous ? "connection.PublishCoreHandle" : "handles.Add")}(result, {Literal(capability.ReturnType.TypeId)});");
         }
         else if (context.DtoTypes.Any(dto => dto.TypeId == capability.ReturnType.TypeId))
         {
@@ -143,6 +149,12 @@ code.AppendLine("""
             catch (SymbolicValueException exception)
             {
                 throw new RpcFault(exception.Code, exception.Message);
+            }
+            catch (Aspire.Hosting.Native.Runtime.ExecutionPlanException exception)
+            {
+                // This diagnostic contains only validated resource names and
+                // milestone names, never callback exceptions or launch inputs.
+                throw new RpcFault("EXECUTION_PREREQUISITE_CYCLE", exception.Message);
             }
         }
     }
@@ -177,7 +189,8 @@ var bundle = JsonSerializer.Serialize(new
     context.ExportedValues
 }, new JsonSerializerOptions { TypeInfoResolver = resolver, WriteIndented = true });
 await File.WriteAllTextAsync(Path.Combine(output, "contract.json"), bundle).ConfigureAwait(false);
-var sdk = new AtsTypeScriptCodeGenerator().GenerateDistributedApplication(context, includeManagedBootstrap: false);
+var sdk = new AtsTypeScriptCodeGenerator().GenerateDistributedApplication(context, includeManagedBootstrap: false,
+    invocationScopedCallbacks: true);
 // Language commands belong to the existing language provider. Serialize them
 // during the build so the native executable needs neither that provider nor ATS
 // reflection at runtime. Unsupported modes are omitted rather than simulated.
@@ -395,9 +408,25 @@ await File.WriteAllTextAsync(Path.Combine(output, "native-client.mts"), $$"""
     """).ConfigureAwait(false);
 Console.WriteLine($"Generated {context.Capabilities.Count} native ATS capabilities.");
 
-string Read(Type type, string name)
+string Read(Type type, string name, AtsParameterInfo parameter)
 {
     var node = $"arguments[{Literal(name)}]";
+    if (parameter.IsCallback && parameter.CallbackParameters is [{ Type.Category: AtsTypeCategory.Handle } callbackParameter] &&
+        parameter.CallbackReturnType?.TypeId == "void" && type.IsGenericType &&
+        type.GetGenericTypeDefinition() == typeof(Func<,>) && type.GetGenericArguments()[1] == typeof(Task))
+    {
+        return $"connection.CreateAuthoringCallback<{type.GetGenericArguments()[0].Name}>(callbackConnection, RpcArguments.String({node}), {Literal(callbackParameter.Type.TypeId)})";
+    }
+    if (parameter.Type is { Category: AtsTypeCategory.Union, UnionTypes: { } members } &&
+        members.Any(member => member.TypeId == "string") &&
+        members.All(member => member.TypeId == "string" || member.Category == AtsTypeCategory.Handle))
+    {
+        return $"RpcArguments.Union({node}, handles, [{string.Join(", ", members.Where(member => member.Category == AtsTypeCategory.Handle).Select(member => Literal(member.TypeId)))}])";
+    }
+    if (type == typeof(string[]))
+    {
+        return $"RpcArguments.Strings({node})";
+    }
     if (type == typeof(string))
     {
         return $"RpcArguments.String({node})";

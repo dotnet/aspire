@@ -94,10 +94,13 @@ public class DeclarativeApplicationTests
         Assert.Empty(model.ReadResource(resource).Dependencies);
 
         model.AddDependency(dependency, resource);
-        Assert.Throws<InvalidOperationException>(() => model.MutateWorkload(resource, current => (current with
+        using var foreign = new ApplicationModel();
+        var foreignResource = foreign.AddResource("foreign", "hosting/container");
+        var foreignValue = SymbolicValue.Endpoint(foreignResource, "tcp", EndpointValueProperty.Host);
+        Assert.Throws<ArgumentException>(() => model.MutateWorkload(resource, current => (current with
         {
             Bindings = new([new("VALUE", "workload.env.VALUE")], [])
-        }, new("workload.env.VALUE", value))));
+        }, new("workload.env.VALUE", foreignValue))));
         Assert.Same(original, model.ReadResource(resource).Workload);
         Assert.Empty(model.ReadResource(resource).SymbolicConfiguration);
         Assert.Empty(model.ReadResource(resource).Dependencies);

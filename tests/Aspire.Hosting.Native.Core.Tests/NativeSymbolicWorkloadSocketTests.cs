@@ -104,6 +104,7 @@ public class NativeSymbolicWorkloadSocketTests
     {
         var redis = await composition.AddResourceAsync("cache", "example/redis", cancellationToken);
         var consumer = await composition.AddResourceAsync("consumer", "example/executable", cancellationToken);
+        await consumer.WaitForAsync(redis, cancellationToken);
         var secret = await composition.AddSecretParameterAsync("cache-password", password, cancellationToken);
         await redis.SetSymbolicConfigurationAsync("password", secret, cancellationToken);
         var connection = await composition.CreateLiteralValueAsync("redis://:", cancellationToken);

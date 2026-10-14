@@ -183,9 +183,10 @@ public class NativeBuilderAuthoringTests
         var snapshot = await composition.InspectAsync();
         Assert.Equal(["cache", "consumer", "waiter"], snapshot.Resources.Select(resource => resource.Name));
         var producer = snapshot.Resources[0];
-        Assert.Equal([producer.ResourceId], snapshot.Resources[1].Dependencies);
+        Assert.Empty(snapshot.Resources[1].Dependencies);
         Assert.Equal([producer.ResourceId], snapshot.Resources[2].Dependencies);
         var consumerValues = (await bound.Declaration(consumer.Resource).InspectSymbolicConfigurationAsync()).Properties;
+        Assert.Equal([producer.ResourceId], Assert.Single(consumerValues).References);
         Assert.True(Assert.Single(consumerValues, property => property.Name.Contains("ConnectionStrings__cache", StringComparison.Ordinal)).IsSecret);
         Assert.Empty((await bound.Declaration(waiter.Resource).InspectSymbolicConfigurationAsync()).Properties);
         Assert.True((await bound.Declaration(cache.Resource).InspectSymbolicConfigurationAsync()).Properties

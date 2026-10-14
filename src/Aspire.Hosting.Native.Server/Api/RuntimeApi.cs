@@ -3,6 +3,7 @@
 
 using System.Collections.Immutable;
 using System.Security.Cryptography;
+using Aspire.Hosting.Native.Authoring;
 using Aspire.Hosting.Native.Runtime;
 
 namespace Aspire.Hosting.Native.Api;
@@ -30,6 +31,10 @@ internal sealed class NativeApplicationServer
     /// <summary>Opens an application session owned by this connection.</summary>
     [AspireExport]
     public CompositionSession OpenApplication() => new(_invitations);
+
+    /// <summary>Opens a directly RPC-backed run-mode authoring builder.</summary>
+    [AspireExport]
+    public RpcBuilder CreateRpcBuilder() => new(OpenApplication());
 
     /// <summary>Creates a server-owned workspace whose runtime survives AppHost disconnection.</summary>
     [AspireExport]

@@ -74,6 +74,18 @@ internal interface IWorkloadExecutor
     Task<IWorkloadLease> StartAsync(WorkloadIdentity identity, WorkloadPlan plan, CancellationToken cancellationToken);
 }
 
+/// <summary>Reserves workload addresses independently of process/container launch.</summary>
+internal interface IWorkloadPreparationExecutor
+{
+    Task<IWorkloadPreparation> PrepareAsync(WorkloadIdentity identity, WorkloadPlan template, CancellationToken cancellationToken);
+}
+
+/// <summary>Owns allocated addresses and their cleanup, including when configuration or launch fails.</summary>
+internal interface IWorkloadPreparation : IWorkloadLease
+{
+    Task StartAsync(WorkloadPlan plan, CancellationToken cancellationToken);
+}
+
 /// <summary>Represents one externally running workload and its cleanup obligation.</summary>
 internal interface IWorkloadLease : IAsyncDisposable
 {
@@ -101,13 +113,16 @@ internal sealed class ResourceWorkload(
     Action<LogStream, string> log,
     Func<CancellationToken, Task> initialize,
     Func<WorkloadEndpoint, CancellationToken, Task> allocated,
-    Func<Task> retire) : IDisposable
+    Func<Task> retire,
+    WorkloadPlan? allocationTemplate,
+    Action<WorkloadEndpoint>? publishAllocation,
+    Func<CancellationToken, Task>? waitForValues) : IDisposable
 {
     public ResourceWorkload(WorkloadIdentity identity, Func<WorkloadPlan> resolvePlan, IWorkloadExecutor executor,
         NativeRuntimeOptions options, Func<CancellationToken, Task> waitForDependencies,
         Action<ResourceState, WorkloadEndpoint?> publish, Action<LogStream, string> log)
         : this(identity, resolvePlan, executor, options, waitForDependencies, publish, log,
-            _ => Task.CompletedTask, (_, _) => Task.CompletedTask, () => Task.CompletedTask)
+            _ => Task.CompletedTask, (_, _) => Task.CompletedTask, () => Task.CompletedTask, null, null, null)
     {
     }
 
@@ -243,6 +258,19 @@ internal sealed class ResourceWorkload(
         operation.SetResource(identity.ResourceId);
         try
         {
+            IWorkloadPreparation? preparation = null;
+            if (allocationTemplate is not null && executor is IWorkloadPreparationExecutor allocator)
+            {
+                using var allocation = new TimeProviderCancellation(options.WorkloadStartupTimeout, options.TimeProvider, _lifetime.Token);
+                preparation = await allocator.PrepareAsync(identity, allocationTemplate, allocation.Token).ConfigureAwait(false);
+                _cleanupLeases.Add(preparation);
+                publishAllocation!(preparation.Endpoint);
+            }
+            if (waitForValues is not null)
+            {
+                using var values = new TimeProviderCancellation(options.WorkloadStartupTimeout, options.TimeProvider, _lifetime.Token);
+                await waitForValues(values.Token).ConfigureAwait(false);
+            }
             await waitForDependencies(_lifetime.Token).ConfigureAwait(false);
             // Dependency readiness has its own lifetime. Start this workload's
             // startup budget only after dependencies are ready.
@@ -250,8 +278,17 @@ internal sealed class ResourceWorkload(
             await initialize(startup.Token).ConfigureAwait(false);
             var plan = resolvePlan();
             WorkloadDefinition.Validate(plan);
-            var lease = await executor.StartAsync(identity, plan, startup.Token).ConfigureAwait(false);
-            _cleanupLeases.Add(lease);
+            IWorkloadLease lease;
+            if (preparation is not null)
+            {
+                await preparation.StartAsync(plan, startup.Token).ConfigureAwait(false);
+                lease = preparation;
+            }
+            else
+            {
+                lease = await executor.StartAsync(identity, plan, startup.Token).ConfigureAwait(false);
+                _cleanupLeases.Add(lease);
+            }
             publish(ResourceState.Running, lease.Endpoint);
             await allocated(lease.Endpoint, startup.Token).ConfigureAwait(false);
             startup.StopTimeout();
@@ -286,7 +323,10 @@ internal sealed class ResourceWorkload(
             {
                 // A lifecycle command can fail after the primary workload starts.
                 // Its partial lease is an additional obligation, not a replacement.
-                _cleanupLeases.Add(cleanupFailure.Lease);
+                if (!_cleanupLeases.Any(lease => ReferenceEquals(lease, cleanupFailure.Lease)))
+                {
+                    _cleanupLeases.Add(cleanupFailure.Lease);
+                }
                 _cleanupFailed = true;
             }
             if (exception is WorkloadStartupException startupFailure)
