@@ -595,7 +595,7 @@ public sealed class ParameterProcessor(
             if (parameterResource.Required)
             {
                 ObserveParameterValueChanges(parameterResource);
-                await parameterResource.SetExceptionAsync(new MissingParameterValueException("Parameter value has been deleted."), cancellationToken).ConfigureAwait(false);
+                await parameterResource.ResetValueAsync(cancellationToken).ConfigureAwait(false);
             }
             else
             {

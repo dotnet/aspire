@@ -1943,7 +1943,7 @@ public class ParameterProcessorTests
         var testInteractionService = new TestInteractionService { IsAvailable = true };
         var parameterProcessor = CreateParameterProcessor(interactionService: testInteractionService);
         var parameter = CreateParameterResource("testParam", "initialValue");
-        var existingWaitForValueTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var existingWaitForValueTcs = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
         parameter.WaitForValueTcs = existingWaitForValueTcs;
         var existingValueTask = parameter.GetValueAsync(CancellationToken.None).AsTask();
 

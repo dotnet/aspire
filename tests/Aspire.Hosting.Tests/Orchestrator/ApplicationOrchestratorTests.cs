@@ -678,11 +678,12 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
 
         await events.PublishAsync(new OnResourcesPreparedContext(CancellationToken.None));
 
-        // Stand in for DCP starting the resource. This does not complete until the wait for dependencies is over,
-        // so it cannot be awaited here. The resource name is used as the DCP name so that the per-instance update
-        // published by OnResourceStarting and the model-level waiting update address the same snapshot.
-        var startingTask = events.PublishAsync(new OnResourceStartingContext(
+        // Stand in for DCP publishing the starting state and then waiting before launch. The resource name is
+        // used as the DCP name so the per-instance starting update and model-level wait share a snapshot.
+        await events.PublishAsync(new OnResourceStartingContext(
             CancellationToken.None, KnownResourceTypes.Executable, waiter.Resource, waiter.Resource.Name));
+        var startingTask = events.PublishAsync(new OnResourceBeforeStartContext(
+            CancellationToken.None, waiter.Resource, waiter.Resource.Name));
 
         await resourceNotificationService.WaitForResourceAsync(waiter.Resource.Name, KnownResourceStates.Waiting, TestContext.Current.CancellationToken).DefaultTimeout();
 
@@ -730,8 +731,10 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
             State = KnownResourceStates.Running
         }).DefaultTimeout();
 
-        var startingTask = events.PublishAsync(new OnResourceStartingContext(
+        await events.PublishAsync(new OnResourceStartingContext(
             CancellationToken.None, KnownResourceTypes.Executable, waiter.Resource, "waiter-abc123"));
+        var startingTask = events.PublishAsync(new OnResourceBeforeStartContext(
+            CancellationToken.None, waiter.Resource, "waiter-abc123"));
 
         await resourceNotificationService.WaitForResourceAsync(
             waiter.Resource.Name,
@@ -788,8 +791,10 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
         await PublishReplicaStatesAsync(resourceNotificationService, waiter.Resource, KnownResourceStates.NotStarted);
 
         // Only the first replica is being started.
-        var startingTask = events.PublishAsync(new OnResourceStartingContext(
+        await events.PublishAsync(new OnResourceStartingContext(
             CancellationToken.None, KnownResourceTypes.Executable, waiter.Resource, "waiter-abc123"));
+        var startingTask = events.PublishAsync(new OnResourceBeforeStartContext(
+            CancellationToken.None, waiter.Resource, "waiter-abc123"));
 
         await resourceNotificationService.WaitForResourceAsync(
             waiter.Resource.Name,
@@ -839,8 +844,10 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
 
         await PublishReplicaStatesAsync(resourceNotificationService, waiter.Resource, KnownResourceStates.NotStarted);
 
-        var startingTask = events.PublishAsync(new OnResourceStartingContext(
+        await events.PublishAsync(new OnResourceStartingContext(
             CancellationToken.None, KnownResourceTypes.Executable, waiter.Resource, "waiter-abc123"));
+        var startingTask = events.PublishAsync(new OnResourceBeforeStartContext(
+            CancellationToken.None, waiter.Resource, "waiter-abc123"));
 
         await resourceNotificationService.WaitForResourceAsync(
             waiter.Resource.Name,
@@ -893,16 +900,20 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
         await PublishReplicaStatesAsync(resourceNotificationService, waiter.Resource, KnownResourceStates.NotStarted);
 
         // Both replicas are started, so both end up waiting on the same dependency.
-        var startingFirstReplicaTask = events.PublishAsync(new OnResourceStartingContext(
+        await events.PublishAsync(new OnResourceStartingContext(
             CancellationToken.None, KnownResourceTypes.Executable, waiter.Resource, "waiter-abc123"));
+        var startingFirstReplicaTask = events.PublishAsync(new OnResourceBeforeStartContext(
+            CancellationToken.None, waiter.Resource, "waiter-abc123"));
 
         await resourceNotificationService.WaitForResourceAsync(
             waiter.Resource.Name,
             e => e.ResourceId == "waiter-abc123" && e.Snapshot.State?.Text == KnownResourceStates.Waiting,
             TestContext.Current.CancellationToken).DefaultTimeout();
 
-        var startingSecondReplicaTask = events.PublishAsync(new OnResourceStartingContext(
+        await events.PublishAsync(new OnResourceStartingContext(
             CancellationToken.None, KnownResourceTypes.Executable, waiter.Resource, "waiter-def456"));
+        var startingSecondReplicaTask = events.PublishAsync(new OnResourceBeforeStartContext(
+            CancellationToken.None, waiter.Resource, "waiter-def456"));
 
         await resourceNotificationService.WaitForResourceAsync(
             waiter.Resource.Name,
@@ -1245,12 +1256,14 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
             ["value"],
             Assert.IsType<string[]>(Assert.Single(unresolvedEvent.Snapshot.Properties, p => p.Name == KnownProperties.Resource.UnresolvedParameters).Value));
 
-        var partiallyResolvedTask = resourceNotificationService.WaitForResourceAsync(
-            container.Resource.Name,
-            e => e.Snapshot.Version > unresolvedEvent.Snapshot.Version);
-        Assert.True(firstParameter.WaitForValueTcs.TrySetResult("first-value"));
-        var partiallyResolvedEvent = await partiallyResolvedTask.DefaultTimeout();
+        var configurationTask = ExecutionConfigurationBuilder.Create(container.Resource)
+            .WithEnvironmentVariablesConfig()
+            .BuildAsync(new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run), NullLogger.Instance);
+        await firstParameter.SetValueAsync("first-value").DefaultTimeout();
+        Assert.False(configurationTask.IsCompleted);
+        Assert.False(secondParameter.WaitForValueTcs.Task.IsCompleted);
 
+        Assert.True(resourceNotificationService.TryGetCurrentState("api-dcp", out var partiallyResolvedEvent));
         Assert.Equal(KnownResourceStates.UnresolvedParameters, partiallyResolvedEvent.Snapshot.State?.Text);
         Assert.Equal(
             ["value"],
@@ -1261,6 +1274,10 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
             e => e.Snapshot.State?.Text == KnownResourceStates.Starting);
         Assert.True(secondParameter.WaitForValueTcs.TrySetResult("second-value"));
         _ = await startingTask.DefaultTimeout();
+        var configuration = await configurationTask.DefaultTimeout();
+        Assert.Null(configuration.Exception);
+        Assert.Equal("first-value", configuration.EnvironmentVariables.Single(e => e.Key == "FIRST").Value);
+        Assert.Equal("second-value", configuration.EnvironmentVariables.Single(e => e.Key == "SECOND").Value);
     }
 
     [Fact]
@@ -1516,7 +1533,7 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
             KnownResourceTypes.Container,
             container.Resource,
             container.Resource.GetResolvedResourceNames()[0]));
-        var beforeStartTask = events.PublishAsync(new OnResourceBeforeStartContext(CancellationToken.None, container.Resource));
+        var beforeStartTask = events.PublishAsync(new OnResourceBeforeStartContext(CancellationToken.None, container.Resource, container.Resource.GetResolvedResourceNames()[0]));
         _ = await combinedBlockersTask.DefaultTimeout();
 
         var waitingTask = resourceNotificationService.WaitForResourceAsync(
@@ -1714,7 +1731,7 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public async Task OnResourceStarting_WhenResourceLeavesUnresolvedParameters_DoesNotRegressState()
+    public async Task MonitorUnresolvedParameters_WhenResourceLeavesUnresolvedParameters_DoesNotRegressState()
     {
         var builder = DistributedApplication.CreateBuilder();
         builder.WithTestAndResourceLogging(testOutputHelper);
@@ -1732,7 +1749,13 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
         var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService, dcpEvents: events);
         await appOrchestrator.RunApplicationAsync();
         await events.PublishAsync(new OnResourcesPreparedContext(CancellationToken.None));
-        await events.PublishAsync(new OnResourceStartingContext(CancellationToken.None, KnownResourceTypes.Container, container.Resource, "api-dcp"));
+        await resourceNotificationService.PublishUpdateAsync(container.Resource, "api-dcp", s => s with
+        {
+            State = new ResourceStateSnapshot(KnownResourceStates.UnresolvedParameters, KnownResourceStateStyles.Warn),
+            Properties = s.Properties.SetResourceProperty(KnownProperties.Resource.UnresolvedParameters, new[] { parameter.Resource.Name })
+        }).DefaultTimeout();
+        var monitorTask = appOrchestrator.MonitorUnresolvedParametersAsync(
+            container.Resource, "api-dcp", [parameter.Resource], TestContext.Current.CancellationToken);
 
         Assert.True(resourceNotificationService.TryGetCurrentState("api-dcp", out var unresolvedEvent));
         Assert.Equal(KnownResourceStates.UnresolvedParameters, unresolvedEvent.Snapshot.State?.Text);
@@ -1743,15 +1766,13 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
         }).DefaultTimeout();
 
         Assert.True(resourceNotificationService.TryGetCurrentState("api-dcp", out var runningEvent));
-        var monitorUpdateTask = resourceNotificationService.WaitForResourceAsync(
-            container.Resource.Name,
-            e => e.Snapshot.Version > runningEvent.Snapshot.Version);
-
         Assert.True(parameter.Resource.WaitForValueTcs!.TrySetResult("resolved-value"));
-        var monitorUpdate = await monitorUpdateTask.DefaultTimeout();
+        await monitorTask.DefaultTimeout();
 
+        Assert.True(resourceNotificationService.TryGetCurrentState("api-dcp", out var monitorUpdate));
         Assert.Equal(KnownResourceStates.Running, monitorUpdate.Snapshot.State?.Text);
-        Assert.DoesNotContain(monitorUpdate.Snapshot.Properties, p => p.Name == KnownProperties.Resource.UnresolvedParameters);
+        Assert.Equal(runningEvent.Snapshot.Version, monitorUpdate.Snapshot.Version);
+        Assert.All(monitorUpdate.Snapshot.Properties, p => Assert.NotEqual(KnownProperties.Resource.UnresolvedParameters, p.Name));
     }
 
     private ApplicationOrchestrator CreateOrchestrator(
@@ -1770,7 +1791,8 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
             dcpEvents,
             applicationEventing,
             resourceLoggerService,
-            dashboardOptions);
+            dashboardOptions,
+            dcpExecutor);
     }
 
     private ApplicationOrchestrator CreateOrchestrator(
@@ -1780,7 +1802,8 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
         DcpExecutorEvents? dcpEvents = null,
         IDistributedApplicationEventing? applicationEventing = null,
         ResourceLoggerService? resourceLoggerService = null,
-        DashboardOptions? dashboardOptions = null)
+        DashboardOptions? dashboardOptions = null,
+        TestDcpExecutor? dcpExecutor = null)
     {
         var services = new ServiceCollection();
         var configuration = new ConfigurationManager();

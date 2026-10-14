@@ -366,7 +366,7 @@ internal sealed class ApplicationOrchestrator
         }
     }
 
-    private async Task MonitorUnresolvedParametersAsync(
+    internal async Task MonitorUnresolvedParametersAsync(
         IResource resource,
         string? resourceId,
         ParameterResource[] unresolvedParameters,
