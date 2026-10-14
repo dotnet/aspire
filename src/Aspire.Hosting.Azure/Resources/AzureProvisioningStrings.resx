@@ -345,6 +345,13 @@ To learn more, see the [Azure provisioning docs](https://aka.ms/aspire/azure/pro
   <data name="DeleteAzureResourcesCommandSuccess" xml:space="preserve">
     <value>Azure resources deleted and provisioning state reset.</value>
   </data>
+  <data name="DeleteAzureResourcesRemainingResourcesFormat" xml:space="preserve">
+    <value>Resource-group deletion completed. The following non-ARM resources were not deleted: {0}. Their cached identification state was retained for manual cleanup.</value>
+    <comment>{0} is a list of resource names, provider types, and object IDs.</comment>
+  </data>
+  <data name="DeleteAzureResourcesRemainingResourcesWarning" xml:space="preserve">
+    <value>Non-ARM resources are outside the resource group's lifetime and were not deleted. The listed IDs are last-known provisioning outputs, not a live provider verification. Missing IDs are unknown; inspect the provider for cleanup. Their cached state was retained.</value>
+  </data>
   <data name="ContextPropertyLocationDisplayName" xml:space="preserve">
     <value>Azure location</value>
   </data>

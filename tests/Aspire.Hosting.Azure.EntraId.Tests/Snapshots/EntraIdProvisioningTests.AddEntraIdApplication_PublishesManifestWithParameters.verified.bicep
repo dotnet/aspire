@@ -3,35 +3,23 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param applicationName string
-
 param principalId string
 
 param tenantResourceSuffix string = ''
 
-@allowed([
-  'AzureADMyOrg'
-  'AzureADMultipleOrgs'
-  'AzureADandPersonalMicrosoftAccount'
-  'PersonalMicrosoftAccount'
-])
-param signInAudience string = 'AzureADMyOrg'
-
-param redirectUris array = []
-
-param enableIdTokenIssuance bool = false
-
 resource application 'Microsoft.Graph/applications@v1.0' = {
-  displayName: (tenantResourceSuffix == '') ? applicationName : '${applicationName}-${tenantResourceSuffix}'
-  uniqueName: (tenantResourceSuffix == '') ? applicationName : '${applicationName}-${tenantResourceSuffix}'
-  signInAudience: signInAudience
+  displayName: (tenantResourceSuffix == '') ? 'entra-web' : 'entra-web-${tenantResourceSuffix}'
+  uniqueName: (tenantResourceSuffix == '') ? 'entra-web' : 'entra-web-${tenantResourceSuffix}'
+  signInAudience: 'AzureADMultipleOrgs'
   api: {
     requestedAccessTokenVersion: 2
   }
   web: {
-    redirectUris: redirectUris
+    redirectUris: [
+      'https://localhost:7123/signin-oidc'
+    ]
     implicitGrantSettings: {
-      enableIdTokenIssuance: enableIdTokenIssuance
+      enableIdTokenIssuance: true
     }
   }
   owners: {

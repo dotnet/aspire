@@ -61,8 +61,7 @@ public static class AzureEnvironmentResourceExtensions
                         IsHighlighted = command.IsHighlighted,
                         Arguments = command.Arguments ?? [],
                         ValidateArguments = command.ValidateArguments,
-                        UpdateState = context => context.Services.GetRequiredService<AzureProvisioningController>()
-                            .GetEnvironmentCommandState(command.Command, context)
+                        UpdateState = context => context.Services.GetRequiredService<AzureProvisioningController>().GetEnvironmentCommandState()
                     });
             }
 

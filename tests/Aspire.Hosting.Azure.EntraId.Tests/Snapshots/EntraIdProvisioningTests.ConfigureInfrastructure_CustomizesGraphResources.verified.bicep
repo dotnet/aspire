@@ -3,28 +3,14 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param applicationName string
-
 param principalId string
 
 param tenantResourceSuffix string = ''
 
-@allowed([
-  'AzureADMyOrg'
-  'AzureADMultipleOrgs'
-  'AzureADandPersonalMicrosoftAccount'
-  'PersonalMicrosoftAccount'
-])
-param signInAudience string = 'AzureADMyOrg'
-
-param redirectUris array = []
-
-param enableIdTokenIssuance bool = false
-
 resource application 'Microsoft.Graph/applications@v1.0' = {
   displayName: 'Contoso\'s web application'
-  uniqueName: (tenantResourceSuffix == '') ? applicationName : '${applicationName}-${tenantResourceSuffix}'
-  signInAudience: signInAudience
+  uniqueName: (tenantResourceSuffix == '') ? 'entra-web' : 'entra-web-${tenantResourceSuffix}'
+  signInAudience: 'AzureADMyOrg'
   api: {
     requestedAccessTokenVersion: 2
   }

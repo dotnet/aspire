@@ -21,16 +21,6 @@ namespace Aspire.Hosting.Azure;
 public class AzureBicepResource : Resource, IAzureResource, IResourceWithParameters
 {
     /// <summary>
-    /// Gets or sets whether this module supports management of its resources through Azure Resource Manager.
-    /// </summary>
-    /// <remarks>
-    /// Defaults to <see langword="true"/>. Modules that create directory or other extension-provider resources
-    /// rather than ARM resources should set this to <see langword="false"/>. Provisioning, deployment cancellation,
-    /// and local state management remain available, but ARM inspection, relocation, deletion, and drift checks do not.
-    /// </remarks>
-    public bool SupportsAzureResourceManagement { get; set; } = true;
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="AzureBicepResource"/> class.
     /// </summary>
     /// <param name="name">Name of the resource. This will be the name of the deployment.</param>
@@ -260,17 +250,12 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
             foreach (var input in Parameters)
             {
                 // Used for deferred evaluation of parameter.
-                object? inputValue = template.EvaluatedParameters is { } evaluatedParameters &&
-                    evaluatedParameters.TryGetValue(input.Key, out var evaluatedValue)
-                    ? evaluatedValue
-                    : input.Value is Func<object?> f ? f() : input.Value;
+                object? inputValue = input.Value is Func<object?> f ? f() : input.Value;
 
-                context.TryAddDependentResources(inputValue);
-
-                if (inputValue is JsonNode or IEnumerable<string> or bool or int)
+                if (inputValue is JsonNode || inputValue is IEnumerable<string>)
                 {
                     context.Writer.WritePropertyName(input.Key);
-                    // Keep the parameter's JSON type so Boolean and integer Bicep parameters bind correctly.
+                    // Write JSON objects to the manifest for JSON node parameters
                     JsonSerializer.Serialize(context.Writer, inputValue);
                     continue;
                 }
@@ -283,6 +268,8 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
                 };
 
                 context.Writer.WriteString(input.Key, value);
+
+                context.TryAddDependentResources(input.Value);
             }
             context.Writer.WriteEndObject();
         }
@@ -518,10 +505,6 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
 /// <param name="deleteFileOnDispose">Determines if the file should be deleted on disposal.</param>
 public readonly struct BicepTemplateFile(string path, bool deleteFileOnDispose) : IDisposable
 {
-    // Values evaluated while inferring generated parameter declarations belong to this template generation,
-    // not the resource. Publishing reuses them so callbacks and secure references are evaluated only once.
-    internal IReadOnlyDictionary<string, object?>? EvaluatedParameters { get; init; }
-
     /// <summary>
     /// The path to the bicep file.
     /// </summary>

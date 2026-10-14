@@ -46,9 +46,9 @@ Omit `AsExistingApplication` to create a registration and its service principal 
 ```csharp
 var entraApi = builder.AddEntraIdApplication("entra-api");
 var entraWeb = builder.AddEntraIdApplication("entra-web")
-                      .WithParameter("redirectUris", [
+                      .WithRedirectUris(
                           "https://localhost:7123/signin-oidc",
-                          "https://localhost:7123/signout-callback-oidc"]);
+                          "https://localhost:7123/signout-callback-oidc");
 
 builder.AddProject<Projects.Api>("api")
        .WithReference(entraApi);
@@ -88,7 +88,7 @@ Changing the name or suffix targets another registration and leaves the previous
 Existing registrations with different `uniqueName` values are not automatically adopted: reference their IDs with
 `AsExistingApplication` or explicitly clean them up when migrating.
 
-This first provisioning increment creates the registration and service principal. Redirect URIs can be provided explicitly using the `redirectUris` Bicep parameter; endpoints are not discovered automatically. It does not provision client credentials, API scopes, or API permissions.
+This first provisioning increment creates the registration and service principal. Use `WithRedirectUris` to configure web callback URIs explicitly; endpoints are not discovered automatically. The resource name, sign-in audience, redirect URIs, and ID-token setting are written directly into the generated Bicep from the resource's properties. Only the deployment principal and shared tenant-resource suffix remain deployment inputs. It does not provision client credentials, API scopes, or API permissions.
 
 For OpenID Connect sign-in flows that request an ID token directly from the authorization endpoint, explicitly enable ID-token issuance:
 
@@ -105,8 +105,10 @@ Creating a registration does not protect a workload's routes or authorize API re
 Registrations live in the tenant and **are not deleted when the resource group is deleted**. The deployment outputs include `objectId`, `servicePrincipalId`, and `uniqueName` for locating the objects.
 
 The registration exposes deployment reprovisioning, cancellation, and local-state commands, not ARM resource inspection,
-relocation, or deletion. The environment's generic delete command is unavailable while it includes directory resources,
-because resource-group deletion cannot clean them up.
+relocation, or deletion. The environment's **Delete Azure resources** command can still delete the resource group.
+After deletion, the command reports their provider types, last-known object IDs, and tenant ID for manual cleanup.
+Their cached identification outputs and dashboard links are retained; ordinary ARM resources' deployment state is reset.
+The report does not query Microsoft Graph to verify live objects, and missing IDs are reported as unknown.
 
 Delete only the registrations and service principals belonging to your application using the [Microsoft Entra admin center](https://entra.microsoft.com) or Microsoft Graph. Deleted applications remain soft-deleted for 30 days; restore or permanently delete the application before redeploying with the same `uniqueName`.
 

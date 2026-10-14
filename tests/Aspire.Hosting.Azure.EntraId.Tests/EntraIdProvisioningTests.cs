@@ -29,12 +29,16 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         var entra = builder.AddEntraIdApplication("entra-web");
 
         Assert.IsAssignableFrom<AzureProvisioningResource>(entra.Resource);
-        Assert.False(entra.Resource.SupportsAzureResourceManagement);
+        var nonArm = Assert.Single(entra.Resource.Annotations.OfType<NonArmResourceAnnotation>());
+        Assert.Equal(new Dictionary<string, string>
+        {
+            ["Microsoft.Graph/applications"] = "objectId",
+            ["Microsoft.Graph/servicePrincipals"] = "servicePrincipalId"
+        }, nonArm.ResourceIdOutputs);
         Assert.NotNull(entra.Resource.ProvisioningTaskCompletionSource);
         Assert.False(entra.Resource.ProvisioningTaskCompletionSource.Task.IsCompleted);
-        Assert.Equal("entra-web", entra.Resource.Parameters["applicationName"]);
         Assert.Null(entra.Resource.Parameters["principalId"]);
-        Assert.Equal("AzureADMyOrg", entra.Resource.Parameters["signInAudience"]);
+        Assert.Equal(EntraIdSignInAudience.AzureADMyOrg, entra.Resource.SignInAudience);
         Assert.Null(entra.Resource.Parameters[AzureBicepResource.KnownParameters.TenantResourceSuffix]);
         Assert.Single(builder.Resources.OfType<AzureEnvironmentResource>());
 
@@ -68,7 +72,7 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var entra = builder.AddEntraIdApplication("entra-web")
-            .WithParameter("redirectUris", ["https://localhost:7123/signin-oidc"]);
+            .WithRedirectUris("https://localhost:7123/signin-oidc");
         using var workspace = TemporaryWorkspace.Create(outputHelper);
 
         using var first = entra.Resource.GetBicepTemplateFile(workspace.Path);
@@ -86,12 +90,12 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         var entra = builder.AddEntraIdApplication("entra-web")
             .WithSignInAudience(EntraIdSignInAudience.AzureADMultipleOrgs)
-            .WithParameter("redirectUris", ["https://localhost:7123/signin-oidc"])
+            .WithRedirectUris("https://localhost:7123/signin-oidc")
             .WithIdTokenIssuance();
 
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var manifest = await ManifestUtils.GetManifest(entra.Resource, workspace.Path);
-        Assert.True(manifest["params"]!["enableIdTokenIssuance"]!.GetValue<bool>());
+        Assert.Equal(new[] { "principalId", "tenantResourceSuffix" }, entra.Resource.Parameters.Keys);
         await Verify(manifest.ToJsonString(), "json")
             .AppendContentAsFile(entra.Resource.GetBicepTemplateString(), "bicep");
     }
@@ -102,9 +106,9 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputHelper, workspace.Path);
         var web = builder.AddEntraIdApplication("entra-web")
-            .WithParameter("redirectUris", [
+            .WithRedirectUris(
                 "https://localhost:7123/signin-oidc",
-                "https://localhost:7123/signout-callback-oidc"])
+                "https://localhost:7123/signout-callback-oidc")
             .WithIdTokenIssuance();
 
         using var app = builder.Build();
@@ -183,7 +187,7 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         var api = builder.AddEntraIdApplication("entra-api");
         var web = builder.AddEntraIdApplication("entra-web")
             .WithSignInAudience(EntraIdSignInAudience.AzureADMultipleOrgs)
-            .WithParameter("redirectUris", ["https://localhost:7123/signin-oidc"]);
+            .WithRedirectUris("https://localhost:7123/signin-oidc");
         builder.AddEntraIdApplication("existing").AsExistingApplication(tenantId: TenantId, clientId: ClientId);
         builder.AddResource(new ProjectResource("web")).WithReference(web);
         builder.AddResource(new ProjectResource("api")).WithReference(api);
@@ -213,9 +217,9 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         var apiBicep = await File.ReadAllTextAsync(Path.Combine(workspace.Path, "entra-api", "entra-api.bicep"));
         var webBicep = await File.ReadAllTextAsync(Path.Combine(workspace.Path, "entra-web", "entra-web.bicep"));
         var consumerBicep = await File.ReadAllTextAsync(Path.Combine(workspace.Path, "consumer", "consumer.bicep"));
-        Assert.Equal(apiBicep, webBicep);
         Assert.Equal(new[] { "consumer", "entra-api", "entra-web" }, Directory.GetDirectories(workspace.Path).Select(Path.GetFileName).Order());
         await Verify(mainBicep, "bicep")
+            .AppendContentAsFile(apiBicep, "bicep")
             .AppendContentAsFile(webBicep, "bicep")
             .AppendContentAsFile(consumerBicep, "bicep");
     }
@@ -225,26 +229,56 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
     [InlineData(EntraIdSignInAudience.AzureADMultipleOrgs)]
     [InlineData(EntraIdSignInAudience.AzureADandPersonalMicrosoftAccount)]
     [InlineData(EntraIdSignInAudience.PersonalMicrosoftAccount)]
-    public void WithSignInAudience_UpdatesProvisioningParameter(EntraIdSignInAudience audience)
+    public async Task WithSignInAudience_WritesResourceValueToInfrastructure(EntraIdSignInAudience audience)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var entra = builder.AddEntraIdApplication("entra-web");
         entra.WithSignInAudience(audience);
 
-        Assert.Equal(audience.ToString(), entra.Resource.Parameters["signInAudience"]);
+        Assert.Equal(audience, entra.Resource.SignInAudience);
+        Assert.Equal(new[] { "principalId", "tenantResourceSuffix" }, entra.Resource.Parameters.Keys);
+        await Verify(entra.Resource.GetBicepTemplateString(), "bicep");
     }
 
     [Theory]
     [InlineData(DistributedApplicationOperation.Run)]
     [InlineData(DistributedApplicationOperation.Publish)]
-    public void WithIdTokenIssuance_EnablesProvisioningParameter(DistributedApplicationOperation operation)
+    public async Task WithIdTokenIssuance_WritesResourceValueToInfrastructure(DistributedApplicationOperation operation)
     {
         using var builder = TestDistributedApplicationBuilder.Create(operation);
         var entra = builder.AddEntraIdApplication("entra-web");
 
         Assert.Same(entra, entra.WithIdTokenIssuance());
         Assert.Same(entra, entra.WithIdTokenIssuance());
-        Assert.True(Assert.IsType<bool>(entra.Resource.Parameters["enableIdTokenIssuance"]));
+        Assert.True(entra.Resource.EnableIdTokenIssuance);
+        Assert.Equal(new[] { "principalId", "tenantResourceSuffix" }, entra.Resource.Parameters.Keys);
+        await Verify(entra.Resource.GetBicepTemplateString(), "bicep");
+    }
+
+    [Fact]
+    public void WithRedirectUris_ValidatesAndAccumulatesResourceValues()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var entra = builder.AddEntraIdApplication("entra-web");
+
+        Assert.Same(entra, entra.WithRedirectUris("https://localhost:7123/signin-oidc"));
+        entra.WithRedirectUris("https://localhost:7123/signout-callback-oidc");
+        Assert.Throws<ArgumentNullException>(() => EntraIdResourceExtensions.WithRedirectUris(null!, "https://localhost:7123/signin-oidc"));
+        Assert.Throws<ArgumentNullException>(() => entra.WithRedirectUris(null!));
+        Assert.Throws<ArgumentException>(() => entra.WithRedirectUris("https://localhost:7252/callback", ""));
+        Assert.Equal(new[] { "https://localhost:7123/signin-oidc", "https://localhost:7123/signout-callback-oidc" }, entra.Resource.RedirectUris);
+    }
+
+    [Fact]
+    public async Task ConfigureInfrastructure_WritesDirectResourcePropertyValues()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var entra = builder.AddEntraIdApplication("entra-web");
+        entra.Resource.SignInAudience = EntraIdSignInAudience.AzureADMultipleOrgs;
+        entra.Resource.RedirectUris.Add("https://localhost:7123/signin-oidc");
+        entra.Resource.EnableIdTokenIssuance = true;
+
+        await Verify(entra.Resource.GetBicepTemplateString(), "bicep");
     }
 
     [Fact]

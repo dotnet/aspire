@@ -125,7 +125,7 @@ forwards to the app. The Node front end uses `https://localhost:7252` for the sa
 certificate and private key.
 
 Use a non-isolated run in either mode. `--isolated` randomizes endpoint ports, so it requires updating the callbacks in the
-existing registration or the creation-mode `redirectUris` list to match the actual URLs.
+existing registration or the creation-mode `WithRedirectUris` call to match the actual URLs.
 
 From this directory, run `aspire run`, or `dotnet run --project EntraId.AppHost`. In the dashboard, open
 `webfrontend` at `https://localhost:7251`, select **Sign in with Microsoft Entra ID**, and view your signed-in identity.

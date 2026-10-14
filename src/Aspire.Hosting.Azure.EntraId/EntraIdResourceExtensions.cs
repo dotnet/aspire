@@ -636,6 +636,39 @@ public static class EntraIdResourceExtensions
     }
 
     /// <summary>
+    /// Adds web redirect URIs to a registration created by Aspire.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="redirectUris">The redirect URIs to register for browser sign-in and sign-out callbacks.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> or <paramref name="redirectUris"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when a redirect URI is empty.</exception>
+    /// <remarks>
+    /// URIs are written directly into the generated infrastructure; endpoints are not discovered automatically.
+    /// Existing registrations are not modified.
+    /// </remarks>
+    /// <example>
+    /// <code lang="csharp">
+    /// var entraWeb = builder.AddEntraIdApplication("entra-web")
+    ///     .WithRedirectUris("https://localhost:7123/signin-oidc");
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<EntraIdApplicationResource> WithRedirectUris(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        params string[] redirectUris)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(redirectUris);
+        foreach (var redirectUri in redirectUris)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(redirectUri, nameof(redirectUris));
+        }
+
+        builder.Resource.RedirectUris.AddRange(redirectUris);
+        return builder;
+    }
+
+    /// <summary>
     /// Enables ID-token issuance through implicit and hybrid flows for a registration created by Aspire.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
@@ -656,7 +689,7 @@ public static class EntraIdResourceExtensions
     /// <code lang="csharp">
     /// var entraWeb = builder.AddEntraIdApplication("entra-web")
     ///     .WithIdTokenIssuance()
-    ///     .WithParameter("redirectUris", ["https://localhost:7123/signin-oidc"]);
+    ///     .WithRedirectUris("https://localhost:7123/signin-oidc");
     /// </code>
     /// </example>
     /// </remarks>
@@ -665,7 +698,7 @@ public static class EntraIdResourceExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        builder.Resource.Parameters["enableIdTokenIssuance"] = true;
+        builder.Resource.EnableIdTokenIssuance = true;
         return builder;
     }
 

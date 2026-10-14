@@ -152,6 +152,16 @@
         <target state="new">Azure resources deleted and provisioning state reset.</target>
         <note />
       </trans-unit>
+      <trans-unit id="DeleteAzureResourcesRemainingResourcesFormat">
+        <source>Resource-group deletion completed. The following non-ARM resources were not deleted: {0}. Their cached identification state was retained for manual cleanup.</source>
+        <target state="new">Resource-group deletion completed. The following non-ARM resources were not deleted: {0}. Their cached identification state was retained for manual cleanup.</target>
+        <note>{0} is a list of resource names, provider types, and object IDs.</note>
+      </trans-unit>
+      <trans-unit id="DeleteAzureResourcesRemainingResourcesWarning">
+        <source>Non-ARM resources are outside the resource group's lifetime and were not deleted. The listed IDs are last-known provisioning outputs, not a live provider verification. Missing IDs are unknown; inspect the provider for cleanup. Their cached state was retained.</source>
+        <target state="new">Non-ARM resources are outside the resource group's lifetime and were not deleted. The listed IDs are last-known provisioning outputs, not a live provider verification. Missing IDs are unknown; inspect the provider for cleanup. Their cached state was retained.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DeploymentOperationCanceledResourcesFormat">
         <source>Canceled Azure resources: {0}</source>
         <target state="new">Canceled Azure resources: {0}</target>

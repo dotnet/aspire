@@ -82,7 +82,7 @@ internal sealed class AzureResourcePreparer(
 
             foreach (var command in AzureProvisioningController.ResourceCommandDefinitions)
             {
-                if (!bicepResource.SupportsAzureResourceManagement &&
+                if (bicepResource.HasAnnotationOfType<NonArmResourceAnnotation>() &&
                     command.Command is AzureProvisioningController.AzureResourceCommand.ChangeLocation or
                         AzureProvisioningController.AzureResourceCommand.GetAzureResource or
                         AzureProvisioningController.AzureResourceCommand.DeleteAzureResource)
@@ -144,8 +144,7 @@ internal sealed class AzureResourcePreparer(
                 IsHighlighted = command.IsHighlighted,
                 Arguments = AzureProvisioningController.CreateAzureContextCommandArguments(includeTenantResourceSuffix: true),
                 ValidateArguments = command.ValidateArguments,
-                UpdateState = context => context.Services.GetRequiredService<AzureProvisioningController>()
-                    .GetEnvironmentCommandState(command.Command, context)
+                UpdateState = context => context.Services.GetRequiredService<AzureProvisioningController>().GetEnvironmentCommandState()
             });
     }
 

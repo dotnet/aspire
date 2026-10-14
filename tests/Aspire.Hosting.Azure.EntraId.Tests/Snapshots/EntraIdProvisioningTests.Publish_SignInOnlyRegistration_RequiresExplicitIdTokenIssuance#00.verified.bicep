@@ -18,14 +18,7 @@ module entra_web 'entra-web/entra-web.bicep' = {
   scope: rg
   params: {
     location: location
-    applicationName: 'entra-web'
     principalId: principalId
-    signInAudience: 'AzureADMyOrg'
     tenantResourceSuffix: tenantResourceSuffix
-    redirectUris: [
-      'https://localhost:7123/signin-oidc'
-      'https://localhost:7123/signout-callback-oidc'
-    ]
-    enableIdTokenIssuance: true
   }
 }

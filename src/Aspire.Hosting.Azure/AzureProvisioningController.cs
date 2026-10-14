@@ -795,9 +795,13 @@ internal sealed class AzureProvisioningController(
         var model = context.Services.GetRequiredService<DistributedApplicationModel>();
 
         return ExecuteCommandAsync(
-            () => DeleteAzureResourcesAsync(model, context.CancellationToken),
-            AzureProvisioningStrings.DeleteAzureResourcesCommandSuccess,
-            () => CreateEnvironmentCommandResultDataAsync(DeleteAzureResourcesCommandName, model, context.CancellationToken));
+            () => RunOperationAsync<DeleteAzureResourcesResult>(model, new DeleteAzureResourcesIntent(), context.CancellationToken),
+            result => result.RemainingResources.Count == 0
+                ? AzureProvisioningStrings.DeleteAzureResourcesCommandSuccess
+                : string.Format(CultureInfo.CurrentCulture, AzureProvisioningStrings.DeleteAzureResourcesRemainingResourcesFormat,
+                    string.Join(", ", result.RemainingResources.Select(resource =>
+                        $"{resource.ResourceName}: {resource.ResourceType} ({resource.ObjectId ?? "?"})"))),
+            result => CreateDeleteAzureResourcesCommandResultDataAsync(model, result, context.CancellationToken));
     }
 
     private Task<ExecuteCommandResult> ExecuteChangeResourceLocationCommandAsync(string resourceName, ExecuteCommandContext context)
@@ -849,7 +853,7 @@ internal sealed class AzureProvisioningController(
 
         return ExecuteCommandAsync(
             () => RunOperationAsync<DeleteAzureResourceResult>(model, new DeleteAzureResourceIntent(resourceName), context.CancellationToken),
-            AzureProvisioningStrings.DeleteAzureResourceCommandSuccess,
+            _ => AzureProvisioningStrings.DeleteAzureResourceCommandSuccess,
             result => CreateDeleteAzureResourceCommandResultDataAsync(model, resourceName, result, context.CancellationToken));
     }
 
@@ -952,21 +956,9 @@ internal sealed class AzureProvisioningController(
         }
     }
 
-    internal ResourceCommandState GetEnvironmentCommandState(AzureEnvironmentCommand command, UpdateCommandStateContext context)
-    {
-        if (command == AzureEnvironmentCommand.DeleteAzureResources &&
-            GetProvisionableAzureResources(context.Services.GetRequiredService<DistributedApplicationModel>())
-                .Any(resource => resource.AzureResource is AzureBicepResource { SupportsAzureResourceManagement: false }))
-        {
-            return ResourceCommandState.Hidden;
-        }
-
-        return GetEnvironmentCommandState();
-    }
-
     private static void ThrowIfNonArmTarget(IReadOnlyList<(IResource Resource, IAzureResource AzureResource)> resources)
     {
-        if (resources.Any(resource => resource.AzureResource is AzureBicepResource { SupportsAzureResourceManagement: false }))
+        if (resources.Any(resource => resource.AzureResource.HasAnnotationOfType<NonArmResourceAnnotation>()))
         {
             throw new InvalidOperationException(
                 "This operation cannot manage non-ARM extension resources. Manage those resources through their provider.");
@@ -980,7 +972,7 @@ internal sealed class AzureProvisioningController(
 
         if (command is AzureResourceCommand.ChangeLocation or AzureResourceCommand.GetAzureResource or AzureResourceCommand.DeleteAzureResource &&
             GetTargetAzureResources(context.Services.GetRequiredService<DistributedApplicationModel>(), resourceName, includeAnnotationParentRelationships: true)
-                .Any(resource => resource.AzureResource is AzureBicepResource { SupportsAzureResourceManagement: false }))
+                .Any(resource => resource.AzureResource.HasAnnotationOfType<NonArmResourceAnnotation>()))
         {
             return ResourceCommandState.Hidden;
         }
@@ -1862,10 +1854,10 @@ internal sealed class AzureProvisioningController(
         return await EnsureProvisionedOrThrowAsync(model, GetProvisionableAzureResources(model), cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<object?> ExecuteDeleteAzureResourcesAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
+    private async Task<DeleteAzureResourcesResult> ExecuteDeleteAzureResourcesAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
-        // Deleting the resource group would orphan directory resources while clearing the state needed to locate them.
-        ThrowIfNonArmTarget(GetProvisionableAzureResources(model));
+        var azureResources = GetProvisionableAzureResources(model);
+        var remainingResources = await GetRemainingNonArmResourcesAsync(azureResources, cancellationToken).ConfigureAwait(false);
         UpdateCurrentActiveOperationPhase(AzureProvisioningStrings.OperationPhaseDeletingAzureResources);
         // Delete-all operates at the resource-group boundary because run-mode provisioning creates a
         // single environment resource group. Per-resource deletion uses cached deployment outputs
@@ -1875,12 +1867,23 @@ internal sealed class AzureProvisioningController(
             new ResourceStateSnapshot(DeletingState, KnownResourceStateStyles.Info),
             cancellationToken).ConfigureAwait(false);
 
+        foreach (var resource in remainingResources)
+        {
+            loggerService.GetLogger(model.Resources.Single(item => item.Name == resource.ResourceName))
+                .LogWarning("Resource-group deletion will not delete {ResourceType} for {ResourceName}. Object ID: {ObjectId}; tenant ID: {TenantId}. Use the resource provider for cleanup.",
+                    resource.ResourceType, resource.ResourceName, resource.ObjectId ?? "?", resource.TenantId ?? "?");
+        }
+
         string? resourceGroupName;
         try
         {
             resourceGroupName = await DeleteCurrentResourceGroupIfExistsAsync(cancellationToken).ConfigureAwait(false);
 
-            await ResetResourcesAsync(model, GetProvisionableAzureResources(model), preserveOverrides: true, cancellationToken).ConfigureAwait(false);
+            // Directory/extension objects outlive the resource group. Keep their outputs, state, and links
+            // so the user can locate them after the ARM deployment record has been deleted.
+            await ResetResourcesAsync(model,
+                azureResources.Where(resource => !resource.AzureResource.HasAnnotationOfType<NonArmResourceAnnotation>()).ToArray(),
+                preserveOverrides: true, cancellationToken).ConfigureAwait(false);
             await PublishAzureEnvironmentStateAsync(model, KnownResourceStates.NotStarted, cancellationToken).ConfigureAwait(false);
         }
         catch (RequestFailedException)
@@ -1901,7 +1904,43 @@ internal sealed class AzureProvisioningController(
             _logger.LogInformation("Azure resource group {ResourceGroup} was deleted or was already absent.", resourceGroupName);
         }
 
-        return null;
+        return new DeleteAzureResourcesResult(remainingResources);
+    }
+
+    private async Task<IReadOnlyList<RemainingNonArmResource>> GetRemainingNonArmResourcesAsync(
+        IReadOnlyList<(IResource Resource, IAzureResource AzureResource)> resources, CancellationToken cancellationToken)
+    {
+        var remainingResources = new List<RemainingNonArmResource>();
+        var azureContext = await GetCurrentAzureContextAsync(cancellationToken).ConfigureAwait(false);
+        foreach (var (resource, azureResource) in resources)
+        {
+            if (azureResource is not AzureBicepResource bicepResource ||
+                !bicepResource.TryGetLastAnnotation<NonArmResourceAnnotation>(out var annotation))
+            {
+                continue;
+            }
+
+            var section = await deploymentStateManager.AcquireSectionAsync($"Azure:Deployments:{bicepResource.Name}", cancellationToken).ConfigureAwait(false);
+            // Outputs are persisted as an ARM-shaped JSON string:
+            // {"objectId":{"type":"String","value":"<guid>"},"servicePrincipalId":{"value":"<guid>"}}
+            // Only identification outputs named by the annotation are reported, not arbitrary/secret outputs.
+            var outputs = ParseDeploymentStateJson(resource.Name, "Outputs", section.Data["Outputs"]?.GetValue<string>());
+            string? GetOutput(string name) => bicepResource.Outputs.TryGetValue(name, out var value) && value is not null
+                ? value.ToString()
+                : outputs?[name]?["value"]?.GetValue<string>();
+
+            var tenantId = GetOutput("tenantId") ?? azureContext.TenantId;
+            foreach (var (resourceType, outputName) in annotation.ResourceIdOutputs)
+            {
+                remainingResources.Add(new RemainingNonArmResource(resource.Name, resourceType, GetOutput(outputName), tenantId));
+            }
+            if (annotation.ResourceIdOutputs.Count == 0)
+            {
+                remainingResources.Add(new RemainingNonArmResource(resource.Name, resource.GetType().Name, null, tenantId));
+            }
+        }
+
+        return remainingResources;
     }
 
     private async Task<string?> DeleteCurrentResourceGroupIfExistsAsync(CancellationToken cancellationToken)
@@ -2234,7 +2273,7 @@ internal sealed class AzureProvisioningController(
 
         foreach (var resource in GetProvisionableAzureResources(model))
         {
-            if (resource.AzureResource is AzureBicepResource { SupportsAzureResourceManagement: false } ||
+            if (resource.AzureResource.HasAnnotationOfType<NonArmResourceAnnotation>() ||
                 !ShouldCheckForDrift(resource.Resource) ||
                 await TryGetResourceIdFromDeploymentStateAsync((AzureBicepResource)resource.AzureResource, cancellationToken).ConfigureAwait(false) is not { } resourceId)
             {
@@ -2446,12 +2485,12 @@ internal sealed class AzureProvisioningController(
         }
     }
 
-    private static async Task<ExecuteCommandResult> ExecuteCommandAsync<T>(Func<Task<T>> action, string successMessage, Func<T, Task<CommandResultData>> createResultData, string? failureOperation = null)
+    private static async Task<ExecuteCommandResult> ExecuteCommandAsync<T>(Func<Task<T>> action, Func<T, string> successMessage, Func<T, Task<CommandResultData>> createResultData, string? failureOperation = null)
     {
         try
         {
             var result = await action().ConfigureAwait(false);
-            return CommandResults.Success(successMessage, await createResultData(result).ConfigureAwait(false));
+            return CommandResults.Success(successMessage(result), await createResultData(result).ConfigureAwait(false));
         }
         catch (OperationCanceledException)
         {
@@ -2500,6 +2539,26 @@ internal sealed class AzureProvisioningController(
 
     private async Task<CommandResultData> CreateResourceCommandResultDataAsync(string commandName, DistributedApplicationModel model, string resourceName, CancellationToken cancellationToken)
         => CreateJsonResultData(await CreateResourceCommandResultJsonAsync(commandName, model, resourceName, cancellationToken).ConfigureAwait(false));
+
+    private async Task<CommandResultData> CreateDeleteAzureResourcesCommandResultDataAsync(
+        DistributedApplicationModel model, DeleteAzureResourcesResult result, CancellationToken cancellationToken)
+    {
+        var json = await CreateCommandResultJsonAsync(DeleteAzureResourcesCommandName, resourceName: null, cancellationToken).ConfigureAwait(false);
+        json["resourceCount"] = GetProvisionableAzureResources(model).Count;
+        if (result.RemainingResources.Count > 0)
+        {
+            json["remainingResources"] = new JsonArray([.. result.RemainingResources.Select(resource => (JsonNode)new JsonObject
+            {
+                ["resourceName"] = resource.ResourceName,
+                ["resourceType"] = resource.ResourceType,
+                ["objectId"] = resource.ObjectId,
+                ["tenantId"] = resource.TenantId
+            })]);
+            json["warning"] = AzureProvisioningStrings.DeleteAzureResourcesRemainingResourcesWarning;
+        }
+
+        return CreateJsonResultData(json, displayImmediately: result.RemainingResources.Count > 0);
+    }
 
     private async Task<CommandResultData> CreateDeleteAzureResourceCommandResultDataAsync(DistributedApplicationModel model, string resourceName, DeleteAzureResourceResult result, CancellationToken cancellationToken)
     {
@@ -3599,7 +3658,7 @@ internal sealed class AzureProvisioningController(
 
     private async Task<bool> IsMissingCachedResourceAsync(AzureBicepResource resource, CancellationToken cancellationToken)
     {
-        if (!resource.SupportsAzureResourceManagement)
+        if (resource.HasAnnotationOfType<NonArmResourceAnnotation>())
         {
             return false;
         }
@@ -4386,6 +4445,10 @@ internal sealed class AzureProvisioningController(
     private sealed record AzureControllerStatus(AzureIntent? CurrentIntent, ActiveAzureOperation? ActiveOperation);
 
     private sealed record DeleteAzureResourceResult(IReadOnlyList<string> ResourceIds);
+
+    private sealed record RemainingNonArmResource(string ResourceName, string ResourceType, string? ObjectId, string? TenantId);
+
+    private sealed record DeleteAzureResourcesResult(IReadOnlyList<RemainingNonArmResource> RemainingResources);
 
     internal enum AzureEnvironmentCommand
     {

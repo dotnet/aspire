@@ -18,9 +18,7 @@ module entra_api 'entra-api/entra-api.bicep' = {
   scope: rg
   params: {
     location: location
-    applicationName: 'entra-api'
     principalId: principalId
-    signInAudience: 'AzureADMyOrg'
     tenantResourceSuffix: tenantResourceSuffix
   }
 }
@@ -30,13 +28,8 @@ module entra_web 'entra-web/entra-web.bicep' = {
   scope: rg
   params: {
     location: location
-    applicationName: 'entra-web'
     principalId: principalId
-    signInAudience: 'AzureADMultipleOrgs'
     tenantResourceSuffix: tenantResourceSuffix
-    redirectUris: [
-      'https://localhost:7123/signin-oidc'
-    ]
   }
 }
 

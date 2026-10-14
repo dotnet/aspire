@@ -228,16 +228,9 @@ public static class AzureBicepResourceExtensions
     /// <typeparam name="T">The <see cref="AzureBicepResource"/></typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the input.</param>
-    /// <param name="valueCallback">A callback that supplies a literal, structured JSON value, or resource reference when the parameter is evaluated.</param>
+    /// <param name="valueCallback">The value of the parameter.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/>.</returns>
-    /// <remarks>
-    /// <para>
-    /// The callback is evaluated during publishing or provisioning. Publishing preserves Boolean and integer values,
-    /// arrays, and JSON objects without converting them to strings. Parameter and output references remain deferred,
-    /// and secret parameter references are not resolved into secret values during publishing.
-    /// </para>
-    /// <para>This method is not available in polyglot app hosts.</para>
-    /// </remarks>
+    /// <remarks>This method is not available in polyglot app hosts.</remarks>
     [AspireExportIgnore(Reason = "Func<object?> callbacks are not ATS-compatible.")]
     public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, Func<object?> valueCallback)
         where T : AzureBicepResource

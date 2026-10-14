@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.CompilerServices;
-using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Pipelines;
 using Microsoft.Extensions.DependencyInjection;
@@ -158,6 +157,17 @@ public sealed class AzurePublishingContext(
         var principalId = ParameterLookup[environment.PrincipalId];
         MainInfrastructure.Add(principalId);
 
+        ProvisioningParameter? deploymentPrincipalType = null;
+        if (bicepResourcesToPublish.Any(resource =>
+            resource.Parameters.TryGetValue(AzureBicepResource.KnownParameters.UserPrincipalId, out var userPrincipalId) &&
+            userPrincipalId is null &&
+            resource.Parameters.TryGetValue(AzureBicepResource.KnownParameters.PrincipalType, out var principalType) &&
+            principalType is null))
+        {
+            deploymentPrincipalType = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
+            MainInfrastructure.Add(deploymentPrincipalType);
+        }
+
         var rg = new ResourceGroup("rg")
         {
             Name = resourceGroupParam,
@@ -165,15 +175,10 @@ public sealed class AzurePublishingContext(
         };
 
         var moduleMap = new Dictionary<AzureBicepResource, ModuleImport>();
-        var evaluatedTemplateParameters = new Dictionary<AzureBicepResource, IReadOnlyDictionary<string, object?>>();
 
         foreach (var resource in bicepResourcesToPublish)
         {
             var file = resource.GetBicepTemplateFile(tempDirectory);
-            if (file.EvaluatedParameters is { } evaluatedParameters)
-            {
-                evaluatedTemplateParameters[resource] = evaluatedParameters;
-            }
 
             var moduleDirectory = outputDirectory.CreateSubdirectory(resource.Name);
 
@@ -189,28 +194,6 @@ public sealed class AzurePublishingContext(
             };
 
             moduleMap[resource] = module;
-        }
-
-        // Generated modules may evaluate values to infer parameter types. Reuse those values, then
-        // resolve remaining callbacks so discovery and emission share one evaluation per publication.
-        var moduleParameters = bicepResourcesToPublish.ToDictionary(
-            resource => resource,
-            resource => resource.Parameters.ToDictionary(
-                parameter => parameter.Key,
-                parameter => evaluatedTemplateParameters.TryGetValue(resource, out var evaluatedParameters) &&
-                    evaluatedParameters.TryGetValue(parameter.Key, out var evaluatedValue)
-                    ? evaluatedValue
-                    : parameter.Value is Func<object?> callback ? callback() : parameter.Value));
-
-        ProvisioningParameter? deploymentPrincipalType = null;
-        if (moduleParameters.Values.Any(parameters =>
-            parameters.TryGetValue(AzureBicepResource.KnownParameters.UserPrincipalId, out var userPrincipalId) &&
-            userPrincipalId is null &&
-            parameters.TryGetValue(AzureBicepResource.KnownParameters.PrincipalType, out var principalType) &&
-            principalType is null))
-        {
-            deploymentPrincipalType = new ProvisioningParameter(AzureBicepResource.KnownParameters.PrincipalType, typeof(string));
-            MainInfrastructure.Add(deploymentPrincipalType);
         }
 
         foreach (var resource in bicepResourcesToPublish)
@@ -233,15 +216,15 @@ public sealed class AzurePublishingContext(
             }
 
             // Map parameters for the resource itself
-            foreach (var parameter in moduleParameters[resource])
+            foreach (var parameter in resource.Parameters)
             {
                 await VisitAsync(parameter.Value, MapParameterAsync, cancellationToken).ConfigureAwait(false);
             }
         }
 
         ProvisioningParameter? tenantResourceSuffix = null;
-        if (moduleParameters.Values.Any(parameters =>
-            parameters.TryGetValue(AzureBicepResource.KnownParameters.TenantResourceSuffix, out var suffix) && suffix is null))
+        if (bicepResourcesToPublish.Any(resource =>
+            resource.Parameters.TryGetValue(AzureBicepResource.KnownParameters.TenantResourceSuffix, out var suffix) && suffix is null))
         {
             tenantResourceSuffix = ParameterLookup.Values.FirstOrDefault(parameter =>
                 parameter.BicepIdentifier == AzureBicepResource.KnownParameters.TenantResourceSuffix);
@@ -304,8 +287,7 @@ public sealed class AzurePublishingContext(
             ReferenceExpression { IsConditional: true } re => EvalConditionalExpr(re),
             ReferenceExpression re => EvalExpr(re),
             string s => s,
-            null => "",
-            _ => throw new NotSupportedException($"The parameter value type {value.GetType()} is not supported.")
+            _ => ""
         };
 
         static BicepValue<string> ResolveValue(object val)
@@ -319,17 +301,6 @@ public sealed class AzurePublishingContext(
                 _ => throw new NotSupportedException("Unsupported value type " + val.GetType())
             };
         }
-
-        BicepExpression ResolveModuleParameter(object? value) => value switch
-        {
-            IEnumerable<string> strings => new ArrayExpression([.. strings.Select(s => new StringLiteralExpression(s))]),
-            // Preserve JSON arrays, objects, and scalar types; stringifying them changes the module parameter type.
-            JsonNode node => new FunctionCallExpression(new IdentifierExpression("json"), new StringLiteralExpression(node.ToJsonString())),
-            bool boolean => new BicepValue<bool>(boolean).Compile(),
-            int integer => new BicepValue<int>(integer).Compile(),
-            Guid guid => new StringLiteralExpression(guid.ToString()),
-            _ => ResolveValue(Eval(value)).Compile()
-        };
 
         BicepValue<string> GetScopeExpression(AzureBicepResource resource)
         {
@@ -390,7 +361,7 @@ public sealed class AzurePublishingContext(
             module.Scope = GetScopeExpression(resource);
             module.Parameters.Add("location", locationParam);
 
-            foreach (var parameter in moduleParameters[resource])
+            foreach (var parameter in resource.Parameters)
             {
                 if (parameter.Key == AzureBicepResource.KnownParameters.TenantResourceSuffix && parameter.Value is null)
                 {
@@ -410,14 +381,16 @@ public sealed class AzurePublishingContext(
                 }
                 if (parameter.Key == AzureBicepResource.KnownParameters.PrincipalType &&
                     parameter.Value is null &&
-                    moduleParameters[resource].TryGetValue(AzureBicepResource.KnownParameters.UserPrincipalId, out var userPrincipalId) &&
+                    resource.Parameters.TryGetValue(AzureBicepResource.KnownParameters.UserPrincipalId, out var userPrincipalId) &&
                     userPrincipalId is null)
                 {
                     module.Parameters.Add(parameter.Key, deploymentPrincipalType!);
                     continue;
                 }
 
-                module.Parameters.Add(parameter.Key, new BicepValue<object>(ResolveModuleParameter(parameter.Value)));
+                var value = ResolveValue(Eval(parameter.Value));
+
+                module.Parameters.Add(parameter.Key, value);
             }
 
             await task.SucceedAsync(

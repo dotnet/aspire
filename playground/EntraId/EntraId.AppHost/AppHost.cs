@@ -20,11 +20,11 @@ if (useExistingApplication)
 else
 {
     // Callback ports are fixed below and in EntraId.Web's launch profile; endpoint discovery is not automatic.
-    entraWeb.WithParameter("redirectUris", [
+    entraWeb.WithRedirectUris(
         "https://localhost:7251/signin-oidc",
         "https://localhost:7251/signout-callback-oidc",
         "https://localhost:7252/auth/redirect",
-        "https://localhost:7252/auth/signout-callback"]);
+        "https://localhost:7252/auth/signout-callback");
     entraWeb.WithIdTokenIssuance();
 }
 

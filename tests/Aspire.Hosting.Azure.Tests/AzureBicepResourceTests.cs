@@ -13,33 +13,6 @@ namespace Aspire.Hosting.Azure.Tests;
 public class AzureBicepResourceTests(ITestOutputHelper outputHelper)
 {
     [Fact]
-    public async Task Manifest_GeneratedDeferredParametersAreEvaluatedOnce()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(outputHelper);
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var secret = builder.AddParameter("secret", secret: true);
-        var generated = builder.AddAzureInfrastructure("generated", _ => { });
-        var evaluations = 0;
-        generated.WithParameter("enabled", () =>
-        {
-            evaluations++;
-            return false;
-        });
-        generated.WithParameter("secret", () =>
-        {
-            evaluations++;
-            return secret.Resource;
-        });
-
-        var manifest = await ManifestUtils.GetManifest(generated.Resource, workspace.Path);
-
-        Assert.Equal(2, evaluations);
-        Assert.False(manifest["params"]!["enabled"]!.GetValue<bool>());
-        await Verify(manifest.ToJsonString(), "json")
-            .AppendContentAsFile(await File.ReadAllTextAsync(Path.Combine(workspace.Path, "generated.module.bicep")), "bicep");
-    }
-
-    [Fact]
     public void AddBicepResource()
     {
         using var builder = TestDistributedApplicationBuilder.Create(outputHelper);
@@ -235,73 +208,6 @@ public class AzureBicepResourceTests(ITestOutputHelper outputHelper)
             """;
 
         Assert.Equal(expectedManifest, manifest.ToString());
-    }
-
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task Manifest_PreservesParameterTypes(bool deferred)
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        using var builder = TestDistributedApplicationBuilder.Create(outputHelper);
-        var secret = builder.AddParameter("secret", secret: true);
-        var resource = builder.AddBicepTemplateString("typed", "param location string");
-        var values = new Dictionary<string, object?>
-        {
-            ["enabled"] = true,
-            ["disabled"] = false,
-            ["count"] = 42,
-            ["negative"] = -1,
-            ["booleanString"] = "true",
-            ["numericString"] = "42",
-            ["identifier"] = Guid.Parse("00001111-aaaa-2222-bbbb-3333cccc4444"),
-            ["redirectUris"] = new[] { "https://localhost:7123/signin-oidc", "https://localhost:7252/callback" },
-            ["options"] = new JsonObject { ["enabled"] = true, ["count"] = 2 },
-            ["secret"] = secret.Resource,
-            ["optional"] = null
-        };
-
-        foreach (var (name, value) in values)
-        {
-            if (deferred)
-            {
-                resource.WithParameter(name, () => value);
-            }
-            else
-            {
-                resource.Resource.Parameters[name] = value;
-            }
-        }
-
-        var manifest = await ManifestUtils.GetManifest(resource.Resource, workspace.Path);
-        var parameters = manifest["params"]!;
-        Assert.True(parameters["enabled"]!.GetValue<bool>());
-        Assert.False(parameters["disabled"]!.GetValue<bool>());
-        Assert.Equal(42, parameters["count"]!.GetValue<int>());
-        Assert.Equal(-1, parameters["negative"]!.GetValue<int>());
-        await Verify(manifest.ToJsonString(), "json").UseParameters(deferred);
-    }
-
-    [Fact]
-    public async Task Manifest_IncludesDeferredParameterDependencies()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        using var builder = TestDistributedApplicationBuilder.Create(outputHelper);
-        var secret = builder.AddParameter("secret", secret: true);
-        var source = builder.AddBicepTemplateString("source", "output clientId string = 'fixture-client-id'");
-        var consumer = builder.AddBicepTemplateString("consumer", "param secret string\nparam clientId string")
-            .WithParameter("secret", () => secret.Resource)
-            .WithParameter("clientId", () => source.GetOutput("clientId"));
-        using var app = builder.Build();
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        model.Resources.Clear();
-        model.Resources.Add(consumer.Resource);
-
-        var manifest = await ManifestUtils.GetManifestForModel(model, workspace.Path);
-
-        Assert.NotNull(manifest["resources"]!["secret"]);
-        Assert.NotNull(manifest["resources"]!["source"]);
-        await Verify(manifest.ToJsonString(), "json");
     }
 
     [Fact]
