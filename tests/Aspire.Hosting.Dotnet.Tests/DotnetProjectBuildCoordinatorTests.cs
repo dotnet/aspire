@@ -78,6 +78,86 @@ public class DotnetProjectBuildCoordinatorTests(ITestOutputHelper outputHelper)
     }
 
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task DeclarationOnlyLaunchGroupSelectionDefersExplicitStartProjectBuilds(bool selectGroup, bool declareInConfiguration)
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.ProjectDirectory = workspace.Path, outputHelper);
+        if (selectGroup)
+        {
+            builder.Configuration["LaunchGroup"] = "local";
+        }
+        var apiPath = CreateProject(workspace.Path, "Api", "Api.csproj");
+        var workerPath = CreateProject(workspace.Path, "Worker", "Worker.csproj");
+        var api = builder.AddDotnetProject("api", apiPath, options => options.ExcludeLaunchProfile = true);
+        var worker = builder.AddDotnetProject("worker", workerPath, options => options.ExcludeLaunchProfile = true)
+            .WithExplicitStart();
+        if (declareInConfiguration)
+        {
+            builder.AddLaunchGroups();
+            builder.Configuration["LaunchGroups:0"] = "local";
+        }
+        else
+        {
+            builder.AddLaunchGroups("local");
+        }
+        await using var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken);
+
+        var builds = builder.Resources.OfType<DotnetProjectBuildResource>().ToArray();
+        Assert.Equal(selectGroup ? 2 : 1, builds.Length);
+        var initialBuild = Assert.Single(builds,
+            resource => !resource.HasAnnotationOfType<ExplicitStartupAnnotation>());
+        Assert.Equal(selectGroup
+            ? [NormalizeProjectPath(apiPath)]
+            : new[] { NormalizeProjectPath(apiPath), NormalizeProjectPath(workerPath) }, initialBuild.ProjectPaths);
+        AssertBuildDependency(api.Resource, initialBuild);
+        var workerBuild = Assert.IsType<DotnetProjectBuildResource>(Assert.Single(
+            worker.Resource.Annotations.OfType<WaitAnnotation>(),
+            annotation => annotation.Resource is DotnetProjectBuildResource).Resource);
+        AssertBuildDependency(worker.Resource, workerBuild);
+        Assert.Equal(selectGroup, workerBuild.HasAnnotationOfType<ExplicitStartupAnnotation>());
+        if (selectGroup)
+        {
+            Assert.Equal([NormalizeProjectPath(workerPath)], workerBuild.ProjectPaths);
+            AssertBuildDependency(workerBuild, initialBuild);
+        }
+        else
+        {
+            Assert.Same(initialBuild, workerBuild);
+        }
+    }
+
+    [Fact]
+    public async Task LaunchGroupConfigurationWithoutSupportPreservesFullBuildPlan()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create(
+            options => options.ProjectDirectory = workspace.Path, outputHelper);
+        builder.Configuration["LaunchGroup"] = "local";
+        builder.Configuration["LaunchGroups:0"] = "local";
+        var apiPath = CreateProject(workspace.Path, "Api", "Api.csproj");
+        var workerPath = CreateProject(workspace.Path, "Worker", "Worker.csproj");
+        var api = builder.AddDotnetProject("api", apiPath, options => options.ExcludeLaunchProfile = true);
+        var worker = builder.AddDotnetProject("worker", workerPath, options => options.ExcludeLaunchProfile = true)
+            .WithExplicitStart();
+        await using var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken);
+
+        var build = Assert.Single(builder.Resources.OfType<DotnetProjectBuildResource>());
+        Assert.Equal([NormalizeProjectPath(apiPath), NormalizeProjectPath(workerPath)], build.ProjectPaths);
+        Assert.False(build.HasAnnotationOfType<ExplicitStartupAnnotation>());
+        AssertBuildDependency(api.Resource, build);
+        AssertBuildDependency(worker.Resource, build);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task LaunchGroupsSerializeDeferredBuildsAndCanceledQueuedAttempts(bool cancelQueuedAttempt)
@@ -133,9 +213,11 @@ public class DotnetProjectBuildCoordinatorTests(ITestOutputHelper outputHelper)
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task LaunchGroupsSerializeRebuildersWithOtherProjectBuilds(bool rebuilderStartsFirst)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task LaunchGroupsSerializeRebuildersWithOtherProjectBuilds(bool rebuilderStartsFirst, bool declarationOnly)
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         using var builder = TestDistributedApplicationBuilder.Create(
@@ -143,9 +225,19 @@ public class DotnetProjectBuildCoordinatorTests(ITestOutputHelper outputHelper)
         builder.AddLaunchGroups("empty", "workers");
         builder.Configuration["LaunchGroup"] = "empty";
         var first = builder.AddDotnetProject("first", CreateProject(workspace.Path, "First", "First.csproj"),
-            options => options.ExcludeLaunchProfile = true).WithLaunchGroup("workers");
+            options => options.ExcludeLaunchProfile = true);
         var second = builder.AddDotnetProject("second", CreateProject(workspace.Path, "Second", "Second.csproj"),
-            options => options.ExcludeLaunchProfile = true).WithLaunchGroup("workers");
+            options => options.ExcludeLaunchProfile = true);
+        if (declarationOnly)
+        {
+            first.WithExplicitStart();
+            second.WithExplicitStart();
+        }
+        else
+        {
+            first.WithLaunchGroup("workers");
+            second.WithLaunchGroup("workers");
+        }
         await using var app = builder.Build();
         await app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken);
 
@@ -848,10 +940,17 @@ public class DotnetProjectBuildCoordinatorTests(ITestOutputHelper outputHelper)
         AssertBuildDependency(second.Resource, buildResource);
     }
 
-    [Fact]
-    public void PublishModeDoesNotCreateCoordinatedBuildOrSuppressProjectBuild()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PublishModeDoesNotCreateCoordinatedBuildOrSuppressProjectBuild(bool selectLaunchGroup)
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        if (selectLaunchGroup)
+        {
+            builder.AddLaunchGroups("local");
+            builder.Configuration["LaunchGroup"] = "local";
+        }
 
         var project = builder.AddDotnetProject("api", "Api.csproj", options => options.ExcludeLaunchProfile = true);
 

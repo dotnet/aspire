@@ -237,12 +237,19 @@ internal static class DotnetProjectBuildCoordinator
         private bool _materialized;
         private bool _materializationInProgress;
         private bool _disposed;
+        private bool _hasLaunchGroupSupport;
         private TaskCompletionSource _materializationCompletion = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public CoordinatorState(IDistributedApplicationBuilder builder)
         {
             _builder = builder;
             builder.Services.AddSingleton(_ => this);
+            builder.Pipeline.AddPipelineConfiguration(context =>
+            {
+                // Declaration-only groups still register this step; configuration alone does not enable support.
+                _hasLaunchGroupSupport = context.Steps.Any(step => step.Name == "configure-launch-groups");
+                return Task.CompletedTask;
+            });
             builder.Pipeline.WithFinalAction(
                 WellKnownPipelineSteps.BeforeStart,
                 stepContext => stepContext.Services
@@ -479,8 +486,8 @@ internal static class DotnetProjectBuildCoordinator
                 return;
             }
 
-            var partialRun = !string.IsNullOrEmpty(_builder.Configuration["LaunchGroup"]) &&
-                model.Resources.Any(resource => resource.HasAnnotationOfType<LaunchGroupAnnotation>());
+            // The launch-group step validates the selection before this BeforeStart final action.
+            var partialRun = _hasLaunchGroupSupport && !string.IsNullOrEmpty(_builder.Configuration["LaunchGroup"]);
             // Validate duplicate project/output registrations across both initial and deferred batches.
             _ = CreateBuildSteps(buildEntries);
             var deferredEntries = partialRun

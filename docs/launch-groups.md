@@ -64,11 +64,13 @@ resource references, declare them with `WithReferenceRelationship` or a wait
 relationship as well.
 
 Unselected resources remain visible as **Not started**, with their normal lifecycle
-commands. Starting an additional resource from the dashboard or CLI starts its
-not-started/stopped dependencies first, without restarting running dependencies
-or replaying successful completed tasks. It does not select the entire resource's
-group. Intentional `WithExplicitStart` settings remain in effect at initial startup,
-even for group members or dependencies; explicit late starts include their dependencies.
+commands. Starting an additional resource from the dashboard or CLI starts it and
+its not-started/stopped dependencies, without restarting running dependencies or
+replaying successful completed tasks. Starts are scheduled together, with existing
+wait relationships controlling readiness; references alone do not impose startup
+ordering. It does not select the entire resource's group. Intentional `WithExplicitStart`
+settings remain in effect at initial startup, even for group members or dependencies;
+explicit late starts include their dependencies.
 
 `AddDotnetProject` uses Project Resource v2's coordinated build plan. Only initially
 selected projects are included in the startup batch, with their MSBuild project
