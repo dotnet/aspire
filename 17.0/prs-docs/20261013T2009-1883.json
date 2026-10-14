@@ -1,0 +1,9 @@
+{
+  "author": "IEvangelist",
+  "comment": "Internal docs-repo CI automation (release-branch merge conflict handling), not a product documentation change",
+  "mergedAt": "2026-10-13T20:09:31Z",
+  "number": 1883,
+  "runDate": "2026-10-14T00:08:17Z",
+  "status": "excluded",
+  "title": "Open a repair PR when the release sync hits conflicts"
+}
