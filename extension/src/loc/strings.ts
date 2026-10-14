@@ -74,6 +74,7 @@ export const disconnectingFromSession = vscode.l10n.t('Disconnecting from Aspire
 export const processExitedWithCode = (code: number | string) => vscode.l10n.t('Process exited with code {0}.', code);
 export const failedToStartPythonProgram = (errorMessage: string) => vscode.l10n.t('Failed to start Python program: {0}.', errorMessage);
 export const denoInspectorPortAllocationFailed = vscode.l10n.t('Failed to allocate a Deno inspector port.');
+export const azureFunctionsNodeInspectorPortAllocationFailed = vscode.l10n.t('Failed to allocate a Node inspector port.');
 export const denoTaskDebuggingUnsupported = vscode.l10n.t('Deno task launches cannot be debugged automatically because Deno does not accept inspector flags on the task subcommand. Use a direct Deno entrypoint for Aspire debugging, or configure and launch a Deno task that starts with an inspector flag manually.');
 export const csharpSupportNotEnabled = vscode.l10n.t('C# support is not enabled in this workspace. This project should have started through the Aspire CLI.');
 export const failedToStartProject = (errorMessage: string) => vscode.l10n.t('Failed to start project: {0}.', errorMessage);
@@ -113,6 +114,7 @@ export const processExceptionOccurred = (error: string, command: string) => vsco
 export const pidDescription = (pid: number) => vscode.l10n.t('PID: {0}', pid);
 export const dashboardLabel = vscode.l10n.t('Dashboard');
 export const errorFetchingAppHosts = (error: string) => vscode.l10n.t('Error fetching running AppHosts: {0}', error);
+export const errorStoppingAppHostWatcher = (error: string) => vscode.l10n.t('Failed to stop the previous AppHost watcher: {0}', error);
 export const aspireCliCommandFailed = (command: string, exitCode: string, output: string) => vscode.l10n.t('{0} exited with code {1}{2}', command, exitCode, output);
 export const aspireCliCommandTimedOut = (timeoutMs: number) => vscode.l10n.t('timed out after {0}ms', timeoutMs);
 export const aspireCliOutputParseFailed = (command: string, error: string) => vscode.l10n.t('Failed to parse {0} output: {1}', command, error);

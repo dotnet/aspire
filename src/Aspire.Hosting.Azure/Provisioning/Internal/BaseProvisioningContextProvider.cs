@@ -1,5 +1,3 @@
-#pragma warning disable ASPIREPIPELINES002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
@@ -111,6 +109,13 @@ internal abstract partial class BaseProvisioningContextProvider(
             throw new MissingConfigurationException("An azure location/region is required. Set the Azure:Location configuration value.");
         }
 
+        // Principal lookup can require a different audience from ARM. Resolve it before
+        // creating the resource group, while a short-lived federated assertion is usable.
+        // Use the configured principal provider rather than assuming its token scope.
+        var principal = _distributedApplicationExecutionContext.IsPublishMode
+            ? await _azurePrincipalProvider.GetPrincipalAsync(cancellationToken).ConfigureAwait(false)
+            : null;
+
         // Acquire Azure state section for reading/writing configuration
         var azureStateSection = await _deploymentStateManager.AcquireSectionAsync("Azure", cancellationToken).ConfigureAwait(false);
 
@@ -180,7 +185,7 @@ internal abstract partial class BaseProvisioningContextProvider(
             _logger.LogInformation("Resource group {rgName} created.", resourceGroup.Name);
         }
 
-        var principal = await _azurePrincipalProvider.GetPrincipalAsync(cancellationToken).ConfigureAwait(false);
+        principal ??= await _azurePrincipalProvider.GetPrincipalAsync(cancellationToken).ConfigureAwait(false);
 
         await SaveProvisioningOptionsAsync(
             resourceGroupName,

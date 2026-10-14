@@ -34,6 +34,8 @@ aspire <command> [options]
 | `stop` | Stop a running apphost or the specified resource. |
 | `ps` | List running apphosts. |
 
+C# AppHosts created with Aspire 17 or later use package directives instead of the obsolete AppHost SDK. When targeting an earlier Aspire release, the empty template retains its SDK directive so it does not require the newer `Aspire.Hosting.Dotnet` package.
+
 ### Resource Management
 
 | Command | Description |
@@ -71,6 +73,24 @@ aspire <command> [options]
 | `doctor` | Diagnose Aspire environment issues and verify setup. |
 | `docs` | Browse and search Aspire documentation and API reference from aspire.dev. |
 | `agent` | Manage AI agent specific setup. |
+
+### Updating .NET AppHosts
+
+`aspire update` preserves package-only AppHosts: it updates their
+`Aspire.Hosting.AppHost` reference without adding `Aspire.AppHost.Sdk`.
+SDK-based AppHosts remain supported, including C#, F#, and Visual Basic project
+files and C# file-based AppHosts with an SDK directive.
+
+For non-central package references declared in imported build files, the updater
+changes the original declaration rather than adding a duplicate to the AppHost.
+Imported SDK versions are updated in place when evaluation identifies one
+declaring file, including older SDKs without the SDK-use marker. Inactive SDK
+imports in shared build files do not turn package-only AppHosts into SDK projects.
+Ambiguous imported declarations require an explicit SDK version
+update instead of guessing which shared file to change.
+Automatic SDK rewrites are limited to unconditional declarations. Conditional
+SDK declarations that cannot be safely classified require an explicit version
+edit; source fallback does not guess whether their MSBuild conditions are active.
 
 ## Examples
 

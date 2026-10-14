@@ -21,6 +21,13 @@ exposes the same session as `aspire terminal agent --replica 0`.
 All terminal APIs share the experimental diagnostic `ASPIRETERMINAL001`,
 including `WithTerminal()`, AppHost-owned terminals, and terminal interactions.
 
+Per-replica terminal host resources are hidden by default. Use **Show hidden
+resources** in the dashboard to inspect their state and console logs. They
+export diagnostic logs, metrics, and traces to the configured dashboard OTLP
+endpoint independently of their visibility.
+When `DistributedApplicationOptions.DisableDashboard` is `true`, terminal host
+telemetry is disabled, even if an explicit OTLP collector endpoint is configured.
+
 ## AppHost-owned terminals
 
 For processes that the AppHost launches directly rather than as resources, use
@@ -419,6 +426,11 @@ When no terminal resources remain, the navigation entry disappears and page
 visits redirect to `/`. Terminals are unavailable without the resource service
 or when viewing a historical, read-only run.
 
+Press <kbd>E</kbd>, without modifiers, to open the Terminals page. The shortcut
+is active and listed under **Page navigation** in shortcut help only while the
+Terminals navigation entry is available. Like other page navigation shortcuts,
+it is suppressed while a terminal or text input has focus.
+
 Console logs always displays the standard log stream, including pre-PTY hosting
 messages and post-PTY exit output. Its options menu no longer switches views.
 Navigating away from Terminals disposes the inline consumer, not the producer;
@@ -679,10 +691,44 @@ demo from the attached shell avoids losing its initial capability queries. Press
 | DCP wire-up                          | `src/Aspire.Hosting/Dcp/ExecutableCreator.cs`                       |
 | Backchannel `GetTerminalInfoAsync`   | `src/Aspire.Hosting/Backchannel/AuxiliaryBackchannelRpcTarget.cs`   |
 | Snapshot stamping                    | `src/Aspire.Hosting/Dashboard/DashboardServiceData.cs`              |
-| TerminalHost process                 | `src/Aspire.TerminalHost/`                                          |
+| TerminalHost process                 | `src/Aspire.TerminalHost/` (standalone Native AOT executable in CLI bundles) |
 | CLI command                          | `src/Aspire.Cli/Commands/TerminalCommand.cs`                        |
 | Dashboard WebSocket proxy            | `src/Aspire.Dashboard/Terminal/TerminalWebSocketProxy.cs`           |
 | Dashboard resolver                   | `src/Aspire.Dashboard/Terminal/DefaultTerminalConnectionResolver.cs`|
 | `TerminalView` (Hex1b web host)      | `src/Aspire.Dashboard/Components/Controls/TerminalView.razor.*`     |
 | Property keys                        | `src/Shared/Model/KnownProperties.cs` (`Terminal.*`)                |
 | Playground sample                    | `playground/Terminals/Terminals.AppHost/AppHost.cs`                 |
+
+### Repository development
+
+Ordinary builds remain framework-dependent: `PublishAot` applies to publishing, not
+the inner-loop build. After `./restore.sh`, rebuild just the relay with:
+
+```sh
+./dotnet.sh build src/Aspire.TerminalHost/Aspire.TerminalHost.csproj -c Debug
+```
+
+Repository CLI launches with `ASPIRE_REPO_ROOT` set select
+`artifacts/bin/Aspire.TerminalHost/Debug/net11.0/Aspire.TerminalHost[.exe]`
+and no dispatcher arguments. Run `playground/Terminals/Terminals.AppHost` to
+exercise resource terminals in the dashboard. For a custom configuration, supply
+`ASPIRE_TERMINAL_HOST_PATH` and an empty `ASPIRE_TERMINAL_HOST_INVOCATION_ARGS`
+explicitly. The local executable uses its own runtime configuration; no native
+publish or bundle rebuild is needed.
+
+Native publishing and bundle assembly include the executable and all RID-specific
+Hex1b dependencies under `terminalhost/`. The compatibility command
+`aspire-managed terminalhost` only forwards to this sibling executable.
+Windows bundles also retain `conpty.dll` and the architecture-specific
+`OpenConsole.exe` files under `managed/`. Existing Hosting versions discover
+DCP's ConPTY provider beside the configured terminal executable, which remains
+the managed shim for compatibility launches. These copies preserve the bundled
+OpenConsole provider and Kitty graphics support without embedding the terminal
+implementation in the managed executable.
+Native archive builds use Release configuration, which enables the SDK's default
+optimizations for the CLI, TerminalHost, Dashboard, and their dependencies.
+Native AOT cannot later JIT-optimize the relay or dashboard terminal mirror, so
+both stages need sufficient throughput to prevent a slow dashboard consumer from
+exhausting the relay's bounded output queue and being disconnected. Ordinary
+managed Debug builds remain unoptimized. TerminalHost uses the console runtime's
+default workstation GC; Dashboard retains its Web SDK GC configuration.
