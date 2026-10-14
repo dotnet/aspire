@@ -69,8 +69,8 @@ internal sealed class AgentInitCommand : BaseCommand
         Description = AgentCommandStrings.InitCommand_WorkspaceRootOptionDescription
     };
 
-    internal static readonly Option<AgentConfirmation?> s_playwrightOption = CreateAssetOption("--playwright", AgentCommandStrings.InitCommand_PlaywrightOptionDescription);
-    internal static readonly Option<AgentConfirmation?> s_dotnetInspectOption = CreateAssetOption("--dotnet-inspect", AgentCommandStrings.InitCommand_DotnetInspectOptionDescription);
+    internal static readonly Option<AgentConfirmation?> s_playwrightOption = CreateConfirmationOption("--playwright", AgentCommandStrings.InitCommand_PlaywrightOptionDescription);
+    internal static readonly Option<AgentConfirmation?> s_dotnetInspectOption = CreateConfirmationOption("--dotnet-inspect", AgentCommandStrings.InitCommand_DotnetInspectOptionDescription);
     internal static readonly Option<AspireSkillsMode> s_aspireSkillsOption = CreateAspireSkillsOption();
 
     /// <summary>
@@ -80,9 +80,9 @@ internal sealed class AgentInitCommand : BaseCommand
     /// those chained flows by construction. Omitting the option defaults to "no"; passing
     /// <c>--mcp</c> opts in, and <c>--mcp=false</c> is an explicit opt-out.
     /// </summary>
-    internal static readonly Option<AgentConfirmation?> s_mcpOption = CreateAssetOption("--mcp", AgentCommandStrings.InitCommand_McpOptionDescription);
+    internal static readonly Option<AgentConfirmation?> s_mcpOption = CreateConfirmationOption("--mcp", AgentCommandStrings.InitCommand_McpOptionDescription);
 
-    private static Option<AgentConfirmation?> CreateAssetOption(string name, string description)
+    private static Option<AgentConfirmation?> CreateConfirmationOption(string name, string description)
     {
         // System.CommandLine treats bool options as flags before invoking CustomParser,
         // leaving the required "--mcp n" / "--playwright y" arguments unmatched.
@@ -113,15 +113,15 @@ internal sealed class AgentInitCommand : BaseCommand
             }
         };
         option.CompletionSources.Clear();
-        option.CompletionSources.Add(static _ =>
-            [new CompletionItem("y"), new CompletionItem("n"), new CompletionItem("true"), new CompletionItem("false")]);
+        option.CompletionSources.Add("y", "n", "true", "false");
+
         return option;
     }
 
-    internal static PromptBinding<bool> CreateAssetBinding(ParseResult parseResult, Option<AgentConfirmation?> option, bool defaultValue)
+    internal static PromptBinding<bool> CreateConfirmationBinding(ParseResult parseResult, Option<AgentConfirmation?> option)
         => new(parseResult, $"'{option.Name}'",
             result => (result.GetResult(option) is { Implicit: false }, result.GetValue(option) is AgentConfirmation.Yes),
-            defaultValue, hasExplicitDefault: true);
+            defaultValue: false, hasExplicitDefault: true);
 
     private static Option<AspireSkillsMode> CreateAspireSkillsOption()
     {
@@ -129,9 +129,9 @@ internal sealed class AgentInitCommand : BaseCommand
         {
             Description = AgentCommandStrings.InitCommand_AspireSkillsOptionDescription,
             Recursive = true,
-            Arity = ArgumentArity.ExactlyOne,
             CustomParser = result =>
             {
+                // Enum conversion also accepts "0" and "native,bundled"; only a named source is valid here.
                 var value = result.Tokens.SingleOrDefault()?.Value;
                 if (value is not null && Enum.GetNames<AspireSkillsMode>().Contains(value, StringComparer.OrdinalIgnoreCase))
                 {
@@ -142,8 +142,8 @@ internal sealed class AgentInitCommand : BaseCommand
             }
         };
         option.CompletionSources.Clear();
-        option.CompletionSources.Add(static _ =>
-            [new CompletionItem("bundled"), new CompletionItem("native"), new CompletionItem("none")]);
+        option.CompletionSources.Add("bundled", "native", "none");
+
         return option;
     }
 
@@ -266,11 +266,11 @@ internal sealed class AgentInitCommand : BaseCommand
         var result = await ExecuteAgentInitAsync(
             workspaceRoot,
             PromptBinding.Create(parseResult, s_agentsOption),
-            CreateAssetBinding(parseResult, s_playwrightOption, defaultValue: false),
-            CreateAssetBinding(parseResult, s_dotnetInspectOption, defaultValue: false),
+            CreateConfirmationBinding(parseResult, s_playwrightOption),
+            CreateConfirmationBinding(parseResult, s_dotnetInspectOption),
             PromptBinding.Create(parseResult, s_aspireSkillsOption, AspireSkillsMode.Bundled),
             PromptBinding.Create(parseResult, s_scopeOption, AgentConfigurationScope.Project),
-            CreateAssetBinding(parseResult, s_mcpOption, defaultValue: false),
+            CreateConfirmationBinding(parseResult, s_mcpOption),
             cancellationToken);
         return CommandResult.FromExitCode(result.ExitCode);
     }

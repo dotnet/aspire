@@ -185,8 +185,8 @@ internal sealed class InitCommand : BaseCommand
             workspaceRoot,
             agentInitBinding,
             PromptBinding.Create(parseResult, AgentInitCommand.s_agentsOption),
-            AgentInitCommand.CreateAssetBinding(parseResult, AgentInitCommand.s_playwrightOption, defaultValue: false),
-            AgentInitCommand.CreateAssetBinding(parseResult, AgentInitCommand.s_dotnetInspectOption, defaultValue: false),
+            AgentInitCommand.CreateConfirmationBinding(parseResult, AgentInitCommand.s_playwrightOption),
+            AgentInitCommand.CreateConfirmationBinding(parseResult, AgentInitCommand.s_dotnetInspectOption),
             PromptBinding.Create(parseResult, AgentInitCommand.s_aspireSkillsOption, AspireSkillsMode.Bundled),
             PromptBinding.Create(parseResult, AgentInitCommand.s_scopeOption, AgentConfigurationScope.Project),
             cancellationToken);
