@@ -133,7 +133,7 @@ internal static class AgentConfigurationJson
         }
 
         public async Task<JsonObject?> ReadOptionalAsync(string path, CancellationToken cancellationToken)
-            => (await ReadAsync(path, cancellationToken)).Root?.DeepClone().AsObject();
+            => (await ReadAsync(path, cancellationToken)).Root;
 
         public async Task ValidateAsync(CancellationToken cancellationToken)
         {

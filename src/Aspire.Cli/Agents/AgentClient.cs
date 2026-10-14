@@ -84,7 +84,7 @@ internal sealed class AgentClient
         Environments = AgentEnvironment.OpenCode,
         ProjectPluginDirectory = string.Empty,
         GlobalPluginDirectory = static (context, environment) =>
-            Path.Combine(AgentPath.GetOverride("XDG_CONFIG_HOME", context, environment) ??
+            Path.Combine(OpenCodePaths.GetOverride("XDG_CONFIG_HOME", context, environment) ??
                 Path.Combine(context.HomeDirectory.FullName, ".config"), "opencode"),
         // https://opencode.ai/docs/config/#managed-settings
         ManagedPluginDirectory = static (context, environment) => environment.IsWindows()
@@ -136,6 +136,22 @@ internal sealed class AgentClient
     public IReadOnlyList<string> ProjectMcpRepairFiles { get; init; } = [];
 
     public bool Includes(AgentEnvironment environments) => (Environments & environments) != AgentEnvironment.None;
+
+    public string GetPluginConfigPath(AgentConfigurationScope scope, DirectoryInfo workspaceRoot, CliExecutionContext executionContext, IEnvironment environment)
+    {
+        if (UsesSkillsCatalog)
+        {
+            return scope is AgentConfigurationScope.Project
+                ? OpenCodePaths.GetProjectConfigPath(workspaceRoot)
+                : GlobalMcpConfigPath(executionContext, environment);
+        }
+
+        var directory = scope is AgentConfigurationScope.Project
+            ? Path.Combine(workspaceRoot.FullName, ProjectPluginDirectory)
+            : GlobalPluginDirectory(executionContext, environment);
+
+        return Path.Combine(directory, "settings.json");
+    }
 
     public string GetSkillBaseDirectory(AgentConfigurationScope scope, DirectoryInfo workspaceRoot, CliExecutionContext executionContext, IEnvironment environment)
     {

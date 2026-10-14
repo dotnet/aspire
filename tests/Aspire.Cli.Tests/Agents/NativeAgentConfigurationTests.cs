@@ -17,7 +17,8 @@ public class NativeAgentConfigurationTests(ITestOutputHelper output) : IDisposab
         AgentClient[] clients = [_context.Copilot];
 
         var projectResults = await _context.ConfigureNativeAsync(_context.Request(AgentConfigurationScope.Project, clients)).DefaultTimeout();
-        Assert.Equal(AgentConfigurationScope.Project, Assert.Single(projectResults).Scope);
+        Assert.Equal(Path.Combine(_context.Project.FullName, ".github", "copilot", "settings.json"),
+            Assert.Single(projectResults).TargetPath);
         Assert.Empty(_context.Home.EnumerateFileSystemInfos());
         var userResults = await _context.ConfigureNativeAsync(_context.Request(AgentConfigurationScope.Global, clients)).DefaultTimeout();
         var results = projectResults.Concat(userResults).ToArray();
@@ -28,7 +29,7 @@ public class NativeAgentConfigurationTests(ITestOutputHelper output) : IDisposab
             Assert.Equal(AgentConfigurationStatus.Configured, result.Status);
             Assert.Equal(clients, result.Environments);
         });
-        Assert.Equal([AgentConfigurationScope.Project, AgentConfigurationScope.Global], results.Select(result => result.Scope));
+        Assert.Equal(Path.Combine(_context.CopilotDirectory, "settings.json"), Assert.Single(userResults).TargetPath);
         var project = await File.ReadAllTextAsync(Path.Combine(_context.Project.FullName, ".github", "copilot", "settings.json")).DefaultTimeout();
         var user = await File.ReadAllTextAsync(Path.Combine(_context.CopilotDirectory, "settings.json")).DefaultTimeout();
         Assert.Equal(project, user);
@@ -61,7 +62,7 @@ public class NativeAgentConfigurationTests(ITestOutputHelper output) : IDisposab
 
         var results = await _context.ConfigureNativeAsync(_context.Request(AgentConfigurationScope.Global, [_context.ClaudeCode])).DefaultTimeout();
 
-        Assert.Equal(AgentConfigurationStatus.Unchanged, results.Single(result => result.Scope is AgentConfigurationScope.Global).Status);
+        Assert.Equal(AgentConfigurationStatus.Unchanged, Assert.Single(results).Status);
         Assert.Equal(existing, await File.ReadAllTextAsync(userPath).DefaultTimeout());
         Assert.Equal(timestamp, File.GetLastWriteTimeUtc(userPath));
         await _context.ConfigureNativeAsync(_context.Request(AgentConfigurationScope.Project, [_context.ClaudeCode])).DefaultTimeout();
@@ -121,36 +122,28 @@ public class NativeAgentConfigurationTests(ITestOutputHelper output) : IDisposab
     }
 
     [Fact]
-    public async Task Claude_RespectsLocalDisableAndManagedMarketplacePolicy()
+    public async Task Claude_RespectsLocalDisableEvenWithManagedMarketplacePolicy()
     {
         var local = Path.Combine(_context.Project.FullName, ".claude", "settings.local.json");
         const string disabled = """{"enabledPlugins":{"aspire@aspire-skills":false}}""";
         await AgentConfigurationTestContext.WriteAsync(local, disabled).DefaultTimeout();
+        var managed = Path.Combine(_context.ClaudeManagedDirectory, "managed-settings.json");
+        const string policy = """{"strictKnownMarketplaces":[]}""";
+        await AgentConfigurationTestContext.WriteAsync(managed, policy).DefaultTimeout();
         var request = _context.Request(AgentConfigurationScope.Project, [_context.ClaudeCode]);
         var disabledResults = await _context.ConfigureNativeAsync(request).DefaultTimeout();
         Assert.All(disabledResults, result => Assert.Equal(AgentConfigurationStatus.Skipped, result.Status));
         Assert.Equal(disabled, await File.ReadAllTextAsync(local).DefaultTimeout());
-        File.Delete(local);
-
-        var managed = Path.Combine(_context.ClaudeManagedDirectory, "managed-settings.json");
-        const string policy = """{"strictKnownMarketplaces":[]}""";
-        await AgentConfigurationTestContext.WriteAsync(managed, policy).DefaultTimeout();
-
-        var blocked = await _context.ConfigureNativeAsync(request).DefaultTimeout();
-
-        Assert.All(blocked, result => Assert.Equal(AgentConfigurationStatus.Blocked, result.Status));
         Assert.Equal(policy, await File.ReadAllTextAsync(managed).DefaultTimeout());
-        Assert.False(File.Exists(Path.Combine(_context.ClaudeDirectory, "settings.json")));
+        Assert.False(File.Exists(Path.Combine(_context.Project.FullName, ".claude", "settings.json")));
     }
 
     [Theory]
-    [InlineData("""{"source":"github","repo":"microsoft/aspire-skills","ref":"approved-release"}""")]
-    [InlineData("""{"source":"github","repo":"microsoft/aspire-skills","path":"approved-marketplace"}""")]
-    [InlineData("""{"source":"git","url":"https://github.com/microsoft/aspire-skills.git"}""")]
-    public async Task Claude_StrictMarketplacePolicyBlocksNonmatchingDefaultWithoutWriting(string allowedSource)
+    [InlineData("""{"strictKnownMarketplaces":[{"source":"github","repo":"microsoft/aspire-skills"}]}""")]
+    [InlineData("""{"blockedMarketplaces":[]}""")]
+    public async Task Claude_LeavesMarketplacePolicyEnforcementToTheClient(string policy)
     {
         var managed = Path.Combine(_context.ClaudeManagedDirectory, "managed-settings.json");
-        var policy = $$"""{"strictKnownMarketplaces":[{{allowedSource}}]}""";
         await AgentConfigurationTestContext.WriteAsync(managed, policy);
         var target = Path.Combine(_context.Project.FullName, ".claude", "settings.json");
         const string existing = """{"model":"preserved"}""";
@@ -167,37 +160,13 @@ public class NativeAgentConfigurationTests(ITestOutputHelper output) : IDisposab
     }
 
     [Theory]
-    [InlineData("""{"source":"github","repo":"microsoft/aspire-skills","ref":"approved-release"}""")]
-    [InlineData("""{"source":"git","url":"https://github.com/microsoft/aspire-skills.git","ref":"approved-release","path":"marketplace"}""")]
-    public async Task Claude_StrictMarketplacePolicyAllowsThePreservedSource(string source)
-    {
-        var managed = Path.Combine(_context.ClaudeManagedDirectory, "managed-settings.json");
-        var policy = $$"""{"strictKnownMarketplaces":[{{source}}]}""";
-        await AgentConfigurationTestContext.WriteAsync(managed, policy);
-        var user = Path.Combine(_context.ClaudeDirectory, "settings.json");
-        var existing = $$"""{"extraKnownMarketplaces":{"aspire-skills":{"source": {{source}}, "autoUpdate":false} } }""";
-        await AgentConfigurationTestContext.WriteAsync(user, existing);
-
-        var results = await _context.ConfigureNativeAsync(_context.Request(AgentConfigurationScope.Project, [_context.ClaudeCode]));
-
-        Assert.Equal(AgentConfigurationStatus.Configured, Assert.Single(results).Status);
-        var settings = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(_context.Project.FullName, ".claude", "settings.json")))!;
-        Assert.True(JsonNode.DeepEquals(JsonNode.Parse(source), settings["extraKnownMarketplaces"]!["aspire-skills"]!["source"]));
-        Assert.True(settings["enabledPlugins"]!["aspire@aspire-skills"]!.GetValue<bool>());
-        Assert.Equal(existing, await File.ReadAllTextAsync(user));
-        Assert.Equal(policy, await File.ReadAllTextAsync(managed));
-    }
-
-    [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task Claude_StrictMarketplacePolicyChecksTheDestinationSourceRatherThanAnInheritedPin(bool pinnedDestination)
+    public async Task Claude_PreservesTheDestinationSourceRatherThanAnInheritedPin(bool pinnedDestination)
     {
         var source = pinnedDestination
             ? """{"source":"github","repo":"microsoft/aspire-skills","ref":"approved-release"}"""
             : """{"source":"github","repo":"microsoft/aspire-skills"}""";
-        await AgentConfigurationTestContext.WriteAsync(Path.Combine(_context.ClaudeManagedDirectory, "managed-settings.json"),
-            $$"""{"strictKnownMarketplaces":[{{source}}]}""");
         var user = Path.Combine(_context.ClaudeDirectory, "settings.json");
         const string inherited = """{"extraKnownMarketplaces":{"aspire-skills":{"source":{"source":"github","repo":"microsoft/aspire-skills","ref":"other-release"}}}}""";
         await AgentConfigurationTestContext.WriteAsync(user, inherited);
@@ -214,36 +183,22 @@ public class NativeAgentConfigurationTests(ITestOutputHelper output) : IDisposab
     }
 
     [Theory]
-    [InlineData("""{"source":"github","repo":"microsoft/aspire-skills"}""", "Blocked")]
-    [InlineData("""{"source":"git","url":"https://github.com/microsoft/aspire-skills.git"}""", "Blocked")]
-    [InlineData("""{"source":"github","repo":"microsoft/aspire-skills","ref":"blocked-release"}""", "Configured")]
-    [InlineData("""{"source":"github","repo":"microsoft/aspire-skills","path":"blocked-marketplace"}""", "Configured")]
-    public async Task Claude_BlockedMarketplacePolicyUsesOptionalRefAndPathRestrictions(string blockedSource, string expectedStatus)
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Claude_ManagedMarketplacePolicyPreventsCreatingConfiguration(bool fragment)
     {
-        var managed = Path.Combine(_context.ClaudeManagedDirectory, "managed-settings.json");
-        var policy = $$"""{"blockedMarketplaces":[{{blockedSource}}]}""";
+        var managed = fragment
+            ? Path.Combine(_context.ClaudeManagedDirectory, "managed-settings.d", "team.json")
+            : Path.Combine(_context.ClaudeManagedDirectory, "managed-settings.json");
+        const string policy = """{"blockedMarketplaces":[]}""";
         await AgentConfigurationTestContext.WriteAsync(managed, policy);
-        var target = Path.Combine(_context.Project.FullName, ".claude", "settings.json");
-        const string existing = """{"model":"preserved"}""";
-        await AgentConfigurationTestContext.WriteAsync(target, existing);
 
         var results = await _context.ConfigureNativeAsync(_context.Request(AgentConfigurationScope.Project, [_context.ClaudeCode]));
 
-        var status = Enum.Parse<AgentConfigurationStatus>(expectedStatus);
-        Assert.Equal(status, Assert.Single(results).Status);
+        Assert.Equal(AgentConfigurationStatus.Blocked, Assert.Single(results).Status);
         Assert.Equal(policy, await File.ReadAllTextAsync(managed));
-        if (status is AgentConfigurationStatus.Blocked)
-        {
-            Assert.Equal(existing, await File.ReadAllTextAsync(target));
-        }
-        else
-        {
-            var settings = JsonNode.Parse(await File.ReadAllTextAsync(target))!;
-            Assert.True(JsonNode.DeepEquals(JsonNode.Parse("""{"source":"github","repo":"microsoft/aspire-skills"}"""),
-                settings["extraKnownMarketplaces"]!["aspire-skills"]!["source"]));
-            Assert.True(settings["enabledPlugins"]!["aspire@aspire-skills"]!.GetValue<bool>());
-            Assert.Equal("preserved", settings["model"]!.GetValue<string>());
-        }
+        Assert.Empty(_context.Project.EnumerateFileSystemInfos());
+        Assert.Empty(_context.Home.EnumerateFileSystemInfos());
     }
 
     [Fact]
@@ -273,7 +228,9 @@ public class NativeAgentConfigurationTests(ITestOutputHelper output) : IDisposab
         var repeated = await _context.ConfigureNativeAsync(request).DefaultTimeout();
 
         Assert.Equal(AgentConfigurationStatus.Configured, Assert.Single(results).Status);
-        Assert.Equal(AgentConfigurationScope.Global, results[0].Scope);
+        Assert.Equal(Path.Combine(_context.Project.FullName, ".github", "copilot", "settings.json"), results[0].TargetPath);
+        Assert.Equal([results[0].TargetPath], Directory.EnumerateFiles(_context.Project.FullName, "*", SearchOption.AllDirectories));
+        Assert.Empty(_context.Home.EnumerateFileSystemInfos());
         Assert.Equal(AgentConfigurationStatus.Unchanged, Assert.Single(repeated).Status);
     }
 

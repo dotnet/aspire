@@ -34,21 +34,13 @@ public class AgentPathTests(ITestOutputHelper output) : IDisposable
         Assert.Empty(_context.Home.EnumerateFileSystemInfos());
     }
 
-    [Theory]
-    [InlineData("COPILOT_HOME")]
-    [InlineData("OPENCODE_CONFIG_DIR")]
-    [InlineData("XDG_CONFIG_HOME")]
-    [InlineData("VSCODE_APPDATA")]
-    public void Overrides_UseTheSameHomeExpansion(string variable)
+    [Fact]
+    public void CopilotDirectory_ExpandsHomeOverride()
     {
-        _context.SetVariable(variable, @"~\custom-config");
+        _context.SetVariable("COPILOT_HOME", @"~\custom-config");
         var expected = Path.Combine(_context.Home.FullName, "custom-config");
 
-        Assert.Equal(expected, AgentPath.GetOverride(variable, _context.ExecutionContext, _context.Environment));
-        if (variable == "COPILOT_HOME")
-        {
-            Assert.Equal(expected, _context.CopilotDirectory);
-        }
+        Assert.Equal(expected, _context.CopilotDirectory);
     }
 
     [Fact]
@@ -71,7 +63,6 @@ public class AgentPathTests(ITestOutputHelper output) : IDisposable
 
         var target = Assert.Single(result);
         Assert.Equal(AgentConfigurationStatus.Configured, target.Status);
-        Assert.Equal(AgentConfigurationScope.Project, target.Scope);
         Assert.NotNull(new DirectoryInfo(alias).LinkTarget);
         Assert.True(File.Exists(Path.Combine(projectDirectory.FullName, "settings.json")));
     }

@@ -58,7 +58,9 @@ internal static class AspireSkillsPluginConfiguration
             ["source"] = "github",
             ["repo"] = Repository
         };
-        if (settings.Append(root).Any(config => HasMarketplacePolicyConflict(config, selectedSource)))
+        // Leave marketplace policy enforcement to the client rather than matching its rules.
+        if (settings.Append(root).Any(config =>
+            config.ContainsKey("strictKnownMarketplaces") || config.ContainsKey("blockedMarketplaces")))
         {
             return AgentConfigurationEdit.Blocked(AgentCommandStrings.Configuration_PolicyBlocked);
         }
@@ -93,36 +95,5 @@ internal static class AspireSkillsPluginConfiguration
                  string.Equals(url.TrimEnd('/'), $"https://github.com/{Repository}.git", StringComparison.OrdinalIgnoreCase)),
             _ => false
         };
-    }
-
-    private static bool HasMarketplacePolicyConflict(JsonObject config, JsonObject source)
-    {
-        // Claude's managed marketplace lists match source objects, not marketplace display
-        // names. Strict matching includes the source form, ref and path: a policy permitting
-        // a pinned release does not permit our unpinned default. Unknown matchers remain blocked.
-        // https://code.claude.com/docs/en/settings-reference#exact-matching
-        if (config.TryGetPropertyValue("strictKnownMarketplaces", out var allowedNode) &&
-            (allowedNode is not JsonArray allowed || !allowed.Any(entry => JsonNode.DeepEquals(entry, source))))
-        {
-            return true;
-        }
-
-        if (config.TryGetPropertyValue("blockedMarketplaces", out var blockedNode) &&
-            (blockedNode is not JsonArray blocked || blocked.Any(entry => entry is not JsonObject blockedSource ||
-                AgentConfigurationJson.String(blockedSource["source"]) is not ("github" or "git") ||
-                MatchesBlockedSource(blockedSource, source))))
-        {
-            return true;
-        }
-
-        return false;
-    }
-
-    private static bool MatchesBlockedSource(JsonObject blocked, JsonObject source)
-    {
-        // An unpinned deny entry covers every ref; explicit refs and paths narrow that denial.
-        // https://code.claude.com/docs/en/settings-reference#blockedmarketplaces
-        return IsOfficialSource(blocked) && new[] { "ref", "path" }.All(key =>
-            !blocked.TryGetPropertyValue(key, out var value) || JsonNode.DeepEquals(value, source[key]));
     }
 }

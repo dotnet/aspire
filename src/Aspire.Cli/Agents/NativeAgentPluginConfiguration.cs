@@ -22,7 +22,7 @@ internal static class NativeAgentPluginConfiguration
     {
         cancellationToken.ThrowIfCancellationRequested();
         var results = new List<AgentTargetResult>();
-        var files = new Dictionary<string, List<(AgentClient Client, string Path, IReadOnlyList<string> Candidates)>>(AgentPath.Comparer);
+        var files = new Dictionary<string, List<(AgentClient Client, string Path)>>(AgentPath.Comparer);
         foreach (var target in GetTargets(request, executionContext, environment))
         {
             try
@@ -38,11 +38,11 @@ internal static class NativeAgentPluginConfiguration
             }
             catch (AgentConfigurationException ex)
             {
-                results.Add(new([target.Client], target.Path, request.Scope, AgentConfigurationStatus.Blocked, ex.Message));
+                results.Add(new([target.Client], target.Path, AgentConfigurationStatus.Blocked, ex.Message));
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
             {
-                results.Add(new([target.Client], target.Path, request.Scope, AgentConfigurationStatus.Failed,
+                results.Add(new([target.Client], target.Path, AgentConfigurationStatus.Failed,
                     string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.Configuration_ReadWriteFailed, ex.Message)));
             }
         }
@@ -68,7 +68,7 @@ internal static class NativeAgentPluginConfiguration
                     }
 
                     var edit = target.Client.UsesSkillsCatalog
-                        ? await ApplyOpenCodeCatalogAsync(root, reader, target.Candidates, target.Path, request,
+                        ? await ApplyOpenCodeCatalogAsync(root, reader, target.Path, request,
                             executionContext, environment, cancellationToken)
                         : AspireSkillsPluginConfiguration.Apply(root,
                             await AgentConfigurationJson.ReadSettingsAsync(reader,
@@ -105,64 +105,33 @@ internal static class NativeAgentPluginConfiguration
                 message = string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.Configuration_ReadWriteFailed, ex.Message);
             }
 
-            results.Add(new(clients, targets[0].Path, request.Scope, status, message));
+            results.Add(new(clients, targets[0].Path, status, message));
         }
 
         return results;
     }
 
-    private static IEnumerable<(AgentClient Client, string Path, IReadOnlyList<string> Candidates)> GetTargets(
+    private static IEnumerable<(AgentClient Client, string Path)> GetTargets(
         NativeAgentPluginRequest request, CliExecutionContext executionContext, IEnvironment environment)
     {
         foreach (var client in request.Clients.Distinct())
         {
-            if (client.UsesSkillsCatalog)
-            {
-                if (request.Scope is AgentConfigurationScope.Global)
-                {
-                    // Skills and MCP share the client-declared config destination. Other
-                    // merged config layers supply read-only evidence, not extra write targets.
-                    var path = client.GlobalMcpConfigPath(executionContext, environment);
-                    yield return (client, path, AgentPath.GetOverride("OPENCODE_CONFIG", executionContext, environment) is not null
-                        ? [path] : ConfigFiles(Path.GetDirectoryName(path)!).ToArray());
-                }
-                else
-                {
-                    var location = OpenCodeLocations(request, executionContext, environment)
-                        .Single(location => location.Scope is AgentConfigurationScope.Project);
-                    yield return (client, location.Path, location.Candidates);
-                }
-            }
-            else
-            {
-                var directory = request.Scope is AgentConfigurationScope.Global
-                    ? client.GlobalPluginDirectory(executionContext, environment)
-                    : Path.Combine(AgentPath.RequireWorkspaceRoot(request.WorkspaceRoot).FullName, client.ProjectPluginDirectory);
-                yield return (client, Path.Combine(directory, "settings.json"), []);
-            }
+            yield return (client, client.GetPluginConfigPath(request.Scope, request.WorkspaceRoot, executionContext, environment));
         }
     }
 
     private static async Task<AgentConfigurationEdit> ApplyOpenCodeCatalogAsync(
-        JsonObject root, AgentConfigurationJson.ReadContext reader, IReadOnlyList<string> candidates, string targetPath,
+        JsonObject root, AgentConfigurationJson.ReadContext reader, string targetPath,
         NativeAgentPluginRequest request, CliExecutionContext executionContext, IEnvironment environment, CancellationToken cancellationToken)
     {
-        var documents = new Dictionary<string, JsonObject>(AgentPath.Comparer);
-        foreach (var path in PluginSettings(AgentClient.OpenCode, request, executionContext, environment))
-        {
-            if (await reader.ReadOptionalAsync(path, cancellationToken) is { } config)
-            {
-                documents[path] = config;
-            }
-        }
-
-        var active = candidates.LastOrDefault(documents.ContainsKey) ?? targetPath;
-        if (!AgentPath.Comparer.Equals(active, targetPath))
+        var configs = (await AgentConfigurationJson.ReadSettingsAsync(reader,
+            PluginSettings(AgentClient.OpenCode, request, executionContext, environment), cancellationToken)).Append(root).ToList();
+        if (!AgentPath.Comparer.Equals(targetPath,
+            AgentClient.OpenCode.GetPluginConfigPath(request.Scope, request.WorkspaceRoot, executionContext, environment)))
         {
             return AgentConfigurationEdit.Blocked(AgentCommandStrings.Configuration_ConcurrentChange);
         }
 
-        var configs = documents.Values.Append(root).ToList();
         if (environment.GetEnvironmentVariable("OPENCODE_CONFIG_CONTENT") is { Length: > 0 } inline)
         {
             var inlineConfig = AgentConfigurationJson.ParseObject(Encoding.UTF8.GetBytes(inline));
@@ -182,13 +151,13 @@ internal static class NativeAgentPluginConfiguration
     {
         if (mode is AspireSkillsMode.Native)
         {
-            var local = await LocalAspireSkills.FindAsync(executionContext.WorkingDirectory, request.WorkspaceRoot,
+            var local = LocalAspireSkills.Find(executionContext.WorkingDirectory, request.WorkspaceRoot,
                 request.Clients, executionContext, environment, cancellationToken);
             if (local.Errors.Count > 0 || local.Files.Count > 0)
             {
                 return string.Join(System.Environment.NewLine, local.Errors.Concat(local.Files.Count > 0
                     ? [string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_LocalSkillsConflict,
-                        string.Join(System.Environment.NewLine, local.Files.Select(file => file.Path)))]
+                        string.Join(System.Environment.NewLine, local.Files))]
                     : []));
             }
         }
@@ -226,9 +195,15 @@ internal static class NativeAgentPluginConfiguration
     {
         if (client.UsesSkillsCatalog)
         {
-            foreach (var path in OpenCodeLocations(request, context, environment).SelectMany(location => location.Candidates)
-                .Concat(ConfigFiles(client.GlobalPluginDirectory(context, environment)))
-                .Concat(ConfigFiles(client.ManagedPluginDirectory(context, environment))).Distinct(AgentPath.Comparer))
+            var defaultPaths = OpenCodePaths.GetConfigPaths(client.GlobalPluginDirectory(context, environment));
+            var customDirectory = OpenCodePaths.GetOverride("OPENCODE_CONFIG_DIR", context, environment);
+            IEnumerable<string> customPaths = customDirectory is null ? [] : OpenCodePaths.GetConfigPaths(customDirectory);
+            var globalPaths = environment.GetEnvironmentVariable("OPENCODE_CONFIG") is { Length: > 0 }
+                ? new[] { client.GlobalMcpConfigPath(context, environment) }.Concat(customPaths).Concat(defaultPaths)
+                : defaultPaths.Concat(customPaths);
+
+            foreach (var path in OpenCodePaths.GetProjectConfigPaths(request.WorkspaceRoot).Concat(globalPaths)
+                .Concat(OpenCodePaths.GetConfigPaths(client.ManagedPluginDirectory(context, environment))).Distinct(AgentPath.Comparer))
             {
                 yield return path;
             }
@@ -236,12 +211,9 @@ internal static class NativeAgentPluginConfiguration
         }
 
         yield return Path.Combine(client.GlobalPluginDirectory(context, environment), "settings.json");
-        if (request.WorkspaceRoot is { } project)
+        foreach (var path in client.ProjectPluginSettingsFiles)
         {
-            foreach (var path in client.ProjectPluginSettingsFiles)
-            {
-                yield return Path.Combine(project.FullName, path);
-            }
+            yield return Path.Combine(request.WorkspaceRoot.FullName, path);
         }
 
         var managed = client.ManagedPluginDirectory(context, environment);
@@ -256,38 +228,6 @@ internal static class NativeAgentPluginConfiguration
                     yield return path;
                 }
             }
-        }
-    }
-
-    private static IEnumerable<OpenCodeLocation> OpenCodeLocations(
-        NativeAgentPluginRequest request, CliExecutionContext context, IEnvironment environment)
-    {
-        if (request.WorkspaceRoot is { } project)
-        {
-            yield return Location(project.FullName, AgentConfigurationScope.Project, includeNested: true);
-        }
-        else if (request.Scope is AgentConfigurationScope.Project)
-        {
-            AgentPath.RequireWorkspaceRoot(request.WorkspaceRoot);
-        }
-
-        yield return AgentPath.GetOverride("OPENCODE_CONFIG", context, environment) is { } custom
-            ? new(custom, AgentConfigurationScope.Global, [custom])
-            : Location(AgentClient.OpenCode.GlobalPluginDirectory(context, environment), AgentConfigurationScope.Global, includeNested: false);
-        if (AgentPath.GetOverride("OPENCODE_CONFIG_DIR", context, environment) is { } directory)
-        {
-            yield return Location(directory, AgentConfigurationScope.Global, includeNested: false);
-        }
-
-        static OpenCodeLocation Location(string directory, AgentConfigurationScope scope, bool includeNested)
-        {
-            var candidates = ConfigFiles(directory).ToList();
-            if (includeNested)
-            {
-                candidates.AddRange(ConfigFiles(Path.Combine(directory, ".opencode")));
-            }
-            return new(candidates.LastOrDefault(File.Exists) ??
-                OpenCodePaths.GetMcpConfigPath(new DirectoryInfo(directory)), scope, candidates);
         }
     }
 
@@ -405,14 +345,6 @@ internal static class NativeAgentPluginConfiguration
         return path.EndsWith("/opencode/v1", StringComparison.Ordinal) ? 1
             : path.EndsWith("/opencode/v2", StringComparison.Ordinal) ? 2 : null;
     }
-
-    private static IEnumerable<string> ConfigFiles(string directory)
-    {
-        yield return Path.Combine(directory, "opencode.json");
-        yield return Path.Combine(directory, "opencode.jsonc");
-    }
-
-    private sealed record OpenCodeLocation(string Path, AgentConfigurationScope Scope, IReadOnlyList<string> Candidates);
 }
 
 internal enum AspireSkillsMode
@@ -423,7 +355,7 @@ internal enum AspireSkillsMode
 }
 
 internal sealed record NativeAgentPluginRequest(
-    DirectoryInfo? WorkspaceRoot,
+    DirectoryInfo WorkspaceRoot,
     AgentConfigurationScope Scope,
     IReadOnlyList<AgentClient> Clients);
 
@@ -448,6 +380,5 @@ internal enum AgentConfigurationStatus
 internal sealed record AgentTargetResult(
     IReadOnlyList<AgentClient> Environments,
     string TargetPath,
-    AgentConfigurationScope Scope,
     AgentConfigurationStatus Status,
     string? Message);

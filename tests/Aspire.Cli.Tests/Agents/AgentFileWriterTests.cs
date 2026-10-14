@@ -15,7 +15,7 @@ public class AgentFileWriterTests(ITestOutputHelper outputHelper)
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task WriteAsync_StagesNativeJsonBeforePublication(bool destinationExists)
+    public async Task WriteAsync_PreservesDestinationUntilPublication(bool destinationExists)
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var path = Path.Combine(workspace.Path, "payload");
@@ -25,14 +25,10 @@ public class AgentFileWriterTests(ITestOutputHelper outputHelper)
         }
         var reader = new AgentConfigurationJson.ReadContext();
         var document = await reader.ReadAsync(path, CancellationToken.None);
-        var serializations = 0;
         var root = new JsonObject
         {
             ["value"] = CallbackJsonConverter.CreateValue(() =>
             {
-                serializations++;
-                var stagingPath = Assert.Single(Directory.EnumerateFiles(workspace.Path, ".payload.aspire-*.tmp"));
-                Assert.Equal(Path.GetDirectoryName(path), Path.GetDirectoryName(stagingPath));
                 if (destinationExists)
                 {
                     Assert.Equal("{}", File.ReadAllText(path));
@@ -46,7 +42,6 @@ public class AgentFileWriterTests(ITestOutputHelper outputHelper)
 
         await reader.SaveAsync(document, root, CancellationToken.None);
 
-        Assert.Equal(1, serializations);
         Assert.Equal(1, JsonNode.Parse(await File.ReadAllTextAsync(path))!["value"]!.GetValue<int>());
         Assert.Equal(["payload"], workspace.WorkspaceRoot.EnumerateFileSystemInfos().Select(static entry => entry.Name));
     }
@@ -58,15 +53,13 @@ public class AgentFileWriterTests(ITestOutputHelper outputHelper)
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
         var path = Path.Combine(workspace.Path, "missing", "payload");
-        var writes = 0;
         var reader = new AgentConfigurationJson.ReadContext();
         var document = await reader.ReadAsync(path, CancellationToken.None);
-        var root = new JsonObject { ["value"] = CallbackJsonConverter.CreateValue(() => writes++) };
+        var root = new JsonObject { ["value"] = true };
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             reader.SaveAsync(document, root, cancellation.Token));
 
-        Assert.Equal(0, writes);
         Assert.Empty(workspace.WorkspaceRoot.EnumerateFileSystemInfos());
     }
 
@@ -255,26 +248,13 @@ public class AgentFileWriterTests(ITestOutputHelper outputHelper)
 
         var reader = new AgentConfigurationJson.ReadContext();
         var document = await reader.ReadAsync(path, CancellationToken.None);
-        var root = new JsonObject
-        {
-            ["value"] = CallbackJsonConverter.CreateValue(() =>
-            {
-                if (OperatingSystem.IsWindows())
-                {
-                    var staging = new FileInfo(Assert.Single(Directory.EnumerateFiles(workspace.Path, ".payload.aspire-*.tmp")));
-                    // A distinct staging DACL proves replacement preserves the destination's
-                    // protected access rules rather than publishing the inherited defaults.
-                    Assert.NotEqual(originalDacl, staging.GetAccessControl(AccessControlSections.Access)
-                        .GetSecurityDescriptorSddlForm(AccessControlSections.Access));
-                }
-            })
-        };
+        var root = new JsonObject { ["replacement"] = true };
 
         await reader.SaveAsync(document, root, CancellationToken.None);
 
         Assert.Equal(originalDacl, destination.GetAccessControl(AccessControlSections.Access)
             .GetSecurityDescriptorSddlForm(AccessControlSections.Access));
-        Assert.Equal(1, JsonNode.Parse(await File.ReadAllTextAsync(path))!["value"]!.GetValue<int>());
+        Assert.True(JsonNode.Parse(await File.ReadAllTextAsync(path))!["replacement"]!.GetValue<bool>());
         Assert.Equal(["payload"], workspace.WorkspaceRoot.EnumerateFileSystemInfos().Select(static entry => entry.Name));
     }
 

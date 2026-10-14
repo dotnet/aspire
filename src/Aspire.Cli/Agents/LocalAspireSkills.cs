@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Cli.Agents.OpenCode;
 using Aspire.Cli.Resources;
 
 namespace Aspire.Cli.Agents;
@@ -17,9 +18,9 @@ internal static class LocalAspireSkills
         "aspire-monitoring", "aspire-orchestration", "aspire-project-v2-migration"
     ];
 
-    public static async Task<LocalAspireSkillScan> FindAsync(
+    public static LocalAspireSkillScan Find(
         DirectoryInfo workingDirectory,
-        DirectoryInfo? workspaceRoot,
+        DirectoryInfo workspaceRoot,
         IEnumerable<AgentClient> agents,
         CliExecutionContext executionContext,
         IEnvironment environment,
@@ -30,7 +31,7 @@ internal static class LocalAspireSkills
         // Clients load project skills along the active ancestor chain, not just at its root.
         // Clamping to the workspace excludes sibling projects and unrelated current directories.
         var projectDirectories = AgentPath.ProjectDirectories(workingDirectory, workspaceRoot).ToArray();
-        var files = new Dictionary<string, LocalAspireSkill>(AgentPath.Comparer);
+        var files = new Dictionary<string, string>(AgentPath.Comparer);
         var errors = new HashSet<string>(StringComparer.Ordinal);
         var inspected = new HashSet<string>(AgentPath.Comparer);
         foreach (var agent in agents)
@@ -68,10 +69,12 @@ internal static class LocalAspireSkills
                             // Older CLI versions copied Markdown verbatim, without an ownership
                             // stamp or installed version. Names identify possible collisions only;
                             // even byte-identical direct installs cannot be classified as obsolete.
-                            if (await AgentFileWriter.ReadExistingAsync(physicalPath, cancellationToken) is not null)
-                            {
-                                files.TryAdd(physicalPath, new LocalAspireSkill(path, scope));
-                            }
+                            using var stream = File.OpenRead(physicalPath);
+                            files.TryAdd(physicalPath, path);
+                        }
+                        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+                        {
+                            // Missing entry points are expected; unreadable ones remain errors.
                         }
                         catch (Exception ex) when (ex is AgentConfigurationException or IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
                         {
@@ -82,30 +85,19 @@ internal static class LocalAspireSkills
             }
         }
 
-        return new(files.Values.OrderBy(file => file.Path, AgentPath.Comparer).ToArray(), errors.Order(StringComparer.Ordinal).ToArray());
+        return new(files.Values.Order(AgentPath.Comparer).ToArray(), errors.Order(StringComparer.Ordinal).ToArray());
     }
 
     private static IEnumerable<string> GetDirectories(
         AgentClient agent,
         AgentConfigurationScope scope,
-        DirectoryInfo? workspaceRoot,
+        DirectoryInfo workspaceRoot,
         CliExecutionContext executionContext,
         IEnvironment environment)
     {
-        var root = scope is AgentConfigurationScope.Project ? workspaceRoot?.FullName : executionContext.HomeDirectory.FullName;
-        if (root is null)
-        {
-            yield break;
-        }
+        var root = scope is AgentConfigurationScope.Project ? workspaceRoot.FullName : executionContext.HomeDirectory.FullName;
 
-        if (scope is AgentConfigurationScope.Project)
-        {
-            yield return agent.GetSkillBaseDirectory(scope, AgentPath.RequireWorkspaceRoot(workspaceRoot), executionContext, environment);
-        }
-        else
-        {
-            yield return agent.GlobalSkillsDirectory(executionContext, environment);
-        }
+        yield return agent.GetSkillBaseDirectory(scope, workspaceRoot, executionContext, environment);
 
         // Native clients also discover compatibility locations, independently of where this
         // CLI would install a new skill. Never search unrelated repositories recursively.
@@ -131,7 +123,7 @@ internal static class LocalAspireSkills
             yield return Path.Combine(openCodeRoot, "skill");
             yield return Path.Combine(openCodeRoot, "skills");
             if (scope is AgentConfigurationScope.Global &&
-                AgentPath.GetOverride("OPENCODE_CONFIG_DIR", executionContext, environment) is { } custom)
+                OpenCodePaths.GetOverride("OPENCODE_CONFIG_DIR", executionContext, environment) is { } custom)
             {
                 yield return Path.Combine(custom, "skill");
                 yield return Path.Combine(custom, "skills");
@@ -140,6 +132,4 @@ internal static class LocalAspireSkills
     }
 }
 
-internal sealed record LocalAspireSkill(string Path, AgentConfigurationScope Scope);
-
-internal sealed record LocalAspireSkillScan(IReadOnlyList<LocalAspireSkill> Files, IReadOnlyList<string> Errors);
+internal sealed record LocalAspireSkillScan(IReadOnlyList<string> Files, IReadOnlyList<string> Errors);

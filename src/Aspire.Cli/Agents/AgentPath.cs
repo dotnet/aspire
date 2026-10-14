@@ -14,23 +14,8 @@ internal static class AgentPath
 {
     public static StringComparer Comparer { get; } = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
 
-    public static DirectoryInfo RequireWorkspaceRoot(DirectoryInfo? workspaceRoot)
+    public static IEnumerable<DirectoryInfo> ProjectDirectories(DirectoryInfo workingDirectory, DirectoryInfo workspaceRoot)
     {
-        if (workspaceRoot is null)
-        {
-            throw new AgentConfigurationException(McpCommandStrings.InitCommand_WorkspaceRootRequired);
-        }
-
-        return workspaceRoot;
-    }
-
-    public static IEnumerable<DirectoryInfo> ProjectDirectories(DirectoryInfo workingDirectory, DirectoryInfo? workspaceRoot)
-    {
-        if (workspaceRoot is null)
-        {
-            yield break;
-        }
-
         var relativePath = Path.GetRelativePath(workspaceRoot.FullName, workingDirectory.FullName);
         if (Path.IsPathRooted(relativePath) || relativePath == ".." ||
             relativePath.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal))

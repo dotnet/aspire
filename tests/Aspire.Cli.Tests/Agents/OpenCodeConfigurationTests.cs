@@ -29,6 +29,9 @@ public class OpenCodeConfigurationTests(ITestOutputHelper output) : IDisposable
     [Fact]
     public async Task ExistingV2Jsonc_EstablishesTheSchemaWithoutVersionDetection()
     {
+        var root = Path.Combine(_context.Project.FullName, "opencode.jsonc");
+        const string inherited = """{"model":"root-preserved"}""";
+        await AgentConfigurationTestContext.WriteAsync(root, inherited);
         var path = Path.Combine(_context.Project.FullName, ".opencode", "opencode.jsonc");
         await AgentConfigurationTestContext.WriteAsync(path, """{"model":"preserved","skills":["./team-skills"],}""");
 
@@ -36,6 +39,7 @@ public class OpenCodeConfigurationTests(ITestOutputHelper output) : IDisposable
 
         Assert.Equal(AgentConfigurationStatus.Configured, Assert.Single(results).Status);
         Assert.Equal(path, results[0].TargetPath);
+        Assert.Equal(inherited, await File.ReadAllTextAsync(root));
         await Verify(await File.ReadAllTextAsync(path), "json");
     }
 
@@ -149,6 +153,24 @@ public class OpenCodeConfigurationTests(ITestOutputHelper output) : IDisposable
     }
 
     [Fact]
+    public async Task RelativeGlobalOverride_PreservesTheMcpDestinationSemantics()
+    {
+        _context.SetVariable("OPENCODE_CONFIG_DIR", Path.Combine("~", "custom-opencode"));
+        var expected = Path.Combine(_context.Project.FullName, "~", "custom-opencode", "opencode.jsonc");
+        var request = _context.Request(AgentConfigurationScope.Global, [_context.OpenCode]);
+        var mcpPath = _context.OpenCode.GetMcpConfigPath(request.Scope, request.WorkspaceRoot, _context.ExecutionContext, _context.Environment);
+
+        var results = await _context.ConfigureNativeAsync(request);
+
+        var result = Assert.Single(results);
+        Assert.Equal(AgentConfigurationStatus.Configured, result.Status);
+        Assert.Equal(expected, result.TargetPath);
+        Assert.Equal(mcpPath, result.TargetPath);
+        Assert.Equal([expected], Directory.EnumerateFiles(_context.Project.FullName, "*", SearchOption.AllDirectories));
+        Assert.Empty(_context.Home.EnumerateFileSystemInfos());
+    }
+
+    [Fact]
     public async Task ExplicitConfigFile_IsTheOnlyWritableDestinationWhenDirectoryOverrideAlsoExists()
     {
         var selected = Path.Combine(_context.Home.FullName, "selected", "custom.jsonc");
@@ -211,8 +233,7 @@ public class OpenCodeConfigurationTests(ITestOutputHelper output) : IDisposable
         var path = Path.Combine(_context.OpenCodeDirectory, "opencode.json");
         await AgentConfigurationTestContext.WriteAsync(path, """{"mcp":{"servers":{},"timeout":{"startup":0}}}""");
 
-        var results = await _context.ConfigureNativeAsync(
-            _context.Request(AgentConfigurationScope.Global, [_context.OpenCode]) with { WorkspaceRoot = null });
+        var results = await _context.ConfigureNativeAsync(_context.Request(AgentConfigurationScope.Global, [_context.OpenCode]));
 
         Assert.Equal(AgentConfigurationStatus.Configured, Assert.Single(results).Status);
         var root = JsonNode.Parse(await File.ReadAllTextAsync(path))!;
