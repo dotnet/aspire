@@ -653,6 +653,10 @@ public sealed class TestTriggerMapTests
             ["job:native-dashboard-validation"]
         },
         {
+            "eng/scripts/test-native-tray.ps1",
+            ["test:Infrastructure.Tests"]
+        },
+        {
             "eng/scripts/verify-native-dashboard-warnings.ps1",
             ["test:Infrastructure.Tests", "job:native-dashboard-validation"]
         },

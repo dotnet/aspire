@@ -362,11 +362,19 @@ For the complete tool contract, see [CreateLayout](../../tools/CreateLayout/READ
 macOS bundles contain the complete `Aspire Tray.app`, including its executable, plist, artwork, and signature. Windows x64 and ARM64 bundles contain `tray/aspire-tray.exe` and the shared `tray/Aspire.ico`. `CreateLayout` copies the already-published payload and rejects missing or incompatible files. The native archive verification targets check the actual packaged payload before it is embedded in the CLI.
 
 Linux x64 and ARM64 bundles contain `tray/aspire-tray` and `tray/Aspire.png`.
+The Linux archive verifier rejects extra entries and requires both files to be regular, non-symlink files.
+`LinuxTrayDirectory` overrides the pre-built Linux tray directory used by `eng/Bundle.proj`.
+
 Layout assembly validates ELF architecture and executable permissions. GTK 3 and
 an Ayatana/compatible AppIndicator library are dynamically loaded host
 dependencies, not shipped libraries. They are loaded only when starting the
 desktop companion, so headless CLI use does not require them. A desktop
 StatusNotifierWatcher is required; GNOME needs an AppIndicator extension.
+
+GitHub native-archive builds and the internal pipeline extract the packaged tray and run `--help`
+on matching OS/architecture hosts, without repairing permissions. Cross-built payloads remain
+structurally verified but skip execution; musl has no tray payload. This launch check does not
+initialize the desktop or exercise GTK/AppIndicator, D-Bus registration, or menu interactions.
 
 Official packaging signs the macOS app as a whole and signs the Windows executable before layout assembly. Pipeline wiring and local ad-hoc signatures do not establish that official signing or notarization has been validated. Windows ARM64 native UI, installed-bundle lifecycle, real monitor/DPI behavior, and formal security review remain outstanding; successful cross-publishing or payload verification is not runtime validation.
 
