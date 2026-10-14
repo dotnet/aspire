@@ -5,7 +5,7 @@ using System.Runtime.Versioning;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 
-namespace Aspire.Cli.Telemetry;
+namespace Aspire.Shared.Telemetry;
 
 // This is copied from https://github.com/microsoft/mcp/tree/6bb4d76a63d24854efe0fa0bd96f5ab6f699ed3a/core/Azure.Mcp.Core/src/Services/Telemetry
 // Keep in sync with updates there.
@@ -25,6 +25,9 @@ internal class WindowsMachineInformationProvider(ILogger<WindowsMachineInformati
     {
         return Task.Run<string?>(() =>
         {
+            // Many apps share this DeveloperTools ID, so concurrent first-time initialization
+            // can generate different IDs. This race is expected to be rare; after initialization,
+            // later calls reuse the cached ID, which stays constant unless removed or changed.
             try
             {
                 if (TryGetRegistryValue(RegistryPathRoot, DeviceId, out var existingDeviceId))

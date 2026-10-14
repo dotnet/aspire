@@ -25,6 +25,7 @@ using Aspire.Cli.Projects;
 using Aspire.Cli.Scaffolding;
 using Aspire.Cli.Secrets;
 using Aspire.Cli.Telemetry;
+using Aspire.Shared.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Tests.Telemetry;
 using Aspire.Cli.Tests.TestServices;

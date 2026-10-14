@@ -4,7 +4,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Aspire.Cli.Configuration;
+namespace Aspire.Shared;
 
 /// <summary>
 /// A JSON converter for <see cref="bool"/> that accepts both actual boolean values

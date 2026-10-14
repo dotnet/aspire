@@ -56,10 +56,13 @@ public class AgentTelemetryPersistenceTests(ITestOutputHelper outputHelper)
                     var data = envelope.RootElement.GetProperty("data");
                     var baseType = data.GetProperty("baseType").GetString()!;
                     var baseData = data.GetProperty("baseData");
-                    var name = baseType == "MetricData"
-                        ? baseData.GetProperty("metrics")[0].GetProperty("name").GetString()!
-                        : baseData.GetProperty("name").GetString()!;
-                    if (baseType == "RemoteDependencyData")
+                    var name = baseType switch
+                    {
+                        "MetricData" => baseData.GetProperty("metrics")[0].GetProperty("name").GetString()!,
+                        "MessageData" => baseData.GetProperty("message").GetString()!,
+                        _ => baseData.GetProperty("name").GetString()!
+                    };
+                    if (baseType is "RemoteDependencyData" or "MessageData")
                     {
                         var properties = baseData.GetProperty("properties");
                         Assert.Equal("1.0.0-test", properties.GetProperty(TelemetryConstants.Tags.CliVersion).GetString());
@@ -80,13 +83,15 @@ public class AgentTelemetryPersistenceTests(ITestOutputHelper outputHelper)
                 $"InstrumentationKey={Guid.NewGuid()};IngestionEndpoint=https://localhost/", storageDirectory,
                 builder =>
                 {
-                    builder.AddProcessor(new CliTagEnrichmentProcessor(fixture.TagsSource, fixture.Telemetry));
+                    builder.AddProcessor(new ActivityTagEnrichmentProcessor(fixture.Telemetry));
                     builder.ConfigureServices(services => services.Configure<AzureMonitorExporterOptions>(options =>
                     {
                         exporterOptions = options;
                         options.Transport = new HttpClientTransport(client);
                     }));
-                });
+                },
+                logging => logging.AddProcessor(new LogRecordTagEnrichmentProcessor(fixture.Telemetry)),
+                options => options.Transport = new HttpClientTransport(client));
 
             Assert.NotNull(exporterOptions);
             Assert.False(exporterOptions.EnableLiveMetrics);
@@ -108,10 +113,13 @@ public class AgentTelemetryPersistenceTests(ITestOutputHelper outputHelper)
                 Assert.Null(activity.GetTagItem(TelemetryConstants.Tags.CliVersion));
             }
 
+            // Bypass the recorder so only the log processor can supply default metadata.
+            provider.EventLogger.LogInformation("reported-event");
+
             Assert.True(await provider.ForceFlushAsync(10_000));
             Assert.Equal(
-                [("MetricData", "_OTELRESOURCE_"), ("RemoteDependencyData", "reported-operation")],
-                exportedItems.ToArray());
+                [("MessageData", "reported-event"), ("MetricData", "_OTELRESOURCE_"), ("RemoteDependencyData", "reported-operation")],
+                exportedItems.OrderBy(item => item.BaseType, StringComparer.Ordinal).ToArray());
         }, workspace.WorkspaceRoot.FullName);
     }
 
@@ -258,7 +266,7 @@ public class AgentTelemetryPersistenceTests(ITestOutputHelper outputHelper)
             using var fixture = new TelemetryFixture(telemetryConfiguration: configuration, initialize: false);
             Resource? azureTraceResource = null;
             Resource? azureLogResource = null;
-            using var manager = new TelemetryManager(configuration, fixture.TagsSource, fixture.Telemetry, NullLogger<TelemetryManager>.Instance,
+            using var manager = new TelemetryManager(configuration, fixture.Telemetry, NullLogger<TelemetryManager>.Instance,
                 (resource, _) =>
                 {
                     var provider = AzureMonitorTelemetryProvider.Create(new ServiceCollection(), resource, AspireCliTelemetry.EventLogCategoryName,
@@ -370,7 +378,6 @@ public class AgentTelemetryPersistenceTests(ITestOutputHelper outputHelper)
     private static TelemetryManager CreateDisabledManager(TelemetryFixture fixture)
         => new(
             new TelemetryConfiguration { ReportedTelemetryEnabled = false },
-            fixture.TagsSource,
             fixture.Telemetry,
             NullLogger<TelemetryManager>.Instance);
 
