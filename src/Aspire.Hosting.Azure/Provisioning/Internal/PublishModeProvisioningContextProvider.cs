@@ -75,7 +75,7 @@ internal sealed class PublishModeProvisioningContextProvider(
         return await base.CreateProvisioningContextAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task RetrieveAzureProvisioningOptions(CancellationToken cancellationToken = default)
+    internal async Task RetrieveAzureProvisioningOptions(CancellationToken cancellationToken = default)
     {
         while (_options.Location == null || _options.SubscriptionId == null)
         {

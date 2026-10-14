@@ -399,6 +399,7 @@ jobs:
       extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\" ${{ matrix.extraTestArgs }}"
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
       properties: ${{ toJson(matrix.properties) }}
+      ignoreTestFailures: ${{ matrix.properties.nonBlockingTestFailures }}
 
   # Split requires-nugets tests by OS so each group depends only on
   # the CLI archive build for its platform, avoiding cross-OS blocking.
@@ -418,6 +419,7 @@ jobs:
       extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\" ${{ matrix.extraTestArgs }}"
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
       properties: ${{ toJson(matrix.properties) }}
+      ignoreTestFailures: ${{ matrix.properties.nonBlockingTestFailures }}
 
   tests_requires_nugets_windows:
     name: Package tests - Windows
@@ -435,6 +437,7 @@ jobs:
       extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\" ${{ matrix.extraTestArgs }}"
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
       properties: ${{ toJson(matrix.properties) }}
+      ignoreTestFailures: ${{ matrix.properties.nonBlockingTestFailures }}
 
   tests_requires_nugets_macos:
     name: Package tests - macOS
@@ -452,6 +455,7 @@ jobs:
       extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\" ${{ matrix.extraTestArgs }}"
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
       properties: ${{ toJson(matrix.properties) }}
+      ignoreTestFailures: ${{ matrix.properties.nonBlockingTestFailures }}
 
   tests_requires_cli_archive:
     name: CLI archive tests
@@ -469,6 +473,7 @@ jobs:
       extraTestArgs: "--filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\" ${{ matrix.extraTestArgs }}"
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
       properties: ${{ toJson(matrix.properties) }}
+      ignoreTestFailures: ${{ matrix.properties.nonBlockingTestFailures }}
 
   polyglot_validation:
     name: Polyglot SDK Validation
