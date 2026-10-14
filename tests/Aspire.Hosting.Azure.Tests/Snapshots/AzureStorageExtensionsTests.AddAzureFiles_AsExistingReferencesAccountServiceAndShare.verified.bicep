@@ -3,16 +3,16 @@ param location string = resourceGroup().location
 
 param storage_account_name string
 
-resource storage 'Microsoft.Storage/storageAccounts@2025-06-01' existing = {
+resource storage 'Microsoft.Storage/storageAccounts@2026-06-01' existing = {
   name: storage_account_name
 }
 
-resource files 'Microsoft.Storage/storageAccounts/fileServices@2025-06-01' existing = {
+resource files 'Microsoft.Storage/storageAccounts/fileServices@2026-06-01' existing = {
   name: 'default'
   parent: storage
 }
 
-resource media 'Microsoft.Storage/storageAccounts/fileServices/shares@2025-06-01' existing = {
+resource media 'Microsoft.Storage/storageAccounts/fileServices/shares@2026-06-01' existing = {
   name: 'media-share'
   parent: files
 }

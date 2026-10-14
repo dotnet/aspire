@@ -438,9 +438,9 @@ public class AzureKubernetesPersistentVolumeTests(ITestOutputHelper outputHelper
 
         var storageManifest = await AzureManifestUtils.GetManifestWithBicep(storage.Resource);
 
-        Assert.Contains("resource storage 'Microsoft.Storage/storageAccounts@2025-06-01' existing", storageManifest.BicepText);
-        Assert.Contains("resource files 'Microsoft.Storage/storageAccounts/fileServices@2025-06-01' existing", storageManifest.BicepText);
-        Assert.Contains("resource media_share 'Microsoft.Storage/storageAccounts/fileServices/shares@2025-06-01' existing", storageManifest.BicepText);
+        Assert.Contains("resource storage 'Microsoft.Storage/storageAccounts@2026-06-01' existing", storageManifest.BicepText);
+        Assert.Contains("resource files 'Microsoft.Storage/storageAccounts/fileServices@2026-06-01' existing", storageManifest.BicepText);
+        Assert.Contains("resource media_share 'Microsoft.Storage/storageAccounts/fileServices/shares@2026-06-01' existing", storageManifest.BicepText);
         Assert.Contains("resource azureFilesRole_media_volume 'Microsoft.Authorization/roleAssignments@2022-04-01'", storageManifest.BicepText);
         Assert.Contains("scope: storage", storageManifest.BicepText);
         Assert.DoesNotContain("aksKubeletPrincipalId", storageManifest.BicepText);

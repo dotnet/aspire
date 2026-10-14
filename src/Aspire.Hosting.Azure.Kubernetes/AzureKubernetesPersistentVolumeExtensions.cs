@@ -25,7 +25,6 @@ namespace Aspire.Hosting;
 public static class AzureKubernetesPersistentVolumeExtensions
 {
     private const string AzureFileCsiDriver = "file.csi.azure.com";
-    private const string StorageFileDataSmbMiAdminRoleId = "a235d3ee-5935-4cfb-8cc5-a3303ad5995e";
     private const int MaxAspireResourceNameLength = 64;
     private static readonly TimeSpan s_workloadIdentityHelmTimeout = TimeSpan.FromMinutes(15);
 
@@ -254,7 +253,7 @@ public static class AzureKubernetesPersistentVolumeExtensions
 
             var roleDefinitionId = BicepFunction.GetSubscriptionResourceId(
                 "Microsoft.Authorization/roleDefinitions",
-                StorageFileDataSmbMiAdminRoleId);
+                StorageBuiltInRole.StorageFileDataSmbMIAdmin.ToString());
             var roleAssignment = new RoleAssignment($"azureFilesRole_{normalizedVolumeName}")
             {
                 Name = BicepFunction.CreateGuid(storageAccount.Id, principalId, roleDefinitionId),

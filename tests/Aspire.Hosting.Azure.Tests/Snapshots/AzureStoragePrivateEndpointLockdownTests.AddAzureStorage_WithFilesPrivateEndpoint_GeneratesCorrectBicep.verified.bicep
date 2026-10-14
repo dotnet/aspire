@@ -1,16 +1,13 @@
 ﻿@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-resource storage 'Microsoft.Storage/storageAccounts@2025-06-01' = {
+resource storage 'Microsoft.Storage/storageAccounts@2026-06-01' = {
   name: take('storage${uniqueString(resourceGroup().id)}', 24)
-  kind: 'StorageV2'
-  location: location
-  sku: {
-    name: 'Standard_GRS'
+  tags: {
+    'aspire-resource-name': 'storage'
   }
+  location: location
   properties: {
-    accessTier: 'Hot'
-    allowSharedKeyAccess: false
     azureFilesIdentityBasedAuthentication: {
       directoryServiceOptions: 'None'
       smbOAuthSettings: {
@@ -19,14 +16,17 @@ resource storage 'Microsoft.Storage/storageAccounts@2025-06-01' = {
     }
     isHnsEnabled: false
     minimumTlsVersion: 'TLS1_2'
+    allowSharedKeyAccess: false
+    publicNetworkAccess: 'Disabled'
+    accessTier: 'Hot'
     networkAcls: {
       defaultAction: 'Deny'
     }
-    publicNetworkAccess: 'Disabled'
   }
-  tags: {
-    'aspire-resource-name': 'storage'
+  sku: {
+    name: 'Standard_GRS'
   }
+  kind: 'StorageV2'
 }
 
 output blobEndpoint string = storage.properties.primaryEndpoints.blob

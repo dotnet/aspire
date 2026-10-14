@@ -3,16 +3,13 @@ param location string = resourceGroup().location
 
 param azureFilesIdentityPrincipalId_media_volume string
 
-resource storage 'Microsoft.Storage/storageAccounts@2025-06-01' = {
+resource storage 'Microsoft.Storage/storageAccounts@2026-06-01' = {
   name: take('storage${uniqueString(resourceGroup().id)}', 24)
-  kind: 'StorageV2'
-  location: location
-  sku: {
-    name: 'Standard_GRS'
+  tags: {
+    'aspire-resource-name': 'storage'
   }
+  location: location
   properties: {
-    accessTier: 'Hot'
-    allowSharedKeyAccess: false
     azureFilesIdentityBasedAuthentication: {
       directoryServiceOptions: 'None'
       smbOAuthSettings: {
@@ -21,21 +18,24 @@ resource storage 'Microsoft.Storage/storageAccounts@2025-06-01' = {
     }
     isHnsEnabled: false
     minimumTlsVersion: 'TLS1_2'
+    allowSharedKeyAccess: false
+    accessTier: 'Hot'
     networkAcls: {
       defaultAction: 'Allow'
     }
   }
-  tags: {
-    'aspire-resource-name': 'storage'
+  sku: {
+    name: 'Standard_GRS'
   }
+  kind: 'StorageV2'
 }
 
-resource files 'Microsoft.Storage/storageAccounts/fileServices@2025-06-01' = {
+resource files 'Microsoft.Storage/storageAccounts/fileServices@2026-06-01' = {
   name: 'default'
   parent: storage
 }
 
-resource media_share 'Microsoft.Storage/storageAccounts/fileServices/shares@2025-06-01' = {
+resource media_share 'Microsoft.Storage/storageAccounts/fileServices/shares@2026-06-01' = {
   name: 'media'
   parent: files
 }
