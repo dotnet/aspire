@@ -601,7 +601,6 @@ public class AddGoAppTests(ITestOutputHelper outputHelper)
 
         Assert.Collection(commandArguments,
             arg => Assert.Equal("run", arg),
-            arg => Assert.Equal("-ldflags=-w=false", arg),
             arg => Assert.Equal("./cmd/server", arg),
             arg => Assert.Equal("--login", arg),
             arg => Assert.Equal("user", arg));
@@ -637,7 +636,6 @@ public class AddGoAppTests(ITestOutputHelper outputHelper)
             arg => Assert.Equal("run", arg),
             arg => Assert.Equal("-race", arg),
             arg => Assert.Equal("-tags=integration", arg),
-            arg => Assert.Equal("-ldflags=-w=false", arg),
             arg => Assert.Equal("./cmd/server", arg),
             arg => Assert.Equal("--config", arg),
             arg => Assert.Equal("prod.yaml", arg));

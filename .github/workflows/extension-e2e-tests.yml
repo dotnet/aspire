@@ -372,6 +372,15 @@ jobs:
             archivePattern: aspire-cli-win-x64*.zip
             cliBinary: aspire.exe
             useXvfb: false
+            installResourceDebug: true
+          - name: Windows
+            shardName: resource-debug-tools-negative
+            spec: out/test-e2e/test-e2e/resourceDebugTools.e2e.test.js
+            runner: windows-latest
+            rid: win-x64
+            archivePattern: aspire-cli-win-x64*.zip
+            cliBinary: aspire.exe
+            useXvfb: false
           - name: Windows
             shardName: cli-path-rejection
             spec: out/test-e2e/test-e2e/{cliPathRejectionNotification,usefulnessSurvey}.e2e.test.js
@@ -586,7 +595,7 @@ jobs:
           }
 
       - name: .NET debugger E2E prerequisites
-        if: ${{ matrix.installDotnetDebugger || matrix.installAzureFunctions }}
+        if: ${{ matrix.installDotnetDebugger || matrix.installAzureFunctions || matrix.installResourceDebug }}
         run: |
           function Get-PinnedArtifact {
             param(
@@ -633,6 +642,15 @@ jobs:
             "ASPIRE_EXTENSION_E2E_CSHARP_VSIX=$csharpVsix"
           ) | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
+          if ('${{ matrix.installResourceDebug }}' -eq 'true') {
+            $goVsix = Join-Path $env:RUNNER_TEMP 'vscode-go-0.56.0.vsix'
+            Get-PinnedArtifact `
+              -Uri 'https://marketplace.visualstudio.com/_apis/public/gallery/publishers/golang/vsextensions/Go/0.56.0/vspackage' `
+              -OutFile $goVsix `
+              -ExpectedSha256 '9f5959fb17ba0a8dbd804387ddda50975fcaa9dd5267aa33eaaa89912072aacb'
+            "ASPIRE_EXTENSION_E2E_GO_VSIX=$goVsix" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          }
+
       - name: Azure Functions E2E prerequisites
         if: ${{ matrix.installAzureFunctions }}
         shell: bash
@@ -674,46 +692,32 @@ jobs:
 
       - name: Install resource debug E2E prerequisites
         if: ${{ matrix.installResourceDebug }}
-        shell: bash
         run: |
-          set -euo pipefail
-
           # Ubuntu's Yama default allows ptrace only when the debugger is an ancestor of the target.
           # DCP launches the Go resource independently from Delve, so packaged attach needs this test-only policy.
-          sudo sysctl --write kernel.yama.ptrace_scope=0
-          test "$(cat /proc/sys/kernel/yama/ptrace_scope)" = "0"
+          if ($env:RUNNER_OS -eq 'Linux') {
+            sudo sysctl --write kernel.yama.ptrace_scope=0
+            if ($LASTEXITCODE -ne 0 -or (Get-Content /proc/sys/kernel/yama/ptrace_scope).Trim() -ne '0') {
+              throw 'Could not enable ptrace for Go resource attachment.'
+            }
+          }
 
-          debugger_bin="$RUNNER_TEMP/resource-debug-bin"
-          mkdir -p "$debugger_bin"
-          GOBIN="$debugger_bin" GOTOOLCHAIN=local go install github.com/go-delve/delve/cmd/dlv@v1.25.2
-          echo "$debugger_bin" >> "$GITHUB_PATH"
-          export PATH="$debugger_bin:$PATH"
+          $debuggerBin = Join-Path $env:RUNNER_TEMP 'resource-debug-bin'
+          New-Item -ItemType Directory -Path $debuggerBin -Force | Out-Null
+          $env:GOBIN = $debuggerBin
+          $env:GOTOOLCHAIN = 'local'
+          go install github.com/go-delve/delve/cmd/dlv@v1.25.2
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Could not install Delve for resource debugging.'
+          }
+          $debuggerBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          $env:PATH = "$debuggerBin$([IO.Path]::PathSeparator)$env:PATH"
           dlv version
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Could not run Delve for resource debugging.'
+          }
 
-          dotnet_runtime_vsix="$RUNNER_TEMP/vscode-dotnet-runtime-3.1.0.vsix"
-          curl --fail --location --compressed --retry 3 --retry-all-errors \
-            --output "$dotnet_runtime_vsix" \
-            'https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-dotnettools/vsextensions/vscode-dotnet-runtime/3.1.0/vspackage'
-          echo '8e675ffe5f3674430d63e28d2dc05ab40f36c8494e9549e79d3995d721b13f5a  '"$dotnet_runtime_vsix" | sha256sum --check -
-
-          csharp_vsix="$RUNNER_TEMP/vscode-csharp-2.148.23-linux-x64.vsix"
-          curl --fail --location --compressed --retry 3 --retry-all-errors \
-            --output "$csharp_vsix" \
-            'https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-dotnettools/vsextensions/csharp/2.148.23/vspackage?targetPlatform=linux-x64'
-          echo '18b503e614a979212762683b35a4fa1806688ba773d5fe93bf62c9f9346db23f  '"$csharp_vsix" | sha256sum --check -
-
-          go_vsix="$RUNNER_TEMP/vscode-go-0.56.0.vsix"
-          curl --fail --location --compressed --retry 3 --retry-all-errors \
-            --output "$go_vsix" \
-            'https://marketplace.visualstudio.com/_apis/public/gallery/publishers/golang/vsextensions/Go/0.56.0/vspackage'
-          echo '9f5959fb17ba0a8dbd804387ddda50975fcaa9dd5267aa33eaaa89912072aacb  '"$go_vsix" | sha256sum --check -
-
-          {
-            echo 'ASPIRE_EXTENSION_E2E_ENABLE_RESOURCE_DEBUG=true'
-            echo "ASPIRE_EXTENSION_E2E_DOTNET_RUNTIME_VSIX=$dotnet_runtime_vsix"
-            echo "ASPIRE_EXTENSION_E2E_CSHARP_VSIX=$csharp_vsix"
-            echo "ASPIRE_EXTENSION_E2E_GO_VSIX=$go_vsix"
-          } >> "$GITHUB_ENV"
+          'ASPIRE_EXTENSION_E2E_ENABLE_RESOURCE_DEBUG=true' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Install WinUI E2E debugger prerequisites
         if: ${{ matrix.installWinUI }}

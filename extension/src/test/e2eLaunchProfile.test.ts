@@ -691,7 +691,7 @@ suite('E2E launch profile', () => {
         assert.ok(workflow.includes('global-json-file: global.json'));
         assert.deepStrictEqual(runnerTargetFrameworks, ['net11.0', 'net10.0', 'net10.0-windows10.0.19041.0', 'net10.0', 'net10.0']);
         assert.deepStrictEqual(fixtureTargetFrameworks, ['net10.0', 'net10.0']);
-        assert.ok(debuggerPrerequisiteStep.includes('if: ${{ matrix.installDotnetDebugger || matrix.installAzureFunctions }}'));
+        assert.ok(debuggerPrerequisiteStep.includes('if: ${{ matrix.installDotnetDebugger || matrix.installAzureFunctions || matrix.installResourceDebug }}'));
         assert.ok(debuggerPrerequisiteStep.includes('vscode-dotnet-runtime/3.1.0/vspackage'));
         assert.ok(debuggerPrerequisiteStep.includes('8e675ffe5f3674430d63e28d2dc05ab40f36c8494e9549e79d3995d721b13f5a'));
         assert.strictEqual(csharpVersion, '2.148.23');
@@ -1160,7 +1160,6 @@ builder.Build().Run();
             workflow.indexOf('- name: Set up the JDK for the Java E2E specs'));
 
         assert.ok(resourceDebugPrerequisites.includes('sudo sysctl --write kernel.yama.ptrace_scope=0'));
-        assert.ok(resourceDebugPrerequisites.includes('test "$(cat /proc/sys/kernel/yama/ptrace_scope)" = "0"'));
         assert.ok(runner.includes("const ptraceScopePath = '/proc/sys/kernel/yama/ptrace_scope';"));
         assert.ok(runner.includes('The resource debug E2E shard requires kernel.yama.ptrace_scope=0'));
     });

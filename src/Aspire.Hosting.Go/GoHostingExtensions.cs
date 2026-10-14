@@ -732,6 +732,22 @@ public static class GoHostingExtensions
 
         var resource = builder.Resource;
 
+        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            // Append after model configuration so GOFLAGS set by a later WithEnvironment call
+            // participates in the merge instead of replacing it.
+            builder.ApplicationBuilder.OnBeforeStart((_, _) =>
+            {
+                if (!resource.HasAnnotationOfType<GoDelveServerAnnotation>() &&
+                    !resource.HasAnnotationOfType<GoLdFlagsAnnotation>())
+                {
+                    builder.WithEnvironment(GoRunDebugging.ConfigureEnvironmentAsync);
+                }
+
+                return Task.CompletedTask;
+            });
+        }
+
         return builder.WithDebugSupport(
             mode =>
             {
@@ -781,14 +797,6 @@ public static class GoHostingExtensions
                 {
                     ctx.Args.Add($"-ldflags={ldFlagsAnnotation.Flags}");
                 }
-                else if (ctx.ExecutionContext.IsRunMode)
-                {
-                    // go run strips DWARF by default. Retain it so an already-running resource
-                    // can bind source breakpoints without rebuilding or restarting it.
-                    // https://pkg.go.dev/cmd/go#hdr-Compile_and_run_Go_program
-                    ctx.Args.Add("-ldflags=-w=false");
-                }
-
                 if (ctx.Resource.TryGetLastAnnotation<GoGcFlagsAnnotation>(out var gcFlagsAnnotation))
                 {
                     ctx.Args.Add($"-gcflags={gcFlagsAnnotation.Flags}");
