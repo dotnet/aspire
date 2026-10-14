@@ -8,6 +8,17 @@ namespace Aspire.Hosting.Tests.Publishing;
 public class ContainerRuntimeDetectorTests
 {
     [Fact]
+    public async Task CheckRuntimeAsync_CanceledToken_DoesNotReturnMissingRuntime()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var executable = $"aspire-missing-runtime-{Guid.NewGuid():N}";
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            ContainerRuntimeDetector.CheckRuntimeAsync(executable, executable, cancellationToken: cancellation.Token));
+    }
+
+    [Fact]
     public void FindBestRuntime_PrefersRunningOverInstalled()
     {
         var runtimes = new[]

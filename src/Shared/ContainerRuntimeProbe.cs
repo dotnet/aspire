@@ -91,6 +91,8 @@ internal class ContainerRuntimeProbe(string executable, string name, int priorit
     /// </summary>
     public async Task<ContainerRuntimeInfo> CheckAsync(ILogger? logger, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         if (GetUnsupportedHostError(OperatingSystem.IsWindows()) is string hostError)
         {
             logger?.LogDebug("{Name}: {Error}", name, hostError);
@@ -138,9 +140,11 @@ internal class ContainerRuntimeProbe(string executable, string name, int priorit
             {
                 await process.WaitForExitAsync(timeoutCts.Token).ConfigureAwait(false);
             }
-            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            catch (OperationCanceledException)
             {
                 try { process.Kill(); } catch { /* best effort */ }
+                cancellationToken.ThrowIfCancellationRequested();
+
                 return new ContainerRuntimeInfo
                 {
                     Executable = executable,
@@ -215,6 +219,8 @@ internal class ContainerRuntimeProbe(string executable, string name, int priorit
 
     private static async Task<bool> IsCliInstalledAsync(string executable, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         try
         {
             var startInfo = new ProcessStartInfo
@@ -241,13 +247,15 @@ internal class ContainerRuntimeProbe(string executable, string name, int priorit
                 await process.WaitForExitAsync(timeoutCts.Token).ConfigureAwait(false);
                 return process.ExitCode == 0;
             }
-            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            catch (OperationCanceledException)
             {
                 try { process.Kill(); } catch { /* best effort */ }
+                cancellationToken.ThrowIfCancellationRequested();
+
                 return false;
             }
         }
-        catch
+        catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
             return false;
         }
@@ -267,6 +275,8 @@ internal class ContainerRuntimeProbe(string executable, string name, int priorit
     /// </summary>
     protected async Task<string?> ReadVersionOutputAsync(string arguments, ILogger? logger, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         try
         {
             var startInfo = new ProcessStartInfo
@@ -294,16 +304,18 @@ internal class ContainerRuntimeProbe(string executable, string name, int priorit
                 output = await process.StandardOutput.ReadToEndAsync(timeoutCts.Token).ConfigureAwait(false);
                 await process.WaitForExitAsync(timeoutCts.Token).ConfigureAwait(false);
             }
-            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            catch (OperationCanceledException)
             {
                 try { process.Kill(); } catch { /* best effort */ }
+                cancellationToken.ThrowIfCancellationRequested();
+
                 logger?.LogDebug("{Name} metadata command timed out.", name);
                 return null;
             }
 
             return output;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
             logger?.LogDebug(ex, "Failed to read {Name} version metadata.", name);
             return null;
