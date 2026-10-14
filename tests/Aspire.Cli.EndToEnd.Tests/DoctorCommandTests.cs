@@ -84,8 +84,10 @@ public sealed class DoctorCommandTests(ITestOutputHelper output)
 
         // Other prerequisite checks may fail independently of runtime selection. Accept doctor's
         // documented 0/1 exit codes, then verify the complete runtime section below.
+        // The harness forces ANSI passthrough even for redirected output. Disable it for this
+        // plain-text capture so message assertions do not include terminal color/reset sequences.
         await auto.RunCommandAsync(
-            "aspire doctor --non-interactive --nologo > doctor-runtime.txt; result=$?; printf '%s' \"$result\" > doctor-text.exit; cat doctor-runtime.txt; test \"$result\" -le 1",
+            "env -u ASPIRE_ANSI_PASS_THRU NO_COLOR=1 aspire doctor --non-interactive --nologo > doctor-runtime.txt; result=$?; printf '%s' \"$result\" > doctor-text.exit; cat doctor-runtime.txt; test \"$result\" -le 1",
             counter,
             TimeSpan.FromMinutes(2));
         await auto.RunCommandAsync(
