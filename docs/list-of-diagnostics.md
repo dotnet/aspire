@@ -35,3 +35,9 @@ The CLI bundle is required by default for C# AppHosts and cannot be disabled. `A
 | `ASPIREAZUREPROVISIONING005` | Warning | A selected Azure Provisioning proxy root is not a supported non-generic, non-static class or struct. | [src/Aspire.Hosting.Azure.Provisioning.Generators/AspireProvisioningProxyGenerator.cs](../src/Aspire.Hosting.Azure.Provisioning.Generators/AspireProvisioningProxyGenerator.cs) |
 | `ASPIREAZUREPROVISIONING006` | Warning | A selected Azure Provisioning proxy root is a mutable struct, which cannot be safely projected as a proxy. | [src/Aspire.Hosting.Azure.Provisioning.Generators/AspireProvisioningProxyGenerator.cs](../src/Aspire.Hosting.Azure.Provisioning.Generators/AspireProvisioningProxyGenerator.cs) |
 | `ASPIRE006` | Error | Application model items must have valid names | [src/Aspire.Hosting.Analyzers/AppHostAnalyzer.Diagnostics.cs](../src/Aspire.Hosting.Analyzers/AppHostAnalyzer.Diagnostics.cs) |
+
+## Experimental APIs
+
+| Diagnostic ID | Description | Location |
+| ------------- | ----------- | -------- |
+| `ASPIREAZUREFUNCTIONS001` | Directory-based Azure Functions app APIs are experimental pending API review and may change or be removed. Suppress this diagnostic to opt in. | [src/Aspire.Hosting.Azure.Functions](../src/Aspire.Hosting.Azure.Functions) |

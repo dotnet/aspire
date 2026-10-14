@@ -1855,8 +1855,10 @@ public class GuestAppHostProjectTests : IDisposable
         Assert.Equal(CliExitCodes.Cancelled, await runTask.DefaultTimeout());
     }
 
-    [Fact]
-    public async Task PublishAsync_PassesResolvedAspireHomeToAppHostServerEnvironment()
+    [Theory]
+    [InlineData(null)]
+    [InlineData("Staging.json")]
+    public async Task PublishAsync_PassesResolvedAspireHomeAndSecretsFileToAppHostServerEnvironment(string? secretsFileName)
     {
         var appHostPath = Path.Combine(_workspace.WorkspaceRoot.FullName, "apphost.ts");
         await File.WriteAllTextAsync(appHostPath, "// test apphost");
@@ -1882,8 +1884,15 @@ public class GuestAppHostProjectTests : IDisposable
         var context = new PublishContext
         {
             AppHostFile = appHostFile,
-            WorkingDirectory = _workspace.WorkspaceRoot
+            WorkingDirectory = _workspace.WorkspaceRoot,
+            Arguments = ["--environment", "Staging"]
         };
+        var secretsFilePath = secretsFileName is null ? null : Path.Combine(_workspace.WorkspaceRoot.FullName, secretsFileName);
+        if (secretsFilePath is not null)
+        {
+            await File.WriteAllTextAsync(secretsFilePath, """{"Parameters:api_key":"staging-secret"}""");
+            context.EnvironmentVariables[KnownConfigNames.AspireSecretsFile] = secretsFilePath;
+        }
 
         var exitCode = await project.PublishAsync(context, CancellationToken.None);
 
@@ -1893,6 +1902,12 @@ public class GuestAppHostProjectTests : IDisposable
         Assert.Equal(
             Path.Combine(AppContext.BaseDirectory, ".home", ".aspire"),
             sessionFactory.CapturedEnvironmentVariables[KnownConfigNames.AspireHome]);
+        Assert.Equal("Staging", sessionFactory.CapturedEnvironmentVariables["DOTNET_ENVIRONMENT"]);
+        Assert.Equal(secretsFilePath is not null, sessionFactory.CapturedEnvironmentVariables.ContainsKey(KnownConfigNames.AspireSecretsFile));
+        if (secretsFilePath is not null)
+        {
+            Assert.Equal(secretsFilePath, sessionFactory.CapturedEnvironmentVariables[KnownConfigNames.AspireSecretsFile]);
+        }
     }
 
     [Fact]
