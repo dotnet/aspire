@@ -371,7 +371,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
             additionalConfiguration: initialData =>
             {
-                initialData[DashboardTelemetryService.TelemetryOptOutConfigKey] = "false";
+                initialData[KnownConfigNames.DashboardTelemetryOptOut] = "false";
                 initialData[DashboardConfigNames.Legacy.DebugSessionPortName.ConfigKey] = "not-a-port";
                 initialData[DashboardConfigNames.Legacy.DebugSessionServerCertificateName.ConfigKey] = "not base64";
                 initialData[DashboardConfigNames.Legacy.DebugSessionTokenName.ConfigKey] = "token!";
@@ -1141,7 +1141,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 RemoveEnvironmentVariableSources(builder);
                 builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    [DashboardTelemetryService.TelemetryOptOutConfigKey] = "true",
+                    [KnownConfigNames.DashboardTelemetryOptOut] = "true",
                     [DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = "http://127.0.0.1:0",
                     [DashboardConfigNames.DashboardOtlpGrpcUrlName.ConfigKey] = "http://127.0.0.1:0",
                     [DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey] = nameof(OtlpAuthMode.Unsecured),
