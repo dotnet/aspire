@@ -248,7 +248,7 @@ public sealed class DashboardCommandExecutorTests
     private static DashboardCommandExecutor CreateExecutor(TestDashboardClient dashboardClient, out Aspire.Dashboard.Model.INotificationService notificationService, out TestNotificationService toastService)
     {
         var telemetryService = new DashboardTelemetryService(NullLogger<DashboardTelemetryService>.Instance,
-            new DashboardTelemetryConfiguration { ReportedTelemetryEnabled = false });
+            new DashboardTelemetryConfiguration { ReportedTelemetryEnabled = false }, NullLoggerFactory.Instance);
 
         return CreateExecutor(dashboardClient, telemetryService, out notificationService, out toastService);
     }

@@ -107,7 +107,8 @@ public class KubernetesPublisherTests(ITestOutputHelper outputHelper)
             "templates/myapp/deployment.yaml",
             "templates/myapp/service.yaml",
             "templates/myapp/config.yaml",
-            "templates/myapp/secrets.yaml"
+            "templates/myapp/secrets.yaml",
+            "templates/env-dashboard/config.yaml"
         };
 
         SettingsTask settingsTask = default!;

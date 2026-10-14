@@ -188,6 +188,7 @@
     <Compile Include="$(SharedDir)AspireCliIdentityEnvVars.cs" Link="Acquisition\AspireCliIdentityEnvVars.cs" />
     <Compile Include="$(SharedDir)AssemblyVersionHelper.cs" Link="Utils\AssemblyVersionHelper.cs" />
     <Compile Include="$(SharedDir)Telemetry\*.cs" LinkBase="Telemetry\Shared" />
+    <Compile Include="$(SharedDir)FlexibleBooleanConverter.cs" Link="Configuration\FlexibleBooleanConverter.cs" />
     <Compile Include="$(SharedDir)BundleDiscovery.cs" Link="Layout\BundleDiscovery.cs" />
     <Compile Include="$(SharedDir)TerminalHostPayload.cs" Link="Layout\TerminalHostPayload.cs" />
     <Compile Include="$(SharedDir)WindowsTrayPayload.cs" Link="Layout\WindowsTrayPayload.cs" />
