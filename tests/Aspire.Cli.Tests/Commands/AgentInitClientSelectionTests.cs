@@ -556,6 +556,31 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
     }
 
     [Theory]
+    [InlineData("""
+        {
+            // Keep the editor's existing server and formatting.
+            "servers": {
+                "other": { "command": "other", "args": ["https://example.test/a//b"] }
+            }
+        }
+        """)]
+    [InlineData("""{"servers":{"other":{"command":"other","args":["--custom",],},},}""")]
+    public async Task AgentInit_CopilotProjectMcp_AcceptsJsoncWithoutDeprecatedEntries(string original)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var configDirectory = workspace.CreateDirectory(".vscode");
+        var configPath = Path.Combine(configDirectory.FullName, "mcp.json");
+        await File.WriteAllTextAsync(configPath, original);
+        using var provider = CliTestHelper.CreateServiceCollection(workspace, outputHelper).BuildServiceProvider();
+
+        var result = provider.GetRequiredService<RootCommand>().Parse(
+            "agent init --agents copilot --scope project --skills none --mcp");
+
+        Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
+        Assert.Equal(original, await File.ReadAllTextAsync(configPath));
+    }
+
+    [Theory]
     [InlineData("copilot", "GitHub Copilot", ".mcp.json")]
     [InlineData("claude", "Claude Code", ".mcp.json")]
     [InlineData("opencode", "OpenCode", "opencode.jsonc")]

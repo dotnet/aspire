@@ -26,6 +26,7 @@ internal sealed class AgentClient
         GlobalMcpConfigPath = static (context, environment) =>
             Path.Combine(CopilotPaths.GetConfigDirectory(context.HomeDirectory, environment), "mcp-config.json"),
         McpServersPropertyName = "mcpServers",
+        McpJsonDocumentOptions = ConfigurationHelper.ParseOptions,
         GlobalMcpServerConfiguration = new JsonObject
         {
             ["type"] = "local",
