@@ -25,11 +25,47 @@ The guiding principles are:
 - **Explicit ownership:** Resources, providers and operations have defined scopes and lifetimes.
 - **Small core:** Service-specific implementation and dependencies stay in integrations.
 
+### Reading the Code Samples
+
+This guide distinguishes three kinds of code:
+
+| Label | Meaning |
+| --- | --- |
+| **Current sample facade** | The C# or TypeScript authoring helpers under `playground/NativeIntegrations`, not the managed `Aspire.Hosting` implementation. |
+| **Current core projection** | Existing generated ATS methods in `Aspire.Hosting.Native.Client` and the corresponding TypeScript SDK. |
+| **Design sketch** | A proposed authoring contract, not an API available from the current product bundle. |
+
+The product opt-in currently supports TypeScript/Node.js. C# examples explain
+integration implementation and the generated core projection; they do not
+make C# guest AppHosts supported by that flag.
+
+The [Talking Clock walkthrough](#custom-resources-talking-clock) shows
+declaration, fluent configuration, execution delegation, a controller loop,
+observations, and shutdown using current core primitives. Its integration code
+is an example to author, not a shipped package. Proposed parent relationships,
+automatic controller activation, and richer presentation are identified
+separately rather than hidden behind invented SDK methods.
+
+### Authoring Examples
+
+- [Declare an external API and retain a secret reference](#declaring-a-resource-through-ats).
+- [Compose a service from generic workloads](#composing-an-integration-from-generic-workloads).
+- [Design typed annotation data](#a-typed-annotation-contract).
+- [Build a deferred connection expression](#constructing-a-connection-expression).
+- [Register bounded lifecycle behavior](#a-bounded-provider-callback).
+- [Report state and complete commands](#reporting-state-and-completing-commands).
+- [Build Talking Clock from declarations through retirement](#custom-resources-talking-clock).
+- [Stage and commit a model revision](#model-revisions-and-guest-reload).
+
 ## Quick Start
 
-The current Redis examples use familiar fluent APIs:
+**Current sample facade.** The Redis examples use familiar fluent APIs:
 
 ```csharp
+using Aspire.Hosting.Native.Authoring;
+using NativeIntegrations.Redis;
+using NativeIntegrations.Redis.AppHost;
+
 var builder = DistributedApplication.CreateBuilder(args);
 var cache = builder.AddRedis("cache").WithDataVolume();
 
@@ -58,8 +94,9 @@ expresses an explicit readiness dependency. These are different operations,
 although resolving a value can itself require another resource to be ready.
 
 The [native integration examples](../../playground/NativeIntegrations/README.md)
-contain the current C# and TypeScript implementations. Other examples in this
-guide describe design requirements, not additional supported APIs.
+contain the current C# and TypeScript implementations. The C# builder records
+commands synchronously; generated core projection calls are asynchronous.
+Examples below label which surface they use.
 
 ## Architecture
 
@@ -161,6 +198,70 @@ General integration-defined resource schemas remain part of the design
 direction. A caller-provided type name alone must never grant additional
 capabilities.
 
+### Declaring a Resource Through ATS
+
+**Current core projection.** An integration does not need to install a resource
+class into the server. It can declare a resource and keep a typed local facade:
+
+```csharp
+using Aspire.Hosting;
+using Aspire.Hosting.Native.Client;
+
+public static class ExternalApiExtensions
+{
+    [AspireExport("addExternalApi")]
+    public static async Task<ExternalApiResource> AddExternalApi(
+        Composition composition, string name, string baseUrl)
+    {
+        var uri = new Uri(baseUrl, UriKind.Absolute);
+        if (uri.Scheme is not ("http" or "https") ||
+            !string.IsNullOrEmpty(uri.UserInfo))
+        {
+            throw new ArgumentException(
+                "An external API requires an HTTP(S) URL without credentials.",
+                nameof(baseUrl));
+        }
+
+        var declaration = await composition.AddResourceAsync(
+            name, "example/external-api");
+        await declaration.SetResourceConfigurationAsync(new ResourceConfiguration
+        {
+            Properties =
+            [
+                new() { Name = "baseUrl", Value = uri.AbsoluteUri }
+            ]
+        });
+
+        return new ExternalApiResource(declaration);
+    }
+}
+
+[AspireExport]
+public sealed class ExternalApiResource(DeclaredResource declaration)
+    : NativeIntegrationResource(declaration)
+{
+    [AspireExport("withApiKey")]
+    public async Task<ExternalApiResource> WithApiKey(DeclaredValue apiKey)
+    {
+        await Declaration.SetSymbolicConfigurationAsync("apiKey", apiKey);
+
+        return this;
+    }
+}
+```
+
+This is the pattern used by the
+[C# external API integration](../../playground/NativeIntegrations/CSharp/ExternalApi/ExternalApiExtensions.cs).
+`DeclaredResource` and `DeclaredValue` are generated capability handles.
+`ExternalApiResource` is provider-local authoring state anchored to a native
+declaration, not an object the server reflects over to discover model behavior.
+The URI is ordinary configuration; the API key remains a server-owned value.
+
+`SetResourceConfigurationAsync` replaces the resource's complete literal
+configuration. An integration must preserve other fields it owns when changing
+one field. Symbolic values use the separate field-oriented
+`SetSymbolicConfigurationAsync` operation.
+
 ## Standard Capabilities and Polymorphism
 
 Capabilities describe what a resource supports independently of its concrete
@@ -228,6 +329,49 @@ Others register behavior implemented in their integration host. Exported
 methods and their generated projections form the shared API; consumers do not
 need to know how providers are connected.
 
+### Composing an Integration From Generic Workloads
+
+**Current sample facade.** A simple service can be a thin wrapper over generic
+container primitives. For example, a local HTTP service needs no custom
+execution backend:
+
+```csharp
+using Aspire.Hosting.Native.Authoring;
+
+public static class WebServerExtensions
+{
+    public static IResourceBuilder<ContainerResource> AddWebServer(
+        this DistributedApplicationBuilder builder, string name)
+    {
+        return builder.AddContainer(name, "nginx:alpine")
+            .WithEndpoint("http", 80, "http");
+    }
+}
+```
+
+**Current core projection.** The equivalent declaration can configure a named
+content volume as read-only:
+
+```csharp
+var server = await composition.AddContainerAsync("web", "nginx:alpine");
+await server.WithEndpointAsync(new WorkloadEndpointDeclaration
+{
+    Name = "http",
+    Protocol = "TCP",
+    UriScheme = "http",
+    TargetPort = 80,
+    HostPort = 0,
+    EnvironmentVariable = ""
+});
+await server.WithVolumeAsync(
+    contentVolumeName, "/usr/share/nginx/html", true);
+```
+
+Use an existing generic capability when it expresses the behavior. Add a
+facade helper only when it records the same real declaration operation. The
+named volume remains external storage; retiring the container does not delete
+it. Neither example launches the service while composing the graph.
+
 ## Annotations and Extension Data
 
 Annotations remain an important extensibility concept, but arbitrary live
@@ -246,6 +390,52 @@ without loading a Redis implementation.
 
 Portable annotation schemas are not implemented as a general native API today.
 Integration-local objects are allowed, but are not shared model annotations.
+
+### A Typed Annotation Contract
+
+**Design sketch.** An annotation should have a declared schema and mutation
+semantics, not be an arbitrary dictionary of live integration objects. For
+example, a persistence schema could use this DTO:
+
+```csharp
+using Aspire.Hosting;
+
+[AspireDto]
+public sealed class RedisPersistenceSettings
+{
+    public required bool AppendOnly { get; init; }
+    public required string DataDirectory { get; init; }
+}
+```
+
+The intended authoring operation is conceptually:
+
+```typescript
+// Proposed schema-aware API, not an existing generated SDK method.
+await cache.setAnnotation('example.redis/persistence', {
+    appendOnly: true,
+    dataDirectory: '/data'
+});
+```
+
+The schema registration would identify this as a singleton annotation:
+another write replaces its value without changing the resource identity.
+An integration or publisher reads the same typed data. The annotation does
+not contain a Redis client, a callback, an allocated port, or a resolved secret.
+The server must validate the schema and write authority before accepting it.
+
+The existing
+[Redis persistence helper](../../playground/NativeIntegrations/CSharp/Redis/RedisContainerResource.cs)
+instead contributes a real named volume through `WithVolume`; it does not
+depend on this proposed annotation API:
+
+```csharp
+public static IResourceBuilder<RedisContainerResource> WithDataVolume(
+    this IResourceBuilder<RedisContainerResource> cache, string volumeName)
+{
+    return cache.WithVolume(volumeName, "/data");
+}
+```
 
 ## Values and References
 
@@ -269,6 +459,52 @@ must translate the same expression for its deployment target.
 
 Sensitivity propagates through expressions. Formatting a secret into a URI
 does not make the result safe to include in model inspection or logs.
+
+### Constructing a Connection Expression
+
+**Current core projection.** Given an authenticated Redis declaration named
+`cache`, a composition-owned `password` value, and an executable declaration
+named `consumer`, this builds a deferred URI without fetching the password or
+allocated address:
+
+```csharp
+var prefix = await composition.CreateLiteralValueAsync("redis://:");
+var escapedPassword = await password.EncodeUriValueAsync();
+var separator = await composition.CreateLiteralValueAsync("@");
+var address = await composition.CreateEndpointValueAsync(
+    cache, "tcp", "hostAndPort");
+
+var connection = await prefix.ConcatValueAsync(escapedPassword);
+connection = await connection.ConcatValueAsync(separator);
+connection = await connection.ConcatValueAsync(address);
+
+await consumer.WithReferenceAsync("ConnectionStrings__cache", connection);
+await consumer.WaitForAsync(cache);
+```
+
+`ConcatValueAsync` and `EncodeUriValueAsync` create new server-owned expressions.
+The password stays secret and the endpoint reference retains its dependency.
+The consumer is a host executable: general container-consumer network
+resolution is not implemented. Supplying this expression to a container must
+not be presented as supported cross-network resolution.
+
+The integration supplies a connection format its consumers actually understand.
+The current Redis sample uses the StackExchange.Redis configuration format;
+the URI above demonstrates expression composition, not a replacement for that
+sample's connection contract.
+
+The fluent sample facade expresses the same idea without projection plumbing:
+
+```csharp
+var endpoint = cache.GetEndpoint("tcp");
+consumer.WithEnvironment("CACHE_ADDRESS", endpoint.HostAndPort)
+    .WithReference(cache)
+    .WaitFor(cache);
+```
+
+This fragment uses a fluent `cache` builder, not the `DeclaredResource` variable
+in the previous fragment. Resolving a reference is runtime work; neither form
+should call a service client during composition.
 
 ### Endpoints
 
@@ -302,6 +538,41 @@ Validation must distinguish allocation dependencies from execution
 dependencies. Mutually referenced public URLs, for example, should not
 necessarily become a startup cycle.
 
+**Current core projection.** A database can be declared independently and
+explicitly wait for its server:
+
+```csharp
+var database = await composition.AddResourceAsync(
+    "app-db", "example.postgres/database");
+await database.SetResourceConfigurationAsync(new ResourceConfiguration
+{
+    Properties =
+    [
+        new() { Name = "databaseName", Value = "app_db" }
+    ]
+});
+await database.WaitForAsync(postgres);
+```
+
+This declares a readiness edge. It does not create a database, confer execution
+authority, or establish visual/lifecycle parenthood. A provider must perform
+idempotent database creation at the appropriate runtime phase, using an
+explicit initialization registration.
+
+**Design sketch.** The relationship vocabulary needs to preserve these
+distinctions in generated APIs:
+
+```typescript
+// Proposed relationship APIs, not existing generated SDK methods.
+await database.withVisualParent(postgres);
+await database.withLifetimeOwner(postgres);
+await database.waitFor(postgres); // Existing readiness concept.
+```
+
+Talking Clock below uses explicit execution scopes for its two hands. It does
+not pretend that naming them `clock-tick` and `clock-tock` implements either
+of the proposed parent relationships.
+
 ## Lifecycle and Health
 
 The core coordinates execution. Integrations supply service-specific behavior
@@ -327,6 +598,47 @@ readiness condition, not merely an open port.
 Provider failures and disconnects must be visible. The core must not retain
 healthy state indefinitely after the integration responsible for it disappears.
 
+### A Bounded Provider Callback
+
+**Current core projection.** A provider can register an offline-discovered
+lifecycle handler on an integration-owned resource:
+
+```csharp
+using Aspire.Hosting;
+using Aspire.Hosting.Native.Client;
+
+[AspireExport]
+public sealed class CacheResource(DeclaredResource declaration)
+    : NativeIntegrationResource(declaration)
+{
+    [AspireExport("cacheReady"), NativeResourceLifecycle("ready")]
+    public Task Ready(
+        ResourceLifecycleScope scope, CancellationToken cancellationToken)
+    {
+        return scope.WriteLifecycleLogAsync(
+            "stdout", "Cache is ready.", cancellationToken);
+    }
+}
+```
+
+The handler runs with phase-scoped authority. It does not receive a service
+provider, a raw graph, or credentials to inspect. Where a service-specific
+operation needs resolved secret inputs, `RunLifecycleExecutableAsync` can run
+a bounded tool using captured symbolic bindings; those resolved inputs remain
+native-owned. The
+[Redis provider's retirement callback](../../playground/NativeIntegrations/CSharp/Redis/RedisExtensions.cs)
+demonstrates an authenticated final `SAVE` using that mechanism.
+
+Current provider callback labels are `initialize`, `allocated`, `ready`, and
+`retiring`. They differ from the declared executable-hook labels `initialize`,
+`health`, `ready`, and `retire`. These are two existing registration surfaces,
+not interchangeable strings.
+
+This callback example follows the provider-backed workload pattern. It is not
+a general controller registration API: putting an infinite timer loop in
+`Ready` or `Initialize` would prevent the phase from completing and its
+temporary authority from being revoked.
+
 ## State, Logs, Commands and Interactions
 
 Declarations describe desired configuration. Observations describe what is
@@ -349,22 +661,429 @@ be treated as successful approval.
 The Dashboard and CLI consume these shared contracts. They adapt the model for
 presentation rather than become alternate owners of its state.
 
+### Reporting State and Completing Commands
+
+**Current core projection.** Only an execution owner, not a resource name or
+an observer, can publish runtime state:
+
+```csharp
+var desired = await resource.ReadResourceConfigurationAsync(cancellationToken);
+await resource.CompleteResourceConfigurationAsync(
+    desired.Revision,
+    new RuntimeOperationResult
+    {
+        Status = "succeeded",
+        Message = "The declared configuration is applied."
+    },
+    cancellationToken);
+await resource.PublishObservationAsync(new ResourceObservation
+{
+    State = "Running",
+    Healthy = true,
+    Urls = []
+}, cancellationToken);
+await resource.AppendResourceLogAsync(
+    "stdout", "Resource is ready.", cancellationToken);
+```
+
+Acknowledging configuration is not itself a health check. Publish healthy only
+after the integration's real readiness condition is satisfied. The revision
+number prevents an old operation from acknowledging a newer desired graph.
+
+A resource-scoped command has an explicit request and completion:
+
+```csharp
+await resource.DefineResourceCommandAsync("speak", "Speak now", cancellationToken);
+var pending = await resource.ReadResourceCommandsAsync(cancellationToken);
+foreach (var command in pending.Commands)
+{
+    var result = new RuntimeOperationResult
+    {
+        Status = "failed",
+        Message = "Unknown clock command."
+    };
+    if (command.Name == "speak")
+    {
+        try
+        {
+            await resource.AppendResourceLogAsync(
+                "stdout", $"The time is {timeProvider.GetUtcNow():O}.",
+                cancellationToken);
+            result = new RuntimeOperationResult
+            {
+                Status = "succeeded",
+                Message = "The current time was logged."
+            };
+        }
+        catch (OperationCanceledException)
+            when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            result = new RuntimeOperationResult
+            {
+                Status = "failed",
+                Message = "The clock could not report the current time."
+            };
+        }
+    }
+    await resource.CompleteResourceCommandAsync(
+        command.RequestId, result, cancellationToken);
+}
+```
+
+Run this command handler in the clock's serialized controller path if it shares
+mutable state with ticking or configuration changes. Do not start unrelated
+mutating loops just because the RPC service permits concurrent calls. A failed
+command body must complete its request with failure rather than leaving the
+caller waiting indefinitely. If execution authority is retired, the core
+cancels its pending requests; do not attempt to complete them through a
+revoked scope. Error results use fixed public messages rather than forwarding
+provider exception payloads.
+
+Confirmation is a separate operation:
+
+```csharp
+var confirmation = await resource.RequestConfirmationAsync(
+    "Reset this resource's integration-owned state?", cancellationToken);
+var decision = await confirmation.AwaitRuntimeOperationAsync(cancellationToken);
+if (decision.Status == "accepted")
+{
+    // Execute the reset through the same owned controller path.
+}
+```
+
+Only `accepted` grants approval. Rejection, dismissal, cancellation, and an
+unavailable interaction must not execute the reset. A real reset handler also
+needs a concrete operation and explicit result; this fragment shows only the
+approval gate.
+
 ## Custom Resources: Talking Clock
 
 The [original guide's Talking Clock](appmodel.md#example-custom-resource---talking-clock)
 illustrates a resource with no container or executable of its own. Its v2
-equivalent would:
+equivalent is a **run-only controller-backed resource**, with two synthetic
+hand resources. The core knows the three identities and their authority, not
+how a clock ticks.
 
-1. Declare the clock and its child resources.
-2. Register an integration-owned controller.
-3. Publish tick/tock observations and resource logs while active.
-4. Stop and await the controller when its resource is retired.
+The following worked implementation uses **current core projection** methods.
+It is not an installed or bundled Talking Clock integration. The declarations
+and controller code are separated deliberately: `AddTalkingClock` never starts
+a timer, claims execution, or publishes runtime state.
 
-The core knows the resource's identity, relationships and lifetime, not how a
-clock ticks. A Dev Tunnel controller belongs to the same category, while
-additionally reporting external endpoints.
+### 1. Declare the Clock and Its Hands
 
-This is a design example, not an implemented native Talking Clock integration.
+The integration's local facade stores native handles. Only the authoring
+operations that callers need are exported:
+
+```csharp
+using System.Globalization;
+using Aspire.Hosting;
+using Aspire.Hosting.Native.Client;
+
+public static class TalkingClockExtensions
+{
+    [AspireExport("addTalkingClock")]
+    public static async Task<TalkingClockResource> AddTalkingClock(
+        Composition composition, string name, int periodMilliseconds)
+    {
+        TalkingClockResource.ValidatePeriod(periodMilliseconds);
+        var clock = await composition.AddResourceAsync(
+            name, "example.clock/talking-clock");
+        var tick = await composition.AddResourceAsync(
+            $"{name}-tick", "example.clock/hand");
+        var tock = await composition.AddResourceAsync(
+            $"{name}-tock", "example.clock/hand");
+        var resource = new TalkingClockResource(clock, tick, tock);
+        await resource.WithPeriod(periodMilliseconds);
+
+        return resource;
+    }
+}
+
+[AspireExport]
+public sealed class TalkingClockResource(
+    DeclaredResource clock, DeclaredResource tick, DeclaredResource tock)
+    : NativeIntegrationResource(clock)
+{
+    [AspireExport("talkingClockDeclaration")]
+    public DeclaredResource GetDeclaration() => Declaration;
+
+    [AspireExport("talkingClockTickHand")]
+    public DeclaredResource GetTickHand() => tick;
+
+    [AspireExport("talkingClockTockHand")]
+    public DeclaredResource GetTockHand() => tock;
+
+    [AspireExport("withPeriod")]
+    public async Task<TalkingClockResource> WithPeriod(int periodMilliseconds)
+    {
+        ValidatePeriod(periodMilliseconds);
+        await Declaration.SetResourceConfigurationAsync(new ResourceConfiguration
+        {
+            Properties =
+            [
+                new()
+                {
+                    Name = "periodMilliseconds",
+                    Value = periodMilliseconds.ToString(CultureInfo.InvariantCulture)
+                }
+            ]
+        });
+
+        return this;
+    }
+
+    internal static void ValidatePeriod(int periodMilliseconds)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(periodMilliseconds, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(periodMilliseconds, 60_000);
+    }
+}
+```
+
+Each hand is a real declaration, not a mutable object stored on the clock in
+the server. The returned facade exposes handles, not arbitrary child names to
+turn into runtime authority. `WithPeriod` replaces the clock's complete literal
+configuration; this example intentionally has exactly one such setting.
+
+The period is one half-cycle: each interval alternates between tick and tock.
+Validation happens before adding resources. Any later composition error should
+abort the staged graph, not leave a partially composed revision committed.
+
+### 2. Call the Integration From an AppHost
+
+The C# implementation can be invoked directly in a core-projection harness:
+
+```csharp
+var clock = await TalkingClockExtensions.AddTalkingClock(
+    composition, "clock", 1_000);
+await clock.WithPeriod(500);
+```
+
+When the exported integration has been packaged and its SDK generated, the
+TypeScript projection of the same methods has this shape:
+
+```typescript
+const clock = await composition.addTalkingClock('clock', 1000);
+await clock.withPeriod(500);
+```
+
+This is the projection of the exports defined above, not a promise that
+`addTalkingClock` is available in today's bundled core SDK. Provider contract
+generation, activation, and generated consumer modules follow the
+[external API provider example](../../playground/NativeIntegrations/README.md).
+There is no reason to export hand-authored JSON-RPC dispatch from this
+integration or to add clock-specific code to the native executor.
+
+### 3. Obtain Resource-Scoped Execution Authority
+
+After composition is sealed, an owner can issue one-use invitations. The
+integration redeems them on its own connection:
+
+```csharp
+var execution = await composition.CreateExecutionAsync();
+var clockInvitation = await execution.InviteResourceExecutionAsync(
+    clock.GetDeclaration());
+var tickInvitation = await execution.InviteResourceExecutionAsync(
+    clock.GetTickHand());
+var tockInvitation = await execution.InviteResourceExecutionAsync(
+    clock.GetTockHand());
+
+var clockExecution = await integrationClient.Server.JoinResourceExecutionAsync(
+    clockInvitation);
+var tickExecution = await integrationClient.Server.JoinResourceExecutionAsync(
+    tickInvitation);
+var tockExecution = await integrationClient.Server.JoinResourceExecutionAsync(
+    tockInvitation);
+```
+
+Here `composition` and `clock` are the direct C# harness objects from the
+previous step, and `integrationClient` is a separately authenticated
+`NativeClient`. A packaged guest would obtain declarations through the
+generated facade methods instead. The invitations are credentials: do not log
+them or replace them with resource IDs.
+
+This wiring is shown to explain the existing primitive, not to make every
+AppHost author manually connect providers. A general run-only controller
+registration that performs this activation automatically is still a design
+requirement. `CreateExecutionAsync` also does not start declared containers or
+executables; those use the separate `StartApplicationAsync` path.
+
+### 4. Run the Integration-Owned Controller
+
+The controller receives only the three execution scopes it owns. It has no
+model-editing authority and does not require a DCP workload:
+
+```csharp
+using System.Globalization;
+using Aspire.Hosting.Native.Client;
+
+public static class TalkingClockController
+{
+    public static async Task RunAsync(
+        ResourceExecution clock,
+        ResourceExecution tick,
+        ResourceExecution tock,
+        TimeProvider timeProvider,
+        CancellationToken cancellationToken)
+    {
+        ResourceExecution[] resources = [clock, tick, tock];
+        await Task.WhenAll(resources.Select(resource =>
+            resource.PublishObservationAsync(new ResourceObservation
+            {
+                State = "Starting",
+                Healthy = false,
+                Urls = []
+            }, cancellationToken)));
+
+        var configurations = await Task.WhenAll(resources.Select(resource =>
+            resource.ReadResourceConfigurationAsync(cancellationToken)));
+        var configuration = configurations[0];
+        var period = ReadPeriod(configuration);
+        await Task.WhenAll(resources.Select((resource, index) =>
+            MarkRunningAsync(resource, configurations[index], cancellationToken)));
+
+        using var timer = new PeriodicTimer(
+            TimeSpan.FromMilliseconds(period), timeProvider);
+        var isTick = true;
+        while (await timer.WaitForNextTickAsync(cancellationToken))
+        {
+            configuration = await clock.ReadResourceConfigurationAsync(
+                cancellationToken);
+            if (configuration.Revision != configuration.AppliedRevision)
+            {
+                timer.Period = TimeSpan.FromMilliseconds(ReadPeriod(configuration));
+                await MarkRunningAsync(clock, configuration, cancellationToken);
+            }
+
+            await clock.AppendResourceLogAsync(
+                "stdout",
+                $"{(isTick ? "Tick" : "Tock")}: {timeProvider.GetUtcNow():O}",
+                cancellationToken);
+            await tick.AppendResourceLogAsync(
+                "stdout", isTick ? "On" : "Off", cancellationToken);
+            await tock.AppendResourceLogAsync(
+                "stdout", isTick ? "Off" : "On", cancellationToken);
+            isTick = !isTick;
+        }
+    }
+
+    private static int ReadPeriod(ResourceConfigurationRevision configuration)
+    {
+        var property = configuration.Properties.Single(
+            property => property.Name == "periodMilliseconds");
+        var period = int.Parse(property.Value, CultureInfo.InvariantCulture);
+        TalkingClockResource.ValidatePeriod(period);
+
+        return period;
+    }
+
+    private static async Task MarkRunningAsync(
+        ResourceExecution resource,
+        ResourceConfigurationRevision desired,
+        CancellationToken cancellationToken)
+    {
+        await resource.CompleteResourceConfigurationAsync(
+            desired.Revision,
+            new RuntimeOperationResult
+            {
+                Status = "succeeded",
+                Message = "Clock configuration applied."
+            },
+            cancellationToken);
+        await resource.PublishObservationAsync(new ResourceObservation
+        {
+            State = "Running",
+            Healthy = true,
+            Urls = []
+        }, cancellationToken);
+    }
+}
+```
+
+The initial `Starting` and `Running` observations describe real controller
+lifecycle. Hand logs show the alternating phase. In the current closed state
+vocabulary, `"Tick"`, `"Tock"`, `"On"`, and `"Off"` are not valid lifecycle
+states; presenting them as custom labels/properties requires an extended
+observation contract. An inactive hand is not unhealthy.
+
+This controller applies period changes on its single execution path, rather
+than racing a timer with independent configuration callbacks. A configuration
+acknowledgement must correspond to the settings actually applied; a superseding
+revision needs re-reading and reapplication rather than acknowledging stale
+work. A production controller also needs its owner to supervise completion,
+surface configuration or RPC failures, and revoke its writer scopes on fault.
+
+### 5. Stop, Drain, and Retire
+
+The integration host must retain the controller task. Shutdown cancels it,
+awaits its exit, and only then releases the connection-owned execution scopes:
+
+```csharp
+using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(
+    controllerStoppingToken);
+var controller = TalkingClockController.RunAsync(
+    clockExecution, tickExecution, tockExecution,
+    TimeProvider.System, lifetime.Token);
+
+try
+{
+    await controller;
+}
+catch (OperationCanceledException) when (lifetime.IsCancellationRequested)
+{
+    // The owner requested retirement; unrelated cancellation still fails.
+}
+finally
+{
+    await lifetime.CancelAsync();
+    await integrationClient.DisposeAsync();
+}
+```
+
+`controllerStoppingToken` belongs to the resource's lifecycle coordinator and
+is cancelled on explicit controller stop or provider shutdown. The code above
+is the supervising task, not a complete process entry point. It never discards
+the controller task. A non-cancellation fault propagates to the host, which
+must report the failed controller; closing its writer connection prevents
+stale healthy observations from surviving. In this minimal harness the writer
+connection is dedicated to this clock; a shared provider connection needs
+per-resource release rather than disconnecting unrelated controllers.
+
+On application removal the server revokes the scopes, retires the resources,
+and rejects late writes. Do not publish a successful stopped state through
+already revoked capabilities or swallow retirement/cleanup errors.
+If the host starts controllers for several clocks, each clock needs its own
+task and cancellation scope; a single global queue would unnecessarily
+serialize independent clocks.
+
+### Completing the Higher-Level Integration Contract
+
+The full desired Talking Clock experience also needs these model/runtime
+contracts:
+
+| Concern | Requirement |
+| --- | --- |
+| Child presentation | Explicit visual grouping for tick and tock, not name matching. |
+| Child lifetime | Explicit ownership that retires both hands with the clock. |
+| Controller activation | A resource-scoped run-only registration, not a forever-running initialization callback. |
+| Failure | Report a failed controller and invalidate its readiness before retrying. |
+| Revisions | Preserve or restart the controller deliberately and adopt new authoring bindings. |
+| Publishing | Exclude the run-only clock and hands through a real mode contract. |
+| Presentation | Structured phase/time properties or display labels, not invented lifecycle states. |
+
+These are not implemented by the literal `periodMilliseconds` setting or by the
+`NativeIntegrationResource` base class. The worked harness demonstrates the
+current lower-level pieces without asserting that the higher-level
+registration and ownership contracts already exist.
+
+A Dev Tunnel controller has the same lifetime problem, but also reports real
+endpoint allocations and owns an external service session. Its service client,
+reconnect policy, and forwarding loop belong in the provider, not a tunnel
+branch inside the core.
 
 ## Model Revisions and Guest Reload
 
@@ -384,6 +1103,36 @@ unchanged.
 Resource-preserving revisions exist in the current exploration. Automatic CLI
 file watching and complete reconciliation of every value and integration are
 separate requirements, not consequences of keeping a server process alive.
+
+**Current core projection.** Composition failure can discard a candidate
+without replacing the committed graph:
+
+```csharp
+var revision = await workspace.BeginRevisionAsync();
+try
+{
+    await revision.AddContainerAsync("web", "nginx:alpine");
+}
+catch
+{
+    await workspace.AbortRevisionAsync(revision);
+    throw;
+}
+
+await workspace.CommitRevisionAsync(revision);
+```
+
+Commit is deliberately outside the abort-on-composition-failure block. A failure
+after desired state is committed is not a rollback of external side effects;
+the current workspace can require retirement after apply/cleanup failure.
+The revision is a complete desired graph, not a patch containing only `web`.
+Omitted resources are removed. The existing execution must be started
+separately before subsequent commits reconcile running declared workloads.
+
+For Talking Clock, a period change can update a retained controller's desired
+configuration. Changing its resource type or removing it requires retirement.
+The integration must not re-generate stable credentials, keep old authoring
+handles, or leak the previous controller when a new guest reexecutes.
 
 ## Publishing and Deployment
 
