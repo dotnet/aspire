@@ -107,6 +107,7 @@ builder.Build().Run();
 
         // Step 10: Verify the frontend responds from inside its own network namespace.
         await VerifyFrontendRespondsAsync(auto, counter);
+        await VerifyDashboardTelemetryOptOutAsync(auto, counter);
 
         // Step 11: Clean up - destroy the deployment using aspire destroy
         await auto.AspireDestroyAsync(counter);
@@ -204,9 +205,20 @@ builder.Build().Run();
 
         // Step 10: Verify the frontend responds from inside its own network namespace.
         await VerifyFrontendRespondsAsync(auto, counter);
+        await VerifyDashboardTelemetryOptOutAsync(auto, counter);
 
         // Step 11: Clean up - destroy the deployment using aspire destroy
         await auto.AspireDestroyAsync(counter);
+    }
+
+    private static async Task VerifyDashboardTelemetryOptOutAsync(Hex1bTerminalAutomator auto, SequenceCounter counter)
+    {
+        await auto.RunCommandAsync(
+            "dashboard=$(docker compose -f deploy-output/docker-compose.yaml ps -q compose-dashboard) && " +
+            "test -n \"$dashboard\" && " +
+            "docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' \"$dashboard\" | " +
+            "grep -Fx 'ASPIRE_DASHBOARD_TELEMETRY_OPTOUT=true'",
+            counter);
     }
 
     /// <summary>
