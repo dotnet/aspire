@@ -240,8 +240,8 @@ public class TerminalWindowTests : DashboardTestContext
         Assert.Equal("http://localhost/terminal-window/resource/shell", navigation.Uri);
         Assert.Equal("shell-after", reloaded.FindComponent<TerminalView>().Instance.ResourceName);
         Assert.Collection(JSInterop.Invocations.Where(i => i.Identifier == "initTerminal"),
-            i => Assert.Equal($"ws://localhost/api/terminal?resource=shell-before&viewId={Assert.IsType<TerminalViewOptions>(i.Arguments[3]).ViewId}", i.Arguments[1]),
-            i => Assert.Equal($"ws://localhost/api/terminal?resource=shell-after&viewId={Assert.IsType<TerminalViewOptions>(i.Arguments[3]).ViewId}", i.Arguments[1]));
+            i => TerminalSetupHelpers.AssertBoundEndpoint("ws://localhost/api/terminal?resource=shell-before", i.Arguments[1]),
+            i => TerminalSetupHelpers.AssertBoundEndpoint("ws://localhost/api/terminal?resource=shell-after", i.Arguments[1]));
         Assert.Equal(2, client.GetResourceCallCount);
         Assert.Equal(2, client.GetResourcesCallCount);
         Assert.Equal(0, client.ResourceSubscriptionCount);

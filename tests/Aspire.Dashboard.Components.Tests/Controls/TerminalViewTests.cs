@@ -35,20 +35,23 @@ public class TerminalViewTests : DashboardTestContext
         var cut = Render<TerminalView>(builder => builder
             .Add(p => p.ResourceName, "shell")
             .Add(p => p.SizeMemoryKey, "dock:shell"));
+        var loc = Services.GetRequiredService<IStringLocalizer<Resources.TerminalStrings>>();
+        var controlsLoc = Services.GetRequiredService<IStringLocalizer<Resources.ControlsStrings>>();
 
         var button = cut.Find("div[hidden] .terminal-selection-copy");
-        Assert.Equal(Resources.ControlsStrings.GridValueCopyToClipboard, button.GetAttribute("aria-label"));
-        Assert.Equal(Resources.ControlsStrings.GridValueCopyToClipboard, button.GetAttribute("title"));
+        Assert.Equal(controlsLoc[nameof(Resources.ControlsStrings.GridValueCopyToClipboard)].Value, button.GetAttribute("aria-label"));
+        Assert.Equal(controlsLoc[nameof(Resources.ControlsStrings.GridValueCopyToClipboard)].Value, button.GetAttribute("title"));
         Assert.Single(button.QuerySelectorAll("svg"));
         var invocation = Assert.Single(initialization.Invocations);
         Assert.IsType<DotNetObjectReference<TerminalView>>(invocation.Arguments[2]);
         var options = Assert.IsType<TerminalViewOptions>(invocation.Arguments[3]);
         Assert.Equal("dock:shell", options.SizeMemoryKey);
-        Assert.Equal(Resources.TerminalStrings.TerminalInputLabel, options.Label);
+        Assert.Equal(loc[nameof(Resources.TerminalStrings.TerminalInputLabel)].Value, options.Label);
         Assert.IsType<ElementReference>(invocation.Arguments[4]);
         Assert.IsType<ElementReference>(invocation.Arguments[5]);
         var registry = Services.GetRequiredService<TerminalViewSessionRegistry>();
-        Assert.True(registry.TryGet(options.ViewId, new Uri(Assert.IsType<string>(invocation.Arguments[1])).PathAndQuery, out _));
+        var viewId = TerminalSetupHelpers.GetTerminalViewId(invocation.Arguments[1]);
+        Assert.True(registry.TryGet(viewId, new Uri(Assert.IsType<string>(invocation.Arguments[1])).PathAndQuery, out _));
     }
 
     [Theory]
@@ -62,6 +65,7 @@ public class TerminalViewTests : DashboardTestContext
             .Add(p => p.ResourceName, "shell")
             .Add(p => p.Chromeless, chromeless)
             .Add(p => p.ShowDimensionsPicker, showDimensions));
+        var loc = Services.GetRequiredService<IStringLocalizer<Resources.TerminalStrings>>();
 
         Assert.Equal(chromeless, cut.Find(".terminal-view").ClassList.Contains("terminal-chromeless"));
         Assert.Equal(chromeless ? 0 : 1, cut.FindAll(".terminal-titlebar").Count);
@@ -74,9 +78,11 @@ public class TerminalViewTests : DashboardTestContext
         Assert.Equal(showDimensions ? 1 : 0, cut.FindAll(".terminal-fit").Count);
         Assert.Single(cut.FindAll(".terminal-font-minus"));
         Assert.Single(cut.FindAll(".terminal-font-plus"));
-        Assert.Equal(Resources.TerminalStrings.TerminalFocusControlsHint, cut.Find(".terminal-focus-hint").TextContent);
-        Assert.Equal(Resources.TerminalStrings.TerminalToolbarDecreaseFontSize, cut.Find(".terminal-font-minus").GetAttribute("aria-label"));
-        Assert.Equal(Resources.TerminalStrings.TerminalToolbarIncreaseFontSize, cut.Find(".terminal-font-plus").GetAttribute("aria-label"));
+        var focusHint = cut.Find(".terminal-focus-hint");
+        Assert.Equal($"F6: {loc[nameof(Resources.TerminalStrings.TerminalFocusControlsDescription)].Value}", focusHint.TextContent);
+        Assert.Equal("F6", focusHint.QuerySelector("kbd")?.TextContent);
+        Assert.Equal(loc[nameof(Resources.TerminalStrings.TerminalToolbarDecreaseFontSize)].Value, cut.Find(".terminal-font-minus").GetAttribute("aria-label"));
+        Assert.Equal(loc[nameof(Resources.TerminalStrings.TerminalToolbarIncreaseFontSize)].Value, cut.Find(".terminal-font-plus").GetAttribute("aria-label"));
         foreach (var button in cut.FindAll(".terminal-controls fluent-button"))
         {
             Assert.Single(button.QuerySelectorAll("svg"));
@@ -126,30 +132,31 @@ public class TerminalViewTests : DashboardTestContext
     }
 
     [Fact]
-    public void Footer_UsesCustomLabelsForIconTooltipsAndAccessibleNames()
+    public void Footer_UsesLocalizedLabelsForTooltipsAndAccessibleNames()
     {
         TerminalSetupHelpers.SetupTerminalView(this);
-        var cut = Render<TerminalView>(builder => builder
-            .Add(p => p.DecreaseFontSizeLabel, "Smaller text")
-            .Add(p => p.IncreaseFontSizeLabel, "Larger text")
-            .Add(p => p.FitLabel, "Fit to bounds"));
+        var cut = Render<TerminalView>();
+        var loc = Services.GetRequiredService<IStringLocalizer<Resources.TerminalStrings>>();
 
         Assert.Collection(cut.FindAll(".terminal-controls fluent-button"),
             button =>
             {
-                Assert.Equal("Smaller text", button.GetAttribute("title"));
-                Assert.Equal("Smaller text", button.GetAttribute("aria-label"));
+                Assert.Equal(loc[nameof(Resources.TerminalStrings.TerminalToolbarDecreaseFontSize)].Value, button.GetAttribute("title"));
+                Assert.Equal(loc[nameof(Resources.TerminalStrings.TerminalToolbarDecreaseFontSize)].Value, button.GetAttribute("aria-label"));
             },
             button =>
             {
-                Assert.Equal("Larger text", button.GetAttribute("title"));
-                Assert.Equal("Larger text", button.GetAttribute("aria-label"));
+                Assert.Equal(loc[nameof(Resources.TerminalStrings.TerminalToolbarIncreaseFontSize)].Value, button.GetAttribute("title"));
+                Assert.Equal(loc[nameof(Resources.TerminalStrings.TerminalToolbarIncreaseFontSize)].Value, button.GetAttribute("aria-label"));
             },
             button =>
             {
-                Assert.Equal("Fit to bounds", button.GetAttribute("title"));
-                Assert.Equal("Fit to bounds", button.GetAttribute("aria-label"));
+                Assert.Equal(loc[nameof(Resources.TerminalStrings.TerminalToolbarGridSizeAuto)].Value, button.GetAttribute("title"));
+                Assert.Equal(loc[nameof(Resources.TerminalStrings.TerminalToolbarGridSizeAuto)].Value, button.GetAttribute("aria-label"));
             });
+        var dimensionsSelect = cut.FindComponent<FluentSelect<TerminalSizePreset, string>>();
+        Assert.Equal(loc[nameof(Resources.TerminalStrings.TerminalToolbarGridSize)].Value, dimensionsSelect.Instance.Placeholder);
+        Assert.Equal(loc[nameof(Resources.TerminalStrings.TerminalToolbarGridSize)].Value, dimensionsSelect.Instance.AriaLabel);
     }
 
     [Theory]
@@ -404,7 +411,7 @@ public class TerminalViewTests : DashboardTestContext
             .Add(p => p.EndpointPathAndQuery, "/api/apphost-terminal?terminalId=terminal")
             .Add(p => p.ReadOnly, initialReadOnly));
         Assert.Equal(initialReadOnly, Assert.IsType<TerminalViewOptions>(Assert.Single(init.Invocations).Arguments[3]).ReadOnly);
-        var viewId = Assert.IsType<TerminalViewOptions>(Assert.Single(init.Invocations).Arguments[3]).ViewId;
+        var viewId = TerminalSetupHelpers.GetTerminalViewId(Assert.Single(init.Invocations).Arguments[1]);
         var registry = Services.GetRequiredService<TerminalViewSessionRegistry>();
         Assert.True(registry.TryGet(viewId, "/api/apphost-terminal?terminalId=terminal", out var session));
         Assert.Equal(initialReadOnly, session.ReadOnly);
@@ -432,7 +439,7 @@ public class TerminalViewTests : DashboardTestContext
         var cut = Render<TerminalView>(builder => builder
             .Add(p => p.EndpointPathAndQuery, "/api/apphost-terminal?terminalId=terminal"));
         cut.Render(builder => builder.Add(p => p.ReadOnly, true));
-        var viewId = Assert.IsType<TerminalViewOptions>(Assert.Single(init.Invocations).Arguments[3]).ViewId;
+        var viewId = TerminalSetupHelpers.GetTerminalViewId(Assert.Single(init.Invocations).Arguments[1]);
         Assert.True(Services.GetRequiredService<TerminalViewSessionRegistry>().TryGet(
             viewId, "/api/apphost-terminal?terminalId=terminal", out var session));
         Assert.True(session.ReadOnly, "Authoritative policy must update before JS initialization returns");
@@ -501,7 +508,7 @@ public class TerminalViewTests : DashboardTestContext
             else
             {
                 var reconnect = Assert.Single(module.Invocations, i => i.Identifier == "reconnectTerminal");
-                AssertBoundEndpoint($"ws://localhost{updatedEndpoint}", reconnect.Arguments[1]);
+                TerminalSetupHelpers.AssertBoundEndpoint($"ws://localhost{updatedEndpoint}", reconnect.Arguments[1]);
             }
         });
     }
@@ -534,7 +541,7 @@ public class TerminalViewTests : DashboardTestContext
             else
             {
                 var reconnect = Assert.Single(module.Invocations, i => i.Identifier == "reconnectTerminal");
-                AssertBoundEndpoint($"ws://localhost{updatedEndpoint}", reconnect.Arguments[1]);
+                TerminalSetupHelpers.AssertBoundEndpoint($"ws://localhost{updatedEndpoint}", reconnect.Arguments[1]);
             }
         });
     }
@@ -583,8 +590,7 @@ public class TerminalViewTests : DashboardTestContext
         init.SetResult(1);
         Render<TerminalView>(builder => builder.Add(p => p.ResourceName, "app & name"));
         var invocation = Assert.Single(init.Invocations);
-        var options = Assert.IsType<TerminalViewOptions>(invocation.Arguments[3]);
-        Assert.Equal($"{socketUrl}&viewId={options.ViewId}", invocation.Arguments[1]);
+        TerminalSetupHelpers.AssertBoundEndpoint(socketUrl, invocation.Arguments[1]);
     }
 
     [Theory]
@@ -598,10 +604,10 @@ public class TerminalViewTests : DashboardTestContext
         init.SetResult(1);
         Render<TerminalView>(builder => builder.Add(p => p.EndpointPathAndQuery, endpoint));
         var invocation = Assert.Single(init.Invocations);
-        var options = Assert.IsType<TerminalViewOptions>(invocation.Arguments[3]);
-        Assert.Equal($"wss://dashboard.example{expectedPathAndQuery}&viewId={options.ViewId}", invocation.Arguments[1]);
+        var viewId = TerminalSetupHelpers.GetTerminalViewId(invocation.Arguments[1]);
+        TerminalSetupHelpers.AssertBoundEndpoint($"wss://dashboard.example{expectedPathAndQuery}", invocation.Arguments[1]);
         Assert.True(Services.GetRequiredService<TerminalViewSessionRegistry>().TryGet(
-            options.ViewId, expectedPathAndQuery, out _));
+            viewId, expectedPathAndQuery, out _));
     }
 
     [Fact]
@@ -627,7 +633,7 @@ public class TerminalViewTests : DashboardTestContext
         init.SetResult(1);
         var cut = Render<TerminalView>(builder => builder
             .Add(p => p.EndpointPathAndQuery, "/api/apphost-terminal?terminalId=first"));
-        var firstId = Assert.IsType<TerminalViewOptions>(Assert.Single(init.Invocations).Arguments[3]).ViewId;
+        var firstId = TerminalSetupHelpers.GetTerminalViewId(Assert.Single(init.Invocations).Arguments[1]);
         var registry = Services.GetRequiredService<TerminalViewSessionRegistry>();
         Assert.True(registry.TryGet(firstId, "/api/apphost-terminal?terminalId=first", out var firstSession));
 
@@ -648,7 +654,7 @@ public class TerminalViewTests : DashboardTestContext
         var init = module.Setup<int>("initTerminal", _ => true);
         var cut = Render<TerminalView>(builder => builder
             .Add(p => p.EndpointPathAndQuery, "/api/apphost-terminal?terminalId=terminal"));
-        var viewId = Assert.IsType<TerminalViewOptions>(Assert.Single(init.Invocations).Arguments[3]).ViewId;
+        var viewId = TerminalSetupHelpers.GetTerminalViewId(Assert.Single(init.Invocations).Arguments[1]);
         Assert.True(Services.GetRequiredService<TerminalViewSessionRegistry>().TryGet(
             viewId, "/api/apphost-terminal?terminalId=terminal", out var session));
         Assert.False(session.Ended.IsCompleted);
@@ -662,11 +668,4 @@ public class TerminalViewTests : DashboardTestContext
         Assert.True(session.ReadOnly);
     }
 
-    private static void AssertBoundEndpoint(string expected, object? value)
-    {
-        var actual = Assert.IsType<string>(value);
-        var viewId = QueryHelpers.ParseQuery(new Uri(actual).Query)["viewId"].ToString();
-        Assert.True(Guid.TryParseExact(viewId, "N", out _));
-        Assert.Equal($"{expected}&viewId={viewId}", actual);
-    }
 }

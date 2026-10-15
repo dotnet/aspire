@@ -25,6 +25,7 @@ using Aspire.Cli.Projects;
 using Aspire.Cli.Scaffolding;
 using Aspire.Cli.Secrets;
 using Aspire.Cli.Telemetry;
+using Aspire.Shared.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Tests.Telemetry;
 using Aspire.Cli.Tests.TestServices;
@@ -351,7 +352,7 @@ internal static class CliTestHelper
         services.AddTransient<SecretListCommand>();
         services.AddTransient<SecretPathCommand>();
         services.AddTransient<SecretDeleteCommand>();
-        services.AddTransient<SecretStoreResolver>();
+        services.AddTransient<AspireSecretsStoreResolver>();
 #if DEBUG
         services.AddTransient<RenderCommand>();
 #endif
@@ -565,7 +566,7 @@ internal sealed class CliServiceCollectionTestOptions
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
         var logger = serviceProvider.GetRequiredService<ILogger<ScaffoldingService>>();
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
-        return new ScaffoldingService(appHostServerProjectFactory, serverSessionFactory, languageDiscovery, interactionService, serviceProvider.GetRequiredService<IEnvironment>(), logger, executionContext, serviceProvider.GetRequiredService<ProfilingTelemetry>());
+        return new ScaffoldingService(appHostServerProjectFactory, serverSessionFactory, languageDiscovery, interactionService, serviceProvider.GetRequiredService<IEnvironment>(), logger, executionContext, serviceProvider.GetRequiredService<ProfilingTelemetry>(), serviceProvider.GetRequiredService<IFeatures>(), serviceProvider.GetRequiredService<IProcessExecutionFactory>());
     };
 
     public Func<IServiceProvider, IProcessExecutionFactory> DotNetCliExecutionFactoryFactory { get; set; } = (IServiceProvider serviceProvider) =>

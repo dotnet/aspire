@@ -140,6 +140,11 @@ the existing table, JSON array, and follow-mode delta output described below.
 {"appHostPath":"/path/to/MyApp.AppHost/MyApp.AppHost.csproj","appHostPid":12345,"status":"stopped"}
 ```
 
+Unchanged backchannel-connection notifications do not refetch AppHost metadata or
+dashboard URLs. A genuinely changed connection set is enriched again, including
+a replacement connection for the same AppHost path and PID. Identical serialized
+AppHost records are still omitted from the default follow stream.
+
 #### Snapshot output
 
 `--output snapshot` is a public, opt-in stream for tools that need complete
@@ -291,6 +296,17 @@ Every outcome other than `stopped` has a nonzero exit code. Without
 `--protocol-version`, existing `stop --pid` behavior is unchanged.
 
 ### `aspire describe`
+
+`aspire resources` is an alias for `aspire describe`. Use `--format mermaid` to export a resource graph snapshot directly to stdout:
+
+```bash
+aspire resources --format mermaid >> file.txt
+aspire describe --format mermaid > resources.mmd
+```
+
+The output is an unfenced `flowchart LR` diagram with deterministic node identifiers, escaped resource labels, and directed relationships. Hidden resources are excluded unless `--include-hidden` is supplied or a specific resource is requested. Parameters, endpoints, configuration values, and resource state are not exported. References outside the selected resource set and self-references are omitted. Replicas appear as separate nodes.
+
+Progress and informational messages go to stderr, so redirection captures only Mermaid source. When no AppHost is running, the command preserves the existing successful empty-result behavior and writes no diagram. `--follow` is not supported with Mermaid output; each invocation captures one snapshot. Appending multiple invocations with `>>` produces multiple diagrams, not a merged diagram.
 
 `aspire describe --format json` emits a snapshot wrapper with one or more resources:
 
@@ -590,6 +606,12 @@ Every outcome other than `stopped` has a nonzero exit code. Without
 
 ### `aspire secret list`
 
+Secret commands accept `--environment` / `-e`, defaulting to `Development`. Names contain 1-80 ASCII letters, digits, hyphens, or underscores and must start with a letter or digit. Dots, path separators, whitespace, and Windows reserved device names (`CON`, `PRN`, `AUX`, `NUL`, `COM1`-`COM9`, and `LPT1`-`LPT9`) are rejected. For example, use `prod-eu`, not `prod/eu`.
+
+Environment names are case-insensitive. Subsequent commands reuse an existing file regardless of the requested casing, preserving the filename's spelling for display. The same resolution applies when Hosting loads secrets for the final AppHost environment.
+
+These restrictions apply to secret commands, not to existing AppHost environment names. Run and deployment commands with names such as `QA.EU` or `Local Development` continue to work, but do not automatically select an Aspire secrets file. Existing configuration inputs remain available. Set `ASPIRE_SECRETS_FILE` to an explicit JSON file path to load and persist Aspire secrets for such environments; explicit file selection takes precedence over automatic environment-file selection.
+
 `aspire secret list --format json` emits a JSON object whose property names are secret keys and whose values are secret values:
 
 ```json
@@ -601,7 +623,9 @@ Every outcome other than `stopped` has a nonzero exit code. Without
 
 The JSON form includes secret values. Do not redirect it to logs or files unless that destination is allowed to contain secrets.
 
-`aspire secret get <key>` emits the secret value as raw text on stdout. `aspire secret path` emits the user-secrets file path as raw text on stdout.
+`aspire secret list --all --format json` groups the same secret objects by environment name. `--all` cannot be combined with `--environment`.
+
+`aspire secret get <key>` emits the secret value as raw text on stdout. `aspire secret path` emits the Aspire environment secrets file path as raw text on stdout.
 
 ### `aspire doctor`
 
@@ -693,6 +717,8 @@ The `devtools` category surfaces development-tooling recommendations. The `vscod
 ```
 
 The `isolated-launch.v1` capability indicates that `aspire run` accepts the `--isolated` option.
+
+The `agent-mcp.v1` capability indicates that `aspire agent mcp` is supported. Tooling gates automatic MCP server registration on this capability being advertised explicitly: a CLI that omits it — including one old enough not to emit `capabilities` at all — is never handed the command.
 
 ## MCP tooling
 
