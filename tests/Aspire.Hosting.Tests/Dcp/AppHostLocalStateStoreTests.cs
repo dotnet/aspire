@@ -3,6 +3,7 @@
 
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Dcp;
+using Aspire.Shared;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -146,6 +147,45 @@ public class AppHostLocalStateStoreTests(ITestOutputHelper outputHelper)
         Assert.Single(Directory.GetFiles(
             Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "state"),
             "*.json"));
+    }
+
+    [Fact]
+    public void LockTimeoutDisablesSubsequentDiskAccessButKeepsStoreAvailable()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var configuration = CreateConfiguration(workspace, "lock-timeout-test");
+        var initialStore = CreatePortAllocationStore(configuration);
+        var firstKey = new PersistentPortAllocationKey("first", "http");
+        var secondKey = new PersistentPortAllocationKey("second", "http");
+        initialStore.SetPort(firstKey, 12001);
+
+        var stateFile = Directory.GetFiles(
+            Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "state"),
+            "*.json").Single();
+        var sink = new TestSink();
+        var stateStore = new AppHostLocalStateStore(
+            configuration,
+            new TestLogger<AppHostLocalStateStore>(new TestLoggerFactory(sink, enabled: true)),
+            TimeSpan.FromMilliseconds(100));
+        var portAllocationStore = new PersistentPortAllocationStore(
+            stateStore,
+            NullLogger<PersistentPortAllocationStore>.Instance);
+
+        using (FileLock.Acquire(stateFile + ".lock"))
+        {
+            Assert.Empty(portAllocationStore.GetAllocations());
+        }
+
+        Assert.True(stateStore.IsAvailable);
+        portAllocationStore.SetPort(secondKey, 12002);
+
+        var allocations = CreatePortAllocationStore(configuration).GetAllocations();
+        var allocation = Assert.Single(allocations);
+        Assert.Equal(firstKey, allocation.Key);
+        Assert.Equal(12001, allocation.Value);
+        Assert.Single(sink.Writes, write =>
+            write.LogLevel == LogLevel.Warning &&
+            write.Message?.Contains("disk access is disabled for this process", StringComparison.Ordinal) == true);
     }
 
     private static PersistentPortAllocationStore CreatePortAllocationStore(IConfiguration configuration)

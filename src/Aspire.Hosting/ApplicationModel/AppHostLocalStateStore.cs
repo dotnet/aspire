@@ -18,13 +18,24 @@ internal sealed class AppHostLocalStateStore
     private static readonly TimeSpan s_lockTimeout = TimeSpan.FromSeconds(5);
 
     private readonly ILogger<AppHostLocalStateStore> _logger;
+    private readonly TimeSpan _lockTimeout;
     private readonly string? _stateDirectory;
     private readonly string? _statePath;
     private readonly string? _lockPath;
+    private int _diskAccessDisabled;
 
     public AppHostLocalStateStore(IConfiguration configuration, ILogger<AppHostLocalStateStore> logger)
+        : this(configuration, logger, s_lockTimeout)
+    {
+    }
+
+    internal AppHostLocalStateStore(
+        IConfiguration configuration,
+        ILogger<AppHostLocalStateStore> logger,
+        TimeSpan lockTimeout)
     {
         _logger = logger;
+        _lockTimeout = lockTimeout;
 
         if (configuration["AppHost:Directory"] is not { Length: > 0 } appHostDirectory)
         {
@@ -45,31 +56,40 @@ internal sealed class AppHostLocalStateStore
         _lockPath = _statePath + ".lock";
     }
 
+    // Keep reporting the store as available after a disk failure so callers continue to reserve
+    // ports in memory even though persistence has been disabled for the rest of this process.
     public bool IsAvailable => _statePath is not null;
 
     public T Read<T>(string key, Func<JsonNode?, T> readValue, T defaultValue)
     {
-        if (_statePath is null || _lockPath is null)
+        if (_statePath is null || _lockPath is null || IsDiskAccessDisabled)
         {
             return defaultValue;
         }
 
         try
         {
-            using var fileLock = FileLock.Acquire(_lockPath, s_lockTimeout);
+            using var fileLock = FileLock.Acquire(_lockPath, _lockTimeout);
             var state = LoadState();
             return readValue(state[key]);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or TimeoutException)
         {
-            _logger.LogWarning(exception, "Failed to read AppHost local state from {StatePath}.", _statePath);
+            if (DisableDiskAccess())
+            {
+                _logger.LogWarning(
+                    exception,
+                    "Failed to read AppHost local state from {StatePath}. AppHost local state disk access is disabled for this process.",
+                    _statePath);
+            }
+
             return defaultValue;
         }
     }
 
     public void Update(string key, Func<JsonNode?, JsonNode?> updateValue)
     {
-        if (_stateDirectory is null || _statePath is null || _lockPath is null)
+        if (_stateDirectory is null || _statePath is null || _lockPath is null || IsDiskAccessDisabled)
         {
             return;
         }
@@ -79,7 +99,12 @@ internal sealed class AppHostLocalStateStore
             Directory.CreateDirectory(_stateDirectory);
             EnsureStateDirectoryIsIgnored();
 
-            using var fileLock = FileLock.Acquire(_lockPath, s_lockTimeout);
+            if (IsDiskAccessDisabled)
+            {
+                return;
+            }
+
+            using var fileLock = FileLock.Acquire(_lockPath, _lockTimeout);
             var state = LoadState();
             var currentValue = state[key];
             var updatedValue = updateValue(currentValue?.DeepClone());
@@ -101,8 +126,21 @@ internal sealed class AppHostLocalStateStore
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or TimeoutException)
         {
-            _logger.LogWarning(exception, "Failed to update AppHost local state in {StatePath}.", _statePath);
+            if (DisableDiskAccess())
+            {
+                _logger.LogWarning(
+                    exception,
+                    "Failed to update AppHost local state in {StatePath}. AppHost local state disk access is disabled for this process.",
+                    _statePath);
+            }
         }
+    }
+
+    private bool IsDiskAccessDisabled => Volatile.Read(ref _diskAccessDisabled) != 0;
+
+    private bool DisableDiskAccess()
+    {
+        return Interlocked.Exchange(ref _diskAccessDisabled, 1) == 0;
     }
 
     private JsonObject LoadState()
