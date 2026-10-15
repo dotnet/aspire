@@ -7,7 +7,7 @@ param acrName string
 
 param vnet_outputs_name string
 
-resource aks 'Microsoft.ContainerService/managedClusters@2025-09-02-preview' = {
+resource aks 'Microsoft.ContainerService/managedClusters@2026-07-02-preview' = {
   name: take('aks-${uniqueString(resourceGroup().id)}', 63)
   tags: {
     'aspire-resource-name': 'aks'
@@ -17,7 +17,6 @@ resource aks 'Microsoft.ContainerService/managedClusters@2025-09-02-preview' = {
     dnsPrefix: 'aks-dns'
     agentPoolProfiles: [
       {
-        name: 'system'
         count: 1
         vmSize: 'Standard_D2s_v5'
         vnetSubnetID: subnetId
@@ -26,6 +25,7 @@ resource aks 'Microsoft.ContainerService/managedClusters@2025-09-02-preview' = {
         minCount: 1
         enableAutoScaling: true
         mode: 'System'
+        name: 'system'
       }
     ]
     oidcIssuerProfile: {
@@ -50,7 +50,7 @@ resource aks 'Microsoft.ContainerService/managedClusters@2025-09-02-preview' = {
   }
   sku: {
     name: 'Base'
-    tier: 'Free'
+    tier: 'Standard'
   }
   identity: {
     type: 'SystemAssigned'

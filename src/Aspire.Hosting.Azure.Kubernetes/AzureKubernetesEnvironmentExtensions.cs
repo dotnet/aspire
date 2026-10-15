@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPIPELINES001 // Pipeline step types used for push/deploy dependency wiring
-#pragma warning disable ASPIREAZURE001 // AzureEnvironmentResource.ProvisionInfrastructureStepName for pipeline ordering
 #pragma warning disable ASPIREAZURE003 // AzureSubnetResource used in WithSubnet extensions
 
 using Aspire.Hosting.ApplicationModel;
@@ -40,6 +38,8 @@ public static class AzureKubernetesEnvironmentExtensions
     /// This method internally creates a Kubernetes environment for Helm-based deployment
     /// and provisions an AKS cluster via Azure Bicep. It combines the functionality of
     /// <c>AddKubernetesEnvironment</c> with Azure-specific provisioning.
+    /// The cluster uses the Standard control-plane tier by default, which includes an uptime SLA
+    /// and a cluster-management charge. Use <c>ConfigureInfrastructure</c> to select a different tier.
     /// </remarks>
     /// <example>
     /// <code>
@@ -385,9 +385,9 @@ public static class AzureKubernetesEnvironmentExtensions
     /// <para>
     /// Calling this method opts the AKS cluster into the managed Gateway API installation
     /// (<c>ingressProfile.gatewayAPI.installation = 'Standard'</c>) and the AGC ALB controller
-    /// add-on (<c>ingressProfile.applicationLoadBalancer.enabled = true</c>). Both properties
-    /// only exist in preview AKS Bicep API versions (oldest covering both: <c>2025-09-02-preview</c>),
-    /// so this implicitly bumps the cluster's emitted API version. Subscriptions/regions where
+    /// add-on (<c>ingressProfile.applicationLoadBalancer.enabled = true</c>). The application
+    /// load balancer property requires a preview AKS Bicep API version, so this implicitly
+    /// uses <c>2026-07-02-preview</c> for the cluster's emitted API version. Subscriptions/regions where
     /// the AKS preview features <c>Microsoft.ContainerService/AKSGatewayAPIPreview</c> and
     /// <c>Microsoft.ContainerService/AKSAppGatewayContainersPreview</c> are not registered will
     /// see deployment failures.
@@ -521,7 +521,7 @@ public static class AzureKubernetesEnvironmentExtensions
             Sku = new ManagedClusterSku
             {
                 Name = ManagedClusterSkuName.Base,
-                Tier = ManagedClusterSkuTier.Free
+                Tier = ManagedClusterSkuTier.Standard
             },
             DnsPrefix = $"{aksResource.Name}-dns",
             Tags = { { "aspire-resource-name", aksResource.Name } }
@@ -650,19 +650,25 @@ public static class AzureKubernetesEnvironmentExtensions
 
         infrastructure.Add(aks);
 
-        // Surface the preview-only ingress profile properties for AGC / managed Gateway API.
-        // We bump to the oldest preview API version that has both gatewayAPI and
-        // applicationLoadBalancer; the injection itself is reflection-based because the
-        // Azure.Provisioning.ContainerService types that own these properties are internal.
-        // The xmldoc on AksPreviewIngressProfileInjector documents the public DefineProperty /
-        // DefineModelProperty alternatives that were tried and empirically ruled out.
-        if (aksResource.RequiresPreviewIngressApi)
+        if (aksResource.GatewayApiEnabled || aksResource.ApplicationLoadBalancerEnabled)
         {
-            aks.ResourceVersion = "2025-09-02-preview";
-            AksPreviewIngressProfileInjector.Inject(
-                aks,
-                gatewayApi: aksResource.GatewayApiEnabled,
-                applicationLoadBalancer: aksResource.ApplicationLoadBalancerEnabled);
+            // Only applicationLoadBalancer requires the latest preview counterpart of
+            // the SDK's stable API version. Gateway API alone uses the stable default.
+            if (aksResource.RequiresPreviewIngressApi)
+            {
+                aks.ResourceVersion = "2026-07-02-preview";
+            }
+
+            var ingressProfile = new AksPreviewIngressProfile();
+            if (aksResource.GatewayApiEnabled)
+            {
+                ingressProfile.GatewayApiInstallation = ManagedGatewayType.Standard;
+            }
+            if (aksResource.ApplicationLoadBalancerEnabled)
+            {
+                ingressProfile.ApplicationLoadBalancerEnabled = true;
+            }
+            aks.IngressProfile = ingressProfile;
         }
 
         // ACR pull role assignment for kubelet identity

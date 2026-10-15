@@ -200,7 +200,7 @@ with upstream marker navigation and a thumb focus outline.
 A scoped shadow-DOM override hides the track's DOM focus outline
 after pointer input, restoring the upstream `:focus-visible` outline on keyboard
 input without changing actual focus. The modality listeners are removed on disposal.
-The track explicitly uses the active-palette foreground/background blend at 35% opacity. The thumb
+The track uses Hex1b's active-palette foreground/background blend at 35% opacity. The thumb
 uses that palette's foreground, so it remains contrasting in either theme.
 Markers use the selected terminal palette's purple and red ANSI colors at full
 opacity, with system colors in forced-color mode. The track remains
@@ -222,20 +222,27 @@ positioning and tooltip lifetime.
 The existing HMP-to-HWT mirror has its own 10,000-row scrollback capacity.
 Hex1b now negotiates retained text and OSC 133 command-mark checkpoints by
 default, restoring producer-backed history and marks on late attachment and
-reconnect when both peers support them. Hex1b 0.171 retains at most 200 command
-marks per producer even when their backing text is still retained; older marks
-are evicted first. The built-in scrollbar exposes mark
+reconnect when both peers support them. Hex1b 0.172 retains command marks for the
+lifetime of their backing text by default, rather than evicting them after 200
+entries. Explicit producer capacity and transport limits still apply. The built-in scrollbar exposes mark
 navigation without a Dashboard mode chooser or custom tooltip UI. Marks follow
 retained content and disappear on eviction; unavailable marker rows are not row
 zero. Browser-owned bookmarks remain per-view and do not survive reconnect.
 
 ### View lifecycle
 
+Resource rows use **Terminal** as their output shortcut when a live terminal is
+defined; other resources and historical runs retain **Console logs**. Both actions
+remain available in the resource menu, including on mobile. Resource graph and
+details menus also offer Terminal, while the Terminal page keeps Console logs as
+the alternate output view. Links preserve the selected resource replica.
+
 Each reconnect creates a new client. A disconnected client with a received frame
 stays mounted above its replacements until a connected frame arrives, retaining
 text, Sixel and Kitty graphics through failed retries. `preserveOnDisconnect`
 keeps the received screen locally; it does not guarantee unreceived final output.
-Disconnected output is dimmed with a localized **Disconnected** badge. Successful
+Disconnected output is dimmed with localized recovery actions that can be collapsed
+to a floating disconnect icon. Successful
 reconnect removes the treatment and disposes the retained client. Completed
 views retain their screen until closed; switching endpoints releases the previous
 screen immediately. Renderer failures still surface an error and dispose the
@@ -262,9 +269,13 @@ banner. Diagnostics include the exception, selection status, document focus, and
 clipboard permissions policy, never clipboard or selected text. These failures can
 include pending selection resolution before the browser clipboard API is called;
 they do not necessarily mean clipboard permission was denied.
+Error status callbacks from a still-connected terminal are also logged with
+`console.log` without an Aspire banner or clearing an existing sizing/palette error.
+Fatal renderer and transport errors disconnect before reporting status and retain
+the connection-failure banner and retry behavior.
 Hex1b also displays its own inspection status inside its shadow root.
 Its public API does not currently expose an option to suppress that native message.
-Other terminal status and sizing errors offer **Dismiss**, which clears the local
+Sizing and palette errors offer **Dismiss**, which clears the local
 error and returns focus without reconnecting or discarding terminal history.
 Only connection/initialization failures offer **Reconnect terminal**.
 
