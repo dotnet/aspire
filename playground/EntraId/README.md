@@ -87,7 +87,8 @@ and the [hosting integration README](../../src/Aspire.Hosting.Azure.EntraId/READ
 ### What Aspire creates
 
 On startup, Aspire creates the shared `entra-web` application registration and its service principal, using the
-single-tenant audience. The provisioning identity owns both objects. The AppHost registers these **Web** callback URIs:
+single-tenant audience. Aspire does not explicitly assign owners; Microsoft Entra's default ownership behavior applies.
+The AppHost registers these **Web** callback URIs:
 
 | Front end | Sign-in callback | Sign-out callback |
 | --- | --- | --- |
