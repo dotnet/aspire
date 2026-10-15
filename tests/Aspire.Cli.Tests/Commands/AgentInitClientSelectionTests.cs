@@ -705,9 +705,9 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
                 "opencode.json" when jsoncPinned => """{"mcp":{"aspire":{"command":["aspire","mcp","start"]}}}""",
                 "opencode.jsonc" when !jsoncPinned => """
                     {
-                        // Unrelated settings must not shadow the Aspire pin in opencode.json.
+                        // Partial overrides must not shadow the Aspire command pin in opencode.json.
                         "model": "keep-jsonc",
-                        "mcp": { "other": { "command": ["other"], }, },
+                        "mcp": { "aspire": { "enabled": true }, "other": { "command": ["other"], }, },
                     }
                     """,
                 _ => $$"""
@@ -736,6 +736,53 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
             Assert.Equal(original, await File.ReadAllTextAsync(path));
         }
         Assert.Equal(before, GetFilesWithoutCliLogs(workspace.WorkspaceRoot));
+    }
+
+    [Theory]
+    [InlineData("project")]
+    [InlineData("global")]
+    public async Task AgentInit_OpenCodeRemoteJsonc_DoesNotRepairUnusedSiblingCommand(string scopeName)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var homeDirectory = workspace.CreateDirectory("fake-home");
+        var environment = new TestEnvironment();
+        var executionContext = TestExecutionContextHelper.CreateExecutionContext(workspace.WorkspaceRoot, homeDirectory: homeDirectory);
+        var scope = scopeName == "project" ? AgentConfigurationScope.Project : AgentConfigurationScope.Global;
+        var jsoncPath = AgentClient.OpenCode.GetMcpConfigPath(scope, workspace.WorkspaceRoot, executionContext, environment);
+        var jsonPath = Path.ChangeExtension(jsoncPath, ".json");
+        const string original = """{"mcp":{"aspire":{"type":"local","command":["aspire","mcp","start"],"enabled":true}}}""";
+        const string jsonc = """{"mcp":{"aspire":{"type":"remote","url":"https://example.test/mcp","enabled":true}}}""";
+        Directory.CreateDirectory(Path.GetDirectoryName(jsoncPath)!);
+        await File.WriteAllTextAsync(jsonPath, original);
+        await File.WriteAllTextAsync(jsoncPath, jsonc);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.CliExecutionContextFactory = _ => executionContext;
+        });
+        services.AddSingleton<IEnvironment>(environment);
+        using var provider = services.BuildServiceProvider();
+
+        var result = provider.GetRequiredService<RootCommand>().Parse(
+            $"agent init --agents opencode --scope {scopeName} --skills none --mcp");
+
+        Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
+        Assert.Equal(original, await File.ReadAllTextAsync(jsonPath));
+        Assert.Equal(jsonc, await File.ReadAllTextAsync(jsoncPath));
+    }
+
+    [Fact]
+    public async Task OpenCodeMcpConfig_LocalPartialEntry_UsesSiblingCommand()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var jsoncPath = Path.Combine(workspace.WorkspaceRoot.FullName, "opencode.jsonc");
+        var jsonPath = Path.ChangeExtension(jsoncPath, ".json");
+        await File.WriteAllTextAsync(jsonPath, """{"mcp":{"aspire":{"type":"local","command":["aspire","mcp","start"]}}}""");
+        await File.WriteAllTextAsync(jsoncPath, """{"mcp":{"aspire":{"type":"local","enabled":true}}}""");
+
+        var (_, configFilePath) = await McpConfigFileHelper.ReadSelectedConfigAsync(
+            jsoncPath, AgentClient.OpenCode, AgentConfigurationScope.Project, new TestEnvironment(), CancellationToken.None);
+
+        Assert.Equal(jsonPath, configFilePath);
     }
 
     [Fact]
@@ -769,9 +816,11 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
     }
 
     [Theory]
-    [InlineData("project")]
-    [InlineData("global")]
-    public async Task AgentInit_OpenCodeSiblingJson_RepairsInheritedDeprecatedCommand(string scopeName)
+    [InlineData("project", false)]
+    [InlineData("global", false)]
+    [InlineData("project", true)]
+    [InlineData("global", true)]
+    public async Task AgentInit_OpenCodeSiblingJson_RepairsInheritedDeprecatedCommand(string scopeName, bool partialOverride)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var homeDirectory = workspace.CreateDirectory("fake-home");
@@ -781,13 +830,21 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
         var jsoncPath = AgentClient.OpenCode.GetMcpConfigPath(scope, workspace.WorkspaceRoot, executionContext, environment);
         var jsonPath = Path.ChangeExtension(jsoncPath, ".json");
         const string original = """{"preference":true,"mcp":{"aspire":{"type":"local","command":["aspire","mcp","start"],"enabled":false},"other":{"command":["other"]}}}""";
-        const string jsonc = """
-            {
-                // Higher-precedence settings must not acquire a shadowing Aspire entry.
-                "model": "keep-jsonc",
-                "mcp": { "other": { "command": ["override-other"], }, },
-            }
-            """;
+        var jsonc = partialOverride
+            ? """
+                {
+                    // Override settings, but inherit the command from opencode.json.
+                    "model": "keep-jsonc",
+                    "mcp": { "aspire": { "enabled": true, "environment": { "CUSTOM": "keep" }, }, "other": { "command": ["override-other"], }, },
+                }
+                """
+            : """
+                {
+                    // Higher-precedence settings must not acquire a shadowing Aspire entry.
+                    "model": "keep-jsonc",
+                    "mcp": { "other": { "command": ["override-other"], }, },
+                }
+                """;
         Directory.CreateDirectory(Path.GetDirectoryName(jsoncPath)!);
         await File.WriteAllTextAsync(jsonPath, original);
         await File.WriteAllTextAsync(jsoncPath, jsonc);
@@ -806,7 +863,7 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
         var updated = await File.ReadAllTextAsync(jsonPath);
         Assert.Equal(jsonc, await File.ReadAllTextAsync(jsoncPath));
         Assert.Equal(before, GetFilesWithoutCliLogs(workspace.WorkspaceRoot));
-        await Verify(updated, "json").UseParameters(scopeName);
+        await Verify(updated, "json").UseParameters(scopeName, partialOverride);
     }
 
     [Theory]

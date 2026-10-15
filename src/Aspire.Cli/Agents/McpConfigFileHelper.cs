@@ -24,12 +24,25 @@ internal static class McpConfigFileHelper
         if (client == AgentClient.OpenCode &&
             Path.GetFileName(configFilePath) == "opencode.jsonc" &&
             (scope is AgentConfigurationScope.Project ||
-                environment.GetEnvironmentVariable("OPENCODE_CONFIG") is not { Length: > 0 }) &&
-            GetServerContainer(config, client.McpServersPropertyName, configFilePath)?.ContainsKey("aspire") is not true)
+                environment.GetEnvironmentVariable("OPENCODE_CONFIG") is not { Length: > 0 }))
         {
-            // OpenCode merges JSON before JSONC: {"mcp":{"aspire":...}} in opencode.json
-            // owns an inherited server and any exact legacy-command repair. Do not add
-            // a shadowing default to JSONC or consult siblings of an explicit OPENCODE_CONFIG.
+            var servers = GetServerContainer(config, client.McpServersPropertyName, configFilePath);
+            // Remote servers use their URL instead of an inherited local command.
+            if (servers is not null &&
+                servers.TryGetPropertyValue("aspire", out var server) &&
+                (server is not JsonObject aspire ||
+                    aspire.ContainsKey("command") ||
+                    (aspire["type"] is JsonValue type &&
+                        type.TryGetValue<string>(out var connectionType) &&
+                        connectionType == "remote")))
+            {
+                return (config, configFilePath);
+            }
+
+            // OpenCode merges JSON before JSONC, so JSONC {"mcp":{"aspire":{"enabled":true}}}
+            // inherits its command from opencode.json. Repair the command in its owning file
+            // without shadowing pins or rewriting the higher-precedence settings.
+            // Explicit OPENCODE_CONFIG files do not use sibling discovery.
             // https://opencode.ai/docs/config/#locations
             var jsonPath = Path.ChangeExtension(configFilePath, ".json");
             var jsonConfig = await ReadConfigAsync(jsonPath, client.McpJsonDocumentOptions, cancellationToken);
