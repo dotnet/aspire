@@ -18,6 +18,13 @@
       "job": "Tests / No-package tests (regular, Aspire.Hosting.DevTunnels.Tests, Hosting.DevTunnels, Hosting.DevTunnel... / Hosting.DevTunnels (ubuntu-latest)",
       "pr_number": 0,
       "observed_at": "2026-10-10T02:18:52Z"
+    },
+    {
+      "run_id": 38653167186,
+      "run_url": "https://github.com/microsoft/aspire/actions/runs/38653167186",
+      "job": "Tests / No-package tests (regular, Aspire.Hosting.DevTunnels.Tests, Hosting.DevTunnels, Hosting.DevTunnel... / Hosting.DevTunnels (ubuntu-latest)",
+      "pr_number": 0,
+      "observed_at": "2026-10-15T00:20:06Z"
     }
   ],
   "issue_url": "https://github.com/microsoft/aspire/issues/20859"
