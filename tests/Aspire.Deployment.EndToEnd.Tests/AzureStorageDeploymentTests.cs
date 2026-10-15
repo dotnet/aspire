@@ -334,9 +334,14 @@ builder.Build().Run();
                     echo "$config" | jq -e --arg endpoint "$endpoint" \
                         '[.properties.template.containers[].env[] | select(.name == "ConnectionStrings__blobs")] |
                          length == 1 and all(.[]; .value == $endpoint)'
-                    principals=$(echo "$config" | jq -ce '[.identity.userAssignedIdentities[] | .principalId]')
-                    echo "$roles" | jq -e --argjson principals "$principals" \
-                        'any(.[]; .principalId as $id | ($principals | index($id)) != null and .roleDefinitionName == "Storage Blob Data Contributor")'
+                    client_id=$(echo "$config" | jq -er \
+                        '[.properties.template.containers[].env[] | select(.name == "AZURE_CLIENT_ID")] |
+                         if length == 1 then .[0].value else error("Expected one workload client ID") end')
+                    principal_id=$(echo "$config" | jq -er --arg client "$client_id" \
+                        '[.identity.userAssignedIdentities[] | select(.clientId == $client)] |
+                         if length == 1 then .[0].principalId else error("Workload identity is not attached") end')
+                    echo "$roles" | jq -e --arg principal "$principal_id" \
+                        'any(.[]; .principalId == $principal and .roleDefinitionName == "Storage Blob Data Contributor")'
                     echo "$resource references the shared blob endpoint with blob data access"
                 done
                 """, TimeSpan.FromMinutes(3));
