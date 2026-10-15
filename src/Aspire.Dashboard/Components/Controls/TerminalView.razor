@@ -38,7 +38,7 @@
                                                     OnRestarted="@ReconnectAfterRestartAsync"
                                                     OnCollapsedChanged="@(collapsed => _bannerCollapsed = collapsed)" />
                     }
-                    @if (_terminalError is not null && !(_state.Disconnected && _bannerCollapsed))
+                    @if (_terminalError is not null && !(_state.Disconnected && _bannerCollapsed && _terminalError is "disconnected" or "mount-failed"))
                     {
                         <div class="terminal-error">
                             <span role="alert">@GetErrorMessage()</span>

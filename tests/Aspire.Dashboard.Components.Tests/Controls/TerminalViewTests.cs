@@ -427,6 +427,37 @@ public class TerminalViewTests : DashboardTestContext
     }
 
     [Fact]
+    public async Task Disconnect_CollapsedRecoveryKeepsPaletteSaveFailureVisibleAndDismissible()
+    {
+        var module = TerminalSetupHelpers.SetupTerminalViewModule(this, "/Components/Controls/TerminalView.razor.js");
+        module.Setup<int>("initTerminal", _ => true).SetResult(1);
+        module.SetupVoid("dismissError", 1).SetVoidResult();
+        var cut = Render<TerminalView>(builder => builder.Add(p => p.ResourceName, "shell"));
+        var state = new TerminalToolbarState { TerminalId = 1, Generation = 1, Disconnected = true, Error = "disconnected" };
+        await cut.InvokeAsync(() => cut.Instance.OnTerminalStateChanged(state));
+        await cut.Find(".terminal-show-output").ClickAsync(new());
+
+        await cut.InvokeAsync(() => cut.Instance.OnTerminalStateChanged(state with { Error = "mount-failed" }));
+        Assert.Empty(cut.FindAll("[role=alert]"));
+
+        await cut.InvokeAsync(() => cut.Instance.OnTerminalStateChanged(state with { Error = "palette-failed" }));
+
+        Assert.Equal(Resources.TerminalStrings.TerminalPaletteSaveFailed, cut.Find("[role=alert]").TextContent);
+        Assert.Single(cut.FindAll(".terminal-show-banner"));
+        Assert.Empty(cut.FindAll(".terminal-disconnected-banner"));
+        var dismiss = cut.Find(".terminal-error fluent-button");
+        Assert.Equal(Resources.TerminalStrings.TerminalDismissError, dismiss.TextContent.Trim());
+        await dismiss.ClickAsync(new());
+        Assert.Single(module.Invocations, i => i.Identifier == "dismissError");
+
+        await cut.InvokeAsync(() => cut.Instance.OnTerminalStateChanged(state with { Error = null }));
+        Assert.Empty(cut.FindAll("[role=alert]"));
+        Assert.Single(cut.FindAll(".terminal-show-banner"));
+        Assert.Single(cut.FindAll(".terminal-container"));
+        Assert.Single(module.Invocations, i => i.Identifier == "initTerminal");
+    }
+
+    [Fact]
     public async Task Disconnect_SuccessfulResourceRestartReconnectsExhaustedViewWithoutReplacingContainer()
     {
         var module = TerminalSetupHelpers.SetupTerminalViewModule(this, "/Components/Controls/TerminalView.razor.js");
