@@ -7,17 +7,97 @@ permissions:
   actions: read
   contents: read
 
-run-name: "CI wall-time validation (${{ github.ref_name }})"
+run-name: Compact TRX artifact parity (38676855459)
 
 jobs:
-  tests:
-    name: Tests
-    uses: ./.github/workflows/tests.yml
-    permissions:
-      actions: read
-      contents: read
-      issues: write
-      pull-requests: write
-    with:
-      versionOverrideArg: /p:VersionSuffix=ci.walltime /p:DotNetFinalVersionKind=prerelease
-      extensionVersionOverride: '99.0.21015'
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Verify completed source run and commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/microsoft/aspire/actions/runs/38676855459 > source-run.json
+          python - <<'PY'
+          import json
+          run = json.load(open("source-run.json"))
+          assert run["status"] == "completed", run["status"]
+          assert run["head_sha"] == "89aed2ecdb88bd83b7e136a7128755458906e0d8", run["head_sha"]
+          print(run["html_url"], run["head_sha"], run["conclusion"])
+          PY
+
+      - name: Download original Linux diagnostic artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: logs-*-ubuntu-latest
+          path: original/ubuntu-latest
+          merge-multiple: true
+          run-id: 38676855459
+          github-token: ${{ github.token }}
+
+      - name: Download original Windows diagnostic artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: logs-*-windows-latest
+          path: original/windows-latest
+          merge-multiple: true
+          run-id: 38676855459
+          github-token: ${{ github.token }}
+
+      - name: Download original macOS diagnostic artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: logs-*-macos-latest
+          path: original/macos-latest
+          merge-multiple: true
+          run-id: 38676855459
+          github-token: ${{ github.token }}
+
+      - name: Download compact Linux results
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: trx-*-ubuntu-latest
+          path: compact/ubuntu-latest
+          merge-multiple: true
+          run-id: 38676855459
+          github-token: ${{ github.token }}
+
+      - name: Download compact Windows results
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: trx-*-windows-latest
+          path: compact/windows-latest
+          merge-multiple: true
+          run-id: 38676855459
+          github-token: ${{ github.token }}
+
+      - name: Download compact macOS results
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: trx-*-macos-latest
+          path: compact/macos-latest
+          merge-multiple: true
+          run-id: 38676855459
+          github-token: ${{ github.token }}
+
+      - name: Verify exact TRX paths and bytes
+        run: python eng/scripts/verify-ci-compact-results.py original compact comparison.json
+
+      - name: Generate both combined summaries and verify equality
+        run: |
+          ./dotnet.sh run --project tools/GenerateTestSummary/GenerateTestSummary.csproj -- original --combined --output original-summary.md
+          ./dotnet.sh run --project tools/GenerateTestSummary/GenerateTestSummary.csproj -- compact --combined --output compact-summary.md
+          cmp original-summary.md compact-summary.md
+
+      - name: Upload parity evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: compact-results-parity
+          path: |
+            source-run.json
+            comparison.json
+            original-summary.md
+            compact-summary.md
