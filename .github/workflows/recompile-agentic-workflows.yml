@@ -3,6 +3,7 @@ name: Recompile agentic workflows
 on:
   workflow_dispatch:
   pull_request_target:
+    # zizmor: ignore[dangerous-triggers] - only merged upstream Dependabot PRs run; checkout and execution use the trusted default branch, never the PR head
     types: [closed]
 
 permissions:
