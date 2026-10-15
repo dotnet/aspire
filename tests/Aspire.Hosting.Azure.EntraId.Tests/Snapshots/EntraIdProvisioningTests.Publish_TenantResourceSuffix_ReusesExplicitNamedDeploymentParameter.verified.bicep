@@ -17,7 +17,6 @@ module entra_web 'entra-web/entra-web.bicep' = {
   name: 'entra-web'
   scope: rg
   params: {
-    principalId: principalId
     tenantResourceSuffix: tenantResourceSuffix
   }
 }
@@ -26,7 +25,6 @@ module entra_api 'entra-api/entra-api.bicep' = {
   name: 'entra-api'
   scope: rg
   params: {
-    principalId: principalId
     tenantResourceSuffix: tenantResourceSuffix
   }
 }

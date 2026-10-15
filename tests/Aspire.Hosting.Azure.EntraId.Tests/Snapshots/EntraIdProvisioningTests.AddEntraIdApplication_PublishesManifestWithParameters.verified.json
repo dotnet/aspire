@@ -1,1 +1,1 @@
-﻿{"type":"azure.bicep.v0","path":"entra-web.module.bicep","params":{"principalId":"","tenantResourceSuffix":""}}
+﻿{"type":"azure.bicep.v0","path":"entra-web.module.bicep","params":{"tenantResourceSuffix":""}}

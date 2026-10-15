@@ -17,7 +17,6 @@ module entra_web 'entra-web/entra-web.bicep' = {
   name: 'entra-web'
   scope: rg
   params: {
-    principalId: principalId
     tenantResourceSuffix: tenantResourceSuffix
   }
 }

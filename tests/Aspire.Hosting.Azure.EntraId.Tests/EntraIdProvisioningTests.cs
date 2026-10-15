@@ -38,12 +38,13 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         }, tenantScoped.ResourceIdOutputs);
         Assert.NotNull(entra.Resource.ProvisioningTaskCompletionSource);
         Assert.False(entra.Resource.ProvisioningTaskCompletionSource.Task.IsCompleted);
-        Assert.Null(entra.Resource.Parameters["principalId"]);
+        Assert.Equal(new[] { "tenantResourceSuffix" }, entra.Resource.Parameters.Keys);
         Assert.Equal(EntraIdSignInAudience.AzureADMyOrg, entra.Resource.SignInAudience);
         Assert.Null(entra.Resource.Parameters[AzureBicepResource.KnownParameters.TenantResourceSuffix]);
         Assert.Single(builder.Resources.OfType<AzureEnvironmentResource>());
 
         await Verify(entra.Resource.GetBicepTemplateString(), "bicep");
+        Assert.Equal(new[] { "tenantResourceSuffix" }, entra.Resource.Parameters.Keys);
     }
 
     [Fact]
@@ -111,7 +112,7 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
 
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var manifest = await ManifestUtils.GetManifest(entra.Resource, workspace.Path);
-        Assert.Equal(new[] { "principalId", "tenantResourceSuffix" }, entra.Resource.Parameters.Keys);
+        Assert.Equal(new[] { "tenantResourceSuffix" }, entra.Resource.Parameters.Keys);
         await Verify(manifest.ToJsonString(), "json")
             .AppendContentAsFile(entra.Resource.GetBicepTemplateString(), "bicep");
     }
@@ -252,7 +253,7 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         entra.WithSignInAudience(audience);
 
         Assert.Equal(audience, entra.Resource.SignInAudience);
-        Assert.Equal(new[] { "principalId", "tenantResourceSuffix" }, entra.Resource.Parameters.Keys);
+        Assert.Equal(new[] { "tenantResourceSuffix" }, entra.Resource.Parameters.Keys);
         await Verify(entra.Resource.GetBicepTemplateString(), "bicep");
     }
 
@@ -267,7 +268,7 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         Assert.Same(entra, entra.WithIdTokenIssuance());
         Assert.Same(entra, entra.WithIdTokenIssuance());
         Assert.True(entra.Resource.EnableIdTokenIssuance);
-        Assert.Equal(new[] { "principalId", "tenantResourceSuffix" }, entra.Resource.Parameters.Keys);
+        Assert.Equal(new[] { "tenantResourceSuffix" }, entra.Resource.Parameters.Keys);
         await Verify(entra.Resource.GetBicepTemplateString(), "bicep");
     }
 

@@ -57,7 +57,7 @@ builder.AddProject<Projects.Web>("web")
        .WithReference(entraWeb);
 ```
 
-Configure [local Azure provisioning](https://aspire.dev/integrations/cloud/azure/local-provisioning/) with your subscription and location, and sign in to Azure CLI. The registrations are created in **the subscription's tenant**, not necessarily your account's home tenant. The provisioning identity is added as an owner of both the application and service principal. If tenant policy prevents creation, use `AsExistingApplication`; existing registrations still require no Azure or Graph access.
+Configure [local Azure provisioning](https://aspire.dev/integrations/cloud/azure/local-provisioning/) with your subscription and location, and sign in to Azure CLI. The registrations are created in **the subscription's tenant**, not necessarily your account's home tenant. Aspire does not explicitly assign application or service-principal owners; Microsoft Entra's default ownership behavior applies. If tenant policy prevents creation, use `AsExistingApplication`; existing registrations still require no Azure or Graph access.
 
 The module is generated in C# using `Azure.Provisioning`, including the Graph application, service principal, parameters, and outputs. Aspire emits the Microsoft Graph extension declaration from the infrastructure's `BicepExtensions` collection using a pinned inline registry reference. No `bicepconfig.json` is required, including when Aspire copies the module into temporary or published output. The first compilation downloads the extension from `mcr.microsoft.com`, which must be reachable.
 
@@ -88,7 +88,7 @@ Changing the name or suffix targets another registration and leaves the previous
 Existing registrations with different `uniqueName` values are not automatically adopted: reference their IDs with
 `AsExistingApplication` or explicitly clean them up when migrating.
 
-This first provisioning increment creates the registration and service principal. Use `WithRedirectUris` to configure web callback URIs explicitly; endpoints are not discovered automatically. The resource name, sign-in audience, redirect URIs, and ID-token setting are written directly into the generated Bicep from the resource's properties. Only the deployment principal and shared tenant-resource suffix remain deployment inputs. It does not provision client credentials, API scopes, or API permissions.
+Configure callback URIs with `WithRedirectUris`; Aspire does not discover them automatically.
 
 For OpenID Connect sign-in flows that request an ID token directly from the authorization endpoint, explicitly enable ID-token issuance:
 

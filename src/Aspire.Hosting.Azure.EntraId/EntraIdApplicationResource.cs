@@ -53,7 +53,6 @@ public class EntraIdApplicationResource : AzureProvisioningResource
             ["Microsoft.Graph/applications"] = "objectId",
             ["Microsoft.Graph/servicePrincipals"] = "servicePrincipalId"
         }));
-        Parameters["principalId"] = null;
         Parameters[KnownParameters.TenantResourceSuffix] = null;
         _provisioningAnnotations = [.. Annotations.Where(annotation => annotation is PipelineStepAnnotation or PipelineConfigurationAnnotation)];
     }
@@ -154,7 +153,6 @@ public class EntraIdApplicationResource : AzureProvisioningResource
             .Single(parameter => parameter.BicepIdentifier == KnownParameters.Location));
         infrastructure.BicepExtensions["microsoftGraphV1"] = "br:mcr.microsoft.com/bicep/extensions/microsoftgraph/v1.0:1.0.0";
 
-        var principalId = new ProvisioningParameter("principalId", typeof(string));
         var tenantResourceSuffix = new ProvisioningParameter(KnownParameters.TenantResourceSuffix, typeof(string))
         {
             Value = string.Empty
@@ -163,7 +161,6 @@ public class EntraIdApplicationResource : AzureProvisioningResource
             new BinaryExpression(new IdentifierExpression(tenantResourceSuffix.BicepIdentifier), BinaryBicepOperator.Equal, new StringLiteralExpression(string.Empty)),
             new StringLiteralExpression(resource.Name),
             BicepFunction.Interpolate($"{resource.Name}-{tenantResourceSuffix}").Compile());
-        infrastructure.Add(principalId);
         infrastructure.Add(tenantResourceSuffix);
 
         var application = new MicrosoftGraphApplication("application")
@@ -173,15 +170,13 @@ public class EntraIdApplicationResource : AzureProvisioningResource
             SignInAudience = resource.SignInAudience.ToString(),
             RequestedAccessTokenVersion = 2,
             RedirectUris = [.. resource.RedirectUris],
-            EnableIdTokenIssuance = resource.EnableIdTokenIssuance,
-            Owners = [principalId]
+            EnableIdTokenIssuance = resource.EnableIdTokenIssuance
         };
         infrastructure.Add(application);
 
         var servicePrincipal = new MicrosoftGraphServicePrincipal("servicePrincipal")
         {
-            AppId = application.AppId,
-            Owners = [principalId]
+            AppId = application.AppId
         };
         infrastructure.Add(servicePrincipal);
 

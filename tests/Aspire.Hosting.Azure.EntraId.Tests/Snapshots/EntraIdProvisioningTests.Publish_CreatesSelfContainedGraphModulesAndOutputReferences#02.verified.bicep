@@ -1,7 +1,5 @@
 ﻿extension 'br:mcr.microsoft.com/bicep/extensions/microsoftgraph/v1.0:1.0.0' as microsoftGraphV1
 
-param principalId string
-
 param tenantResourceSuffix string = ''
 
 resource application 'Microsoft.Graph/applications@v1.0' = {
@@ -19,20 +17,10 @@ resource application 'Microsoft.Graph/applications@v1.0' = {
       enableIdTokenIssuance: false
     }
   }
-  owners: {
-    relationships: [
-      principalId
-    ]
-  }
 }
 
 resource servicePrincipal 'Microsoft.Graph/servicePrincipals@v1.0' = {
   appId: application.appId
-  owners: {
-    relationships: [
-      principalId
-    ]
-  }
 }
 
 output clientId string = application.appId
