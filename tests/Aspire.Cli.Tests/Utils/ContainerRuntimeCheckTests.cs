@@ -11,6 +11,25 @@ namespace Aspire.Cli.Tests.Utils;
 public class ContainerRuntimeCheckTests
 {
     [Theory]
+    [InlineData(KnownContainerRuntimes.Docker)]
+    [InlineData(KnownContainerRuntimes.Podman)]
+    [InlineData(KnownContainerRuntimes.Wslc)]
+    public void RuntimeVersionPolicy_UsesRegisteredKeyRatherThanDisplayName(string key)
+    {
+        var result = ContainerRuntimeCheck.CheckRuntimePolicy(new ContainerRuntimeInfo
+        {
+            Key = key,
+            Executable = "fixture",
+            Name = "Different display name",
+            ClientVersion = new Version(1, 0, 0)
+        });
+
+        Assert.NotNull(result);
+        Assert.Equal(EnvironmentCheckStatus.Warning, result.Status);
+        Assert.Contains("Different display name", result.Message);
+    }
+
+    [Theory]
     [InlineData("3.0.2.0", "3.0.2", false)]
     [InlineData("3.0.2", "3.0.2.0", false)]
     [InlineData("3.0.2-rc.1", "3.0.3", true)]

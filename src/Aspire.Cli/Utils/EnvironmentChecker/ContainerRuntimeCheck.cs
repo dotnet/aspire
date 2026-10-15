@@ -39,7 +39,7 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
             configuredRuntime = string.IsNullOrEmpty(configuredRuntime) ? null : configuredRuntime;
 
             if (!environment.IsWindows() &&
-                string.Equals(configuredRuntime, KnownContainerRuntimes.Wslc, StringComparison.OrdinalIgnoreCase))
+                string.Equals(configuredRuntime, KnownContainerRuntimes.Wslc, StringComparisons.ContainerRuntime))
             {
                 return [new EnvironmentCheckResult
                 {
@@ -79,7 +79,7 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
                 }
 
                 var isSelected = selected is not null &&
-                    string.Equals(info.Key, selected.Key, StringComparison.OrdinalIgnoreCase);
+                    string.Equals(info.Key, selected.Key, StringComparisons.ContainerRuntime);
 
                 results.Add(BuildRuntimeResult(info, isSelected, healthyRuntime is not null, configuredRuntime, cancellationToken));
             }
@@ -130,15 +130,16 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
                 Status = EnvironmentCheckStatus.Fail,
                 Message = string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.ContainerRuntimeVersionUnavailableMessageFormat, info.Name),
                 Details = info.VersionError,
-                Fix = GetContainerRuntimeUpgradeAdvice(info.Name),
+                Fix = GetContainerRuntimeUpgradeAdvice(info.Key, info.Name),
                 Link = "https://aka.ms/aspire/containers"
             };
         }
 
         // Blocking compatibility failures take precedence over advisory version warnings.
-        if (info.Name == "Docker" && string.Equals(info.ServerOs, "windows", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(info.Key, KnownContainerRuntimes.Docker, StringComparisons.ContainerRuntime) &&
+            string.Equals(info.ServerOs, "windows", StringComparison.OrdinalIgnoreCase))
         {
-            var runtimeName = info.IsDockerDesktop ? "Docker Desktop" : "Docker";
+            var runtimeName = info.IsDockerDesktop ? "Docker Desktop" : info.Name;
             return new EnvironmentCheckResult
             {
                 Category = EnvironmentCheckCategories.Container,
@@ -151,7 +152,7 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
             };
         }
 
-        var minimumVersion = GetMinimumVersion(info.Name);
+        var minimumVersion = GetMinimumVersion(info.Key);
 
         // Check minimum client version
         if (info.ClientVersion is not null && minimumVersion is not null &&
@@ -159,18 +160,18 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
         {
             return WarningResult(
                 string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.ContainerRuntimeClientVersionWarningFormat,
-                    info.Name, info.ClientVersionText ?? info.ClientVersion.ToString(), GetMinimumVersionString(info.Name)),
-                GetContainerRuntimeUpgradeAdvice(info.Name));
+                    info.Name, info.ClientVersionText ?? info.ClientVersion.ToString(), GetMinimumVersionString(info.Key)),
+                GetContainerRuntimeUpgradeAdvice(info.Key, info.Name));
         }
 
         // Podman does not always expose a separate server version.
-        if (info.Name is "Docker" or "WSLc" && info.ServerVersion is not null && minimumVersion is not null &&
+        if (info.Key is KnownContainerRuntimes.Docker or KnownContainerRuntimes.Wslc && info.ServerVersion is not null && minimumVersion is not null &&
             (info.ServerVersion < minimumVersion || IsUnsupportedPrerelease(info.ServerVersion, info.IsServerPrerelease, minimumVersion)))
         {
             return WarningResult(
                 string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.ContainerRuntimeServerVersionWarningFormat,
-                    info.Name, info.ServerVersionText ?? info.ServerVersion.ToString(), GetMinimumVersionString(info.Name)),
-                GetContainerRuntimeUpgradeAdvice(info.Name));
+                    info.Name, info.ServerVersionText ?? info.ServerVersion.ToString(), GetMinimumVersionString(info.Key)),
+                GetContainerRuntimeUpgradeAdvice(info.Key, info.Name));
         }
 
         return null; // No issues
@@ -214,7 +215,7 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
                 Status = EnvironmentCheckStatus.Fail,
                 Message = string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.ContainerRuntimeNotFoundMessageFormat,
                     info.Name, configuredRuntime, selectedSuffix),
-                Fix = GetContainerRuntimeInstallationLink(info.Name)
+                Fix = GetContainerRuntimeInstallationLink(info.Key, info.Name)
             };
         }
 
@@ -228,7 +229,7 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
                 Message = string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.ContainerRuntimeStoppedMessageFormat,
                     info.Name, selectedSuffix),
                 Details = info.Error,
-                Fix = GetContainerRuntimeStartupAdvice(info.Name, info.IsDockerDesktop)
+                Fix = GetContainerRuntimeStartupAdvice(info.Key, info.Name, info.IsDockerDesktop)
             };
         }
 
@@ -265,14 +266,14 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
         };
     }
 
-    private static string GetContainerRuntimeInstallationLink(string runtime)
+    private static string GetContainerRuntimeInstallationLink(string runtimeKey, string runtimeName)
     {
-        return runtime switch
+        return runtimeKey switch
         {
-            "Docker" => DoctorCommandStrings.ContainerRuntimeInstallDockerFix,
-            "Podman" => DoctorCommandStrings.ContainerRuntimeInstallPodmanFix,
-            "WSLc" => DoctorCommandStrings.ContainerRuntimeInstallWslcFix,
-            _ => string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.ContainerRuntimeInstallGenericFixFormat, runtime)
+            KnownContainerRuntimes.Docker => DoctorCommandStrings.ContainerRuntimeInstallDockerFix,
+            KnownContainerRuntimes.Podman => DoctorCommandStrings.ContainerRuntimeInstallPodmanFix,
+            KnownContainerRuntimes.Wslc => DoctorCommandStrings.ContainerRuntimeInstallWslcFix,
+            _ => string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.ContainerRuntimeInstallGenericFixFormat, runtimeName)
         };
     }
 
@@ -285,7 +286,7 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
 
         if (versionString is not null && Version.TryParse(versionString, out var version))
         {
-            if (runtime == "WSLc" && version.Revision == 0)
+            if (string.Equals(runtime, KnownContainerRuntimes.Wslc, StringComparisons.ContainerRuntime) && version.Revision == 0)
             {
                 // WSLc reports clients as 3.0.2.0 and session managers as 3.0.2.
                 // Omit a zero revision from the minimum so either form compares correctly.
@@ -305,34 +306,34 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
     {
         return runtime switch
         {
-            "Docker" => MinimumDockerVersion,
-            "Podman" => MinimumPodmanVersion,
-            "WSLc" => MinimumWslcVersion,
+            KnownContainerRuntimes.Docker => MinimumDockerVersion,
+            KnownContainerRuntimes.Podman => MinimumPodmanVersion,
+            KnownContainerRuntimes.Wslc => MinimumWslcVersion,
             _ => null
         };
     }
 
-    private static string GetContainerRuntimeUpgradeAdvice(string runtime)
+    private static string GetContainerRuntimeUpgradeAdvice(string runtimeKey, string runtimeName)
     {
-        return runtime switch
+        return runtimeKey switch
         {
-            "Docker" => string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.ContainerRuntimeUpgradeFixFormat,
-                runtime, MinimumDockerVersion, "https://www.docker.com/products/docker-desktop"),
-            "Podman" => string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.ContainerRuntimeUpgradeFixFormat,
-                runtime, MinimumPodmanVersion, "https://podman.io/getting-started/installation"),
-            "WSLc" => string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.ContainerRuntimeUpgradeWslcFixFormat, MinimumWslcVersion),
-            _ => string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.ContainerRuntimeUpgradeGenericFixFormat, runtime)
+            KnownContainerRuntimes.Docker => string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.ContainerRuntimeUpgradeFixFormat,
+                runtimeName, MinimumDockerVersion, "https://www.docker.com/products/docker-desktop"),
+            KnownContainerRuntimes.Podman => string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.ContainerRuntimeUpgradeFixFormat,
+                runtimeName, MinimumPodmanVersion, "https://podman.io/getting-started/installation"),
+            KnownContainerRuntimes.Wslc => string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.ContainerRuntimeUpgradeWslcFixFormat, MinimumWslcVersion),
+            _ => string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.ContainerRuntimeUpgradeGenericFixFormat, runtimeName)
         };
     }
 
-    private static string GetContainerRuntimeStartupAdvice(string runtime, bool isDockerDesktop = false)
+    private static string GetContainerRuntimeStartupAdvice(string runtimeKey, string runtimeName, bool isDockerDesktop)
     {
-        return runtime switch
+        return runtimeKey switch
         {
-            "Docker" when isDockerDesktop => DoctorCommandStrings.ContainerRuntimeStartDockerDesktopFix,
-            "Podman" => DoctorCommandStrings.ContainerRuntimeStartPodmanFix,
-            "WSLc" => DoctorCommandStrings.ContainerRuntimeStartWslcFix,
-            _ => string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.ContainerRuntimeStartDaemonFixFormat, runtime)
+            KnownContainerRuntimes.Docker when isDockerDesktop => DoctorCommandStrings.ContainerRuntimeStartDockerDesktopFix,
+            KnownContainerRuntimes.Podman => DoctorCommandStrings.ContainerRuntimeStartPodmanFix,
+            KnownContainerRuntimes.Wslc => DoctorCommandStrings.ContainerRuntimeStartWslcFix,
+            _ => string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.ContainerRuntimeStartDaemonFixFormat, runtimeName)
         };
     }
 }
