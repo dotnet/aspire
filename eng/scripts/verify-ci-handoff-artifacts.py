@@ -71,8 +71,8 @@ def main():
     print(version_result.stdout, end="", flush=True)
     version_result.check_returncode()
     version = version_result.stdout.strip()
-    if args.source_sha[:8] not in version:
-        raise AssertionError(f"Native CLI version {version!r} does not identify {args.source_sha}")
+    if version != "17.0.0-ci.walltime":
+        raise AssertionError(f"Native CLI version {version!r} does not match the comparison run")
     bundle = installed / "bundle"
     checks = [
         assert_identical(evidence / "package" / "tools", evidence / "dashboard",
