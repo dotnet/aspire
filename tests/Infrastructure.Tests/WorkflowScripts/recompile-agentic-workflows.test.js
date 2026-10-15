@@ -24,8 +24,10 @@ function fixture() {
         patch: `@@ -1 +1 @@\n-${pin(oldSha, 'v0.89.17')}\n+${pin(newSha, 'v0.90.0')}`,
     }];
     const context = {
+        eventName: 'pull_request',
         repo: { owner: 'microsoft', repo: 'aspire' },
         payload: {
+            action: 'closed',
             repository: { default_branch: 'main' },
             pull_request: {
                 number: 42, merged: true, user: { login: 'dependabot[bot]' },
@@ -203,6 +205,9 @@ test('conflicting releases and missing diffs fail before editing any compiler pi
 
 test('untrusted, unmerged and non-default-branch events are rejected', async () => {
     for (const mutate of [
+        f => { f.context.eventName = 'pull_request_target'; },
+        f => { f.context.payload.action = 'opened'; },
+        f => { delete f.context.payload.pull_request; },
         f => { f.context.payload.pull_request.merged = false; },
         f => { f.context.payload.pull_request.user.login = 'contributor'; },
         f => { f.context.payload.pull_request.head.repo.full_name = 'fork/aspire'; },

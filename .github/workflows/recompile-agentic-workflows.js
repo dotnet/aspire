@@ -83,8 +83,9 @@ async function detect({ github, context, core }, io = fs) {
         return;
     }
     const pr = context.payload.pull_request;
-    if (context.repo.owner !== 'microsoft' || context.repo.repo !== 'aspire' ||
-        !pr.merged || pr.user.login !== 'dependabot[bot]' ||
+    if (context.eventName !== 'pull_request' || context.payload.action !== 'closed' ||
+        context.repo.owner !== 'microsoft' || context.repo.repo !== 'aspire' ||
+        !pr?.merged || pr.user.login !== 'dependabot[bot]' ||
         pr.head.repo.full_name !== 'microsoft/aspire' ||
         pr.base.ref !== context.payload.repository.default_branch) {
         throw new Error('Recompilation requires a merged upstream Dependabot PR targeting the default branch.');

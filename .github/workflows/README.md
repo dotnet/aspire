@@ -21,8 +21,9 @@ input in `copilot-setup-steps.yml` aligned with the compiler used to generate th
 workflows and with `validate-agentic-workflows.yml`. Updating only the setup
 action does not update the installed compiler; its `version` input controls that.
 
-`recompile-agentic-workflows.yml` handles merged upstream Dependabot PRs targeting
-the default branch, including grouped GitHub Actions updates. It detects changed
+`recompile-agentic-workflows.yml` uses `pull_request: closed` to handle merged
+upstream Dependabot PRs targeting the default branch, including grouped GitHub
+Actions updates. Unmerged closures are skipped. It detects changed
 `github/gh-aw-actions` pins from the PR diff and verifies their release comments
 against upstream tag commits (or resolves an uncommented SHA through upstream
 tags). It never selects a compiler from the PR title or the latest release.
@@ -48,7 +49,14 @@ lint failures prevent publication, unexpected changed paths fail the run, and an
 empty diff opens no PR. Aspirey creates or updates a stable branch per source PR;
 reruns do not reopen a closed follow-up PR. Runs are serialized to avoid competing
 updates. The existing `ASPIRE_BOT_APP_ID` and `ASPIRE_BOT_PRIVATE_KEY` secrets are
-required. The App installation must grant **Contents**, **Pull requests**, and
+required as both **Actions secrets** (manual runs) and **Dependabot secrets**
+(Dependabot-triggered runs), using the same names. GitHub does not expose normal
+Actions secrets to Dependabot-triggered `pull_request` workflows, even on a manual
+rerun; see [GitHub's Dependabot secrets guidance](https://docs.github.com/en/code-security/reference/supply-chain-security/troubleshoot-dependabot/dependabot-on-actions#accessing-secrets).
+The workflow explicitly grants `GITHUB_TOKEN` only Contents and Pull requests read
+permissions; all writes use the separately minted App token. No privileged
+`pull_request_target` trigger or dangerous-trigger suppression is needed.
+The App installation must grant **Contents**, **Pull requests**, and
 **Workflows** write permissions to push generated workflow YAML. Newly introduced
 third-party action SHAs still require the repository/enterprise allow-list update
 before the generated PR is merged.

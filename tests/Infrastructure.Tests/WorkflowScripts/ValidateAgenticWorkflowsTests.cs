@@ -33,11 +33,16 @@ public sealed class ValidateAgenticWorkflowsTests(ITestOutputHelper output)
         var yaml = new YamlStream();
         yaml.Load(reader);
         var root = Assert.IsType<YamlMappingNode>(Assert.Single(yaml.Documents).RootNode);
-        Assert.True(Mapping(root, "on").Children.ContainsKey(new YamlScalarNode("workflow_dispatch")));
-        var trigger = Mapping(Mapping(root, "on"), "pull_request_target");
+        Assert.Equal(
+            ["workflow_dispatch", "pull_request"],
+            Mapping(root, "on").Children.Keys.Select(node => node.ToString()));
+        var trigger = Mapping(Mapping(root, "on"), "pull_request");
         Assert.Equal(["closed"], Sequence(trigger, "types").Children.Select(node => node.ToString()));
         var job = Mapping(Mapping(root, "jobs"), "recompile");
         Assert.Contains("github.event_name == 'workflow_dispatch'", Scalar(job, "if"), StringComparison.Ordinal);
+        Assert.Contains("github.event_name == 'pull_request'", Scalar(job, "if"), StringComparison.Ordinal);
+        Assert.Contains("github.event.pull_request.merged == true", Scalar(job, "if"), StringComparison.Ordinal);
+        Assert.Contains("github.event.pull_request.user.login == 'dependabot[bot]'", Scalar(job, "if"), StringComparison.Ordinal);
         Assert.Contains("github.ref_name == github.event.repository.default_branch", Scalar(job, "if"), StringComparison.Ordinal);
         var steps = Sequence(job, "steps").Children.Cast<YamlMappingNode>().ToArray();
         var checkout = Assert.Single(steps, step => Scalar(step, "uses").StartsWith("actions/checkout@", StringComparison.Ordinal));
