@@ -24,7 +24,7 @@ internal static class ContainerRuntimeDetector
     /// </summary>
     internal static IEnumerable<ContainerRuntimeProbe> GetKnownRuntimes(bool isWindows)
     {
-        return s_knownRuntimes.Where(runtime => runtime.GetUnsupportedHostError(isWindows) is null);
+        return s_knownRuntimes.Where(runtime => runtime.IsSupportedHost(isWindows));
     }
 
     /// <summary>

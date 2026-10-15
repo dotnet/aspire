@@ -158,7 +158,7 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
         if (info.ClientVersion is not null && minimumVersion is not null &&
             (info.ClientVersion < minimumVersion || IsUnsupportedPrerelease(info.ClientVersion, info.IsClientPrerelease, minimumVersion)))
         {
-            return WarningResult(
+            return VersionPolicyResult(info.Key,
                 string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.ContainerRuntimeClientVersionWarningFormat,
                     info.Name, info.ClientVersionText ?? info.ClientVersion.ToString(), GetMinimumVersionString(info.Key)),
                 GetContainerRuntimeUpgradeAdvice(info.Key, info.Name));
@@ -168,7 +168,7 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
         if (info.Key is KnownContainerRuntimes.Docker or KnownContainerRuntimes.Wslc && info.ServerVersion is not null && minimumVersion is not null &&
             (info.ServerVersion < minimumVersion || IsUnsupportedPrerelease(info.ServerVersion, info.IsServerPrerelease, minimumVersion)))
         {
-            return WarningResult(
+            return VersionPolicyResult(info.Key,
                 string.Format(CultureInfo.CurrentCulture, DoctorCommandStrings.ContainerRuntimeServerVersionWarningFormat,
                     info.Name, info.ServerVersionText ?? info.ServerVersion.ToString(), GetMinimumVersionString(info.Key)),
                 GetContainerRuntimeUpgradeAdvice(info.Key, info.Name));
@@ -184,11 +184,13 @@ internal sealed class ContainerRuntimeCheck(ILogger<ContainerRuntimeCheck> logge
             new Version(minimumVersion.Major, minimumVersion.Minor, Math.Max(minimumVersion.Build, 0), Math.Max(minimumVersion.Revision, 0));
     }
 
-    private static EnvironmentCheckResult WarningResult(string message, string fix) => new()
+    private static EnvironmentCheckResult VersionPolicyResult(string runtimeKey, string message, string fix) => new()
     {
         Category = EnvironmentCheckCategories.Container,
         Name = CheckName,
-        Status = EnvironmentCheckStatus.Warning,
+        Status = string.Equals(runtimeKey, KnownContainerRuntimes.Wslc, StringComparisons.ContainerRuntime)
+            ? EnvironmentCheckStatus.Fail
+            : EnvironmentCheckStatus.Warning,
         Message = message,
         Fix = fix,
         Link = "https://aka.ms/aspire/containers"

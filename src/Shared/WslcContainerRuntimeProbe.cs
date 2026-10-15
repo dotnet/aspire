@@ -12,9 +12,9 @@ namespace Aspire.Shared;
 /// </summary>
 internal sealed class WslcContainerRuntimeProbe() : ContainerRuntimeProbe(KnownContainerRuntimes.Wslc, "wslc", "WSLc", 2)
 {
-    public override string? GetUnsupportedHostError(bool isWindows)
+    public override bool IsSupportedHost(bool isWindows)
     {
-        return isWindows ? null : "WSLc is only supported on Windows.";
+        return isWindows;
     }
 
     protected override async Task<RuntimeVersionInfo> ReadVersionInfoAsync(bool isRunning, ILogger? logger, CancellationToken cancellationToken)

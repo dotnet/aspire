@@ -41,6 +41,11 @@ internal sealed class ContainerRuntimeInfo
     public bool IsRunning { get; init; }
 
     /// <summary>
+    /// Whether the runtime supports the host operating system.
+    /// </summary>
+    public bool IsSupported { get; init; } = true;
+
+    /// <summary>
     /// Discovery priority when availability is equal. Lower values are preferred.
     /// </summary>
     public int Priority { get; init; } = int.MaxValue;
@@ -95,9 +100,9 @@ internal class ContainerRuntimeProbe(string key, string executable, string name,
     public int Priority => priority;
 
     /// <summary>
-    /// Returns an actionable host-compatibility error, or null when the host is supported.
+    /// Determines whether the runtime supports the host operating system.
     /// </summary>
-    public virtual string? GetUnsupportedHostError(bool isWindows) => null;
+    public virtual bool IsSupportedHost(bool isWindows) => true;
 
     /// <summary>
     /// Checks CLI installation and runtime health, then gathers available version metadata.
@@ -106,16 +111,16 @@ internal class ContainerRuntimeProbe(string key, string executable, string name,
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (GetUnsupportedHostError(OperatingSystem.IsWindows()) is string hostError)
+        if (!IsSupportedHost(OperatingSystem.IsWindows()))
         {
-            logger?.LogDebug("{Name}: {Error}", name, hostError);
+            logger?.LogDebug("{Name} is not supported on this host.", name);
             return new ContainerRuntimeInfo
             {
                 Key = key,
                 Executable = executable,
                 Name = name,
                 Priority = priority,
-                Error = hostError
+                IsSupported = false
             };
         }
 

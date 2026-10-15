@@ -20,6 +20,8 @@ WSLc version 3.0.2.0 or later is supported for local development on Windows. `as
 
 WSLc is currently only supported for local development. Publish and deployment support will be added soon. See the [container runtime prerequisites](https://aka.ms/aspire/containers).
 
+Doctor reports an error when the selected WSLc client or session manager is below version 3.0.2.0, including prereleases of that minimum release, or when required version metadata cannot be validated.
+
 `ASPIRE_CONTAINER_RUNTIME` selects a registered runtime (`docker`, `podman`, or `wslc`), not an executable path. Runtime names are case-insensitive. An empty value enables auto-detection; the modern variable takes precedence over `DOTNET_ASPIRE_CONTAINER_RUNTIME`, including when it is empty.
 
 Then you can use either VS Code, Visual Studio, or Codespaces:

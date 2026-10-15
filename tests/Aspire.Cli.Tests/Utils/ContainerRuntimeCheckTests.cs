@@ -11,6 +11,16 @@ namespace Aspire.Cli.Tests.Utils;
 public class ContainerRuntimeCheckTests
 {
     [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WslcHostSupport_IsWindowsOnly(bool isWindows)
+    {
+        var probe = new WslcContainerRuntimeProbe();
+
+        Assert.Equal(isWindows, probe.IsSupportedHost(isWindows));
+    }
+
+    [Theory]
     [InlineData(KnownContainerRuntimes.Docker)]
     [InlineData(KnownContainerRuntimes.Podman)]
     [InlineData(KnownContainerRuntimes.Wslc)]
@@ -25,7 +35,7 @@ public class ContainerRuntimeCheckTests
         });
 
         Assert.NotNull(result);
-        Assert.Equal(EnvironmentCheckStatus.Warning, result.Status);
+        Assert.Equal(key == KnownContainerRuntimes.Wslc ? EnvironmentCheckStatus.Fail : EnvironmentCheckStatus.Warning, result.Status);
         Assert.Contains("Different display name", result.Message);
     }
 
@@ -36,17 +46,18 @@ public class ContainerRuntimeCheckTests
     [InlineData("3.0.3.0", "3.0.2-rc.1", true)]
     [InlineData("3.0.3-rc.1", "3.0.3", false)]
     [InlineData("3.0.1.9", "3.0.3", true)]
+    [InlineData("3.0.3.0", "3.0.1.9", true)]
     [InlineData("3.0.3+build.1", "3.0.2+build.2", false)]
-    public void WslcVersionPolicy_RecognizesNativeAndSemanticVersions(string client, string server, bool expectWarning)
+    public void WslcVersionPolicy_RecognizesNativeAndSemanticVersions(string client, string server, bool expectFailure)
     {
         var metadata = WslcContainerRuntimeProbe.ParseInfoOutput(
             $$$"""{"Client":{"Version":"{{{client}}}"},"Server":{"SessionManagerVersion":"{{{server}}}"}}""");
         var result = ContainerRuntimeCheck.CheckRuntimePolicy(CreateWslcInfo(metadata));
 
-        if (expectWarning)
+        if (expectFailure)
         {
             Assert.NotNull(result);
-            Assert.Equal(EnvironmentCheckStatus.Warning, result.Status);
+            Assert.Equal(EnvironmentCheckStatus.Fail, result.Status);
             var rejectedVersion = client.StartsWith("3.0.3", StringComparison.Ordinal) ? server : client;
             Assert.Contains(rejectedVersion, result.Message);
         }
