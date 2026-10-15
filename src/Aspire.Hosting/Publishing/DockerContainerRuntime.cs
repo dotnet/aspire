@@ -179,7 +179,7 @@ internal sealed class DockerContainerRuntime : ContainerRuntimeBase<DockerContai
         }
 
         // Normalize the context path to handle trailing slashes and relative paths
-        var normalizedContextPath = Path.GetFullPath(contextPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var normalizedContextPath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(contextPath));
 
         await RunDockerBuildAsync(
             normalizedContextPath,

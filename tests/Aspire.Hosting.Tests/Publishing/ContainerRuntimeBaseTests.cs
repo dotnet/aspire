@@ -21,6 +21,27 @@ public class ContainerRuntimeBaseTests
 
     [Theory]
     [MemberData(nameof(BuildRuntimes))]
+    public async Task BuildImageAsync_PreservesRootContext(string runtimeName)
+    {
+        var runner = new TestProcessRunner();
+        IContainerRuntime runtime = runtimeName switch
+        {
+            KnownContainerRuntimes.Docker => new DockerContainerRuntime(NullLogger<DockerContainerRuntime>.Instance, runner),
+            KnownContainerRuntimes.Podman => new PodmanContainerRuntime(NullLogger<PodmanContainerRuntime>.Instance, runner),
+            KnownContainerRuntimes.Wslc => new WslcContainerRuntime(NullLogger<WslcContainerRuntime>.Instance, runner),
+            _ => throw new ArgumentOutOfRangeException(nameof(runtimeName))
+        };
+        var rootPath = Path.GetPathRoot(Path.GetFullPath("context"))!;
+
+        await runtime.BuildImageAsync(rootPath, Path.Combine(rootPath, "Dockerfile"),
+            new ContainerImageBuildOptions { ImageName = "myapp" },
+            [], [], null, TestContext.Current.CancellationToken);
+
+        Assert.Equal(rootPath, runner.ProcessSpecs[^1].ArgumentList![^1]);
+    }
+
+    [Theory]
+    [MemberData(nameof(BuildRuntimes))]
     public async Task BuildImageAsync_PreservesArgumentBoundaries(string runtimeName)
     {
         var runner = new TestProcessRunner();

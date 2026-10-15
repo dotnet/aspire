@@ -75,7 +75,7 @@ internal sealed class WslcContainerRuntime : ContainerRuntimeBase<WslcContainerR
         var imageName = !string.IsNullOrEmpty(options?.Tag)
             ? $"{options.ImageName}:{options.Tag}"
             : options?.ImageName ?? throw new ArgumentException("ImageName must be provided in options.", nameof(options));
-        var normalizedContextPath = Path.GetFullPath(contextPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var normalizedContextPath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(contextPath));
         var arguments = new List<string> { "build", "--file", dockerfilePath, "--tag", imageName };
         arguments.AddRange(BuildArguments(buildArguments));
         arguments.AddRange(BuildSecrets(buildSecrets));
