@@ -44,6 +44,12 @@ The full analysis runs in four passes:
 
 Passes 1–2 are hardcoded because they target well-known infrastructure signatures that rarely change. Passes 3–4 are configurable because transient test failure patterns evolve as integrations are added or CI environments change.
 
+In normal analysis mode, native archive steps `Publish bundle components` and
+`Build bundle payload archive` require a high-confidence infrastructure override;
+generic build failures are not retried. The matcher retains the former
+`Build RID-specific packages` name for reruns of older workflow revisions.
+Keep these matchers aligned when archive workflow steps are renamed.
+
 ## When does it trigger?
 
 | Trigger | Behavior |
