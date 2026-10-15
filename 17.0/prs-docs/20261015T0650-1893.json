@@ -1,0 +1,9 @@
+{
+  "author": "danegsta",
+  "comment": "Corrects architecture docs about DCP binary layout (dcp.exe/dcpctrl.exe -> single dcp binary); no matching changelog entry for a product change in this milestone",
+  "mergedAt": "2026-10-15T06:50:04Z",
+  "number": 1893,
+  "runDate": "2026-10-15T12:05:51Z",
+  "status": "excluded",
+  "title": "Correct outdated DCP binary architecture documentation"
+}
