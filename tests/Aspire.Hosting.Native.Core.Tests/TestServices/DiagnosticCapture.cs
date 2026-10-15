@@ -15,14 +15,14 @@ internal sealed class DiagnosticCapture : IDisposable
     private readonly OperationEventSubscription _subscription;
     private readonly ConcurrentQueue<OperationEvent> _events = [];
 
-    public DiagnosticCapture(bool sampleActivities)
+    public DiagnosticCapture(bool sampleActivities, params string[] additionalSources)
     {
         Root = new Activity("native.diagnostics.test")
             .SetParentId(ActivityTraceId.CreateRandom(), ActivitySpanId.CreateRandom(), ActivityTraceFlags.Recorded)
             .SetIdFormat(ActivityIdFormat.W3C).Start();
         _activities = new ActivityListener
         {
-            ShouldListenTo = source => source.Name == NativeDiagnostics.SourceName,
+            ShouldListenTo = source => source.Name == NativeDiagnostics.SourceName || additionalSources.Contains(source.Name, StringComparer.Ordinal),
             Sample = (ref ActivityCreationOptions<ActivityContext> options) => sampleActivities && options.TraceId == Root.TraceId
                 ? ActivitySamplingResult.AllDataAndRecorded : ActivitySamplingResult.None,
             ActivityStopped = activity =>

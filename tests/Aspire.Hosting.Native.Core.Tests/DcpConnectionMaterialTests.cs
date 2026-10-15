@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Aspire.Shared;
 using Aspire.Hosting.Native.Core.Tests.TestServices;
 using Microsoft.Extensions.Time.Testing;
@@ -12,11 +13,18 @@ public class DcpConnectionMaterialTests
     [Fact]
     public async Task SuccessfulLegacyReadinessPreservesClientTimeoutBeforeAndAfterRequests()
     {
+        using var capture = new DiagnosticCapture(true, DcpConnectionMaterial.ActivitySourceName);
         await using var host = await DcpReadyTestHost.StartAsync(TestContext.Current.CancellationToken);
         var timeout = TimeSpan.FromSeconds(10);
         using var material = await DcpConnectionMaterial.WaitAsync(host.KubeconfigPath, () => false,
             timeout, TimeSpan.FromMilliseconds(10), _ => { }, TestContext.Current.CancellationToken);
         Assert.Equal(timeout, material.Client.Timeout);
+        var activity = Assert.Single(capture.Activities);
+        Assert.Equal("dcp.connection.ready", activity.OperationName);
+        Assert.Equal(ActivityStatusCode.Ok, activity.Status);
+        Assert.Collection(activity.TagObjects.OrderBy(tag => tag.Key, StringComparer.Ordinal),
+            tag => Assert.Equal(new KeyValuePair<string, object?>("dcp.authentication", "bearer"), tag),
+            tag => Assert.Equal(new KeyValuePair<string, object?>("dcp.readiness.attempts", 1), tag));
         using var response = await material.Client.GetAsync("/readyz", TestContext.Current.CancellationToken);
         Assert.True(response.IsSuccessStatusCode);
         Assert.Equal(timeout, material.Client.Timeout);
@@ -70,12 +78,18 @@ public class DcpConnectionMaterialTests
     [Fact]
     public async Task ControllerExitEndsRetriesWithoutAcceptingPartialMaterial()
     {
+        using var capture = new DiagnosticCapture(true, DcpConnectionMaterial.ActivitySourceName);
         var directory = Directory.CreateTempSubdirectory("dcp-material-test-");
         try
         {
             await Assert.ThrowsAsync<InvalidOperationException>(() => DcpConnectionMaterial.WaitAsync(
                 Path.Combine(directory.FullName, "kubeconfig"), () => true, TimeSpan.FromSeconds(1),
                 TimeSpan.FromMilliseconds(1), _ => { }, TestContext.Current.CancellationToken));
+            var activity = Assert.Single(capture.Activities);
+            Assert.Equal(ActivityStatusCode.Error, activity.Status);
+            Assert.Collection(activity.TagObjects.OrderBy(tag => tag.Key, StringComparer.Ordinal),
+                tag => Assert.Equal(new KeyValuePair<string, object?>("dcp.readiness.attempts", 1), tag),
+                tag => Assert.Equal(new KeyValuePair<string, object?>("error.type", typeof(InvalidOperationException).FullName), tag));
         }
         finally
         {

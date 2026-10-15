@@ -247,6 +247,32 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
     }
 
     [Theory]
+    [InlineData("not-json")]
+    [InlineData("[]")]
+    [InlineData("""{"protocolVersion":"2","packageName":"example","metadata":"contract.json","sdkFiles":{},"exports":[]}""")]
+    [InlineData("""{"protocolVersion":2,"packageName":"example","metadata":"contract.json","sdkFiles":{"provider.mts":null},"exports":[]}""")]
+    [InlineData("""{"protocolVersion":2,"packageName":"example","metadata":"contract.json","sdkFiles":{},"exports":[null]}""")]
+    public void MalformedProviderDescriptorsFailAtTheParsingBoundary(string json)
+    {
+        Assert.Throws<InvalidDataException>(() => NativeProviderDescriptor.Read(json));
+    }
+
+    [Fact]
+    public void ProviderDescriptorParsingDoesNotRequireAssetsToExist()
+    {
+        var descriptor = NativeProviderDescriptor.Read("""
+            {"protocolVersion":2,"packageName":"example.provider","metadata":"contract.json",
+            "sdkFiles":{"provider.mts":"src/provider.mts"},"exports":["provider.mts"]}
+            """);
+        Assert.Equal("example.provider", descriptor.PackageName);
+        Assert.Equal("contract.json", descriptor.Metadata);
+        var file = Assert.Single(descriptor.SdkFiles);
+        Assert.Equal("provider.mts", file.Key);
+        Assert.Equal("src/provider.mts", file.Value);
+        Assert.Equal(["provider.mts"], descriptor.Exports);
+    }
+
+    [Theory]
     [InlineData(1, "metadata.json")]
     [InlineData(2, "../outside.json")]
     public async Task RejectsIncompatibleOrEscapingProviderDescriptors(int protocolVersion, string metadata)

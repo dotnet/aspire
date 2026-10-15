@@ -99,6 +99,11 @@ contain the current C# and TypeScript implementations. The C# builder records
 commands synchronously; generated core projection calls are asynchronous.
 Examples below label which surface they use.
 
+The C# builder exposes `IConfiguration`. Environment variables are loaded
+first, followed by caller-owned `NativeBuilderOptions.Configuration`, then
+ordinary `--name=value` application arguments. The framework reads its native
+endpoint and authentication token from the same configuration.
+
 ### Direct RPC Authoring
 
 **Current core projection.** `createRpcBuilder` provides an additive run-mode

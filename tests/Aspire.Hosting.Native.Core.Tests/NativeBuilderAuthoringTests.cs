@@ -8,6 +8,7 @@ using System.Net.Sockets;
 using Aspire.Hosting.Native.Authoring;
 using Aspire.Hosting.Native.Client;
 using Aspire.Hosting.Native.Core.Tests.TestServices;
+using Microsoft.Extensions.Configuration;
 using NativeIntegrations.Redis;
 using static RedisContracts::NativeIntegrations.Redis.AppHost.RedisBuilderExtensions;
 
@@ -15,6 +16,46 @@ namespace Aspire.Hosting.Native.Core.Tests;
 
 public class NativeBuilderAuthoringTests
 {
+    [Fact]
+    public void AuthoringUsesStandardConfigurationWithArgumentsOverridingSuppliedValues()
+    {
+        using var configuration = new ConfigurationManager();
+        configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["application:mode"] = "configured",
+            ["application:retained"] = "retained",
+            ["ASPIRE_NATIVE_RPC_ENDPOINT"] = "127.0.0.1:12345",
+            ["ASPIRE_NATIVE_RPC_TOKEN"] = "test-token"
+        });
+        var builder = DistributedApplication.CreateBuilder(["--application:mode=argument"],
+            new() { Configuration = configuration });
+        Assert.IsAssignableFrom<IConfiguration>(builder.Configuration);
+        Assert.Equal("argument", builder.Configuration.GetSection("application")["mode"]);
+        Assert.Equal("retained", builder.Configuration.GetSection("application")["retained"]);
+        Assert.Equal("127.0.0.1:12345", builder.Settings.Endpoint);
+        Assert.Equal("test-token", builder.Configuration["ASPIRE_NATIVE_RPC_TOKEN"]);
+        Assert.Equal("configured", configuration["application:mode"]);
+        var overridden = DistributedApplication.CreateBuilder(["--native-endpoint=127.0.0.1:54321"],
+            new() { Configuration = configuration });
+        Assert.Equal("127.0.0.1:54321", overridden.Settings.Endpoint);
+    }
+
+    [Fact]
+    public async Task SuppliedConfigurationAuthenticatesTheNativeApplication()
+    {
+        var executor = new WorkloadTestExecutor();
+        executor.ReleaseCleanup();
+        await using var host = await NativeClientTestHost.StartWithExecutorAsync(executor, new());
+        using var configuration = new ConfigurationManager();
+        configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["ASPIRE_NATIVE_RPC_ENDPOINT"] = host.Endpoint.ToString(),
+            ["ASPIRE_NATIVE_RPC_TOKEN"] = host.Token
+        });
+        await using var application = DistributedApplication.CreateBuilder([], new() { Configuration = configuration }).Build();
+        await application.StartAsync(TestContext.Current.CancellationToken);
+    }
+
     [Fact]
     public void DefaultVolumesUseStableApplicationIdentityAndPortableCrossLanguageVectors()
     {

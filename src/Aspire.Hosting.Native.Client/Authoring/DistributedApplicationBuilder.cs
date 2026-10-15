@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Native.Client;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.Native.Authoring;
 
@@ -29,8 +30,8 @@ public sealed class DistributedApplicationBuilder
     private readonly Dictionary<string, string> _providers = new(StringComparer.Ordinal);
     private bool _built;
     internal NativeBuilderSettings Settings { get; }
-    /// <summary>Gets application configuration; framework activation coordinates remain internal.</summary>
-    public IReadOnlyDictionary<string, string> Configuration => Settings.Configuration;
+    /// <summary>Gets environment, supplied configuration and application arguments in increasing precedence.</summary>
+    public IConfiguration Configuration => Settings.Configuration;
     internal IReadOnlyList<Resource> Resources => _resources;
     internal IReadOnlyDictionary<string, string> Providers => _providers;
     internal DistributedApplicationBuilder(NativeBuilderSettings settings) => Settings = settings;

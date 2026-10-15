@@ -9,7 +9,7 @@ using NativeIntegrations.Redis.Validation;
 var builder = DistributedApplication.CreateBuilder(args);
 var password = builder.AddParameter("cache-password", "real-authoring-password");
 var cache = builder.AddRedis("cache", password).WithDataVolume(builder.Configuration["data-volume"]);
-var consumer = builder.AddExecutable("consumer", builder.Configuration["consumer-path"], AppContext.BaseDirectory)
+var consumer = builder.AddExecutable("consumer", builder.Configuration["consumer-path"] ?? throw new ArgumentException("--consumer-path is required."), AppContext.BaseDirectory)
     .WithArgs("--redis-consume", "write")
     .WithReference(cache)
     .WaitFor(cache);

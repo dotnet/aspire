@@ -121,15 +121,22 @@ public class DeclarativeApplicationTests
                 resource.WithEnvironment($"VALUE_{index}", value);
                 resource.WithEndpoint(new()
                 {
-                    Name = $"port-{index}", Protocol = "TCP", UriScheme = "tcp", TargetPort = 6000 + index,
-                    HostPort = 0, EnvironmentVariable = ""
+                    Name = $"port-{index}",
+                    Protocol = "TCP",
+                    UriScheme = "tcp",
+                    TargetPort = 6000 + index,
+                    HostPort = 0,
+                    EnvironmentVariable = ""
                 });
                 resource.WithVolume($"data-{index}", $"/data/{index}", false);
                 resource.WithEntrypoint("service");
                 resource.WithLifecycleExecutable("health", new()
                 {
-                    ExecutablePath = Environment.ProcessPath!, WorkingDirectory = AppContext.BaseDirectory,
-                    Arguments = ["health"], Environment = [], Endpoints = []
+                    ExecutablePath = Environment.ProcessPath!,
+                    WorkingDirectory = AppContext.BaseDirectory,
+                    Arguments = ["health"],
+                    Environment = [],
+                    Endpoints = []
                 }, new() { Arguments = [], Environment = [] });
             });
             var snapshot = composition.Model.ReadResource(resource.Handle);
@@ -199,6 +206,26 @@ public class DeclarativeApplicationTests
         await composition.StartApplication().WaitApplicationReady(15000);
         await session.RetireGeneration(composition);
         Assert.Equal([consumer.Handle.ResourceId, producer.Handle.ResourceId], executor.Removed.Select(identity => identity.ResourceId));
+    }
+
+    [Fact]
+    public async Task RemovedDeclaredWorkloadsRetireUsingThePreviousDependencyGraph()
+    {
+        var executor = new WorkloadTestExecutor();
+        executor.ReleaseCleanup();
+        var workspace = new NativeApplicationServer(executor).CreateApplicationWorkspace();
+        var first = workspace.BeginRevision();
+        var producer = first.AddContainer("a-producer", "generic/service:1");
+        var consumer = first.AddContainer("z-consumer", "generic/consumer:1");
+        consumer.WaitFor(producer);
+        await workspace.CommitRevision(first);
+        await first.StartApplication().WaitApplicationReady(15000);
+
+        await workspace.CommitRevision(workspace.BeginRevision());
+        Assert.Equal([consumer.Handle.ResourceId, producer.Handle.ResourceId],
+            executor.Removed.Select(identity => identity.ResourceId));
+        await workspace.RetireApplicationWorkspace();
+        Assert.Equal(2, executor.Removed.Count);
     }
 
     [Fact]

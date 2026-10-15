@@ -11,6 +11,7 @@ using System.Text.Json.Serialization.Metadata;
 using Aspire.Shared;
 using Aspire.Hosting.Native.Server;
 using Aspire.Hosting.Native.Runtime;
+using Aspire.Hosting.Native.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -60,7 +61,9 @@ internal sealed class DcpApiClient : IAsyncDisposable
         var kubeconfig = Path.Combine(_directory.FullName, "kubeconfig");
         var start = new ProcessStartInfo(executable)
         {
-            UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
         };
         // Keep DCP's cross-platform --monitor contract, with kernel-enforced
         // ownership on the platforms where .NET supports it.
@@ -78,9 +81,21 @@ internal sealed class DcpApiClient : IAsyncDisposable
         _process = Process.Start(start) ?? throw new InvalidOperationException("DCP did not start.");
         _output = DrainOutputAsync(_process);
 
-        _connection = await DcpConnectionMaterial.WaitAsync(kubeconfig, () => _process.HasExited,
-            _options.ControllerRequestTimeout, _options.RetryInterval, message => _logger.LogDebug("{DcpReadiness}", message),
-            _options.TimeProvider, cancellationToken).ConfigureAwait(false);
+        // Bridge shared readiness tracing into the native classified operation
+        // stream without recording connection material or exception messages.
+        using var operation = new NativeDiagnostics.Operation("dcp.connection.ready", null, null, _options.TimeProvider);
+        try
+        {
+            _connection = await DcpConnectionMaterial.WaitAsync(kubeconfig, () => _process.HasExited,
+                _options.ControllerRequestTimeout, _options.RetryInterval, message => _logger.LogDebug("{DcpReadiness}", message),
+                _options.TimeProvider, cancellationToken).ConfigureAwait(false);
+            operation.Succeeded = true;
+        }
+        catch (Exception exception)
+        {
+            operation.ErrorType = exception.GetType().FullName;
+            throw;
+        }
         _client = _connection.Client;
     }
 

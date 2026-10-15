@@ -4,6 +4,7 @@
 using System.Net;
 using System.Text;
 using Aspire.Hosting.Native.Client;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -22,6 +23,8 @@ public sealed class NativeBuilderOptions
     public NativeProviderActivationOptions ProviderActivation { get; init; } = new();
     /// <summary>Gets classified framework logging; credentials and provider console output are never logged here.</summary>
     public ILogger Logger { get; init; } = NullLogger.Instance;
+    /// <summary>Gets caller-owned configuration layered over environment variables and below application arguments.</summary>
+    public IConfiguration? Configuration { get; init; }
 }
 
 internal sealed class NativeBuilderSettings
@@ -29,12 +32,18 @@ internal sealed class NativeBuilderSettings
     internal NativeBuilderOptions Options { get; private init; } = new();
     internal string? Endpoint { get; private set; }
     internal string VolumePrefix { get; private set; } = CreateVolumePrefix(Directory.GetCurrentDirectory(), null);
-    internal Dictionary<string, string> Configuration { get; } = new(StringComparer.OrdinalIgnoreCase);
+    internal ConfigurationManager Configuration { get; } = new();
     internal Dictionary<string, (string Executable, string[] Arguments)> Providers { get; } = new(StringComparer.Ordinal);
     internal string? ExitOnCompletion { get; private set; }
     internal static NativeBuilderSettings FromArgs(string[] args, NativeBuilderOptions options)
     {
-        var settings = new NativeBuilderSettings { Endpoint = Environment.GetEnvironmentVariable("ASPIRE_NATIVE_RPC_ENDPOINT"), Options = options };
+        var settings = new NativeBuilderSettings { Options = options };
+        settings.Configuration.AddEnvironmentVariables();
+        if (options.Configuration is { } supplied)
+        {
+            settings.Configuration.AddConfiguration(supplied);
+        }
+        var applicationArguments = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
         var applicationRoot = options.ApplicationRoot ?? Directory.GetCurrentDirectory();
         var applicationName = options.ApplicationName;
         string? volumePrefix = null;
@@ -66,10 +75,12 @@ internal sealed class NativeBuilderSettings
                     settings.Providers.Add(provider[0], (command[0], command[1..]));
                     break;
                 case "publish": throw new NotSupportedException("Native builder publishing is not supported.");
-                default: settings.Configuration.Add(parts[0], value); break;
+                default: applicationArguments.Add(parts[0], value); break;
             }
         }
 
+        settings.Configuration.AddInMemoryCollection(applicationArguments);
+        settings.Endpoint ??= settings.Configuration["ASPIRE_NATIVE_RPC_ENDPOINT"];
         settings.VolumePrefix = volumePrefix ?? CreateVolumePrefix(applicationRoot, applicationName);
         return settings;
     }
@@ -153,7 +164,7 @@ public sealed class NativeApplication : IAsyncDisposable
             throw new InvalidOperationException("The application has already started.");
         }
         var endpoint = _initial.Settings.Endpoint ?? throw new InvalidOperationException("The framework requires a native server endpoint.");
-        var token = Environment.GetEnvironmentVariable("ASPIRE_NATIVE_RPC_TOKEN")
+        var token = _initial.Settings.Configuration["ASPIRE_NATIVE_RPC_TOKEN"]
             ?? throw new InvalidOperationException("The framework requires native authentication.");
         try
         {
@@ -375,6 +386,7 @@ public sealed class NativeApplication : IAsyncDisposable
         {
             failures.Add(exception);
         }
+        _initial.Settings.Configuration.Dispose();
         if (failures.Count > 0)
         {
             throw new AggregateException("Native application cleanup failed.", failures);

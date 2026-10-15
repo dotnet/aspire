@@ -71,7 +71,8 @@ internal sealed class NativeAppHostServerProject : IAppHostServerProject, IDispo
     }
 
     public async Task<AppHostServerPrepareResult> PrepareAsync(string sdkVersion, IEnumerable<IntegrationReference> integrations,
-        string? requestedChannel = null, string? packageSourceOverride = null, CancellationToken cancellationToken = default)
+        string? requestedChannel = null, string? packageSourceOverride = null, string? packageSourceOverridePattern = null,
+        CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         _generatedSdkDirectory = null;
@@ -83,7 +84,7 @@ internal sealed class NativeAppHostServerProject : IAppHostServerProject, IDispo
             throw new NotSupportedException("AppHost Server v2 requires protocol-v2 provider packages. Managed integration assemblies cannot be loaded into this server.");
         }
 
-        var providers = new JsonArray();
+        var providers = new List<(NativeProviderDescriptor Descriptor, string EntryPoint)>();
         var packageNames = new HashSet<string>(StringComparer.Ordinal);
         foreach (var reference in references.Where(reference => reference.Source == IntegrationSource.Npm))
         {
@@ -94,33 +95,18 @@ internal sealed class NativeAppHostServerProject : IAppHostServerProject, IDispo
             {
                 throw new NotSupportedException($"Provider '{reference.Name}' does not declare AppHost Server v2 support in aspire.apphost-server.json.");
             }
-            var descriptor = JsonNode.Parse(await File.ReadAllTextAsync(descriptorPath, cancellationToken).ConfigureAwait(false)) as JsonObject;
-            if (descriptor is null || descriptor["protocolVersion"]?.GetValue<int>() != 2 ||
-                descriptor["packageName"] is not JsonValue package ||
-                !package.TryGetValue<string>(out var packageName) || string.IsNullOrWhiteSpace(packageName) ||
-                !packageNames.Add(packageName) ||
-                descriptor["metadata"] is not JsonValue metadataFile ||
-                !metadataFile.TryGetValue<string>(out var metadataPath) ||
-                descriptor["sdkFiles"] is not JsonObject { Count: <= 128 } declaredFiles ||
-                descriptor["exports"] is not JsonArray { Count: <= 128 } exportedModules)
+            var descriptor = NativeProviderDescriptor.Read(
+                await File.ReadAllTextAsync(descriptorPath, cancellationToken).ConfigureAwait(false));
+            if (!packageNames.Add(descriptor.PackageName))
             {
-                throw new InvalidDataException($"Provider '{reference.Name}' requires a valid, unique protocol-v2 package descriptor.");
+                throw new InvalidDataException($"Provider '{reference.Name}' declares a duplicate package identity.");
             }
-            var metadata = ResolvePackageFile(root, metadataPath);
-            var sdkFiles = new JsonObject();
-            foreach (var file in declaredFiles)
+            providers.Add((descriptor with
             {
-                sdkFiles[file.Key] = ResolvePackageFile(root, file.Value!.GetValue<string>());
-            }
-            providers.Add((JsonNode)new JsonObject
-            {
-                ["packageName"] = packageName,
-                ["metadata"] = metadata,
-                ["sdkFiles"] = sdkFiles,
-                ["exports"] = exportedModules.DeepClone(),
-                ["executable"] = "node",
-                ["arguments"] = new JsonArray(entryPoint)
-            });
+                Metadata = ResolvePackageFile(root, descriptor.Metadata),
+                SdkFiles = descriptor.SdkFiles.ToDictionary(file => file.Key,
+                    file => ResolvePackageFile(root, file.Value), StringComparer.Ordinal)
+            }, entryPoint));
         }
         if (providers.Count > 0)
         {
@@ -141,7 +127,14 @@ internal sealed class NativeAppHostServerProject : IAppHostServerProject, IDispo
             {
                 ["coreContract"] = contract,
                 ["output"] = generatedSdkDirectory,
-                ["providers"] = providers.DeepClone()
+                ["providers"] = new JsonArray(providers.Select(provider => (JsonNode)new JsonObject
+                {
+                    ["packageName"] = provider.Descriptor.PackageName,
+                    ["metadata"] = provider.Descriptor.Metadata,
+                    ["sdkFiles"] = new JsonObject(provider.Descriptor.SdkFiles.Select(file =>
+                        new KeyValuePair<string, JsonNode?>(file.Key, JsonValue.Create(file.Value)))),
+                    ["exports"] = new JsonArray(provider.Descriptor.Exports.Select(module => (JsonNode?)JsonValue.Create(module)).ToArray())
+                }).ToArray())
             }.ToJsonString(), cancellationToken).ConfigureAwait(false);
             var output = new OutputCollector();
             var start = new ProcessStartInfo(managed) { WorkingDirectory = AppDirectoryPath, UseShellExecute = false };
@@ -164,9 +157,9 @@ internal sealed class NativeAppHostServerProject : IAppHostServerProject, IDispo
             {
                 runtimeProviders.Add((JsonNode)new JsonObject
                 {
-                    ["packageName"] = provider!["packageName"]!.DeepClone(),
-                    ["executable"] = provider["executable"]!.DeepClone(),
-                    ["arguments"] = provider["arguments"]!.DeepClone()
+                    ["packageName"] = provider.Descriptor.PackageName,
+                    ["executable"] = "node",
+                    ["arguments"] = new JsonArray(provider.EntryPoint)
                 });
             }
             await File.WriteAllTextAsync(Path.Combine(generatedSdkDirectory, "providers.json"),

@@ -92,6 +92,8 @@ internal sealed partial class RuntimeGeneration(ApplicationSnapshot declarations
                 WorkloadExecutionPlan.Validate(revision.Resources, executor is IWorkloadPreparationExecutor);
             }
             var previous = _resources.Values.ToDictionary(resource => resource.Declaration.Name, StringComparer.OrdinalIgnoreCase);
+            var previousDependencies = _resources.ToDictionary(pair => pair.Key,
+                pair => pair.Value.Declaration.Dependencies.Select(handle => handle.ResourceId).ToImmutableArray());
             var handles = revision.Resources.ToDictionary(resource => resource.Handle.ResourceId, resource =>
                 previous.TryGetValue(resource.Name, out var current) && current.Declaration.TypeId == resource.TypeId
                     ? current.Declaration.Handle : new ResourceHandle(GenerationId, Guid.NewGuid()));
@@ -135,12 +137,13 @@ internal sealed partial class RuntimeGeneration(ApplicationSnapshot declarations
             }
             _retiredWorkloads.RemoveAll(workload => workload.Completion.IsCompletedSuccessfully);
             var cleanup = _retiredWorkloads.Select(workload => workload.StopAsync()).ToList();
+            var removedWorkloads = new Dictionary<Guid, ResourceWorkload>();
             foreach (var removed in _resources.Values.Where(resource => !next.ContainsKey(resource.Declaration.Handle.ResourceId)))
             {
                 CancelRequests(removed);
                 if (_workloads.Remove(removed.Declaration.Handle.ResourceId, out var workload))
                 {
-                    cleanup.Add(workload.StopAsync());
+                    removedWorkloads.Add(removed.Declaration.Handle.ResourceId, workload);
                     _retiredWorkloads.Add(workload);
                 }
             }
@@ -155,6 +158,9 @@ internal sealed partial class RuntimeGeneration(ApplicationSnapshot declarations
             }
             Changed();
 
+            // Removed consumers still retire against the previous readiness graph,
+            // even though their declarations are absent from the adopted revision.
+            cleanup.Add(RetireDeclaredWorkloadsAsync(removedWorkloads, previousDependencies));
             var applying = ApplyDeclaredRevisionAsync(Task.WhenAll(cleanup));
             if (_declaredActivation is not null)
             {

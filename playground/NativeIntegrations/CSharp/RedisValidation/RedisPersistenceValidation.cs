@@ -37,7 +37,7 @@ internal static class RedisPersistenceValidation
         var builder = DistributedApplication.CreateBuilder(args);
         var credential = builder.AddParameter("cache-password", password);
         var cache = builder.AddRedis("cache", credential).WithDataVolume(builder.Configuration["data-volume"]);
-        var consumer = builder.AddExecutable("consumer", builder.Configuration["consumer-path"], AppContext.BaseDirectory)
+        var consumer = builder.AddExecutable("consumer", builder.Configuration["consumer-path"] ?? throw new ArgumentException("--consumer-path is required."), AppContext.BaseDirectory)
             .WithArgs("--redis-consume", "read")
             .WithReference(cache)
             .WaitFor(cache);

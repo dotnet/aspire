@@ -116,9 +116,14 @@ try {
     const contract = await client.call('getCapabilities', []);
     assert.deepEqual(contract, JSON.parse(readFileSync(new URL('../contract.json', import.meta.url), 'utf8')));
     assert.ok(contract && typeof contract === 'object' && 'Capabilities' in contract && Array.isArray(contract.Capabilities));
-    const compositionMethods = new Set(['createSession', 'startGeneration', 'retireGeneration', 'addResource', 'waitFor', 'inspectResource', 'inspect', 'seal']);
-    assert.equal(contract.Capabilities.filter((capability: unknown) => capability && typeof capability === 'object' &&
-        'MethodName' in capability && typeof capability.MethodName === 'string' && compositionMethods.has(capability.MethodName)).length, 8);
+    const compositionCapabilities = [
+        'Aspire.Hosting.Native.Server/createSession',
+        ...['startGeneration', 'retireGeneration', 'addResource', 'waitFor', 'inspectResource', 'inspect', 'seal']
+            .map(method => `Aspire.Hosting.Native.Api/${method}`),
+    ];
+    assert.deepEqual(contract.Capabilities.filter((capability: unknown) => capability && typeof capability === 'object' &&
+        'CapabilityId' in capability && typeof capability.CapabilityId === 'string' && compositionCapabilities.includes(capability.CapabilityId))
+        .map((capability: { CapabilityId: string }) => capability.CapabilityId).sort(), compositionCapabilities.sort());
     const expectFailure = async (operation: string, arguments_: Record<string, unknown>, code: string) =>
         assert.rejects(client.invokeCapability(
             (operation === 'createSession' ? 'Aspire.Hosting.Native.Server/' : 'Aspire.Hosting.Native.Api/') + operation, arguments_), error =>
@@ -134,7 +139,7 @@ try {
     await expectFailure('inspectResource', { context: { ...cache.toJSON(), $handle: 'not-issued' } }, 'HANDLE_NOT_FOUND');
     await expectFailure('inspectResource', { context: { ...cache.toJSON(), $type: composition.toJSON().$type } }, 'TYPE_MISMATCH');
     await web.waitFor(cache);
-    await expectFailure('waitFor', { context: cache, dependency: web }, 'OPERATION_REJECTED');
+    await expectFailure('waitFor', { context: cache, dependency: web }, 'EXECUTION_PREREQUISITE_CYCLE');
     const otherSession = await createSession(client);
     await expectFailure('retireGeneration', { context: otherSession, composition }, 'INVALID_ARGUMENT');
     const snapshot = await composition.seal();
