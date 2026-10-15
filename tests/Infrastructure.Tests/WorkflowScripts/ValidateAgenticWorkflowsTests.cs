@@ -55,6 +55,13 @@ public sealed class ValidateAgenticWorkflowsTests(ITestOutputHelper output)
         Assert.True(Array.IndexOf(steps, Step(steps, "Check complete recompilation changes")) < Array.IndexOf(steps, token));
         var permissions = Mapping(root, "permissions");
         Assert.All(permissions.Children.Values, permission => Assert.Equal("read", permission.ToString()));
+        var concurrency = Mapping(root, "concurrency");
+        Assert.Equal("recompile-agentic-workflows-${{ github.event.pull_request.number || 'manual' }}", Scalar(concurrency, "group"));
+        Assert.Equal("false", Scalar(concurrency, "cancel-in-progress"));
+        var publication = Step(steps, "Create or update recompilation PR");
+        Assert.Equal("true", Scalar(Mapping(publication, "with"), "update-existing-pr-metadata"));
+        var compile = Scalar(Step(steps, "Install exact gh-aw release and compile all workflows"), "run");
+        Assert.Contains("installed=$(gh aw version 2>&1)", compile, StringComparison.Ordinal);
     }
 
     [Theory]

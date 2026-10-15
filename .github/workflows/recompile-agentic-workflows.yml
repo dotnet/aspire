@@ -9,9 +9,11 @@ permissions:
   contents: read
   pull-requests: read
 
-# Serialize updates from grouped Dependabot PRs and reruns of the same merge.
+# Each source PR has its own follow-up branch; manual runs share a separate one.
+# Serialize writers to the same branch without letting unrelated closures cancel
+# a pending update. Replacing a pending rerun of the same source is safe.
 concurrency:
-  group: recompile-agentic-workflows
+  group: recompile-agentic-workflows-${{ github.event.pull_request.number || 'manual' }}
   cancel-in-progress: false
 
 jobs:
@@ -49,7 +51,8 @@ jobs:
         run: |
           set -euo pipefail
           gh extension install github/gh-aw --pin "$GH_AW_VERSION" --force
-          installed=$(gh aw version)
+          # Older gh-aw releases (including v0.89.17) print the version to stderr.
+          installed=$(gh aw version 2>&1)
           printf '%s\n' "$installed"
           [[ "$installed" == "gh aw version $GH_AW_VERSION" ]]
           gh aw compile --no-check-update --schedule-seed microsoft/aspire
@@ -86,6 +89,7 @@ jobs:
           title: "[automated] Recompile agentic workflows with gh-aw ${{ steps.detect.outputs.version }}"
           commit-message: "[automated] Recompile agentic workflows with gh-aw ${{ steps.detect.outputs.version }}"
           labels: area-engineering-systems
+          update-existing-pr-metadata: true
           body: |
             ## Description
 

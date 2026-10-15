@@ -33,7 +33,8 @@ newest release already pinned by `github/gh-aw-actions` references in the defaul
 branch's workflow YAML, verifies those pins against upstream tags, and aligns both
 compiler inputs before recompiling. It does not fetch the latest upstream release.
 Manual runs reuse the `recompile-agentic-workflows-manual` branch and update its
-open PR; if there are no changes, they open no PR.
+open PR, refreshing its title and body to match the selected release; if there
+are no changes, they open no PR.
 The workflow checks out only the trusted default branch, skips superseded pins,
 aligns both `setup-cli` pins and version inputs, and runs:
 
@@ -47,8 +48,13 @@ gh aw lint --shellcheck
 It does not run `gh aw upgrade` or refresh authoring scaffolding. Compilation or
 lint failures prevent publication, unexpected changed paths fail the run, and an
 empty diff opens no PR. Aspirey creates or updates a stable branch per source PR;
-reruns do not reopen a closed follow-up PR. Runs are serialized to avoid competing
-updates. The existing `ASPIRE_BOT_APP_ID` and `ASPIRE_BOT_PRIVATE_KEY` secrets are
+reruns do not reopen a closed follow-up PR. Runs sharing a follow-up branch are
+serialized: each source PR gets its own concurrency group, and manual dispatches
+share a separate group. Unrelated PR closures cannot replace a queued gh-aw update;
+a pending rerun can only be replaced by another run for the same source.
+Version verification captures both stdout and stderr
+because older gh-aw releases print their version to stderr.
+The existing `ASPIRE_BOT_APP_ID` and `ASPIRE_BOT_PRIVATE_KEY` secrets are
 required as both **Actions secrets** (manual runs) and **Dependabot secrets**
 (Dependabot-triggered runs), using the same names. GitHub does not expose normal
 Actions secrets to Dependabot-triggered `pull_request` workflows, even on a manual
