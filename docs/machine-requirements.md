@@ -22,7 +22,7 @@ WSLc is currently only supported for local development. Publish and deployment s
 
 Doctor reports an error when the selected WSLc client or session manager is below version 3.0.2.0, including prereleases of that minimum release, or when required version metadata cannot be validated.
 
-`ASPIRE_CONTAINER_RUNTIME` selects a registered runtime (`docker`, `podman`, or `wslc`), not an executable path. Runtime names are case-insensitive. An empty value enables auto-detection; the modern variable takes precedence over `DOTNET_ASPIRE_CONTAINER_RUNTIME`, including when it is empty.
+`ASPIRE_CONTAINER_RUNTIME` selects a registered runtime (`docker`, `podman`, or `wslc`), not an executable path. Runtime names are case-insensitive. Leave the value blank to enable auto-detection.
 
 Then you can use either VS Code, Visual Studio, or Codespaces:
 
