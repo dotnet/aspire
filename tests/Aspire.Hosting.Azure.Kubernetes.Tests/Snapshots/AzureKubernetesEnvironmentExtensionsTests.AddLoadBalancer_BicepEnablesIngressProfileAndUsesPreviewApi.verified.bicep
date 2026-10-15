@@ -17,7 +17,7 @@ resource aks_kubelet_identity 'Microsoft.ManagedIdentity/userAssignedIdentities@
   name: aks_kubelet_identity_outputs_principalname
 }
 
-resource aks 'Microsoft.ContainerService/managedClusters@2025-09-02-preview' = {
+resource aks 'Microsoft.ContainerService/managedClusters@2026-07-02-preview' = {
   name: take('aks-${uniqueString(resourceGroup().id)}', 63)
   tags: {
     'aspire-resource-name': 'aks'
@@ -27,7 +27,6 @@ resource aks 'Microsoft.ContainerService/managedClusters@2025-09-02-preview' = {
     dnsPrefix: 'aks-dns'
     agentPoolProfiles: [
       {
-        name: 'system'
         count: 1
         vmSize: 'Standard_D2s_v5'
         vnetSubnetID: subnetId
@@ -36,6 +35,7 @@ resource aks 'Microsoft.ContainerService/managedClusters@2025-09-02-preview' = {
         minCount: 1
         enableAutoScaling: true
         mode: 'System'
+        name: 'system'
       }
     ]
     oidcIssuerProfile: {

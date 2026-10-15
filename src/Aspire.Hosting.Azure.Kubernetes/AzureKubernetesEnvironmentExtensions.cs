@@ -449,9 +449,9 @@ public static class AzureKubernetesEnvironmentExtensions
     /// <para>
     /// Calling this method opts the AKS cluster into the managed Gateway API installation
     /// (<c>ingressProfile.gatewayAPI.installation = 'Standard'</c>) and the AGC ALB controller
-    /// add-on (<c>ingressProfile.applicationLoadBalancer.enabled = true</c>). Both properties
-    /// only exist in preview AKS Bicep API versions (oldest covering both: <c>2025-09-02-preview</c>),
-    /// so this implicitly bumps the cluster's emitted API version. Subscriptions/regions where
+    /// add-on (<c>ingressProfile.applicationLoadBalancer.enabled = true</c>). The application
+    /// load balancer property requires a preview AKS Bicep API version, so this implicitly
+    /// uses <c>2026-07-02-preview</c> for the cluster's emitted API version. Subscriptions/regions where
     /// the AKS preview features <c>Microsoft.ContainerService/AKSGatewayAPIPreview</c> and
     /// <c>Microsoft.ContainerService/AKSAppGatewayContainersPreview</c> are not registered will
     /// see deployment failures.
@@ -735,19 +735,25 @@ public static class AzureKubernetesEnvironmentExtensions
 
         infrastructure.Add(aks);
 
-        // Surface the preview-only ingress profile properties for AGC / managed Gateway API.
-        // We bump to the oldest preview API version that has both gatewayAPI and
-        // applicationLoadBalancer; the injection itself is reflection-based because the
-        // Azure.Provisioning.ContainerService types that own these properties are internal.
-        // The xmldoc on AksPreviewIngressProfileInjector documents the public DefineProperty /
-        // DefineModelProperty alternatives that were tried and empirically ruled out.
-        if (aksResource.RequiresPreviewIngressApi)
+        if (aksResource.GatewayApiEnabled || aksResource.ApplicationLoadBalancerEnabled)
         {
-            aks.ResourceVersion = "2025-09-02-preview";
-            AksPreviewIngressProfileInjector.Inject(
-                aks,
-                gatewayApi: aksResource.GatewayApiEnabled,
-                applicationLoadBalancer: aksResource.ApplicationLoadBalancerEnabled);
+            // Only applicationLoadBalancer requires the latest preview counterpart of
+            // the SDK's stable API version. Gateway API alone uses the stable default.
+            if (aksResource.RequiresPreviewIngressApi)
+            {
+                aks.ResourceVersion = "2026-07-02-preview";
+            }
+
+            var ingressProfile = new AksPreviewIngressProfile();
+            if (aksResource.GatewayApiEnabled)
+            {
+                ingressProfile.GatewayApiInstallation = ManagedGatewayType.Standard;
+            }
+            if (aksResource.ApplicationLoadBalancerEnabled)
+            {
+                ingressProfile.ApplicationLoadBalancerEnabled = true;
+            }
+            aks.IngressProfile = ingressProfile;
         }
 
         // AGC ALB controller subnet role assignments. AKS auto-creates a managed identity
