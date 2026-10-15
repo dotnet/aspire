@@ -60,9 +60,9 @@ path `woff2/CascadiaMonoNF.woff2`. Its relative path under
 `dist/fonts/cascadia-mono-nf/` is preserved. Do not hand-edit generated assets.
 `TerminalView.razor.js` imports only the minified public entry point.
 
-For this alpha trial, `NuGet.config` temporarily maps only the three Hex1b packages
-to nuget.org. Remove that temporary source and mapping once these versions are
-available through an approved internal feed.
+The paired Hex1b NuGet packages must be available through the approved internal
+feeds in `NuGet.config`. Mirror new versions before updating the paired packages;
+do not add an external restore source.
 
 Desktop and Android Firefox terminals use `renderer: "webgl2"` until the
 [WebGPU performance issue](https://bugzilla.mozilla.org/show_bug.cgi?id=1870699)

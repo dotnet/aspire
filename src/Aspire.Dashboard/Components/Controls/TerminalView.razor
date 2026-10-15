@@ -35,6 +35,7 @@
                     @if (_state.Disconnected)
                     {
                         <TerminalDisconnectedBanner @key="ResourceName" ResourceName="@ResourceName" ReadOnly="@ReadOnly" OnClose="@OnClose"
+                                                    OnRestarted="@ReconnectAfterRestartAsync"
                                                     OnCollapsedChanged="@(collapsed => _bannerCollapsed = collapsed)" />
                     }
                     @if (_terminalError is not null && !(_state.Disconnected && _bannerCollapsed))

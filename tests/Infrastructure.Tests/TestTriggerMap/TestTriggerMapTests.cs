@@ -768,6 +768,8 @@ public sealed class TestTriggerMapTests
     }
 
     [Theory]
+    [InlineData(".config/dotnet-tools.json")]
+    [InlineData(".mcp.json")]
     [InlineData("src/Aspire.Dashboard/Components/Controls/TerminalTitle.razor.js")]
     [InlineData("src/Aspire.Dashboard/Components/Layout/TerminalDock.razor.js")]
     [InlineData("src/Aspire.Dashboard/wwwroot/js/app-terminalwindow.js")]

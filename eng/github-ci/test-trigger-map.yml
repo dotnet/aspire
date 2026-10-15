@@ -135,6 +135,8 @@ path_rules:
     reason: solution membership can add an existing project without touching that project's files, so run everything
 
   - paths:
+      - .config/dotnet-tools.json
+      - .mcp.json
       - src/Aspire.Dashboard/Components/Controls/TerminalView.razor.js
       - src/Aspire.Dashboard/Components/Controls/TerminalTitle.razor.js
       - src/Aspire.Dashboard/Components/Layout/TerminalDock.razor.js

@@ -34,6 +34,10 @@ public sealed partial class TerminalDisconnectedBanner : ComponentBase, IAsyncDi
     [Parameter]
     public EventCallback OnClose { get; set; }
 
+    /// <summary>Raised after a resource starts or restarts successfully so its terminal can reconnect.</summary>
+    [Parameter]
+    public EventCallback OnRestarted { get; set; }
+
     /// <summary>Raised when the banner is collapsed or expanded over the retained output.</summary>
     [Parameter]
     public EventCallback<bool> OnCollapsedChanged { get; set; }
@@ -172,7 +176,13 @@ public sealed partial class TerminalDisconnectedBanner : ComponentBase, IAsyncDi
         _executing = true;
         try
         {
-            await CommandExecutor.ExecuteAsync(resource, command, r => ResourceViewModel.GetResourceName(r, _resources));
+            // The executor uses this callback off the renderer thread, where the resource watch
+            // may be changing the dictionary. Resolve the name before yielding.
+            var resourceName = ResourceViewModel.GetResourceName(resource, _resources);
+            if (await CommandExecutor.ExecuteAsync(resource, command, _ => resourceName) && !_disposed)
+            {
+                await OnRestarted.InvokeAsync();
+            }
         }
         finally
         {

@@ -426,6 +426,35 @@ public class TerminalViewTests : DashboardTestContext
         Assert.Single(initialization.Invocations);
     }
 
+    [Fact]
+    public async Task Disconnect_SuccessfulResourceRestartReconnectsExhaustedViewWithoutReplacingContainer()
+    {
+        var module = TerminalSetupHelpers.SetupTerminalViewModule(this, "/Components/Controls/TerminalView.razor.js");
+        var initialization = module.Setup<int>("initTerminal", _ => true);
+        initialization.SetResult(1);
+        module.SetupVoid("restartTerminal", 1).SetVoidResult();
+        var cut = Render<TerminalView>(builder => builder.Add(p => p.ResourceName, "shell"));
+        await cut.InvokeAsync(() => cut.Instance.OnTerminalStateChanged(new TerminalToolbarState
+        {
+            TerminalId = 1, Generation = 31, Disconnected = true, Error = "disconnected"
+        }));
+        var banner = cut.FindComponent<TerminalDisconnectedBanner>();
+
+        await cut.InvokeAsync(banner.Instance.OnRestarted.InvokeAsync);
+
+        Assert.Single(module.Invocations, i => i.Identifier == "restartTerminal");
+        Assert.Single(initialization.Invocations);
+        Assert.Single(cut.FindAll(".terminal-container"));
+        Assert.Single(cut.FindAll(".terminal-disconnected-banner"));
+
+        await cut.InvokeAsync(() => cut.Instance.OnTerminalStateChanged(new TerminalToolbarState
+        {
+            TerminalId = 1, Generation = 32, Connected = true
+        }));
+        Assert.Empty(cut.FindAll(".terminal-disconnected-banner"));
+        Assert.Empty(cut.FindAll("[role=alert]"));
+    }
+
     [Theory]
     [InlineData("mount-failed", nameof(Resources.TerminalStrings.TerminalMountFailed))]
     [InlineData("disconnected", nameof(Resources.TerminalStrings.TerminalDisconnected))]

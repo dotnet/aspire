@@ -336,7 +336,10 @@ an absent code is not treated as success. Docked-terminal completion does not
 currently expose the workload exit code through the pinned Hex1b adapter.
 Resource terminals offer **Restart resource** using the resource's advertised Restart
 or Start command, with the usual command availability, confirmation and error
-reporting. Docked terminals offer **Close tab** through the existing dock close
+reporting. A successful resource restart explicitly reconnects the view and resets
+its retry budget, including after producer completion or exhausted automatic retries.
+The retained screen remains visible until the replacement receives a frame.
+Docked terminals offer **Close tab** through the existing dock close
 action. Other surfaces show the disconnected message without a close-tab action.
 All banners offer **Show terminal**, which hides the banner and accompanying
 retry error behind a floating disconnected icon at the top right. The icon

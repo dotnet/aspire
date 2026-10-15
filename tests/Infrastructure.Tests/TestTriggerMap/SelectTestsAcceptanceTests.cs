@@ -853,8 +853,11 @@ public sealed class SelectTestsAcceptanceTests(ITestOutputHelper outputHelper) :
         Assert.True(filter.IsExcluded("pyrightconfig.json"));
 
         // Dev/AzDO-only inputs with no regular GitHub PR CI consumer.
-        Assert.True(filter.IsExcluded(".config/dotnet-tools.json"));
         Assert.True(filter.IsExcluded("eng/Version.Details.xml"));
+
+        // Terminal package-pairing checks consume these manifests at runtime.
+        Assert.False(filter.IsExcluded(".config/dotnet-tools.json"));
+        Assert.False(filter.IsExcluded(".mcp.json"));
 
         // Generated API/ATS baselines under src/*/api/: no PR CI is needed when these are the only
         // changed files.

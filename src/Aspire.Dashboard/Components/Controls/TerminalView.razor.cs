@@ -449,6 +449,8 @@ public sealed partial class TerminalView : ComponentBase, IAsyncDisposable
 
     private Task DismissErrorAsync() => InvokeTerminalAsync("dismissError");
 
+    private Task ReconnectAfterRestartAsync() => InvokeTerminalAsync("restartTerminal");
+
     private async Task RetryAsync()
     {
         if (_reconciling || _disposed)

@@ -56,6 +56,7 @@ public class TerminalDisconnectedBannerTests : DashboardTestContext
     [InlineData(CommandViewModel.StartCommand, ResourceCommandResponseKind.Succeeded)]
     [InlineData(CommandViewModel.RestartCommand, ResourceCommandResponseKind.Succeeded)]
     [InlineData(CommandViewModel.StartCommand, ResourceCommandResponseKind.Failed)]
+    [InlineData(CommandViewModel.RestartCommand, ResourceCommandResponseKind.Cancelled)]
     public async Task Restart_ExecutesAdvertisedCommandForExactReplicaAndReportsResult(string commandName, ResourceCommandResponseKind resultKind)
     {
         var executions = new ConcurrentQueue<(string Resource, string Command)>();
@@ -71,7 +72,10 @@ public class TerminalDisconnectedBannerTests : DashboardTestContext
             });
         TerminalSetupHelpers.SetupTerminalComponents(this, client);
         Render<FluentToastProvider>();
-        var cut = Render<TerminalDisconnectedBanner>(builder => builder.Add(p => p.ResourceName, "shell-replica"));
+        var restarted = 0;
+        var cut = Render<TerminalDisconnectedBanner>(builder => builder
+            .Add(p => p.ResourceName, "shell-replica")
+            .Add(p => p.OnRestarted, () => restarted++));
         cut.WaitForAssertion(() => Assert.Single(cut.FindAll(".terminal-restart-resource")));
         Assert.Equal("Restart resource", cut.Find(".terminal-restart-resource").TextContent.Trim());
         Assert.Equal("Terminal disconnected. The last output has been preserved.", cut.Find("[role=status]").TextContent);
@@ -83,9 +87,52 @@ public class TerminalDisconnectedBannerTests : DashboardTestContext
         await click;
         Assert.False(cut.FindComponents<FluentButton>().Single(b => b.Instance.Class == "terminal-restart-resource").Instance.Disabled);
         var notification = Assert.Single(Services.GetRequiredService<Dashboard.Model.INotificationService>().GetNotifications()).Entry;
-        Assert.Equal(resultKind == ResourceCommandResponseKind.Succeeded ? MessageBarIntent.Success : MessageBarIntent.Error,
+        Assert.Equal(resultKind switch
+        {
+            ResourceCommandResponseKind.Succeeded => MessageBarIntent.Success,
+            ResourceCommandResponseKind.Cancelled => MessageBarIntent.Info,
+            _ => MessageBarIntent.Error
+        },
             notification.Intent);
+        Assert.Equal(resultKind == ResourceCommandResponseKind.Succeeded ? 1 : 0, restarted);
         Assert.Single(cut.FindAll("[role=status]"));
+    }
+
+    [Fact]
+    public async Task Restart_UsesCapturedResourceNameWhileResourcesChange()
+    {
+        var updates = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var response = new TaskCompletionSource<ResourceCommandResponseViewModel>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var resource = ModelTestHelpers.CreateResource(resourceName: "shell-replica",
+            displayName: "shell", commands: [CreateCommand(CommandViewModel.RestartCommand)]);
+        var client = new TestDashboardClient(isEnabled: true, initialResources: [resource],
+            resourceChannelProvider: () => updates, executeResourceCommand: (_, _, _, _, _) => response.Task);
+        TerminalSetupHelpers.SetupTerminalComponents(this, client);
+        var toasts = Render<FluentToastProvider>();
+        var cut = Render<TerminalDisconnectedBanner>(builder => builder.Add(p => p.ResourceName, "shell-replica"));
+        cut.WaitForAssertion(() => Assert.Single(cut.FindAll(".terminal-restart-resource")));
+
+        var click = cut.InvokeAsync(() => cut.Find(".terminal-restart-resource").ClickAsync(new()));
+        cut.WaitForAssertion(() => Assert.True(cut.FindComponents<FluentButton>()
+            .Single(b => b.Instance.Class == "terminal-restart-resource").Instance.Disabled));
+        var updated = ModelTestHelpers.CreateResource(resourceName: "shell-replica", displayName: "shell",
+            commands: [CreateCommand(CommandViewModel.RestartCommand)], state: KnownResourceState.Finished, properties: new()
+            {
+                [KnownProperties.Resource.ExitCode] = new(KnownProperties.Resource.ExitCode, Value.ForString("42"),
+                    isValueSensitive: false, knownProperty: null, sortOrder: 0, displayName: null, isHighlighted: false)
+            });
+        await updates.Writer.WriteAsync([
+            new(ResourceViewModelChangeType.Upsert, updated),
+            new(ResourceViewModelChangeType.Upsert, ModelTestHelpers.CreateResource(resourceName: "shell-other", displayName: "shell"))]);
+        cut.WaitForAssertion(() => Assert.Equal("Terminal disconnected (exit code 42). The last output has been preserved.",
+            cut.Find("[role=status]").TextContent));
+        response.SetResult(new ResourceCommandResponseViewModel { Kind = ResourceCommandResponseKind.Succeeded });
+        await click;
+
+        // MainLayout rerenders the provider when a command replaces its notification.
+        toasts.Render();
+        toasts.WaitForAssertion(() => Assert.Equal($"shell \"{CommandViewModel.RestartCommand}\" succeeded",
+            toasts.FindComponent<FluentToast>().Instance.Title));
     }
 
     [Theory]

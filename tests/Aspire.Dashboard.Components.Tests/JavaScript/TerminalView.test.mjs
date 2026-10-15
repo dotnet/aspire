@@ -2030,18 +2030,37 @@ test("authoritative close keeps the existing presentation read-only without remo
     assert.equal(attempts[0].client.primaryRequests, 0);
 });
 
-test("completion before the mount continuation cannot revive the connected state", async () => {
-    const { id, element } = mount({ options: { autoFit: true } });
-    attempts[0].resolve();
-    attempts[0].close(4000);
-    await settle();
-    assert.equal(terminal.getTerminalSnapshot(element).ended, true);
-    assert.equal(terminal.getToolbarState(id).connected, false);
-    assert.equal(terminal.getToolbarState(id).error, null);
-    assert.equal(attempts[0].client.readOnly, true);
-    assert.equal(attempts[0].client.primaryRequests, 0);
-    assert.equal(timers.size, 0);
-});
+for (const reconnect of [false, true]) {
+    test(`completion before the ${reconnect ? "replacement" : "initial"} mount continuation retains only the latest frame`, async () => {
+        const { id, element } = mount({ options: { autoFit: true } });
+        const original = attempts[0];
+        if (reconnect) {
+            original.client.screenText = "Old screen";
+            original.resolve();
+            await settle();
+            original.close(1006);
+            retry();
+            assert.equal(original.client.disposed, false);
+        }
+        const replacement = attempts.at(-1);
+        replacement.client.screenText = "Newest final frame";
+        replacement.resolve();
+        replacement.close(4000);
+        await settle();
+        assert.equal(terminal.getTerminalSnapshot(element).ended, true);
+        assert.equal(terminal.getTerminalSnapshot(element).screenText, "Newest final frame");
+        assert.equal(terminal.getToolbarState(id).connected, false);
+        assert.equal(terminal.getToolbarState(id).error, null);
+        assert.equal(replacement.client.readOnly, true);
+        assert.equal(replacement.client.primaryRequests, 0);
+        assert.equal(replacement.client.disposed, false);
+        if (reconnect) {
+            assert.equal(original.client.disposed, true);
+            assert.equal(original.options.signal.aborted, true);
+        }
+        assert.equal(timers.size, 0);
+    });
+}
 
 for (const code of [1000, 1001, 1006]) {
     for (const mounted of [false, true]) {
@@ -2150,6 +2169,58 @@ test("exhausted retries keep the final screen until the view is disposed", async
     assert.equal(attempts[0].client.disposed, false);
     terminal.disposeTerminal(id);
     assert.equal(attempts[0].client.disposed, true);
+});
+
+test("successful resource restart resets exhausted retries and preserves the screen until a new frame", async () => {
+    const { id, element } = mount();
+    const original = attempts[0];
+    original.client.screenText = "Previous final output";
+    original.resolve();
+    await settle();
+    original.close(1006);
+    for (let i = 0; i < 30; i++) {
+        retry();
+        attempts.at(-1).reject();
+        await settle();
+    }
+    assert.equal(timers.size, 0);
+    terminal.restartTerminal(id);
+    assert.equal(attempts.length, 32);
+    assert.equal(terminal.getTerminalSnapshot(element).screenText, "Previous final output");
+    assert.equal(original.client.disposed, false);
+    attempts.at(-1).reject();
+    await settle();
+    assert.equal(retry(), 500, "A restarted workload gets a fresh retry budget");
+    attempts.at(-1).client.screenText = "Restarted output";
+    attempts.at(-1).resolve();
+    await settle();
+    assert.equal(terminal.getToolbarState(id).connected, true);
+    assert.equal(terminal.getTerminalSnapshot(element).screenText, "Restarted output");
+    assert.equal(original.client.disposed, true);
+});
+
+test("successful resource restart explicitly reopens an ended endpoint without clearing its final frame", async () => {
+    const { id, element } = mount();
+    const original = attempts[0];
+    original.client.screenText = "Completed workload output";
+    original.resolve();
+    await settle();
+    original.close(4000);
+    terminal.reconnectTerminal(id, original.options.url);
+    assert.equal(attempts.length, 1, "Ordinary reconnects cannot reopen an ended endpoint");
+    terminal.restartTerminal(id);
+    assert.equal(attempts.length, 2);
+    assert.equal(attempts[1].options.url, original.options.url);
+    assert.equal(terminal.getTerminalSnapshot(element).ended, false);
+    assert.equal(terminal.getTerminalSnapshot(element).screenText, "Completed workload output");
+    assert.equal(original.client.disposed, false);
+    assert.equal(original.options.signal.aborted, false);
+    attempts[1].resolve();
+    await settle();
+    assert.equal(terminal.getToolbarState(id).connected, true);
+    assert.equal(original.client.disposed, true);
+    terminal.restartTerminal(id);
+    assert.equal(attempts.length, 2, "A view that already recovered is not remounted");
 });
 
 test("renderer failures surface an error rather than retaining an unusable view", async () => {

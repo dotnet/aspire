@@ -741,11 +741,13 @@ async function mountClient(state, generation, controller) {
         clearInvalidatedSelection(state);
         // Policy can change while mount is waiting for its first frame.
         client.setReadOnly(state.readOnly || state.ended);
+        // Mount resolves after a replacement frame arrives, even if completion was
+        // reported in the same turn. The old projection must not obscure that frame.
+        releaseRetainedClient(state);
         if (state.ended) {
             notifyToolbar(state);
             return;
         }
-        releaseRetainedClient(state);
         state.connected = client.connected;
         state.disconnected = !client.connected;
         state.peer = client.peer;
@@ -908,6 +910,18 @@ export function initTerminal(element, wsUrl, dotNetRef, options, selectionTempla
     terminals.set(id, state);
     connectClient(state);
     return id;
+}
+
+export function restartTerminal(id) {
+    const state = terminals.get(id);
+    if (!state || state.client?.connected) {
+        return;
+    }
+    // Only an explicit successful resource restart can reopen an ended endpoint.
+    // Preserve its final projection while waiting for the restarted producer.
+    releaseClient(state, true);
+    state.ended = false;
+    reconnectTerminal(id, state.wsUrl);
 }
 
 export function reconnectTerminal(id, wsUrl) {
