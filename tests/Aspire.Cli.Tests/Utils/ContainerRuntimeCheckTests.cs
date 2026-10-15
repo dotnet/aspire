@@ -11,6 +11,99 @@ namespace Aspire.Cli.Tests.Utils;
 public class ContainerRuntimeCheckTests
 {
     [Theory]
+    [InlineData("3.0.2.0", "3.0.2", false)]
+    [InlineData("3.0.2", "3.0.2.0", false)]
+    [InlineData("3.0.2-rc.1", "3.0.3", true)]
+    [InlineData("3.0.3.0", "3.0.2-rc.1", true)]
+    [InlineData("3.0.3-rc.1", "3.0.3", false)]
+    [InlineData("3.0.1.9", "3.0.3", true)]
+    [InlineData("3.0.3+build.1", "3.0.2+build.2", false)]
+    public void WslcVersionPolicy_RecognizesNativeAndSemanticVersions(string client, string server, bool expectWarning)
+    {
+        var metadata = WslcContainerRuntimeProbe.ParseInfoOutput(
+            $$$"""{"Client":{"Version":"{{{client}}}"},"Server":{"SessionManagerVersion":"{{{server}}}"}}""");
+        var result = ContainerRuntimeCheck.CheckRuntimePolicy(CreateWslcInfo(metadata));
+
+        if (expectWarning)
+        {
+            Assert.NotNull(result);
+            Assert.Equal(EnvironmentCheckStatus.Warning, result.Status);
+            var rejectedVersion = client.StartsWith("3.0.3", StringComparison.Ordinal) ? server : client;
+            Assert.Contains(rejectedVersion, result.Message);
+        }
+        else
+        {
+            Assert.Null(result);
+        }
+        Assert.Null(metadata.Error);
+        Assert.Equal(client, metadata.ClientVersionText);
+        Assert.Equal(server, metadata.ServerVersionText);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("{")]
+    [InlineData("{}")]
+    [InlineData("""{"Client":{"Version":"3.0.3.0"}}""")]
+    [InlineData("""{"Client":{"Version":"invalid"},"Server":{"SessionManagerVersion":"3.0.3"}}""")]
+    [InlineData("""{"Client":{"Version":"3.0.3.0"},"Server":{"SessionManagerVersion":"invalid"}}""")]
+    public void WslcVersionPolicy_UnusableRequiredMetadata_ReportsFailure(string? json)
+    {
+        var metadata = WslcContainerRuntimeProbe.ParseInfoOutput(json);
+        var result = ContainerRuntimeCheck.CheckRuntimePolicy(CreateWslcInfo(metadata));
+
+        Assert.NotNull(metadata.Error);
+        Assert.NotNull(result);
+        Assert.Equal(EnvironmentCheckStatus.Fail, result.Status);
+        Assert.Equal("wslc", result.Name);
+        Assert.Equal(metadata.Error, result.Details);
+    }
+
+    [Theory]
+    [InlineData("linux")]
+    [InlineData("windows")]
+    public void DockerDistributionVersion_PreservesVersionAndPrioritizesWindowsModeFailure(string serverOs)
+    {
+        var metadata = ContainerRuntimeProbe.ParseVersionOutput(
+            $$$"""{"Client":{"Version":"26.1.5+dfsg1"},"Server":{"Version":"26.1.5+dfsg1","Os":"{{{serverOs}}}"}}""");
+        Assert.Equal(new Version(26, 1, 5), metadata.ClientVersion);
+        Assert.Equal(new Version(26, 1, 5), metadata.ServerVersion);
+        var result = ContainerRuntimeCheck.CheckRuntimePolicy(new ContainerRuntimeInfo
+        {
+            Key = "docker",
+            Executable = "docker",
+            Name = "Docker",
+            ClientVersion = metadata.ClientVersion,
+            ServerVersion = metadata.ServerVersion,
+            ClientVersionText = metadata.ClientVersionText,
+            ServerVersionText = metadata.ServerVersionText,
+            ServerOs = metadata.ServerOs
+        });
+
+        Assert.NotNull(result);
+        Assert.Equal(serverOs == "windows" ? EnvironmentCheckStatus.Fail : EnvironmentCheckStatus.Warning, result.Status);
+        if (serverOs == "linux")
+        {
+            Assert.Contains("26.1.5+dfsg1", result.Message);
+        }
+    }
+
+    private static ContainerRuntimeInfo CreateWslcInfo(ContainerRuntimeProbe.RuntimeVersionInfo metadata) => new()
+    {
+        Key = "wslc",
+        Executable = "wslc",
+        Name = "WSLc",
+        ClientVersion = metadata.ClientVersion,
+        ServerVersion = metadata.ServerVersion,
+        IsClientPrerelease = metadata.IsClientPrerelease,
+        IsServerPrerelease = metadata.IsServerPrerelease,
+        VersionError = metadata.Error,
+        ClientVersionText = metadata.ClientVersionText,
+        ServerVersionText = metadata.ServerVersionText
+    };
+
+    [Theory]
     [InlineData("DOCKER", "docker")]
     [InlineData("Podman", "podman")]
     [InlineData("WSLC", "wslc")]

@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
+using Semver;
 
 namespace Aspire.Shared;
 
@@ -58,6 +59,12 @@ internal sealed class ContainerRuntimeInfo
     /// The server (daemon/engine) version, if detected.
     /// </summary>
     public Version? ServerVersion { get; init; }
+
+    public bool IsClientPrerelease { get; init; }
+    public bool IsServerPrerelease { get; init; }
+    public string? VersionError { get; init; }
+    public string? ClientVersionText { get; init; }
+    public string? ServerVersionText { get; init; }
 
     /// <summary>
     /// Whether this is Docker Desktop (vs Docker Engine).
@@ -187,6 +194,11 @@ internal class ContainerRuntimeProbe(string key, string executable, string name,
                     Priority = priority,
                     ClientVersion = versionInfo.ClientVersion,
                     ServerVersion = versionInfo.ServerVersion,
+                    IsClientPrerelease = versionInfo.IsClientPrerelease,
+                    IsServerPrerelease = versionInfo.IsServerPrerelease,
+                    VersionError = versionInfo.Error,
+                    ClientVersionText = versionInfo.ClientVersionText,
+                    ServerVersionText = versionInfo.ServerVersionText,
                     IsDockerDesktop = versionInfo.IsDockerDesktop,
                     ServerOs = versionInfo.ServerOs
                 };
@@ -471,18 +483,51 @@ internal class ContainerRuntimeProbe(string key, string executable, string name,
 
     private static RuntimeVersionInfo NormalizeVersionInfo(ContainerRuntimeVersionJson? json)
     {
-        Version.TryParse(json?.Client?.Version, out var clientVersion);
-        Version.TryParse(json?.Server?.Version, out var serverVersion);
+        var clientVersion = ParseRuntimeVersion(json?.Client?.Version, out var clientPrerelease);
+        var serverVersion = ParseRuntimeVersion(json?.Server?.Version, out var serverPrerelease);
         var isDockerDesktop = json?.Client?.Context?.Contains("desktop", StringComparison.OrdinalIgnoreCase) == true;
 
-        return new RuntimeVersionInfo(clientVersion, serverVersion, isDockerDesktop, json?.Server?.Os);
+        return new RuntimeVersionInfo(clientVersion, serverVersion, isDockerDesktop, json?.Server?.Os)
+        {
+            IsClientPrerelease = clientPrerelease,
+            IsServerPrerelease = serverPrerelease,
+            ClientVersionText = json?.Client?.Version,
+            ServerVersionText = json?.Server?.Version
+        };
+    }
+
+    internal static Version? ParseRuntimeVersion(string? value, out bool isPrerelease)
+    {
+        isPrerelease = false;
+        if (Version.TryParse(value, out var nativeVersion))
+        {
+            return nativeVersion;
+        }
+
+        // Native WSLc uses four numbers (3.0.3.0). Docker distribution builds and WSLc
+        // SemVer releases can instead use 26.1.5+dfsg1 or 3.0.2-rc.1.
+        if (value is not null && SemVersion.TryParse(value, SemVersionStyles.Strict, out var semanticVersion) &&
+            semanticVersion.Major <= int.MaxValue && semanticVersion.Minor <= int.MaxValue && semanticVersion.Patch <= int.MaxValue)
+        {
+            isPrerelease = semanticVersion.IsPrerelease;
+            return new Version((int)semanticVersion.Major, (int)semanticVersion.Minor, (int)semanticVersion.Patch);
+        }
+
+        return null;
     }
 
     internal readonly record struct RuntimeVersionInfo(
         Version? ClientVersion,
         Version? ServerVersion,
         bool IsDockerDesktop,
-        string? ServerOs);
+        string? ServerOs)
+    {
+        public bool IsClientPrerelease { get; init; }
+        public bool IsServerPrerelease { get; init; }
+        public string? Error { get; init; }
+        public string? ClientVersionText { get; init; }
+        public string? ServerVersionText { get; init; }
+    }
 }
 
 internal sealed class ContainerRuntimeVersionJson
