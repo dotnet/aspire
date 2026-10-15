@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Aspire.Cli.Tests.TestServices;
 using Microsoft.AspNetCore.InternalTesting;
@@ -79,6 +80,11 @@ public class AsyncTestHelpersTests
     [InlineData(true)]
     public async Task WithDisposeTimeout_TimesOutBlockedDisposal(bool synchronous)
     {
+        if (Debugger.IsAttached)
+        {
+            Assert.Skip("Disposal timeouts are disabled while a debugger is attached.");
+        }
+
         var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
