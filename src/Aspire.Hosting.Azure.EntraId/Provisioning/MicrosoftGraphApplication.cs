@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Azure.EntraId.Provisioning;
 /// Models the Microsoft Graph application properties used by Entra registration provisioning.
 /// </summary>
 internal sealed class MicrosoftGraphApplication(string bicepIdentifier)
-    : ProvisionableResource(bicepIdentifier, "Microsoft.Graph/applications", "v1.0")
+    : ProvisionableResource(bicepIdentifier, EntraIdBicepConstants.ApplicationResourceType, EntraIdBicepConstants.GraphApiVersion)
 {
     public BicepValue<string> Id
     {

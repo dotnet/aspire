@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Azure.EntraId.Provisioning;
 /// Models the service principal created for an Entra application registration.
 /// </summary>
 internal sealed class MicrosoftGraphServicePrincipal(string bicepIdentifier)
-    : ProvisionableResource(bicepIdentifier, "Microsoft.Graph/servicePrincipals", "v1.0")
+    : ProvisionableResource(bicepIdentifier, EntraIdBicepConstants.ServicePrincipalResourceType, EntraIdBicepConstants.GraphApiVersion)
 {
     public BicepValue<string> Id
     {

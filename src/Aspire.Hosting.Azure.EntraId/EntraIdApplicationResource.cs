@@ -50,8 +50,8 @@ public class EntraIdApplicationResource : AzureProvisioningResource
     {
         Annotations.Add(new TenantScopedResourceAnnotation(new Dictionary<string, string>
         {
-            ["Microsoft.Graph/applications"] = "objectId",
-            ["Microsoft.Graph/servicePrincipals"] = "servicePrincipalId"
+            [EntraIdBicepConstants.ApplicationResourceType] = EntraIdBicepConstants.ObjectIdOutputName,
+            [EntraIdBicepConstants.ServicePrincipalResourceType] = EntraIdBicepConstants.ServicePrincipalIdOutputName
         }));
         Parameters[KnownParameters.TenantResourceSuffix] = null;
         _provisioningAnnotations = [.. Annotations.Where(annotation => annotation is PipelineStepAnnotation or PipelineConfigurationAnnotation)];
@@ -79,7 +79,7 @@ public class EntraIdApplicationResource : AzureProvisioningResource
     /// This output is available for applications created by Aspire. Existing applications use
     /// <see cref="ClientIdParameter"/> or <see cref="ClientId"/> instead.
     /// </remarks>
-    public BicepOutputReference ClientIdOutputReference => new("clientId", this);
+    public BicepOutputReference ClientIdOutputReference => new(EntraIdBicepConstants.ClientIdOutputName, this);
 
     /// <summary>
     /// Gets the home tenant ID produced when the registration is provisioned.
@@ -88,7 +88,7 @@ public class EntraIdApplicationResource : AzureProvisioningResource
     /// Registrations are created in the tenant of the Azure subscription used for provisioning.
     /// Existing applications use <see cref="TenantIdParameter"/> or <see cref="TenantId"/> instead.
     /// </remarks>
-    public BicepOutputReference TenantIdOutputReference => new("tenantId", this);
+    public BicepOutputReference TenantIdOutputReference => new(EntraIdBicepConstants.TenantIdOutputName, this);
 
     internal object? HomeTenantIdValue => IsExistingApplication
         ? (object?)TenantIdParameter ?? TenantId
@@ -180,12 +180,12 @@ public class EntraIdApplicationResource : AzureProvisioningResource
         };
         infrastructure.Add(servicePrincipal);
 
-        infrastructure.Add(new ProvisioningOutput("clientId", typeof(string)) { Value = application.AppId.ToBicepExpression() });
+        infrastructure.Add(new ProvisioningOutput(EntraIdBicepConstants.ClientIdOutputName, typeof(string)) { Value = application.AppId.ToBicepExpression() });
         // Compile the scope-function property directly; ToBicepExpression would reference an undeclared "tenant" resource.
-        infrastructure.Add(new ProvisioningOutput("tenantId", typeof(string)) { Value = BicepFunction.GetTenant().TenantId.Compile() });
-        infrastructure.Add(new ProvisioningOutput("objectId", typeof(string)) { Value = application.Id.ToBicepExpression() });
-        infrastructure.Add(new ProvisioningOutput("servicePrincipalId", typeof(string)) { Value = servicePrincipal.Id.ToBicepExpression() });
-        infrastructure.Add(new ProvisioningOutput("uniqueName", typeof(string)) { Value = application.UniqueName.ToBicepExpression() });
+        infrastructure.Add(new ProvisioningOutput(EntraIdBicepConstants.TenantIdOutputName, typeof(string)) { Value = BicepFunction.GetTenant().TenantId.Compile() });
+        infrastructure.Add(new ProvisioningOutput(EntraIdBicepConstants.ObjectIdOutputName, typeof(string)) { Value = application.Id.ToBicepExpression() });
+        infrastructure.Add(new ProvisioningOutput(EntraIdBicepConstants.ServicePrincipalIdOutputName, typeof(string)) { Value = servicePrincipal.Id.ToBicepExpression() });
+        infrastructure.Add(new ProvisioningOutput(EntraIdBicepConstants.UniqueNameOutputName, typeof(string)) { Value = application.UniqueName.ToBicepExpression() });
     }
 
     // ── Core identity ──────────────────────────────────────────────────────
