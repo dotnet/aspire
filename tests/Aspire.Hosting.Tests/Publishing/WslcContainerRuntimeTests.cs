@@ -55,10 +55,10 @@ public class WslcContainerRuntimeTests(ITestOutputHelper output)
         var spec = Assert.Single(runner.ProcessSpecs);
         Assert.Equal("wslc", spec.ExecutablePath);
         Assert.Equal(
-            "build --file \"Dockerfile\" --tag \"myapp:latest\" --build-arg \"VERSION=1.0\" --build-arg \"INHERITED\"" +
-            " --secret \"id=token,type=env,env=TOKEN\" --secret \"id=file,type=file,src=secret.txt\" --target \"final\"" +
-            $" \"{Path.GetFullPath("context")}\"",
-            spec.Arguments);
+            ["build", "--file", "Dockerfile", "--tag", "myapp:latest", "--build-arg", "VERSION=1.0", "--build-arg", "INHERITED",
+                "--secret", "id=token,type=env,env=TOKEN", "--secret", "id=file,type=file,src=secret.txt", "--target", "final",
+                Path.GetFullPath("context")],
+            spec.ArgumentList);
         Assert.Equal("secret-value", spec.EnvironmentVariables["TOKEN"]);
         Assert.Equal(1, Assert.Single(runner.Disposables).DisposeCallCount);
     }
@@ -160,7 +160,7 @@ public class WslcContainerRuntimeTests(ITestOutputHelper output)
         {
             await manager.BuildImageAsync(resource.Resource, TestContext.Current.CancellationToken);
             Assert.Equal(2, runner.ProcessSpecs.Count);
-            Assert.StartsWith("build --file ", runner.ProcessSpecs[1].Arguments);
+            Assert.Equal("build", runner.ProcessSpecs[1].ArgumentList![0]);
         }
         else
         {

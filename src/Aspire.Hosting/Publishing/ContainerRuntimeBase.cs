@@ -449,63 +449,67 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
     }
 
     /// <summary>
-    /// Builds a string of build arguments for container build commands.
+    /// Builds arguments for container build commands without command-line quoting.
     /// </summary>
     /// <param name="buildArguments">The build arguments to include.</param>
-    /// <returns>A string containing the formatted build arguments.</returns>
-    protected static string BuildArgumentsString(Dictionary<string, string?> buildArguments)
+    /// <returns>The build argument switches and values.</returns>
+    protected static List<string> BuildArguments(Dictionary<string, string?> buildArguments)
     {
-        var result = string.Empty;
+        var arguments = new List<string>();
         foreach (var buildArg in buildArguments)
         {
-            result += buildArg.Value is not null
-                ? $" --build-arg \"{buildArg.Key}={buildArg.Value}\""
-                : $" --build-arg \"{buildArg.Key}\"";
+            arguments.Add("--build-arg");
+            arguments.Add(buildArg.Value is not null
+                ? $"{buildArg.Key}={buildArg.Value}"
+                : buildArg.Key);
         }
-        return result;
+
+        return arguments;
     }
 
     /// <summary>
-    /// Builds a string of build secrets for container build commands.
+    /// Builds secret arguments without command-line quoting.
     /// </summary>
     /// <param name="buildSecrets">The build secrets to include.</param>
     /// <param name="requireValue">Whether to require a non-null value for secrets (default: false).</param>
-    /// <returns>A string containing the formatted build secrets.</returns>
-    internal static string BuildSecretsString(Dictionary<string, BuildImageSecretValue> buildSecrets, bool requireValue = false)
+    /// <returns>The secret switches and specifications.</returns>
+    internal static List<string> BuildSecrets(Dictionary<string, BuildImageSecretValue> buildSecrets, bool requireValue = false)
     {
-        var result = string.Empty;
+        var arguments = new List<string>();
         foreach (var buildSecret in buildSecrets)
         {
+            arguments.Add("--secret");
             if (buildSecret.Value.Type == BuildImageSecretType.File)
             {
-                result += $" --secret \"id={buildSecret.Key},type=file,src={buildSecret.Value.Value}\"";
+                arguments.Add($"id={buildSecret.Key},type=file,src={buildSecret.Value.Value}");
             }
             else if (requireValue && buildSecret.Value.Value is null)
             {
-                result += $" --secret \"id={buildSecret.Key},type=env\"";
+                arguments.Add($"id={buildSecret.Key},type=env");
             }
             else
             {
-                result += $" --secret \"id={buildSecret.Key},type=env,env={buildSecret.Key.ToUpperInvariant()}\"";
+                arguments.Add($"id={buildSecret.Key},type=env,env={buildSecret.Key.ToUpperInvariant()}");
             }
         }
-        return result;
+
+        return arguments;
     }
 
     /// <summary>
-    /// Builds a string for the target stage in container build commands.
+    /// Builds arguments for the target stage.
     /// </summary>
     /// <param name="stage">The target stage to include.</param>
-    /// <returns>A string containing the formatted target stage, or empty string if stage is null or empty.</returns>
-    protected static string BuildStageString(string? stage)
+    /// <returns>The target switches and value, or an empty collection.</returns>
+    protected static List<string> BuildStage(string? stage)
     {
-        return !string.IsNullOrEmpty(stage) ? $" --target \"{stage}\"" : string.Empty;
+        return !string.IsNullOrEmpty(stage) ? ["--target", stage] : [];
     }
 
     /// <summary>
     /// Executes a container runtime command and returns the process result without throwing for non-zero exit codes.
     /// </summary>
-    protected async Task<ProcessResult> ExecuteContainerCommandWithResultAsync(
+    protected Task<ProcessResult> ExecuteContainerCommandWithResultAsync(
         string arguments,
         string errorLogTemplate,
         string successLogTemplate,
@@ -514,8 +518,36 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
         Dictionary<string, string>? environmentVariables = null,
         bool retainOutput = false)
     {
-        var spec = CreateProcessSpec(arguments, retainOutput);
+        return ExecuteContainerCommandWithResultAsync(
+            CreateProcessSpec(arguments, retainOutput), errorLogTemplate, successLogTemplate,
+            cancellationToken, logArguments, environmentVariables);
+    }
 
+    /// <summary>
+    /// Executes a command with argument boundaries preserved by the process runner.
+    /// </summary>
+    protected Task<ProcessResult> ExecuteContainerCommandWithResultAsync(
+        IReadOnlyList<string> arguments,
+        string errorLogTemplate,
+        string successLogTemplate,
+        CancellationToken cancellationToken,
+        object[] logArguments,
+        Dictionary<string, string>? environmentVariables = null,
+        bool retainOutput = false)
+    {
+        return ExecuteContainerCommandWithResultAsync(
+            CreateProcessSpec(arguments, retainOutput), errorLogTemplate, successLogTemplate,
+            cancellationToken, logArguments, environmentVariables);
+    }
+
+    private async Task<ProcessResult> ExecuteContainerCommandWithResultAsync(
+        ProcessSpec spec,
+        string errorLogTemplate,
+        string successLogTemplate,
+        CancellationToken cancellationToken,
+        object[] logArguments,
+        Dictionary<string, string>? environmentVariables)
+    {
         if (environmentVariables is not null)
         {
             foreach (var (key, value) in environmentVariables)
@@ -524,7 +556,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
             }
         }
 
-        _logger.LogDebug("Running {RuntimeName} with arguments: {ArgumentList}", Name, spec.Arguments);
+        _logger.LogDebug("Running {RuntimeName} with arguments: {ArgumentList}", Name, spec.ArgumentList ?? (object?)spec.Arguments);
         var (pendingProcessResult, processDisposable) = _processRunner.Run(spec);
 
         await using (processDisposable)

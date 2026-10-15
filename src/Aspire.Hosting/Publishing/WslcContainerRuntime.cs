@@ -76,11 +76,11 @@ internal sealed class WslcContainerRuntime : ContainerRuntimeBase<WslcContainerR
             ? $"{options.ImageName}:{options.Tag}"
             : options?.ImageName ?? throw new ArgumentException("ImageName must be provided in options.", nameof(options));
         var normalizedContextPath = Path.GetFullPath(contextPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        var arguments = $"build --file \"{dockerfilePath}\" --tag \"{imageName}\"";
-        arguments += BuildArgumentsString(buildArguments);
-        arguments += BuildSecretsString(buildSecrets);
-        arguments += BuildStageString(stage);
-        arguments += $" \"{normalizedContextPath}\"";
+        var arguments = new List<string> { "build", "--file", dockerfilePath, "--tag", imageName };
+        arguments.AddRange(BuildArguments(buildArguments));
+        arguments.AddRange(BuildSecrets(buildSecrets));
+        arguments.AddRange(BuildStage(stage));
+        arguments.Add(normalizedContextPath);
 
         var environmentVariables = new Dictionary<string, string>();
         foreach (var buildSecret in buildSecrets)

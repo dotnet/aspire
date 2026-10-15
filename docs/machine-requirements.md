@@ -22,6 +22,8 @@ WSLc also supports a limited set of publish and deployment operations on Windows
 
 Single-platform .NET SDK images can be published to WSLc's local image store using the SDK's native `LocalRegistry=Wslc` support. This requires a .NET SDK with WSLc support; older SDKs report an unsupported local registry rather than falling back to another runtime.
 
+Multi-platform image loading requires OCI image-layout support in WSLc, tracked by [microsoft/WSL#41123](https://github.com/microsoft/WSL/issues/41123).
+
 Use Docker or Podman for Docker Compose deployment, platform-selected Dockerfile builds, Dockerfile image archive output or OCI format selection, image manifest inspection, multi-platform .NET SDK publishing to the local image store, and `PublishWithContainerFiles` layering (which requires a platform-selected Dockerfile build). These operations are not supported with WSLc and fail explicitly. Daemon-free .NET SDK archive publishing, including multi-platform archives, remains supported: set `Destination = ContainerImageDestination.Archive` and `OutputPath`, without container-file layering. Aspire does not add an archive/load bridge. See the [container runtime prerequisites](https://aka.ms/aspire/containers).
 
 Doctor reports an error when the selected WSLc client or session manager is below version 3.0.2.0, including prereleases of that minimum release, or when required version metadata cannot be validated.

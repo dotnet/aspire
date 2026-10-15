@@ -457,6 +457,8 @@ internal sealed class ResourceContainerImageManager(
                 options.TargetPlatform is { } targetPlatform &&
                 targetPlatform.ToMSBuildRuntimeIdentifierString().Contains(';'))
             {
+                // WSLc cannot load the OCI image layout used by multi-platform SDK images.
+                // Track support at https://github.com/microsoft/WSL/issues/41123.
                 throw new DistributedApplicationException(
                     $"WSLc does not support loading multi-platform .NET SDK images into its local image store for resource '{resource.Name}'. " +
                     "Select a single TargetPlatform, use Docker or Podman, or publish an archive with Destination = Archive and OutputPath.");

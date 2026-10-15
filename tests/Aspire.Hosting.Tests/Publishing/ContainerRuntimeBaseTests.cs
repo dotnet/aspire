@@ -6,6 +6,8 @@
 
 using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Tests.Utils;
+using Aspire.Shared;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Tests.Publishing;
@@ -13,6 +15,68 @@ namespace Aspire.Hosting.Tests.Publishing;
 [Trait("Partition", "4")]
 public class ContainerRuntimeBaseTests
 {
+    public static TheoryData<string> BuildRuntimes => OperatingSystem.IsWindows()
+        ? new() { KnownContainerRuntimes.Docker, KnownContainerRuntimes.Podman, KnownContainerRuntimes.Wslc }
+        : new() { KnownContainerRuntimes.Docker, KnownContainerRuntimes.Podman };
+
+    [Theory]
+    [MemberData(nameof(BuildRuntimes))]
+    public async Task BuildImageAsync_PreservesArgumentBoundaries(string runtimeName)
+    {
+        var runner = new TestProcessRunner();
+        IContainerRuntime runtime = runtimeName switch
+        {
+            KnownContainerRuntimes.Docker => new DockerContainerRuntime(NullLogger<DockerContainerRuntime>.Instance, runner),
+            KnownContainerRuntimes.Podman => new PodmanContainerRuntime(NullLogger<PodmanContainerRuntime>.Instance, runner),
+            KnownContainerRuntimes.Wslc => new WslcContainerRuntime(NullLogger<WslcContainerRuntime>.Instance, runner),
+            _ => throw new ArgumentOutOfRangeException(nameof(runtimeName))
+        };
+        var contextPath = Path.GetFullPath("context with spaces");
+        var dockerfile = Path.Combine(contextPath, "Dockerfile");
+        const string secretPath = """C:\secrets with spaces\config "quoted".json""";
+        const string stage = "stage with spaces";
+        var values = new Dictionary<string, string?>
+        {
+            ["CONFIG"] = """{"mode":"prod"}""",
+            ["MESSAGE"] = """say "hello world" """,
+            ["PATH"] = """C:\path with spaces\trailing\""",
+            ["QUOTED_PATH"] = """C:\path\"quoted"\file""",
+            ["EMPTY"] = "",
+            ["INHERITED"] = null
+        };
+
+        await runtime.BuildImageAsync(contextPath, dockerfile,
+            new ContainerImageBuildOptions { ImageName = "myapp", Tag = "latest" },
+            values,
+            new()
+            {
+                ["file"] = new(secretPath, BuildImageSecretType.File),
+                ["token"] = new("secret-value", BuildImageSecretType.Environment),
+                ["inherited"] = new(null, BuildImageSecretType.Environment)
+            },
+            stage, TestContext.Current.CancellationToken);
+
+        var spec = runner.ProcessSpecs[^1];
+        var expected = new List<string>();
+        if (runtimeName == KnownContainerRuntimes.Docker)
+        {
+            expected.Add("buildx");
+        }
+        expected.AddRange(["build", "--file", dockerfile, "--tag", "myapp:latest"]);
+        foreach (var (key, value) in values)
+        {
+            expected.AddRange(["--build-arg", value is null ? key : $"{key}={value}"]);
+        }
+        expected.AddRange([
+            "--secret", $"id=file,type=file,src={secretPath}",
+            "--secret", "id=token,type=env,env=TOKEN",
+            "--secret", runtimeName == KnownContainerRuntimes.Podman ? "id=inherited,type=env" : "id=inherited,type=env,env=INHERITED",
+            "--target", stage, contextPath]);
+        Assert.Null(spec.Arguments);
+        Assert.Equal(expected, spec.ArgumentList);
+        Assert.Equal("secret-value", spec.EnvironmentVariables["TOKEN"]);
+    }
+
     [Fact]
     public async Task ExecuteContainerCommandAsync_IncludesCapturedOutputInFailureMessage()
     {
