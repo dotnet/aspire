@@ -332,6 +332,9 @@ public static class ProjectResourceBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
+    /// This method is obsolete. Use <c>AddDotnetProject</c> from the <c>Aspire.Hosting.Dotnet</c> package instead.
+    /// </para>
+    /// <para>
     /// This overload of the <see cref="AddCSharpApp(IDistributedApplicationBuilder, string, string)"/> method adds a C# project or file-based app to the application
     /// model using a path to the file-based app .cs file, project file (.csproj), or project directory.
     /// If the path is not an absolute path then it will be computed relative to the app host directory.
@@ -347,7 +350,7 @@ public static class ProjectResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    [Experimental("ASPIRECSHARPAPPS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [Obsolete("Use AddDotnetProject from the Aspire.Hosting.Dotnet package instead.")]
     [AspireExportIgnore(Reason = "Polyglot AppHosts use the internal addCSharpApp dispatcher export.")]
     public static IResourceBuilder<ProjectResource> AddCSharpApp(this IDistributedApplicationBuilder builder, string name, string path)
     {
@@ -361,7 +364,7 @@ public static class ProjectResourceBuilderExtensions
     /// <summary>
     /// Adds a C# application resource
     /// </summary>
-    [Experimental("ASPIRECSHARPAPPS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [Obsolete("Use addDotnetProject from the Aspire.Hosting.Dotnet package instead.")]
     [AspireExport("addCSharpApp")]
     internal static IResourceBuilder<CSharpAppResource> AddCSharpAppForPolyglot(
         this IDistributedApplicationBuilder builder,
@@ -384,6 +387,9 @@ public static class ProjectResourceBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
+    /// This method is obsolete. Use <c>AddDotnetProject</c> from the <c>Aspire.Hosting.Dotnet</c> package instead.
+    /// </para>
+    /// <para>
     /// This overload of the <see cref="AddCSharpApp(IDistributedApplicationBuilder, string, string)"/> method adds a C# project or file-based app to the application
     /// model using a path to the file-based app .cs file, project file (.csproj), or project directory.
     /// If the path is not an absolute path then it will be computed relative to the app host directory.
@@ -399,7 +405,7 @@ public static class ProjectResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    [Experimental("ASPIRECSHARPAPPS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [Obsolete("Use AddDotnetProject from the Aspire.Hosting.Dotnet package instead.")]
     [AspireExportIgnore(Reason = "Polyglot AppHosts use the internal addCSharpApp dispatcher export.")]
     public static IResourceBuilder<CSharpAppResource> AddCSharpApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string path, Action<ProjectResourceOptions> configure)
     {
@@ -467,6 +473,19 @@ public static class ProjectResourceBuilderExtensions
     /// resource behind the Rebuild command.
     /// </para>
     /// <para>
+    /// For TLS-enabled endpoints, an available HTTPS certificate is mapped to Kestrel's default certificate
+    /// unless the resource environment already contains <c>Kestrel__Certificates__Default__Path</c>,
+    /// <c>Kestrel__Certificates__Default__KeyPath</c>, or <c>Kestrel__Certificates__Default__Subject</c>.
+    /// These names are matched case-insensitively. The presence of any of them preserves the existing
+    /// certificate configuration, including its password. Settings supplied by earlier HTTPS certificate
+    /// callbacks participate in this check.
+    /// </para>
+    /// <para>
+    /// A password alone does not suppress the default PFX configuration. It is replaced by the selected
+    /// certificate's password, or removed when that certificate has no password. Certificate settings
+    /// loaded separately by the resource application, such as from <c>appsettings.json</c>, are not checked.
+    /// </para>
+    /// <para>
     /// The resource must carry <see cref="IProjectMetadata"/>. It is intended for language integration
     /// packages that add their own .NET resource type, such as <c>Aspire.Hosting.Dotnet</c>; use
     /// <see cref="AddProject{TProject}(IDistributedApplicationBuilder, string)"/> for ordinary projects.
@@ -527,7 +546,9 @@ public static class ProjectResourceBuilderExtensions
             }
 
             var projectDirectory = Path.GetDirectoryName(currentProjectMetadata.ProjectPath);
-            if (await DotnetSdkUtils.TryGetVersionAsync(projectDirectory).ConfigureAwait(false) is { Major: < 10 } version)
+            var versionProvider = e.Services.GetRequiredService<IDotnetSdkVersionProvider>();
+            if (await versionProvider.TryGetVersionAsync(projectDirectory, ct).ConfigureAwait(false) is { } version &&
+                version.Major < 10)
             {
                 throw new DistributedApplicationException($"File-based apps are only supported on .NET 10 or later. The version active in '{projectDirectory}' is {version}.");
             }
@@ -578,6 +599,17 @@ public static class ProjectResourceBuilderExtensions
         builder.WithHttpsCertificateConfiguration(ctx =>
         {
             if (!ctx.Resource.Annotations.OfType<EndpointAnnotation>().Any(e => e.TlsEnabled))
+            {
+                return Task.CompletedTask;
+            }
+
+            // Preserve an explicit certificate selection as a group. Replacing a PEM Path with a PFX
+            // path while retaining KeyPath makes Kestrel load incompatible files.
+            // https://github.com/microsoft/aspire/issues/20019
+            if (ctx.EnvironmentVariables.Keys.Any(name =>
+                string.Equals(name, KnownAspNetCoreConfigNames.KestrelCertificatesDefaultPath, StringComparisons.EnvironmentVariableName) ||
+                string.Equals(name, KnownAspNetCoreConfigNames.KestrelCertificatesDefaultKeyPath, StringComparisons.EnvironmentVariableName) ||
+                string.Equals(name, KnownAspNetCoreConfigNames.KestrelCertificatesDefaultSubject, StringComparisons.EnvironmentVariableName)))
             {
                 return Task.CompletedTask;
             }

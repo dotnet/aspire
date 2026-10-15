@@ -1,6 +1,3 @@
-#pragma warning disable ASPIREAZURE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable ASPIREPIPELINES002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
@@ -27,7 +24,7 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureEnvironmentResourceExtensionsTests
+public class AzureEnvironmentResourceExtensionsTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public void AddAzureEnvironment_ShouldAddResourceToBuilder_InPublishMode()
@@ -635,6 +632,28 @@ public class AzureEnvironmentResourceExtensionsTests
         Assert.Equal(1, cachedStateProvisioner.ConfigureResourceCallCount);
         Assert.Equal(0, cachedStateProvisioner.GetOrCreateResourceCallCount);
         Assert.Equal("https://storage.blob.core.windows.net/", storage.Resource.Outputs["blobEndpoint"]);
+    }
+
+    [Fact]
+    public async Task EnsureProvisioned_DoesNotCreateProvisioningContextWhenAllResourcesAreSatisfiedFromCachedState()
+    {
+        var builder = CreateBuilder(isRunMode: true);
+        var cachedStateProvisioner = new CachedStateTestBicepProvisioner();
+        var provisioningContextProvider = new TestProvisioningContextProvider();
+        AddTestAzureProvisioning(builder, bicepProvisioner: cachedStateProvisioner, provisioningContextProvider: provisioningContextProvider);
+
+        builder.AddBicepTemplateString("storage", "resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' = {}");
+        builder.AddBicepTemplateString("storage2", "resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' = {}");
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var controller = app.Services.GetRequiredService<AzureProvisioningController>();
+
+        await controller.EnsureProvisionedAsync(model);
+
+        Assert.Equal(2, cachedStateProvisioner.ConfigureResourceCallCount);
+        Assert.Equal(0, cachedStateProvisioner.GetOrCreateResourceCallCount);
+        Assert.Equal(0, provisioningContextProvider.CreateProvisioningContextCallCount);
     }
 
     [Fact]
@@ -4889,6 +4908,18 @@ public class AzureEnvironmentResourceExtensionsTests
     }
 
     [Fact]
+    public void AddAzureEnvironment_UsesCloudCubeIcon()
+    {
+        var builder = CreateBuilder(isRunMode: true);
+
+        var resourceBuilder = builder.AddAzureEnvironment();
+
+        var icon = Assert.Single(resourceBuilder.Resource.Annotations.OfType<ResourceIconAnnotation>());
+        Assert.Equal("CloudCube", icon.IconName);
+        Assert.Equal(IconVariant.Filled, icon.IconVariant);
+    }
+
+    [Fact]
     public void AzureEnvironmentResource_PreservesDefaultResourceNameValidation()
     {
         var builder = CreateBuilder(isRunMode: true);
@@ -4948,10 +4979,10 @@ public class AzureEnvironmentResourceExtensionsTests
         Assert.Equal(expectedResourceGroup.Resource, resource.ResourceGroupName);
     }
 
-    private static IDistributedApplicationBuilder CreateBuilder(bool isRunMode = false)
+    private IDistributedApplicationBuilder CreateBuilder(bool isRunMode = false)
     {
         var operation = isRunMode ? DistributedApplicationOperation.Run : DistributedApplicationOperation.Publish;
-        return TestDistributedApplicationBuilder.Create(operation);
+        return TestDistributedApplicationBuilder.Create(operation, testOutputHelper);
     }
 
     /// <summary>

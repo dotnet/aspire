@@ -58,15 +58,17 @@
                         }
 
                         <div id="@ScrollContainerId" class="logs-grid-container continuous-scroll-overflow" tabindex="0" role="region" aria-label="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsHeader)]">
+                            <aspire-scroll-to-bottom hidden data-scroll-to-bottom-label="@ControlsStringsLoc[nameof(ControlsStrings.ScrollToBottom)]"></aspire-scroll-to-bottom>
                             <GridColumnManager @ref="_manager" Columns="@_gridColumns">
                                 <AspireFluentDataGrid @ref="_dataGrid"
                                                 HeaderCellAsButtonWithMenu="true"
                                                 ResizeType="DataGridResizeType.Discrete"
                                                 Virtualize="true"
+                                                AnchorMode="VirtualizeAnchorMode.End"
                                                 RowClass="@GetRowClass"
                                                 GenerateHeader="DataGridGeneratedHeaderType.Sticky"
                                                 ItemSize="46"
-                                                OverscanCount="100"
+                                                OverscanCount="50"
                                                 ResizableColumns="true"
                                                 ResizeColumnOnAllRows="false"
                                                 ItemsProvider="@GetData"
@@ -75,6 +77,7 @@
                                                 GridTemplateColumns="@_manager.GetGridTemplateColumns()"
                                                 ShowHover="true"
                                                 ItemKey="@(r => r.InternalId)"
+                                                ItemComparer="@s_logSummaryComparer"
                                                 OnRowClick="@(r => r.ExecuteOnDefault(d => OnShowPropertiesAsync(d, focusElementId: ScrollContainerId)))"
                                                 Class="main-grid enable-row-click aspire-scroll-border-grid">
                                     <ChildContent>
@@ -190,7 +193,7 @@
                 else
                 {
                     <div>
-                        <FluentCounterBadge Count="@(ViewModel.Filters.GetEnabledFilters().Count())" Appearance="BadgeAppearance.Filled">
+                        <FluentCounterBadge Count="@(ViewModel.Filters.GetEnabledFilters().Count())" ShowEmpty="false" Appearance="BadgeAppearance.Filled">
                             <AnchorContent>
                                 <AspireMenuButton HideIcon="true" Text="@FilterLoc[nameof(StructuredFiltering.Filters)]" ItemsProvider="GetFilterMenuItems" />
                             </AnchorContent>

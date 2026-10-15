@@ -264,13 +264,13 @@ internal sealed class InitCommand : BaseCommand
         // early return so re-running `aspire init` against a workspace produced by a
         // previous broken CLI (which left apphost.cs without a workspace NuGet.config)
         // recovers cleanly. The config is also required so MSBuild can resolve
-        // `#:sdk Aspire.AppHost.Sdk@<version>` from the SDK directive — both for
+        // `#:package Aspire.Hosting.AppHost@<version>` from the package directive — both for
         // `aspire add` (`dotnet package add --file apphost.cs`) and for
         // `dotnet run --file apphost.cs`. Without it, any non-stable channel (PR/run
         // hives, locally-built `local-*`/`dev-*` hives, the staging channel, etc.) is
-        // invisible and SDK resolution fails. `NuGetConfigMerger` underneath creates a
-        // new file or merges missing sources into an existing one.
-        var createdNuGetConfig = await _templateNuGetConfigService.CreateOrUpdateNuGetConfigWithoutPromptAsync(
+        // invisible and SDK resolution fails. Shared NuGet policy is persisted into a
+        // new or existing workspace configuration.
+        var createdNuGetConfig = await _templateNuGetConfigService.ConfigureDotNetAppHostNuGetConfigAsync(
             channelName: _executionContext.IdentityChannel,
             outputPath: workingDirectory.FullName,
             cancellationToken).ConfigureAwait(false);
@@ -286,16 +286,10 @@ internal sealed class InitCommand : BaseCommand
             return CliExitCodes.Success;
         }
 
-        // Drop bare single-file apphost. Pin the SDK version so later operations
-        // (project updating, version parsing in ProjectUpdater/FallbackProjectParser)
-        // can locate and update the directive — they expect the @<version> form.
-        // Use IdentitySdkVersion (build-metadata stripped) rather than IdentityVersion:
-        // the directive references the published Aspire.AppHost.Sdk NuGet package, whose
-        // version never carries a +<sha> suffix. This also matches the empty-apphost
-        // template path (CliTemplateFactory.EmptyTemplate) so both emit the same form.
+        // NuGet package versions omit the CLI build-metadata suffix.
         var aspireVersion = _executionContext.IdentitySdkVersion;
         var appHostContent = $$"""
-            #:sdk Aspire.AppHost.Sdk@{{aspireVersion}}
+            {{CliTemplateFactory.GetCSharpAppHostDirectives(aspireVersion)}}
             #:property AspireUseCliBundle=true
 
             var builder = DistributedApplication.CreateBuilder(args);
@@ -361,18 +355,16 @@ internal sealed class InitCommand : BaseCommand
         // `_runner.NewProjectAsync` so the aspire-apphost template's built-in `restore`
         // post-action (template.json post-action id "restore", conditioned on
         // !skipRestore which defaults to false) can resolve the
-        // `Aspire.AppHost.Sdk/<version>` reference from the channel-matched hive. The
+        // `Aspire.Hosting.AppHost` reference from the channel-matched hive. The
         // post-action currently runs with continueOnError=true so a missing nuget.config
         // wouldn't fail init, but its restore would still emit confusing errors and waste
         // work — and a future template change that drops continueOnError would break init
         // outright.
         //
         // Source: CliExecutionContext.IdentityChannel (stable / staging / daily / pr-<N> /
-        // local). NuGetConfigMerger underneath creates a new file or merges missing
-        // sources into an existing one, so adding hives later is handled the same way as
-        // for templates. Mirrors what DropCSharpSingleFileSkeletonAsync already does for
-        // the apphost.cs path on every channel.
-        var createdNuGetConfig = await _templateNuGetConfigService.CreateOrUpdateNuGetConfigWithoutPromptAsync(
+        // local). Persist the shared NuGet policy into a new or existing workspace
+        // configuration, as the single-file AppHost path does.
+        var createdNuGetConfig = await _templateNuGetConfigService.ConfigureDotNetAppHostNuGetConfigAsync(
             channelName: _executionContext.IdentityChannel,
             outputPath: solutionDir.FullName,
             cancellationToken).ConfigureAwait(false);
@@ -666,7 +658,7 @@ internal sealed class InitCommand : BaseCommand
     /// <c>staging</c> on a CLI without the staging feature flag, or a stale <c>pr-{N}</c> on a
     /// machine without the matching hive). Persisting these would pin a name no PSM rule can
     /// satisfy and zero out polyglot <c>aspire add</c> discovery via
-    /// <c>IntegrationPackageSearchService.cs</c> line 28-30.</description></item>
+    /// <see cref="IntegrationPackageSearchService"/>.</description></item>
     /// <item><description>The matched channel is <see cref="PackageChannelType.Implicit"/>.
     /// In production the only Implicit channel created by <c>PackagingService.GetChannelsAsync</c>
     /// is <c>default</c> (the unscoped nuget.org aggregator), which no CLI identity ever

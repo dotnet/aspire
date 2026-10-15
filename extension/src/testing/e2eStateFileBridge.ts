@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as https from 'https';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { randomUUID } from 'crypto';
@@ -8,28 +9,57 @@ import { AspireExtensionContext } from '../AspireExtensionContext';
 import { getLoggableDebugConfiguration, type AspireDebugSession } from '../debugger/AspireDebugSession';
 import { createDebugSessionConfiguration, getResourceDebuggerExtensions } from '../debugger/debuggerExtensions';
 import { externalBuildProjectDebuggerExtension, projectDebuggerExtension } from '../debugger/languages/dotnet';
-import { redactCliArgsForLogging, spawnCliProcess, terminateCliProcess } from '../utils/process/cliProcess';
+import { onDidSpawnCliProcess, redactCliArgsForLogging, spawnCliProcess, terminateCliProcess } from '../utils/process/cliProcess';
 import { cleanupRun } from '../debugger/runCleanupRegistry';
-import type { AspireResourceExtendedDebugConfiguration, EnvVar, ExecutableLaunchConfiguration } from '../dcp/types';
+import type { AspireResourceExtendedDebugConfiguration, DcpServerConnectionInfo, EnvVar, ExecutableLaunchConfiguration } from '../dcp/types';
 import { createStateSnapshot, getSensitiveDashboardUrl, isSamePath } from '../extensionState';
-import type { PreparableAppHostLifecycleTool } from '../lm/appHostLifecycleTools';
 import { AppHostLaunchRequestedEvent, AppHostLaunchService } from '../services/AppHostLaunchService';
 import type { AspireDebugConsoleOutputEvent, AspireExtensionE2EBrowserDebugSession, AspireExtensionE2ECodeLensProbeResult, AspireExtensionE2ECommandInvocation, AspireExtensionE2EControlCommand, AspireExtensionE2EControlPayload, AspireExtensionE2EControlStatus, AspireExtensionE2EDebugConsoleOutput, AspireExtensionE2EDebugLaunch, AspireExtensionE2EStoppingPathEvent, AspireExtensionE2ETaskProcessEvent, AspireExtensionE2ETerminalCommand, AspireExtensionStateSnapshot } from '../types/extensionApi';
 import { AspireTerminalCommandEvent, AspireTerminalProvider } from '../utils/AspireTerminalProvider';
 import { delay } from '../utils/async';
 import { dashboardDefaultChangedNotificationKey } from '../utils/dashboardNotificationState';
 import { extensionLogOutputChannel } from '../utils/logging';
-import { onDidInvokeCommand } from '../utils/telemetry';
+import { isCommandCancellation, onDidInvokeCommand } from '../utils/telemetry';
 import { AspireAppHostTreeProvider } from '../views/AspireAppHostTreeProvider';
 import { ResourceItem } from '../views/treeItems/resourceItems';
 import { ResourceCommandJson, ResourceJson } from '../data/appHostCliContracts';
 import { AppHostDataRepository } from '../data/AppHostDataRepository';
-import { getSupportedCapabilities, javaLanguageExtensionId, useCsharpExtensionVersionProviderForTests } from '../capabilities';
+import { csharpExtensionId, getSupportedCapabilities, javaLanguageExtensionId, useCsharpExtensionVersionProviderForTests } from '../capabilities';
 import { getCliPathTargetKey, workspaceFolderCliPathTarget } from '../utils/cliPathVariables';
+import { probeUsefulnessSurvey } from './usefulnessSurveyProbe';
 import { isEnabledCommand } from '../views/treePresentation';
 import { blazorWasmDebugProofTimeoutMs, getBlazorWasmDebugProofCleanupTimeoutMs } from './blazorWasmDebugProofTimeouts';
+import type { BlazorWasmDebuggerStatus } from './blazorWasmDebuggerSetup';
+import { getPsFollowProcessLogPath, type PsFollowProcessEvent } from './psFollowProcessLog';
 
 let atomicWriteSequence = 0;
+
+export function createE2ePsFollowProcessTracker(): vscode.Disposable {
+  const stateFile = process.env.ASPIRE_EXTENSION_E2E_STATE_FILE;
+  const runId = process.env.ASPIRE_EXTENSION_E2E_RUN_ID;
+  if (!isE2eBridgeEnabled() || !stateFile || !runId) {
+    return new vscode.Disposable(() => undefined);
+  }
+
+  const processLogPath = getPsFollowProcessLogPath(stateFile);
+  fs.mkdirSync(path.dirname(processLogPath), { recursive: true });
+  return onDidSpawnCliProcess(({ childProcess, args }) => {
+    const pid = childProcess.pid;
+    if (pid === undefined || args[0] !== 'ps' || !args.includes('--follow')) {
+      return;
+    }
+
+    const id = randomUUID();
+    const record = (state: PsFollowProcessEvent['state']) => {
+      const event: PsFollowProcessEvent = { runId, id, pid, state };
+      fs.appendFileSync(processLogPath, JSON.stringify(event) + '\n');
+    };
+    record('started');
+    // Shutdown can finish on exit before stdio closes. Keep observing this handle after
+    // disposing the spawn subscription so reload retires it before the host exits.
+    childProcess.once('exit', () => record('exited'));
+  });
+}
 
 export function createE2eStateFileBridge(
   context: vscode.ExtensionContext,
@@ -39,7 +69,7 @@ export function createE2eStateFileBridge(
   appHostTreeProvider: AspireAppHostTreeProvider,
   terminalProvider: AspireTerminalProvider,
   onDidChangeState: vscode.Event<AspireExtensionStateSnapshot>,
-  appHostLifecycleTools: ReadonlyMap<string, PreparableAppHostLifecycleTool>,
+  languageModelTools: ReadonlyMap<string, E2eLanguageModelToolRegistration>,
 ): vscode.Disposable {
   const stateFile = process.env.ASPIRE_EXTENSION_E2E_STATE_FILE;
   const controlFile = process.env.ASPIRE_EXTENSION_E2E_CONTROL_FILE;
@@ -260,7 +290,7 @@ export function createE2eStateFileBridge(
               }
             };
 
-            const result = await executeE2eControlCommand(context, aspireContext, dataRepository, appHostLaunchService, appHostTreeProvider, terminalProvider, clipboardSnapshot, clipboardExpectation, appHostLifecycleTools, payload.command, markCommandStarted);
+            const result = await executeE2eControlCommand(context, aspireContext, dataRepository, appHostLaunchService, appHostTreeProvider, terminalProvider, clipboardSnapshot, clipboardExpectation, languageModelTools, payload.command, markCommandStarted);
             controlStatus = { revision, status: 'applied', startedObserved: commandStarted, result };
           }
           else {
@@ -383,7 +413,7 @@ export async function executeE2eControlCommand(
   terminalProvider: AspireTerminalProvider,
   clipboardSnapshot: E2eClipboardSnapshot,
   clipboardExpectation: E2eClipboardExpectation,
-  appHostLifecycleTools: ReadonlyMap<string, PreparableAppHostLifecycleTool>,
+  languageModelTools: ReadonlyMap<string, E2eLanguageModelToolRegistration>,
   command: AspireExtensionE2EControlCommand,
   markStarted: () => void
 ): Promise<unknown> {
@@ -642,42 +672,123 @@ export async function executeE2eControlCommand(
       const commands = await vscode.commands.getCommands(true);
       return commands.filter(commandId => commandId.startsWith('aspire-vscode.')).sort();
     }
+    case 'probeUsefulnessSurvey': {
+      markStarted();
+      return await probeUsefulnessSurvey(context.globalState, command.reset);
+    }
     case 'getRegisteredLanguageModelTools': {
       markStarted();
       return vscode.lm.tools
         .filter(tool => tool.name.startsWith('aspire_'))
-        .map(tool => ({ name: tool.name, tags: [...tool.tags], description: tool.description }))
+        .map(tool => {
+          const registration = languageModelTools.get(tool.name);
+          return {
+            name: tool.name,
+            tags: [...tool.tags],
+            description: tool.description,
+            registered: registration?.registered === true,
+            supportsPreparation: typeof registration?.tool.prepareInvocation === 'function',
+          };
+        })
         .sort((left, right) => left.name.localeCompare(right.name));
     }
     case 'prepareLanguageModelToolInvocation': {
       markStarted();
-      const tool = appHostLifecycleTools.get(command.toolName);
-      if (!tool) {
+      const registration = languageModelTools.get(command.toolName);
+      if (!registration) {
         throw new Error(`Language model tool '${command.toolName}' is not registered.`);
       }
 
-      const prepared = await tool.prepareInvocation({ input: command.input }, new vscode.CancellationTokenSource().token);
-      return {
-        invocationMessage: prepared.invocationMessage,
-        confirmationTitle: prepared.confirmationMessages?.title,
-        confirmationMessage: prepared.confirmationMessages?.message,
-      };
+      if (typeof registration.tool.prepareInvocation !== 'function') {
+        return {
+          registered: registration.registered,
+          supportsPreparation: false,
+        };
+      }
+
+      const cancellationSource = new vscode.CancellationTokenSource();
+      try {
+        const prepared = await registration.tool.prepareInvocation(
+          { input: command.input },
+          cancellationSource.token);
+        return {
+          registered: registration.registered,
+          supportsPreparation: true,
+          invocationMessage: prepared?.invocationMessage,
+          confirmationTitle: prepared?.confirmationMessages?.title,
+          confirmationMessage: prepared?.confirmationMessages?.message,
+        };
+      }
+      finally {
+        // This command inspects preparation output without invoking the tool. Cancel the
+        // synthetic preparation so it cannot affect a later real invocation in the same host.
+        cancellationSource.cancel();
+        cancellationSource.dispose();
+      }
     }
     case 'invokeLanguageModelTool': {
       markStarted();
       const invocationCount = Math.max(1, command.times ?? 1);
-      const invocationResults = await Promise.all(Array.from({ length: invocationCount }, () => vscode.lm.invokeTool(command.toolName, {
-        input: command.input,
-        toolInvocationToken: undefined,
-      })));
+      const invocationResults: vscode.LanguageModelToolResult[] = [];
+      let cancellations = 0;
+      let unexpectedFailures = 0;
+      if (command.cancelBeforeInvocation) {
+        invocationResults.push(...await invokeCanceledLanguageModelTools(
+          languageModelTools,
+          command.toolName,
+          command.input,
+          invocationCount));
+      }
+      else {
+        const registration = languageModelTools.get(command.toolName);
+        if (!registration) {
+          throw new Error(`Language model tool '${command.toolName}' is not registered.`);
+        }
+        const settledInvocations = await Promise.allSettled(
+          Array.from({ length: invocationCount }, () => command.invokeRegisteredToolDirectly
+            ? invokeRegisteredLanguageModelTool(registration, command.toolName, command.input)
+            : vscode.lm.invokeTool(command.toolName, {
+              input: command.input,
+              toolInvocationToken: undefined,
+            })));
+        for (const settledInvocation of settledInvocations) {
+          if (settledInvocation.status === 'fulfilled') {
+            invocationResults.push(settledInvocation.value);
+          }
+          else if (isCommandCancellation(settledInvocation.reason)) {
+            cancellations++;
+          }
+          else {
+            // Do not persist the raw rejection: uploaded E2E state is public diagnostics.
+            // Keep unexpected failures distinct so validation/confirmation tests cannot
+            // accidentally accept a runtime exception as an expected cancellation.
+            unexpectedFailures++;
+          }
+        }
+      }
 
       return {
+        registered: languageModelTools.get(command.toolName)?.registered === true,
+        invocation: command.cancelBeforeInvocation
+          ? 'registeredToolCanceled'
+          : command.invokeRegisteredToolDirectly ? 'registeredToolDirect' : 'vscode.lm.invokeTool',
         results: invocationResults.map(invocationResult => invocationResult.content
           .filter((part): part is vscode.LanguageModelTextPart => part instanceof vscode.LanguageModelTextPart)
           .map(part => part.value)
           .join('')),
+        cancellations,
+        unexpectedFailures,
       };
     }
+    case 'setDashboardBrowserForE2E': {
+      markStarted();
+      await vscode.workspace.getConfiguration('aspire').update(
+        'dashboardBrowser',
+        command.value ?? undefined,
+        vscode.ConfigurationTarget.Workspace);
+      return undefined;
+    }
+
     case 'getDebugSessionProcessInfo': {
       markStarted();
       const state = createStateSnapshot(dataRepository, appHostLaunchService, appHostTreeProvider, aspireContext, true);
@@ -785,6 +896,10 @@ export async function executeE2eControlCommand(
       markStarted();
       return await proveAppHostAndResourceDebugging(command, aspireContext, appHostTreeProvider);
     }
+    case 'prepareBlazorWasmDebugger': {
+      markStarted();
+      return await prepareBlazorWasmDebugger();
+    }
     case 'proveBlazorWasmDebugging': {
       markStarted();
       return await proveBlazorWasmDebugging(command, appHostTreeProvider, context.logUri.fsPath);
@@ -806,6 +921,10 @@ export async function executeE2eControlCommand(
     case 'getExtensionPackageJson': {
       markStarted();
       return context.extension.packageJSON;
+    }
+    case 'getDcpRunSessionInfo': {
+      markStarted();
+      return await getDcpRunSessionInfoForE2E(aspireContext.dcpServer.connectionInfo);
     }
     case 'getExtensionFileStatus': {
       markStarted();
@@ -971,6 +1090,62 @@ export async function executeE2eControlCommand(
   }
 }
 
+interface E2eLanguageModelToolRegistration {
+  readonly tool: vscode.LanguageModelTool<unknown>;
+  readonly registered: boolean;
+}
+
+async function invokeRegisteredLanguageModelTool(
+  registration: E2eLanguageModelToolRegistration,
+  toolName: string,
+  input: Record<string, unknown>): Promise<vscode.LanguageModelToolResult> {
+  const cancellation = new vscode.CancellationTokenSource();
+  try {
+    await registration.tool.prepareInvocation?.({ input }, cancellation.token);
+    const result = await registration.tool.invoke(
+      { input, toolInvocationToken: undefined },
+      cancellation.token);
+    if (!result) {
+      throw new Error(`Language model tool '${toolName}' returned no result.`);
+    }
+
+    return result;
+  }
+  finally {
+    cancellation.dispose();
+  }
+}
+
+async function invokeCanceledLanguageModelTools(
+  languageModelTools: ReadonlyMap<string, E2eLanguageModelToolRegistration>,
+  toolName: string,
+  input: Record<string, unknown>,
+  invocationCount: number): Promise<vscode.LanguageModelToolResult[]> {
+  const registration = languageModelTools.get(toolName);
+  if (!registration) {
+    throw new Error(`Language model tool '${toolName}' is not registered.`);
+  }
+
+  return await Promise.all(Array.from({ length: invocationCount }, async () => {
+    const cancellation = new vscode.CancellationTokenSource();
+    try {
+      await registration.tool.prepareInvocation?.({ input }, cancellation.token);
+      cancellation.cancel();
+      const result = await registration.tool.invoke(
+        { input, toolInvocationToken: undefined },
+        cancellation.token);
+      if (!result) {
+        throw new Error(`Language model tool '${toolName}' returned no result.`);
+      }
+
+      return result;
+    }
+    finally {
+      cancellation.dispose();
+    }
+  }));
+}
+
 interface E2eClipboardSnapshot {
   text?: string;
   hasSnapshot: boolean;
@@ -1095,6 +1270,12 @@ interface DebugAdapterStoppedEvent {
   threadId?: number;
 }
 
+interface DebugAdapterExceptionStop {
+  stoppedEvent: DebugAdapterStoppedEvent;
+  exceptionInfo?: unknown;
+  error?: string;
+}
+
 interface DebugAdapterOutputEvent {
   sessionId: string;
   sessionType: string;
@@ -1142,6 +1323,8 @@ async function proveAppHostAndResourceDebugging(command: AppHostAndResourceDebug
   const launchRequests: DebugAdapterLaunchRequest[] = [];
   const debugAdapterResponses: DebugAdapterMessageSummary[] = [];
   const stoppedEvents: DebugAdapterStoppedEvent[] = [];
+  const exceptionStops: DebugAdapterExceptionStop[] = [];
+  const exceptionStopHandlers: Promise<void>[] = [];
   const breakpointRequests: DebugAdapterMessageSummary[] = [];
   const breakpointResponses: DebugAdapterMessageSummary[] = [];
 
@@ -1193,13 +1376,32 @@ async function proveAppHostAndResourceDebugging(command: AppHostAndResourceDebug
             });
           }
           if (message?.type === 'event' && message.event === 'stopped') {
-            stoppedEvents.push({
+            const stoppedEvent = {
               sessionId: session.id,
               sessionType: session.type,
               sessionName: session.name,
               reason: message.body?.reason,
               threadId: message.body?.threadId,
-            });
+            };
+            stoppedEvents.push(stoppedEvent);
+
+            if (command.continueExceptionStops &&
+              stoppedEvent.reason === 'exception' &&
+              stoppedEvent.threadId !== undefined) {
+              const exceptionStop: DebugAdapterExceptionStop = { stoppedEvent };
+              exceptionStops.push(exceptionStop);
+              exceptionStopHandlers.push((async () => {
+                try {
+                  exceptionStop.exceptionInfo = redactDebugAdapterArguments(await session.customRequest('exceptionInfo', {
+                    threadId: stoppedEvent.threadId,
+                  }));
+                  await session.customRequest('continue', { threadId: stoppedEvent.threadId });
+                }
+                catch (error) {
+                  exceptionStop.error = error instanceof Error ? error.message : String(error);
+                }
+              })());
+            }
           }
         }
       };
@@ -1289,6 +1491,7 @@ async function proveAppHostAndResourceDebugging(command: AppHostAndResourceDebug
         session.startupCompleted &&
         typeof session.appHostPath === 'string' &&
         isSamePath(session.appHostPath, appHostPath)));
+    await Promise.allSettled(exceptionStopHandlers);
 
     return {
       proof: 'aspire-apphost-and-resource-debug-breakpoints-hit',
@@ -1317,9 +1520,11 @@ async function proveAppHostAndResourceDebugging(command: AppHostAndResourceDebug
       breakpointRequests,
       breakpointResponses,
       stoppedEvents,
+      exceptionStops,
     };
   }
   catch (error) {
+    await Promise.allSettled(exceptionStopHandlers);
     throw new Error(`${error instanceof Error ? error.message : String(error)}
 Diagnostics:
 ${JSON.stringify({
@@ -1333,6 +1538,7 @@ ${JSON.stringify({
       breakpointRequests,
       breakpointResponses,
       stoppedEvents,
+      exceptionStops,
     }, undefined, 2)}`);
   }
   finally {
@@ -1352,6 +1558,15 @@ async function proveBlazorWasmDebugging(command: BlazorWasmDebugProofCommand, ap
   const expectedBrowser = getE2eBlazorBrowser(command.expectedBrowser);
   const closeMode = getE2eBlazorCloseMode(command.closeMode);
   const timeoutMs = getE2eStrictlyPositiveInteger(command.timeoutMs, blazorWasmDebugProofTimeoutMs, 'timeoutMs');
+  const runRoot = process.env.ASPIRE_EXTENSION_E2E_RUN_ROOT;
+  if (!runRoot || !path.isAbsolute(runRoot)) {
+    throw new Error('Aspire extension E2E Blazor WASM proof requires an absolute ASPIRE_EXTENSION_E2E_RUN_ROOT.');
+  }
+  // userDataDir=true reuses js-debug's workspace profile. A lock left by another proof must not
+  // block this one. The runner removes these profiles only after VS Code exits, including when
+  // a failed adapter cannot acknowledge stop; never delete a possibly live browser's profile here.
+  // https://github.com/microsoft/vscode-js-debug/blob/v1.117.0/src/ui/configuration/chromiumDebugConfigurationProvider.ts
+  const browserProfileDirectory = fs.mkdtempSync(path.join(runRoot, 'blazor-browser-profile-'));
   const deadline = Date.now() + timeoutMs;
 
   const debugSessions: DebugSessionSnapshot[] = [];
@@ -1436,6 +1651,7 @@ async function proveBlazorWasmDebugging(command: BlazorWasmDebugProofCommand, ap
     resolveDebugConfiguration(_folder, configuration) {
       if (configuration.resourceType === 'browser' && typeof configuration.projectPath === 'string'
         && isPathWithinDirectory(sourcePath, path.dirname(configuration.projectPath))) {
+        configuration.userDataDir = browserProfileDirectory;
         // C#'s resolved launch bypasses js-debug's configuration resolver. Boolean
         // tracing then defaults to OS temp, outside the collected/redacted VS Code logs.
         // https://github.com/microsoft/vscode-js-debug/blob/v1.117.0/src/common/logging/index.ts
@@ -2550,6 +2766,7 @@ function getE2eWorkspaceFolderEntries(folders: unknown): Array<{ uri: vscode.Uri
   if (typeof expectedWorkspaceRoot !== 'string' || expectedWorkspaceRoot.length === 0) {
     throw new Error('Aspire extension E2E setWorkspaceFolders requires ASPIRE_EXTENSION_E2E_WORKSPACE_ROOT.');
   }
+  const allowedRoots = getE2eWorkspaceFolderRoots();
 
   return folders.map((folder, index) => {
     if (!folder || typeof folder !== 'object') {
@@ -2563,8 +2780,8 @@ function getE2eWorkspaceFolderEntries(folders: unknown): Array<{ uri: vscode.Uri
     if (!fs.existsSync(folderPath) || !fs.statSync(folderPath).isDirectory()) {
       throw new Error(`Aspire extension E2E workspace folder ${index} requires an existing directory: ${folderPath}`);
     }
-    if (!isPathWithinDirectory(folderPath, expectedWorkspaceRoot)) {
-      throw new Error(`Aspire extension E2E workspace folder ${index} must stay inside the configured E2E workspace root.`);
+    if (!allowedRoots.some(root => isPathWithinDirectory(folderPath, root))) {
+      throw new Error(`Aspire extension E2E workspace folder ${index} must stay inside the configured E2E run root or workspace root.`);
     }
     if (name !== undefined && (typeof name !== 'string' || name.length === 0)) {
       throw new Error(`Aspire extension E2E workspace folder ${index} name must be a non-empty string when provided.`);
@@ -2673,16 +2890,18 @@ export function getE2eAddableWorkspaceFolderPath(folderPath: unknown): string {
     throw new Error(`Aspire extension E2E addWorkspaceFolder requires an existing folder: ${folderPath}`);
   }
 
-  const allowedRoots = [
-    process.env.ASPIRE_EXTENSION_E2E_RUN_ROOT,
-    process.env.ASPIRE_EXTENSION_E2E_WORKSPACE_ROOT,
-  ].filter((root): root is string => typeof root === 'string' && root.length > 0);
-
-  if (!allowedRoots.some(root => isPathWithinDirectory(folderPath, root))) {
+  if (!getE2eWorkspaceFolderRoots().some(root => isPathWithinDirectory(folderPath, root))) {
     throw new Error('Aspire extension E2E addWorkspaceFolder can only add folders inside the configured E2E run root or workspace root.');
   }
 
   return folderPath;
+}
+
+function getE2eWorkspaceFolderRoots(): string[] {
+  return [
+    process.env.ASPIRE_EXTENSION_E2E_RUN_ROOT,
+    process.env.ASPIRE_EXTENSION_E2E_WORKSPACE_ROOT,
+  ].filter((root): root is string => typeof root === 'string' && root.length > 0);
 }
 
 function getE2eBreakpointLine(line: unknown): number {
@@ -2715,6 +2934,45 @@ function getE2eBreakpoints(): Array<{ filePath: string; line: number; enabled: b
       line: breakpoint.location.range.start.line,
       enabled: breakpoint.enabled,
     }));
+}
+
+// Verify the packaged extension's externally visible DCP /info response, rather
+// than only calling the in-process capability helper.
+async function getDcpRunSessionInfoForE2E({ address, token }: DcpServerConnectionInfo): Promise<unknown> {
+  return await new Promise((resolve, reject) => {
+    const request = https.get(`https://${address}/info`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'microsoft-developer-dcp-instance-id': 'aspire-extension-e2e',
+      },
+      // The opt-in E2E bridge calls the extension's loopback-only DCP server,
+      // which uses a per-session self-signed certificate.
+      rejectUnauthorized: false,
+    }, response => {
+      const chunks: Buffer[] = [];
+      response.on('data', chunk => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+      response.on('error', reject);
+      response.on('end', () => {
+        const body = Buffer.concat(chunks).toString('utf8');
+        if (response.statusCode !== 200) {
+          reject(new Error(`DCP /info returned HTTP ${response.statusCode}: ${body}`));
+          return;
+        }
+
+        try {
+          resolve(JSON.parse(body));
+        }
+        catch (error) {
+          reject(error);
+        }
+      });
+    });
+
+    request.on('error', reject);
+    request.setTimeout(10000, () => {
+      request.destroy(new Error('DCP /info request timed out'));
+    });
+  });
 }
 
 function getExtensionFileStatus(context: vscode.ExtensionContext, relativePaths: readonly string[]): Record<string, boolean> {
@@ -3027,6 +3285,25 @@ function cloneDebugConsoleOutputEvent(event: AspireDebugConsoleOutputEvent, sequ
     category: event.category,
     output: event.output,
   };
+}
+
+async function prepareBlazorWasmDebugger(): Promise<BlazorWasmDebuggerStatus> {
+  const extension = vscode.extensions.getExtension(csharpExtensionId);
+  if (!extension) {
+    throw new Error(`${csharpExtensionId} is required for the Blazor browser debugger E2E tests.`);
+  }
+
+  // Activation awaits runtime dependency installation. initializationFinished() additionally
+  // waits for project import, which is unrelated to checking the bridge and can remain pending.
+  // https://github.com/dotnet/vscode-csharp/blob/v2.148.23-prerelease/src/main.ts
+  await extension.activate();
+
+  // The pinned C# extension downloads this runtime dependency during activation. If acquisition
+  // fails, it still activates but silently selects the legacy app-hosted proxy instead of VSdbg.
+  // Match its availability check; let C# perform acquisition and integrity validation on reload.
+  // https://github.com/dotnet/vscode-csharp/blob/v2.148.23-prerelease/src/razor/src/blazorDebug/blazorDebugConfigurationProvider.ts
+  const bridgePath = path.join(extension.extensionPath, '.vswebassemblybridge', 'Microsoft.Diagnostics.BrowserDebugHost.dll');
+  return fs.existsSync(bridgePath) && fs.statSync(bridgePath).isFile() ? 'ready' : 'missing-bridge';
 }
 
 /**

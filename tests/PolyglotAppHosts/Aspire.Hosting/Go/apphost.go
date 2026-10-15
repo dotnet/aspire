@@ -17,6 +17,20 @@ func main() {
 	// Factory methods on builder
 	// ===================================================================
 
+	aks := builder.AddAzureKubernetesEnvironment("aks")
+	aks.ConfigureInfrastructure(func(infrastructure aspire.AzureResourceInfrastructure) {
+		cluster := infrastructure.GetContainerServiceManagedCluster()
+		if err := cluster.SetIsRbacEnabled(true).Err(); err != nil {
+			log.Fatalf(aspire.FormatError(err))
+		}
+		if _, err := cluster.IsRbacEnabled(); err != nil {
+			log.Fatalf(aspire.FormatError(err))
+		}
+	})
+	if aks.Err() != nil {
+		log.Fatalf(aspire.FormatError(aks.Err()))
+	}
+
 	// AddContainer (pre-existing)
 	container := builder.AddContainer("mycontainer", "nginx")
 	if err = container.Err(); err != nil {
@@ -116,6 +130,40 @@ ENTRYPOINT ["dotnet", "App.dll"]
 	configParam := builder.AddParameterFromConfiguration("myconfig", "MyConfig:Key")
 	secretParam := builder.AddParameterFromConfiguration("mysecret", "MyConfig:Secret",
 		&aspire.AddParameterFromConfigurationOptions{Secret: aspire.BoolPtr(true)})
+	optionalParam := builder.AddParameter("optional-parameter").WithOptional()
+	optionalParam.WithRequired().WithRequired(&aspire.WithRequiredOptions{Required: aspire.BoolPtr(false)})
+	if err = optionalParam.Err(); err != nil {
+		log.Fatalf(aspire.FormatError(err))
+	}
+	var optionalValue *string
+	optionalValue, err = optionalParam.TryGetCurrentValue()
+	if err != nil {
+		log.Fatalf(aspire.FormatError(err))
+	}
+	if optionalValue != nil {
+		log.Fatal("Expected an unset optional parameter")
+	}
+	if err = optionalParam.SetValueAsync(&aspire.SetValueAsyncOptions{Value: aspire.StringPtr("configured")}); err != nil {
+		log.Fatalf(aspire.FormatError(err))
+	}
+	optionalValue, err = optionalParam.TryGetCurrentValue()
+	if err != nil {
+		log.Fatalf(aspire.FormatError(err))
+	}
+	if optionalValue == nil || *optionalValue != "configured" {
+		log.Fatal("Expected the configured optional parameter value")
+	}
+	if err = optionalParam.SetValueAsync(); err != nil {
+		log.Fatalf(aspire.FormatError(err))
+	}
+	optionalValue, err = optionalParam.TryGetCurrentValue()
+	if err != nil {
+		log.Fatalf(aspire.FormatError(err))
+	}
+	if optionalValue != nil {
+		log.Fatal("Expected the optional parameter to be cleared")
+	}
+	container.WithEnvironment("OPTIONAL_PARAMETER", optionalParam)
 	generatedParam := builder.AddParameterWithGeneratedValue("generated-secret",
 		&aspire.GenerateParameterDefault{
 			MinLength:  24,

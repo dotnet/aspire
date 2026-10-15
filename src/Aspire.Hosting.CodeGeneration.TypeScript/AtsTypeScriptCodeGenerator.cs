@@ -133,13 +133,18 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             parameterDocs,
             capability.ReturnType.TypeId == AtsConstants.Void ? null : capability.Documentation?.Returns,
             suppressReturns: capability.ReturnType.TypeId == AtsConstants.Void,
+            isExperimental: AtsTypeSystemCompatibility.IsExperimental(capability),
             isObsolete: capability.IsObsolete,
             obsoleteMessage: capability.ObsoleteMessage);
     }
 
     private void WritePropertyDocComment(string indent, AtsCapabilityInfo? getter, AtsCapabilityInfo? setter)
     {
-        var capability = getter is not null && (getter.Documentation is not null || !string.IsNullOrWhiteSpace(getter.Description) || getter.IsObsolete)
+        var capability = getter is not null &&
+            (getter.Documentation is not null ||
+                !string.IsNullOrWhiteSpace(getter.Description) ||
+                AtsTypeSystemCompatibility.IsExperimental(getter) ||
+                getter.IsObsolete)
             ? getter
             : setter;
 
@@ -156,6 +161,7 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         IReadOnlyList<(string Name, string? Summary)>? parameters = null,
         string? returns = null,
         bool suppressReturns = false,
+        bool isExperimental = false,
         bool isObsolete = false,
         string? obsoleteMessage = null)
     {
@@ -171,6 +177,11 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         if (!suppressReturns)
         {
             AddTaggedDocumentationLines(lines, "@returns", returns ?? documentation?.Returns);
+        }
+
+        if (isExperimental)
+        {
+            lines.Add("@experimental");
         }
 
         if (isObsolete)
@@ -425,9 +436,10 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     {
         var files = new Dictionary<string, string>();
 
-        // Add embedded resource files (transport.mts, base.mts)
+        // Add the shared runtime files.
         files["transport.mts"] = EmbeddedResources.Read("transport.mts");
         files["base.mts"] = EmbeddedResources.Read("base.mts");
+        files["integration-host.mts"] = EmbeddedResources.Read("integration-host.mts");
 
         // Generate the capability-based aspire.mts SDK
         files["aspire.mts"] = GenerateAspireSdk(context);
