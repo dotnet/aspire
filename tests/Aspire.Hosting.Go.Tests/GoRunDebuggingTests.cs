@@ -31,6 +31,34 @@ public class GoRunDebuggingTests(ITestOutputHelper outputHelper)
         await GoRunDebugging.ConfigureEnvironmentAsync(context);
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public async Task GoFlagsProbeUsesConfiguredCommandAndPreservesItsFlags(string? resourceFlags)
+    {
+        const string flags = "-tags=wrapper -ldflags=-X=main.version=wrapper";
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var command = Path.Combine(builder.AppHostDirectory, "custom go");
+        var runner = new TestProcessRunner();
+        runner.EnqueueResult(output: [JsonSerializer.Serialize(new { GOFLAGS = flags })]);
+        builder.Services.AddSingleton<IProcessRunner>(runner);
+        var go = builder.AddGoApp("api", builder.AppHostDirectory)
+            .WithCommand(command);
+        if (resourceFlags is not null)
+        {
+            go.WithEnvironment("GOFLAGS", resourceFlags);
+        }
+
+        var environment = await GetEnvironmentAsync(builder, go.Resource);
+
+        var probe = Assert.Single(runner.ProcessSpecs);
+        Assert.Equal(command, probe.ExecutablePath);
+        Assert.Equal(["env", "-json", "GOFLAGS"], probe.ArgumentList);
+        Assert.Equal(
+            "\"-ldflags=-s=false -w=false\" -tags=wrapper -ldflags=-X=main.version=wrapper \"-ldflags=-X=main.version=wrapper -s=false -w=false\"",
+            environment["GOFLAGS"]);
+    }
+
     [Fact]
     public async Task ResourceGoFlagsAreMergedAfterModelConfigurationAndRemainSensitive()
     {

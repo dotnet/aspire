@@ -84,15 +84,16 @@ internal static class GoRunDebugging
             }
         }
 
-        // Let Go resolve ambient GOFLAGS and its persistent GOENV file using the resource's
-        // environment. Reading settings must not download a different Go toolchain.
+        // Probe the configured command because wrappers can select their own GOENV file.
+        // Reading settings must not download a different Go toolchain.
         environment["GOTOOLCHAIN"] = "local";
         var output = new StringBuilder();
+        var resource = (GoAppResource)context.Resource;
         var runner = context.ExecutionContext.Services.GetRequiredService<IProcessRunner>();
-        var (resultTask, process) = runner.Run(new ProcessSpec("go")
+        var (resultTask, process) = runner.Run(new ProcessSpec(resource.Command)
         {
             ArgumentList = ["env", "-json", "GOFLAGS"],
-            WorkingDirectory = ((GoAppResource)context.Resource).WorkingDirectory,
+            WorkingDirectory = resource.WorkingDirectory,
             EnvironmentVariables = environment,
             ResolveExecutablePath = true,
             OnOutputData = line => output.AppendLine(line)
