@@ -1,0 +1,9 @@
+{
+  "author": "ellahathaway",
+  "comment": "Internal PR labeler automation to flag unassigned Copilot-authored PRs. Repository/engineering process change, not user-facing.",
+  "mergedAt": "2026-10-14T20:47:26Z",
+  "number": 19989,
+  "runDate": "2026-10-15T00:08:25Z",
+  "status": "excluded",
+  "title": "Label unassigned Copilot-authored PRs"
+}

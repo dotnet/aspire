@@ -1,0 +1,9 @@
+{
+  "author": "JamesNK",
+  "comment": "Test stabilization: timing fixes and shared async timeout helpers for DCP tests. Test-only change with no user-facing impact.",
+  "mergedAt": "2026-10-14T16:56:26Z",
+  "number": 20992,
+  "runDate": "2026-10-15T00:08:25Z",
+  "status": "excluded",
+  "title": "Stabilize DCP timing tests and use shared async timeout helpers"
+}

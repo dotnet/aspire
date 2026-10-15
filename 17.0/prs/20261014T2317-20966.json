@@ -1,0 +1,9 @@
+{
+  "author": "app/copilot-swe-agent",
+  "comment": "Fixed NotImplementedException when accessing FileSystemService on testing builders.",
+  "mergedAt": "2026-10-14T23:17:35Z",
+  "number": 20966,
+  "runDate": "2026-10-15T00:08:25Z",
+  "status": "included",
+  "title": "Fix FileSystemService delegation in testing builders"
+}

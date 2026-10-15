@@ -1,0 +1,19 @@
+{
+  "area": "Testing",
+  "areaEmoji": "🧪",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Bug fixes",
+  "communityContributors": [],
+  "description": "Accessing FileSystemService on DistributedApplicationTestingBuilder and the generic testing builder no longer throws NotImplementedException, since both wrappers now forward the property to the underlying DistributedApplicationBuilder.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "🗂️",
+  "firstMergedAt": "2026-10-14T23:17:35Z",
+  "lastMergedAt": "2026-10-14T23:17:35Z",
+  "name": "Fix FileSystemService access in testing builders",
+  "owner": "IEvangelist",
+  "prs": [
+    20966
+  ]
+}

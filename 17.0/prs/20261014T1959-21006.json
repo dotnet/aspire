@@ -1,0 +1,9 @@
+{
+  "author": "radical",
+  "comment": "Replaced a flagged JWT literal in a test fixture with dummy values. Test-only change, no user-facing impact.",
+  "mergedAt": "2026-10-14T19:59:46Z",
+  "number": 21006,
+  "runDate": "2026-10-15T00:08:25Z",
+  "status": "excluded",
+  "title": "Replace Azure Npgsql's flagged JWT test literal with dummy claims"
+}

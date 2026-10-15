@@ -1,0 +1,9 @@
+{
+  "author": "app/copilot-swe-agent",
+  "comment": "CI/workflow security hardening to restrict GitHub Actions to microsoft/aspire. Engineering/CI maintenance with no user-facing product impact.",
+  "mergedAt": "2026-10-14T17:09:49Z",
+  "number": 20722,
+  "runDate": "2026-10-15T00:08:25Z",
+  "status": "excluded",
+  "title": "Restrict GitHub workflows to microsoft/aspire"
+}
