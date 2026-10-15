@@ -212,6 +212,9 @@ public class AzureKubernetesInfrastructureTests(ITestOutputHelper output)
         Assert.Equal(
             "Direct dependencies: create-provisioning-context, provision-aks-control-plane-identity, provision-aks-control-plane-identity-roles-aks-kubelet-identity, provision-aks-kubelet-identity, provision-aks-kubelet-identity-roles-registry",
             GetDirectDependencies(lines, "provision-aks"));
+        Assert.Equal(
+            "Direct dependencies: create-provisioning-context, provision-aks-kubelet-identity, provision-registry",
+            GetDirectDependencies(lines, "provision-aks-kubelet-identity-roles-registry"));
         await Verify(diagnostics, "txt");
     }
 

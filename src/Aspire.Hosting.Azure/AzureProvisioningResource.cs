@@ -25,6 +25,9 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
     {
         (_roleAssignmentResources ??= []).Add(roleAssignment);
         roleAssignment.Scope = BicepUtilities.GetExistingResourceScope(this);
+        // Existing-resource names can be literals rather than output references. Retain an
+        // explicit dependency so the target's callbacks finish before role deployment reads Scope.
+        roleAssignment.References.Add(this);
     }
 
     /// <summary>

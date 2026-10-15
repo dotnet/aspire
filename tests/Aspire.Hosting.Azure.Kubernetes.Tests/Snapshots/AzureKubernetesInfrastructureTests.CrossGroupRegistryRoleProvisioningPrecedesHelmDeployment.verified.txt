@@ -21,10 +21,10 @@ Steps with no dependencies run first, followed by steps that depend on them.
   5. create-provisioning-context
   6. provision-aks-control-plane-identity
   7. provision-aks-kubelet-identity
-  8. provision-aks-control-plane-identity-roles-aks-kubelet-identity
+  8. provision-registry
   9. provision-aks-kubelet-identity-roles-registry
- 10. provision-aks
- 11. provision-registry
+ 10. provision-aks-control-plane-identity-roles-aks-kubelet-identity
+ 11. provision-aks
  12. provision-azure-bicep-resources
  13. aks-get-credentials-aks
  14. destroy-prereq
@@ -208,7 +208,7 @@ Step: provision-aks-control-plane-identity
 
 Step: provision-aks-control-plane-identity-roles-aks-kubelet-identity
     Description: Provisions the Azure Bicep resource aks-control-plane-identity-roles-aks-kubelet-identity using Azure infrastructure.
-    Dependencies: ✓ create-provisioning-context, ✓ provision-aks-control-plane-identity, ✓ provision-aks-kubelet-identity
+    Dependencies: ✓ create-provisioning-context, ✓ provision-aks-control-plane-identity, ✓ provision-aks-kubelet-identity, ✓ provision-aks-kubelet-identity-roles-registry
     Resource: aks-control-plane-identity-roles-aks-kubelet-identity (AzureRoleAssignmentResource)
     Tags: provision-infra
 
@@ -220,7 +220,7 @@ Step: provision-aks-kubelet-identity
 
 Step: provision-aks-kubelet-identity-roles-registry
     Description: Provisions the Azure Bicep resource aks-kubelet-identity-roles-registry using Azure infrastructure.
-    Dependencies: ✓ create-provisioning-context, ✓ provision-aks-kubelet-identity
+    Dependencies: ✓ create-provisioning-context, ✓ provision-aks-kubelet-identity, ✓ provision-registry
     Resource: aks-kubelet-identity-roles-registry (AzureRoleAssignmentResource)
     Tags: provision-infra
 
@@ -303,10 +303,11 @@ If targeting 'aks-get-credentials-aks':
     [2] validate-azure-login
     [3] create-provisioning-context
     [4] provision-aks-control-plane-identity | provision-aks-kubelet-identity | provision-registry (parallel)
-    [5] provision-aks-control-plane-identity-roles-aks-kubelet-identity | provision-aks-kubelet-identity-roles-registry (parallel)
-    [6] provision-aks
-    [7] provision-azure-bicep-resources
-    [8] aks-get-credentials-aks
+    [5] provision-aks-kubelet-identity-roles-registry
+    [6] provision-aks-control-plane-identity-roles-aks-kubelet-identity
+    [7] provision-aks
+    [8] provision-azure-bicep-resources
+    [9] aks-get-credentials-aks
 
 If targeting 'aks-get-credentials-for-destroy-aks':
   Direct dependencies: destroy-prereq
@@ -374,14 +375,15 @@ If targeting 'deploy':
     [2] publish-aks | publish-azure-environment | validate-azure-login (parallel)
     [3] create-provisioning-context | publish (parallel)
     [4] provision-aks-control-plane-identity | provision-aks-kubelet-identity | provision-registry (parallel)
-    [5] provision-aks-control-plane-identity-roles-aks-kubelet-identity | provision-aks-kubelet-identity-roles-registry (parallel)
-    [6] provision-aks
-    [7] provision-azure-bicep-resources
-    [8] aks-get-credentials-aks
-    [9] prepare-aks
-    [10] helm-deploy-aks
-    [11] print-aks-dashboard-summary | print-aks-instructions | print-api-summary (parallel)
-    [12] deploy
+    [5] provision-aks-kubelet-identity-roles-registry
+    [6] provision-aks-control-plane-identity-roles-aks-kubelet-identity
+    [7] provision-aks
+    [8] provision-azure-bicep-resources
+    [9] aks-get-credentials-aks
+    [10] prepare-aks
+    [11] helm-deploy-aks
+    [12] print-aks-dashboard-summary | print-aks-instructions | print-api-summary (parallel)
+    [13] deploy
 
 If targeting 'deploy-prereq':
   Direct dependencies: process-parameters, validate-build-only-container-references
@@ -438,12 +440,13 @@ If targeting 'helm-deploy-aks':
     [2] publish-aks | publish-azure-environment | validate-azure-login (parallel)
     [3] create-provisioning-context | publish (parallel)
     [4] provision-aks-control-plane-identity | provision-aks-kubelet-identity | provision-registry (parallel)
-    [5] provision-aks-control-plane-identity-roles-aks-kubelet-identity | provision-aks-kubelet-identity-roles-registry (parallel)
-    [6] provision-aks
-    [7] provision-azure-bicep-resources
-    [8] aks-get-credentials-aks
-    [9] prepare-aks
-    [10] helm-deploy-aks
+    [5] provision-aks-kubelet-identity-roles-registry
+    [6] provision-aks-control-plane-identity-roles-aks-kubelet-identity
+    [7] provision-aks
+    [8] provision-azure-bicep-resources
+    [9] aks-get-credentials-aks
+    [10] prepare-aks
+    [11] helm-deploy-aks
 
 If targeting 'helm-uninstall-aks':
   Direct dependencies: aks-get-credentials-for-destroy-aks
@@ -473,11 +476,12 @@ If targeting 'prepare-aks':
     [2] publish-aks | publish-azure-environment | validate-azure-login (parallel)
     [3] create-provisioning-context | publish (parallel)
     [4] provision-aks-control-plane-identity | provision-aks-kubelet-identity | provision-registry (parallel)
-    [5] provision-aks-control-plane-identity-roles-aks-kubelet-identity | provision-aks-kubelet-identity-roles-registry (parallel)
-    [6] provision-aks
-    [7] provision-azure-bicep-resources
-    [8] aks-get-credentials-aks
-    [9] prepare-aks
+    [5] provision-aks-kubelet-identity-roles-registry
+    [6] provision-aks-control-plane-identity-roles-aks-kubelet-identity
+    [7] provision-aks
+    [8] provision-azure-bicep-resources
+    [9] aks-get-credentials-aks
+    [10] prepare-aks
 
 If targeting 'prepare-aks-aks':
   Direct dependencies: validate-compute-environments
@@ -509,13 +513,14 @@ If targeting 'print-aks-dashboard-summary':
     [2] publish-aks | publish-azure-environment | validate-azure-login (parallel)
     [3] create-provisioning-context | publish (parallel)
     [4] provision-aks-control-plane-identity | provision-aks-kubelet-identity | provision-registry (parallel)
-    [5] provision-aks-control-plane-identity-roles-aks-kubelet-identity | provision-aks-kubelet-identity-roles-registry (parallel)
-    [6] provision-aks
-    [7] provision-azure-bicep-resources
-    [8] aks-get-credentials-aks
-    [9] prepare-aks
-    [10] helm-deploy-aks
-    [11] print-aks-dashboard-summary
+    [5] provision-aks-kubelet-identity-roles-registry
+    [6] provision-aks-control-plane-identity-roles-aks-kubelet-identity
+    [7] provision-aks
+    [8] provision-azure-bicep-resources
+    [9] aks-get-credentials-aks
+    [10] prepare-aks
+    [11] helm-deploy-aks
+    [12] print-aks-dashboard-summary
 
 If targeting 'print-aks-instructions':
   Direct dependencies: helm-deploy-aks
@@ -526,13 +531,14 @@ If targeting 'print-aks-instructions':
     [2] publish-aks | publish-azure-environment | validate-azure-login (parallel)
     [3] create-provisioning-context | publish (parallel)
     [4] provision-aks-control-plane-identity | provision-aks-kubelet-identity | provision-registry (parallel)
-    [5] provision-aks-control-plane-identity-roles-aks-kubelet-identity | provision-aks-kubelet-identity-roles-registry (parallel)
-    [6] provision-aks
-    [7] provision-azure-bicep-resources
-    [8] aks-get-credentials-aks
-    [9] prepare-aks
-    [10] helm-deploy-aks
-    [11] print-aks-instructions
+    [5] provision-aks-kubelet-identity-roles-registry
+    [6] provision-aks-control-plane-identity-roles-aks-kubelet-identity
+    [7] provision-aks
+    [8] provision-azure-bicep-resources
+    [9] aks-get-credentials-aks
+    [10] prepare-aks
+    [11] helm-deploy-aks
+    [12] print-aks-instructions
 
 If targeting 'print-api-summary':
   Direct dependencies: helm-deploy-aks
@@ -543,13 +549,14 @@ If targeting 'print-api-summary':
     [2] publish-aks | publish-azure-environment | validate-azure-login (parallel)
     [3] create-provisioning-context | publish (parallel)
     [4] provision-aks-control-plane-identity | provision-aks-kubelet-identity | provision-registry (parallel)
-    [5] provision-aks-control-plane-identity-roles-aks-kubelet-identity | provision-aks-kubelet-identity-roles-registry (parallel)
-    [6] provision-aks
-    [7] provision-azure-bicep-resources
-    [8] aks-get-credentials-aks
-    [9] prepare-aks
-    [10] helm-deploy-aks
-    [11] print-api-summary
+    [5] provision-aks-kubelet-identity-roles-registry
+    [6] provision-aks-control-plane-identity-roles-aks-kubelet-identity
+    [7] provision-aks
+    [8] provision-azure-bicep-resources
+    [9] aks-get-credentials-aks
+    [10] prepare-aks
+    [11] helm-deploy-aks
+    [12] print-api-summary
 
 If targeting 'process-parameters':
   Direct dependencies: none
@@ -559,15 +566,16 @@ If targeting 'process-parameters':
 
 If targeting 'provision-aks':
   Direct dependencies: create-provisioning-context, provision-aks-control-plane-identity, provision-aks-control-plane-identity-roles-aks-kubelet-identity, provision-aks-kubelet-identity, provision-aks-kubelet-identity-roles-registry
-  Total steps: 10
+  Total steps: 11
   Execution order:
     [0] process-parameters | validate-build-only-container-references (parallel)
     [1] deploy-prereq
     [2] validate-azure-login
     [3] create-provisioning-context
-    [4] provision-aks-control-plane-identity | provision-aks-kubelet-identity (parallel)
-    [5] provision-aks-control-plane-identity-roles-aks-kubelet-identity | provision-aks-kubelet-identity-roles-registry (parallel)
-    [6] provision-aks
+    [4] provision-aks-control-plane-identity | provision-aks-kubelet-identity | provision-registry (parallel)
+    [5] provision-aks-kubelet-identity-roles-registry
+    [6] provision-aks-control-plane-identity-roles-aks-kubelet-identity
+    [7] provision-aks
 
 If targeting 'provision-aks-control-plane-identity':
   Direct dependencies: create-provisioning-context
@@ -580,15 +588,16 @@ If targeting 'provision-aks-control-plane-identity':
     [4] provision-aks-control-plane-identity
 
 If targeting 'provision-aks-control-plane-identity-roles-aks-kubelet-identity':
-  Direct dependencies: create-provisioning-context, provision-aks-control-plane-identity, provision-aks-kubelet-identity
-  Total steps: 8
+  Direct dependencies: create-provisioning-context, provision-aks-control-plane-identity, provision-aks-kubelet-identity, provision-aks-kubelet-identity-roles-registry
+  Total steps: 10
   Execution order:
     [0] process-parameters | validate-build-only-container-references (parallel)
     [1] deploy-prereq
     [2] validate-azure-login
     [3] create-provisioning-context
-    [4] provision-aks-control-plane-identity | provision-aks-kubelet-identity (parallel)
-    [5] provision-aks-control-plane-identity-roles-aks-kubelet-identity
+    [4] provision-aks-control-plane-identity | provision-aks-kubelet-identity | provision-registry (parallel)
+    [5] provision-aks-kubelet-identity-roles-registry
+    [6] provision-aks-control-plane-identity-roles-aks-kubelet-identity
 
 If targeting 'provision-aks-kubelet-identity':
   Direct dependencies: create-provisioning-context
@@ -601,14 +610,14 @@ If targeting 'provision-aks-kubelet-identity':
     [4] provision-aks-kubelet-identity
 
 If targeting 'provision-aks-kubelet-identity-roles-registry':
-  Direct dependencies: create-provisioning-context, provision-aks-kubelet-identity
-  Total steps: 7
+  Direct dependencies: create-provisioning-context, provision-aks-kubelet-identity, provision-registry
+  Total steps: 8
   Execution order:
     [0] process-parameters | validate-build-only-container-references (parallel)
     [1] deploy-prereq
     [2] validate-azure-login
     [3] create-provisioning-context
-    [4] provision-aks-kubelet-identity
+    [4] provision-aks-kubelet-identity | provision-registry (parallel)
     [5] provision-aks-kubelet-identity-roles-registry
 
 If targeting 'provision-azure-bicep-resources':
@@ -620,9 +629,10 @@ If targeting 'provision-azure-bicep-resources':
     [2] validate-azure-login
     [3] create-provisioning-context
     [4] provision-aks-control-plane-identity | provision-aks-kubelet-identity | provision-registry (parallel)
-    [5] provision-aks-control-plane-identity-roles-aks-kubelet-identity | provision-aks-kubelet-identity-roles-registry (parallel)
-    [6] provision-aks
-    [7] provision-azure-bicep-resources
+    [5] provision-aks-kubelet-identity-roles-registry
+    [6] provision-aks-control-plane-identity-roles-aks-kubelet-identity
+    [7] provision-aks
+    [8] provision-azure-bicep-resources
 
 If targeting 'provision-registry':
   Direct dependencies: create-provisioning-context

@@ -11,23 +11,19 @@ namespace Aspire.Deployment.EndToEnd.Tests;
 public sealed class AksCrossResourceGroupRegistryDeploymentTests(ITestOutputHelper output)
 {
     [Fact]
-    public async Task DeployToAksWithExistingRegistryInAnotherResourceGroup()
+    public Task DeployToAksWithExistingRegistryInAnotherResourceGroup()
+        => DeployAsync(upgrade: false);
+
+    [Fact]
+    public Task UpgradeAksWithExistingRegistryInAnotherResourceGroup()
+        => DeployAsync(upgrade: true);
+
+    private async Task DeployAsync(bool upgrade)
     {
-        var subscriptionId = AzureAuthenticationHelpers.TryGetSubscriptionId();
-        if (string.IsNullOrEmpty(subscriptionId))
-        {
-            Assert.Skip("Set ASPIRE_DEPLOYMENT_TEST_SUBSCRIPTION to run Azure deployment tests.");
-        }
-
-        if (!AzureAuthenticationHelpers.IsAzureAuthAvailable())
-        {
-            if (DeploymentE2ETestHelpers.IsRunningInCI)
-            {
-                Assert.Fail("Azure authentication is unavailable in CI.");
-            }
-
-            Assert.Skip("Azure authentication is unavailable. Run 'az login'.");
-        }
+        var testName = upgrade
+            ? nameof(UpgradeAksWithExistingRegistryInAnotherResourceGroup)
+            : nameof(DeployToAksWithExistingRegistryInAnotherResourceGroup);
+        var subscriptionId = DotnetProjectDeploymentHelpers.GetSubscriptionId();
 
         using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(90));
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(
@@ -36,12 +32,14 @@ public sealed class AksCrossResourceGroupRegistryDeploymentTests(ITestOutputHelp
         var resourceGroup = DeploymentE2ETestHelpers.GenerateResourceGroupName("akscrossacr");
         var registryGroup = $"{resourceGroup}-acr";
         var registryName = $"acrcross{Guid.NewGuid():N}";
+        var clusterName = $"akscross{Guid.NewGuid():N}";
+        var networkName = $"network{Guid.NewGuid():N}";
         const string projectName = "AksCrossRegistry";
         var startTime = DateTime.UtcNow;
 
         try
         {
-            using var terminal = DeploymentE2ETestHelpers.CreateTestTerminal();
+            using var terminal = DeploymentE2ETestHelpers.CreateTestTerminal(testName: testName);
             using var terminalCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellation.Token);
             var pendingRun = terminal.RunAsync(terminalCancellation.Token);
             var counter = new SequenceCounter();
@@ -59,24 +57,29 @@ public sealed class AksCrossResourceGroupRegistryDeploymentTests(ITestOutputHelp
 
                 await auto.AspireNewAsync(projectName, counter, useRedisCache: false);
                 await auto.RunCommandAsync($"cd {projectName}", counter);
-                await auto.TypeAsync("aspire add Aspire.Hosting.Azure.Kubernetes");
-                await auto.EnterAsync();
-                await auto.WaitForAspireAddCompletionAsync(counter);
+                await DotnetProjectDeploymentHelpers.AddPackageAsync(auto, counter, "Aspire.Hosting.Azure.Kubernetes");
 
                 var appHostDirectory = Path.Combine(workspace.WorkspaceRoot.FullName, projectName, $"{projectName}.AppHost");
                 await File.WriteAllTextAsync(Path.Combine(appHostDirectory, "AppHost.cs"), $$"""
                     #pragma warning disable ASPIREAZURE003 // Azure networking APIs are experimental.
 
+                    using Azure.Provisioning.ContainerService;
+                    using Azure.Provisioning.Network;
+
                     var builder = DistributedApplication.CreateBuilder(args);
 
                     var registry = builder.AddAzureContainerRegistry("registry")
                         .PublishAsExisting("{{registryName}}", "{{registryGroup}}");
-                    var network = builder.AddAzureVirtualNetwork("network", "10.240.0.0/16");
+                    var network = builder.AddAzureVirtualNetwork("network", "10.240.0.0/16")
+                        .ConfigureInfrastructure(infrastructure =>
+                            infrastructure.GetProvisionableResources().OfType<VirtualNetwork>().Single().Name = "{{networkName}}");
                     var nodes = network.AddSubnet("nodes", "10.240.0.0/22");
                     var aks = builder.AddAzureKubernetesEnvironment("aks")
                         .WithSystemNodePool("Standard_D2as_v5")
                         .WithSubnet(nodes)
-                        .WithContainerRegistry(registry);
+                        .WithContainerRegistry(registry)
+                        .ConfigureInfrastructure(infrastructure =>
+                            infrastructure.GetProvisionableResources().OfType<ContainerServiceManagedCluster>().Single().Name = "{{clusterName}}");
                     aks.AddNodePool("workload", "Standard_D2as_v5", minCount: 1, maxCount: 1);
                     builder.AddDotnetProject("apiservice", "../{{projectName}}.ApiService/{{projectName}}.ApiService.csproj");
 
@@ -88,7 +91,10 @@ public sealed class AksCrossResourceGroupRegistryDeploymentTests(ITestOutputHelp
                     $"unset ASPIRE_PLAYGROUND Azure__Location Azure__ResourceGroup Azure__SubscriptionId && " +
                     $"export AZURE__LOCATION=westus3 AZURE__RESOURCEGROUP={resourceGroup} AZURE__SUBSCRIPTIONID={subscriptionId}",
                     counter);
-                await auto.RunCommandAsync("dotnet build --no-restore", counter, TimeSpan.FromMinutes(5));
+                if (upgrade)
+                {
+                    await CreateLegacyClusterAsync(auto, counter, appHostDirectory, resourceGroup, clusterName, networkName, cancellation.Token);
+                }
 
                 // Only Aspire grants kubelet AcrPull. Attaching ACR through az aks or adding
                 // image-pull credentials here would make the broken generated scope pass.
@@ -123,6 +129,19 @@ public sealed class AksCrossResourceGroupRegistryDeploymentTests(ITestOutputHelp
                     ".roleDefinitionName == \"AcrPull\" and (.scope | ascii_downcase) == ($scope | ascii_downcase))] | length == 1' " +
                     "cross-registry-role-assignments.json",
                     counter, TimeSpan.FromMinutes(2));
+
+                if (upgrade)
+                {
+                    await auto.RunCommandAsync(
+                        "jq -e --arg kubelet \"$KUBELET_ID\" --arg control \"$CONTROL_PLANE_ID\" " +
+                        "'.identity.principalId != $control and .identityProfile.kubeletidentity.objectId != $kubelet' " +
+                        "cross-registry-legacy-cluster.json && " +
+                        $"az aks nodepool list --resource-group {resourceGroup} --cluster-name \"$AKS_NAME\" -o json | " +
+                        "jq -e 'sort_by(.name) | map({name, mode, provisioningState, count}) == " +
+                        "[{name: \"system\", mode: \"System\", provisioningState: \"Succeeded\", count: 1}, " +
+                        "{name: \"workload\", mode: \"User\", provisioningState: \"Succeeded\", count: 1}]'",
+                        counter, TimeSpan.FromMinutes(2));
+                }
 
                 // Check the complete direct role set for each identity, not just one expected
                 // grant. AKS supplies node-group Contributor; Aspire supplies scoped prerequisites.
@@ -229,16 +248,16 @@ public sealed class AksCrossResourceGroupRegistryDeploymentTests(ITestOutputHelp
             }
 
             DeploymentReporter.ReportDeploymentSuccess(
-                nameof(DeployToAksWithExistingRegistryInAnotherResourceGroup),
+                testName,
                 resourceGroup,
                 new Dictionary<string, string> { ["registry"] = registryName, ["registryResourceGroup"] = registryGroup },
                 DateTime.UtcNow - startTime);
         }
         catch (Exception ex)
         {
-            CaptureBicepArtifacts(workspace);
+            CaptureBicepArtifacts(workspace, testName);
             DeploymentReporter.ReportDeploymentFailure(
-                nameof(DeployToAksWithExistingRegistryInAnotherResourceGroup), resourceGroup, ex.Message, ex.StackTrace);
+                testName, resourceGroup, ex.Message, ex.StackTrace);
             throw;
         }
         finally
@@ -250,12 +269,87 @@ public sealed class AksCrossResourceGroupRegistryDeploymentTests(ITestOutputHelp
         }
     }
 
-    private void CaptureBicepArtifacts(TemporaryWorkspace workspace)
+    private static async Task CreateLegacyClusterAsync(
+        Hex1bTerminalAutomator auto, SequenceCounter counter, string appHostDirectory,
+        string resourceGroup, string clusterName, string networkName, CancellationToken cancellationToken)
     {
-        var recordingDirectory = Path.GetDirectoryName(DeploymentE2ETestHelpers.GetTestResultsRecordingPath(
-            nameof(DeployToAksWithExistingRegistryInAnotherResourceGroup)))!;
+        // Freeze the previous system-assigned control plane / AKS-created kubelet topology.
+        // Using the current Aspire templates here would turn this into another fresh-cluster test.
+        await File.WriteAllTextAsync(Path.Combine(appHostDirectory, "legacy-cluster.bicep"), """
+            param location string = resourceGroup().location
+            param clusterName string
+            param networkName string
+
+            resource network 'Microsoft.Network/virtualNetworks@2025-05-01' = {
+              name: networkName
+              location: location
+              properties: {
+                addressSpace: {
+                  addressPrefixes: ['10.240.0.0/16']
+                }
+                subnets: [{
+                  name: 'nodes'
+                  properties: {
+                    addressPrefix: '10.240.0.0/22'
+                  }
+                }]
+              }
+            }
+
+            resource aks 'Microsoft.ContainerService/managedClusters@2026-01-01' = {
+              name: clusterName
+              location: location
+              identity: {
+                type: 'SystemAssigned'
+              }
+              sku: {
+                name: 'Base'
+                tier: 'Standard'
+              }
+              properties: {
+                dnsPrefix: 'aks-dns'
+                agentPoolProfiles: [for pool in ['system', 'workload']: {
+                  name: pool
+                  vmSize: 'Standard_D2as_v5'
+                  count: 1
+                  minCount: 1
+                  maxCount: pool == 'system' ? 3 : 1
+                  enableAutoScaling: true
+                  mode: pool == 'system' ? 'System' : 'User'
+                  osType: 'Linux'
+                  vnetSubnetID: resourceId('Microsoft.Network/virtualNetworks/subnets', network.name, 'nodes')
+                }]
+                networkProfile: {
+                  networkPlugin: 'azure'
+                }
+                oidcIssuerProfile: {
+                  enabled: true
+                }
+                securityProfile: {
+                  workloadIdentity: {
+                    enabled: true
+                  }
+                }
+              }
+            }
+            """, cancellationToken);
+        await auto.RunCommandAsync(
+            $"az group create --name {resourceGroup} --location westus3 --output none && " +
+            $"az deployment group create --resource-group {resourceGroup} --name legacy-cluster " +
+            $"--template-file legacy-cluster.bicep --parameters clusterName={clusterName} networkName={networkName} --output none && " +
+            $"az aks show --resource-group {resourceGroup} --name {clusterName} -o json > cross-registry-legacy-cluster.json && " +
+            "jq -e '.nodeResourceGroup as $nodes | .identity.type == \"SystemAssigned\" and (.identity.principalId | length > 0) and " +
+            "(.identityProfile.kubeletidentity.objectId | length > 0) and " +
+            "(.identityProfile.kubeletidentity.resourceId | ascii_downcase | contains(\"/resourcegroups/\" + ($nodes | ascii_downcase) + \"/\"))' " +
+            "cross-registry-legacy-cluster.json",
+            counter, TimeSpan.FromMinutes(30));
+    }
+
+    private void CaptureBicepArtifacts(TemporaryWorkspace workspace, string testName)
+    {
+        var recordingDirectory = Path.GetDirectoryName(DeploymentE2ETestHelpers.GetTestResultsRecordingPath(testName))!;
         var artifactsDirectory = Path.Combine(recordingDirectory, "..", "generated-bicep",
-            nameof(AksCrossResourceGroupRegistryDeploymentTests));
+            testName);
         try
         {
             // Copy only infrastructure templates, never kubeconfigs containing cluster credentials.

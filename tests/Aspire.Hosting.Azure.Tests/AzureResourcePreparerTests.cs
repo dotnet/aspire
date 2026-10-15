@@ -79,6 +79,7 @@ public class AzureResourcePreparerTests(ITestOutputHelper testOutputHelper)
         var roles = model.Resources.OfType<AzureRoleAssignmentResource>()
             .Where(resource => resource.TargetAzureResource == storage.Resource).ToArray();
         Assert.Equal(operation == DistributedApplicationOperation.Run ? 1 : 2, roles.Length);
+        Assert.All(roles, role => Assert.Contains(storage.Resource, role.GetExplicitAzureReferences()));
 
         var storageManifest = await GetManifestWithBicep(storage.Resource, skipPreparer: true);
         Assert.Same(scope, storage.Resource.Scope);
