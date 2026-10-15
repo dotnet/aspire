@@ -650,12 +650,15 @@ public static class AzureKubernetesEnvironmentExtensions
 
         infrastructure.Add(aks);
 
-        // Use the latest preview counterpart of the SDK's stable API version for AGC /
-        // managed Gateway API. applicationLoadBalancer is still preview-only and is
-        // not exposed by the SDK.
-        if (aksResource.RequiresPreviewIngressApi)
+        if (aksResource.GatewayApiEnabled || aksResource.ApplicationLoadBalancerEnabled)
         {
-            aks.ResourceVersion = "2026-07-02-preview";
+            // Only applicationLoadBalancer requires the latest preview counterpart of
+            // the SDK's stable API version. Gateway API alone uses the stable default.
+            if (aksResource.RequiresPreviewIngressApi)
+            {
+                aks.ResourceVersion = "2026-07-02-preview";
+            }
+
             var ingressProfile = new AksPreviewIngressProfile();
             if (aksResource.GatewayApiEnabled)
             {
