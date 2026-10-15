@@ -78,7 +78,7 @@ public sealed class AksCrossResourceGroupRegistryDeploymentTests(ITestOutputHelp
                         .WithSubnet(nodes)
                         .WithContainerRegistry(registry);
                     aks.AddNodePool("workload", "Standard_D2as_v5", minCount: 1, maxCount: 1);
-                    builder.AddProject<Projects.{{projectName}}_ApiService>("apiservice");
+                    builder.AddDotnetProject("apiservice", "../{{projectName}}.ApiService/{{projectName}}.ApiService.csproj");
 
                     builder.Build().Run();
                     """, cancellation.Token);
