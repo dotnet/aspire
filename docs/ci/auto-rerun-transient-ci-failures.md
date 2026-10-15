@@ -50,6 +50,10 @@ generic build failures are not retried. The matcher retains the former
 `Build RID-specific packages` name for reruns of older workflow revisions.
 Keep these matchers aligned when archive workflow steps are renamed.
 
+`Upload aggregation test results` uses the same infrastructure and Windows
+post-test cleanup classifications as the full diagnostic upload. An upload
+failure does not override a concurrent test-execution failure.
+
 ## When does it trigger?
 
 | Trigger | Behavior |
