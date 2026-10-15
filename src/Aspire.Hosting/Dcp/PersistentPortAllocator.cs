@@ -183,9 +183,10 @@ internal sealed class PersistentPortAllocator
 
     private bool TryReservePort(int port, ActivePort activePort, bool allowInUse)
     {
-        // AppHost-local state can identify a persistent proxyless workload that still owns
-        // its saved port. Legacy user secrets are shared with isolated runs, so those values
-        // must still be available before they can be migrated when ports are randomized.
+        // A persistent proxyless workload may still own its saved AppHost-local port when the
+        // AppHost restarts. Ownership cannot be verified before DCP adopts the workload, so
+        // preserve occupied saved ports. Legacy user secrets are shared with isolated runs, so
+        // those values must still be available before they can be migrated when ports are randomized.
         return _allocator.TryReservePort(
             port,
             activePort.Protocol,
