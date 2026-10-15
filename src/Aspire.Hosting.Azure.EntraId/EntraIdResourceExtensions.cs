@@ -5,6 +5,8 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
@@ -81,6 +83,41 @@ public static class EntraIdResourceExtensions
     }
 
     private static async Task InitializeEntraIdResourceAsync(
+        EntraIdApplicationResource resource,
+        InitializeResourceEvent evt,
+        CancellationToken cancellationToken)
+    {
+        if (resource.IsExistingApplication)
+        {
+            await InitializeEntraIdResourceOnceAsync(resource, evt, cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        // Azure retries replace the completed provisioning task without publishing another initialization event.
+        // Keep observing attempts for the resource's lifetime, including successful reprovisioning with new IDs.
+        using var lifetimeCts = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken, evt.Services.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping);
+        cancellationToken = lifetimeCts.Token;
+        Task? previousAttempt = null;
+        await foreach (var update in evt.Notifications.WatchAsync(cancellationToken).ConfigureAwait(false))
+        {
+            if (update.Resource != resource)
+            {
+                continue;
+            }
+
+            var attempt = resource.ProvisioningTaskCompletionSource?.Task;
+            if (attempt is null || ReferenceEquals(attempt, previousAttempt))
+            {
+                continue;
+            }
+
+            previousAttempt = attempt;
+            await InitializeEntraIdResourceOnceAsync(resource, evt, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task InitializeEntraIdResourceOnceAsync(
         EntraIdApplicationResource resource,
         InitializeResourceEvent evt,
         CancellationToken cancellationToken)
@@ -201,12 +238,12 @@ public static class EntraIdResourceExtensions
             properties.Add(CreateHighlightedProperty("entra.credentials", "Credentials", sourceTypes, isSensitive: false, sortOrder: 4));
         }
 
-        // Append rather than replace, so URLs and properties that the orchestrator already published, such as ones added
-        // with WithUrl or a parent relationship, are kept. Initialization runs once, so nothing is added twice.
+        // Replace integration-owned metadata on reprovisioning while preserving custom URLs and properties.
         await evt.Notifications.PublishUpdateAsync(resource, snapshot => snapshot with
         {
-            Urls = snapshot.Urls.AddRange(urls),
-            Properties = snapshot.Properties.AddRange(properties),
+            Urls = [.. snapshot.Urls.Where(url => url.Name is not "OpenID Config" and not "Azure Portal"), .. urls],
+            Properties = [.. snapshot.Properties.Where(property =>
+                property.Name != "entra.credentials" && !properties.Any(updated => updated.Name == property.Name)), .. properties],
             State = KnownResourceStates.Running
         }).ConfigureAwait(false);
     }

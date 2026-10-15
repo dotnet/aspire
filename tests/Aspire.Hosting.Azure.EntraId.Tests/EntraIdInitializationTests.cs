@@ -5,6 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting.Azure.EntraId.Tests;
 
@@ -244,6 +245,140 @@ public class EntraIdInitializationTests
     }
 
     [Fact]
+    public async Task Initialize_CreatedApplication_RecoversAfterProvisioningRetry()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var entra = builder.AddEntraIdApplication("entra-api");
+        using var app = builder.Build();
+        var notifications = app.Services.GetRequiredService<ResourceNotificationService>();
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        await notifications.PublishUpdateAsync(entra.Resource, snapshot => snapshot);
+        entra.Resource.ProvisioningTaskCompletionSource!.SetException(new InvalidOperationException("Azure context is missing."));
+        var initialization = PublishInitializationAsync(app, entra.Resource, cts.Token);
+
+        try
+        {
+            await notifications.WaitForResourceAsync(entra.Resource.Name,
+                update => update.Snapshot.State?.Text == KnownResourceStates.FailedToStart, cts.Token);
+            entra.Resource.ProvisioningTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            await notifications.PublishUpdateAsync(entra.Resource, snapshot => snapshot with { State = KnownResourceStates.Waiting });
+            entra.Resource.Outputs["tenantId"] = TenantId;
+            entra.Resource.Outputs["clientId"] = ClientId;
+            // The Azure provisioner publishes Running before the controller completes the attempt.
+            await notifications.PublishUpdateAsync(entra.Resource, snapshot => snapshot with { State = KnownResourceStates.Running });
+            entra.Resource.ProvisioningTaskCompletionSource.SetResult();
+
+            var ready = await notifications.WaitForResourceAsync(entra.Resource.Name,
+                update => update.Snapshot.Properties.Any(property => property.Name == "entra.client.id" && Equals(property.Value, ClientId)),
+                cts.Token);
+
+            Assert.Equal(KnownResourceStates.Running, ready.Snapshot.State?.Text);
+            Assert.Equal(new[] { "OpenID Config", "Azure Portal" }, ready.Snapshot.Urls.Select(url => url.Name));
+            Assert.Equal(TenantId, ready.Snapshot.Properties.Single(property => property.Name == "entra.tenant.id").Value);
+        }
+        finally
+        {
+            cts.Cancel();
+            await initialization.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing | ConfigureAwaitOptions.ContinueOnCapturedContext);
+        }
+    }
+
+    [Fact]
+    public async Task Initialize_CreatedApplication_RefreshesMetadataWithoutDuplicates()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var entra = builder.AddEntraIdApplication("entra-api");
+        entra.Resource.Outputs["tenantId"] = TenantId;
+        entra.Resource.Outputs["clientId"] = ClientId;
+        entra.Resource.ProvisioningTaskCompletionSource!.SetResult();
+        using var app = builder.Build();
+        var notifications = app.Services.GetRequiredService<ResourceNotificationService>();
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        await notifications.PublishUpdateAsync(entra.Resource, snapshot => snapshot with
+        {
+            Urls = [new("docs", "https://contoso.example/docs", IsInternal: false)],
+            Properties = [new("custom", "value")]
+        });
+        var initialization = PublishInitializationAsync(app, entra.Resource, cts.Token);
+
+        try
+        {
+            await notifications.WaitForResourceAsync(entra.Resource.Name,
+                update => update.Snapshot.Properties.Any(property => property.Name == "entra.client.id"), cts.Token);
+            const string updatedTenant = "11111111-2222-3333-4444-555555555555";
+            const string updatedClient = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+            for (var attempt = 0; attempt < 2; attempt++)
+            {
+                entra.Resource.ProvisioningTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                await notifications.PublishUpdateAsync(entra.Resource, snapshot => snapshot with { State = KnownResourceStates.Waiting });
+                entra.Resource.Outputs["tenantId"] = updatedTenant;
+                entra.Resource.Outputs["clientId"] = updatedClient;
+                entra.Resource.ProvisioningTaskCompletionSource.SetResult();
+                var ready = await notifications.WaitForResourceAsync(entra.Resource.Name,
+                    update => update.Snapshot.State?.Text == KnownResourceStates.Running &&
+                        update.Snapshot.Properties.Any(property => property.Name == "entra.client.id" && Equals(property.Value, updatedClient)),
+                    cts.Token);
+
+                Assert.Equal(new[] { "docs", "OpenID Config", "Azure Portal" }, ready.Snapshot.Urls.Select(url => url.Name));
+                Assert.Equal(new[] { "custom", "entra.tenant.id", "entra.client.id", "entra.signin.audience", "entra.instance" },
+                    ready.Snapshot.Properties.Select(property => property.Name));
+                Assert.Equal(updatedTenant, ready.Snapshot.Properties.Single(property => property.Name == "entra.tenant.id").Value);
+                Assert.Equal($"https://login.microsoftonline.com/{updatedTenant}/v2.0/.well-known/openid-configuration",
+                    ready.Snapshot.Urls.Single(url => url.Name == "OpenID Config").Url);
+                Assert.Equal(
+                    $"https://portal.azure.com/#@{updatedTenant}/view/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/~/Overview/appId/{updatedClient}/isMSAApp~/false",
+                    ready.Snapshot.Urls.Single(url => url.Name == "Azure Portal").Url);
+            }
+        }
+        finally
+        {
+            cts.Cancel();
+            await initialization.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing | ConfigureAwaitOptions.ContinueOnCapturedContext);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Initialize_CreatedApplication_StopsObservingOnShutdown(bool provisioningCompleted)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var entra = builder.AddEntraIdApplication("entra-api");
+        using var app = builder.Build();
+        var notifications = app.Services.GetRequiredService<ResourceNotificationService>();
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        await notifications.PublishUpdateAsync(entra.Resource, snapshot => snapshot);
+        if (provisioningCompleted)
+        {
+            entra.Resource.Outputs["tenantId"] = TenantId;
+            entra.Resource.Outputs["clientId"] = ClientId;
+            entra.Resource.ProvisioningTaskCompletionSource!.SetResult();
+        }
+
+        var initialization = PublishInitializationAsync(app, entra.Resource, cts.Token);
+        try
+        {
+            if (provisioningCompleted)
+            {
+                await notifications.WaitForResourceAsync(entra.Resource.Name,
+                    update => update.Snapshot.Properties.Any(property => property.Name == "entra.client.id"), cts.Token);
+            }
+
+            Assert.False(initialization.IsCompleted);
+            app.Services.GetRequiredService<IHostApplicationLifetime>().StopApplication();
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => initialization.WaitAsync(cts.Token));
+            Assert.True(initialization.IsCanceled);
+            Assert.Equal(provisioningCompleted, entra.Resource.ProvisioningTaskCompletionSource!.Task.IsCompletedSuccessfully);
+            Assert.False(entra.Resource.ProvisioningTaskCompletionSource.Task.IsCanceled);
+        }
+        finally
+        {
+            cts.Cancel();
+            await initialization.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing | ConfigureAwaitOptions.ContinueOnCapturedContext);
+        }
+    }
+
+    [Fact]
     public async Task Initialize_InvalidSettings_LogsEveryProblemBeforeFailing()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -338,18 +473,43 @@ public class EntraIdInitializationTests
     }
 
     // The orchestrator raises InitializeResourceEvent when the app starts. Raising it directly runs the resource's
-    // initialization without starting the orchestrator or DCP. The event's subscribers run one after another by
-    // default, so initialization has finished when PublishAsync returns.
+    // initialization without starting the orchestrator or DCP. Created registrations keep observing retries until
+    // cancellation, so wait for their first result instead of waiting for the callback to return.
     private static async Task<CustomResourceSnapshot> InitializeAsync(DistributedApplication app, IResource resource)
+    {
+        var notifications = app.Services.GetRequiredService<ResourceNotificationService>();
+        if (resource is EntraIdApplicationResource { IsExistingApplication: false })
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            await notifications.PublishUpdateAsync(resource, snapshot => snapshot);
+            var initialization = PublishInitializationAsync(app, resource, cts.Token);
+            try
+            {
+                var update = await notifications.WaitForResourceAsync(resource.Name,
+                    update => update.Snapshot.State?.Text == KnownResourceStates.FailedToStart ||
+                        update.Snapshot.Properties.Any(property => property.Name == "entra.client.id"),
+                    cts.Token);
+                return update.Snapshot;
+            }
+            finally
+            {
+                cts.Cancel();
+                await initialization.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing | ConfigureAwaitOptions.ContinueOnCapturedContext);
+            }
+        }
+
+        await PublishInitializationAsync(app, resource, CancellationToken.None);
+        Assert.True(notifications.TryGetCurrentState(resource.Name, out var resourceEvent));
+        return resourceEvent.Snapshot;
+    }
+
+    private static Task PublishInitializationAsync(DistributedApplication app, IResource resource, CancellationToken cancellationToken)
     {
         var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
         var notifications = app.Services.GetRequiredService<ResourceNotificationService>();
         var loggerService = app.Services.GetRequiredService<ResourceLoggerService>();
 
-        await eventing.PublishAsync(new InitializeResourceEvent(resource, eventing, loggerService, notifications, app.Services));
-
-        Assert.True(notifications.TryGetCurrentState(resource.Name, out var resourceEvent));
-        return resourceEvent.Snapshot;
+        return eventing.PublishAsync(new InitializeResourceEvent(resource, eventing, loggerService, notifications, app.Services), cancellationToken);
     }
 
     // Reads the lines logged to the resource's console. Each line has the form
