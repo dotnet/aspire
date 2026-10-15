@@ -572,7 +572,7 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
         using var provider = CliTestHelper.CreateServiceCollection(workspace, outputHelper).BuildServiceProvider();
 
         var result = provider.GetRequiredService<RootCommand>().Parse(
-            "agent init --agents copilot --scope project --skills none --mcp");
+            "agent init --agents copilot --scope project --aspire-skills none --mcp");
 
         Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
         Assert.Equal(original, await File.ReadAllTextAsync(configPath));
@@ -761,7 +761,7 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
         using var provider = services.BuildServiceProvider();
 
         var result = provider.GetRequiredService<RootCommand>().Parse(
-            $"agent init --agents opencode --scope {scopeName} --skills none --mcp");
+            $"agent init --agents opencode --scope {scopeName} --aspire-skills none --mcp");
 
         Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
         Assert.Equal(original, await File.ReadAllTextAsync(jsonPath));
