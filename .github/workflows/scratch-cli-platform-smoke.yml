@@ -1,23 +1,71 @@
-name: CI wall-time validation
+name: Scratch CLI Platform Smoke Tests
 
 on:
   workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: Completed comparison run containing the prepared and final artifacts
+        required: true
+        type: string
+      source_sha:
+        description: Exact source commit expected in that run and its native CLI
+        required: true
+        type: string
 
 permissions:
   actions: read
   contents: read
 
-run-name: "CI wall-time validation (${{ github.ref_name }})"
+run-name: "Verify native handoff artifacts from run ${{ inputs.source_run_id }}"
 
 jobs:
-  tests:
-    name: Tests
-    uses: ./.github/workflows/tests.yml
-    permissions:
-      actions: read
-      contents: read
-      issues: write
-      pull-requests: write
-    with:
-      versionOverrideArg: /p:VersionSuffix=ci.walltime /p:DotNetFinalVersionKind=prerelease
-      extensionVersionOverride: '99.0.21015'
+  verify:
+    name: Verify transferred bundle (${{ matrix.rid }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - rid: linux-x64
+            runner: ubuntu-latest
+          - rid: win-x64
+            runner: windows-latest
+          - rid: osx-arm64
+            runner: macos-latest
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+      SOURCE_SHA: ${{ inputs.source_sha }}
+      RID: ${{ matrix.rid }}
+    steps:
+      - name: Checkout validation code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Verify source identity and download unchanged artifacts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $run = gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$env:SOURCE_RUN_ID" | ConvertFrom-Json
+          if ($run.head_sha -ne $env:SOURCE_SHA -or $run.status -ne 'completed') {
+              throw 'Source run is not completed at the expected commit.'
+          }
+          foreach ($entry in @(
+              @{ name = "platform-nugets-for-$env:RID"; directory = 'packages' },
+              @{ name = "native-dashboard-$env:RID"; directory = 'dashboard' },
+              @{ name = "native-bundle-payload-$env:RID"; directory = 'payload' },
+              @{ name = "cli-native-archives-$env:RID"; directory = 'cli' }
+          )) {
+              gh run download $env:SOURCE_RUN_ID --repo $env:GITHUB_REPOSITORY `
+                  --name $entry.name --dir "artifacts/handoff-input/$($entry.directory)"
+          }
+      - name: Compare prepared payload with actual native CLI extraction
+        shell: pwsh
+        run: python eng/scripts/verify-ci-handoff-artifacts.py --rid $env:RID --source-sha $env:SOURCE_SHA
+      - name: Upload comparison evidence
+        if: always()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: handoff-evidence-${{ matrix.rid }}
+          path: artifacts/handoff-evidence/comparison.json
+          if-no-files-found: warn
