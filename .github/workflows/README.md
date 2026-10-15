@@ -21,6 +21,38 @@ input in `copilot-setup-steps.yml` aligned with the compiler used to generate th
 workflows and with `validate-agentic-workflows.yml`. Updating only the setup
 action does not update the installed compiler; its `version` input controls that.
 
+`recompile-agentic-workflows.yml` handles merged upstream Dependabot PRs targeting
+the default branch, including grouped GitHub Actions updates. It detects changed
+`github/gh-aw-actions` pins from the PR diff and verifies their release comments
+against upstream tag commits (or resolves an uncommented SHA through upstream
+tags). It never selects a compiler from the PR title or the latest release.
+It can also be run manually from the default branch using **Run workflow** or
+`gh workflow run recompile-agentic-workflows.yml`. Manual dispatch selects the
+newest release already pinned by `github/gh-aw-actions` references in the default
+branch's workflow YAML, verifies those pins against upstream tags, and aligns both
+compiler inputs before recompiling. It does not fetch the latest upstream release.
+Manual runs reuse the `recompile-agentic-workflows-manual` branch and update its
+open PR; if there are no changes, they open no PR.
+The workflow checks out only the trusted default branch, skips superseded pins,
+aligns both `setup-cli` pins and version inputs, and runs:
+
+```shell
+gh extension install github/gh-aw --pin <detected-version> --force
+gh aw version
+gh aw compile --no-check-update --schedule-seed microsoft/aspire
+gh aw lint --shellcheck
+```
+
+It does not run `gh aw upgrade` or refresh authoring scaffolding. Compilation or
+lint failures prevent publication, unexpected changed paths fail the run, and an
+empty diff opens no PR. Aspirey creates or updates a stable branch per source PR;
+reruns do not reopen a closed follow-up PR. Runs are serialized to avoid competing
+updates. The existing `ASPIRE_BOT_APP_ID` and `ASPIRE_BOT_PRIVATE_KEY` secrets are
+required. The App installation must grant **Contents**, **Pull requests**, and
+**Workflows** write permissions to push generated workflow YAML. Newly introduced
+third-party action SHAs still require the repository/enterprise allow-list update
+before the generated PR is merged.
+
 Commit the generated `.lock.yml` files and `.github/aw/actions-lock.json` alongside
 their source changes. `agentics-maintenance-microsoft-aspire.dev.yml` is generated
 by the same full compilation despite not having a `.lock.yml` suffix. Do not edit
