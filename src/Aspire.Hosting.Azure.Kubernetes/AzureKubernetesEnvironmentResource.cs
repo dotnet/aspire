@@ -324,8 +324,7 @@ public partial class AzureKubernetesEnvironmentResource :
     /// <summary>
     /// Whether the cluster needs to be emitted using a preview Bicep API version because
     /// it depends on <c>ingressProfile.gatewayAPI</c> or <c>ingressProfile.applicationLoadBalancer</c>,
-    /// with <c>applicationLoadBalancer</c> requiring a preview API version
-    /// (<c>2025-09-02-preview</c> or later).
+    /// with <c>applicationLoadBalancer</c> requiring a preview API version.
     /// </summary>
     internal bool RequiresPreviewIngressApi => GatewayApiEnabled || ApplicationLoadBalancerEnabled;
 }

@@ -618,7 +618,7 @@ aks.AddGateway("admin-portal").WithLoadBalancer(lb2);
 
 What `AddLoadBalancer` does:
 - Flips internal flags on the AKS environment so its emitted Bicep uses the
-  `2025-09-02-preview` API version and includes both
+  `2026-07-02-preview` API version and includes both
   `properties.ingressProfile.gatewayAPI.installation: 'Standard'` and
   `properties.ingressProfile.applicationLoadBalancer.enabled: true`. The preview API
   shape uses the SDK's typed `GatewayApiInstallation` property and an

@@ -7,7 +7,7 @@ param acrName string
 
 param vnet_outputs_name string
 
-resource aks 'Microsoft.ContainerService/managedClusters@2025-09-02-preview' = {
+resource aks 'Microsoft.ContainerService/managedClusters@2026-07-02-preview' = {
   name: take('aks-${uniqueString(resourceGroup().id)}', 63)
   tags: {
     'aspire-resource-name': 'aks'
