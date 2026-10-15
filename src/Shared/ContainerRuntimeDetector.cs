@@ -24,7 +24,7 @@ internal static class ContainerRuntimeDetector
     /// </summary>
     internal static IEnumerable<ContainerRuntimeProbe> GetKnownRuntimes(bool isWindows)
     {
-        return s_knownRuntimes.Where(runtime => runtime.GetUnsupportedHostError(isWindows) is null);
+        return s_knownRuntimes.Where(runtime => runtime.IsSupportedHost(isWindows));
     }
 
     /// <summary>
@@ -45,7 +45,7 @@ internal static class ContainerRuntimeDetector
         }
 
         var runtimes = GetKnownRuntimes(OperatingSystem.IsWindows())
-            .Where(runtime => supportedRuntimes is null || supportedRuntimes.Contains(runtime.Key, StringComparer.OrdinalIgnoreCase))
+            .Where(runtime => supportedRuntimes is null || supportedRuntimes.Contains(runtime.Key, StringComparers.ContainerRuntime))
             .ToArray();
         logger?.LogDebug("Auto-detecting container runtime, probing {Count} known runtimes...", runtimes.Length);
         var results = await Task.WhenAll(runtimes.Select(runtime => runtime.CheckAsync(logger, cancellationToken))).ConfigureAwait(false);
@@ -102,7 +102,7 @@ internal static class ContainerRuntimeDetector
     internal static ContainerRuntimeProbe GetProbe(string runtimeKey)
     {
         return s_knownRuntimes.FirstOrDefault(runtime =>
-            string.Equals(runtime.Key, runtimeKey, StringComparison.OrdinalIgnoreCase))
+            string.Equals(runtime.Key, runtimeKey, StringComparisons.ContainerRuntime))
             ?? throw new ArgumentException(
                 $"Unsupported container runtime '{runtimeKey}'. Supported runtimes: {string.Join(", ", s_knownRuntimes.Select(runtime => runtime.Key))}.",
                 nameof(runtimeKey));

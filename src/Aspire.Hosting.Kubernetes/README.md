@@ -34,6 +34,8 @@ builder.AddKubernetesEnvironment("k8s");
 await builder.addKubernetesEnvironment("k8s");
 ```
 
+The dashboard container included in the published Helm chart opts out of dashboard usage and error telemetry by default (`ASPIRE_DASHBOARD_TELEMETRY_OPTOUT=true`). This does not affect the application's OpenTelemetry data sent to the dashboard.
+
 ### Volumes
 
 Use a target-neutral volume when the Kubernetes environment's default storage policy is sufficient:

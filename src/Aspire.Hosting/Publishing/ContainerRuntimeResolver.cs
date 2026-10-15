@@ -72,7 +72,7 @@ internal sealed class ContainerRuntimeResolver : IContainerRuntimeResolver
             _logger.LogInformation("Container runtime '{RuntimeKey}' configured via ASPIRE_CONTAINER_RUNTIME.", configuredRuntime);
             // Canonicalize built-in keys while preserving custom keyed IContainerRuntime registrations.
             var configuredKey = ContainerRuntimeDetector.GetKnownRuntimes(isWindows: true)
-                .FirstOrDefault(runtime => string.Equals(runtime.Key, configuredRuntime, StringComparison.OrdinalIgnoreCase))?.Key
+                .FirstOrDefault(runtime => string.Equals(runtime.Key, configuredRuntime, StringComparisons.ContainerRuntime))?.Key
                 ?? configuredRuntime;
             return _serviceProvider.GetRequiredKeyedService<IContainerRuntime>(configuredKey);
         }

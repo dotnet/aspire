@@ -20,6 +20,7 @@ namespace Aspire.Hosting;
 public static class AzureFunctionsProjectResourceExtensions
 {
     private const string AzureFunctionsCoreToolsHelpLink = "https://learn.microsoft.com/azure/azure-functions/functions-run-local#install-the-azure-functions-core-tools";
+    private const string NodeFunctionsLaunchConfigurationType = "azure-functions-node";
     private const int AzureFunctionsNodeContainerPort = 80;
     private const string AzureFunctionsScriptRoot = "/home/site/wwwroot";
 
@@ -292,6 +293,17 @@ public static class AzureFunctionsProjectResourceExtensions
 
         if (builder.ExecutionContext.IsRunMode)
         {
+#pragma warning disable ASPIREEXTENSION001 // WithDebugSupport is experimental
+            functionsBuilder.WithDebugSupport(mode => new AzureFunctionsNodeLaunchConfiguration
+            {
+                Mode = mode,
+                AppDirectory = resource.AppDirectory,
+                Command = resource.Command,
+                Language = GetLanguageName(resource.Language),
+                WorkerRuntime = resource.WorkerRuntime
+            }, NodeFunctionsLaunchConfigurationType);
+#pragma warning restore ASPIREEXTENSION001
+
             if (resource.Language is AzureFunctionsLanguage.TypeScript)
             {
                 functionsBuilder.WithRequiredCommand("npm", "https://docs.npmjs.com/downloading-and-installing-node-js-and-npm");
@@ -722,6 +734,13 @@ public static class AzureFunctionsProjectResourceExtensions
         _ => throw new ArgumentOutOfRangeException(nameof(language))
     };
 
+    private static string GetLanguageName(AzureFunctionsLanguage language) => language switch
+    {
+        AzureFunctionsLanguage.TypeScript => "typescript",
+        AzureFunctionsLanguage.JavaScript => "javascript",
+        _ => throw new ArgumentOutOfRangeException(nameof(language))
+    };
+
     private static string CreateDefaultStorageName(this IDistributedApplicationBuilder builder)
     {
         // Use ProjectNameSha256 for stable naming across deployments regardless of path
@@ -797,4 +816,24 @@ public static class AzureFunctionsProjectResourceExtensions
         public string ProjectPath { get; set; } = string.Empty;
     }
 
+    private sealed class AzureFunctionsNodeLaunchConfiguration
+    {
+        [JsonPropertyName("type")]
+        public string Type { get; set; } = NodeFunctionsLaunchConfigurationType;
+
+        [JsonPropertyName("mode")]
+        public string Mode { get; set; } = string.Empty;
+
+        [JsonPropertyName("app_directory")]
+        public string AppDirectory { get; set; } = string.Empty;
+
+        [JsonPropertyName("command")]
+        public string Command { get; set; } = string.Empty;
+
+        [JsonPropertyName("language")]
+        public string Language { get; set; } = string.Empty;
+
+        [JsonPropertyName("worker_runtime")]
+        public string WorkerRuntime { get; set; } = string.Empty;
+    }
 }

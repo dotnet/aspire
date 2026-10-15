@@ -54,7 +54,7 @@ public class TelemetryShutdownTests(ITestOutputHelper outputHelper)
             var logProcessor = new TestTelemetryProcessor<LogRecord> { ShutdownCallback = timeout => Shutdown("log", timeout) };
             using var fixture = new TelemetryFixture(initialize: false);
             using var manager = new TelemetryManager(
-                new TelemetryConfiguration { ReportedTelemetryEnabled = true }, fixture.TagsSource, fixture.Telemetry,
+                new TelemetryConfiguration { ReportedTelemetryEnabled = true }, fixture.Telemetry,
                 NullLogger<TelemetryManager>.Instance,
                 (resource, _) => AzureMonitorTelemetryProvider.Create(new ServiceCollection(), resource, AspireCliTelemetry.EventLogCategoryName,
                     () => Sdk.CreateTracerProviderBuilder().AddProcessor(traceProcessor).Build(),
@@ -86,7 +86,7 @@ public class TelemetryShutdownTests(ITestOutputHelper outputHelper)
             using var fixture = new TelemetryFixture(initialize: false);
             var logProcessor = new TestTelemetryProcessor<LogRecord> { ShutdownCallback = static _ => false };
             using var manager = new TelemetryManager(
-                new TelemetryConfiguration { ReportedTelemetryEnabled = true }, fixture.TagsSource, fixture.Telemetry,
+                new TelemetryConfiguration { ReportedTelemetryEnabled = true }, fixture.Telemetry,
                 loggerFactory.CreateLogger<TelemetryManager>(),
                 (resource, _) => AzureMonitorTelemetryProvider.Create(new ServiceCollection(), resource, AspireCliTelemetry.EventLogCategoryName,
                     () => Sdk.CreateTracerProviderBuilder().Build(), provider => provider.AddProcessor(logProcessor)));
@@ -186,7 +186,7 @@ public class TelemetryShutdownTests(ITestOutputHelper outputHelper)
             AzureMonitorTelemetryProvider? reportedProvider = null;
             AzureMonitorExporterOptions? traceOptions = null;
             using var manager = new TelemetryManager(
-                new TelemetryConfiguration { ReportedTelemetryEnabled = true }, fixture.TagsSource, fixture.Telemetry,
+                new TelemetryConfiguration { ReportedTelemetryEnabled = true }, fixture.Telemetry,
                 NullLogger<TelemetryManager>.Instance,
                 (resource, _) => reportedProvider = AzureMonitorTelemetryProvider.Create(new ServiceCollection(), resource,
                     AspireCliTelemetry.ReportedActivitySourceName, AspireCliTelemetry.EventLogCategoryName,

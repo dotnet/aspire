@@ -12,9 +12,9 @@ namespace Aspire.Shared;
 /// </summary>
 internal sealed class WslcContainerRuntimeProbe() : ContainerRuntimeProbe(KnownContainerRuntimes.Wslc, "wslc", "WSLc", 2)
 {
-    public override string? GetUnsupportedHostError(bool isWindows)
+    public override bool IsSupportedHost(bool isWindows)
     {
-        return isWindows ? null : "WSLc is only supported on Windows.";
+        return isWindows;
     }
 
     protected override async Task<RuntimeVersionInfo> ReadVersionInfoAsync(bool isRunning, ILogger? logger, CancellationToken cancellationToken)
@@ -25,11 +25,14 @@ internal sealed class WslcContainerRuntimeProbe() : ContainerRuntimeProbe(KnownC
             return default;
         }
 
-        return await ReadVersionOutputAsync("info --format json", async (stream, token) =>
+        var result = await ReadVersionOutputAsync("info --format json", async (stream, token) =>
         {
             var info = await JsonSerializer.DeserializeAsync(stream, WslcRuntimeJsonContext.Default.WslcRuntimeInfoJson, token).ConfigureAwait(false);
             return NormalizeInfo(info);
         }, logger, cancellationToken).ConfigureAwait(false);
+        return result.ClientVersion is null || result.ServerVersion is null
+            ? result with { Error = result.Error ?? "WSLc did not return valid client and session manager versions." }
+            : result;
     }
 
     /// <summary>
@@ -39,7 +42,7 @@ internal sealed class WslcContainerRuntimeProbe() : ContainerRuntimeProbe(KnownC
     {
         if (string.IsNullOrWhiteSpace(output))
         {
-            return default;
+            return new RuntimeVersionInfo { Error = "WSLc returned empty version metadata." };
         }
 
         try
@@ -49,19 +52,27 @@ internal sealed class WslcContainerRuntimeProbe() : ContainerRuntimeProbe(KnownC
             var info = JsonSerializer.Deserialize(output, WslcRuntimeJsonContext.Default.WslcRuntimeInfoJson);
             return NormalizeInfo(info);
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
-            return default;
+            return new RuntimeVersionInfo { Error = $"WSLc returned invalid version metadata: {ex.Message}" };
         }
-
     }
 
     private static RuntimeVersionInfo NormalizeInfo(WslcRuntimeInfoJson? info)
     {
-        Version.TryParse(info?.Client?.Version, out var clientVersion);
-        Version.TryParse(info?.Server?.SessionManagerVersion, out var serverVersion);
+        var clientVersion = ParseRuntimeVersion(info?.Client?.Version, out var clientPrerelease);
+        var serverVersion = ParseRuntimeVersion(info?.Server?.SessionManagerVersion, out var serverPrerelease);
 
-        return new RuntimeVersionInfo(clientVersion, serverVersion, false, null);
+        return new RuntimeVersionInfo(clientVersion, serverVersion, false, null)
+        {
+            IsClientPrerelease = clientPrerelease,
+            IsServerPrerelease = serverPrerelease,
+            ClientVersionText = info?.Client?.Version,
+            ServerVersionText = info?.Server?.SessionManagerVersion,
+            Error = clientVersion is null || serverVersion is null
+                ? "WSLc did not return valid client and session manager versions."
+                : null
+        };
     }
 }
 
