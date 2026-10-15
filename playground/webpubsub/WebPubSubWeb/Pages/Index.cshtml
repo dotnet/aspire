@@ -29,13 +29,7 @@
     async function connect(hubName) {
         let res = await fetch('/negotiate/' + hubName)
         let data = await res.json();
-        let clientUrl = new URL(data.url, window.location.href);
-        if (clientUrl.protocol === 'https:') {
-            clientUrl.protocol = 'wss:';
-        } else if (clientUrl.protocol === 'http:') {
-            clientUrl.protocol = 'ws:';
-        }
-        return new WebSocket(clientUrl, 'json.webpubsub.azure.v1');
+        return new WebSocket(data.url, 'json.webpubsub.azure.v1');
     }
     (async function () {
         //Disable the send button until connection is established.
