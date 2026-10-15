@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { randomUUID } from 'crypto';
 import { spawnSync } from 'child_process';
+import { createRequire } from 'module';
 
 // Investigation-only instrumentation for #20117; not part of the proposed fix.
 export function installWasmInvestigationProbe(logDirectory: string): vscode.Disposable {
@@ -23,10 +24,12 @@ export function installWasmInvestigationProbe(logDirectory: string): vscode.Disp
     const lifecycleEvents = new Set(['initialized', 'process', 'exited', 'terminated', 'thread', 'stopped', 'continued']);
     record('probe-installed', undefined, { platform: process.platform, architecture: process.arch, vscode: vscode.version });
     const bridgeExceptionProbe = installBridgeExceptionProbe(logDirectory);
+    const nodeOpeningProbe = installNodeOpeningProbe(logDirectory);
     record('bridge-exception-probe-installed', undefined);
 
     return vscode.Disposable.from(
         bridgeExceptionProbe,
+        nodeOpeningProbe,
         vscode.debug.registerDebugConfigurationProvider('*', {
             resolveDebugConfigurationWithSubstitutedVariables(_folder, configuration) {
                 if (configuration.type === 'monovsdbg_wasm') {
@@ -102,6 +105,99 @@ export function installWasmInvestigationProbe(logDirectory: string): vscode.Disp
     );
 }
 
+function installNodeOpeningProbe(logDirectory: string): vscode.Disposable {
+    const hookPath = path.join(logDirectory, 'wasm-node-opening-probe.cjs');
+    fs.writeFileSync(hookPath, nodeOpeningHookSource);
+    const previousOptions = process.env.NODE_OPTIONS;
+    const previousDirectory = process.env.ASPIRE_WASM_NODE_TRACE_DIRECTORY;
+    const options = `${previousOptions ?? ''} --require ${JSON.stringify(hookPath)}`.trim();
+    process.env.NODE_OPTIONS = options;
+    process.env.ASPIRE_WASM_NODE_TRACE_DIRECTORY = logDirectory;
+    // js-debug can run inline in this extension host, not just in a child adapter.
+    const hook = createRequire(__filename)(hookPath) as { dispose(): void };
+    return new vscode.Disposable(() => {
+        hook.dispose();
+        if (process.env.NODE_OPTIONS === options) {
+            if (previousOptions === undefined) {
+                delete process.env.NODE_OPTIONS;
+            }
+            else {
+                process.env.NODE_OPTIONS = previousOptions;
+            }
+        }
+        if (process.env.ASPIRE_WASM_NODE_TRACE_DIRECTORY === logDirectory) {
+            if (previousDirectory === undefined) {
+                delete process.env.ASPIRE_WASM_NODE_TRACE_DIRECTORY;
+            }
+            else {
+                process.env.ASPIRE_WASM_NODE_TRACE_DIRECTORY = previousDirectory;
+            }
+        }
+    });
+}
+
+// Observe js-debug's bundled WebSocket implementation through Node's HTTP boundary.
+// No debugger binary, opening timeout, retry, request argument, or response is changed.
+const nodeOpeningHookSource = `
+const fs = require('node:fs');
+const http = require('node:http');
+const path = require('node:path');
+const directory = process.env.ASPIRE_WASM_NODE_TRACE_DIRECTORY;
+if (!directory) {
+    throw new Error('Node opening investigation trace directory is missing.');
+}
+const file = path.join(directory, 'wasm-node-opening-' + process.pid + '.jsonl');
+let count = 0;
+let sequence = 0;
+function record(event, detail) {
+    if (++count <= 1024) {
+        fs.appendFileSync(file, JSON.stringify({
+            observedAt: new Date().toISOString(), processId: process.pid, event, detail
+        }) + '\\n');
+    } else if (count === 1025) {
+        fs.appendFileSync(file, JSON.stringify({ event: 'opening-event-limit-reached', limit: 1024 }) + '\\n');
+    }
+}
+record('hook-installed', { script: path.basename(process.argv[1] || ''), node: process.version });
+const originalRequest = http.request;
+const observedRequest = function (...args) {
+    const request = Reflect.apply(originalRequest, this, args);
+    // Only local debugger upgrades, e.g. /devtools/browser/<id>; never headers or CDP data.
+    if (!/^(127\\.0\\.0\\.1|localhost|\\[::1\\])(:\\d+)?$/.test(String(request.getHeader('host')))
+        || !/^\\/devtools\\/(browser|page)\\//.test(request.path)) {
+        return request;
+    }
+    const id = ++sequence;
+    const started = performance.now();
+    const detail = () => ({
+        id, elapsedMs: Math.round(performance.now() - started),
+        path: request.path, host: request.getHeader('host'),
+        localPort: request.socket?.localPort, remotePort: request.socket?.remotePort
+    });
+    record('opening-request', detail());
+    request.once('socket', socket => {
+        socket.once('connect', () => record('opening-connected', detail()));
+    });
+    request.once('upgrade', response => record('opening-upgrade', { ...detail(), statusCode: response.statusCode }));
+    request.once('error', error => record('opening-error', { ...detail(), message: error.message }));
+    request.once('close', () => record('opening-close', detail()));
+    const originalDestroy = request.destroy;
+    request.destroy = function (...destroyArgs) {
+        record('opening-destroy', { ...detail(), stack: new Error().stack, message: destroyArgs[0]?.message });
+        return Reflect.apply(originalDestroy, this, destroyArgs);
+    };
+    return request;
+};
+http.request = observedRequest;
+module.exports = {
+    dispose() {
+        if (http.request === observedRequest) {
+            http.request = originalRequest;
+        }
+    }
+};
+`;
+
 function installBridgeExceptionProbe(logDirectory: string): vscode.Disposable {
     const directory = path.join(logDirectory, 'bridge-exception-probe');
     fs.mkdirSync(directory, { recursive: true });
@@ -166,6 +262,7 @@ function installBridgeExceptionProbe(logDirectory: string): vscode.Disposable {
 const bridgeStartupHookSource = `
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.Tracing;
 using System.IO;
 using System.Reflection;
@@ -177,6 +274,8 @@ internal static class StartupHook
     private static bool s_writing;
 
     private static EventListener? s_networkListener;
+    private static IDisposable? s_diagnosticListener;
+    private static IDisposable? s_requestListener;
 
     public static void Initialize()
     {
@@ -202,6 +301,8 @@ internal static class StartupHook
             {
                 observedAt = DateTimeOffset.UtcNow,
                 processId = Environment.ProcessId,
+                activityId = Activity.Current?.Id,
+                threadId = Environment.CurrentManagedThreadId,
                 eventName,
                 detail,
             }));
@@ -209,23 +310,73 @@ internal static class StartupHook
 
         Write("hook-installed", new { runtime = Environment.Version.ToString() });
         var networkEventCount = 0;
+        var socketEventCount = 0;
+        var requestEventCount = 0;
+        s_diagnosticListener = DiagnosticListener.AllListeners.Subscribe(new DiagnosticObserver<DiagnosticListener>(listener =>
+        {
+            if (listener.Name != "Microsoft.AspNetCore")
+            {
+                return;
+            }
+
+            // Enabling the hosting activity links each IDE upgrade to the native
+            // TCP connect executed by that same request, even across async awaits.
+            s_requestListener = listener.Subscribe(new DiagnosticObserver<KeyValuePair<string, object?>>(args =>
+            {
+                lock (gate)
+                {
+                    if (++requestEventCount > 256)
+                    {
+                        if (requestEventCount == 257)
+                        {
+                            Write("http-request-event-limit-reached", new { limit = 256 });
+                        }
+                        return;
+                    }
+
+                    // Hosting events expose HttpContext through the payload's HttpContext
+                    // property. Reflect metadata only; the hook has no ASP.NET dependency.
+                    var context = ReadProperty(args.Value, "HttpContext");
+                    var request = ReadProperty(context, "Request");
+                    var connection = ReadProperty(context, "Connection");
+                    Write("http-request-event", new
+                    {
+                        name = args.Key,
+                        payloadType = args.Value?.GetType().FullName,
+                        traceIdentifier = ReadProperty(context, "TraceIdentifier"),
+                        path = ReadProperty(request, "Path")?.ToString(),
+                        localPort = ReadProperty(connection, "LocalPort"),
+                        remotePort = ReadProperty(connection, "RemotePort"),
+                    });
+                }
+            }), name => name.StartsWith("Microsoft.AspNetCore.Hosting.HttpRequestIn", StringComparison.Ordinal));
+        }));
         s_networkListener = new NetworkEventListener(args =>
         {
             lock (gate)
             {
-                networkEventCount++;
-                if (networkEventCount <= 4096)
+                var isSocket = args.EventSource.Name != "Private.InternalDiagnostics.System.Net.WebSockets";
+                var count = isSocket ? ++socketEventCount : ++networkEventCount;
+                var limit = isSocket ? 2048 : 4096;
+                var kind = isSocket ? "socket-event" : "websocket-event";
+                if (count <= limit)
                 {
                     var fields = new Dictionary<string, object?>();
                     for (var index = 0; index < (args.PayloadNames?.Count ?? 0); index++)
                     {
                         fields.Add(args.PayloadNames![index], args.Payload![index]);
                     }
-                    Write("websocket-event", new { name = args.EventName, fields });
+                    Write(kind, new
+                    {
+                        source = args.EventSource.Name,
+                        name = args.EventName,
+                        eventActivityId = args.ActivityId,
+                        fields,
+                    });
                 }
-                else if (networkEventCount == 4097)
+                else if (count == limit + 1)
                 {
-                    Write("websocket-event-limit-reached", new { limit = 4096 });
+                    Write(kind + "-limit-reached", new { limit });
                 }
             }
         });
@@ -266,16 +417,34 @@ internal static class StartupHook
         {
             lock (gate)
             {
-                Write("process-exit", new { exceptionCount, networkEventCount });
+                Write("process-exit", new { exceptionCount, networkEventCount, socketEventCount, requestEventCount });
             }
         };
+    }
+
+    private static object? ReadProperty(object? value, string name)
+    {
+        return value?.GetType().GetProperty(name)?.GetValue(value);
+    }
+
+    private sealed class DiagnosticObserver<T>(Action<T> next) : IObserver<T>
+    {
+        public void OnNext(T value) => next(value);
+        public void OnError(Exception error) => throw error;
+        public void OnCompleted() { }
     }
 
     private sealed class NetworkEventListener(Action<EventWrittenEventArgs> write) : EventListener
     {
         protected override void OnEventSourceCreated(EventSource eventSource)
         {
-            if (eventSource.Name == "Private.InternalDiagnostics.System.Net.WebSockets")
+            if (eventSource.Name is "Private.InternalDiagnostics.System.Net.WebSockets"
+                or "Private.InternalDiagnostics.System.Net.Sockets")
+            {
+                // Default keyword only: do not even enable the buffer-dump keyword.
+                EnableEvents(eventSource, EventLevel.Verbose, (EventKeywords)1);
+            }
+            else if (eventSource.Name == "System.Net.Sockets")
             {
                 EnableEvents(eventSource, EventLevel.Verbose, (EventKeywords)(-1));
             }
@@ -283,6 +452,14 @@ internal static class StartupHook
 
         protected override void OnEventWritten(EventWrittenEventArgs eventData)
         {
+            if (eventData.EventSource.Name == "Private.InternalDiagnostics.System.Net.Sockets"
+                && eventData.EventName == "Info"
+                && eventData.Payload?[1] is string member
+                && member is not (".ctor" or "Connect" or "DoConnect" or "SetToConnected"
+                    or "Dispose" or "Close" or "SetToDisconnected" or "UpdateStatusAfterSocketError"))
+            {
+                return;
+            }
             // Associate events link each WebSocket to its underlying stream, allowing
             // browser-client reads to be distinguished from IDE-server reads. Omit
             // payload dumps; this investigation needs connection lifecycle, not data.

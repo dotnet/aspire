@@ -1,19 +1,19 @@
 name: Investigate Windows native WASM attachment
 
 # Investigation-only adaptation of the existing dispatchable reproduction entry point.
-# Every worker runs the unchanged eight-test shard once in a fresh VS Code workspace.
+# Every worker runs the original eight-test shard once in a fresh VS Code workspace.
 on:
   workflow_dispatch:
     inputs:
       source_ref:
         description: Source commit corresponding to the artifact-producing run
         type: string
-        default: 9b0f7891cd1e2bb89e5cdbc926cca9aa17e2bbd7
+        default: 229db841af4be165f032c1be2942ff7b08d194d0
         required: true
       artifact_run_id:
         description: Existing CI run supplying matching CLI and NuGet artifacts
         type: string
-        default: '34314035384'
+        default: '38792981238'
         required: true
 
 permissions:
@@ -90,10 +90,14 @@ jobs:
           node scripts\validate-lockfile-registry.cjs
           corepack yarn install --frozen-lockfile --non-interactive
 
-      - name: Inject lifecycle-only instrumentation
+      - name: Inject observers and preserve original cold-attachment test setup
         run: |
           $ErrorActionPreference = 'Stop'
           Copy-Item ..\..\instrumentation\extension\src\testing\wasmInvestigationProbe.ts src\testing\wasmInvestigationProbe.ts
+          # Fresh matched packages are available only from a newer source baseline.
+          # Keep the original proof spec: no C# preactivation/reload preparation from
+          # #20312. The subject's isolated browser profiles remain in place.
+          Copy-Item ..\..\instrumentation\extension\src\test-e2e\browserDebugger.e2e.test.ts src\test-e2e\browserDebugger.e2e.test.ts
           $bridgePath = Join-Path (Get-Location) 'src\testing\e2eStateFileBridge.ts'
           $bridge = [IO.File]::ReadAllText($bridgePath)
           if (-not $bridge.Contains('installWasmInvestigationProbe')) {
