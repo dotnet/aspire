@@ -113,6 +113,54 @@ public class ResourceSnapshotBuilderTests
     }
 
     [Theory]
+    [InlineData(KnownLaunchConfigurationTypes.Project, null)]
+    [InlineData(KnownLaunchConfigurationTypes.Project, "Release")]
+    [InlineData(KnownLaunchConfigurationTypes.ProjectWithExternalBuild, "Release")]
+    public void ProjectSnapshotIncludesIdeDotNetLaunchMetadata(string launchConfigurationType, string? configuration)
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var project = builder.AddResource(new ProjectResource("project"));
+        project.Resource.Annotations.Add(new TestProjectMetadata());
+        project.WithProjectDefaults(new ProjectResourceOptions { ExcludeLaunchProfile = true });
+
+        var executable = Executable.Create("project", "dotnet");
+        executable.Annotate(DcpCustomResource.ResourceNameAnnotation, project.Resource.Name);
+        executable.Spec.ExecutionType = ExecutionType.IDE;
+        executable.SetAnnotationAsObjectList(Executable.LaunchConfigurationsAnnotation, new[]
+        {
+            new ProjectLaunchConfiguration
+            {
+                Type = launchConfigurationType,
+                ProjectPath = "/app/project.csproj",
+                Mode = ExecutableLaunchMode.NoDebug,
+                BuildConfiguration = configuration
+            }
+        });
+        executable.Status = new ExecutableStatus
+        {
+            EffectiveArgs = ["--configuration", "private-application-argument"],
+            ProcessId = 1234
+        };
+
+        var snapshot = CreateSnapshotBuilder(new Dictionary<string, IResource>
+        {
+            [project.Resource.Name] = project.Resource
+        }).ToSnapshot(executable, CreatePreviousSnapshot());
+
+        Assert.Equal("ide", GetProperty(snapshot, KnownProperties.Project.LaunchCommand).Value);
+        if (configuration is not null)
+        {
+            Assert.Equal(configuration, GetProperty(snapshot, KnownProperties.Project.Configuration).Value);
+        }
+        else
+        {
+            Assert.Empty(snapshot.Properties.Where(property => property.Name == KnownProperties.Project.Configuration));
+        }
+        Assert.False(GetProperty(snapshot, KnownProperties.Project.LaunchCommand).IsSensitive);
+        Assert.True(GetProperty(snapshot, KnownProperties.Executable.Args).IsSensitive);
+    }
+
+    [Theory]
     [InlineData("Run", "run", "--configuration", "--framework=net10.0")]
     [InlineData("run", "run", "-c", "-f")]
     [InlineData("run", "run", "--configuration=Release", "--framework")]

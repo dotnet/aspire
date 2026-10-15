@@ -170,14 +170,15 @@ internal class ResourceSnapshotBuilder
         }
 
         var launchArguments = GetLaunchArgs(executable, effectiveArgs);
-        var properties = GetLaunchConfigurationType(appModelResource) is { } launchConfigurationType
+        var launchConfigurationType = GetLaunchConfigurationType(appModelResource);
+        var properties = launchConfigurationType is not null
             ? previous.Properties.SetResourceProperty(KnownProperties.Resource.LaunchConfigurationType, launchConfigurationType)
             : previous.Properties.RemoveResourceProperty(KnownProperties.Resource.LaunchConfigurationType);
         properties = properties
             .RemoveResourceProperty(KnownProperties.Project.LaunchCommand)
             .RemoveResourceProperty(KnownProperties.Project.Configuration)
             .RemoveResourceProperty(KnownProperties.Project.TargetFramework);
-        var dotNetLaunchProperties = GetDotNetLaunchProperties(executable, executable.Spec.ExecutablePath, effectiveArgs);
+        var dotNetLaunchProperties = GetDotNetLaunchProperties(executable, launchConfigurationType, effectiveArgs);
 
         if (projectPath is not null)
         {
@@ -249,15 +250,27 @@ internal class ResourceSnapshotBuilder
     }
 
     private static ImmutableArray<ResourcePropertySnapshot> GetDotNetLaunchProperties(
-        CustomResource resource,
-        string? executablePath,
+        Executable resource,
+        string? launchConfigurationType,
         IReadOnlyList<string>? effectiveArgs)
     {
-        var executableName = Path.GetFileName(executablePath);
+        var executableName = Path.GetFileName(resource.Spec.ExecutablePath);
         if (!string.Equals(executableName, "dotnet", StringComparison.OrdinalIgnoreCase) &&
             !string.Equals(executableName, "dotnet.exe", StringComparison.OrdinalIgnoreCase))
         {
             return [];
+        }
+
+        // IDE launches report the application PID rather than a dotnet run/watch launcher.
+        // Their effective arguments belong to the application, so use structured project metadata.
+        if (resource.Spec.ExecutionType == ExecutionType.IDE &&
+            KnownLaunchConfigurationTypes.IsProject(launchConfigurationType) &&
+            resource.TryGetProjectLaunchConfiguration(out var launchConfiguration) &&
+            KnownLaunchConfigurationTypes.IsProject(launchConfiguration.Type))
+        {
+            return launchConfiguration.BuildConfiguration is { } buildConfiguration
+                ? [new(KnownProperties.Project.LaunchCommand, "ide"), new(KnownProperties.Project.Configuration, buildConfiguration)]
+                : [new(KnownProperties.Project.LaunchCommand, "ide")];
         }
 
         if (effectiveArgs is null ||

@@ -31,7 +31,7 @@ Aspire can bring together C#, TypeScript and JavaScript, Python, Go, Java, conta
 
 ## Chat tools for agents
 
-The extension contributes `aspire_apphost_start`, `aspire_apphost_stop`, and `aspire_resource_debug` language model tools. They only accept AppHosts and resources already discovered in a trusted workspace, reject arbitrary or absolute paths, and ask the user to confirm before acting. Resource debugging attaches to a running resource; it does not start or restart one.
+The extension contributes `aspire_apphost_start`, `aspire_apphost_stop`, and `aspire_resource_debug` language model tools. They only accept AppHosts and resources already discovered in a trusted workspace, reject arbitrary or absolute paths, and ask the user to confirm before acting. Resource debugging attaches to a running resource, including .NET projects started with **Run Without Debugging** in VS Code; it does not start or restart one.
 
 Resource-debug confirmation is bound to the resolved AppHost. If discovery initially fails or a path points to a different AppHost before attachment, the tool refuses the operation; retry with a fresh confirmation after the intended AppHost has been discovered.
 

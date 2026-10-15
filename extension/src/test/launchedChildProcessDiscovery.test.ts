@@ -674,6 +674,41 @@ suite('Launched child process discovery', () => {
         await assert.rejects(cyclic.resolveProcessId(10, identity));
     });
 
+    test('selects the reported process itself only for an explicit direct target', async () => {
+        const query = new SequenceProcessQuery([[
+            process(10, 1, '/target/api'),
+            process(42, 10, '/target/api'),
+        ]]);
+        const directTargetIdentity = {
+            targetsLauncher: true,
+            isLauncher: identity.isCandidate,
+            isCandidate: identity.isCandidate,
+        };
+
+        assert.strictEqual(await createResolver(query, 20).resolveProcessId(10, directTargetIdentity), 10);
+    });
+
+    test('freshly verifies the reported direct target before returning its PID', async () => {
+        const getProcess = sinon.stub().resolves(process(10, 1, '/target/api'));
+        const query: LaunchedChildProcessQuery = {
+            canTrustListedProcessIdentity: true,
+            listProcesses: async () => [process(10, 1, '/target/api')],
+            getProcess,
+        };
+        const directTargetIdentity = {
+            targetsLauncher: true,
+            isLauncher: identity.isCandidate,
+            isCandidate: identity.isCandidate,
+        };
+
+        assert.strictEqual(await createResolver(query, 20).resolveProcessId(10, directTargetIdentity), 10);
+
+        for (const finalProcess of [undefined, process(10, 1, '/other/api')]) {
+            getProcess.resolves(finalProcess);
+            await assert.rejects(createResolver(query, 20).resolveProcessId(10, directTargetIdentity));
+        }
+    });
+
     test('uses trusted complete list identity until the final direct candidate read', async () => {
         const getProcess = sinon.stub().callsFake(async (processId: number) =>
             processId === 42 ? process(42, 10, '/target/api') : undefined);

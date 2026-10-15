@@ -262,6 +262,76 @@ suite('Dotnet Debugger Extension Tests', () => {
         };
     }
 
+    test('IDE attach verifies the reported application PID for DLL and apphost launches', async () => {
+        const cases = [
+            {
+                targetPath: '/repo/bin/Release/net10.0/Api.dll',
+                executable: '/usr/share/dotnet/dotnet',
+                command: '"/usr/share/dotnet/dotnet" "/repo/bin/Release/net10.0/Api.dll"',
+                commandLineArguments: ['/usr/share/dotnet/dotnet', '/repo/bin/Release/net10.0/Api.dll'],
+            },
+            {
+                targetPath: 'C:\\repo\\bin\\Release\\net10.0\\Api.dll',
+                executable: 'C:\\Program Files\\dotnet\\dotnet.exe',
+                command: '"C:\\Program Files\\dotnet\\dotnet.exe" "C:\\repo\\bin\\Release\\net10.0\\Api.dll"',
+            },
+            {
+                targetPath: '/repo/bin/Release/net10.0/Api.dll',
+                executable: '/repo/bin/Release/net10.0/Api',
+                command: '/repo/bin/Release/net10.0/Api',
+            },
+            {
+                targetPath: 'C:\\repo\\bin\\Release\\net10.0\\Api.dll',
+                executable: 'C:\\repo\\bin\\Release\\net10.0\\Api.exe',
+                command: '"C:\\repo\\bin\\Release\\net10.0\\Api.exe"',
+            },
+        ];
+
+        for (const candidate of cases) {
+            const dotNetService = new TestDotNetService(candidate.targetPath, null, false);
+            const resolver = new LaunchedChildProcessResolver(new StaticLaunchedChildProcessQuery([
+                { pid: 1234, parentPid: 10, ...candidate },
+                createLaunchedProcess(4321, 1234, candidate.executable, candidate.command),
+            ]), immediateProcessClock, { timeoutMs: 10, retryDelayMs: 10 });
+            const provider = createAttachProvider(dotNetService, resolver, { realpath: async value => value });
+            const resource = createProjectResource({
+                'executable.pid': 1234,
+                'executable.path': 'dotnet',
+                'project.path': '/repo/Api.csproj',
+                'project.launchCommand': 'ide',
+                'project.configuration': 'Release',
+                'executable.args': null,
+            });
+
+            assert.strictEqual(provider.canAttachToResource(resource), true, candidate.executable);
+            const configuration = await provider.createDebugConfiguration(resource);
+
+            assert.strictEqual(configuration.processId, 1234, candidate.executable);
+            assert.strictEqual(configuration.request, 'attach');
+            assert.strictEqual(dotNetService.getDotNetAttachTargetInfoStub.calledWith('/repo/Api.csproj', 'Release'), true);
+        }
+    });
+
+    test('IDE attach rejects another DLL even when its arguments or child match the target', async () => {
+        const targetPath = '/repo/bin/Debug/net10.0/Api.dll';
+        const dotNetService = new TestDotNetService(targetPath, null, false);
+        const resolver = new LaunchedChildProcessResolver(new StaticLaunchedChildProcessQuery([
+            {
+                ...createLaunchedProcess(1234, 10, '/usr/share/dotnet/dotnet', `dotnet /other/Api.dll "${targetPath}"`),
+                commandLineArguments: ['dotnet', '/other/Api.dll', targetPath],
+            },
+            createLaunchedProcess(4321, 1234, '/repo/bin/Debug/net10.0/Api'),
+        ]), immediateProcessClock, { timeoutMs: 10, retryDelayMs: 10 });
+        const provider = createAttachProvider(dotNetService, resolver, { realpath: async value => value });
+
+        await assert.rejects(provider.createDebugConfiguration(createProjectResource({
+            'executable.pid': 1234,
+            'executable.path': 'dotnet',
+            'project.path': '/repo/Api.csproj',
+            'project.launchCommand': 'ide',
+        })), { errorKind: 'resourceNotAttachable' });
+    });
+
     test('attach configuration resolves the evaluated framework-dependent TargetPath child PID', async () => {
         const { dotNetService } = createDebuggerExtension('/repo/bin/Debug/net10.0/EvaluatedAssemblyName.dll', null, true, true);
         dotNetService.getDotNetAttachTargetInfoStub.resolves({

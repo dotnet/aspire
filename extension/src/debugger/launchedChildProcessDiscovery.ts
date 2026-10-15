@@ -23,6 +23,7 @@ export interface LaunchedChildProcessClock {
 
 export interface LaunchedChildProcessIdentity {
     readonly requiresDirectChild?: boolean;
+    readonly targetsLauncher?: boolean;
     isLauncher(process: LaunchedChildProcess): boolean;
     isCandidate(process: LaunchedChildProcess): boolean;
 }
@@ -212,7 +213,9 @@ export class LaunchedChildProcessResolver {
         cancellationToken: vscode.CancellationToken | undefined,
         deadline: number,
     ): Promise<number | undefined> {
-        const candidatePids = findDescendantProcessIds(launcherPid, identity.requiresDirectChild === true, processes);
+        const candidatePids = identity.targetsLauncher === true
+            ? [launcherPid]
+            : findDescendantProcessIds(launcherPid, identity.requiresDirectChild === true, processes);
         if (!candidatePids) {
             return undefined;
         }
@@ -292,7 +295,7 @@ export class LaunchedChildProcessResolver {
 
             visited.add(processId);
             const process = await this._getProcess(processId, undefined, cancellationToken, deadline);
-            if (!process) {
+            if (!process || this._clock.now() > deadline) {
                 return false;
             }
 

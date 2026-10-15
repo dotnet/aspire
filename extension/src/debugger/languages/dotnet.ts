@@ -86,7 +86,7 @@ function createDotNetProcessEnvironment(
     return createResolvedAspireCliPathProcessEnvironment(resolvedCliPath, processEnvironment);
 }
 
-type DotNetLaunchCommand = 'run' | 'watch';
+type DotNetLaunchCommand = 'run' | 'watch' | 'ide';
 
 interface DotNetAttachTargetInfo {
     targetPath: string;
@@ -1406,7 +1406,7 @@ function getDotNetLaunchMetadata(
     const hasLaunchCommand = properties !== null && properties !== undefined &&
         Object.prototype.hasOwnProperty.call(properties, projectLaunchCommandPropertyName);
     const launchCommandValue = properties?.[projectLaunchCommandPropertyName];
-    if (hasLaunchCommand && launchCommandValue !== 'run' && launchCommandValue !== 'watch') {
+    if (hasLaunchCommand && launchCommandValue !== 'run' && launchCommandValue !== 'watch' && launchCommandValue !== 'ide') {
         return undefined;
     }
 
@@ -1469,7 +1469,8 @@ async function createDotNetProcessIdentity(
     attachInfo: DotNetAttachDebuggerResourceInfo,
     fileSystem: DotNetAttachFileSystem,
 ): Promise<LaunchedChildProcessIdentity> {
-    const requiresDirectChild = attachInfo.launchCommand !== 'watch';
+    const targetsLauncher = attachInfo.launchCommand === 'ide';
+    const requiresDirectChild = !targetsLauncher && attachInfo.launchCommand !== 'watch';
     if (attachInfo.useTargetNameFallback) {
         const targetName = targetInfo.targetName;
         if (targetName === undefined) {
@@ -1488,12 +1489,15 @@ async function createDotNetProcessIdentity(
     const appHostPaths = targetInfo.useAppHost
         ? await getCanonicalAppHostPaths(targetInfo.targetPath, fileSystem)
         : undefined;
+    // CoreCLR can launch the DLL directly even when the project also builds an apphost executable.
+    const isCandidate = (process: LaunchedChildProcess) =>
+        (appHostPaths !== undefined && isAppHostProcessForTarget(process, appHostPaths)) ||
+        ((targetsLauncher || !targetInfo.useAppHost) && isFrameworkDependentProcessForTarget(process, targetInfo.targetPath));
     return {
         requiresDirectChild,
-        isLauncher: process => isDotNetProcess(process),
-        isCandidate: process => targetInfo.useAppHost
-            ? isAppHostProcessForTarget(process, appHostPaths!)
-            : isFrameworkDependentProcessForTarget(process, targetInfo.targetPath),
+        targetsLauncher,
+        isLauncher: targetsLauncher ? isCandidate : isDotNetProcess,
+        isCandidate,
     };
 }
 
@@ -1516,7 +1520,22 @@ function isFrameworkDependentProcessForTarget(process: LaunchedChildProcess, tar
     }
 
     if (process.commandLineArguments) {
+        // IDE launches can be `dotnet "/repo/Api.dll"` without `exec`. Only the first argument
+        // identifies that program; a later DLL can be an unrelated application argument.
+        const firstArgument = process.commandLineArguments[1];
+        if (firstArgument !== 'exec') {
+            return firstArgument !== undefined && areProcessPathsEqual(firstArgument, targetPath);
+        }
+
         return commandLineArgumentsContainTargetPath(process.commandLineArguments, targetPath);
+    }
+
+    const programPrefix = /^\s*(?:"[^"]+"|'[^']+'|\S+)\s+/.exec(process.command);
+    const directTarget = programPrefix
+        ? getFirstDllArgumentMatch(process.command.slice(programPrefix[0].length))
+        : undefined;
+    if (directTarget?.index === 0) {
+        return areProcessPathsEqual(directTarget[1] ?? directTarget[2] ?? directTarget[3], targetPath);
     }
 
     return commandContainsPathArgumentAfterDotNetExec(process.command, targetPath);
