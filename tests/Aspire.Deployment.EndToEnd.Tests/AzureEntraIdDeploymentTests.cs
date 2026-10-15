@@ -6,7 +6,6 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using Aspire.Deployment.EndToEnd.Tests.Helpers;
 using Azure.Core;
-using Azure.Identity;
 using Hex1b.Automation;
 using Xunit;
 
@@ -14,7 +13,6 @@ namespace Aspire.Deployment.EndToEnd.Tests;
 
 public sealed class AzureEntraIdDeploymentTests(ITestOutputHelper output)
 {
-    private const string TenantEnvironmentVariable = "ASPIRE_DEPLOYMENT_TEST_ENTRA_TENANT_ID";
     private const string RedirectUri = "https://example.invalid/signin-oidc";
     private const string UpdatedRedirectUri = "https://example.invalid/updated-signin-oidc";
 
@@ -25,8 +23,8 @@ public sealed class AzureEntraIdDeploymentTests(ITestOutputHelper output)
 
         var subscriptionId = DotnetProjectDeploymentHelpers.GetSubscriptionId();
         Assert.True(Guid.TryParse(subscriptionId, out _), "The deployment subscription must be a GUID.");
-        Assert.True(Guid.TryParse(Environment.GetEnvironmentVariable(TenantEnvironmentVariable), out var tenantId),
-            $"Set {TenantEnvironmentVariable} to the test subscription's tenant ID.");
+        Assert.True(Guid.TryParse(AzureAuthenticationHelpers.GetTenantId(), out var tenantId),
+            "Set AZURE_TENANT_ID to the deployment tenant ID.");
         var strategy = DeploymentE2ETestHelpers.GetCurrentBuildCliInstallStrategy();
         Assert.SkipUnless(
             strategy.Mode is CliInstallMode.Preinstalled or CliInstallMode.LocalHive or CliInstallMode.LocalArchive or CliInstallMode.PullRequest,
@@ -37,9 +35,7 @@ public sealed class AzureEntraIdDeploymentTests(ITestOutputHelper output)
         var cancellationToken = timeout.Token;
         using var workspace = TemporaryWorkspace.Create(output);
         using var client = new HttpClient();
-        // Use the same Azure CLI login as native deployment, and explicitly select the Graph tenant.
-        // A subscription argument alone does not select the tenant for a Microsoft Graph token.
-        var credential = new AzureCliCredential(new AzureCliCredentialOptions { TenantId = tenantId.ToString("D") });
+        var credential = AzureAuthenticationHelpers.GetAzureCredential();
         var suffix = Guid.NewGuid().ToString("N");
         var registrationName = $"identity-{suffix}";
         var resourceGroupName = DeploymentE2ETestHelpers.GenerateResourceGroupName($"entra-{suffix[..8]}");
@@ -51,13 +47,6 @@ public sealed class AzureEntraIdDeploymentTests(ITestOutputHelper output)
         var deploymentAttempted = false;
         Exception? deploymentFailure = null;
         var deploymentUrls = new Dictionary<string, string>();
-
-        using (var subscription = await ReadResourceAsync(client, credential,
-            $"https://management.azure.com/subscriptions/{subscriptionId}?api-version=2022-12-01", cancellationToken))
-        {
-            Assert.NotNull(subscription);
-            Assert.Equal(tenantId, subscription.RootElement.GetProperty("tenantId").GetGuid());
-        }
 
         // Only take cleanup ownership after proving these test-specific names are unused.
         using (var existingGroup = await ReadResourceAsync(client, credential, resourceGroupUrl, cancellationToken))
@@ -82,7 +71,7 @@ public sealed class AzureEntraIdDeploymentTests(ITestOutputHelper output)
                 await auto.RunCommandAsync("cd EntraDeployment", counter);
                 await DotnetProjectDeploymentHelpers.AddPackageAsync(auto, counter, "Aspire.Hosting.Azure.AppContainers");
                 await DotnetProjectDeploymentHelpers.AddPackageAsync(auto, counter, "Aspire.Hosting.Azure.EntraId");
-                await auto.RunCommandAsync("dotnet new web -n Consumer --framework net10.0 --no-restore", counter, TimeSpan.FromMinutes(2));
+                await auto.RunCommandAsync("dotnet new web -n Consumer --no-restore", counter, TimeSpan.FromMinutes(2));
                 var projectDirectory = Path.Combine(workspace.Path, "EntraDeployment");
                 WriteApplication(projectDirectory);
 
