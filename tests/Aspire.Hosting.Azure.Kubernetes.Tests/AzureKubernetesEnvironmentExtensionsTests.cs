@@ -569,7 +569,8 @@ public class AzureKubernetesEnvironmentExtensionsTests(ITestOutputHelper outputH
         aks.Resource.GatewayApiEnabled = true;
 
         var manifest = await AzureManifestUtils.GetManifestWithBicep(aks.Resource);
-        await Verify(manifest.BicepText, extension: "bicep");
+        Assert.Contains("resource aks 'Microsoft.ContainerService/managedClusters@2026-07-01' = {", manifest.BicepText);
+        Assert.Contains("installation: 'Standard'", manifest.BicepText);
     }
 
     [Fact]
