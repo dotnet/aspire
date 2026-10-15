@@ -14,7 +14,6 @@ namespace Aspire.Deployment.EndToEnd.Tests;
 
 public sealed class AzureEntraIdDeploymentTests(ITestOutputHelper output)
 {
-    private const string EnableEnvironmentVariable = "ASPIRE_DEPLOYMENT_TEST_ENABLE_ENTRA_ID";
     private const string TenantEnvironmentVariable = "ASPIRE_DEPLOYMENT_TEST_ENTRA_TENANT_ID";
     private const string RedirectUri = "https://example.invalid/signin-oidc";
     private const string UpdatedRedirectUri = "https://example.invalid/updated-signin-oidc";
@@ -22,9 +21,6 @@ public sealed class AzureEntraIdDeploymentTests(ITestOutputHelper output)
     [Fact]
     public async Task DeployEntraRegistrationAndRedeployWithStableIds()
     {
-        Assert.SkipUnless(
-            string.Equals(Environment.GetEnvironmentVariable(EnableEnvironmentVariable), "true", StringComparison.OrdinalIgnoreCase),
-            $"Set {EnableEnvironmentVariable}=true only with permission to create and delete Entra applications and service principals.");
         Assert.SkipUnless(OperatingSystem.IsLinux(), "Deployment terminal automation requires Linux.");
 
         var subscriptionId = DotnetProjectDeploymentHelpers.GetSubscriptionId();

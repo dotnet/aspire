@@ -91,7 +91,6 @@ Common quota increase requests:
 | `ASPIRE_DEPLOYMENT_TEST_CONNECTOR_NAMESPACE_LOCATION` | Connector Namespace test only | Preview-enabled Azure region |
 | `ASPIRE_DEPLOYMENT_TEST_CONNECTOR_NAMESPACE_PRINCIPAL_OBJECT_ID` | Connector Namespace test only | Object ID of a tenant user used to validate connection and MCP access policies |
 | `ASPIRE_DEPLOYMENT_TEST_CONNECTOR_NAMESPACE_TENANT_ID` | Connector Namespace test only | Tenant ID containing the access-policy user |
-| `ASPIRE_DEPLOYMENT_TEST_ENABLE_ENTRA_ID` | Entra test only | Set to `true` to enable application/service-principal creation and deletion |
 | `ASPIRE_DEPLOYMENT_TEST_ENTRA_TENANT_ID` | Entra test only | Tenant ID of the test subscription and directory objects |
 | `AZURE_DEPLOYMENT_TEST_TENANT_ID` | CI only | Azure AD tenant ID for OIDC authentication |
 | `AZURE_DEPLOYMENT_TEST_CLIENT_ID` | CI only | Azure AD app client ID for OIDC authentication |
@@ -140,17 +139,16 @@ tenant/client IDs in a deployed .NET consumer's environment and live HTTP respon
 redirect URI, and redeploys to verify the application object ID, client ID, and service principal
 object ID remain stable.
 
-This scenario is opt-in both locally and in CI. Set `ASPIRE_DEPLOYMENT_TEST_ENABLE_ENTRA_ID=true`
-and `ASPIRE_DEPLOYMENT_TEST_ENTRA_TENANT_ID` to the subscription's tenant. The Azure CLI identity
-must have Azure deployment permissions and Microsoft Graph permissions to create, read, update,
-and delete applications and service principals. For an application identity, this requires
-admin-consented `Application.ReadWrite.All`; subscription Owner does not grant directory access.
+This scenario runs as part of the deployment suite without an additional enable flag.
+Set `ASPIRE_DEPLOYMENT_TEST_ENTRA_TENANT_ID` to the subscription's tenant. The Azure CLI identity
+must have Azure deployment permissions and admin-consented Microsoft Graph permissions to create,
+read, update, and delete applications and service principals. `Application.ReadWrite.OwnedBy`
+is the least-privileged application permission for the Graph upsert operations; ownership must
+permit the subsequent updates and cleanup. Subscription Owner does not grant directory access.
 The test does not grant permissions or configure consent.
 
 Use a current-source local-hive archive (`ASPIRE_E2E_ARCHIVE`) for local execution on Linux.
-In CI, configure the `deployment-testing` environment's `ASPIRE_DEPLOYMENT_TEST_ENABLE_ENTRA_ID`
-variable only after granting the required Graph permissions to its existing deployment identity.
-The workflow supplies the tenant from its existing tenant secret. Select
+In CI, the workflow supplies the tenant from its existing tenant secret. Select
 `AzureEntraIdDeploymentTests` with the deployment workflow's `test_filter`.
 
 The test creates unique names, refuses to reuse existing objects, and independently cleans up
