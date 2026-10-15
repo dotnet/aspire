@@ -1269,6 +1269,15 @@ namespace Aspire.Hosting.Azure.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Add a suffix to tenant-wide resources created by this AppHost (optional)..
+        /// </summary>
+        internal static string TenantResourceSuffixSelectionMessage {
+            get {
+                return ResourceManager.GetString("TenantResourceSuffixSelectionMessage", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Select your Azure tenant:.
         /// </summary>
         internal static string TenantSelectionMessage {

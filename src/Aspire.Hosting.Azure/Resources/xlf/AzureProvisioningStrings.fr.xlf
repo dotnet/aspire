@@ -676,6 +676,11 @@ Pour en savoir plus, consultez la [documentation d’approvisionnement Azure](ht
         <target state="new">Tenant-scoped resource suffix</target>
         <note />
       </trans-unit>
+      <trans-unit id="TenantResourceSuffixSelectionMessage">
+        <source>Add a suffix to tenant-wide resources created by this AppHost (optional).</source>
+        <target state="new">Add a suffix to tenant-wide resources created by this AppHost (optional).</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TenantSelectionMessage">
         <source>Select your Azure tenant:</source>
         <target state="translated">Sélectionnez votre locataire Azure :</target>

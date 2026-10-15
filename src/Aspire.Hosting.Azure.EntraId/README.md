@@ -74,6 +74,10 @@ The suffix is shared by participating registrations in the AppHost and saved wit
 value through `Azure:TenantResourceSuffix`, and edit or clear the saved value through **Change Azure context**. Existing-only
 references do not require this field or Azure provisioning.
 
+Interactive `aspire deploy` also prompts for an optional suffix when `Azure:TenantResourceSuffix` is not configured.
+Set that configuration value, including an empty string, to skip the prompt. Non-interactive deployment uses an empty
+suffix when no value is configured.
+
 Published Azure templates expose `tenantResourceSuffix` as a deployment parameter, defaulting to an empty string, rather than
 embedding a developer's local suffix. An explicit module parameter overrides the shared value:
 

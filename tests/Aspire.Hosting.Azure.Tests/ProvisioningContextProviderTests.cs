@@ -20,6 +20,107 @@ public class ProvisioningContextProviderTests
     private readonly TestInteractionService _defaultInteractionService = new() { IsAvailable = false };
 
     [Theory]
+    [InlineData("dev-a")]
+    [InlineData("")]
+    [InlineData(null)]
+    public async Task PublishMode_TenantResourceSuffix_PromptsOnceAndPersists(string? selectedSuffix)
+    {
+        var interactionService = new TestInteractionService();
+        var options = ProvisioningTestHelpers.CreateOptions();
+        var deploymentState = ProvisioningTestHelpers.CreateUserSecretsManager();
+        var resource = new AzureBicepResource("registration", templateString: "param tenantResourceSuffix string = ''");
+        resource.Annotations.Add(new TenantScopedResourceAnnotation(new Dictionary<string, string>()));
+        var provider = CreatePublishModeProvider(interactionService, options, deploymentState, new([resource]));
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+        var promptTask = provider.RetrieveAzureProvisioningOptions(cts.Token);
+        var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token);
+        Assert.Equal(AzureProvisioningStrings.InputsTitle, interaction.Title);
+        Assert.Equal(AzureProvisioningStrings.TenantResourceSuffixSelectionMessage, interaction.Message);
+        var input = Assert.Single(interaction.Inputs);
+        Assert.Equal(BaseProvisioningContextProvider.TenantResourceSuffixName, input.Name);
+        Assert.Equal(AzureProvisioningStrings.TenantResourceSuffixLabel, input.Label);
+        Assert.Equal(InputType.Text, input.InputType);
+        Assert.False(input.Required);
+        input.Value = selectedSuffix;
+        interaction.CompletionTcs.SetResult(InteractionResult.Ok(interaction.Inputs));
+        await promptTask.WaitAsync(cts.Token);
+
+        Assert.Equal(selectedSuffix ?? string.Empty, options.Value.TenantResourceSuffix);
+        await provider.CreateProvisioningContextAsync(cts.Token).WaitAsync(cts.Token);
+        var saved = await deploymentState.AcquireSectionAsync("Azure", cts.Token);
+        Assert.Equal(selectedSuffix ?? string.Empty, saved.Data["TenantResourceSuffix"]!.GetValue<string>());
+        Assert.False(interactionService.Interactions.Reader.TryRead(out _));
+    }
+
+    [Theory]
+    [InlineData(true, false, true, "configured")]
+    [InlineData(true, false, true, "")]
+    [InlineData(false, false, true, null)]
+    [InlineData(true, true, true, null)]
+    [InlineData(true, false, false, null)]
+    public async Task PublishMode_TenantResourceSuffix_SkipsUnnecessaryPrompt(
+        bool tenantScoped, bool excluded, bool interactive, string? configuredSuffix)
+    {
+        var interactionService = new TestInteractionService { IsAvailable = interactive };
+        var options = ProvisioningTestHelpers.CreateOptions();
+        options.Value.TenantResourceSuffix = configuredSuffix;
+        var resource = new AzureBicepResource("registration", templateString: "param tenantResourceSuffix string = ''");
+        if (tenantScoped)
+        {
+            resource.Annotations.Add(new TenantScopedResourceAnnotation(new Dictionary<string, string>()));
+        }
+        if (excluded)
+        {
+            resource.Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
+        }
+        var provider = CreatePublishModeProvider(
+            interactionService, options, ProvisioningTestHelpers.CreateUserSecretsManager(), new([resource]));
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+        await provider.RetrieveAzureProvisioningOptions(cts.Token).WaitAsync(cts.Token);
+
+        Assert.Equal(configuredSuffix, options.Value.TenantResourceSuffix);
+        Assert.False(interactionService.Interactions.Reader.TryRead(out _));
+    }
+
+    [Fact]
+    public async Task PublishMode_TenantResourceSuffix_CancellationStopsContextCreation()
+    {
+        var interactionService = new TestInteractionService();
+        var options = ProvisioningTestHelpers.CreateOptions();
+        var resource = new AzureBicepResource("registration", templateString: "param tenantResourceSuffix string = ''");
+        resource.Annotations.Add(new TenantScopedResourceAnnotation(new Dictionary<string, string>()));
+        var provider = CreatePublishModeProvider(
+            interactionService, options, ProvisioningTestHelpers.CreateUserSecretsManager(), new([resource]));
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+        var contextTask = provider.CreateProvisioningContextAsync(cts.Token);
+        var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token);
+        interaction.CompletionTcs.SetResult(InteractionResult.Cancel<InteractionInputCollection>());
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() => contextTask.WaitAsync(cts.Token));
+        Assert.Null(options.Value.TenantResourceSuffix);
+    }
+
+    private static PublishModeProvisioningContextProvider CreatePublishModeProvider(
+        TestInteractionService interactionService,
+        IOptions<AzureProvisionerOptions> options,
+        IDeploymentStateManager deploymentState,
+        DistributedApplicationModel model) =>
+        new(interactionService,
+            options,
+            ProvisioningTestHelpers.CreateEnvironment(),
+            ProvisioningTestHelpers.CreateLogger<PublishModeProvisioningContextProvider>(),
+            ProvisioningTestHelpers.CreateArmClientProvider(),
+            ProvisioningTestHelpers.CreateAzurePrincipalProvider(),
+            ProvisioningTestHelpers.CreateTokenCredentialProvider(),
+            deploymentState,
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish),
+            new NullPublishingActivityReporter(),
+            model);
+
+    [Theory]
     [InlineData(false, false, null, "")]
     [InlineData(true, true, null, "")]
     [InlineData(true, false, null, "dev-a")]
@@ -692,7 +793,8 @@ public class ProvisioningContextProviderTests
             tokenCredentialProvider,
             deploymentStateManager,
             new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish),
-            new NullPublishingActivityReporter());
+            new NullPublishingActivityReporter(),
+            new DistributedApplicationModel([]));
 
         // Act
         var context = await provider.CreateProvisioningContextAsync(CancellationToken.None);
