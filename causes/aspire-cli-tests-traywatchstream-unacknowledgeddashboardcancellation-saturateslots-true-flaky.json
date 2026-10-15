@@ -1,0 +1,16 @@
+{
+  "id": "aspire-cli-tests-traywatchstream-unacknowledgeddashboardcancellation-saturateslots-true-flaky",
+  "type": "flaky-test",
+  "title": "Flaky: TrayWatchStreamTests.UnacknowledgedDashboardCancellationCannotAccumulateRequestsAcrossSnapshots(saturateSlots: True) asserts wrong reconciliation count",
+  "test_name": "Aspire.Cli.Tests.Backchannel.TrayWatchStreamTests.UnacknowledgedDashboardCancellationCannotAccumulateRequestsAcrossSnapshots(saturateSlots: True)",
+  "error_pattern": "Assert.Equal() Failure: Values differ\nExpected: 0\nActual:   7\n   at Aspire.Cli.Tests.Backchannel.TrayWatchStreamTests.UnacknowledgedDashboardCancellationCannotAccumulateRequestsAcrossSnapshots(Boolean saturateSlots) in TrayWatchStreamTests.cs:line 634",
+  "occurrences": [
+    {
+      "run_id": 38784403474,
+      "run_url": "https://github.com/microsoft/aspire/actions/runs/38784403474",
+      "job": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (ubuntu-latest)",
+      "pr_number": 0,
+      "observed_at": "2026-10-15T19:10:13Z"
+    }
+  ]
+}

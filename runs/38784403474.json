@@ -1,0 +1,67 @@
+{
+  "run_id": 38784403474,
+  "run_attempt": 1,
+  "run_url": "https://github.com/microsoft/aspire/actions/runs/38784403474",
+  "run_scope": "main",
+  "analyzed_at": "2026-10-15T19:10:13Z",
+  "verdict": "mixed",
+  "pr": null,
+  "triggering_merge_pr": null,
+  "main_context": {
+    "last_successful_main_sha": "88ff9ba57c2841cce759adffa849373f9406b0f5",
+    "failed_sha": "943f0ff96f05ec93cd9f073406ba02fd651fa0ce",
+    "candidate_merge_history_state": "incomplete",
+    "candidate_merges": null
+  },
+  "failed_jobs": [
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (ubuntu-latest)",
+      "id": 116593679291,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38784403474/job/116593679291",
+      "classification": "flaky-test",
+      "reason": "A single test, TrayWatchStreamTests.UnacknowledgedDashboardCancellationCannotAccumulateRequestsAcrossSnapshots(saturateSlots: True), failed with Assert.Equal 0 vs 7; this exact assertion/race pattern recurs across multiple parameterizations of TrayWatchStreamTests tracked as known flaky tests.",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x)",
+      "id": 116598192035,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38784403474/job/116598192035",
+      "classification": "main-repository-breakage",
+      "reason": "All 59 TypeScript validation AppHosts passed, but the job failed afterward building/stopping the generated Nuxt 'web' publish image, matching a recurring deterministic Dockerfile 'npm ci'/'npm run build' failure (33 prior occurrences, including just 2 hours earlier on main).",
+      "failed_steps": [
+        "Run TypeScript SDK validation"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / Polyglot Validation Results",
+      "id": 116603715973,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38784403474/job/116603715973",
+      "classification": "main-repository-breakage",
+      "reason": "Deterministic downstream aggregation failure: this job explicitly reports 'TypeScript: failure' because the TypeScript SDK Validation job (Node 22.x) failed, with Python/Go/Java all succeeding.",
+      "failed_steps": [
+        "Check validation results"
+      ]
+    }
+  ],
+  "failed_tests": [
+    {
+      "name": "Aspire.Cli.Tests.Backchannel.TrayWatchStreamTests.UnacknowledgedDashboardCancellationCannotAccumulateRequestsAcrossSnapshots(saturateSlots: True)",
+      "job": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (ubuntu-latest)",
+      "error": "Assert.Equal() Failure: Values differ\nExpected: 0\nActual:   7",
+      "stack_trace": "at Aspire.Cli.Tests.Backchannel.TrayWatchStreamTests.UnacknowledgedDashboardCancellationCannotAccumulateRequestsAcrossSnapshots(Boolean saturateSlots) in /home/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/Backchannel/TrayWatchStreamTests.cs:line 634\n--- End of stack trace from previous location ---",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "This exact Assert.Equal 0 vs 7 failure at the same reconciliation-count assertion pattern recurs across multiple TrayWatchStreamTests parameterizations (saturateSlots: False and the StalledResourceWatch variants are already tracked as flaky with 1, 6, and 11 prior occurrences), indicating a shared race condition in the test's watch-stream reconciliation counting rather than a code regression on main."
+    }
+  ],
+  "causes": [
+    "typescript-sdk-nuxt-integration-npm-ci-docker-build-failure",
+    "aspire-cli-tests-traywatchstream-unacknowledgeddashboardcancellation-saturateslots-true-flaky"
+  ]
+}
