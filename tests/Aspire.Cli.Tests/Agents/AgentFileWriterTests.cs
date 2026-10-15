@@ -262,7 +262,7 @@ public class AgentFileWriterTests(ITestOutputHelper outputHelper)
     public async Task NativeWriter_NewFile_UsesPrivateUnixMode()
     {
         using var context = new AgentConfigurationTestContext(outputHelper);
-        var results = await context.ConfigureNativeAsync(context.Request(AgentConfigurationScope.Global, [context.Copilot]));
+        var results = await context.ConfigureNativeAsync(AgentConfigurationScope.Global, [context.Copilot]);
         var path = Assert.Single(results).TargetPath;
 
         Assert.Equal(AgentConfigurationStatus.Configured, Assert.Single(results).Status);

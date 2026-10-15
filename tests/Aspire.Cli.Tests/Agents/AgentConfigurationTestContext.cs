@@ -44,11 +44,9 @@ internal sealed class AgentConfigurationTestContext : IDisposable
 
     public void SetVariable(string name, string value) => _variables[name] = value;
 
-    public NativeAgentPluginRequest Request(AgentConfigurationScope scope, IReadOnlyList<AgentClient> clients)
-        => new(Project, scope, clients);
-
-    public Task<IReadOnlyList<AgentTargetResult>> ConfigureNativeAsync(NativeAgentPluginRequest request, CancellationToken cancellationToken = default)
-        => NativeAgentPluginConfiguration.ConfigureAsync(request, ExecutionContext, Environment, cancellationToken);
+    public Task<IReadOnlyList<AgentTargetResult>> ConfigureNativeAsync(
+        AgentConfigurationScope scope, IReadOnlyList<AgentClient> clients, CancellationToken cancellationToken = default)
+        => AspireSkillsPluginConfiguration.ConfigureAsync(Project, scope, clients, ExecutionContext, Environment, cancellationToken);
 
     public static async Task WriteAsync(string path, string content)
     {

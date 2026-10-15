@@ -656,13 +656,8 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
         };
         var subtleMessages = new List<string>();
         interactionService.DisplaySubtleMessageCallback = subtleMessages.Add;
-        interactionService.PromptForSelectionsCallback = (_, choices, _, _) =>
-        {
-            var items = choices.Cast<object>().ToList();
-
-            Assert.All(items, static item => Assert.IsType<AgentClient>(item));
-            return [AgentClient.Copilot, AgentClient.ClaudeCode, AgentClient.OpenCode];
-        };
+        interactionService.PromptForSelectionsCallback = (_, _, _, _) =>
+            [AgentClient.Copilot, AgentClient.ClaudeCode, AgentClient.OpenCode];
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
@@ -685,8 +680,10 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
         Assert.Empty(Directory.GetFiles(workspace.WorkspaceRoot.FullName, "*mcp*.json*", SearchOption.AllDirectories));
     }
 
-    [Fact]
-    public async Task InitCommand_WhenAspireSkillsNone_DoesNotPrintFollowUpCommands()
+    [Theory]
+    [InlineData("none")]
+    [InlineData("native")]
+    public async Task InitCommand_WhenAspireifyNotInstalled_DoesNotPrintFollowUpCommands(string skillsMode)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
@@ -697,13 +694,7 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
 
         var subtleMessages = new List<string>();
         interactionService.DisplaySubtleMessageCallback = subtleMessages.Add;
-        interactionService.PromptForSelectionsCallback = (_, choices, _, _) =>
-        {
-            var items = choices.Cast<object>().ToList();
-
-            Assert.All(items, static item => Assert.IsType<AgentClient>(item));
-            return [AgentClient.Copilot];
-        };
+        interactionService.PromptForSelectionsCallback = (_, _, _, _) => [AgentClient.ClaudeCode];
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
@@ -715,7 +706,7 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
         using var serviceProvider = services.BuildServiceProvider();
         var initCommand = serviceProvider.GetRequiredService<InitCommand>();
 
-        var parseResult = initCommand.Parse("init --language typescript --aspire-skills none");
+        var parseResult = initCommand.Parse($"init --language typescript --aspire-skills {skillsMode}");
         var exitCode = await parseResult.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(CliExitCodes.Success, exitCode);

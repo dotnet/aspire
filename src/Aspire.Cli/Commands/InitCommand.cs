@@ -191,13 +191,10 @@ internal sealed class InitCommand : BaseCommand
             PromptBinding.Create(parseResult, AgentInitCommand.s_scopeOption, AgentConfigurationScope.Project),
             cancellationToken);
 
-        // Native registrations still require client-owned acquisition before aspireify is available.
         if (agentInitResult.ExitCode == CliExitCodes.Success &&
-            (agentInitResult.SelectedSkills.Any(static skill => skill.HasName(CommonAgentApplicators.AspireifySkillName)) ||
-                agentInitResult.NativeRegisteredClients.Count > 0))
+            agentInitResult.SelectedSkills.Any(static skill => skill.HasName(CommonAgentApplicators.AspireifySkillName)))
         {
-            var commands = GetAspireifyCommands(agentInitResult.NativeRegisteredClients.Count > 0
-                ? agentInitResult.NativeRegisteredClients : agentInitResult.SelectedClients);
+            var commands = GetAspireifyCommands(agentInitResult.SelectedClients);
             if (commands.Count > 0)
             {
                 InteractionService.DisplayEmptyLine();

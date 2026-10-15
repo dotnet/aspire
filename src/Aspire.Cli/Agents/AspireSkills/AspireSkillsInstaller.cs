@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text.Json;
+using Aspire.Cli.Agents.OpenCode;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
@@ -60,6 +61,120 @@ internal sealed class AspireSkillsInstaller(
         return interactionService.ShowStatusAsync(
             AgentCommandStrings.AspireSkillsInstaller_InstallingStatus,
             () => InstallCoreAsync(cancellationToken));
+    }
+
+    internal static (IReadOnlyList<string> Files, IReadOnlyList<string> Errors) FindLocalSkills(
+        DirectoryInfo workingDirectory,
+        DirectoryInfo workspaceRoot,
+        IEnumerable<AgentClient> agents,
+        CliExecutionContext executionContext,
+        IEnvironment environment,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var skillNames = EmbeddedAspireSkillsBundleProvider.GetSkillNames();
+
+        // Clients load project skills along the active ancestor chain, not just at its root.
+        // Clamping to the workspace excludes sibling projects and unrelated current directories.
+        var projectDirectories = AgentPath.ProjectDirectories(workingDirectory, workspaceRoot).ToArray();
+        var files = new Dictionary<string, string>(AgentPath.Comparer);
+        var errors = new HashSet<string>(StringComparer.Ordinal);
+        var inspected = new HashSet<string>(AgentPath.Comparer);
+        foreach (var agent in agents)
+        {
+            foreach (var scope in new[] { AgentConfigurationScope.Project, AgentConfigurationScope.Global })
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                string[] directories;
+                try
+                {
+                    directories = scope is AgentConfigurationScope.Project
+                        ? projectDirectories.SelectMany(directory => GetLocalSkillDirectories(agent, scope, directory, executionContext, environment)).ToArray()
+                        : GetLocalSkillDirectories(agent, scope, workspaceRoot, executionContext, environment).ToArray();
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+                {
+                    errors.Add(string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.LocalSkills_ReadFailed, agent.DisplayName, ex.Message));
+                    continue;
+                }
+
+                foreach (var directory in directories)
+                {
+                    foreach (var name in skillNames)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        var path = Path.Combine(directory, name, "SKILL.md");
+                        if (!inspected.Add(path))
+                        {
+                            continue;
+                        }
+
+                        try
+                        {
+                            var physicalPath = AgentPath.Resolve(path);
+                            // Older CLI versions copied Markdown verbatim, without an ownership
+                            // stamp or installed version. Names identify possible collisions only;
+                            // even byte-identical direct installs cannot be classified as obsolete.
+                            using var stream = File.OpenRead(physicalPath);
+                            files.TryAdd(physicalPath, path);
+                        }
+                        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+                        {
+                            // Missing entry points are expected; unreadable ones remain errors.
+                        }
+                        catch (Exception ex) when (ex is AgentConfigurationException or IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+                        {
+                            errors.Add(string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.LocalSkills_ReadFailed, path, ex.Message));
+                        }
+                    }
+                }
+            }
+        }
+
+        return (files.Values.Order(AgentPath.Comparer).ToArray(), errors.Order(StringComparer.Ordinal).ToArray());
+    }
+
+    private static IEnumerable<string> GetLocalSkillDirectories(
+        AgentClient agent,
+        AgentConfigurationScope scope,
+        DirectoryInfo workspaceRoot,
+        CliExecutionContext executionContext,
+        IEnvironment environment)
+    {
+        var root = scope is AgentConfigurationScope.Project ? workspaceRoot.FullName : executionContext.HomeDirectory.FullName;
+
+        yield return agent.GetSkillBaseDirectory(scope, workspaceRoot, executionContext, environment);
+
+        // Native clients also discover compatibility locations, independently of where this
+        // CLI would install a new skill. Never search unrelated repositories recursively.
+        // https://docs.github.com/en/copilot/concepts/agents/about-agent-skills
+        // https://opencode.ai/docs/skills/
+        if (agent != AgentClient.ClaudeCode)
+        {
+            yield return Path.Combine(root, ".claude", "skills");
+        }
+
+        if (agent == AgentClient.Copilot)
+        {
+            yield return scope is AgentConfigurationScope.Project
+                ? Path.Combine(root, ".github", "skills")
+                : Path.Combine(agent.GlobalPluginDirectory(executionContext, environment), "skills");
+        }
+
+        if (agent == AgentClient.OpenCode)
+        {
+            var openCodeRoot = scope is AgentConfigurationScope.Project
+                ? Path.Combine(root, ".opencode")
+                : agent.GlobalPluginDirectory(executionContext, environment);
+            yield return Path.Combine(openCodeRoot, "skill");
+            yield return Path.Combine(openCodeRoot, "skills");
+            if (scope is AgentConfigurationScope.Global &&
+                OpenCodePaths.GetOverride("OPENCODE_CONFIG_DIR", executionContext, environment) is { } custom)
+            {
+                yield return Path.Combine(custom, "skill");
+                yield return Path.Combine(custom, "skills");
+            }
+        }
     }
 
     private async Task<AspireSkillsInstallResult> InstallCoreAsync(CancellationToken cancellationToken)

@@ -29,7 +29,7 @@ public class NativePluginRegistrationTests(ITestOutputHelper output) : IDisposab
         File.SetLastWriteTimeUtc(path, new DateTime(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         var timestamp = File.GetLastWriteTimeUtc(path);
 
-        var results = await _context.ConfigureNativeAsync(_context.Request(AgentConfigurationScope.Global, [_context.Copilot]));
+        var results = await _context.ConfigureNativeAsync(AgentConfigurationScope.Global, [_context.Copilot]);
 
         Assert.Equal(AgentConfigurationStatus.Unchanged, Assert.Single(results).Status);
         Assert.Equal(bytes, await File.ReadAllBytesAsync(path));
@@ -42,7 +42,7 @@ public class NativePluginRegistrationTests(ITestOutputHelper output) : IDisposab
         _context.SetVariable("COPILOT_HOME", _context.ClaudeDirectory);
 
         var results = await _context.ConfigureNativeAsync(
-            _context.Request(AgentConfigurationScope.Global, [_context.Copilot, _context.ClaudeCode]));
+            AgentConfigurationScope.Global, [_context.Copilot, _context.ClaudeCode]);
 
         var result = Assert.Single(results);
         Assert.Equal(AgentConfigurationStatus.Configured, result.Status);
@@ -62,7 +62,7 @@ public class NativePluginRegistrationTests(ITestOutputHelper output) : IDisposab
             """{"enabledPlugins":{"aspire@aspire-skills":false}}""");
 
         var results = await _context.ConfigureNativeAsync(
-            _context.Request(AgentConfigurationScope.Global, [_context.Copilot, _context.ClaudeCode]));
+            AgentConfigurationScope.Global, [_context.Copilot, _context.ClaudeCode]);
 
         var result = Assert.Single(results);
         Assert.Equal(AgentConfigurationStatus.Skipped, result.Status);
@@ -77,7 +77,7 @@ public class NativePluginRegistrationTests(ITestOutputHelper output) : IDisposab
         Directory.CreateDirectory(unreadable);
 
         var results = await _context.ConfigureNativeAsync(
-            _context.Request(AgentConfigurationScope.Project, [_context.Copilot, _context.ClaudeCode]));
+            AgentConfigurationScope.Project, [_context.Copilot, _context.ClaudeCode]);
 
         Assert.Equal([AgentConfigurationStatus.Failed, AgentConfigurationStatus.Configured], results.Select(result => result.Status));
         Assert.True(File.Exists(Path.Combine(_context.Project.FullName, ".claude", "settings.json")));
@@ -139,7 +139,7 @@ public class NativePluginRegistrationTests(ITestOutputHelper output) : IDisposab
         cancellation.Cancel();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => _context.ConfigureNativeAsync(
-            _context.Request(AgentConfigurationScope.Project, [_context.Copilot]), cancellation.Token)).DefaultTimeout();
+            AgentConfigurationScope.Project, [_context.Copilot], cancellation.Token)).DefaultTimeout();
 
         Assert.Empty(_context.Project.EnumerateFileSystemInfos());
         Assert.Empty(_context.Home.EnumerateFileSystemInfos());

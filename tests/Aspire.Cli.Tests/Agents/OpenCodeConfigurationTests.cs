@@ -17,9 +17,7 @@ public class OpenCodeConfigurationTests(ITestOutputHelper output) : IDisposable
     public async Task FreshUndetectedClient_RegistersOnlyTheStableV1Catalog(string scopeName)
     {
         var scope = Enum.Parse<AgentConfigurationScope>(scopeName);
-        var request = _context.Request(scope, [_context.OpenCode]);
-
-        var results = await _context.ConfigureNativeAsync(request).DefaultTimeout();
+        var results = await _context.ConfigureNativeAsync(scope, [_context.OpenCode]).DefaultTimeout();
 
         Assert.Equal(AgentConfigurationStatus.Configured, Assert.Single(results).Status);
         await Verify(await File.ReadAllTextAsync(results[0].TargetPath), "json");
@@ -35,7 +33,7 @@ public class OpenCodeConfigurationTests(ITestOutputHelper output) : IDisposable
         var path = Path.Combine(_context.Project.FullName, ".opencode", "opencode.jsonc");
         await AgentConfigurationTestContext.WriteAsync(path, """{"model":"preserved","skills":["./team-skills"],}""");
 
-        var results = await _context.ConfigureNativeAsync(_context.Request(AgentConfigurationScope.Project, [_context.OpenCode]));
+        var results = await _context.ConfigureNativeAsync(AgentConfigurationScope.Project, [_context.OpenCode]);
 
         Assert.Equal(AgentConfigurationStatus.Configured, Assert.Single(results).Status);
         Assert.Equal(path, results[0].TargetPath);
@@ -50,11 +48,11 @@ public class OpenCodeConfigurationTests(ITestOutputHelper output) : IDisposable
         const string existing = """{"skills":{"paths":["./private-skills"],"urls":["https://raw.githubusercontent.com/microsoft/aspire-skills/v0.0.3/opencode/v1/"]},"autoupdate":false}""";
         await AgentConfigurationTestContext.WriteAsync(path, existing);
 
-        var results = await _context.ConfigureNativeAsync(_context.Request(AgentConfigurationScope.Global, [_context.OpenCode]));
+        var results = await _context.ConfigureNativeAsync(AgentConfigurationScope.Global, [_context.OpenCode]);
 
         Assert.Equal(AgentConfigurationStatus.Unchanged, Assert.Single(results).Status);
         Assert.Equal(existing, await File.ReadAllTextAsync(path));
-        var project = await _context.ConfigureNativeAsync(_context.Request(AgentConfigurationScope.Project, [_context.OpenCode]));
+        var project = await _context.ConfigureNativeAsync(AgentConfigurationScope.Project, [_context.OpenCode]);
         await Verify(await File.ReadAllTextAsync(Assert.Single(project).TargetPath), "json");
     }
 
@@ -70,9 +68,7 @@ public class OpenCodeConfigurationTests(ITestOutputHelper output) : IDisposable
     {
         var path = Path.Combine(_context.Project.FullName, "opencode.json");
         await AgentConfigurationTestContext.WriteAsync(path, existing);
-        var request = _context.Request(AgentConfigurationScope.Project, [_context.OpenCode]);
-
-        var results = await _context.ConfigureNativeAsync(request);
+        var results = await _context.ConfigureNativeAsync(AgentConfigurationScope.Project, [_context.OpenCode]);
 
         Assert.Equal(AgentConfigurationStatus.Blocked, Assert.Single(results).Status);
         Assert.Equal(existing, await File.ReadAllTextAsync(path));
@@ -92,7 +88,7 @@ public class OpenCodeConfigurationTests(ITestOutputHelper output) : IDisposable
         await AgentConfigurationTestContext.WriteAsync(json, pinned);
         await AgentConfigurationTestContext.WriteAsync(jsonc, """{"model":"preserved"}""");
 
-        var results = await _context.ConfigureNativeAsync(_context.Request(scope, [_context.OpenCode]));
+        var results = await _context.ConfigureNativeAsync(scope, [_context.OpenCode]);
 
         Assert.Equal(AgentConfigurationStatus.Configured, Assert.Single(results).Status);
         Assert.Equal(jsonc, results[0].TargetPath);
@@ -108,7 +104,7 @@ public class OpenCodeConfigurationTests(ITestOutputHelper output) : IDisposable
     {
         _context.SetVariable("OPENCODE_CONFIG_CONTENT", inline);
 
-        var results = await _context.ConfigureNativeAsync(_context.Request(AgentConfigurationScope.Project, [_context.OpenCode]));
+        var results = await _context.ConfigureNativeAsync(AgentConfigurationScope.Project, [_context.OpenCode]);
 
         Assert.Equal(AgentConfigurationStatus.Blocked, Assert.Single(results).Status);
         Assert.Empty(_context.Project.EnumerateFileSystemInfos());
@@ -119,12 +115,10 @@ public class OpenCodeConfigurationTests(ITestOutputHelper output) : IDisposable
     public async Task ConfigDirectoryOverrideThatAliasesDefault_IsDeduplicatedAndIdempotent()
     {
         _context.SetVariable("OPENCODE_CONFIG_DIR", _context.OpenCodeDirectory);
-        var request = _context.Request(AgentConfigurationScope.Global, [_context.OpenCode]);
-
-        var first = await _context.ConfigureNativeAsync(request);
+        var first = await _context.ConfigureNativeAsync(AgentConfigurationScope.Global, [_context.OpenCode]);
         var path = Assert.Single(first).TargetPath;
         var bytes = await File.ReadAllBytesAsync(path);
-        var second = await _context.ConfigureNativeAsync(request);
+        var second = await _context.ConfigureNativeAsync(AgentConfigurationScope.Global, [_context.OpenCode]);
 
         Assert.Equal(AgentConfigurationStatus.Configured, first[0].Status);
         Assert.Equal(AgentConfigurationStatus.Unchanged, Assert.Single(second).Status);
@@ -141,7 +135,7 @@ public class OpenCodeConfigurationTests(ITestOutputHelper output) : IDisposable
         const string pinned = """{"skills":{"urls":["https://raw.githubusercontent.com/microsoft/aspire-skills/v0.0.3/opencode/v1/"]}}""";
         await AgentConfigurationTestContext.WriteAsync(inherited, pinned);
 
-        var results = await _context.ConfigureNativeAsync(_context.Request(AgentConfigurationScope.Global, [_context.OpenCode]));
+        var results = await _context.ConfigureNativeAsync(AgentConfigurationScope.Global, [_context.OpenCode]);
 
         var result = Assert.Single(results);
         Assert.Equal(AgentConfigurationStatus.Configured, result.Status);
@@ -157,10 +151,9 @@ public class OpenCodeConfigurationTests(ITestOutputHelper output) : IDisposable
     {
         _context.SetVariable("OPENCODE_CONFIG_DIR", Path.Combine("~", "custom-opencode"));
         var expected = Path.Combine(_context.Project.FullName, "~", "custom-opencode", "opencode.jsonc");
-        var request = _context.Request(AgentConfigurationScope.Global, [_context.OpenCode]);
-        var mcpPath = _context.OpenCode.GetMcpConfigPath(request.Scope, request.WorkspaceRoot, _context.ExecutionContext, _context.Environment);
+        var mcpPath = _context.OpenCode.GetMcpConfigPath(AgentConfigurationScope.Global, _context.Project, _context.ExecutionContext, _context.Environment);
 
-        var results = await _context.ConfigureNativeAsync(request);
+        var results = await _context.ConfigureNativeAsync(AgentConfigurationScope.Global, [_context.OpenCode]);
 
         var result = Assert.Single(results);
         Assert.Equal(AgentConfigurationStatus.Configured, result.Status);
@@ -183,7 +176,7 @@ public class OpenCodeConfigurationTests(ITestOutputHelper output) : IDisposable
         await AgentConfigurationTestContext.WriteAsync(other, original);
         await AgentConfigurationTestContext.WriteAsync(normal, original);
 
-        var results = await _context.ConfigureNativeAsync(_context.Request(AgentConfigurationScope.Global, [_context.OpenCode]));
+        var results = await _context.ConfigureNativeAsync(AgentConfigurationScope.Global, [_context.OpenCode]);
 
         var result = Assert.Single(results);
         Assert.Equal(AgentConfigurationStatus.Configured, result.Status);
@@ -203,7 +196,7 @@ public class OpenCodeConfigurationTests(ITestOutputHelper output) : IDisposable
         var path = Path.Combine(_context.Project.FullName, "opencode.json");
         await AgentConfigurationTestContext.WriteAsync(path, existing);
 
-        var results = await _context.ConfigureNativeAsync(_context.Request(AgentConfigurationScope.Project, [_context.OpenCode]));
+        var results = await _context.ConfigureNativeAsync(AgentConfigurationScope.Project, [_context.OpenCode]);
 
         Assert.Equal(AgentConfigurationStatus.Configured, Assert.Single(results).Status);
         await Verify(await File.ReadAllTextAsync(path), "json").UseParameters(name);
@@ -233,7 +226,7 @@ public class OpenCodeConfigurationTests(ITestOutputHelper output) : IDisposable
         var path = Path.Combine(_context.OpenCodeDirectory, "opencode.json");
         await AgentConfigurationTestContext.WriteAsync(path, """{"mcp":{"servers":{},"timeout":{"startup":0}}}""");
 
-        var results = await _context.ConfigureNativeAsync(_context.Request(AgentConfigurationScope.Global, [_context.OpenCode]));
+        var results = await _context.ConfigureNativeAsync(AgentConfigurationScope.Global, [_context.OpenCode]);
 
         Assert.Equal(AgentConfigurationStatus.Configured, Assert.Single(results).Status);
         var root = JsonNode.Parse(await File.ReadAllTextAsync(path))!;

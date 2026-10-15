@@ -16,11 +16,11 @@ public class NativeAgentConfigurationTests(ITestOutputHelper output) : IDisposab
     {
         AgentClient[] clients = [_context.Copilot];
 
-        var projectResults = await _context.ConfigureNativeAsync(_context.Request(AgentConfigurationScope.Project, clients)).DefaultTimeout();
+        var projectResults = await _context.ConfigureNativeAsync(AgentConfigurationScope.Project, clients).DefaultTimeout();
         Assert.Equal(Path.Combine(_context.Project.FullName, ".github", "copilot", "settings.json"),
             Assert.Single(projectResults).TargetPath);
         Assert.Empty(_context.Home.EnumerateFileSystemInfos());
-        var userResults = await _context.ConfigureNativeAsync(_context.Request(AgentConfigurationScope.Global, clients)).DefaultTimeout();
+        var userResults = await _context.ConfigureNativeAsync(AgentConfigurationScope.Global, clients).DefaultTimeout();
         var results = projectResults.Concat(userResults).ToArray();
 
         Assert.Equal(2, results.Length);
@@ -60,12 +60,12 @@ public class NativeAgentConfigurationTests(ITestOutputHelper output) : IDisposab
         File.SetLastWriteTimeUtc(userPath, new DateTime(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         var timestamp = File.GetLastWriteTimeUtc(userPath);
 
-        var results = await _context.ConfigureNativeAsync(_context.Request(AgentConfigurationScope.Global, [_context.ClaudeCode])).DefaultTimeout();
+        var results = await _context.ConfigureNativeAsync(AgentConfigurationScope.Global, [_context.ClaudeCode]).DefaultTimeout();
 
         Assert.Equal(AgentConfigurationStatus.Unchanged, Assert.Single(results).Status);
         Assert.Equal(existing, await File.ReadAllTextAsync(userPath).DefaultTimeout());
         Assert.Equal(timestamp, File.GetLastWriteTimeUtc(userPath));
-        await _context.ConfigureNativeAsync(_context.Request(AgentConfigurationScope.Project, [_context.ClaudeCode])).DefaultTimeout();
+        await _context.ConfigureNativeAsync(AgentConfigurationScope.Project, [_context.ClaudeCode]).DefaultTimeout();
         var project = await File.ReadAllTextAsync(Path.Combine(_context.Project.FullName, ".claude", "settings.json")).DefaultTimeout();
         await Verify(project, "json");
     }
@@ -81,7 +81,7 @@ public class NativeAgentConfigurationTests(ITestOutputHelper output) : IDisposab
         const string existing = """{"enabledPlugins":{"aspire@aspire-skills":false},"autoUpdate":false}""";
         await AgentConfigurationTestContext.WriteAsync(path, existing).DefaultTimeout();
 
-        var results = await _context.ConfigureNativeAsync(_context.Request(AgentConfigurationScope.Project, [client])).DefaultTimeout();
+        var results = await _context.ConfigureNativeAsync(AgentConfigurationScope.Project, [client]).DefaultTimeout();
 
         Assert.All(results, result => Assert.Equal(AgentConfigurationStatus.Skipped, result.Status));
         Assert.Equal(existing, await File.ReadAllTextAsync(path).DefaultTimeout());
@@ -101,7 +101,7 @@ public class NativeAgentConfigurationTests(ITestOutputHelper output) : IDisposab
         var path = Path.Combine(_context.CopilotDirectory, "settings.json");
         await AgentConfigurationTestContext.WriteAsync(path, existing).DefaultTimeout();
 
-        var results = await _context.ConfigureNativeAsync(_context.Request(AgentConfigurationScope.Project, [_context.Copilot])).DefaultTimeout();
+        var results = await _context.ConfigureNativeAsync(AgentConfigurationScope.Project, [_context.Copilot]).DefaultTimeout();
 
         Assert.All(results, result => Assert.Equal(AgentConfigurationStatus.Blocked, result.Status));
         Assert.Equal(existing, await File.ReadAllTextAsync(path).DefaultTimeout());
@@ -115,7 +115,7 @@ public class NativeAgentConfigurationTests(ITestOutputHelper output) : IDisposab
         const string existing = """{"extraKnownMarketplaces":{"aspire-skills":{"source":{"source":"directory","path":"./private-marketplace"}}}}""";
         await AgentConfigurationTestContext.WriteAsync(path, existing).DefaultTimeout();
 
-        var results = await _context.ConfigureNativeAsync(_context.Request(AgentConfigurationScope.Project, [_context.Copilot])).DefaultTimeout();
+        var results = await _context.ConfigureNativeAsync(AgentConfigurationScope.Project, [_context.Copilot]).DefaultTimeout();
 
         Assert.All(results, result => Assert.Equal(AgentConfigurationStatus.Blocked, result.Status));
         Assert.Equal(existing, await File.ReadAllTextAsync(path).DefaultTimeout());
@@ -130,8 +130,7 @@ public class NativeAgentConfigurationTests(ITestOutputHelper output) : IDisposab
         var managed = Path.Combine(_context.ClaudeManagedDirectory, "managed-settings.json");
         const string policy = """{"strictKnownMarketplaces":[]}""";
         await AgentConfigurationTestContext.WriteAsync(managed, policy).DefaultTimeout();
-        var request = _context.Request(AgentConfigurationScope.Project, [_context.ClaudeCode]);
-        var disabledResults = await _context.ConfigureNativeAsync(request).DefaultTimeout();
+        var disabledResults = await _context.ConfigureNativeAsync(AgentConfigurationScope.Project, [_context.ClaudeCode]).DefaultTimeout();
         Assert.All(disabledResults, result => Assert.Equal(AgentConfigurationStatus.Skipped, result.Status));
         Assert.Equal(disabled, await File.ReadAllTextAsync(local).DefaultTimeout());
         Assert.Equal(policy, await File.ReadAllTextAsync(managed).DefaultTimeout());
@@ -150,7 +149,7 @@ public class NativeAgentConfigurationTests(ITestOutputHelper output) : IDisposab
         await AgentConfigurationTestContext.WriteAsync(target, existing);
         var timestamp = File.GetLastWriteTimeUtc(target);
 
-        var results = await _context.ConfigureNativeAsync(_context.Request(AgentConfigurationScope.Project, [_context.ClaudeCode]));
+        var results = await _context.ConfigureNativeAsync(AgentConfigurationScope.Project, [_context.ClaudeCode]);
 
         Assert.Equal(AgentConfigurationStatus.Blocked, Assert.Single(results).Status);
         Assert.Equal(policy, await File.ReadAllTextAsync(managed));
@@ -173,7 +172,7 @@ public class NativeAgentConfigurationTests(ITestOutputHelper output) : IDisposab
         var target = Path.Combine(_context.Project.FullName, ".claude", "settings.json");
         await AgentConfigurationTestContext.WriteAsync(target, $$"""{"extraKnownMarketplaces":{"aspire-skills":{"source": {{source}} } } }""");
 
-        var results = await _context.ConfigureNativeAsync(_context.Request(AgentConfigurationScope.Project, [_context.ClaudeCode]));
+        var results = await _context.ConfigureNativeAsync(AgentConfigurationScope.Project, [_context.ClaudeCode]);
 
         Assert.Equal(AgentConfigurationStatus.Configured, Assert.Single(results).Status);
         var settings = JsonNode.Parse(await File.ReadAllTextAsync(target))!;
@@ -193,7 +192,7 @@ public class NativeAgentConfigurationTests(ITestOutputHelper output) : IDisposab
         const string policy = """{"blockedMarketplaces":[]}""";
         await AgentConfigurationTestContext.WriteAsync(managed, policy);
 
-        var results = await _context.ConfigureNativeAsync(_context.Request(AgentConfigurationScope.Project, [_context.ClaudeCode]));
+        var results = await _context.ConfigureNativeAsync(AgentConfigurationScope.Project, [_context.ClaudeCode]);
 
         Assert.Equal(AgentConfigurationStatus.Blocked, Assert.Single(results).Status);
         Assert.Equal(policy, await File.ReadAllTextAsync(managed));
@@ -210,7 +209,7 @@ public class NativeAgentConfigurationTests(ITestOutputHelper output) : IDisposab
         const string existing = """{"oauthAccount":{"accountUuid":"preserved"},"projects":{},"theme":"dark"}""";
         await AgentConfigurationTestContext.WriteAsync(state, existing).DefaultTimeout();
 
-        var results = await _context.ConfigureNativeAsync(_context.Request(AgentConfigurationScope.Global, [_context.ClaudeCode])).DefaultTimeout();
+        var results = await _context.ConfigureNativeAsync(AgentConfigurationScope.Global, [_context.ClaudeCode]).DefaultTimeout();
 
         Assert.All(results, result => Assert.Equal(AgentConfigurationStatus.Configured, result.Status));
         Assert.True(File.Exists(Path.Combine(custom, "settings.json")));
@@ -222,10 +221,8 @@ public class NativeAgentConfigurationTests(ITestOutputHelper output) : IDisposab
     public async Task Copilot_UserOverride_PreservesTheRequestedScope()
     {
         _context.SetVariable("COPILOT_HOME", Path.Combine(_context.Project.FullName, ".github", "copilot"));
-        var request = _context.Request(AgentConfigurationScope.Global, [_context.Copilot]);
-
-        var results = await _context.ConfigureNativeAsync(request).DefaultTimeout();
-        var repeated = await _context.ConfigureNativeAsync(request).DefaultTimeout();
+        var results = await _context.ConfigureNativeAsync(AgentConfigurationScope.Global, [_context.Copilot]).DefaultTimeout();
+        var repeated = await _context.ConfigureNativeAsync(AgentConfigurationScope.Global, [_context.Copilot]).DefaultTimeout();
 
         Assert.Equal(AgentConfigurationStatus.Configured, Assert.Single(results).Status);
         Assert.Equal(Path.Combine(_context.Project.FullName, ".github", "copilot", "settings.json"), results[0].TargetPath);

@@ -437,11 +437,29 @@ internal sealed class AgentInitCommand : BaseCommand
                 emoji: KnownEmojis.Robot);
         }
 
-        var nativeRequest = new NativeAgentPluginRequest(workspaceRoot, scope, selectedClients);
         try
         {
-            if (await NativeAgentPluginConfiguration.CheckSkillsModeAsync(
-                skillsMode, nativeRequest, ExecutionContext, _environment, cancellationToken) is { } conflict)
+            string? conflict = null;
+            if (skillsMode is AspireSkillsMode.Native)
+            {
+                var local = AspireSkillsInstaller.FindLocalSkills(ExecutionContext.WorkingDirectory, workspaceRoot,
+                    selectedClients, ExecutionContext, _environment, cancellationToken);
+                if (local.Errors.Count > 0 || local.Files.Count > 0)
+                {
+                    conflict = string.Join(System.Environment.NewLine, local.Errors.Concat(local.Files.Count > 0
+                        ? [string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_LocalSkillsConflict,
+                            string.Join(System.Environment.NewLine, local.Files))]
+                        : []));
+                }
+            }
+            else if (skillsMode is AspireSkillsMode.Bundled &&
+                await AspireSkillsPluginConfiguration.HasRegistrationAsync(
+                    workspaceRoot, selectedClients, ExecutionContext, _environment, cancellationToken))
+            {
+                conflict = AgentCommandStrings.InitCommand_NativeSkillsConflict;
+            }
+
+            if (conflict is not null)
             {
                 InteractionService.DisplayError(conflict);
                 return new(CliExitCodes.InvalidCommand, selectedClients, []);
@@ -492,14 +510,13 @@ internal sealed class AgentInitCommand : BaseCommand
         // Each skill file write is fast (small markdown files), so sequential execution
         // is fine — parallelizing would complicate error handling for no meaningful gain.
         var hasErrors = false;
-        IReadOnlyList<AgentClient> registeredClients = [];
         if (skillsMode is AspireSkillsMode.Native)
         {
             InteractionService.DisplayMessage(KnownEmojis.Warning, AgentCommandStrings.InitCommand_PluginRiskWarning);
             InteractionService.DisplaySubtleMessage(string.Format(CultureInfo.CurrentCulture,
                 AgentCommandStrings.InitCommand_DirectSkillsAlternative, AspireSkillsPluginConfiguration.RepositoryUrl));
-            var results = await NativeAgentPluginConfiguration.ConfigureAsync(
-                nativeRequest, ExecutionContext, _environment, cancellationToken);
+            var results = await AspireSkillsPluginConfiguration.ConfigureAsync(
+                workspaceRoot, scope, selectedClients, ExecutionContext, _environment, cancellationToken);
             foreach (var result in results)
             {
                 var format = result.Status switch
@@ -530,9 +547,7 @@ internal sealed class AgentInitCommand : BaseCommand
                     InteractionService.DisplaySubtleMessage(result.Message);
                 }
             }
-            registeredClients = results.Where(result => result.Status is AgentConfigurationStatus.Configured or AgentConfigurationStatus.Unchanged)
-                .SelectMany(result => result.Environments).Distinct().ToArray();
-            if (registeredClients.Count > 0)
+            if (results.Any(result => result.Status is AgentConfigurationStatus.Configured or AgentConfigurationStatus.Unchanged))
             {
                 InteractionService.DisplaySubtleMessage(AgentCommandStrings.InitCommand_ClientAcquisitionNotice);
             }
@@ -684,10 +699,7 @@ internal sealed class AgentInitCommand : BaseCommand
         return new(
             hasErrors ? CliExitCodes.InvalidCommand : CliExitCodes.Success,
             selectedClients,
-            selectedSkills)
-        {
-            NativeRegisteredClients = registeredClients
-        };
+            selectedSkills);
     }
 
     private async Task ConfigureTelemetryHooksAsync(AgentEnvironment detectedEnvironments, CancellationToken cancellationToken)
@@ -946,9 +958,13 @@ internal sealed class AgentInitCommand : BaseCommand
 internal readonly record struct AgentInitExecutionResult(
     int ExitCode,
     IReadOnlyList<AgentClient> SelectedClients,
-    IReadOnlyList<SkillDefinition> SelectedSkills)
+    IReadOnlyList<SkillDefinition> SelectedSkills);
+
+internal enum AspireSkillsMode
 {
-    public IReadOnlyList<AgentClient> NativeRegisteredClients { get; init; } = [];
+    Bundled,
+    Native,
+    None
 }
 
 internal enum AgentConfirmation
