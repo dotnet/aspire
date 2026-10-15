@@ -1,0 +1,166 @@
+{
+  "run_id": 38758285447,
+  "run_attempt": 1,
+  "run_url": "https://github.com/microsoft/aspire/actions/runs/38758285447",
+  "run_scope": "main",
+  "analyzed_at": "2026-10-15T16:23:41Z",
+  "verdict": "mixed",
+  "pr": null,
+  "triggering_merge_pr": null,
+  "main_context": {
+    "last_successful_main_sha": "88ff9ba57c2841cce759adffa849373f9406b0f5",
+    "failed_sha": "7a5d0efe2606689bed44a9e1d37d53f8038f44cf",
+    "candidate_merge_history_state": "incomplete",
+    "candidate_merges": null
+  },
+  "failed_jobs": [
+    {
+      "name": "Tests / No-package tests (collection, Aspire.Hosting.Tests, Hosting-1, Hosting-1, tests/Aspire.Hosting.Te... / Hosting-1 (windows-latest)",
+      "id": 116503634877,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38758285447/job/116503634877",
+      "classification": "flaky-test",
+      "reason": "Single test failure: DistributedApplicationTests.BeforeResourceStartedEvent_NotFiredForExplicitStartOnInitialCreation timed out with TaskCanceledException during DistributedApplication.StopAsync, a known recurring pattern (26/27 other tests passed).",
+      "failed_steps": [
+        "Run tests (Windows)"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (collection, Aspire.Hosting.Tests, Hosting-2, Hosting-2, tests/Aspire.Hosting.Te... / Hosting-2 (windows-latest)",
+      "id": 116503638691,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38758285447/job/116503638691",
+      "classification": "flaky-test",
+      "reason": "Single test failure: ResourceCommandServiceTests.ExecuteCommandAsync_RebuildCommand_ReturnsBuildOutput saw build-output count 3 instead of 2, matching a recurring Windows build-count race (983/1003 other tests passed).",
+      "failed_steps": [
+        "Run tests (Windows)"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (windows-latest)",
+      "id": 116503653931,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38758285447/job/116503653931",
+      "classification": "flaky-test",
+      "reason": "Single test failure: ProcessExecutionDetachedTests.StartAsync_OnWindows_ProvidesValidNullStdin timed out, a known recurring timing-sensitive Windows process test (7501/7578 other tests passed).",
+      "failed_steps": [
+        "Run tests (Windows)"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (ubuntu-latest)",
+      "id": 116503659306,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38758285447/job/116503659306",
+      "classification": "flaky-test",
+      "reason": "Single test failure: TrayWatchStreamTests.StalledResourceWatchDoesNotBlockReconciliationOrQuit(removeFirst: False) saw reconciliation count 7 instead of 0, a known recurring race condition (7574/7631 other tests passed).",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Hosting.DevTunnels.Tests, Hosting.DevTunnels, Hosting.DevTunnel... / Hosting.DevTunnels (ubuntu-latest)",
+      "id": 116503681502,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38758285447/job/116503681502",
+      "classification": "flaky-test",
+      "reason": "Two DevTunnelMonitorTests failures both throwing ObjectDisposedException on a disposed IServiceProvider during teardown/dispose races, a known recurring pattern (226/228 other tests passed).",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x)",
+      "id": 116508676962,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38758285447/job/116508676962",
+      "classification": "main-repository-breakage",
+      "reason": "All 59 TypeScript validation AppHosts passed, then the job failed with exit code 1 immediately after the Nuxt integration test's apphost stopped, matching a recurring deterministic Docker build failure at the 'npm ci' step for the Nuxt publish image (observed 30+ times on main).",
+      "failed_steps": [
+        "Run TypeScript SDK validation"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / Polyglot Validation Results",
+      "id": 116513719790,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38758285447/job/116513719790",
+      "classification": "main-repository-breakage",
+      "reason": "Downstream aggregation job that fails because 'TypeScript SDK Validation (Node 22.x)' reported failure; Python, Go, Java, and Rust validations all succeeded.",
+      "failed_steps": [
+        "Check validation results"
+      ]
+    }
+  ],
+  "failed_tests": [
+    {
+      "name": "Aspire.Hosting.Tests.DistributedApplicationTests.BeforeResourceStartedEvent_NotFiredForExplicitStartOnInitialCreation",
+      "job": "Tests / No-package tests (collection, Aspire.Hosting.Tests, Hosting-1, Hosting-1, tests/Aspire.Hosting.Te... / Hosting-1 (windows-latest)",
+      "error": "System.Threading.Tasks.TaskCanceledException : A task was canceled.",
+      "stack_trace": "at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)\n   at Microsoft.Extensions.Hosting.Internal.Host.StopAsync(CancellationToken cancellationToken)\n   at Aspire.Hosting.DistributedApplication.StopAsync(CancellationToken cancellationToken) in /_/src/Aspire.Hosting/DistributedApplication.cs:line 497\n   at Microsoft.AspNetCore.InternalTesting.AsyncTestHelpers.TimeoutAfter(Task task, TimeSpan timeout, String filePath, Int32 lineNumber) in D:\\a\\aspire\\aspire\\tests\\Shared\\AsyncTestHelpers.cs:line 176\n   at Aspire.Hosting.Tests.DistributedApplicationTests.BeforeResourceStartedEvent_NotFiredForExplicitStartOnInitialCreation() in D:\\a\\aspire\\aspire\\tests\\Aspire.Hosting.Tests\\DistributedApplicationTests.cs:line 365\n--- End of stack trace from previous location ---",
+      "standard_output": "| [2026-10-15T15:19:37] Aspire.Hosting.DistributedApplication Information: Aspire AppHost version: 17.0.0-ci\n| [2026-10-15T15:19:37] Aspire.Hosting.DistributedApplication Information: Distributed application starting.\n| [2026-10-15T15:19:37] Aspire.Hosting.DistributedApplication Information: Application host directory is: D:\\a\\aspire\\aspire\\tests\\Aspire.Hosting.Tests\n| [2026-10-15T15:19:37] Aspire.Hosting.Cli.CliOrphanDetector Debug: No CLI process ID configured. Orphan detection disabled.\n| [2026-10-15T15:19:37] Aspire.Hosting.Cli.BackchannelService Debug: Backchannel socket path was not specified.\n| [2026-10-15T15:19:37] Aspire.Hosting.Devcontainers.Codespaces.CodespacesResourceUrlRewriterService Trace: Not running in Codespaces, skipping URL rewriting.\n| [2026-10-15T15:19:37] Aspire.Hosting.Backchannel.AuxiliaryBackchannelService Debug: Starting auxiliary backchannel service on socket path: C:\\Users\\runneradmin\\.aspire\\cli\\bch\\29Lw4tyIJ44yK3Ycjuv.3064\n| [2026-10-15T15:19:37] Aspire.Hosting.Backchannel.AuxiliaryBackchannelService Debug: Auxiliary backchannel listening on C:\\Users\\runneradmin\\.aspire\\cli\\bch\\29Lw4tyIJ44yK3Ycjuv.3064\n| [2026-10-15T15:19:37] Aspire.Hosting.ApplicationModel.ResourceNotificationService Debug: Waiting for resource 'before-start-event-explicit-start-serviceb' to match predicate.\n| [2026-10-15T15:19:39] Aspire.Hosting.Dcp.DcpHost Warning: No trusted Aspire development certificate was found. See https://aka.ms/aspire/devcerts for more information.\n| [2026-10-15T15:19:39] Aspire.Hosting.FileSystemService Debug: Allocated temporary directory: C:\\Users\\runneradmin\\AppData\\Local\\Temp\\aspire-dcpsyopirf3.ifo\n| [2026-10-15T15:19:39] Aspire.Hosting.Dcp.DcpHost Information: Starting DCP with arguments: start-apiserver --monitor 3064 --detach --kubeconfig \"C:\\Users\\runneradmin\\AppData\\Local\\Temp\\aspire-dcpsyopirf3.ifo\\kubeconfig\"\n| [2026-10-15T15:19:39] Aspire.Hosting.Dcp.DcpHost Debug: A complete bundled ConPTY provider was not found; DCP will use the inbox Windows provider.\n| [2026-10-15T15:19:39] Aspire.Hosting.Dcp.DcpExecutor Debug: Preparing services. Ports randomized: False\n| [2026-10-15T15:19:39] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Version: 1 Resource before-start-event-explicit-start-servicea/before-start-event-explicit-start-servicea-ncthbzrt-3e467d12 update published: ResourceType = Project, CreationTimeStamp = (null), State = { Text = (null), Style = (null) }, IsHidden = False, HeathStatus = (null), ResourceReady = False, ExitCode = (null), Urls = {  }, EnvironmentVariables = {  }, Properties = {  }, HealthReports = {  }, Commands = { start (Start) = Disabled stop (Stop) = Hidden restart (Restart) = Disabled rebuild (Rebuild) = Disabled }\n| [2026-10-15T15:19:39] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Version: 1 Resource before-start-event-explicit-start-servicea-rebuilder/before-start-event-explicit-start-servicea-rebuilder-xezxwyeq-3e467d12 update published: ResourceType = Executable, CreationTimeStamp = (null), State = { Text = NotStarted, Style = (null) }, IsHidden = True, HeathStatus = (null), ResourceReady = False, ExitCode = (null), Urls = {  }, EnvironmentVariables = {  }, Properties = { resource.parentName = before-start-event-explicit-start-servicea-ncthbzrt-3e467d12 }, HealthReports = {  }, Commands = {  }\n| [2026-10-15T15:19:39] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Version: 1 Resource before-start-event-explicit-start-serviceb/before-start-event-explicit-start-serviceb-xdvbezux-3e467d12 update published: ResourceType = Project, CreationTimeStamp = (null), State = { Text = (null), Style = (null) }, IsHidden = False, HeathStatus = (null), ResourceReady = False, ExitCode = (null), Urls = {  }, EnvironmentVariables = {  }, Properties = {  }, HealthReports = {  }, Commands = { start (Start) = Disabled stop (Stop) = Hidden restart (Restart) = Disabled rebuild (Rebuild) = Disabled }\n| [2026-10-15T15:19:39] A",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Matches a recurring TaskCanceledException-during-StopAsync teardown race seen in other hosting tests; only this one test failed out of 27 in the job."
+    },
+    {
+      "name": "Aspire.Hosting.Tests.ResourceCommandServiceTests.ExecuteCommandAsync_RebuildCommand_ReturnsBuildOutput",
+      "job": "Tests / No-package tests (collection, Aspire.Hosting.Tests, Hosting-2, Hosting-2, tests/Aspire.Hosting.Te... / Hosting-2 (windows-latest)",
+      "error": "Assert.Equal() Failure: Values differ\nExpected: 2\nActual:   3",
+      "stack_trace": "at Aspire.Hosting.Tests.ResourceCommandServiceTests.ExecuteCommandAsync_RebuildCommand_ReturnsBuildOutput() in D:\\a\\aspire\\aspire\\tests\\Aspire.Hosting.Tests\\ResourceCommandServiceTests.cs:line 1770\n--- End of stack trace from previous location ---",
+      "standard_output": "Temporary workspace created at: C:\\Users\\runneradmin\\AppData\\Local\\Temp\\Aspire.Hosting.TestUtilities\\Workspace\\tqetg24k.s3k\n| [2026-10-15T15:19:42] Aspire.Hosting.DistributedApplication Information: Aspire AppHost version: 17.0.0-ci\n| [2026-10-15T15:19:42] Aspire.Hosting.DistributedApplication Information: Distributed application starting.\n| [2026-10-15T15:19:42] Aspire.Hosting.DistributedApplication Information: Application host directory is: D:\\a\\aspire\\aspire\\tests\\Aspire.Hosting.TestUtilities\n| [2026-10-15T15:19:42] Aspire.Hosting.Cli.CliOrphanDetector Debug: No CLI process ID configured. Orphan detection disabled.\n| [2026-10-15T15:19:42] Aspire.Hosting.Cli.BackchannelService Debug: Backchannel socket path was not specified.\n| [2026-10-15T15:19:42] Aspire.Hosting.Devcontainers.Codespaces.CodespacesResourceUrlRewriterService Trace: Not running in Codespaces, skipping URL rewriting.\n| [2026-10-15T15:19:42] Aspire.Hosting.Backchannel.AuxiliaryBackchannelService Debug: Starting auxiliary backchannel service on socket path: C:\\Users\\runneradmin\\.aspire\\cli\\bch\\vygPxKePKFATvqakmAt.9096\n| [2026-10-15T15:19:42] Aspire.Hosting.Backchannel.AuxiliaryBackchannelService Debug: Auxiliary backchannel listening on C:\\Users\\runneradmin\\.aspire\\cli\\bch\\vygPxKePKFATvqakmAt.9096\n| [2026-10-15T15:19:42] Aspire.Hosting.Dcp.DcpHost Warning: No trusted Aspire development certificate was found. See https://aka.ms/aspire/devcerts for more information.\n| [2026-10-15T15:19:42] Aspire.Hosting.FileSystemService Debug: Allocated temporary directory: C:\\Users\\runneradmin\\AppData\\Local\\Temp\\aspire-dcppi4pdkaj.gop\n| [2026-10-15T15:19:42] Aspire.Hosting.Dcp.DcpHost Information: Starting DCP with arguments: start-apiserver --monitor 9096 --detach --kubeconfig \"C:\\Users\\runneradmin\\AppData\\Local\\Temp\\aspire-dcppi4pdkaj.gop\\kubeconfig\"\n| [2026-10-15T15:19:42] Aspire.Hosting.Dcp.DcpHost Debug: A complete bundled ConPTY provider was not found; DCP will use the inbox Windows provider.\n| [2026-10-15T15:19:42] Aspire.Hosting.Dcp.DcpExecutor Debug: Preparing services. Ports randomized: True\n| [2026-10-15T15:19:42] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Version: 1 Resource myProject/myProject-mkpntdrg update published: ResourceType = Project, CreationTimeStamp = (null), State = { Text = (null), Style = (null) }, IsHidden = False, HeathStatus = (null), ResourceReady = False, ExitCode = (null), Urls = {  }, EnvironmentVariables = {  }, Properties = {  }, HealthReports = {  }, Commands = { start (Start) = Disabled stop (Stop) = Hidden restart (Restart) = Disabled rebuild (Rebuild) = Disabled }\n| [2026-10-15T15:19:42] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Version: 1 Resource myProject-rebuilder/myProject-rebuilder-bjdxkxwp update published: ResourceType = Executable, CreationTimeStamp = (null), State = { Text = NotStarted, Style = (null) }, IsHidden = True, HeathStatus = (null), ResourceReady = False, ExitCode = (null), Urls = {  }, EnvironmentVariables = {  }, Properties = { resource.parentName = myProject-mkpntdrg }, HealthReports = {  }, Commands = {  }\n| [2026-10-15T15:19:42] Aspire.Hosting.Orchestrator.ApplicationOrchestrator Trace: Converting relative endpoint URLs to absolute URLs for resource 'myProject-rebuilder'.\n| [2026-10-15T15:19:42] Aspire.Hosting.Orchestrator.ApplicationOrchestrator Trace: Added total of 0 URLs to resource 'myProject-rebuilder'\n| [2026-10-15T15:19:42] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Resource myProject-rebuilder/myProject-rebuilder-bjdxkxwp update skipped because the snapshot is unchanged.\n| [2026-10-15T15:19:42] Aspire.Hosting.Orchestrator.ApplicationOrchestrator Trace: Converting relative endpoint URLs to absolute URLs for resource 'myProject'.\n| [2026-10-15T15:19:42] Aspire.Hosting.Orchestrator.ApplicationOrchestrator Trace: Added total of 0 URLs to resource 'myProject'\n| [2026-10-15T15:19:42] Aspire.Hosting.ApplicationModel.ResourceNotificationSe",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Matches a previously identified recurring build-count race condition in this exact test on Windows (prior cause with 9 occurrences)."
+    },
+    {
+      "name": "Aspire.Cli.Tests.DotNet.ProcessExecutionDetachedTests.StartAsync_OnWindows_ProvidesValidNullStdin",
+      "job": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (windows-latest)",
+      "error": "System.TimeoutException : The operation has timed out.",
+      "stack_trace": "at Aspire.Cli.Tests.DotNet.ProcessExecutionDetachedTests.StartAsync_OnWindows_ProvidesValidNullStdin() in D:\\a\\aspire\\aspire\\tests\\Aspire.Cli.Tests\\DotNet\\ProcessExecutionDetachedTests.cs:line 38\n   at Aspire.Cli.Tests.DotNet.ProcessExecutionDetachedTests.StartAsync_OnWindows_ProvidesValidNullStdin() in D:\\a\\aspire\\aspire\\tests\\Aspire.Cli.Tests\\DotNet\\ProcessExecutionDetachedTests.cs:line 47\n   at Aspire.Cli.Tests.DotNet.ProcessExecutionDetachedTests.StartAsync_OnWindows_ProvidesValidNullStdin() in D:\\a\\aspire\\aspire\\tests\\Aspire.Cli.Tests\\DotNet\\ProcessExecutionDetachedTests.cs:line 47\n--- End of stack trace from previous location ---",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Matches a previously identified recurring timeout in this exact test on Windows."
+    },
+    {
+      "name": "Aspire.Cli.Tests.Backchannel.TrayWatchStreamTests.StalledResourceWatchDoesNotBlockReconciliationOrQuit(removeFirst: False, brokenPipe: False)",
+      "job": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (ubuntu-latest)",
+      "error": "Assert.Equal() Failure: Values differ\nExpected: 0\nActual:   7",
+      "stack_trace": "at Aspire.Cli.Tests.Backchannel.TrayWatchStreamTests.StalledResourceWatchDoesNotBlockReconciliationOrQuit(Boolean removeFirst, Boolean brokenPipe) in /home/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/Backchannel/TrayWatchStreamTests.cs:line 925\n   at Aspire.Cli.Tests.Backchannel.TrayWatchStreamTests.StalledResourceWatchDoesNotBlockReconciliationOrQuit(Boolean removeFirst, Boolean brokenPipe) in /home/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/Backchannel/TrayWatchStreamTests.cs:line 940\n--- End of stack trace from previous location ---",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Matches a previously identified recurring reconciliation-count race condition in this exact parameterized test."
+    },
+    {
+      "name": "Aspire.Hosting.DevTunnels.Tests.DevTunnelMonitorTests.CancellingAHealthCallerDoesNotCancelTheSharedObserver",
+      "job": "Tests / No-package tests (regular, Aspire.Hosting.DevTunnels.Tests, Hosting.DevTunnels, Hosting.DevTunnel... / Hosting.DevTunnels (ubuntu-latest)",
+      "error": "System.ObjectDisposedException : Cannot access a disposed object.\nObject name: 'IServiceProvider'.",
+      "stack_trace": "at Microsoft.Extensions.DependencyInjection.ServiceLookup.ThrowHelper.ThrowObjectDisposedException()\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.ServiceProviderEngineScope.GetService(Type serviceType)\n   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService(IServiceProvider provider, Type serviceType)\n   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService[T](IServiceProvider provider)\n   at Aspire.Hosting.DevTunnelsResourceBuilderExtensions.<>c__DisplayClass15_0.<AddDevTunnelPort>b__5(UpdateCommandStateContext context) in /_/src/Aspire.Hosting.DevTunnels/DevTunnelResourceBuilderExtensions.cs:line 647\n   at Aspire.Hosting.ApplicationModel.ResourceNotificationService.UpdateCommands(IResource resource, CustomResourceSnapshot previousState) in /_/src/Aspire.Hosting/ApplicationModel/ResourceNotificationService.cs:line 1149\n   at Aspire.Hosting.ApplicationModel.ResourceNotificationService.PublishUpdateAsync(IResource resource, String resourceId, Func`2 stateFactory) in /_/src/Aspire.Hosting/ApplicationModel/ResourceNotificationService.cs:line 887\n   at Aspire.Hosting.ApplicationModel.ResourceNotificationService.PublishUpdateAsync(IResource resource, Func`2 stateFactory) in /_/src/Aspire.Hosting/ApplicationModel/ResourceNotificationService.cs:line 1271\n   at Aspire.Hosting.DevTunnelsResourceBuilderExtensions.UpdatePortAccessAsync(DevTunnelPortResource portResource, ResourceNotificationService notifications, ResourceLoggerService logs, DateTimeOffset now) in /_/src/Aspire.Hosting.DevTunnels/DevTunnelResourceBuilderExtensions.cs:line 811\n   at Aspire.Hosting.DevTunnels.DevTunnelMonitor.<>c__DisplayClass40_0.<<RefreshAccessAsync>b__0>d.MoveNext() in /_/src/Aspire.Hosting.DevTunnels/DevTunnelMonitor.cs:line 356\n--- End of stack trace from previous location ---\n   at Aspire.Hosting.DevTunnels.DevTunnelMonitor.<>c__DisplayClass55_0`1.<<InvokeAsync>b__0>d.MoveNext() in /_/src/As",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Matches a previously identified recurring ObjectDisposedException race during DevTunnel command-state updates after host disposal."
+    },
+    {
+      "name": "Aspire.Hosting.DevTunnels.Tests.DevTunnelMonitorTests.AnotherHostCannotEstablishUnknownLocalReadiness",
+      "job": "Tests / No-package tests (regular, Aspire.Hosting.DevTunnels.Tests, Hosting.DevTunnels, Hosting.DevTunnel... / Hosting.DevTunnels (ubuntu-latest)",
+      "error": "System.ObjectDisposedException : Cannot access a disposed object.\nObject name: 'IServiceProvider'.",
+      "stack_trace": "at Microsoft.Extensions.DependencyInjection.ServiceLookup.ThrowHelper.ThrowObjectDisposedException()\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.ServiceProviderEngineScope.GetService(Type serviceType)\n   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService(IServiceProvider provider, Type serviceType)\n   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService[T](IServiceProvider provider)\n   at Aspire.Hosting.DevTunnelsResourceBuilderExtensions.<>c__DisplayClass15_0.<AddDevTunnelPort>b__5(UpdateCommandStateContext context) in /_/src/Aspire.Hosting.DevTunnels/DevTunnelResourceBuilderExtensions.cs:line 647\n   at Aspire.Hosting.ApplicationModel.ResourceNotificationService.UpdateCommands(IResource resource, CustomResourceSnapshot previousState) in /_/src/Aspire.Hosting/ApplicationModel/ResourceNotificationService.cs:line 1149\n   at Aspire.Hosting.ApplicationModel.ResourceNotificationService.PublishUpdateAsync(IResource resource, String resourceId, Func`2 stateFactory) in /_/src/Aspire.Hosting/ApplicationModel/ResourceNotificationService.cs:line 887\n   at Aspire.Hosting.ApplicationModel.ResourceNotificationService.PublishUpdateAsync(IResource resource, Func`2 stateFactory) in /_/src/Aspire.Hosting/ApplicationModel/ResourceNotificationService.cs:line 1271\n   at Aspire.Hosting.DevTunnelsResourceBuilderExtensions.UpdatePortAccessAsync(DevTunnelPortResource portResource, ResourceNotificationService notifications, ResourceLoggerService logs, DateTimeOffset now) in /_/src/Aspire.Hosting.DevTunnels/DevTunnelResourceBuilderExtensions.cs:line 811\n   at Aspire.Hosting.DevTunnels.DevTunnelMonitor.<>c__DisplayClass40_0.<<RefreshAccessAsync>b__0>d.MoveNext() in /_/src/Aspire.Hosting.DevTunnels/DevTunnelMonitor.cs:line 356\n--- End of stack trace from previous location ---\n   at Aspire.Hosting.DevTunnels.DevTunnelMonitor.<>c__DisplayClass55_0`1.<<InvokeAsync>b__0>d.MoveNext() in /_/src/As",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Matches a previously identified recurring ObjectDisposedException race in the same test file/class during DevTunnel command-state updates after host disposal."
+    }
+  ],
+  "causes": [
+    "aspire-hosting-tests-beforeresourcestartedevent-stopasync-taskcanceled",
+    "aspire-hosting-resourcecommandservice-rebuild-buildcount-race",
+    "aspire-cli-tests-processexecutiondetached-startasync-windows-nullstdin-timeout",
+    "aspire-cli-tests-backchannel-traywatchstream-stalled-flaky-removefirst-false",
+    "devtunnels-devtunnelmonitor-cancellinghealthcaller-objectdisposed",
+    "devtunnels-devtunnelmonitor-anotherhostcannotestablishunknownlocalreadiness-objectdisposed",
+    "typescript-sdk-nuxt-integration-npm-ci-docker-build-failure"
+  ]
+}
