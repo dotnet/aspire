@@ -1,0 +1,19 @@
+{
+  "area": "CLI",
+  "areaEmoji": "💻",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Improvements",
+  "communityContributors": [],
+  "description": "Unified how the CLI composes NuGet restore, package/template discovery, and channel-update policy across package-only and polyglot AppHosts, so the packages offered by discovery now agree with what can actually be restored and persisted configuration stays consistent after a channel update.",
+  "docsPrs": [],
+  "docsRequired": true,
+  "emoji": "🔄",
+  "firstMergedAt": "2026-10-15T00:28:42Z",
+  "lastMergedAt": "2026-10-15T00:28:42Z",
+  "name": "Unified NuGet restore and channel-update policy for AppHosts",
+  "owner": "danegsta",
+  "prs": [
+    19763
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "author": "danegsta",
+  "comment": "Unified NuGet restore/discovery/channel-update policy across AppHosts",
+  "mergedAt": "2026-10-15T00:28:42Z",
+  "number": 19763,
+  "runDate": "2026-10-15T06:06:25Z",
+  "status": "included",
+  "title": "Standardize NuGet restore and channel-update policy across AppHosts"
+}
