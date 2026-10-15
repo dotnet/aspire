@@ -1,0 +1,176 @@
+name: Scratch extension conditions (stub orchestration)
+
+on:
+  workflow_call:
+    inputs:
+      scenario:
+        description: Controlled failure scenario
+        required: true
+        type: string
+
+jobs:
+  setup_for_tests:
+    name: STUB select extension E2E
+    runs-on: ubuntu-latest
+    outputs:
+      run_extension_e2e: ${{ steps.select.outputs.run_extension_e2e }}
+    steps:
+      - id: select
+        run: echo 'run_extension_e2e=true' >> "$GITHUB_OUTPUT"
+
+  build_packages:
+    name: STUB common packages; no artifact
+    runs-on: ubuntu-latest
+    needs: [setup_for_tests]
+    steps:
+      - run: echo 'STUB common packages ready'
+
+  build_cli_archive_linux:
+    name: STUB Linux CLI; no archive
+    runs-on: ubuntu-latest
+    needs: [setup_for_tests]
+    steps:
+      - run: echo 'STUB Linux CLI ready'
+
+  build_cli_archive_windows:
+    name: STUB Windows CLI; no archive
+    runs-on: ubuntu-latest
+    needs: [setup_for_tests]
+    steps:
+      - run: echo 'STUB Windows CLI ready'
+
+  extension_tests_win:
+    name: STUB VSIX producer; no unit tests or VSIX
+    runs-on: ubuntu-latest
+    needs: [setup_for_tests]
+    steps:
+      - run: echo 'STUB VSIX producer completed'
+
+  extension_bootstrap_linux:
+    name: STUB Linux bootstrap; controlled failure
+    runs-on: ubuntu-latest
+    needs: [setup_for_tests]
+    steps:
+      - env:
+          SCENARIO: ${{ inputs.scenario }}
+        run: |
+          if [[ "$SCENARIO" == linux-bootstrap-fails ]]; then
+            echo "::error::INTENTIONAL stub Linux bootstrap failure"
+            exit 1
+          fi
+          echo 'STUB Linux bootstrap succeeded'
+
+  extension_e2e_preflight:
+    name: STUB preflight; no feed/network access
+    needs: [setup_for_tests]
+    if: ${{ needs.setup_for_tests.outputs.run_extension_e2e == 'true' }}
+    uses: ./.github/workflows/scratch-extension-consumer.yml
+    with:
+      matrix: '{"include":[{"name":"Preflight"}]}'
+      inject_failure: ${{ inputs.scenario == 'preflight-fails' }}
+
+  # Conditions, needs, matrix inputs and call depth match the production callers.
+  # Only the display names and reusable target are cheap labeled stubs.
+  extension_e2e_tests_linux:
+    name: STUB Run VS Code extension E2E tests (Linux)
+    uses: ./.github/workflows/scratch-extension-consumer.yml
+    if: >-
+      ${{ !cancelled() &&
+          needs.setup_for_tests.outputs.run_extension_e2e == 'true' &&
+          needs.build_packages.result == 'success' &&
+          needs.build_cli_archive_linux.result == 'success' &&
+          needs.extension_e2e_preflight.result == 'success' &&
+          needs.extension_bootstrap_linux.result == 'success' }}
+    needs: [setup_for_tests, build_packages, build_cli_archive_linux, extension_tests_win, extension_bootstrap_linux, extension_e2e_preflight]
+    with:
+      matrix: ${{ needs.extension_e2e_preflight.outputs.linux_matrix }}
+
+  extension_e2e_tests_windows:
+    name: STUB Run VS Code extension E2E tests (Windows)
+    uses: ./.github/workflows/scratch-extension-consumer.yml
+    if: >-
+      ${{ !cancelled() &&
+          needs.setup_for_tests.outputs.run_extension_e2e == 'true' &&
+          needs.build_packages.result == 'success' &&
+          needs.build_cli_archive_windows.result == 'success' &&
+          needs.extension_e2e_preflight.result == 'success' }}
+    needs: [setup_for_tests, build_packages, build_cli_archive_windows, extension_tests_win, extension_e2e_preflight]
+    with:
+      matrix: ${{ needs.extension_e2e_preflight.outputs.windows_matrix }}
+
+  results:
+    name: STUB aggregate (must fail)
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    needs: [setup_for_tests, build_packages, build_cli_archive_linux, build_cli_archive_windows, extension_tests_win, extension_bootstrap_linux, extension_e2e_preflight, extension_e2e_tests_linux, extension_e2e_tests_windows]
+    steps:
+      - name: Fail for failed producers or unexpected selected extension skips
+        if: >-
+          ${{ always() &&
+              (contains(needs.*.result, 'failure') ||
+               contains(needs.*.result, 'cancelled') ||
+               (needs.setup_for_tests.outputs.run_extension_e2e == 'true' &&
+                (needs.extension_e2e_preflight.result == 'skipped' ||
+                 needs.extension_e2e_tests_linux.result == 'skipped' ||
+                 needs.extension_e2e_tests_windows.result == 'skipped' ||
+                 needs.extension_bootstrap_linux.result == 'skipped'))) }}
+        run: |
+          echo "::error::INTENTIONAL aggregate failure from the controlled producer failure"
+          exit 1
+
+  assert_expected:
+    name: Assert controlled failure observations (must pass)
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    needs: [setup_for_tests, build_packages, build_cli_archive_linux, build_cli_archive_windows, extension_tests_win, extension_bootstrap_linux, extension_e2e_preflight, extension_e2e_tests_linux, extension_e2e_tests_windows, results]
+    steps:
+      - name: Assert exact job results and reusable consumer markers
+        env:
+          SCENARIO: ${{ inputs.scenario }}
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+
+          scenario = os.environ["SCENARIO"]
+          actual = json.loads(os.environ["NEEDS_JSON"])
+          expected = {
+              "setup_for_tests": "success",
+              "build_packages": "success",
+              "build_cli_archive_linux": "success",
+              "build_cli_archive_windows": "success",
+              "extension_tests_win": "success",
+              "results": "failure",
+          }
+          if scenario == "linux-bootstrap-fails":
+              expected.update({
+                  "extension_bootstrap_linux": "failure",
+                  "extension_e2e_preflight": "success",
+                  "extension_e2e_tests_linux": "skipped",
+                  "extension_e2e_tests_windows": "success",
+              })
+              markers = {"linux": "", "windows": "observed:Windows"}
+          elif scenario == "preflight-fails":
+              expected.update({
+                  "extension_bootstrap_linux": "success",
+                  "extension_e2e_preflight": "failure",
+                  "extension_e2e_tests_linux": "skipped",
+                  "extension_e2e_tests_windows": "skipped",
+              })
+              markers = {"linux": "", "windows": ""}
+          else:
+              raise AssertionError(f"Unknown scenario: {scenario}")
+
+          observed = {name: value["result"] for name, value in actual.items()}
+          observed_markers = {
+              platform: actual[f"extension_e2e_tests_{platform}"].get("outputs", {}).get("consumer_marker", "")
+              for platform in ("linux", "windows")
+          }
+          print(json.dumps({"scenario": scenario, "statuses": observed, "consumer_markers": observed_markers}, indent=2))
+          if observed != expected:
+              raise AssertionError(f"Job results differ: expected {expected!r}, got {observed!r}")
+          if observed_markers != markers:
+              raise AssertionError(f"Consumer markers differ: expected {markers!r}, got {observed_markers!r}")
+          print(f"CONTROLLED_FAILURE_ASSERTIONS_PASSED scenario={scenario}")
+          PY

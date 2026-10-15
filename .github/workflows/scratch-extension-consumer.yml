@@ -1,0 +1,51 @@
+name: Scratch stub extension consumer (no real artifacts or E2E)
+
+on:
+  workflow_call:
+    inputs:
+      matrix:
+        description: One cheap stub row, not the production test matrix
+        required: true
+        type: string
+      inject_failure:
+        description: Fail the stub preflight deliberately
+        type: boolean
+        default: false
+    outputs:
+      consumer_marker:
+        description: Evidence that the stub job actually executed
+        value: ${{ jobs.stub.outputs.consumer_marker }}
+      linux_matrix:
+        description: Single Linux stub shard
+        value: ${{ jobs.stub.outputs.linux_matrix }}
+      windows_matrix:
+        description: Single Windows stub shard
+        value: ${{ jobs.stub.outputs.windows_matrix }}
+
+jobs:
+  stub:
+    name: STUB observe ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(inputs.matrix) }}
+    outputs:
+      consumer_marker: ${{ steps.observe.outputs.consumer_marker }}
+      linux_matrix: ${{ steps.observe.outputs.linux_matrix }}
+      windows_matrix: ${{ steps.observe.outputs.windows_matrix }}
+    steps:
+      - name: Record stub execution; optionally inject preflight failure
+        id: observe
+        env:
+          PLATFORM: ${{ matrix.name }}
+          INJECT_FAILURE: ${{ inputs.inject_failure }}
+        run: |
+          echo "STUB_CONSUMER_OBSERVED=$PLATFORM"
+          echo "consumer_marker=observed:$PLATFORM" >> "$GITHUB_OUTPUT"
+          echo 'linux_matrix={"include":[{"name":"Linux"}]}' >> "$GITHUB_OUTPUT"
+          echo 'windows_matrix={"include":[{"name":"Windows"}]}' >> "$GITHUB_OUTPUT"
+          if [[ "$INJECT_FAILURE" == true ]]; then
+            echo "::error::INTENTIONAL stub preflight failure"
+            exit 1
+          fi
