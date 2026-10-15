@@ -1,0 +1,116 @@
+name: Build native bundle packages
+
+on:
+  workflow_call:
+    inputs:
+      versionOverrideArg:
+        required: false
+        type: string
+      configuration:
+        required: false
+        type: string
+        default: Release
+      targets:
+        description: JSON array of target objects with os, runner, and rids keys.
+        required: true
+        type: string
+
+jobs:
+  build_bundle:
+    name: Build bundle packages (${{ matrix.targets.rids }})
+    runs-on: ${{ matrix.targets.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        targets: ${{ fromJson(inputs.targets) }}
+    env:
+      ASPIRE_CLI_CHANNEL: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || (startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/internal/release/')) && 'staging' || github.ref == 'refs/heads/main' && 'local' || 'daily' }}
+    steps:
+      - name: Configure NuGet package cache (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Write-Output "NUGET_PACKAGES=${{ github.workspace }}/.nuget/packages" >> $env:GITHUB_ENV
+
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Both CI systems use these phases; official signing remains between them.
+      - name: Publish bundle components
+        run: >
+          ${{ runner.os == 'Windows' && './dotnet.cmd' || './dotnet.sh' }}
+          msbuild
+          eng/Bundle.proj
+          /t:PublishBundleComponents
+          /p:Configuration=${{ inputs.configuration }}
+          /p:TargetRid=${{ matrix.targets.rids }}
+          /p:ContinuousIntegrationBuild=true
+          /p:AspireCliChannel=${{ env.ASPIRE_CLI_CHANNEL }}
+          /bl:${{ github.workspace }}/artifacts/log/${{ inputs.configuration }}/PublishBundleComponents.binlog
+          ${{ inputs.versionOverrideArg }}
+
+      - name: Verify Native AOT Dashboard warnings
+        shell: pwsh
+        run: >
+          ./eng/scripts/verify-native-dashboard-warnings.ps1
+          -BuildLog "${{ github.workspace }}/artifacts/log/${{ inputs.configuration }}/PublishNativeDashboard.log"
+
+      - name: Build bundle payload archive
+        # Produce DCP packages locally, independently of build_packages.
+        run: >
+          ${{ runner.os == 'Windows' && './dotnet.cmd' || './dotnet.sh' }}
+          msbuild
+          eng/Bundle.proj
+          /t:PackageBundlePayload
+          /p:Configuration=${{ inputs.configuration }}
+          /p:TargetRid=${{ matrix.targets.rids }}
+          /p:BundleVersion=ci-bundlepayload
+          /p:PackDcpPackage=true
+          /p:ContinuousIntegrationBuild=true
+          /p:AspireCliChannel=${{ env.ASPIRE_CLI_CHANNEL }}
+          /bl:${{ github.workspace }}/artifacts/log/${{ inputs.configuration }}/BundlePayload.binlog
+          ${{ inputs.versionOverrideArg }}
+
+      - name: Smoke test bundled Native AOT TerminalHost
+        if: ${{ !contains(matrix.targets.rids, 'musl') && ((runner.arch == 'ARM64' && endsWith(matrix.targets.rids, 'arm64')) || (runner.arch == 'X64' && endsWith(matrix.targets.rids, 'x64'))) }}
+        shell: pwsh
+        run: >
+          ./eng/scripts/test-native-terminalhost.ps1
+          -TerminalHostPath "${{ github.workspace }}/artifacts/bundle/${{ matrix.targets.rids }}/terminalhost/Aspire.TerminalHost${{ runner.os == 'Windows' && '.exe' || '' }}"
+
+      - name: Upload platform NuGet packages
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: platform-nugets-for-${{ matrix.targets.rids }}
+          path: |
+            artifacts/packages/${{ inputs.configuration }}/Shipping/Aspire.Hosting.Orchestration.${{ matrix.targets.rids }}.*.nupkg
+            artifacts/packages/${{ inputs.configuration }}/Shipping/Aspire.Dashboard.Sdk.${{ matrix.targets.rids }}.*.nupkg
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 15
+
+      - name: Upload Native AOT Dashboard archive
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: native-dashboard-${{ matrix.targets.rids }}
+          path: artifacts/DashboardArtifacts/${{ inputs.configuration }}/${{ matrix.targets.rids }}/aspire-dashboard-${{ matrix.targets.rids }}.zip
+          compression-level: 0
+          retention-days: 15
+          if-no-files-found: error
+
+      # Transfer the compressed archive, not the publish trees: this preserves
+      # executable modes and exactly the payload that preparation verified.
+      - name: Upload prepared bundle payload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: native-bundle-payload-${{ matrix.targets.rids }}
+          path: artifacts/bundle/aspire-ci-bundlepayload-${{ matrix.targets.rids }}.tar.gz
+          compression-level: 0
+          retention-days: 15
+          if-no-files-found: error
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: native-bundle-logs-${{ matrix.targets.rids }}
+          path: artifacts/log/**

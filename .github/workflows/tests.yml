@@ -258,10 +258,36 @@ jobs:
     with:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
 
+  # Separate workflow calls are intentional: needs on a reusable workflow waits
+  # for every job in that call, even if its packages were uploaded earlier.
+  # Only the three RIDs with package-only consumers pay for a second worker.
+  build_native_packages_linux:
+    name: Build platform packages (Linux)
+    uses: ./.github/workflows/build-native-bundle-packages.yml
+    with:
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
+      targets: '[{"os": "ubuntu-latest", "runner": "8-core-ubuntu-latest", "rids": "linux-x64"}]'
+
+  build_native_packages_windows:
+    name: Build platform packages (Windows)
+    uses: ./.github/workflows/build-native-bundle-packages.yml
+    with:
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
+      targets: '[{"os": "windows-latest", "runner": "windows-latest", "rids": "win-x64"}]'
+
+  build_native_packages_macos:
+    name: Build platform packages (macOS)
+    uses: ./.github/workflows/build-native-bundle-packages.yml
+    with:
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
+      targets: '[{"os": "macos-latest", "runner": "macos-latest", "rids": "osx-arm64"}]'
+
   build_cli_archive_linux:
     name: Build native CLI archive (Linux)
+    needs: build_native_packages_linux
     uses: ./.github/workflows/build-cli-native-archives.yml
     with:
+      bundlePrepared: true
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
       targets: '[{"os": "ubuntu-latest", "runner": "8-core-ubuntu-latest", "rids": "linux-x64"}]'
 
@@ -272,14 +298,13 @@ jobs:
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
       targets: '[{"os": "ubuntu-latest", "runner": "ubuntu-24.04-arm", "rids": "linux-arm64"}]'
 
-  # Per-OS CLI archive builds produce RID-specific DCP and Dashboard NuGets.
-  # Split by OS so that test jobs can depend on just their platform's archive,
-  # allowing Linux tests to start as soon as the Linux archive completes
-  # without waiting for the slower Windows/macOS builds.
+  # Archive consumers still wait for CLI compilation and package verification.
   build_cli_archive_windows:
     name: Build native CLI archive (Windows)
+    needs: build_native_packages_windows
     uses: ./.github/workflows/build-cli-native-archives.yml
     with:
+      bundlePrepared: true
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
       targets: '[{"os": "windows-latest", "runner": "windows-latest", "rids": "win-x64"}]'
 
@@ -293,8 +318,10 @@ jobs:
 
   build_cli_archive_macos:
     name: Build native CLI archive (macOS)
+    needs: build_native_packages_macos
     uses: ./.github/workflows/build-cli-native-archives.yml
     with:
+      bundlePrepared: true
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
       targets: '[{"os": "macos-latest", "runner": "macos-latest", "rids": "osx-arm64"}]'
 
@@ -393,17 +420,17 @@ jobs:
       properties: ${{ toJson(matrix.properties) }}
       ignoreTestFailures: ${{ matrix.properties.nonBlockingTestFailures }}
 
-  # Split requires-nugets tests by OS so each group depends only on
-  # the CLI archive build for its platform, avoiding cross-OS blocking.
+  # Package-only tests can overlap final CLI compilation on their platform.
   tests_requires_nugets_linux:
     name: Package tests - Linux
     uses: ./.github/workflows/run-tests.yml
-    needs: [setup_for_tests, build_packages, build_cli_archive_linux]
+    needs: [setup_for_tests, build_packages, build_native_packages_linux]
     if: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix_requires_nugets_linux).include[0] != null }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix_requires_nugets_linux) }}
     with:
+      usePlatformPackages: true
       testShortName: ${{ matrix.shortname }}
       os: ${{ matrix.runs-on }}
       testProjectPath: ${{ matrix.testProjectPath }}
@@ -416,12 +443,13 @@ jobs:
   tests_requires_nugets_windows:
     name: Package tests - Windows
     uses: ./.github/workflows/run-tests.yml
-    needs: [setup_for_tests, build_packages, build_cli_archive_windows]
+    needs: [setup_for_tests, build_packages, build_native_packages_windows]
     if: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix_requires_nugets_windows).include[0] != null }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix_requires_nugets_windows) }}
     with:
+      usePlatformPackages: true
       testShortName: ${{ matrix.shortname }}
       os: ${{ matrix.runs-on }}
       testProjectPath: ${{ matrix.testProjectPath }}
@@ -434,12 +462,13 @@ jobs:
   tests_requires_nugets_macos:
     name: Package tests - macOS
     uses: ./.github/workflows/run-tests.yml
-    needs: [setup_for_tests, build_packages, build_cli_archive_macos]
+    needs: [setup_for_tests, build_packages, build_native_packages_macos]
     if: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix_requires_nugets_macos).include[0] != null }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.setup_for_tests.outputs.tests_matrix_requires_nugets_macos) }}
     with:
+      usePlatformPackages: true
       testShortName: ${{ matrix.shortname }}
       os: ${{ matrix.runs-on }}
       testProjectPath: ${{ matrix.testProjectPath }}
@@ -564,7 +593,7 @@ jobs:
 
   native_dashboard_validation_linux_x64:
     name: Native AOT Dashboard Validation (Ubuntu x64)
-    needs: [setup_for_tests, build_cli_archive_linux]
+    needs: [setup_for_tests, build_native_packages_linux]
     if: ${{ needs.setup_for_tests.outputs.run_native_dashboard_validation == 'true' }}
     uses: ./.github/workflows/native-dashboard-validation.yml
     with:
@@ -582,7 +611,7 @@ jobs:
 
   native_dashboard_validation_windows_x64:
     name: Native AOT Dashboard Validation (Windows x64)
-    needs: [setup_for_tests, build_cli_archive_windows]
+    needs: [setup_for_tests, build_native_packages_windows]
     if: ${{ needs.setup_for_tests.outputs.run_native_dashboard_validation == 'true' }}
     uses: ./.github/workflows/native-dashboard-validation.yml
     with:
@@ -609,7 +638,7 @@ jobs:
 
   native_dashboard_validation_macos_arm64:
     name: Native AOT Dashboard Validation (macOS ARM64)
-    needs: [setup_for_tests, build_cli_archive_macos]
+    needs: [setup_for_tests, build_native_packages_macos]
     if: ${{ needs.setup_for_tests.outputs.run_native_dashboard_validation == 'true' }}
     uses: ./.github/workflows/native-dashboard-validation.yml
     with:
@@ -746,6 +775,9 @@ jobs:
     needs: [
       setup_for_tests,
       build_packages,
+      build_native_packages_linux,
+      build_native_packages_windows,
+      build_native_packages_macos,
       build_cli_archive_linux,
       build_cli_archive_linux_arm64,
       build_cli_archive_windows,

@@ -1247,10 +1247,12 @@ public sealed class TestTriggerMapTests
             result.Jobs.Order(StringComparer.Ordinal));
     }
 
-    [Fact]
-    public void BuildCliNativeArchivesWorkflowSelectsOnlyCliArchiveConsumers()
+    [Theory]
+    [InlineData(".github/workflows/build-cli-native-archives.yml")]
+    [InlineData(".github/workflows/build-native-bundle-packages.yml")]
+    public void NativeArtifactWorkflowSelectsOnlyNativeArtifactConsumers(string path)
     {
-        var result = SelectWithRealMap(".github/workflows/build-cli-native-archives.yml");
+        var result = SelectWithRealMap(path);
 
         Assert.False(result.SelectsAll);
         Assert.Empty(result.UnmatchedFiles);
@@ -1265,6 +1267,7 @@ public sealed class TestTriggerMapTests
     [Theory]
     [InlineData(".github/workflows/build-packages.yml")]
     [InlineData(".github/workflows/build-cli-native-archives.yml")]
+    [InlineData(".github/workflows/build-native-bundle-packages.yml")]
     public void ArtifactProducerWorkflowSelectsEveryArtifactConsumingTestProject(string path)
     {
         // The narrowed routing above is only safe while the producer consumer groups still list every test
@@ -1317,16 +1320,19 @@ public sealed class TestTriggerMapTests
         var jobs = Assert.IsType<YamlMappingNode>(root.Children[new YamlScalarNode("jobs")]);
         var packageSelectedJobs = SelectWithRealMap(".github/workflows/build-packages.yml").Jobs.ToHashSet(StringComparer.Ordinal);
         var cliArchiveSelectedJobs = SelectWithRealMap(".github/workflows/build-cli-native-archives.yml").Jobs.ToHashSet(StringComparer.Ordinal);
+        var bundleSelectedJobs = SelectWithRealMap(".github/workflows/build-native-bundle-packages.yml").Jobs.ToHashSet(StringComparer.Ordinal);
         var packageConsumerGroup = Assert.Contains("BUILD_PACKAGE_CONSUMERS", s_map.Groups);
         var cliArchiveConsumerGroup = Assert.Contains("CLI_ARCHIVE_CONSUMERS", s_map.Groups);
 
         var packageConsumerTargets = ArtifactConsumingWorkflowJobTargets(jobs, "build_packages").ToList();
         var cliArchiveConsumerTargets = ArtifactConsumingWorkflowJobTargets(jobs, "build_cli_archive_").ToList();
+        var bundleConsumerTargets = ArtifactConsumingWorkflowJobTargets(jobs, "build_native_packages_").ToList();
         Assert.Contains(packageConsumerTargets, target => target.WorkflowJobId == "polyglot_validation");
         Assert.Contains(packageConsumerTargets, target => target.WorkflowJobId == "extension_e2e_tests_linux");
         Assert.Contains(packageConsumerTargets, target => target.WorkflowJobId == "extension_e2e_tests_windows");
         Assert.Contains(packageConsumerTargets, target => target.WorkflowJobId == "prepare_winget_installer_artifacts");
-        Assert.Contains(cliArchiveConsumerTargets, target => target.WorkflowJobId == "native_dashboard_validation_linux_x64");
+        Assert.Contains(cliArchiveConsumerTargets, target => target.WorkflowJobId == "cli_starter_validation_linux_x64");
+        Assert.Contains(bundleConsumerTargets, target => target.WorkflowJobId == "native_dashboard_validation_linux_x64");
         Assert.DoesNotContain(packageSelectedJobs, job => job == "job:native-dashboard-validation");
 
         foreach (var (workflowJobId, target) in packageConsumerTargets)
@@ -1343,6 +1349,14 @@ public sealed class TestTriggerMapTests
             Assert.True(
                 cliArchiveSelectedJobs.Contains(target),
                 $"{workflowJobId} consumes build_cli_archive_* artifacts, so {target} must be in CLI_ARCHIVE_CONSUMERS.");
+        }
+
+        foreach (var (workflowJobId, target) in bundleConsumerTargets)
+        {
+            Assert.Contains(target, cliArchiveConsumerGroup, StringComparer.Ordinal);
+            Assert.True(
+                bundleSelectedJobs.Contains(target),
+                $"{workflowJobId} consumes build_native_packages_* artifacts, so {target} must be selected for bundle producer changes.");
         }
     }
 
@@ -1513,7 +1527,7 @@ public sealed class TestTriggerMapTests
     }
 
     [Fact]
-    public void NativeDashboardValidationJobsMatchArchiveDependencies()
+    public void NativeDashboardValidationJobsMatchPackageDependencies()
     {
         var workflow = new YamlStream();
         using (var reader = new StringReader(File.ReadAllText(Path.Combine(RepoRoot.Path, ".github", "workflows", "tests.yml"))))
@@ -1523,14 +1537,14 @@ public sealed class TestTriggerMapTests
 
         var root = Assert.IsType<YamlMappingNode>(workflow.Documents[0].RootNode);
         var jobs = Assert.IsType<YamlMappingNode>(root.Children[new YamlScalarNode("jobs")]);
-        var expected = new Dictionary<string, (string ArchiveJob, string Rid)>(StringComparer.Ordinal)
+        var expected = new Dictionary<string, (string PackageJob, string Rid)>(StringComparer.Ordinal)
         {
-            ["native_dashboard_validation_linux_x64"] = ("build_cli_archive_linux", "linux-x64"),
+            ["native_dashboard_validation_linux_x64"] = ("build_native_packages_linux", "linux-x64"),
             ["native_dashboard_validation_linux_arm64"] = ("build_cli_archive_linux_arm64", "linux-arm64"),
-            ["native_dashboard_validation_windows_x64"] = ("build_cli_archive_windows", "win-x64"),
+            ["native_dashboard_validation_windows_x64"] = ("build_native_packages_windows", "win-x64"),
             ["native_dashboard_validation_windows_arm64"] = ("build_cli_archive_windows_arm64", "win-arm64"),
             ["native_dashboard_validation_macos_x64"] = ("build_cli_archive_macos_x64", "osx-x64"),
-            ["native_dashboard_validation_macos_arm64"] = ("build_cli_archive_macos", "osx-arm64"),
+            ["native_dashboard_validation_macos_arm64"] = ("build_native_packages_macos", "osx-arm64"),
         };
 
         Assert.Equal(s_nativeDashboardValidationJobIds.Order(StringComparer.Ordinal), expected.Keys.Order(StringComparer.Ordinal));
@@ -1539,7 +1553,7 @@ public sealed class TestTriggerMapTests
             var job = Assert.IsType<YamlMappingNode>(jobs.Children[new YamlScalarNode(jobId)]);
             Assert.Equal("./.github/workflows/native-dashboard-validation.yml", job.Children[new YamlScalarNode("uses")].ToString());
             Assert.Equal(
-                ["setup_for_tests", expectedValues.ArchiveJob],
+                ["setup_for_tests", expectedValues.PackageJob],
                 Assert.IsType<YamlSequenceNode>(job.Children[new YamlScalarNode("needs")]).Children.Select(node => node.ToString()));
             Assert.Equal(
                 expectedValues.Rid,

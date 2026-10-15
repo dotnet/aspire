@@ -54,9 +54,9 @@ groups:
     - job:winget-installer
     - job:homebrew-installer
 
-  # Everything downstream of the build_cli_archive_* artifact producers in tests.yml. Derived from
-  # the regular-PR requiresCliArchive test bucket plus jobs whose `needs:` include a native CLI
-  # archive producer.
+  # Native bundle/archive consumers, including early platform packages and Dashboard validation.
+  # Keep the shared umbrella for both producer workflows: bundle changes reach CLI archives
+  # transitively, and broad archive routing preserves the existing selection coverage.
   CLI_ARCHIVE_CONSUMERS:
     - test:Aspire.Cli.EndToEnd.Tests
     - test:Aspire.Templates.Tests
@@ -281,8 +281,9 @@ path_rules:
 
   - paths:
       - .github/workflows/build-cli-native-archives.yml
+      - .github/workflows/build-native-bundle-packages.yml
     targets: [CLI_ARCHIVE_CONSUMERS]
-    reason: this reusable workflow only produces native CLI archives, so only jobs/tests that list build_cli_archive_* or require CLI archives are affected
+    reason: native bundle and archive production feeds platform-package tests, Dashboard validation, and CLI consumers
 
   # --- convention misses: integration dirs whose covering test is NOT the same-named one ------
   - paths: [src/Aspire.Hosting.Azure.*/**]
@@ -377,6 +378,7 @@ path_rules:
       - .github/workflows/extension-e2e-matrix.json
       - .github/workflows/build-packages.yml
       - .github/workflows/build-cli-native-archives.yml
+      - .github/workflows/build-native-bundle-packages.yml
     targets: [job:extension-e2e]
     reason: extension e2e inputs and runtime dependencies; path fallback when Layer 1 is unavailable
   - paths:

@@ -10,6 +10,11 @@ on:
         required: false
         type: string
         default: Release
+      bundlePrepared:
+        description: Consume this run's prepared bundle and platform packages instead of producing them here.
+        required: false
+        type: boolean
+        default: false
       targets:
         description: >
           JSON array of target objects to build. Each object must have 'os', 'runner', and 'rids' keys.
@@ -71,9 +76,26 @@ jobs:
         with:
           node-version: 22.x
 
-      # Use the same preparation phase as official builds. Only official builds
-      # insert signing between preparation and packaging.
+      - name: Download prepared bundle payload
+        if: ${{ inputs.bundlePrepared }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: native-bundle-payload-${{ matrix.targets.rids }}
+          path: artifacts/bundle
+
+      # Keep the established final built-nugets-for-{rid} artifact complete for
+      # dogfood/tool installs and existing CLI consumers.
+      - name: Download platform NuGet packages
+        if: ${{ inputs.bundlePrepared }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: platform-nugets-for-${{ matrix.targets.rids }}
+          path: artifacts/packages/${{ inputs.configuration }}/Shipping
+
+      # Keep unsplit RIDs and direct/specialized callers on their existing
+      # single-worker path, avoiding a second allocation and payload transfer.
       - name: Publish bundle components
+        if: ${{ !inputs.bundlePrepared }}
         run: >
           ${{ runner.os == 'Windows' && './dotnet.cmd' || './dotnet.sh' }}
           msbuild
@@ -87,14 +109,14 @@ jobs:
           ${{ inputs.versionOverrideArg }}
 
       - name: Verify Native AOT Dashboard warnings
+        if: ${{ !inputs.bundlePrepared }}
         shell: pwsh
         run: >
           ./eng/scripts/verify-native-dashboard-warnings.ps1
           -BuildLog "${{ github.workspace }}/artifacts/log/${{ inputs.configuration }}/PublishNativeDashboard.log"
 
       - name: Build bundle payload archive
-        # This phase only consumes prepared files. Produce DCP packages locally
-        # so the archive jobs remain independent of build_packages.
+        if: ${{ !inputs.bundlePrepared }}
         run: >
           ${{ runner.os == 'Windows' && './dotnet.cmd' || './dotnet.sh' }}
           msbuild
@@ -110,7 +132,7 @@ jobs:
           ${{ inputs.versionOverrideArg }}
 
       - name: Smoke test bundled Native AOT TerminalHost
-        if: ${{ !contains(matrix.targets.rids, 'musl') && ((runner.arch == 'ARM64' && endsWith(matrix.targets.rids, 'arm64')) || (runner.arch == 'X64' && endsWith(matrix.targets.rids, 'x64'))) }}
+        if: ${{ !inputs.bundlePrepared && !contains(matrix.targets.rids, 'musl') && ((runner.arch == 'ARM64' && endsWith(matrix.targets.rids, 'arm64')) || (runner.arch == 'X64' && endsWith(matrix.targets.rids, 'x64'))) }}
         shell: pwsh
         run: >
           ./eng/scripts/test-native-terminalhost.ps1
@@ -273,7 +295,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload Native AOT Dashboard archive
-        if: success()
+        if: ${{ !inputs.bundlePrepared }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: native-dashboard-${{ matrix.targets.rids }}

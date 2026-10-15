@@ -127,22 +127,47 @@ That keeps `build_packages` focused on the shared package feed, and because `ext
 ./build.sh -restore -build -ci -pack -bl -p:InstallBrowsersForPlaywright=false -p:SkipTestProjects=true -p:SkipPlaygroundProjects=true -p:SkipBundleDeps=true
 ```
 
-`SkipBundleDeps=true` matters because the RID-specific bundle dependencies are produced by the per-OS CLI archive jobs, not by the shared package build.
+`SkipBundleDeps=true` matters because the RID-specific bundle dependencies are produced by the per-RID bundle package jobs, not by the shared package build.
 
-### `build-cli-native-archives.yml`
+### Native package handoff
 
-Each CLI archive job:
+`tests.yml` calls `build-native-bundle-packages.yml` separately for Linux x64,
+Windows x64, and macOS ARM64, the RIDs with package-only test buckets. Each
+package job:
 
 1. Runs `PublishBundleComponents` to publish Managed, Dashboard, TerminalHost,
    and the Windows/macOS tray once for the target RID.
 2. Verifies Dashboard warnings from that publish's `PublishNativeDashboard.log`.
 3. Runs `PackageBundlePayload` with `PackDcpPackage=true` to produce the
    Dashboard/DCP packages and bundle archive without publishing components again.
-4. Builds the native CLI archive from the embedded bundle payload.
-5. Uploads packages as `built-nugets-for-{rid}` and archives as
-   `cli-native-archives-{rid}`.
+4. Smoke-tests TerminalHost on matching host architectures.
+5. Uploads `platform-nugets-for-{rid}`, `native-dashboard-{rid}`, and the
+   compressed `native-bundle-payload-{rid}` handoff.
 
-This makes the archive job self-sufficient for the RID-specific artifacts it needs.
+Package-only test buckets and matching native Dashboard validation depend on
+these package jobs, not final CLI jobs. A reusable-workflow call is a single dependency barrier:
+uploading packages earlier within the old archive call would not release tests.
+
+The three matching `build-cli-native-archives.yml` calls consume their RID's
+handoff with `bundlePrepared: true`. Each downloads the payload without extracting/recreating it,
+preserving embedded bytes and executable modes, and builds the CLI with the
+existing version/channel inputs. Tool/npm verification and Windows tray smoke
+remain after CLI compilation. The established final `built-nugets-for-{rid}` and
+`cli-native-archives-{rid}` artifacts remain complete for dogfood, tool installs,
+Starter, installers, CLI E2E, polyglot, and extension consumers.
+
+The other three RIDs and direct callers, including specialized test workflows,
+omit `bundlePrepared` and retain their original single-worker publish/package/CLI
+path. They incur no handoff transfer or additional allocation. Missing handoffs
+on the split path fail the CLI job rather than silently republish components.
+Official Azure DevOps orchestration is unchanged.
+
+The split adds a runner allocation and compressed-payload transfer for each of
+the three split RIDs.
+Platform packages also transfer to the CLI job to preserve the existing final
+NuGet artifact contract. New binary artifact uploads disable redundant ZIP
+compression. Measure queue/transfer time and end-to-end CI duration, particularly
+on macOS; producer head-start alone is not proof of wall-time improvement.
 
 ### Shared bundle phases and the official signing seam
 
@@ -196,10 +221,14 @@ When a test lane sets `requiresNugets: true`, `run-tests.yml`:
 
 1. Downloads the shared `built-nugets` artifact
 2. Computes the lane RID from `runner.os`
-3. Downloads `built-nugets-for-{rid}`
+3. Downloads `platform-nugets-for-{rid}` when the caller sets
+   `usePlatformPackages: true`, or the complete `built-nugets-for-{rid}` by default
 4. Merges those RID-specific packages into the local package feed before running tests
 
-That is why the dependency graph must preserve the OS relationship between test lane and CLI archive lane.
+That is why the dependency graph must preserve the RID relationship between each
+test lane and its package/archive producer. Final results still depend directly
+on all three early package producers and all six CLI producers, so a late CLI failure
+cannot be hidden by package tests that already passed.
 
 ## What to validate when changing this area
 
