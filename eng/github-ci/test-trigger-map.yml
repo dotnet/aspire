@@ -489,6 +489,7 @@ path_rules:
     reason: Infrastructure.Tests validates the Nix flake, package derivation, update script, and release asset manifest; the Nix package smoke runs nix flake check, nix build, and the packaged CLI
   - paths:
       - eng/scripts/download-native-archives.ps1
+      - eng/scripts/remove-native-bundle-debug-symbols.ps1
       - eng/scripts/stage-native-cli-tool-packages.ps1
       - eng/scripts/validate-npm-package-signatures.ps1
       - eng/scripts/validate-npm-release-aliases.ps1
@@ -581,6 +582,10 @@ path_rules:
       - tools/CreateLayout/**
     targets: [CLI_BUNDLE, test:Infrastructure.Tests]
     reason: assembles and validates native CLI bundle payloads
+  - paths:
+      - eng/Bundle.proj
+    targets: [test:Aspire.Templates.Tests, job:native-dashboard-validation, job:polyglot]
+    reason: shared bundle phases produce RID runtime packages and the standalone Dashboard archive
   - paths:
       - src/Aspire.Cli/Aspire.Cli.csproj
       - src/Aspire.TerminalHost/Aspire.TerminalHost.csproj

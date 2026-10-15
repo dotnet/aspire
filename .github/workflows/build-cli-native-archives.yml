@@ -71,57 +71,117 @@ jobs:
         with:
           node-version: 22.x
 
-      # Build RID-specific NuGet packages (DCP + Dashboard) locally instead of
-      # downloading them from the build_packages job. This allows the CLI archive
-      # build to run in parallel with build_packages.
-      #
-      # Capture the complete build output so the expected framework-owned IL2026
-      # can remain visible while verification rejects any additional IL2026 warnings.
-      - name: Build RID-specific packages
+      # Use the same preparation phase as official builds. Only official builds
+      # insert signing between preparation and packaging.
+      - name: Publish bundle components
         shell: pwsh
+        env:
+          BUNDLE_CONFIGURATION: ${{ inputs.configuration }}
+          BUNDLE_TARGET_RID: ${{ matrix.targets.rids }}
+          VERSION_OVERRIDE_ARGS: ${{ inputs.versionOverrideArg }}
         run: |
-          $ErrorActionPreference = 'Stop'
-          $buildLog = '${{ github.workspace }}/artifacts/log/${{ inputs.configuration }}/BuildBundleDeps.log'
-          # Repository cleanup can remove artifacts/log while the build is streaming output.
-          $temporaryLog = Join-Path '${{ runner.temp }}' 'BuildBundleDeps.log'
-          & '${{ runner.os == 'Windows' && './build.cmd' || './build.sh' }}' `
-            -ci `
-            -restore `
-            -build `
-            -pack `
-            -configuration '${{ inputs.configuration }}' `
-            '/bl:${{ github.workspace }}/artifacts/log/${{ inputs.configuration }}/BuildBundleDeps.binlog' `
-            /p:ContinuousIntegrationBuild=true `
-            /p:BuildBundleDepsOnly=true `
-            /p:TargetRids=${{ matrix.targets.rids }} `
-            /p:AspireCliChannel=${{ env.ASPIRE_CLI_CHANNEL }} `
-            ${{ inputs.versionOverrideArg }} 2>&1 | Tee-Object -FilePath $temporaryLog
-          $buildExitCode = $LASTEXITCODE
-          New-Item -ItemType Directory -Force -Path (Split-Path $buildLog -Parent) | Out-Null
-          Copy-Item -LiteralPath $temporaryLog -Destination $buildLog
-          exit $buildExitCode
+          if ($env:BUNDLE_CONFIGURATION -notin @("Release", "Debug")) {
+            throw "Unsupported bundle configuration."
+          }
+          if ($env:BUNDLE_TARGET_RID -cnotmatch '^[a-z0-9]+(-[a-z0-9]+)*$') {
+            throw "Unsupported bundle target RID."
+          }
+          if ($env:ASPIRE_CLI_CHANNEL -cnotmatch '^(pr-[0-9]+|staging|local|daily)$') {
+            throw "Unsupported Aspire CLI channel."
+          }
+
+          $dotnetScript = if ($IsWindows) { "./dotnet.cmd" } else { "./dotnet.sh" }
+          $versionOverrideArgs = @()
+          if (-not [string]::IsNullOrWhiteSpace($env:VERSION_OVERRIDE_ARGS)) {
+            if ($env:VERSION_OVERRIDE_ARGS -cmatch '^/p:VersionSuffix=(pr\.[0-9]+\.g[0-9a-f]{8}) /p:DotNetFinalVersionKind=prerelease$') {
+              $versionOverrideArgs = @(
+                "/p:VersionSuffix=$($Matches[1])",
+                "/p:DotNetFinalVersionKind=prerelease"
+              )
+            }
+            else {
+              throw "Unsupported version override arguments."
+            }
+          }
+
+          $arguments = @(
+            "msbuild",
+            "eng/Bundle.proj",
+            "/t:PublishBundleComponents",
+            "/p:Configuration=$env:BUNDLE_CONFIGURATION",
+            "/p:TargetRid=$env:BUNDLE_TARGET_RID",
+            "/p:ContinuousIntegrationBuild=true",
+            "/p:AspireCliChannel=$env:ASPIRE_CLI_CHANNEL",
+            "/bl:$env:GITHUB_WORKSPACE/artifacts/log/$env:BUNDLE_CONFIGURATION/PublishBundleComponents.binlog"
+          ) + $versionOverrideArgs
+
+          & $dotnetScript @arguments
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
 
       - name: Verify Native AOT Dashboard warnings
         shell: pwsh
-        run: >
-          ./eng/scripts/verify-native-dashboard-warnings.ps1
-          -BuildLog "${{ github.workspace }}/artifacts/log/${{ inputs.configuration }}/BuildBundleDeps.log"
+        env:
+          BUNDLE_CONFIGURATION: ${{ inputs.configuration }}
+        run: |
+          if ($env:BUNDLE_CONFIGURATION -notin @("Release", "Debug")) {
+            throw "Unsupported bundle configuration."
+          }
+
+          $buildLog = Join-Path $env:GITHUB_WORKSPACE "artifacts/log/$env:BUNDLE_CONFIGURATION/PublishNativeDashboard.log"
+          ./eng/scripts/verify-native-dashboard-warnings.ps1 -BuildLog $buildLog
 
       - name: Build bundle payload archive
-        # SkipNativeBuild skips only the outer CLI. Bundle.proj still publishes
-        # native tray payloads on Windows/macOS and verifies the actual archive.
-        run: >
-          ${{ runner.os == 'Windows' && './dotnet.cmd' || './dotnet.sh' }}
-          msbuild
-          eng/Bundle.proj
-          /restore
-          /p:Configuration=${{ inputs.configuration }}
-          /p:TargetRid=${{ matrix.targets.rids }}
-          /p:BundleVersion=ci-bundlepayload
-          /p:SkipNativeBuild=true
-          /p:ContinuousIntegrationBuild=true
-          /bl:${{ github.workspace }}/artifacts/log/${{ inputs.configuration }}/BundlePayload.binlog
-          ${{ inputs.versionOverrideArg }}
+        # This phase only consumes prepared files. Produce DCP packages locally
+        # so the archive jobs remain independent of build_packages.
+        shell: pwsh
+        env:
+          BUNDLE_CONFIGURATION: ${{ inputs.configuration }}
+          BUNDLE_TARGET_RID: ${{ matrix.targets.rids }}
+          VERSION_OVERRIDE_ARGS: ${{ inputs.versionOverrideArg }}
+        run: |
+          if ($env:BUNDLE_CONFIGURATION -notin @("Release", "Debug")) {
+            throw "Unsupported bundle configuration."
+          }
+          if ($env:BUNDLE_TARGET_RID -cnotmatch '^[a-z0-9]+(-[a-z0-9]+)*$') {
+            throw "Unsupported bundle target RID."
+          }
+          if ($env:ASPIRE_CLI_CHANNEL -cnotmatch '^(pr-[0-9]+|staging|local|daily)$') {
+            throw "Unsupported Aspire CLI channel."
+          }
+
+          $dotnetScript = if ($IsWindows) { "./dotnet.cmd" } else { "./dotnet.sh" }
+          $versionOverrideArgs = @()
+          if (-not [string]::IsNullOrWhiteSpace($env:VERSION_OVERRIDE_ARGS)) {
+            if ($env:VERSION_OVERRIDE_ARGS -cmatch '^/p:VersionSuffix=(pr\.[0-9]+\.g[0-9a-f]{8}) /p:DotNetFinalVersionKind=prerelease$') {
+              $versionOverrideArgs = @(
+                "/p:VersionSuffix=$($Matches[1])",
+                "/p:DotNetFinalVersionKind=prerelease"
+              )
+            }
+            else {
+              throw "Unsupported version override arguments."
+            }
+          }
+
+          $arguments = @(
+            "msbuild",
+            "eng/Bundle.proj",
+            "/t:PackageBundlePayload",
+            "/p:Configuration=$env:BUNDLE_CONFIGURATION",
+            "/p:TargetRid=$env:BUNDLE_TARGET_RID",
+            "/p:BundleVersion=ci-bundlepayload",
+            "/p:PackDcpPackage=true",
+            "/p:ContinuousIntegrationBuild=true",
+            "/p:AspireCliChannel=$env:ASPIRE_CLI_CHANNEL",
+            "/bl:$env:GITHUB_WORKSPACE/artifacts/log/$env:BUNDLE_CONFIGURATION/BundlePayload.binlog"
+          ) + $versionOverrideArgs
+
+          & $dotnetScript @arguments
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
 
       - name: Smoke test bundled Native AOT TerminalHost
         if: ${{ !contains(matrix.targets.rids, 'musl') && ((runner.arch == 'ARM64' && endsWith(matrix.targets.rids, 'arm64')) || (runner.arch == 'X64' && endsWith(matrix.targets.rids, 'x64'))) }}

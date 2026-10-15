@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using System.Xml.Linq;
+using Aspire.TestUtilities;
 using Xunit;
 using YamlDotNet.RepresentationModel;
 
@@ -371,28 +372,45 @@ public sealed class Hex1bNativePublishingTests : IDisposable
             windowsManagedFiles);
     }
 
-    [Fact]
-    public async Task MacOSNativeBundleDebugSymbolsAreRemovedBeforeSigning()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    [RequiresTools(["pwsh"])]
+    public async Task MacOSNativeBundleDebugSymbolsAreRemovedWithoutChangingPayloads(bool terminalSymbols)
     {
-        var pipeline = await File.ReadAllTextAsync(Path.Combine(
-            RepoRoot.Path, "eng", "pipelines", "templates", "build_sign_native.yml"));
+        var dashboard = Path.Combine(_workspace.Path, "Dashboard publish");
+        var terminal = Path.Combine(_workspace.Path, "TerminalHost publish");
+        WriteFile(Path.Combine(dashboard, "Aspire.Dashboard"), "dashboard payload");
+        WriteFile(Path.Combine(terminal, "Aspire.TerminalHost"), "terminal payload");
+        WriteFile(Path.Combine(dashboard, "Aspire.Dashboard.dSYM", "Contents", "Resources", "DWARF", "Aspire.Dashboard"), "dashboard symbols");
+        if (terminalSymbols)
+        {
+            WriteFile(Path.Combine(terminal, "Aspire.TerminalHost.dSYM", "Contents", "Resources", "DWARF", "Aspire.TerminalHost"), "terminal symbols");
+        }
 
-        var prepareDashboardIndex = pipeline.IndexOf("displayName: 🟣Prepare Native AOT Dashboard", StringComparison.Ordinal);
-        var removeSymbolsIndex = pipeline.IndexOf("displayName: 🟣Remove Native AOT bundle debug symbols", StringComparison.Ordinal);
-        var signManagedIndex = pipeline.IndexOf("displayName: 🟣Sign bundle components", StringComparison.Ordinal);
-        var buildNativeIndex = pipeline.IndexOf("displayName: 🟣Build native packages", StringComparison.Ordinal);
+        using var command = new PowerShellCommand(
+            Path.Combine(RepoRoot.Path, "eng", "scripts", "remove-native-bundle-debug-symbols.ps1"), _output);
+        var result = await command.ExecuteAsync("-DashboardPublishDirectory", $"\"{dashboard}\"", "-TerminalHostPublishDirectory", $"\"{terminal}\"");
 
-        Assert.True(prepareDashboardIndex >= 0);
-        Assert.True(prepareDashboardIndex < removeSymbolsIndex);
-        Assert.True(removeSymbolsIndex < signManagedIndex);
-        Assert.True(signManagedIndex < buildNativeIndex);
-        var cleanupStart = pipeline.LastIndexOf("          - ${{ if ", removeSymbolsIndex, StringComparison.Ordinal);
-        Assert.True(cleanupStart >= 0);
-        var cleanup = pipeline[cleanupStart..removeSymbolsIndex];
-        Assert.Contains("Aspire.Dashboard.dSYM", cleanup);
-        Assert.Contains("Aspire.TerminalHost.dSYM", cleanup);
-        Assert.Contains("Remove-Item", cleanup);
-        Assert.Contains("eq(parameters.agentOs, 'macos')", cleanup);
+        result.EnsureSuccessful();
+        Assert.Equal(["Aspire.Dashboard"], Directory.GetFileSystemEntries(dashboard).Select(Path.GetFileName));
+        Assert.Equal(["Aspire.TerminalHost"], Directory.GetFileSystemEntries(terminal).Select(Path.GetFileName));
+        Assert.Equal("dashboard payload", await File.ReadAllTextAsync(Path.Combine(dashboard, "Aspire.Dashboard")));
+        Assert.Equal("terminal payload", await File.ReadAllTextAsync(Path.Combine(terminal, "Aspire.TerminalHost")));
+    }
+
+    [Fact]
+    [RequiresTools(["pwsh"])]
+    public async Task MacOSNativeBundleCleanupFailsWhenDashboardSymbolsAreMissing()
+    {
+        var dashboard = Directory.CreateDirectory(Path.Combine(_workspace.Path, "dashboard")).FullName;
+        var terminal = Directory.CreateDirectory(Path.Combine(_workspace.Path, "terminal")).FullName;
+        using var command = new PowerShellCommand(
+            Path.Combine(RepoRoot.Path, "eng", "scripts", "remove-native-bundle-debug-symbols.ps1"), _output);
+
+        var result = await command.ExecuteAsync("-DashboardPublishDirectory", $"\"{dashboard}\"", "-TerminalHostPublishDirectory", $"\"{terminal}\"");
+
+        Assert.NotEqual(0, result.ExitCode);
     }
 
     private string CreatePublishProject(string rid, bool singleFile, bool duplicateUnrelatedAsset)
