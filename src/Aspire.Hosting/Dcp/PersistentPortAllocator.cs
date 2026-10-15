@@ -141,7 +141,7 @@ internal sealed class PersistentPortAllocator
             foreach (var allocation in _store.GetAllocations())
             {
                 if (activePortKeys.TryGetValue(allocation.Key, out var activePort) &&
-                    TryReservePort(allocation.Value, activePort))
+                    TryReservePort(allocation.Value, activePort, allowInUse: activePort.AllowInUse))
                 {
                     _reservedPorts[allocation.Key] = allocation.Value;
                 }
@@ -153,7 +153,10 @@ internal sealed class PersistentPortAllocator
             {
                 if (_reservedPorts.ContainsKey(key) ||
                     activePort.LegacyPort is not int legacyPort ||
-                    !TryReservePort(legacyPort, activePort))
+                    !TryReservePort(
+                        legacyPort,
+                        activePort,
+                        allowInUse: activePort.AllowInUse && !_options.RandomizePorts))
                 {
                     continue;
                 }
@@ -166,15 +169,15 @@ internal sealed class PersistentPortAllocator
         _initialized = true;
     }
 
-    private bool TryReservePort(int port, ActivePort activePort)
+    private bool TryReservePort(int port, ActivePort activePort, bool allowInUse)
     {
-        // A persistent proxyless workload from the previous AppHost run can still own its
-        // saved port. The state file is scoped to this AppHost and resource endpoint, so
-        // retaining that port lets DCP adopt the workload without changing its spec.
+        // AppHost-local state can identify a persistent proxyless workload that still owns
+        // its saved port. Legacy user secrets are shared with isolated runs, so those values
+        // must still be available before they can be migrated when ports are randomized.
         return _allocator.TryReservePort(
             port,
             activePort.Protocol,
-            allowInUse: activePort.AllowInUse);
+            allowInUse);
     }
 
     private readonly record struct ActivePort(

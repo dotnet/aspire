@@ -2144,6 +2144,59 @@ public class DcpExecutorTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task IsolatedPersistentProxylessEndpointDoesNotMigrateUnavailableLegacyPort()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var (legacyPort, allocatedPort) = GetAvailableConsecutivePortPair();
+        var builder = DistributedApplication.CreateBuilder();
+
+        builder.AddExecutable("PersistentProgram", "persistent", Environment.CurrentDirectory)
+            .WithPersistentLifetime()
+            .WithEndpoint(name: "http", env: "HTTP_PORT", isProxied: false);
+
+        var portKey = new PersistentPortAllocationKey("PersistentProgram", "http");
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["AppHost:Directory"] = workspace.WorkspaceRoot.FullName,
+                ["AppHost:Sha256"] = "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+                [KnownConfigNames.DcpWorkloadId] = "isolated-legacy-conflict-test",
+                ["Resources:PersistentProgram:http:port"] = legacyPort.ToString(CultureInfo.InvariantCulture)
+            })
+            .Build();
+        var dcpOptions = new DcpOptions
+        {
+            DashboardPath = "./dashboard",
+            RandomizePorts = true,
+            PersistPortsInIsolatedMode = true,
+            ProxylessEndpointPortRangeStart = legacyPort,
+            ProxylessEndpointPortRangeEnd = allocatedPort
+        };
+        var portAllocator = new ProxylessEndpointPortAllocator(
+            legacyPort,
+            allocatedPort,
+            randomWalkOffset: 0,
+            randomWalkStep: 1,
+            tryProbe: (port, _) => port != legacyPort);
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var appExecutor = CreateAppExecutor(
+            distributedAppModel,
+            configuration: configuration,
+            kubernetesService: kubernetesService,
+            dcpOptions: dcpOptions,
+            proxylessEndpointPortAllocator: portAllocator);
+
+        await appExecutor.RunApplicationAsync();
+
+        var service = Assert.Single(kubernetesService.CreatedResources.OfType<Service>(), s => s.Name() == "PersistentProgram");
+        Assert.Equal(allocatedPort, service.Status?.EffectivePort);
+        Assert.Equal(allocatedPort, CreatePersistentPortAllocationStore(configuration).GetAllocations()[portKey]);
+    }
+
+    [Fact]
     public async Task ProxiedExecutablePersistsPublicPortAndAllocatesTransientTargetPort()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
