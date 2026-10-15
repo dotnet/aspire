@@ -442,14 +442,25 @@ internal sealed class ResourceContainerImageManager(
 
         var hasContainerFiles = resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out _);
         var containerRuntime = await GetContainerRuntimeAsync(cancellationToken).ConfigureAwait(false);
-        if (containerRuntime is WslcContainerRuntime &&
-            (hasContainerFiles || string.IsNullOrEmpty(options.OutputPath)))
+        if (containerRuntime is WslcContainerRuntime)
         {
-            // The SDK supports only Docker and Podman local image stores. Archive-only publishing
-            // bypasses the local store, but container-file layering still needs an SDK image there.
-            throw new DistributedApplicationException(
-                $"WSLc does not support .NET SDK publishing to the local image store or container-file layering for resource '{resource.Name}'. " +
-                "Use Docker or Podman, or publish an archive with Destination = Archive and OutputPath without PublishWithContainerFiles.");
+            if (hasContainerFiles)
+            {
+                // Layering selects a platform for its Dockerfile build even when the SDK image
+                // uses the host default. WSLc cannot honor that Dockerfile platform selection.
+                throw new DistributedApplicationException(
+                    $"WSLc does not support the platform-selected Dockerfile build required by PublishWithContainerFiles for resource '{resource.Name}'. " +
+                    "Use Docker or Podman for container-file layering.");
+            }
+
+            if (string.IsNullOrEmpty(options.OutputPath) &&
+                options.TargetPlatform is { } targetPlatform &&
+                targetPlatform.ToMSBuildRuntimeIdentifierString().Contains(';'))
+            {
+                throw new DistributedApplicationException(
+                    $"WSLc does not support loading multi-platform .NET SDK images into its local image store for resource '{resource.Name}'. " +
+                    "Select a single TargetPlatform, use Docker or Podman, or publish an archive with Destination = Archive and OutputPath.");
+            }
         }
 
         if (hasContainerFiles || ResourceRequiresContainerRuntime(resource, options))
@@ -578,7 +589,12 @@ internal sealed class ResourceContainerImageManager(
             MsBuildResponseFileFactory.CreatePropertyArgument("ContainerImageTag", options.LocalImageTag)
         };
 
-        if (GetLocalRegistryName(containerRuntime) is string localRegistry)
+        // Archives do not use a local registry. Omitting Wslc here also preserves archive-only
+        // publishing with older SDKs that do not recognize that registry name.
+        var localRegistryName = containerRuntime is WslcContainerRuntime && !string.IsNullOrEmpty(options.OutputPath)
+            ? null
+            : GetLocalRegistryName(containerRuntime);
+        if (localRegistryName is string localRegistry)
         {
             arguments.Add(MsBuildResponseFileFactory.CreatePropertyArgument("LocalRegistry", localRegistry));
         }
@@ -940,6 +956,11 @@ internal sealed class ResourceContainerImageManager(
         if (string.Equals(containerRuntime.Name, KnownContainerRuntimes.Podman, StringComparison.OrdinalIgnoreCase))
         {
             return "Podman";
+        }
+
+        if (containerRuntime is WslcContainerRuntime)
+        {
+            return "Wslc";
         }
 
         return null;
