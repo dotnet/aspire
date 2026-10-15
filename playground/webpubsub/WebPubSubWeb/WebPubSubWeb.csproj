@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.Azure.Messaging.WebPubSub" />
+    <PackageReference Include="Yarp.ReverseProxy" />
   </ItemGroup>
 
 </Project>

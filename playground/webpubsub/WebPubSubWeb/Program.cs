@@ -10,6 +10,7 @@ builder.Services.AddHostedService<NotificationService>();
 
 // Add services to the container.
 builder.Services.AddRazorPages();
+builder.Services.AddHttpForwarder();
 
 var app = builder.Build();
 
@@ -30,22 +31,32 @@ app.UseAuthorization();
 
 app.MapRazorPages();
 
+var chatEndpoint = app.Services.GetRequiredKeyedService<WebPubSubServiceClient>(Constants.ChatHubName).Endpoint;
+if (chatEndpoint.IsLoopback)
+{
+    // A browser outside a Codespace cannot reach the emulator's loopback address.
+    // Proxy client connections through the web endpoint so they also share its HTTPS and port authentication.
+    app.MapForwarder("/client/hubs/{**path}", chatEndpoint.AbsoluteUri);
+}
+
 // return the Client Access URL with negotiate endpoint
 app.MapGet("/negotiate/chat", ([FromKeyedServices(Constants.ChatHubName)] WebPubSubServiceClient service) =>
 {
+    var clientAccessUri = service.GetClientAccessUri(roles: ["webpubsub.sendToGroup.group1", "webpubsub.joinLeaveGroup.group1"]);
     return
         new
         {
-            url = service.GetClientAccessUri(roles: ["webpubsub.sendToGroup.group1", "webpubsub.joinLeaveGroup.group1"]).AbsoluteUri
+            url = service.Endpoint.IsLoopback ? clientAccessUri.PathAndQuery : clientAccessUri.AbsoluteUri
         };
 });
 
 app.MapGet("/negotiate/notification", ([FromKeyedServices(Constants.NotificationHubName)] WebPubSubServiceClient service) =>
 {
+    var clientAccessUri = service.GetClientAccessUri();
     return
         new
         {
-            url = service.GetClientAccessUri().AbsoluteUri
+            url = service.Endpoint.IsLoopback ? clientAccessUri.PathAndQuery : clientAccessUri.AbsoluteUri
         };
 });
 
