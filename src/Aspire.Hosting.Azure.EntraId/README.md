@@ -7,8 +7,8 @@ Use this integration to model, configure, and orchestrate Microsoft Entra ID app
 ### Prerequisites
 
 - A Microsoft Entra ID tenant
-- For existing registrations: an app registration created in the [Microsoft Entra admin center](https://entra.microsoft.com)
 - For new registrations: an Azure subscription, permission to deploy to a resource group and create application registrations and service principals in its tenant, and Azure CLI with Bicep 0.36.1 or later
+- For existing registrations: an app registration created in the [Microsoft Entra admin center](https://entra.microsoft.com)
 
 ### Add the integration
 
@@ -20,28 +20,11 @@ aspire add Aspire.Hosting.Azure.EntraId
 
 ## Usage example
 
-Then, in the AppHost, add an Entra ID application resource and reference it from another resource:
-
-```csharp
-var tenantId = builder.AddParameter("EntraTenantId");
-var apiClientId = builder.AddParameter("EntraApiClientId");
-
-var entraApi = builder.AddEntraIdApplication("entra-api")
-                      .AsExistingApplication(tenantId: tenantId, clientId: apiClientId);
-
-var api = builder.AddProject<Projects.Api>("api")
-                 .WithReference(entraApi);
-```
-
-Pass the **Directory (tenant) ID** and **Application (client) ID** shown on the app registration's **Overview** page. When the parameters have no value, the dashboard prompts for them.
-
-For .NET program resources, `WithReference` injects environment variables in the form `AzureAd__{Key}` — for example `AzureAd__Instance`, `AzureAd__TenantId`, and `AzureAd__ClientId`. .NET's configuration system maps these to the `AzureAd` configuration section, so the referencing resource reads them as ordinary configuration with no glue code.
-
-When the AppHost starts, the Entra ID resource validates its IDs, instance, and credentials, then reports **Running** and shows links to the app registration and its OpenID Connect discovery document in the dashboard. If a setting is invalid, the resource fails to start and its console logs explain why.
+Then, in the AppHost, add an Entra ID application resource and reference it from another resource.
 
 ### Create registrations
 
-Omit `AsExistingApplication` to create a registration and its service principal using the Microsoft Graph Bicep extension:
+`AddEntraIdApplication` creates a registration and its service principal using the Microsoft Graph Bicep extension:
 
 ```csharp
 var entraApi = builder.AddEntraIdApplication("entra-api");
@@ -56,6 +39,10 @@ builder.AddProject<Projects.Api>("api")
 builder.AddProject<Projects.Web>("web")
        .WithReference(entraWeb);
 ```
+
+For .NET program resources, `WithReference` injects environment variables in the form `AzureAd__{Key}` — for example `AzureAd__Instance`, `AzureAd__TenantId`, and `AzureAd__ClientId`. .NET's configuration system maps these to the `AzureAd` configuration section, so the referencing resource reads them as ordinary configuration with no glue code.
+
+When the AppHost starts, the Entra ID resource validates its IDs, instance, and credentials, then reports **Running** and shows links to the app registration and its OpenID Connect discovery document in the dashboard. If a setting is invalid, the resource fails to start and its console logs explain why.
 
 Configure [local Azure provisioning](https://aspire.dev/integrations/cloud/azure/local-provisioning/) with your subscription and location, and sign in to Azure CLI. The registrations are created in **the subscription's tenant**, not necessarily your account's home tenant. Aspire does not explicitly assign application or service-principal owners; Microsoft Entra's default ownership behavior applies. If tenant policy prevents creation, use `AsExistingApplication`; existing registrations still require no Azure or Graph access.
 
@@ -115,6 +102,23 @@ Their cached identification outputs and dashboard links are retained; ordinary A
 The report does not query Microsoft Graph to verify live objects, and missing IDs are reported as unknown.
 
 Delete only the registrations and service principals belonging to your application using the [Microsoft Entra admin center](https://entra.microsoft.com) or Microsoft Graph. Deleted applications remain soft-deleted for 30 days; restore or permanently delete the application before redeploying with the same `uniqueName`.
+
+### Reference an existing registration
+
+Call `AsExistingApplication` to reference an existing registration instead of provisioning one:
+
+```csharp
+var tenantId = builder.AddParameter("EntraTenantId");
+var apiClientId = builder.AddParameter("EntraApiClientId");
+
+var entraApi = builder.AddEntraIdApplication("entra-api")
+                      .AsExistingApplication(tenantId: tenantId, clientId: apiClientId);
+
+var api = builder.AddProject<Projects.Api>("api")
+                 .WithReference(entraApi);
+```
+
+Pass the **Directory (tenant) ID** and **Application (client) ID** shown on the app registration's **Overview** page. When the parameters have no value, the dashboard prompts for them.
 
 ### Custom environment variable names
 
