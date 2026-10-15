@@ -373,7 +373,12 @@ internal sealed class CliInstallStrategy
             throw new ArgumentException("Specifying both version and quality requires a resolved build version.", nameof(buildVersion));
         }
 
-        return new CliInstallStrategy(CliInstallMode.InstallScript, version: version, buildVersion: buildVersion, quality: quality);
+        // The installer accepts v/V-prefixed stable versions but the CLI reports the normalized product version.
+        var expectedVersion = Regex.IsMatch(version, @"^[vV][0-9]+\.[0-9]+\.[0-9]+$")
+            ? version[1..]
+            : version;
+
+        return new CliInstallStrategy(CliInstallMode.InstallScript, version: version, buildVersion: buildVersion, quality: quality, expectedVersion: expectedVersion);
     }
 
     /// <summary>
@@ -431,8 +436,15 @@ internal sealed class CliInstallStrategy
     /// <summary>
     /// Creates a DotnetTool strategy for a published NuGet feed.
     /// </summary>
-    public static CliInstallStrategy FromPublishedDotnetToolFeed(string? version, CliInstallQuality? quality)
+    public static CliInstallStrategy FromPublishedDotnetToolFeed(string? version, CliInstallQuality? quality, string? buildVersion)
     {
+        // A complete product/build pair pins native archives, not published tool packages.
+        // Stable-shaped staging products (e.g. 17.0.0 in a 17.0.0-preview.* build) may not exist on NuGet.org.
+        if (!string.IsNullOrEmpty(version) && !string.IsNullOrEmpty(buildVersion))
+        {
+            version = null;
+        }
+
         var includePrerelease = ShouldIncludePrereleaseForPublishedDotnetTool(version, quality);
         return FromDotnetTool(version, includePrerelease);
     }
@@ -515,8 +527,9 @@ internal sealed class CliInstallStrategy
         {
             var toolVersion = Environment.GetEnvironmentVariable("ASPIRE_E2E_VERSION");
             var quality = GetQualityFromEnvironment();
-            var strategy = FromPublishedDotnetToolFeed(toolVersion, quality);
-            var versionDescription = toolVersion ?? (strategy.IncludePrerelease ? "(latest prerelease)" : "(latest stable)");
+            var toolBuildVersion = Environment.GetEnvironmentVariable("ASPIRE_E2E_BUILD_VERSION");
+            var strategy = FromPublishedDotnetToolFeed(toolVersion, quality, toolBuildVersion);
+            var versionDescription = strategy.Version ?? (strategy.IncludePrerelease ? "(latest prerelease)" : "(latest stable)");
             log?.Invoke($"  → Selected: DotnetTool published feed (ASPIRE_E2E_DOTNET_TOOL={dotnetTool}, version={versionDescription})");
             return strategy;
         }

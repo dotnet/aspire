@@ -259,14 +259,37 @@ public class ReleaseScriptShellTests(ITestOutputHelper testOutput)
         Assert.Contains("Unsupported quality", result.Output, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact]
-    public async Task DryRun_ShowsDownloadAndInstallSteps()
+    [Theory]
+    [InlineData("dev", false)]
+    [InlineData("staging", false)]
+    [InlineData("release", false)]
+    [InlineData("dev", true)]
+    [InlineData("staging", true)]
+    [InlineData("release", true)]
+    public async Task DryRun_ShowsDownloadAndInstallSteps_WithoutRequestsOrInstallWrites(string quality, bool reuseResolvedBuild)
     {
         using var env = new TestEnvironment();
-        using var cmd = new ScriptToolCommand(s_scriptPath, env, _testOutput);
-        var result = await cmd.ExecuteAsync("--dry-run", "--quality", "release");
+        var requestsPath = Path.Combine(env.TempDirectory, "requests");
+        var installPath = Path.Combine(env.MockHome, ".aspire", "bin");
+        await File.WriteAllTextAsync(requestsPath, "");
+        var pinArgs = reuseResolvedBuild ? "--version '13.6.1' --build-version '13.6.1-preview.1.26506.6'" : "";
+        using var cmd = new ScriptFunctionCommand(
+            s_scriptPath,
+            $$"""
+            secure_curl() {
+                printf '%s\n' "$*" >> '{{requestsPath}}'
+                return 22
+            }
+            main --dry-run --quality '{{quality}}' {{pinArgs}} --install-path '{{installPath}}'
+            """,
+            env,
+            _testOutput);
+
+        var result = await cmd.ExecuteAsync();
 
         result.EnsureSuccessful();
+        Assert.Empty(await File.ReadAllLinesAsync(requestsPath));
+        Assert.Empty(Directory.GetFileSystemEntries(env.MockHome));
         Assert.Contains("download", result.Output, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("install", result.Output, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("[DRY RUN]", result.Output);

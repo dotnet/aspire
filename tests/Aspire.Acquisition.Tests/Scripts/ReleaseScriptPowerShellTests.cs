@@ -277,15 +277,46 @@ public class ReleaseScriptPowerShellTests(ITestOutputHelper testOutput)
         Assert.Contains("Quality", result.Output, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact]
-    public async Task WhatIf_ShowsActions()
+    [Theory]
+    [InlineData("dev", false)]
+    [InlineData("staging", false)]
+    [InlineData("release", false)]
+    [InlineData("dev", true)]
+    [InlineData("staging", true)]
+    [InlineData("release", true)]
+    public async Task WhatIf_ShowsActions_WithoutRequestsOrInstallWrites(string quality, bool reuseResolvedBuild)
     {
         using var env = new TestEnvironment();
-        using var cmd = new ScriptToolCommand(s_scriptPath, env, _testOutput);
-        var result = await cmd.ExecuteAsync("-Quality", "release", "-WhatIf");
+        var requestsPath = Path.Combine(env.TempDirectory, "requests");
+        var installPath = Path.Combine(env.MockHome, ".aspire", "bin");
+        await File.WriteAllTextAsync(requestsPath, "");
+        using var cmd = new ScriptFunctionCommand(
+            s_scriptPath,
+            $$"""
+            function Invoke-SecureWebRequest {
+                param($Uri, $Method, $OutFile)
+                [System.IO.File]::AppendAllText('{{requestsPath}}', "$Method $Uri`n")
+                throw "Unexpected HTTP request: $Method $Uri"
+            }
+            $Quality = '{{quality}}'
+            if (${{reuseResolvedBuild}}) {
+                $Version = '13.6.1'
+                $BuildVersion = '13.6.1-preview.1.26506.6'
+            }
+            $InstallPath = '{{installPath}}'
+            Start-AspireCliInstallation -WhatIf
+            """,
+            env,
+            _testOutput);
+
+        var result = await cmd.ExecuteAsync();
 
         result.EnsureSuccessful();
+        Assert.Empty(await File.ReadAllLinesAsync(requestsPath));
+        Assert.False(Directory.Exists(Path.Combine(env.MockHome, ".aspire")));
         Assert.Contains("What if", result.Output, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Download CLI archive", result.Output);
+        Assert.Contains("Install CLI", result.Output);
         Assert.Contains("Set up Aspire CLI bundle", result.Output);
         Assert.True(
             result.Output.IndexOf("Write route sidecar", StringComparison.Ordinal) <
