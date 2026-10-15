@@ -1802,11 +1802,11 @@ public class DcpExecutorTests(ITestOutputHelper outputHelper)
         var (persistedPort, allocatedPort) = GetAvailableConsecutivePortPair();
         var builder = DistributedApplication.CreateBuilder();
 
+        builder.AddExecutable("DynamicProgram", "dynamic", Environment.CurrentDirectory)
+            .WithEndpoint(name: "http", env: "DYNAMIC_PORT", isProxied: false);
         builder.AddExecutable("PersistentProgram", "persistent", Environment.CurrentDirectory)
             .WithPersistentLifetime()
             .WithEndpoint(name: "http", env: "PERSISTENT_PORT", isProxied: false);
-        builder.AddExecutable("DynamicProgram", "dynamic", Environment.CurrentDirectory)
-            .WithEndpoint(name: "http", env: "DYNAMIC_PORT", isProxied: false);
 
         var configDict = new Dictionary<string, string?>
         {
@@ -1824,9 +1824,20 @@ public class DcpExecutorTests(ITestOutputHelper outputHelper)
         };
 
         var kubernetesService = new TestKubernetesService();
+        var portAllocator = new ProxylessEndpointPortAllocator(
+            persistedPort,
+            allocatedPort,
+            randomWalkOffset: 0,
+            randomWalkStep: 1,
+            tryProbe: static (_, _) => true);
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, configuration: configuration, dcpOptions: dcpOptions);
+        var appExecutor = CreateAppExecutor(
+            distributedAppModel,
+            kubernetesService: kubernetesService,
+            configuration: configuration,
+            dcpOptions: dcpOptions,
+            proxylessEndpointPortAllocator: portAllocator);
         await appExecutor.RunApplicationAsync();
 
         var persistentService = kubernetesService.CreatedResources.OfType<Service>().Single(s => s.Name() == "PersistentProgram");
@@ -1885,6 +1896,111 @@ public class DcpExecutorTests(ITestOutputHelper outputHelper)
         var dynamicService = kubernetesService.CreatedResources.OfType<Service>().Single(s => s.Name() == "DynamicProgram");
         Assert.Equal(persistedPort, storedService.Status?.EffectivePort);
         Assert.Equal(allocatedPort, dynamicService.Status?.EffectivePort);
+    }
+
+    [Fact]
+    public async Task StoredPersistentEndpointPortIsRetainedWhileWorkloadIsStillListening()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var (persistedPort, allocatedPort) = GetAvailableConsecutivePortPair();
+        var builder = DistributedApplication.CreateBuilder();
+
+        builder.AddExecutable("PersistentProgram", "persistent", Environment.CurrentDirectory)
+            .WithPersistentLifetime()
+            .WithEndpoint(name: "http", env: "PERSISTENT_PORT", isProxied: false);
+        builder.AddExecutable("DynamicProgram", "dynamic", Environment.CurrentDirectory)
+            .WithEndpoint(name: "http", env: "DYNAMIC_PORT", isProxied: false);
+
+        var portKey = new PersistentPortAllocationKey("PersistentProgram", "http");
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["AppHost:Directory"] = workspace.WorkspaceRoot.FullName,
+                ["AppHost:Sha256"] = "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+                [KnownConfigNames.DcpWorkloadId] = "persistent-listener-test"
+            })
+            .Build();
+        CreatePersistentPortAllocationStore(configuration).SetPort(portKey, persistedPort);
+        var dcpOptions = new DcpOptions
+        {
+            DashboardPath = "./dashboard",
+            ProxylessEndpointPortRangeStart = persistedPort,
+            ProxylessEndpointPortRangeEnd = allocatedPort
+        };
+        var portAllocator = new ProxylessEndpointPortAllocator(
+            persistedPort,
+            allocatedPort,
+            randomWalkOffset: 0,
+            randomWalkStep: 1,
+            tryProbe: (port, _) => port != persistedPort);
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var appExecutor = CreateAppExecutor(
+            distributedAppModel,
+            configuration: configuration,
+            kubernetesService: kubernetesService,
+            dcpOptions: dcpOptions,
+            proxylessEndpointPortAllocator: portAllocator);
+
+        await appExecutor.RunApplicationAsync();
+
+        var persistentService = Assert.Single(kubernetesService.CreatedResources.OfType<Service>(), s => s.Name() == "PersistentProgram");
+        var dynamicService = Assert.Single(kubernetesService.CreatedResources.OfType<Service>(), s => s.Name() == "DynamicProgram");
+        Assert.Equal(persistedPort, persistentService.Status?.EffectivePort);
+        Assert.Equal(allocatedPort, dynamicService.Status?.EffectivePort);
+    }
+
+    [Fact]
+    public async Task StoredNonPersistentEndpointPortIsReallocatedWhenUnavailable()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var (persistedPort, allocatedPort) = GetAvailableConsecutivePortPair();
+        var builder = DistributedApplication.CreateBuilder();
+
+        builder.AddExecutable("Program", "program", Environment.CurrentDirectory)
+            .WithEndpoint(name: "http", env: "HTTP_PORT", isProxied: false);
+
+        var portKey = new PersistentPortAllocationKey("Program", "http");
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["AppHost:Directory"] = workspace.WorkspaceRoot.FullName,
+                ["AppHost:Sha256"] = "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+                [KnownConfigNames.DcpWorkloadId] = "unavailable-allocation-test"
+            })
+            .Build();
+        var store = CreatePersistentPortAllocationStore(configuration);
+        store.SetPort(portKey, persistedPort);
+        var dcpOptions = new DcpOptions
+        {
+            DashboardPath = "./dashboard",
+            ProxylessEndpointPortRangeStart = persistedPort,
+            ProxylessEndpointPortRangeEnd = allocatedPort
+        };
+        var portAllocator = new ProxylessEndpointPortAllocator(
+            persistedPort,
+            allocatedPort,
+            randomWalkOffset: 0,
+            randomWalkStep: 1,
+            tryProbe: (port, _) => port != persistedPort);
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var appExecutor = CreateAppExecutor(
+            distributedAppModel,
+            configuration: configuration,
+            kubernetesService: kubernetesService,
+            dcpOptions: dcpOptions,
+            proxylessEndpointPortAllocator: portAllocator);
+
+        await appExecutor.RunApplicationAsync();
+
+        var service = Assert.Single(kubernetesService.CreatedResources.OfType<Service>(), s => s.Name() == "Program");
+        Assert.Equal(allocatedPort, service.Status?.EffectivePort);
+        Assert.Equal(allocatedPort, store.GetAllocations()[portKey]);
     }
 
     [Fact]
@@ -11610,7 +11726,8 @@ public class DcpExecutorTests(ITestOutputHelper outputHelper)
         Hosting.Eventing.IDistributedApplicationEventing? distributedApplicationEventing = null,
         ILogger<ContainerCreator>? containerCreatorLogger = null,
         ILogger<DcpExecutor>? logger = null,
-        DistributedApplicationOptions? distributedApplicationOptions = null)
+        DistributedApplicationOptions? distributedApplicationOptions = null,
+        ProxylessEndpointPortAllocator? proxylessEndpointPortAllocator = null)
     {
         if (configuration == null)
         {
@@ -11654,7 +11771,7 @@ public class DcpExecutorTests(ITestOutputHelper outputHelper)
         var dcpDependencyCheckService = new TestDcpDependencyCheckService();
 
         var appResources = new DcpAppResourceStore();
-        var proxylessEndpointPortAllocator = new ProxylessEndpointPortAllocator(Options.Create(dcpOptions));
+        proxylessEndpointPortAllocator ??= new ProxylessEndpointPortAllocator(Options.Create(dcpOptions));
         var persistentPortAllocationStore = CreatePersistentPortAllocationStore(configuration);
         var persistentPortAllocator = new PersistentPortAllocator(
             distributedAppModel,

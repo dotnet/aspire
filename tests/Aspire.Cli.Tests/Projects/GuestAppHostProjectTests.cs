@@ -1764,6 +1764,7 @@ public class GuestAppHostProjectTests : IDisposable
         {
             AppHostFile = appHostFile,
             WorkingDirectory = _workspace.WorkspaceRoot,
+            Isolated = true,
             EnvironmentVariables = new Dictionary<string, string>()
         };
 
@@ -1774,6 +1775,8 @@ public class GuestAppHostProjectTests : IDisposable
         Assert.NotNull(sessionFactory.CapturedEnvironmentVariables);
         Assert.Equal(expectedWorkloadId, sessionFactory.CapturedEnvironmentVariables[KnownConfigNames.DcpWorkloadId]);
         Assert.Equal(image, sessionFactory.CapturedEnvironmentVariables[KnownConfigNames.ContainerTunnelBaseImage]);
+        Assert.Equal("true", sessionFactory.CapturedEnvironmentVariables["DcpPublisher__RandomizePorts"]);
+        Assert.False(sessionFactory.CapturedEnvironmentVariables.ContainsKey(KnownConfigNames.PersistPortsInIsolatedMode));
     }
 
     [Fact]

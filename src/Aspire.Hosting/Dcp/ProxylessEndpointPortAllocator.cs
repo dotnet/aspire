@@ -123,7 +123,7 @@ internal sealed class ProxylessEndpointPortAllocator : IDisposable
         }
     }
 
-    public bool TryReservePort(int port, ProtocolType protocol)
+    public bool TryReservePort(int port, ProtocolType protocol, bool allowInUse = false)
     {
         lock (_lock)
         {
@@ -135,7 +135,7 @@ internal sealed class ProxylessEndpointPortAllocator : IDisposable
             }
 
             MarkVisited(index);
-            return _tryProbe(port, protocol);
+            return allowInUse || _tryProbe(port, protocol);
         }
     }
 
@@ -223,6 +223,11 @@ internal sealed class ProxylessEndpointPortAllocator : IDisposable
 
     private void MarkVisited(int index)
     {
+        if (_nextCandidate == index)
+        {
+            _nextCandidate = null;
+        }
+
         if (_visited[index])
         {
             return;

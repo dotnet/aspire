@@ -40,7 +40,7 @@ internal sealed class PersistentPortAllocator
 
     public bool PersistenceEnabled => _store.IsAvailable && (!_options.RandomizePorts || _options.PersistPortsInIsolatedMode);
 
-    public int GetOrAllocatePersistentPort(PersistentPortAllocationKey key, ProtocolType protocol, int? legacyPort = null)
+    public int GetOrAllocatePersistentPort(PersistentPortAllocationKey key, ProtocolType protocol)
     {
         lock (_lock)
         {
@@ -49,15 +49,6 @@ internal sealed class PersistentPortAllocator
             if (PersistenceEnabled && _reservedPorts.TryGetValue(key, out var reservedPort))
             {
                 return reservedPort;
-            }
-
-            if (PersistenceEnabled &&
-                legacyPort is > 0 and <= 65535 &&
-                _allocator.TryReservePort(legacyPort.Value, protocol))
-            {
-                _reservedPorts[key] = legacyPort.Value;
-                _store.SetPort(key, legacyPort.Value);
-                return legacyPort.Value;
             }
 
             var allocatedPort = _allocator.AllocatePort(protocol);
@@ -80,7 +71,7 @@ internal sealed class PersistentPortAllocator
         }
     }
 
-    public int? GetLegacyPort(PersistentPortAllocationKey key)
+    private int? GetLegacyPort(PersistentPortAllocationKey key)
     {
         var legacyConfigurationKey = GetLegacyConfigurationKey(key);
         var configuredPort = _configuration[legacyConfigurationKey];
@@ -111,7 +102,7 @@ internal sealed class PersistentPortAllocator
             return;
         }
 
-        var activePortKeys = new Dictionary<PersistentPortAllocationKey, ProtocolType>();
+        var activePortKeys = new Dictionary<PersistentPortAllocationKey, ActivePort>();
 
         foreach (var resource in _model.Resources)
         {
@@ -137,7 +128,10 @@ internal sealed class PersistentPortAllocator
                 if (DcpModelUtilities.NeedsGeneratedPublicPort(resource, endpoint, _options.RandomizePorts))
                 {
                     var publicPortKey = new PersistentPortAllocationKey(resource.Name, endpoint.Name);
-                    activePortKeys[publicPortKey] = endpoint.Protocol;
+                    activePortKeys[publicPortKey] = new(
+                        endpoint.Protocol,
+                        resource.HasPersistentLifetime() && !endpoint.IsProxied,
+                        GetLegacyPort(publicPortKey));
                 }
             }
         }
@@ -146,14 +140,45 @@ internal sealed class PersistentPortAllocator
         {
             foreach (var allocation in _store.GetAllocations())
             {
-                if (activePortKeys.TryGetValue(allocation.Key, out var protocol) &&
-                    _allocator.TryReservePort(allocation.Value, protocol))
+                if (activePortKeys.TryGetValue(allocation.Key, out var activePort) &&
+                    TryReservePort(allocation.Value, activePort))
                 {
                     _reservedPorts[allocation.Key] = allocation.Value;
                 }
+            }
+
+            // Reserve legacy allocations before assigning any new ports. Current state takes
+            // precedence when both stores contain a value for the same endpoint.
+            foreach (var (key, activePort) in activePortKeys)
+            {
+                if (_reservedPorts.ContainsKey(key) ||
+                    activePort.LegacyPort is not int legacyPort ||
+                    !TryReservePort(legacyPort, activePort))
+                {
+                    continue;
+                }
+
+                _reservedPorts[key] = legacyPort;
+                _store.SetPort(key, legacyPort);
             }
         }
 
         _initialized = true;
     }
+
+    private bool TryReservePort(int port, ActivePort activePort)
+    {
+        // A persistent proxyless workload from the previous AppHost run can still own its
+        // saved port. The state file is scoped to this AppHost and resource endpoint, so
+        // retaining that port lets DCP adopt the workload without changing its spec.
+        return _allocator.TryReservePort(
+            port,
+            activePort.Protocol,
+            allowInUse: activePort.AllowInUse);
+    }
+
+    private readonly record struct ActivePort(
+        ProtocolType Protocol,
+        bool AllowInUse,
+        int? LegacyPort);
 }

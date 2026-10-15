@@ -297,7 +297,9 @@ public sealed class StartStopTests(ITestOutputHelper output)
 
             var restartedInstance = Assert.Single(ReadRunningAppHosts(restartedInstancePath));
             Assert.Equal(linkedInstance.AppHostPath, restartedInstance.AppHostPath);
-            Assert.Equal(linkedInstance.DashboardUri, restartedInstance.DashboardUri);
+            Assert.Equal(
+                linkedInstance.DashboardUri.GetLeftPart(UriPartial.Authority),
+                restartedInstance.DashboardUri.GetLeftPart(UriPartial.Authority));
 
             await auto.AspireStopAsync(counter);
             await auto.RunCommandAsync(

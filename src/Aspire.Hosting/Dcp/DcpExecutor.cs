@@ -672,8 +672,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IDcpObjectFactory, IAsyncDispo
                     var portKey = GetPersistentPublicPortKey(sp.ModelResource, endpoint);
                     svc.Spec.Port = _persistentPortAllocator.GetOrAllocatePersistentPort(
                         portKey,
-                        endpoint.Protocol,
-                        _persistentPortAllocator.GetLegacyPort(portKey));
+                        endpoint.Protocol);
                 }
 
                 svc.Spec.Protocol = PortProtocol.FromProtocolType(endpoint.Protocol);
@@ -796,8 +795,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IDcpObjectFactory, IAsyncDispo
         var portKey = GetPersistentPublicPortKey(resource, endpoint);
         var publicPort = _persistentPortAllocator.GetOrAllocatePersistentPort(
             portKey,
-            endpoint.Protocol,
-            _persistentPortAllocator.GetLegacyPort(portKey));
+            endpoint.Protocol);
         _logger.LogDebug("Allocated public port {Port} for proxyless endpoint '{EndpointName}' on resource '{ResourceName}'.", publicPort, endpoint.Name, resource.Name);
 
         endpoint.Port = publicPort;
