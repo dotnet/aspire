@@ -131,18 +131,39 @@ public class AppHostLocalStateStoreTests(ITestOutputHelper outputHelper)
             write.Message?.Contains("malformed AppHost local state file", StringComparison.Ordinal) == true);
     }
 
+    [Fact]
+    public void StateUsesAppHostIdentityAcrossLauncherWorkloadIds()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        const string appHostIdentity = "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
+        var directLaunchConfiguration = CreateConfiguration(workspace, workloadId: null, appHostIdentity: appHostIdentity);
+        var cliLaunchConfiguration = CreateConfiguration(workspace, "apphost-different-launcher-id", appHostIdentity);
+        var key = new PersistentPortAllocationKey("program", "http");
+
+        CreatePortAllocationStore(directLaunchConfiguration).SetPort(key, 12001);
+
+        Assert.Equal(12001, CreatePortAllocationStore(cliLaunchConfiguration).GetAllocations()[key]);
+        Assert.Single(Directory.GetFiles(
+            Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "state"),
+            "*.json"));
+    }
+
     private static PersistentPortAllocationStore CreatePortAllocationStore(IConfiguration configuration)
     {
         var stateStore = new AppHostLocalStateStore(configuration, NullLogger<AppHostLocalStateStore>.Instance);
         return new PersistentPortAllocationStore(stateStore, NullLogger<PersistentPortAllocationStore>.Instance);
     }
 
-    private static IConfiguration CreateConfiguration(TemporaryWorkspace workspace, string workloadId)
+    private static IConfiguration CreateConfiguration(
+        TemporaryWorkspace workspace,
+        string? workloadId,
+        string? appHostIdentity = null)
     {
         return new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["AppHost:Directory"] = workspace.WorkspaceRoot.FullName,
+                ["AppHost:DeploymentStatePathSha256"] = appHostIdentity,
                 [KnownConfigNames.DcpWorkloadId] = workloadId
             })
             .Build();

@@ -31,9 +31,13 @@ internal sealed class AppHostLocalStateStore
             return;
         }
 
-        var identity = configuration[KnownConfigNames.DcpWorkloadId]
+        // The deployment-state identity is derived from the AppHost path and is stable across
+        // direct and CLI launches. DCP workload IDs are launcher-specific, so only use one as
+        // a fallback when the AppHost path identities are unavailable.
+        var identity = configuration["AppHost:DeploymentStatePathSha256"]
             ?? configuration["AppHost:FilePath"]
             ?? configuration["AppHost:Path"]
+            ?? configuration[KnownConfigNames.DcpWorkloadId]
             ?? Path.GetFullPath(appHostDirectory);
         var identityHash = Convert.ToHexString(XxHash3.Hash(Encoding.UTF8.GetBytes(identity))).ToLowerInvariant();
         _stateDirectory = Path.Combine(appHostDirectory, ".aspire", "state");

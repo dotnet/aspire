@@ -83,7 +83,19 @@ internal sealed class PersistentPortAllocator
         if (int.TryParse(configuredPort, NumberStyles.None, CultureInfo.InvariantCulture, out var port) &&
             PortRange.IsValidPort(port))
         {
-            return port;
+            if (port >= _options.ProxylessEndpointPortRangeStart &&
+                port <= _options.ProxylessEndpointPortRangeEnd)
+            {
+                return port;
+            }
+
+            _logger.LogDebug(
+                "Ignoring legacy persisted port {Port} for {PortKey} because it is outside the configured allocation range {RangeStart}-{RangeEnd}.",
+                port,
+                legacyConfigurationKey,
+                _options.ProxylessEndpointPortRangeStart,
+                _options.ProxylessEndpointPortRangeEnd);
+            return null;
         }
 
         _logger.LogDebug("Ignoring invalid legacy persisted port value '{Port}' for {PortKey}.", configuredPort, legacyConfigurationKey);
