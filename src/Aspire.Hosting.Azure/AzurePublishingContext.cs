@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Pipelines;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
@@ -190,7 +191,9 @@ public sealed class AzurePublishingContext(
 
             var module = new DependencyAwareModuleImport(identifier, $"{resource.Name}/{resource.Name}.bicep")
             {
-                Name = resource.Name
+                // ARM deployment names are limited to 64 characters, independently of logical resource names.
+                // https://learn.microsoft.com/azure/azure-resource-manager/management/resource-name-rules#microsoftresources
+                Name = ResourceNameHelpers.TruncateWithHash(resource.Name, 64)
             };
 
             moduleMap[resource] = module;
