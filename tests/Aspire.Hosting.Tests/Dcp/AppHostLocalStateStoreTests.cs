@@ -44,6 +44,33 @@ public class AppHostLocalStateStoreTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public void SetPortAllocation_UsesResourceAndEndpointNameComparers()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var configuration = CreateConfiguration(workspace, "name-comparer-test");
+        var store = CreatePortAllocationStore(configuration);
+
+        store.SetPort(new PersistentPortAllocationKey("Program", "HTTP"), 12001);
+
+        var equivalentKey = new PersistentPortAllocationKey("program", "http");
+        Assert.Equal(12001, store.GetAllocations()[equivalentKey]);
+
+        store.SetPort(equivalentKey, 12002);
+
+        var allocation = Assert.Single(store.GetAllocations());
+        Assert.Equal(equivalentKey, allocation.Key);
+        Assert.Equal(12002, allocation.Value);
+
+        var stateFile = Directory.GetFiles(
+            Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "state"),
+            "*.json").Single();
+        var resources = JsonNode.Parse(File.ReadAllText(stateFile))?["portAllocations"]?["resources"]?.AsObject();
+        var resource = Assert.Single(resources!);
+        var endpoint = Assert.Single(resource.Value!.AsObject());
+        Assert.Equal(12002, endpoint.Value?["port"]?.GetValue<int>());
+    }
+
+    [Fact]
     public void SetPortAllocation_PreservesOtherStateKeys()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);

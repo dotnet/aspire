@@ -147,4 +147,17 @@ internal sealed class PersistentPortAllocationStore(
     }
 }
 
-internal readonly record struct PersistentPortAllocationKey(string ResourceName, string EndpointName);
+internal readonly record struct PersistentPortAllocationKey(string ResourceName, string EndpointName)
+{
+    public bool Equals(PersistentPortAllocationKey other) =>
+        StringComparers.ResourceName.Equals(ResourceName, other.ResourceName) &&
+        StringComparers.EndpointAnnotationName.Equals(EndpointName, other.EndpointName);
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(ResourceName, StringComparers.ResourceName);
+        hash.Add(EndpointName, StringComparers.EndpointAnnotationName);
+        return hash.ToHashCode();
+    }
+}
