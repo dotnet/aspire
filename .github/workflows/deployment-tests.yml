@@ -469,6 +469,10 @@ jobs:
       ASPIRE_DEPLOYMENT_TEST_CONNECTOR_NAMESPACE_LOCATION: ${{ vars.ASPIRE_DEPLOYMENT_TEST_CONNECTOR_NAMESPACE_LOCATION }}
       ASPIRE_DEPLOYMENT_TEST_CONNECTOR_NAMESPACE_PRINCIPAL_OBJECT_ID: ${{ vars.ASPIRE_DEPLOYMENT_TEST_CONNECTOR_NAMESPACE_PRINCIPAL_OBJECT_ID }}
       ASPIRE_DEPLOYMENT_TEST_CONNECTOR_NAMESPACE_TENANT_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_TENANT_ID }}
+      # Entra directory permissions are separate from subscription RBAC. Opt in only after
+      # the deployment identity can create, read, update, and delete applications and service principals.
+      ASPIRE_DEPLOYMENT_TEST_ENABLE_ENTRA_ID: ${{ vars.ASPIRE_DEPLOYMENT_TEST_ENABLE_ENTRA_ID || 'false' }}
+      ASPIRE_DEPLOYMENT_TEST_ENTRA_TENANT_ID: ${{ secrets.AZURE_DEPLOYMENT_TEST_TENANT_ID }}
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
