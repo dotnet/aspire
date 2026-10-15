@@ -197,6 +197,12 @@ core contract and provider metadata with the same ATS TypeScript generator.
 The execution server exposes these prepared SDK files through its ordinary
 code-generation RPC.
 
+Tooling reads files into typed inputs before merging contracts or generating
+code. Portable metadata is translated to ATS by a shared tooling reader;
+generators do not inspect provider JSON. Contract and output-name validation
+finish before files are written. At runtime, metadata parsing, native contract
+validation and registration/authority resolution are separate stages.
+
 #### Planned Integration-Host Tooling
 
 The managed integration host will discover both integration contracts and

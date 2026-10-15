@@ -9,7 +9,7 @@ using Aspire.Hosting.Native.Runtime;
 
 namespace Aspire.Hosting.Native.Authoring;
 
-/// <summary>Projects run-mode authoring onto one existing server-owned composition.</summary>
+/// <summary>Projects run-mode authoring onto a server-owned composition.</summary>
 [AspireExport]
 internal sealed class RpcBuilder : ICapabilityLifetime, ICapabilityOwner
 {
@@ -38,7 +38,7 @@ internal sealed class RpcBuilder : ICapabilityLifetime, ICapabilityOwner
     [AspireExport]
     public DeclaredValue AddSecretParameter(string name, string value) => Composition.AddSecretParameter(name, value);
 
-    /// <summary>Returns the existing composition after all authoring callbacks have completed.</summary>
+    /// <summary>Returns the composition after all authoring callbacks have completed.</summary>
     [AspireExport]
     public Composition Build()
     {
@@ -81,7 +81,7 @@ internal sealed class RpcBuilder : ICapabilityLifetime, ICapabilityOwner
     public void Close() => _session.Close();
 }
 
-/// <summary>Provides fluent authoring operations over an existing declaration, not a second resource model.</summary>
+/// <summary>Provides fluent authoring operations over a server-owned resource declaration.</summary>
 [AspireExport]
 internal sealed class RpcResource(RpcBuilder owner, DeclaredResource resource) : ICapabilityLifetime
 {
@@ -178,7 +178,7 @@ internal sealed class RpcResource(RpcBuilder owner, DeclaredResource resource) :
         return this;
     }
 
-    /// <summary>Injects a producer connection string using the existing connection-string environment convention.</summary>
+    /// <summary>Injects a producer connection string through a ConnectionStrings environment variable.</summary>
     [AspireExport]
     public RpcResource WithReference(RpcResource source)
     {
@@ -196,7 +196,7 @@ internal sealed class RpcResource(RpcBuilder owner, DeclaredResource resource) :
         return this;
     }
 
-    /// <summary>Stores portable annotation JSON in the existing declaration configuration.</summary>
+    /// <summary>Stores portable annotation JSON in the declaration configuration.</summary>
     [AspireExport]
     public RpcResource WithSerializedAnnotation(string annotationId, string json)
     {
@@ -272,7 +272,7 @@ internal sealed class RpcEndpointOptions
     public string? Env { get; init; }
 }
 
-/// <summary>Projects endpoint properties as existing native symbolic values.</summary>
+/// <summary>Projects endpoint properties as server-owned symbolic values.</summary>
 [AspireExport]
 internal sealed class RpcEndpoint(RpcResource resource, string name) : ICapabilityLifetime
 {

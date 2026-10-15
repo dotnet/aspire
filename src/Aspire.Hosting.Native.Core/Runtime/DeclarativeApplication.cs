@@ -81,7 +81,7 @@ internal sealed partial class RuntimeGeneration
         }
     }
 
-    /// <summary>Starts desired workloads concurrently; value dependencies and health gate each individual start.</summary>
+    /// <summary>Starts declared workloads with allocation prerequisites for values and explicit readiness waits.</summary>
     internal async Task StartDeclaredApplicationAsync()
     {
         List<Task<WorkloadEndpoint>> starts = [];

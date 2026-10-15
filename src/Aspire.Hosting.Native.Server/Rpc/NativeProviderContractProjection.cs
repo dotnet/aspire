@@ -6,13 +6,11 @@ using Aspire.Hosting.Native.Runtime;
 
 namespace Aspire.Hosting.Native.Rpc;
 
-/// <summary>Validates provider wire data and produces the projections consumed by invocation and lifecycle routing.</summary>
-internal sealed class NativeProviderProtocol(JsonObject coreContract)
+/// <summary>Validates parsed contracts against native type, receiver and lifecycle rules before registration.</summary>
+internal sealed class NativeProviderContractProjection(NativeProviderCoreContract coreContract)
 {
-    public IReadOnlySet<string> CoreCapabilities { get; } = coreContract["Capabilities"]!.AsArray()
-        .Select(value => value!["CapabilityId"]!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
-    public IReadOnlySet<string> CoreHandles { get; } = coreContract["HandleTypes"]!.AsArray()
-        .Select(value => value!["AtsTypeId"]!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
+    public IReadOnlySet<string> CoreCapabilities { get; } = coreContract.Capabilities;
+    public IReadOnlySet<string> CoreHandles { get; } = coreContract.Handles;
 
     public static void ValidatePackageName(string packageName)
     {
@@ -23,9 +21,8 @@ internal sealed class NativeProviderProtocol(JsonObject coreContract)
         }
     }
 
-    public NativeProviderManifest ParseManifest(string packageName, JsonNode? manifest)
+    public NativeProviderManifest Project(string packageName, IReadOnlyList<NativeProviderMetadataCapability> capabilities)
     {
-        var capabilities = NativeProviderMetadata.Read(manifest);
         var projected = new Dictionary<string, NativeProviderCapability>(StringComparer.Ordinal);
         var ownTypes = new HashSet<string>(StringComparer.Ordinal);
         foreach (var metadata in capabilities)
@@ -41,7 +38,7 @@ internal sealed class NativeProviderProtocol(JsonObject coreContract)
             var names = new HashSet<string>(StringComparer.Ordinal);
             foreach (var parameter in metadata.Parameters)
             {
-                if (!names.Add(parameter.Name) || string.IsNullOrWhiteSpace(parameter.Name))
+                if (!names.Add(parameter.Name) || string.IsNullOrWhiteSpace(parameter.Name) || parameter.IsOptional || parameter.IsNullable)
                 {
                     throw RpcFault.ProviderMetadataInvalid("Provider arguments require distinct required names and types.");
                 }
@@ -50,7 +47,7 @@ internal sealed class NativeProviderProtocol(JsonObject coreContract)
                     var callbackResult = ProjectType(callback.ReturnType);
                     if (callbackResult.Kind == NativeProviderValueKind.Void)
                     {
-                        throw RpcFault.ProviderMetadataUnsupported("Void callback writeback is not implemented by this provider protocol phase.");
+                        throw RpcFault.ProviderMetadataUnsupported("Provider callbacks require a result type for writeback.");
                     }
                     arguments.Add(new(parameter.Name, new("callback", NativeProviderValueKind.Callback),
                         new(callback.Parameters.Select(ProjectType).ToArray(), callbackResult)));
@@ -79,6 +76,8 @@ internal sealed class NativeProviderProtocol(JsonObject coreContract)
             {
                 throw RpcFault.ProviderMetadataInvalid("Lifecycle metadata requires an owned receiver, one native scope and a void result.");
             }
+            // Preserve opaque discovery extensions for clients without granting
+            // authority to any types mentioned outside the validated signature.
             projected.Add(id, new(id, arguments.ToArray(), resultType, targetType, receiver, phase, metadata.Wire.DeepClone().AsObject()));
         }
         if (projected.Values.Where(capability => capability.LifecyclePhase is not null)
@@ -86,11 +85,12 @@ internal sealed class NativeProviderProtocol(JsonObject coreContract)
         {
             throw RpcFault.ProviderMetadataInvalid("A provider resource phase cannot have duplicate capabilities.");
         }
+
         return new(projected, ownTypes);
 
         NativeProviderType ProjectType(NativeProviderMetadataType metadataType)
         {
-            var type = ParseType(metadataType, packageName);
+            var type = ProjectSupportedType(metadataType, packageName);
             if (type.Kind == NativeProviderValueKind.Handle && !CoreHandles.Contains(type.TypeId))
             {
                 ownTypes.Add(type.TypeId);
@@ -100,7 +100,7 @@ internal sealed class NativeProviderProtocol(JsonObject coreContract)
         }
     }
 
-    private NativeProviderType ParseType(NativeProviderMetadataType type, string packageName)
+    private NativeProviderType ProjectSupportedType(NativeProviderMetadataType type, string packageName)
     {
         var id = type.TypeId;
         if (type.Category == NativeProviderTypeCategory.Handle && (CoreHandles.Contains(id) ||
@@ -119,45 +119,11 @@ internal sealed class NativeProviderProtocol(JsonObject coreContract)
         } : null;
         if (kind is null)
         {
-            throw RpcFault.ProviderMetadataUnsupported("This provider protocol phase supports primitive values, typed handles and projected callbacks only.");
+            throw RpcFault.ProviderMetadataUnsupported("Provider contracts support primitive values, typed handles and projected callbacks only.");
         }
 
         return new(id, kind.Value);
     }
-
-    public static void ValidatePrimitive(JsonNode? value, NativeProviderType type)
-    {
-        switch (type.Kind)
-        {
-            case NativeProviderValueKind.Void when value is null: return;
-            case NativeProviderValueKind.String: _ = RpcArguments.String(value); return;
-            case NativeProviderValueKind.Boolean: _ = RpcArguments.Boolean(value); return;
-            case NativeProviderValueKind.Int32: _ = RpcArguments.Int32(value); return;
-            case NativeProviderValueKind.Int64: _ = RpcArguments.Int64(value); return;
-            default: throw RpcFault.TypeMismatch("The provider value does not match its projection.");
-        }
-    }
-
-    public NativeProviderHandle ParseReturnedHandle(JsonNode? value, NativeProviderType type)
-    {
-        // Core handles are {"$handle":"id","$type":"core/Type"}; provider-owned
-        // handles also require "$lifetime" containing delegated native declaration authority.
-        var handle = value as JsonObject ?? throw RpcFault.InvalidHandle("The provider did not return a typed handle.");
-        var core = CoreHandles.Contains(type.TypeId);
-        RpcArguments.Validate(handle, core ? ["$handle", "$type"] : ["$handle", "$type", "$lifetime"]);
-        var id = RpcArguments.String(handle["$handle"]);
-        if (id.Length is 0 or > 512 || RpcArguments.String(handle["$type"]) != type.TypeId)
-        {
-            throw RpcFault.TypeMismatch("The provider returned an invalid resource handle.");
-        }
-        if (!core && handle["$lifetime"] is not JsonObject)
-        {
-            throw RpcFault.InvalidHandle("Integration resource lifetime must be delegated by its caller.");
-        }
-
-        return new(id, handle, handle["$lifetime"] as JsonObject);
-    }
-
 }
 
 internal enum NativeProviderValueKind

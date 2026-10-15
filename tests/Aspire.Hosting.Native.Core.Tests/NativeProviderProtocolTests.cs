@@ -20,8 +20,7 @@ public class NativeProviderProtocolTests
             "parameters":[],"returnType":{"typeId":"string","category":"Primitive"}}]}
             """);
         metadata!["capabilities"]![0]!["returnType"]!["category"] = category;
-        var fault = Assert.Throws<RpcFault>(() => new NativeProviderProtocol(NativeRpcConnection.CoreContract)
-            .ParseManifest("example.protocol", metadata));
+        var fault = Assert.Throws<RpcFault>(() => Project(metadata));
         Assert.Equal("PROVIDER_METADATA_UNSUPPORTED", fault.FaultCode);
     }
 
@@ -35,7 +34,7 @@ public class NativeProviderProtocolTests
             "callbackReturnType":{"typeId":"example.protocol/Writeback","category":"Handle"}}],
             "returnType":{"typeId":"example.protocol/Result","category":"Handle"}}]}
             """);
-        var manifest = new NativeProviderProtocol(NativeRpcConnection.CoreContract).ParseManifest("example.protocol", metadata);
+        var manifest = Project(metadata);
         Assert.Equal(["example.protocol/Argument", "example.protocol/Result", "example.protocol/Writeback"],
             manifest.OwnedTypes.Order(StringComparer.Ordinal));
     }
@@ -48,7 +47,7 @@ public class NativeProviderProtocolTests
             "parameters":[],"returnType":{"typeId":"string","category":"Primitive"},
             "extension":{"typeId":"foreign/Resource","category":"Handle"}}]}
             """);
-        var manifest = new NativeProviderProtocol(NativeRpcConnection.CoreContract).ParseManifest("example.protocol", metadata);
+        var manifest = Project(metadata);
         Assert.Empty(manifest.OwnedTypes);
         Assert.Equal("foreign/Resource", Assert.Single(manifest.Capabilities).Value.Metadata["extension"]!["typeId"]!.GetValue<string>());
     }
@@ -68,8 +67,7 @@ public class NativeProviderProtocolTests
               "returnType":{"typeId":"bool","category":"Primitive"}
             }]}
             """)!;
-        var protocol = new NativeProviderProtocol(NativeRpcConnection.CoreContract);
-        var manifest = protocol.ParseManifest("example.protocol", metadata);
+        var manifest = Project(metadata);
         var capability = Assert.Single(manifest.Capabilities).Value;
         Assert.Equal("example.protocol/attach", capability.Id);
         Assert.Equal("example.protocol/Resource", capability.TargetTypeId);
@@ -102,8 +100,7 @@ public class NativeProviderProtocolTests
     [InlineData("""{"protocolVersion":2,"capabilities":{}}""")]
     public void InvalidEnvelopeIsRejectedAtTheProtocolBoundary(string metadata)
     {
-        var protocol = new NativeProviderProtocol(NativeRpcConnection.CoreContract);
-        var fault = Assert.Throws<RpcFault>(() => protocol.ParseManifest("example.protocol", JsonNode.Parse(metadata)));
+        var fault = Assert.Throws<RpcFault>(() => NativeProviderMetadata.Read(JsonNode.Parse(metadata)));
         Assert.Equal("PROVIDER_METADATA_INVALID", fault.FaultCode);
     }
 
@@ -118,8 +115,7 @@ public class NativeProviderProtocolTests
               "returnType":{"typeId":"string","category":"Primitive"}
             }]}
             """);
-        var protocol = new NativeProviderProtocol(NativeRpcConnection.CoreContract);
-        var fault = Assert.Throws<RpcFault>(() => protocol.ParseManifest("example.protocol", metadata));
+        var fault = Assert.Throws<RpcFault>(() => NativeProviderMetadata.Read(metadata));
         Assert.Equal("PROVIDER_METADATA_INVALID", fault.FaultCode);
     }
 
@@ -129,9 +125,35 @@ public class NativeProviderProtocolTests
     [InlineData("""{"$handle":"object","$type":"example.protocol/Resource","$lifetime":null}""", "INVALID_HANDLE")]
     public void ReturnedHandleShapeIsCheckedWithoutResolvingAuthority(string wire, string code)
     {
-        var protocol = new NativeProviderProtocol(NativeRpcConnection.CoreContract);
+        var contract = new NativeProviderContractProjection(NativeProviderMetadata.ReadCoreContract(NativeRpcConnection.CoreContract));
         var type = new NativeProviderType("example.protocol/Resource", NativeProviderValueKind.Handle);
-        var fault = Assert.Throws<RpcFault>(() => protocol.ParseReturnedHandle(JsonNode.Parse(wire), type));
+        var fault = Assert.Throws<RpcFault>(() => NativeProviderValueProtocol.ParseReturnedHandle(JsonNode.Parse(wire), type, contract.CoreHandles));
         Assert.Equal(code, fault.FaultCode);
     }
+
+    [Theory]
+    [InlineData("isOptional")]
+    [InlineData("isNullable")]
+    public void ParameterFlagsAreParsedBeforeNativeProjectionPolicyIsApplied(string flag)
+    {
+        var metadata = JsonNode.Parse("""
+            {"protocolVersion":2,"capabilities":[{
+              "id":"example.protocol/invoke","method":"invoke",
+              "parameters":[{"name":"value","type":{"typeId":"string","category":"Primitive"}}],
+              "returnType":{"typeId":"void","category":"Primitive"}
+            }]}
+            """)!;
+        metadata["capabilities"]![0]!["parameters"]![0]![flag] = true;
+        var parsed = NativeProviderMetadata.Read(metadata);
+        var parameter = Assert.Single(Assert.Single(parsed).Parameters);
+        Assert.Equal(flag == "isOptional", parameter.IsOptional);
+        Assert.Equal(flag == "isNullable", parameter.IsNullable);
+        var contract = new NativeProviderContractProjection(NativeProviderMetadata.ReadCoreContract(NativeRpcConnection.CoreContract));
+        var fault = Assert.Throws<RpcFault>(() => contract.Project("example.protocol", parsed));
+        Assert.Equal("PROVIDER_METADATA_INVALID", fault.FaultCode);
+    }
+
+    private static NativeProviderManifest Project(JsonNode? metadata) =>
+        new NativeProviderContractProjection(NativeProviderMetadata.ReadCoreContract(NativeRpcConnection.CoreContract))
+            .Project("example.protocol", NativeProviderMetadata.Read(metadata));
 }

@@ -31,7 +31,7 @@ internal sealed partial class Composition
         return resource;
     }
 
-    /// <summary>Seals the desired graph and starts all declared workloads with native readiness ordering.</summary>
+    /// <summary>Seals the desired graph and starts declared workloads after allocation and explicit readiness prerequisites.</summary>
     [AspireExport]
     public ApplicationExecution StartApplication()
     {
@@ -47,7 +47,7 @@ internal sealed partial class Composition
 
 internal sealed partial class DeclaredResource
 {
-    /// <summary>Assigns a late-bound environment value and derives its readiness dependencies.</summary>
+    /// <summary>Assigns a late-bound environment value without adding an implicit readiness wait.</summary>
     [AspireExport]
     public DeclaredResource WithEnvironment(string name, DeclaredValue value)
     {

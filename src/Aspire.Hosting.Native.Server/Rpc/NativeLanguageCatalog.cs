@@ -77,7 +77,7 @@ internal sealed class NativeLanguageCatalog
             ?? throw new NotSupportedException("The requested guest runtime is not included in this server build.");
 
         // RuntimeSpec is opaque provider-owned metadata. Forward its exact shape
-        // rather than duplicating the evolving language contract in the kernel.
+        // rather than interpreting guest runtime commands in the kernel.
         return JsonNode.Parse(registration.RuntimeSpec.GetRawText())!.AsObject();
     }
 

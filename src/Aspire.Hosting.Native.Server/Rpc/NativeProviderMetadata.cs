@@ -8,13 +8,24 @@ namespace Aspire.Hosting.Native.Rpc;
 internal enum NativeProviderTypeCategory { Primitive, Handle, Callback, Unsupported }
 internal sealed record NativeProviderMetadataType(string TypeId, NativeProviderTypeCategory Category);
 internal sealed record NativeProviderMetadataCallback(NativeProviderMetadataType[] Parameters, NativeProviderMetadataType ReturnType);
-internal sealed record NativeProviderMetadataParameter(string Name, NativeProviderMetadataType Type, NativeProviderMetadataCallback? Callback);
+internal sealed record NativeProviderMetadataParameter(string Name, NativeProviderMetadataType Type, bool IsOptional, bool IsNullable,
+    NativeProviderMetadataCallback? Callback);
 internal sealed record NativeProviderMetadataCapability(string Id, string Method, NativeProviderMetadataParameter[] Parameters,
     NativeProviderMetadataType ReturnType, string? TargetTypeId, string? TargetParameterName, string? LifecyclePhase, JsonObject Wire);
+internal sealed record NativeProviderCoreContract(IReadOnlySet<string> Capabilities, IReadOnlySet<string> Handles);
 
 /// <summary>Reads the case-sensitive provider wire schema once, before semantic projection and authority resolution.</summary>
 internal static class NativeProviderMetadata
 {
+    public static NativeProviderCoreContract ReadCoreContract(JsonObject contract)
+    {
+        // The embedded ATS contract uses {"Capabilities":[{"CapabilityId":"..."}],
+        // "HandleTypes":[{"AtsTypeId":"..."}]}, unlike the portable provider envelope.
+        return new(
+            contract["Capabilities"]!.AsArray().Select(value => value!["CapabilityId"]!.GetValue<string>()).ToHashSet(StringComparer.Ordinal),
+            contract["HandleTypes"]!.AsArray().Select(value => value!["AtsTypeId"]!.GetValue<string>()).ToHashSet(StringComparer.Ordinal));
+    }
+
     public static NativeProviderMetadataCapability[] Read(JsonNode? manifest)
     {
         // {"protocolVersion":2,"capabilities":[{"id":"package/method","method":"method",
@@ -46,15 +57,16 @@ internal static class NativeProviderMetadata
 
     private static NativeProviderMetadataParameter ReadParameter(JsonNode? parameter)
     {
-        if (parameter is not JsonObject argument || argument["type"] is not JsonObject type ||
-            ReadFlag(argument, "isOptional") || ReadFlag(argument, "isNullable"))
+        if (parameter is not JsonObject argument || argument["type"] is not JsonObject type)
         {
             throw RpcFault.ProviderMetadataInvalid("Provider arguments require distinct required names and types.");
         }
         var name = RpcArguments.String(argument["name"]);
+        var optional = ReadFlag(argument, "isOptional");
+        var nullable = ReadFlag(argument, "isNullable");
         if (!ReadFlag(argument, "isCallback"))
         {
-            return new(name, ReadType(type), null);
+            return new(name, ReadType(type), optional, nullable, null);
         }
         if (type["category"] is not JsonValue category || !category.TryGetValue<string>(out var categoryName) || categoryName != "Callback" ||
             argument["callbackParameters"] is not JsonArray { Count: <= 16 } callbackParameters ||
@@ -72,7 +84,7 @@ internal static class NativeProviderMetadata
             callbackTypes[index] = ReadType(projectedType);
         }
 
-        return new(name, new("callback", NativeProviderTypeCategory.Callback), new(callbackTypes, ReadType(callbackReturn)));
+        return new(name, new("callback", NativeProviderTypeCategory.Callback), optional, nullable, new(callbackTypes, ReadType(callbackReturn)));
     }
 
     private static NativeProviderMetadataType ReadType(JsonObject type) =>

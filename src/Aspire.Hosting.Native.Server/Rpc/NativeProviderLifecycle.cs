@@ -78,7 +78,7 @@ internal sealed partial class NativeProviderRegistry
         {
             var result = await peer.RequestAsync("handleExternalCapability",
                 new JsonArray(JsonValue.Create(binding.CapabilityId), arguments, JsonValue.Create(invocation)), cancellation.Token).ConfigureAwait(false);
-            NativeProviderProtocol.ValidatePrimitive(result, metadataProjection.ReturnType);
+            NativeProviderValueProtocol.ValidatePrimitive(result, metadataProjection.ReturnType);
             logger.LogDebug("Native provider lifecycle {Phase} completed.", authority.Phase);
         }
         catch (Exception)

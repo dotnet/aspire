@@ -34,11 +34,11 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
     private readonly Dictionary<NativeRpcConnection, Registration> _providers = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<Guid, Registration> _providersById = new();
     private readonly HashSet<string> _providerTypes = new(StringComparer.Ordinal);
-    private readonly NativeProviderProtocol _protocol = new(coreContract);
+    private readonly NativeProviderContractProjection _contract = new(NativeProviderMetadata.ReadCoreContract(coreContract));
 
     public string Expect(NativeRpcConnection owner, string packageName)
     {
-        NativeProviderProtocol.ValidatePackageName(packageName);
+        NativeProviderContractProjection.ValidatePackageName(packageName);
         lock (_gate)
         {
             foreach (var (authority, expectation) in _activationWaits.ToArray())
@@ -81,8 +81,8 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
         {
             using var deadline = new CancellationTokenSource(options.ProviderRegistrationTimeout, options.TimeProvider);
             using var discovery = CancellationTokenSource.CreateLinkedTokenSource(connection.Closed, deadline.Token);
-            NativeProviderManifest manifest = _protocol.ParseManifest(expected.PackageName,
-                await peer.RequestAsync("getCapabilities", [], discovery.Token).ConfigureAwait(false));
+            var metadata = NativeProviderMetadata.Read(await peer.RequestAsync("getCapabilities", [], discovery.Token).ConfigureAwait(false));
+            var manifest = _contract.Project(expected.PackageName, metadata);
             var projected = manifest.Capabilities;
             var registration = new Registration(expected.Owner, connection, peer, projected, manifest.OwnedTypes);
             lock (_gate)
@@ -93,7 +93,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
                 }
                 if (expected.Owner.IsClosed || connection.IsClosed || peer.Closed.IsCancellationRequested ||
                     _capabilities.Count + projected.Count > 4096 ||
-                    projected.Keys.Any(id => _protocol.CoreCapabilities.Contains(id) || _capabilities.ContainsKey(id)) ||
+                    projected.Keys.Any(id => _contract.CoreCapabilities.Contains(id) || _capabilities.ContainsKey(id)) ||
                     manifest.OwnedTypes.Overlaps(_providerTypes) ||
                     _providers.ContainsKey(connection))
                 {
@@ -384,7 +384,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
         resource = null;
         if (type.Kind != NativeProviderValueKind.Handle)
         {
-            NativeProviderProtocol.ValidatePrimitive(value, type);
+            NativeProviderValueProtocol.ValidatePrimitive(value, type);
             return value?.DeepClone();
         }
         var handle = value as JsonObject ?? throw RpcFault.InvalidHandle("A typed handle is required.");
@@ -399,7 +399,7 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
             resource = external.Resource;
             return external.Handle.DeepClone();
         }
-        if (!_protocol.CoreHandles.Contains(expectedType))
+        if (!_contract.CoreHandles.Contains(expectedType))
         {
             throw RpcFault.TypeMismatch("The value is not an integration-owned resource.");
         }
@@ -412,12 +412,12 @@ internal sealed partial class NativeProviderRegistry(JsonObject coreContract, Na
         resource = null;
         if (type.Kind != NativeProviderValueKind.Handle)
         {
-            NativeProviderProtocol.ValidatePrimitive(value, type);
+            NativeProviderValueProtocol.ValidatePrimitive(value, type);
             return value?.DeepClone();
         }
         var expectedType = type.TypeId;
-        var handle = _protocol.ParseReturnedHandle(value, type);
-        if (_protocol.CoreHandles.Contains(expectedType))
+        var handle = NativeProviderValueProtocol.ParseReturnedHandle(value, type, _contract.CoreHandles);
+        if (_contract.CoreHandles.Contains(expectedType))
         {
             if (registration.Connection.ReadReference(handle.Wire, expectedType) is not DelegatedCoreReference delegated ||
                 !ReferenceEquals(delegated.Owner, caller))

@@ -12,18 +12,26 @@ using Aspire.Hosting.Native.CodeGeneration;
 using Aspire.Hosting.RemoteHost;
 using Aspire.TypeSystem;
 
-if (args is ["--provider-ts", var manifestPath, var projectionOutput])
-{
-    await NativeProviderTypeScriptProjection.GenerateAsync(manifestPath, projectionOutput).ConfigureAwait(false);
-    return;
-}
 var csharpOnly = args is [_, "--csharp"];
 var providerOnly = args is ["--provider", _, _, _];
-var output = Path.GetFullPath(providerOnly ? args[3] : csharpOnly ? args[0] : args.Single());
+var providerTypeScriptOnly = args is ["--provider-ts", _, _];
+var output = Path.GetFullPath(args switch
+{
+    ["--provider-ts", _, var directory] => directory,
+    ["--provider", _, _, var directory] => directory,
+    [var directory, "--csharp"] => directory,
+    [var directory] => directory,
+    _ => throw new ArgumentException("Specify an output directory or a provider projection command.")
+});
 Directory.CreateDirectory(output);
 var contractAssembly = NativeContractCompilation.Compile(output);
 var scan = AtsCapabilityScanner.ScanAssemblies([contractAssembly]);
 var context = scan.ToAtsContext();
+if (providerTypeScriptOnly)
+{
+    await NativeProviderTypeScriptProjection.GenerateAsync(args[1], output, context.HandleTypes).ConfigureAwait(false);
+    return;
+}
 if (providerOnly)
 {
     await NativeProviderProjection.GenerateAsync(args[1], args[2], output, context).ConfigureAwait(false);

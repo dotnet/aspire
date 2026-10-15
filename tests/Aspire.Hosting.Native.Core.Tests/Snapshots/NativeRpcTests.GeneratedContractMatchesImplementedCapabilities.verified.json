@@ -7063,9 +7063,9 @@
       "MethodName": "startApplication",
       "OwningTypeName": "Composition",
       "QualifiedMethodName": "Composition.startApplication",
-      "Description": "Seals the desired graph and starts all declared workloads with native readiness ordering.",
+      "Description": "Seals the desired graph and starts declared workloads after allocation and explicit readiness prerequisites.",
       "Documentation": {
-        "Summary": "Seals the desired graph and starts all declared workloads with native readiness ordering.",
+        "Summary": "Seals the desired graph and starts declared workloads after allocation and explicit readiness prerequisites.",
         "Remarks": null,
         "Returns": null,
         "Parameters": []
@@ -9369,9 +9369,9 @@
       "MethodName": "withEnvironment",
       "OwningTypeName": "DeclaredResource",
       "QualifiedMethodName": "DeclaredResource.withEnvironment",
-      "Description": "Assigns a late-bound environment value and derives its readiness dependencies.",
+      "Description": "Assigns a late-bound environment value without adding an implicit readiness wait.",
       "Documentation": {
-        "Summary": "Assigns a late-bound environment value and derives its readiness dependencies.",
+        "Summary": "Assigns a late-bound environment value without adding an implicit readiness wait.",
         "Remarks": null,
         "Returns": null,
         "Parameters": []
@@ -10836,9 +10836,9 @@
       "MethodName": "build",
       "OwningTypeName": "RpcBuilder",
       "QualifiedMethodName": "RpcBuilder.build",
-      "Description": "Returns the existing composition after all authoring callbacks have completed.",
+      "Description": "Returns the composition after all authoring callbacks have completed.",
       "Documentation": {
-        "Summary": "Returns the existing composition after all authoring callbacks have completed.",
+        "Summary": "Returns the composition after all authoring callbacks have completed.",
         "Remarks": null,
         "Returns": null,
         "Parameters": []
@@ -12934,9 +12934,9 @@
       "MethodName": "withReference",
       "OwningTypeName": "RpcResource",
       "QualifiedMethodName": "RpcResource.withReference",
-      "Description": "Injects a producer connection string using the existing connection-string environment convention.",
+      "Description": "Injects a producer connection string through a ConnectionStrings environment variable.",
       "Documentation": {
-        "Summary": "Injects a producer connection string using the existing connection-string environment convention.",
+        "Summary": "Injects a producer connection string through a ConnectionStrings environment variable.",
         "Remarks": null,
         "Returns": null,
         "Parameters": []
@@ -13055,9 +13055,9 @@
       "MethodName": "withSerializedAnnotation",
       "OwningTypeName": "RpcResource",
       "QualifiedMethodName": "RpcResource.withSerializedAnnotation",
-      "Description": "Stores portable annotation JSON in the existing declaration configuration.",
+      "Description": "Stores portable annotation JSON in the declaration configuration.",
       "Documentation": {
-        "Summary": "Stores portable annotation JSON in the existing declaration configuration.",
+        "Summary": "Stores portable annotation JSON in the declaration configuration.",
         "Remarks": null,
         "Returns": null,
         "Parameters": []
@@ -13443,7 +13443,7 @@
       "HasExposeMethods": false,
       "IsResourceBuilder": false,
       "Documentation": {
-        "Summary": "Projects run-mode authoring onto one existing server-owned composition.",
+        "Summary": "Projects run-mode authoring onto a server-owned composition.",
         "Remarks": null,
         "Returns": null,
         "Parameters": []
@@ -13458,7 +13458,7 @@
       "HasExposeMethods": false,
       "IsResourceBuilder": false,
       "Documentation": {
-        "Summary": "Projects endpoint properties as existing native symbolic values.",
+        "Summary": "Projects endpoint properties as server-owned symbolic values.",
         "Remarks": null,
         "Returns": null,
         "Parameters": []
@@ -13504,7 +13504,7 @@
       "HasExposeMethods": false,
       "IsResourceBuilder": false,
       "Documentation": {
-        "Summary": "Provides fluent authoring operations over an existing declaration, not a second resource model.",
+        "Summary": "Provides fluent authoring operations over a server-owned resource declaration.",
         "Remarks": null,
         "Returns": null,
         "Parameters": []

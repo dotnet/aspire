@@ -170,5 +170,5 @@ internal sealed class SymbolicValue
     }
 }
 
-/// <summary>Stores a symbolic declaration without replacing the existing resolved-string configuration surface.</summary>
+/// <summary>Stores a named immutable symbolic expression in a resource declaration.</summary>
 internal sealed record SymbolicConfigurationEntry(string Name, SymbolicValue Value);
