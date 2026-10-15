@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO.Pipes;
 using Aspire.TestUtilities;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Time.Testing;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
@@ -274,7 +275,7 @@ public class ChildProcessTests(ProcessTestFixture fixture)
         var budgetCount = 0;
         var signaledPid = 0;
         var signalToken = CancellationToken.None;
-        await using var process = ProcessTestFixture.CreateProcess(fixture.CreateStartInfo(ownedTree ? "tree" : "wait", readiness.Name),
+        await using var lifetime = AsyncTestHelpers.WithDisposeTimeout(() => ProcessTestFixture.CreateProcess(fixture.CreateStartInfo(ownedTree ? "tree" : "wait", readiness.Name),
             new TestLogger("shared shutdown", sink, enabled: true),
             new ChildProcessOptions
             {
@@ -295,7 +296,8 @@ public class ChildProcessTests(ProcessTestFixture fixture)
                         ? Task.FromException(new InvalidOperationException("test signal failure"))
                         : Task.CompletedTask;
                 }
-            });
+            }));
+        var process = lifetime.Instance;
         await process.StartAsync(TestContext.Current.CancellationToken);
         ProcessTestIdentity[] identities = ownedTree ? await readiness.ReadTreeAsync() : [await readiness.ReadRuntimeAsync()];
         cancellation.Cancel();

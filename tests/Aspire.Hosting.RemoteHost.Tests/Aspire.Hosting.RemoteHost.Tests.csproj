@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="$(TestsSharedDir)AsyncTestHelpers.cs" Link="shared/AsyncTestHelpers.cs" />
     <Compile Include="$(TestsSharedDir)TestInteractionService.cs" LinkBase="shared" />
     <Compile Include="$(TestsSharedDir)TemporaryWorkspace.cs" Link="shared\TemporaryWorkspace.cs" />
     <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared/Logging" />
