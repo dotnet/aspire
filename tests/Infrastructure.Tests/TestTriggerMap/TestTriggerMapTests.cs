@@ -56,6 +56,18 @@ public sealed class TestTriggerMapTests
     }
 
     [Theory]
+    [InlineData(".github/workflows/parse-command-line.py")]
+    [InlineData(".github/workflows/enumerate-test-metadata.sh")]
+    [InlineData(".github/workflows/write-test-matrix.ps1")]
+    public void SharedWorkflowScriptsSelectAllConsumers(string path)
+    {
+        var result = SelectWithRealMap(path);
+
+        Assert.True(result.SelectsAll);
+        Assert.Empty(result.UnmatchedFiles);
+    }
+
+    [Theory]
     [InlineData("eng/scripts/tray-registration-control/control.cpp")]
     [InlineData("eng/scripts/tray-registration-control/run.ps1")]
     public void TrayRegistrationControlRunsInUnconditionalNativeArchiveJobs(string path)

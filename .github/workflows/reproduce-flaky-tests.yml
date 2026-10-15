@@ -148,6 +148,8 @@ jobs:
       matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
     env:
       DOTNET_ROOT: ${{ github.workspace }}/.dotnet
+      REPRODUCE_RUNNER_INDEX: ${{ matrix.index }}
+      REPRODUCE_RUNNER_OS: ${{ matrix.os }}
 
     steps:
       - name: Setup vars (Linux/macOS)
@@ -171,7 +173,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           EXIT_CODE=0
-          ${{ env.DOTNET_SCRIPT }} dev-certs https --trust || EXIT_CODE=$?
+          "$DOTNET_SCRIPT" dev-certs https --trust || EXIT_CODE=$?
           if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 4 ]; then
             echo "dev-certs https --trust failed with exit code $EXIT_CODE"
             exit $EXIT_CODE
@@ -222,7 +224,7 @@ jobs:
       - name: Compute test project path
         shell: pwsh
         run: |
-          $testShortName = "${{ env.TEST_PROJECT }}"
+          $testShortName = $env:TEST_PROJECT
           $projectPath1 = "${{ github.workspace }}/tests/$testShortName.Tests/$testShortName.Tests.csproj"
           $projectPath2 = "${{ github.workspace }}/tests/Aspire.$testShortName.Tests/Aspire.$testShortName.Tests.csproj"
 
@@ -239,10 +241,11 @@ jobs:
           Write-Host "Resolved test project: $projectPath"
 
       - name: Build test project
+        shell: pwsh
         run: >
-          ${{ env.BUILD_SCRIPT }}
+          & $env:BUILD_SCRIPT
           -restore -ci -build
-          -projects ${{ env.TEST_PROJECT_PATH }}
+          -projects $env:TEST_PROJECT_PATH
           /p:InstallBrowsersForPlaywright=false
           /p:RunQuarantinedTests=true
 
@@ -255,9 +258,14 @@ jobs:
           # Skip default quarantine/outerloop exclusion filters so the target test can run
           SkipDefaultTestFilters: true
         run: |
+          args_file=$(mktemp)
+          trap 'rm -f "$args_file"' EXIT
+          python3 .github/workflows/parse-command-line.py --format nul TEST_FILTER > "$args_file"
+          test_args=()
+          while IFS= read -r -d '' arg; do test_args+=("$arg"); done < "$args_file"
           PASS=0
           FAIL=0
-          ITERATIONS=${{ env.ITERATIONS_PER_RUNNER }}
+          ITERATIONS="$ITERATIONS_PER_RUNNER"
 
           for i in $(seq 1 "$ITERATIONS"); do
             echo "::group::Iteration $i/$ITERATIONS"
@@ -272,13 +280,13 @@ jobs:
             # Run test (capture output for zero-test detection)
             ITER_OUTPUT="${{ github.workspace }}/iter-output-$i.log"
             set +e  # Disable errexit so pipefail doesn't abort before PIPESTATUS capture
-            ${{ env.DOTNET_SCRIPT }} test --project "${{ env.TEST_PROJECT_PATH }}" \
+            "$DOTNET_SCRIPT" test --project "$TEST_PROJECT_PATH" \
               --no-restore \
               --no-build \
               -- \
               --timeout 10m \
               --results-directory "${{ github.workspace }}/testresults" \
-              ${{ env.TEST_FILTER }} \
+              "${test_args[@]}" \
               2>&1 | tee "$ITER_OUTPUT"
             RESULT=${PIPESTATUS[0]}
             set -e
@@ -307,7 +315,7 @@ jobs:
 
           echo ""
           echo "========================================"
-          echo "Summary for runner #${{ matrix.index }} on ${{ matrix.os }}"
+          echo "Summary for runner #$REPRODUCE_RUNNER_INDEX on $REPRODUCE_RUNNER_OS"
           echo "  Passed: $PASS / $ITERATIONS"
           echo "  Failed: $FAIL / $ITERATIONS"
           echo "========================================"
@@ -324,9 +332,12 @@ jobs:
           # Skip default quarantine/outerloop exclusion filters so the target test can run
           SkipDefaultTestFilters: true
         run: |
+          $testArgsJson = python .github/workflows/parse-command-line.py TEST_FILTER
+          if ($LASTEXITCODE -ne 0) { throw 'Invalid TEST_FILTER.' }
+          $testArgs = @($testArgsJson | ConvertFrom-Json)
           $pass = 0
           $fail = 0
-          $iterations = [int]"${{ env.ITERATIONS_PER_RUNNER }}"
+          $iterations = [int]$env:ITERATIONS_PER_RUNNER
 
           for ($i = 1; $i -le $iterations; $i++) {
             Write-Host "::group::Iteration $i/$iterations"
@@ -338,13 +349,13 @@ jobs:
 
             # Run test (capture output for zero-test detection)
             $iterOutput = Join-Path "${{ github.workspace }}" "iter-output-$i.log"
-            & ${{ env.DOTNET_SCRIPT }} test --project "${{ env.TEST_PROJECT_PATH }}" `
+            & $env:DOTNET_SCRIPT test --project $env:TEST_PROJECT_PATH `
               --no-restore `
               --no-build `
               -- `
               --timeout 10m `
               --results-directory "${{ github.workspace }}/testresults" `
-              ${{ env.TEST_FILTER }} *> $iterOutput
+              @testArgs *> $iterOutput
             $result = $LASTEXITCODE
             Get-Content $iterOutput
 
@@ -374,7 +385,7 @@ jobs:
 
           Write-Host ""
           Write-Host "========================================"
-          Write-Host "Summary for runner #${{ matrix.index }} on ${{ matrix.os }}"
+          Write-Host "Summary for runner #$env:REPRODUCE_RUNNER_INDEX on $env:REPRODUCE_RUNNER_OS"
           Write-Host "  Passed: $pass / $iterations"
           Write-Host "  Failed: $fail / $iterations"
           Write-Host "========================================"
@@ -403,8 +414,8 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Setting | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|---------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Test Project | \`${{ env.TEST_PROJECT }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Filter | \`${{ env.TEST_FILTER }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Project | \`$TEST_PROJECT\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Filter | \`$TEST_FILTER\` |" >> $GITHUB_STEP_SUMMARY
           echo "| OSes | ${{ env.TARGET_OSES }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Runners per OS | ${{ env.RUNNERS_PER_OS }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Iterations per runner | ${{ env.ITERATIONS_PER_RUNNER }} |" >> $GITHUB_STEP_SUMMARY

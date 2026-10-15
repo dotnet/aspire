@@ -91,7 +91,9 @@ jobs:
       # so packaging must use !cancelled() rather than the default success() check.
       - name: Override extension version for PR builds
         if: ${{ inputs.packageVsix && !cancelled() && inputs.extensionVersionOverride != '' }}
-        run: corepack yarn version --new-version "${{ inputs.extensionVersionOverride }}" --no-git-tag-version
+        env:
+          EXTENSION_VERSION_OVERRIDE: ${{ inputs.extensionVersionOverride }}
+        run: corepack yarn version --new-version "$EXTENSION_VERSION_OVERRIDE" --no-git-tag-version
       - name: Package VSIX
         if: ${{ inputs.packageVsix && !cancelled() }}
         env:
