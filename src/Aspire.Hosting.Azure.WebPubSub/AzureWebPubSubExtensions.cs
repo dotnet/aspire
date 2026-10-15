@@ -10,8 +10,6 @@ using Aspire.Hosting.Azure.WebPubSub;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.WebPubSub;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting;
 
@@ -252,15 +250,7 @@ public static class AzureWebPubSubExtensions
             configureContainer(surrogateBuilder);
         }
 
-        var healthCheckKey = $"{builder.Resource.Name}_check";
-        builder.ApplicationBuilder.Services.AddHttpClient(healthCheckKey).RemoveAllLoggers();
-        builder.ApplicationBuilder.Services.AddHealthChecks().Add(new HealthCheckRegistration(
-            healthCheckKey,
-            sp => new WebPubSubEmulatorHealthCheck(builder.Resource,
-                () => sp.GetRequiredService<IHttpClientFactory>().CreateClient(healthCheckKey)),
-            failureStatus: default, tags: default, timeout: default));
-
-        return builder.WithHealthCheck(healthCheckKey);
+        return builder.WithHttpHealthCheck("/api/health", endpointName: "emulator");
     }
 
     /// <summary>
