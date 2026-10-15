@@ -325,7 +325,9 @@ builder.Build().Run();
                 echo "$storage" | jq -e 'length == 1'
                 storage_id=$(echo "$storage" | jq -er '.[0].id')
                 endpoint=$(echo "$storage" | jq -er '.[0].primaryEndpoints.blob')
-                roles=$(az role assignment list --scope "$storage_id" -o json)
+                # Principal IDs suffice; Graph name lookup would require a new token after the
+                # short-lived CI OIDC assertion has expired during deployment.
+                roles=$(az role assignment list --scope "$storage_id" --fill-principal-name false -o json)
                 apps=$(az containerapp list -g {{resourceGroupName}} -o json)
                 for resource in apiservice webfrontend; do
                     app=$(echo "$apps" | jq -er --arg resource "$resource" \
