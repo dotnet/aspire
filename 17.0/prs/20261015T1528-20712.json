@@ -1,0 +1,9 @@
+{
+  "author": "tommasodotNET",
+  "comment": "New Azure.Azure.AI.Projects/Extensions.OpenAI client packages replacing discontinued Azure.AI.OpenAI/Azure.AI.Inference, plus Foundry SDK compatibility fixes",
+  "mergedAt": "2026-10-15T15:28:28Z",
+  "number": 20712,
+  "runDate": "2026-10-15T18:06:22Z",
+  "status": "included",
+  "title": "Fix Foundry SDK compatibility and update Azure AI client integrations"
+}

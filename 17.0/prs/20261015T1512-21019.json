@@ -1,0 +1,9 @@
+{
+  "author": "vicancy",
+  "comment": "Web PubSub emulator health check and HTTPS playground follow-up; grouped into existing Azure Web PubSub emulator support entry",
+  "mergedAt": "2026-10-15T15:12:29Z",
+  "number": 21019,
+  "runDate": "2026-10-15T18:06:22Z",
+  "status": "included",
+  "title": "Use Web PubSub emulator beta.2 health checks and HTTPS in playground"
+}

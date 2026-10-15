@@ -1,0 +1,19 @@
+{
+  "area": "Integrations",
+  "areaEmoji": "🔌",
+  "backport": false,
+  "breaking": true,
+  "changeType": "New features",
+  "communityContributors": [],
+  "description": "Replaces `Aspire.Azure.AI.OpenAI` and `Aspire.Azure.AI.Inference`, which are discontinued, with two new packages: `Aspire.Azure.AI.Projects` for Foundry project-based `AIProjectClient` registration, and `Aspire.Azure.AI.Extensions.OpenAI` for both Foundry project (`ProjectOpenAIClient`) and Azure OpenAI account registrations backed by the standard OpenAI SDK. Also fixes Foundry hosted/prompt agents failing on Send Message by aligning the Azure SDK on 3.0.0-beta.3, and removes the preview `HostedAgentConfiguration.Tools` property since the new SDK no longer serializes hosted-agent tools.",
+  "docsPrs": [],
+  "docsRequired": true,
+  "emoji": "🤖",
+  "firstMergedAt": "2026-10-15T15:28:28Z",
+  "lastMergedAt": "2026-10-15T15:28:28Z",
+  "name": "New Azure AI client packages replace Azure.AI.OpenAI and Azure.AI.Inference",
+  "owner": "tommasodotNET",
+  "prs": [
+    20712
+  ]
+}

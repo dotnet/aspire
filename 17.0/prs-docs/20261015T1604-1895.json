@@ -1,0 +1,9 @@
+{
+  "author": "IEvangelist",
+  "comment": "Internal fix to the docs site's integration catalog generator allow list; no matching changelog entry found",
+  "mergedAt": "2026-10-15T16:04:10Z",
+  "number": 1895,
+  "runDate": "2026-10-15T18:06:22Z",
+  "status": "excluded",
+  "title": "Allow-list Particular Service Platform in the integration catalog generator"
+}

@@ -1,0 +1,9 @@
+{
+  "author": "IEvangelist",
+  "comment": "Removes deprecated/retired packages from the docs integration catalog itself; not documentation of a specific product changelog entry",
+  "mergedAt": "2026-10-15T15:09:34Z",
+  "number": 1892,
+  "runDate": "2026-10-15T18:06:22Z",
+  "status": "excluded",
+  "title": "Remove deprecated and retired integrations from the catalog, API, and docs"
+}
