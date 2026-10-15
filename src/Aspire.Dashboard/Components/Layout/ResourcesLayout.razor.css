@@ -189,6 +189,10 @@
     border-radius: 8px;
 }
 
+.resource-row-hidden:not(.selected):not(:hover) {
+    background-color: var(--resource-hidden-background);
+}
+
 .resource-tag-header:hover {
     background: var(--datagrid-hover-color);
 }

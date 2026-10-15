@@ -524,7 +524,7 @@
         var errorCount = GetUnviewedErrorCount(resource);
         var depth = row?.Depth ?? 0;
 
-        <div class="resource-row @(isSelected ? "selected" : string.Empty)" @key="resource.Name">
+        <div class="resource-row @(isSelected ? "selected" : string.Empty) @(resource.IsResourceHidden(showHiddenResources: false) ? "resource-row-hidden" : null)" @key="resource.Name">
             <a class="resource-row-link"
                href="@GetRowUrl(resourceName)"
                style="@(showCollapsedPane || depth == 0 ? null : $"--resource-row-depth: {depth}")"
@@ -547,6 +547,13 @@
                     <span class="resource-row-text">
                         <span class="resource-row-name"><FluentHighlighter HighlightedText="@_filter.TextFilter" Text="@resourceName" /></span>
                         <span class="resource-row-sub">
+                            @if (resource.IsResourceHidden(showHiddenResources: false))
+                            {
+                                <FluentIcon Value="@(new Icons.Regular.Size16.EyeOff())"
+                                            data-tooltip="@ColumnsLoc[nameof(Columns.HiddenResourceIconTooltip)]"
+                                            aria-label="@ColumnsLoc[nameof(Columns.HiddenResourceIconTooltip)]"
+                                            Color="Color.Custom" CustomColor="var(--colorNeutralForeground3)" />
+                            }
                             <span class="state-dot @GetStateClass(resource)"></span>
                             <span>@stateViewModel.Text</span>
                             <span class="resource-row-sep" aria-hidden="true">·</span>

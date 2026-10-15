@@ -77,8 +77,11 @@ internal static class FluentUISetupHelpers
 
     public static void SetupFluentDataGrid(BunitContext context)
     {
+        // bUnit leaves a SetupVoid invocation pending until a result is set. FluentDataGrid awaits "stop" when it is
+        // disposed, so without SetVoidResult() every test that renders a data grid blocks in disposal until the
+        // bUnit wait timeout elapses (10 seconds in DashboardTestContext).
         var dataGridModule = context.JSInterop.SetupModule("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/DataGrid/FluentDataGrid.razor.js");
-        dataGridModule.SetupVoid("Microsoft.FluentUI.Blazor.DataGrid.EnableColumnResizing", _ => true);
+        dataGridModule.SetupVoid("Microsoft.FluentUI.Blazor.DataGrid.EnableColumnResizing", _ => true).SetVoidResult();
 
         var gridReference = dataGridModule.SetupModule("Microsoft.FluentUI.Blazor.DataGrid.Initialize", _ => true);
         gridReference.SetupVoid("stop", _ => true).SetVoidResult();
@@ -110,17 +113,18 @@ internal static class FluentUISetupHelpers
 
     public static void SetupFluentList(BunitContext context)
     {
-        context.JSInterop.SetupVoid("Microsoft.FluentUI.Blazor.Components.Select.Initialize", _ => true);
+        context.JSInterop.SetupVoid("Microsoft.FluentUI.Blazor.Components.Select.Initialize", _ => true).SetVoidResult();
     }
 
     public static void SetupFluentTab(BunitContext context)
     {
-        context.JSInterop.SetupVoid("Microsoft.FluentUI.Blazor.Components.Tabs.ObserveTabsChanged", _ => true);
+        context.JSInterop.SetupVoid("Microsoft.FluentUI.Blazor.Components.Tabs.ObserveTabsChanged", _ => true).SetVoidResult();
+        context.JSInterop.SetupVoid("Microsoft.FluentUI.Blazor.Components.Tabs.Dispose", _ => true).SetVoidResult();
     }
 
     public static void SetupFluentCheckbox(BunitContext context)
     {
-        context.JSInterop.SetupVoid("Microsoft.FluentUI.Blazor.Utilities.Attributes.observeAttributeChange", _ => true);
+        context.JSInterop.SetupVoid("Microsoft.FluentUI.Blazor.Utilities.Attributes.observeAttributeChange", _ => true).SetVoidResult();
         var checkboxModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Checkbox/FluentCheckbox.razor.js"));
         checkboxModule.SetupVoid("setFluentCheckBoxIndeterminate", _ => true);
         checkboxModule.SetupVoid("stop", _ => true);
@@ -128,7 +132,7 @@ internal static class FluentUISetupHelpers
 
     public static void SetupFluentTextField(BunitContext context)
     {
-        context.JSInterop.SetupVoid("Microsoft.FluentUI.Blazor.Utilities.Attributes.observeAttributeChange", _ => true);
+        context.JSInterop.SetupVoid("Microsoft.FluentUI.Blazor.Utilities.Attributes.observeAttributeChange", _ => true).SetVoidResult();
         context.JSInterop.SetupVoid("Microsoft.FluentUI.Blazor.Utilities.Attributes.applyShadowStyle", _ => true);
     }
 
@@ -185,7 +189,9 @@ internal static class FluentUISetupHelpers
         IDashboardRunStore? dashboardRunStore = null)
     {
         context.Services.AddFluentUIComponents();
-        context.JSInterop.SetupVoid("Microsoft.FluentUI.Blazor.Utilities.Attributes.observeAttributeChange", _ => true);
+        context.JSInterop.SetupVoid("Microsoft.FluentUI.Blazor.Utilities.Attributes.observeAttributeChange", _ => true).SetVoidResult();
+        context.JSInterop.SetupVoid("Microsoft.FluentUI.Blazor.Components.TextInput.attachImmediateEvent", _ => true).SetVoidResult();
+        context.JSInterop.SetupVoid("Microsoft.FluentUI.Blazor.Components.TextMasked.applyNumberMask", _ => true).SetVoidResult();
         context.JSInterop.SetupVoid("Microsoft.FluentUI.Blazor.Utilities.Attributes.copyToShadow", _ => true);
         context.JSInterop.SetupVoid("Blazor.theme.setThemeMode", _ => true);
         var tooltipModule = context.JSInterop.SetupModule("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Tooltip/FluentTooltip.razor.js");
@@ -241,7 +247,7 @@ internal static class FluentUISetupHelpers
         context.Services.AddSingleton<IKeyCodeService, KeyCodeService>();
         context.Services.AddSingleton<DashboardTelemetryService>();
         context.Services.AddSingleton<DashboardActivitySource>();
-        context.Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
+        context.Services.AddSingleton(new DashboardTelemetryConfiguration { ReportedTelemetryEnabled = false });
         context.Services.AddSingleton<ComponentTelemetryContextProvider>();
         context.Services.AddSingleton<ITelemetryErrorRecorder, TestTelemetryErrorRecorder>();
         context.Services.AddSingleton<ThemeManager>(themeManager ?? new ThemeManager(new TestThemeResolver()));

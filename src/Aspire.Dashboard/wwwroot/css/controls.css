@@ -1245,3 +1245,8 @@ fluent-badge.property-details-accordion-badge {
 .dashboard-tooltip > span {
     white-space: pre-wrap;
 }
+
+.resource-hidden-icon {
+    vertical-align: text-bottom;
+    margin-inline-start: var(--inline-icon-margin);
+}

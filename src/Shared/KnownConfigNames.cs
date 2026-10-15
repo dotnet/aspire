@@ -19,6 +19,7 @@ internal static class KnownConfigNames
     public const string DashboardApiEnabled = "ASPIRE_DASHBOARD_API_ENABLED";
     public const string DashboardApiDisabled = "ASPIRE_DASHBOARD_API_DISABLED";
     public const string DashboardForwardedHeadersEnabled = "ASPIRE_DASHBOARD_FORWARDEDHEADERS_ENABLED";
+    public const string DashboardTelemetryOptOut = "ASPIRE_DASHBOARD_TELEMETRY_OPTOUT";
 
     public const string ShowDashboardResources = "ASPIRE_SHOW_DASHBOARD_RESOURCES";
     public const string ResourceServiceEndpointUrl = "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL";
@@ -32,6 +33,8 @@ internal static class KnownConfigNames
     public const string WaitForDebuggerTimeout = "ASPIRE_DEBUGGER_TIMEOUT";
     public const string UnixSocketPath = "ASPIRE_BACKCHANNEL_PATH";
     public const string RemoteAppHostToken = "ASPIRE_REMOTE_APPHOST_TOKEN";
+    public const string IntegrationHostBootstrap = "ASPIRE_INTEGRATION_HOST_BOOTSTRAP";
+    public const string IntegrationHostsEnabled = "ASPIRE_INTEGRATION_HOSTS_ENABLED";
 
     // Identifies the RemoteHost server's parent (the CLI process that launched aspire-managed server).
     // Paired with RemoteAppHostProcessStarted so the RemoteHost orphan detector can verify PID + start
@@ -72,6 +75,7 @@ internal static class KnownConfigNames
     public const string EnableContainerTunnel = "ASPIRE_ENABLE_CONTAINER_TUNNEL";
     public const string AspireHome = "ASPIRE_HOME";
     public const string AspireUserSecretsId = "ASPIRE_USER_SECRETS_ID";
+    public const string AspireSecretsFile = "ASPIRE_SECRETS_FILE";
     public const string MaxFileUploadSize = "ASPIRE_MAX_FILE_UPLOAD_SIZE";
 
     public const string LocaleOverride = "ASPIRE_LOCALE_OVERRIDE";

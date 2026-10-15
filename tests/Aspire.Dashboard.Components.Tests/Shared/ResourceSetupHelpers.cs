@@ -79,7 +79,7 @@ internal static class ResourceSetupHelpers
         FluentUISetupHelpers.SetupFluentMenu(context);
 
         FluentUISetupHelpers.AddCommonDashboardServices(context, localStorage: localStorage, sessionStorage: sessionStorage);
-        context.JSInterop.SetupVoid("focusElement", _ => true);
+        context.JSInterop.SetupVoid("focusElement", _ => true).SetVoidResult();
         context.Services.AddSingleton<IconResolver>();
         context.Services.AddSingleton<ILogger<StructuredLogs>>(NullLogger<StructuredLogs>.Instance);
         context.Services.AddTransient<StructuredLogsViewModel>();
