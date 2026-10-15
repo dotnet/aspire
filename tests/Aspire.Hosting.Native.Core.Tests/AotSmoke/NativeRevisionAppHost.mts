@@ -59,7 +59,9 @@ async function run(configuration: Revision): Promise<void> {
             client.throwOnPendingRejections = false;
             try {
                 await assert.rejects(async () => await database.waitFor(cache),
-                    (error: unknown) => error instanceof CapabilityError && error.code === 'OPERATION_REJECTED');
+                    (error: unknown) => error instanceof CapabilityError &&
+                        error.code === 'EXECUTION_PREREQUISITE_CYCLE' &&
+                        error.message === 'Execution prerequisite cycle: database.Start -> cache.Ready -> cache.Start -> database.Ready -> database.Start');
                 await client.flushPendingPromises();
             } finally {
                 client.throwOnPendingRejections = true;
