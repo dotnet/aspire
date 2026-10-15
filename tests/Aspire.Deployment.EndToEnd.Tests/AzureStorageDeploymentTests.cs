@@ -325,7 +325,7 @@ builder.Build().Run();
                 echo "$storage" | jq -e 'length == 1'
                 storage_id=$(echo "$storage" | jq -er '.[0].id')
                 endpoint=$(echo "$storage" | jq -er '.[0].primaryEndpoints.blob')
-                roles=$(az role assignment list --scope "$storage_id" --all -o json)
+                roles=$(az role assignment list --scope "$storage_id" -o json)
                 apps=$(az containerapp list -g {{resourceGroupName}} -o json)
                 for resource in apiservice webfrontend; do
                     app=$(echo "$apps" | jq -er --arg resource "$resource" \
