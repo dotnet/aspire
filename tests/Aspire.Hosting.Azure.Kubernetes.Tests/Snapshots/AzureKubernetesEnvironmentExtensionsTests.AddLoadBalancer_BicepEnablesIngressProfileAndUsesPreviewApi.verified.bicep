@@ -17,7 +17,6 @@ resource aks 'Microsoft.ContainerService/managedClusters@2025-09-02-preview' = {
     dnsPrefix: 'aks-dns'
     agentPoolProfiles: [
       {
-        name: 'system'
         count: 1
         vmSize: 'Standard_D2s_v5'
         vnetSubnetID: subnetId
@@ -26,6 +25,7 @@ resource aks 'Microsoft.ContainerService/managedClusters@2025-09-02-preview' = {
         minCount: 1
         enableAutoScaling: true
         mode: 'System'
+        name: 'system'
       }
     ]
     oidcIssuerProfile: {

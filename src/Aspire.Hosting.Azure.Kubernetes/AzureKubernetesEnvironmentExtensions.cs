@@ -651,18 +651,21 @@ public static class AzureKubernetesEnvironmentExtensions
         infrastructure.Add(aks);
 
         // Surface the preview-only ingress profile properties for AGC / managed Gateway API.
-        // We bump to the oldest preview API version that has both gatewayAPI and
-        // applicationLoadBalancer; the injection itself is reflection-based because the
-        // Azure.Provisioning.ContainerService types that own these properties are internal.
-        // The xmldoc on AksPreviewIngressProfileInjector documents the public DefineProperty /
-        // DefineModelProperty alternatives that were tried and empirically ruled out.
+        // Use the oldest preview API version that has both gatewayAPI and
+        // applicationLoadBalancer; the latter is not exposed by the SDK.
         if (aksResource.RequiresPreviewIngressApi)
         {
             aks.ResourceVersion = "2025-09-02-preview";
-            AksPreviewIngressProfileInjector.Inject(
-                aks,
-                gatewayApi: aksResource.GatewayApiEnabled,
-                applicationLoadBalancer: aksResource.ApplicationLoadBalancerEnabled);
+            var ingressProfile = new AksPreviewIngressProfile();
+            if (aksResource.GatewayApiEnabled)
+            {
+                ingressProfile.GatewayApiInstallation = ManagedGatewayType.Standard;
+            }
+            if (aksResource.ApplicationLoadBalancerEnabled)
+            {
+                ingressProfile.ApplicationLoadBalancerEnabled = true;
+            }
+            aks.IngressProfile = ingressProfile;
         }
 
         // ACR pull role assignment for kubelet identity
