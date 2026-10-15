@@ -101,27 +101,10 @@
                                         </div>
                                     </ItemTemplate>
                                     <MoreTemplate Context="overflow">
-                                        <span class="trace-tag">
+                                        <span class="trace-tag" data-tooltip="@(string.Join(", ", overflow.Items.Select(item => $"{GetResourceName(item.Resource)} ({item.TotalSpans})")))">
                                             @($"+{overflow.OverflowCount}")
                                         </span>
                                     </MoreTemplate>
-                                    <OverflowTemplate Context="overflow">
-                                        @{
-                                            var items = overflow.Items;
-                                        }
-
-                                        @if (items.Count > 0)
-                                        {
-                                            <FluentTooltip aria-label="@(string.Join(", ", items.Select(item => $"{GetResourceName(item.Resource)} ({item.TotalSpans})")))" UseTooltipService="false" Anchor="@overflow.IdMoreButton" Class="trace-overflow-tooltip">
-                                                <div class="trace-overflow-tooltip-content">
-                                                    @foreach (var item in items)
-                                                    {
-                                                        @RenderTraceResourceSummary(item)
-                                                    }
-                                                </div>
-                                            </FluentTooltip>
-                                        }
-                                    </OverflowTemplate>
                                 </FluentOverflow>
                             </AspireTemplateColumn>
                             <AspireTemplateColumn ColumnId="@DurationColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.DurationColumnHeader)]">

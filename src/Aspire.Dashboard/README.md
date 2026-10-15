@@ -51,7 +51,9 @@ To export the dashboard's own traces, set `OTEL_EXPORTER_OTLP_ENDPOINT`. Exporte
 
 Use `data-tooltip` for text-only tooltips instead of HTML `title` or a Fluent control's `Title` parameter.
 The dashboard's shared provider displays the text using the Fluent UI tooltip component on hover or keyboard focus.
-Keep accessible names such as `aria-label` separate from tooltip text. Rich tooltips can continue to use `FluentTooltip`.
+Keep accessible names such as `aria-label` separate from tooltip text. Use `FluentTooltip` only for bounded UI,
+such as navigation, menus, cards, filters, and page headers. Repeated trace, log, metric, and resource items
+must use the shared provider rather than creating a tooltip component per item, including for overflow badges.
 Use `AspireTemplateColumn` and `AspirePropertyColumn` for grid columns so cell tooltips share the same behavior.
 For select option templates, add a hidden element with `data-tooltip-option` containing the tooltip text; this preserves
 the Fluent option's pointer-selection behavior.

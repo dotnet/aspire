@@ -17,6 +17,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.FluentUI.AspNetCore.Components;
+using OpenTelemetry.Proto.Logs.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using Xunit;
 using static Aspire.Tests.Shared.Telemetry.TelemetryTestHelpers;
@@ -33,6 +34,55 @@ public partial class TraceDetailsTests : DashboardTestContext
     public TraceDetailsTests(ITestOutputHelper testOutputHelper)
     {
         _testOutputHelper = testOutputHelper;
+    }
+
+    [Fact]
+    public async Task Render_ManySpanLogs_UsesSharedTooltipsAndPreservesLogMetadata()
+    {
+        SetupTraceDetailsServices();
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        Services.GetRequiredService<DimensionManager>().InvokeOnViewportInformationChanged(viewport);
+        var repository = Services.GetRequiredService<SqliteTelemetryRepository>();
+        await repository.AddTracesAsync(new AddContext(),
+        [
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans = { CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime, endTime: s_testTime.AddMinutes(1)) }
+                    }
+                }
+            }
+        ]);
+        var logs = new ScopeLogs { Scope = CreateScope(name: "test-scope") };
+        logs.LogRecords.Add(Enumerable.Range(0, 501).Select(index =>
+            CreateLogRecord(time: s_testTime.AddMilliseconds(index), traceId: "1", spanId: "1-1",
+                eventName: "Test event", message: "Test message")));
+        await repository.AddLogsAsync(new AddContext(),
+        [
+            new ResourceLogs { Resource = CreateResource(), ScopeLogs = { logs } }
+        ]);
+
+        var cut = Render<TraceDetail>(builder => builder
+            .Add(p => p.TraceId, Convert.ToHexString(Encoding.UTF8.GetBytes("1")))
+            .AddCascadingValue(viewport));
+
+        cut.WaitForAssertion(() =>
+        {
+            var buttons = cut.FindAll(".span-log-entry-button");
+            Assert.Equal(501, buttons.Count);
+            Assert.All(buttons, button =>
+            {
+                Assert.StartsWith("Test event - test-scope\nLevel: Information\nTimestamp: ", button.GetAttribute("data-tooltip"));
+                Assert.EndsWith("\nMessage: Test message", button.GetAttribute("data-tooltip"));
+            });
+            // Only the bounded trace header keeps its rich Fluent tooltip.
+            Assert.Single(cut.FindComponents<FluentTooltip>());
+        });
     }
 
     [Fact]
