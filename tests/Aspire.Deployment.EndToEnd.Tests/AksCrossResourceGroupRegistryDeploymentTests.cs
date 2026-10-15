@@ -29,11 +29,13 @@ public sealed class AksCrossResourceGroupRegistryDeploymentTests(ITestOutputHelp
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(
             timeout.Token, TestContext.Current.CancellationToken);
         using var workspace = TemporaryWorkspace.Create(output);
-        var resourceGroup = DeploymentE2ETestHelpers.GenerateResourceGroupName("akscrossacr");
+        var resourceGroup = DeploymentE2ETestHelpers.GenerateResourceGroupName(upgrade ? "aksupgrade" : "akscrossacr");
         var registryGroup = $"{resourceGroup}-acr";
         var registryName = $"acrcross{Guid.NewGuid():N}";
-        var clusterName = $"akscross{Guid.NewGuid():N}";
-        var networkName = $"network{Guid.NewGuid():N}";
+        // Keep MC_<resource-group>_<cluster>_<location> within AKS's 80-character limit.
+        // These names are isolated by the per-scenario resource group.
+        const string clusterName = "aks";
+        const string networkName = "network";
         const string projectName = "AksCrossRegistry";
         var startTime = DateTime.UtcNow;
 
