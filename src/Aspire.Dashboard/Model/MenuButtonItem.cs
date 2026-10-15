@@ -45,6 +45,9 @@ public class MenuButtonItem
     public bool IsEmptyGroupText { get; set; }
     public List<MenuButtonItem>? NestedMenuItems { get; set; }
     public string? Text { get; set; }
+    /// <summary>
+    /// Tooltip text. Null uses the item text; an empty string disables the tooltip.
+    /// </summary>
     public string? Tooltip { get; set; }
     /// <summary>
     /// Optional secondary text displayed in a muted style at the end of the item, before any

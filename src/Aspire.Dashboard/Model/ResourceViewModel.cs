@@ -55,6 +55,11 @@ public sealed class ResourceViewModel
     /// </summary>
     public string PersistentKey { get => field ??= $"{DisplayName}_{ReplicaIndex}"; }
 
+    public bool IsPersistentContainer =>
+        Properties.TryGetValue(KnownProperties.Container.Lifetime, out var lifetime) &&
+        lifetime.Value.HasStringValue &&
+        string.Equals(lifetime.Value.StringValue, "Persistent", StringComparison.Ordinal);
+
     /// <summary>
     /// Gets the cached addresses for this resource that can be used for peer matching.
     /// This includes addresses extracted from URLs, connection strings, and parameter values.

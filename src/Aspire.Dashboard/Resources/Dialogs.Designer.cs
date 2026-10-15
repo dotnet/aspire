@@ -1317,6 +1317,15 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Word wrap.
+        /// </summary>
+        public static string TextVisualizerWordWrap {
+            get {
+                return ResourceManager.GetString("TextVisualizerWordWrap", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to SQL.
         /// </summary>
         public static string TextVisualizerDialogSqlFormat {

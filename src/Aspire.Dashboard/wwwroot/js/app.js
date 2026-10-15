@@ -185,7 +185,7 @@ function hideAspireTooltips(except) {
 // Required because an "onclick" attribute is denied by CSP.
 document.addEventListener("click", function (e) {
     // The copy 'button' could either be a button or a menu item.
-    const targetElement = isElementTagName(e.target, "fluent-button") ? e.target : getFluentMenuItemForTarget(e.target);
+    const targetElement = e.target.closest("fluent-button") ?? getFluentMenuItemForTarget(e.target);
     if (targetElement) {
         if (targetElement.getAttribute("data-copybutton")) {
             buttonCopyTextToClipboard(targetElement);
@@ -285,7 +285,7 @@ window.copyTextToClipboard = function (id, text, precopy, postcopy) {
                     checkmarkIcon.style.display = 'none';
                 }
                 delete button.dataset.copyTimeout;
-            }, 1500);
+            }, Number(button.dataset.copyDuration) || 1500);
         });
 };
 

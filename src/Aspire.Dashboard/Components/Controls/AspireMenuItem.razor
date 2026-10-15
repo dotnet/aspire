@@ -15,13 +15,13 @@ else if (Item.IsHeader)
         {
             <FluentIcon Value="@Item.Icon" Width="16px" Class="aspire-menu-header-icon" Color="Color.Primary" />
         }
-        <span class="aspire-menu-header-text" data-tooltip="@Item.Text">@Item.Text</span>
+        <span class="aspire-menu-header-text" data-tooltip="@ItemTooltip">@Item.Text</span>
     </div>
 }
 else if (Item.IsGroupHeader)
 {
     <div id="@Item.Id" class="aspire-menu-group-header" role="presentation">
-        <span class="aspire-menu-header-text" data-tooltip="@Item.Text">@Item.Text</span>
+        <span class="aspire-menu-header-text" data-tooltip="@ItemTooltip">@Item.Text</span>
     </div>
 }
 else if (Item.IsEmptyGroupText)

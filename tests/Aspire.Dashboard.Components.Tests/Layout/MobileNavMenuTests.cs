@@ -38,12 +38,11 @@ public class MobileNavMenuTests : DashboardTestContext
     public void TerminalsNavigation_IsConditional(bool hasTerminals)
     {
         var cut = RenderMobileNavMenu("/terminals/resource/shell", hasResourceTerminals: hasTerminals);
-        var titles = cut.FindAll("fluent-menu-item").Select(i => i.GetAttribute("data-tooltip")).Take(hasTerminals ? 9 : 8);
+        var titles = cut.FindAll("fluent-menu-item").Select(i => i.GetAttribute("data-tooltip")).Take(hasTerminals ? 8 : 7);
         var expected = new List<string>
         {
             Resources.Layout.NavMenuHomeTab,
             Resources.Layout.NavMenuResourcesTab,
-            Resources.Layout.NavMenuTagsTab,
             Resources.Layout.NavMenuParametersTab,
             Resources.Layout.NavMenuGraphTab
         };

@@ -1,0 +1,246 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Aspire.Dashboard.Configuration;
+using Aspire.Shared;
+using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Options;
+
+namespace Aspire.Dashboard.Model;
+
+/// <summary>
+/// Stores resource and group positions in the application settings database, independently of individual runs.
+/// </summary>
+public sealed class ResourceOrderStore
+{
+    private readonly Lock _lock = new();
+    private readonly ILogger _logger;
+    private readonly Dictionary<string, long> _positions = new(StringComparers.ResourceName);
+    private readonly Dictionary<string, Dictionary<string, long>> _groupPositions = new(StringComparer.Ordinal);
+    private readonly string? _databasePath;
+    private readonly string? _connectionString;
+    private bool _loaded;
+    private bool _loadFailed;
+
+    public ResourceOrderStore(IOptions<DashboardOptions> options, ILogger<ResourceOrderStore> logger)
+        : this(ResourceTagStore.GetDatabasePath(options.Value), logger)
+    {
+    }
+
+    internal ResourceOrderStore(string? databasePath, ILogger logger)
+    {
+        _databasePath = databasePath;
+        _logger = logger;
+        if (databasePath is not null)
+        {
+            _connectionString = new SqliteConnectionStringBuilder
+            {
+                DataSource = databasePath,
+                Mode = SqliteOpenMode.ReadWriteCreate,
+                Pooling = false,
+                DefaultTimeout = 5
+            }.ToString();
+        }
+    }
+
+    public event Action? Changed;
+
+    public IReadOnlyDictionary<string, long> GetPositions() => GetPositions(grouping: null);
+
+    public IReadOnlyDictionary<string, long> GetGroupPositions(string grouping) => GetPositions(grouping);
+
+    private IReadOnlyDictionary<string, long> GetPositions(string? grouping)
+    {
+        lock (_lock)
+        {
+            EnsureLoaded();
+            return new Dictionary<string, long>(GetScopePositions(grouping), StringComparers.ResourceName);
+        }
+    }
+
+    // Keys must be ResourceViewModel.PersistentKey, not run-specific resource names. Keep positions for absent
+    // resources so restarting a run, temporarily removing a resource, or changing its state doesn't reset its order.
+    public void EnsureResources(IEnumerable<string> resourceKeys) => EnsureItems(grouping: null, resourceKeys);
+
+    public void EnsureGroups(string grouping, IEnumerable<string> groupKeys) => EnsureItems(grouping, groupKeys);
+
+    private void EnsureItems(string? grouping, IEnumerable<string> keys)
+    {
+        var changed = false;
+        lock (_lock)
+        {
+            EnsureLoaded();
+            var positions = GetScopePositions(grouping);
+            var newKeys = keys.Where(key => !positions.ContainsKey(key)).Distinct(StringComparers.ResourceName).ToList();
+            if (newKeys.Count > 0)
+            {
+                var nextPosition = positions.Count == 0 ? 0 : positions.Values.Max() + 1;
+                foreach (var key in newKeys)
+                {
+                    positions.Add(key, nextPosition++);
+                }
+                changed = true;
+                Save(grouping, positions);
+            }
+        }
+        if (changed)
+        {
+            Changed?.Invoke();
+        }
+    }
+
+    public bool TryMove(string resourceKey, string targetKey, bool after) => TryMove(grouping: null, resourceKey, targetKey, after);
+
+    public bool TryMoveGroup(string grouping, string groupKey, string targetKey, bool after) => TryMove(grouping, groupKey, targetKey, after);
+
+    private bool TryMove(string? grouping, string resourceKey, string targetKey, bool after)
+    {
+        lock (_lock)
+        {
+            EnsureLoaded();
+            var currentPositions = GetScopePositions(grouping);
+            if (!currentPositions.ContainsKey(resourceKey) || !currentPositions.ContainsKey(targetKey))
+            {
+                throw new ArgumentException("Both items must have an assigned position.");
+            }
+            if (StringComparers.ResourceName.Equals(resourceKey, targetKey))
+            {
+                return true;
+            }
+
+            var orderedKeys = currentPositions.OrderBy(pair => pair.Value).Select(pair => pair.Key).ToList();
+            orderedKeys.RemoveAll(key => StringComparers.ResourceName.Equals(key, resourceKey));
+            var targetIndex = orderedKeys.FindIndex(key => StringComparers.ResourceName.Equals(key, targetKey));
+            orderedKeys.Insert(targetIndex + (after ? 1 : 0), resourceKey);
+            var positions = orderedKeys.Select((key, index) => (key, position: (long)index))
+                .ToDictionary(pair => pair.key, pair => pair.position, StringComparers.ResourceName);
+            if (!Save(grouping, positions))
+            {
+                return false;
+            }
+            currentPositions.Clear();
+            foreach (var pair in positions)
+            {
+                currentPositions.Add(pair.Key, pair.Value);
+            }
+        }
+        Changed?.Invoke();
+        return true;
+    }
+
+    private Dictionary<string, long> GetScopePositions(string? grouping)
+    {
+        if (grouping is null)
+        {
+            return _positions;
+        }
+        if (!_groupPositions.TryGetValue(grouping, out var positions))
+        {
+            positions = new Dictionary<string, long>(StringComparers.ResourceName);
+            _groupPositions.Add(grouping, positions);
+        }
+
+        return positions;
+    }
+
+    private void EnsureLoaded()
+    {
+        if (_loaded)
+        {
+            return;
+        }
+        _loaded = true;
+        if (_connectionString is null)
+        {
+            return;
+        }
+
+        try
+        {
+            DirectoryHelper.CreateWithOwnerOnlyPermissions(Path.GetDirectoryName(_databasePath)!);
+            using var connection = OpenConnection();
+            using var command = connection.CreateCommand();
+            command.CommandText = """
+                CREATE TABLE IF NOT EXISTS resource_order (
+                    resource_key TEXT NOT NULL COLLATE NOCASE PRIMARY KEY,
+                    position INTEGER NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS resource_group_order (
+                    grouping TEXT NOT NULL,
+                    group_key TEXT NOT NULL COLLATE NOCASE,
+                    position INTEGER NOT NULL,
+                    PRIMARY KEY (grouping, group_key)
+                );
+                SELECT resource_key, position FROM resource_order ORDER BY position;
+                """;
+            using (var reader = command.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    _positions.Add(reader.GetString(0), reader.GetInt64(1));
+                }
+            }
+
+            command.CommandText = "SELECT grouping, group_key, position FROM resource_group_order ORDER BY grouping, position;";
+            using var groupReader = command.ExecuteReader();
+            while (groupReader.Read())
+            {
+                GetScopePositions(groupReader.GetString(0)).Add(groupReader.GetString(1), groupReader.GetInt64(2));
+            }
+        }
+        catch (Exception ex) when (ex is SqliteException or IOException or UnauthorizedAccessException)
+        {
+            _loadFailed = true;
+            _logger.LogWarning(ex, "Unable to load resource and group order from '{DatabasePath}'.", _databasePath);
+        }
+    }
+
+    private bool Save(string? grouping, IReadOnlyDictionary<string, long> positions)
+    {
+        if (_loadFailed)
+        {
+            return false;
+        }
+        if (_connectionString is null)
+        {
+            return true;
+        }
+
+        try
+        {
+            using var connection = OpenConnection();
+            using var transaction = connection.BeginTransaction();
+            using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = grouping is null
+                ? "INSERT INTO resource_order (resource_key, position) VALUES ($key, $position) ON CONFLICT(resource_key) DO UPDATE SET position = excluded.position;"
+                : "INSERT INTO resource_group_order (grouping, group_key, position) VALUES ($grouping, $key, $position) ON CONFLICT(grouping, group_key) DO UPDATE SET position = excluded.position;";
+            if (grouping is not null)
+            {
+                command.Parameters.AddWithValue("$grouping", grouping);
+            }
+            var keyParameter = command.Parameters.Add("$key", SqliteType.Text);
+            var positionParameter = command.Parameters.Add("$position", SqliteType.Integer);
+            foreach (var pair in positions)
+            {
+                keyParameter.Value = pair.Key;
+                positionParameter.Value = pair.Value;
+                command.ExecuteNonQuery();
+            }
+            transaction.Commit();
+            return true;
+        }
+        catch (SqliteException ex)
+        {
+            _logger.LogWarning(ex, "Unable to save resource or group order to '{DatabasePath}'.", _databasePath);
+            return false;
+        }
+    }
+
+    private SqliteConnection OpenConnection()
+    {
+        var connection = new SqliteConnection(_connectionString);
+        connection.Open();
+        return connection;
+    }
+}

@@ -24,7 +24,7 @@ public partial class AspireMenuItem
 
     private string SecondaryActionId => $"{Item.Id}-secondary-action";
 
-    private string ItemTooltip => !string.IsNullOrEmpty(Item.Tooltip) ? Item.Tooltip : Item.Text ?? string.Empty;
+    private string ItemTooltip => Item.Tooltip ?? Item.Text ?? string.Empty;
 
     private Dictionary<string, object> AdditionalMenuItemAttributes
     {

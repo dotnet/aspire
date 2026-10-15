@@ -14,7 +14,7 @@ public enum ResourcePaneMode
     Resources,
 
     /// <summary>
-    /// Resources grouped by the tags users assign to them.
+    /// Legacy mode for links to the former Tags view. The layout applies tag grouping in the Resources pane.
     /// </summary>
     Tags,
 

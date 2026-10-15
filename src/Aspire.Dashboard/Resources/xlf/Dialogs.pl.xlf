@@ -793,6 +793,11 @@ For more information about using AI agents with the dashboard, including setting
         <target state="translated">Wybierz format</target>
         <note />
       </trans-unit>
+      <trans-unit id="TextVisualizerWordWrap">
+        <source>Word wrap</source>
+        <target state="new">Word wrap</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>

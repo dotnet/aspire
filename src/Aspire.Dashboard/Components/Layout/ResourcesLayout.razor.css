@@ -178,6 +178,10 @@
     text-transform: uppercase;
 }
 
+.resource-tag-group {
+    position: relative;
+}
+
 .resource-tag-group + .resource-tag-group {
     margin-top: 4px;
 }
@@ -328,6 +332,66 @@
     background: var(--colorBrandBackground);
 }
 
+.resource-row-drag-handle,
+.resource-group-drag-handle {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 24px;
+    margin-right: 6px;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--colorNeutralForeground2);
+    cursor: grab;
+    opacity: 0;
+}
+
+.resource-row:hover .resource-row-drag-handle,
+.resource-row:focus-within .resource-row-drag-handle,
+.resource-tag-header:hover .resource-group-drag-handle,
+.resource-tag-header:focus-within .resource-group-drag-handle {
+    opacity: 1;
+}
+
+.resource-row-drag-handle:focus-visible,
+.resource-group-drag-handle:focus-visible {
+    outline: 2px solid var(--colorStrokeFocus2);
+}
+
+.resource-dragging {
+    opacity: .5;
+}
+
+.resource-drop-before::after,
+.resource-drop-after::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--colorBrandBackground);
+    pointer-events: none;
+}
+
+.resource-drop-before::after {
+    top: -1px;
+}
+
+.resource-drop-after::after {
+    bottom: -1px;
+}
+
+@media (hover: none) {
+    .resource-row-drag-handle,
+    .resource-group-drag-handle {
+        opacity: 1;
+    }
+}
+
 /* The expand toggle sits on the right so resource icons stay aligned with the filter box above the list. */
 .resource-row-toggle {
     display: inline-flex;
@@ -453,6 +517,10 @@
 .resource-row-type {
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.resource-row-sub ::deep .persistent-container-icon {
+    flex-shrink: 0;
 }
 
 .error-badge {

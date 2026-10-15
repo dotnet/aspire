@@ -8,6 +8,25 @@ The dashboard shows:
 - Live console logs of resources.
 - Live telemetry, such as structured logs, traces and metrics.
 
+## Grouping resources
+
+Use **Group resources**, between **Filters** and **Collapse resource list** in the resources pane, to group
+the list by **Tags**, **Resource type**, or **State**. **None** restores the default nested resource list.
+Groups can be collapsed or selected to view all of their resources together. Search matches group names as
+well as resources, and the grouping preference is remembered across navigation and reloads.
+Tag grouping replaces the separate Tags navigation entry; resources with multiple tags appear under each tag,
+with untagged resources initially listed last. Telemetry sources keep their ungrouped list.
+
+When search and filters are clear, drag a group's header handle to move the entire group, or focus its
+handle and press **Alt+Up** or **Alt+Down**. Each grouping mode has its own saved order in the AppHost
+settings database. New groups are appended, and temporarily absent groups retain their position when they return.
+
+With grouping set to **None** and no search or filters active, drag a resource's reorder handle to move it
+before or after a sibling. Alternatively, focus the handle and press **Alt+Up** or **Alt+Down**.
+Children stay under their parent. Order is stored alongside tags in the AppHost's application settings database
+and survives dashboard and AppHost restarts; new resources are appended to their sibling list.
+Persistent containers show a pin after their state and resource type.
+
 ## Exporting the resource graph
 
 In **Resources > Graph**, select **Export as Mermaid** in the graph controls to open a dialog showing the generated

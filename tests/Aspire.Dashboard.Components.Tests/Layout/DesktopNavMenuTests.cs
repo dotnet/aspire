@@ -40,7 +40,7 @@ public class DesktopNavMenuTests : DashboardTestContext
         var expected = new List<string>();
         if (enabled)
         {
-            expected.AddRange([DashboardUrls.HomeUrl(), DashboardUrls.ResourceListUrl(), DashboardUrls.TagsUrl(),
+            expected.AddRange([DashboardUrls.HomeUrl(), DashboardUrls.ResourceListUrl(),
                 DashboardUrls.ParametersUrl(), DashboardUrls.GraphUrl()]);
             if (hasTerminals)
             {

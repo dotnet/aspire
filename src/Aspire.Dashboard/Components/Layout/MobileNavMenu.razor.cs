@@ -175,15 +175,6 @@ public partial class MobileNavMenu : ComponentBase, IAsyncDisposable
                     DashboardUrls.MetricsUrl())
             );
 
-            // Tags is a view of the same resource pane, so it shares the Resources URL space and
-            // doesn't get its own active highlight.
-            yield return new MobileNavMenuEntry(
-                Loc[nameof(Resources.Layout.NavMenuTagsTab)],
-                () => NavigateToAsync(DashboardUrls.TagsUrl()),
-                DesktopNavMenu.TagsIcon(),
-                ActiveIcon: DesktopNavMenu.TagsIcon(active: true)
-            );
-
             yield return new MobileNavMenuEntry(
                 Loc[nameof(Resources.Layout.NavMenuParametersTab)],
                 () => NavigateToAsync(DashboardUrls.ParametersUrl()),

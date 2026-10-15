@@ -200,7 +200,7 @@ public sealed class ResourcePaneInteractionTests : PlaywrightTestsBase<Dashboard
 
     [Fact]
     [OuterloopTest("Resource-intensive Playwright browser test")]
-    public async Task ResourceTag_AddedFromOverviewGroupsResourceInTagsPane()
+    public async Task ResourceTag_AddedFromOverviewGroupsResourceInResourcePane()
     {
         var resourceName = MockDashboardClient.TestResource1.DisplayName;
         const string tag = "Frontend team";
@@ -227,18 +227,20 @@ public sealed class ResourcePaneInteractionTests : PlaywrightTestsBase<Dashboard
             await Assertions.Expect(page.Locator(".tag-chip-name")).ToHaveTextAsync(tag);
 
             var rail = page.Locator(".main-rail");
-            await rail.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = Resources.Layout.NavMenuTagsTab, Exact = true }).ClickAsync();
+            await page.Locator("#resourcePaneGroupingButton").ClickAsync();
+            await page.GetByRole(AriaRole.Menuitemradio, new PageGetByRoleOptions { Name = Resources.Layout.NavMenuTagsTab, Exact = true }).ClickAsync();
 
             var pane = page.Locator(".resource-pane");
             var tagGroup = pane.GetByRole(AriaRole.Group, new LocatorGetByRoleOptions { Name = tag });
             await Assertions.Expect(tagGroup.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = resourceName })).ToBeVisibleAsync();
-            await Assertions.Expect(rail.Locator("a[aria-current='page']")).ToHaveAccessibleNameAsync(Resources.Layout.NavMenuTagsTab);
+            await Assertions.Expect(rail.Locator("a[aria-current='page']")).ToHaveAccessibleNameAsync(Resources.Layout.NavMenuResourcesTab);
 
-            // The pane mode is remembered when reloading a resource URL without a pane query.
+            // Grouping is remembered when reloading a resource URL.
             await page.GotoAsync($"/resources/{resourceName}");
             await Assertions.Expect(tagGroup).ToBeVisibleAsync();
 
-            await rail.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = Resources.Layout.NavMenuResourcesTab, Exact = true }).ClickAsync();
+            await page.Locator("#resourcePaneGroupingButton").ClickAsync();
+            await page.GetByRole(AriaRole.Menuitemradio, new PageGetByRoleOptions { Name = Resources.Layout.ResourcePaneGroupingNone, Exact = true }).ClickAsync();
             await Assertions.Expect(tagGroup).ToHaveCountAsync(0);
             await Assertions.Expect(pane.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = resourceName })).ToBeVisibleAsync();
             await Assertions.Expect(rail.Locator("a[aria-current='page']")).ToHaveAccessibleNameAsync(Resources.Layout.NavMenuResourcesTab);

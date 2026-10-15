@@ -23,6 +23,86 @@ public class ResourcesTests : PlaywrightTestsBase<ResourcesTests.ResourcesDashbo
 
     [Fact]
     [OuterloopTest("Resource-intensive Playwright browser test")]
+    public async Task ResourcePane_GroupOrderSupportsDragKeyboardAndReload()
+    {
+        await RunTestAsync(async page =>
+        {
+            await page.SetViewportSizeAsync(1440, 1000);
+            await page.GotoAsync("/resources");
+            await page.Locator("#resourcePaneGroupingButton").ClickAsync();
+            await page.GetByRole(AriaRole.Menuitemradio, new PageGetByRoleOptions { Name = Dashboard.Resources.Layout.ResourcePaneGroupingResourceType, Exact = true }).ClickAsync();
+            var pane = page.Locator(".resource-pane");
+            var groups = pane.Locator(".resource-tag-group");
+            await Assertions.Expect(groups).ToHaveCountAsync(2);
+            var originalNames = await groups.EvaluateAllAsync<string[]>("groups => groups.map(group => group.getAttribute('aria-label'))");
+            var sourceKey = await groups.Last.GetAttributeAsync("data-resource-group-key");
+            await groups.Last.Locator("[data-resource-group-drag-handle]").DragToAsync(groups.First,
+                new() { TargetPosition = new() { X = 8, Y = 2 } });
+            await Assertions.Expect(groups.Locator(".resource-tag-name")).ToHaveTextAsync(originalNames.Reverse());
+            await page.ReloadAsync();
+            await Assertions.Expect(groups.Locator(".resource-tag-name")).ToHaveTextAsync(originalNames.Reverse());
+
+            var sourceHandle = pane.Locator($"[data-resource-group-key='{sourceKey}'] [data-resource-group-drag-handle]");
+            await sourceHandle.FocusAsync();
+            await sourceHandle.PressAsync("Alt+ArrowDown");
+            await Assertions.Expect(groups.Locator(".resource-tag-name")).ToHaveTextAsync(originalNames);
+            await Assertions.Expect(sourceHandle).ToBeFocusedAsync();
+
+            var search = pane.GetByRole(AriaRole.Searchbox);
+            await search.FillAsync("api");
+            await Assertions.Expect(pane.Locator("[data-resource-group-drag-handle]")).ToHaveCountAsync(0);
+            await search.FillAsync(string.Empty);
+            await Assertions.Expect(groups.Locator(".resource-tag-name")).ToHaveTextAsync(originalNames);
+            await Assertions.Expect(pane.Locator("[data-resource-group-drag-handle]")).ToHaveCountAsync(2);
+        });
+    }
+
+    [Fact]
+    [OuterloopTest("Resource-intensive Playwright browser test")]
+    public async Task ResourcePane_ReordersByDraggingAndKeyboardAndRemembersOrder()
+    {
+        await RunTestAsync(async page =>
+        {
+            await page.SetViewportSizeAsync(1280, 900);
+            await page.GotoAsync("/resources");
+
+            var pane = page.Locator(".resource-pane");
+            var rows = pane.Locator("[data-resource-name]");
+            await Assertions.Expect(rows).ToHaveCountAsync(3);
+            var originalOrder = await rows.EvaluateAllAsync<string[]>("rows => rows.map(row => row.dataset.resourceName)");
+            var source = rows.Last.Locator("[data-resource-drag-handle]");
+            await source.DragToAsync(rows.First, new LocatorDragToOptions { TargetPosition = new TargetPosition { X = 8, Y = 2 } });
+            var reordered = new[] { originalOrder[2], originalOrder[0], originalOrder[1] };
+            await Assertions.Expect(rows.Locator(".resource-row-name")).ToHaveTextAsync(reordered);
+
+            await page.ReloadAsync();
+            await Assertions.Expect(rows.Locator(".resource-row-name")).ToHaveTextAsync(reordered);
+            var movedHandle = pane.Locator($"[data-resource-name='{originalOrder[2]}'] [data-resource-drag-handle]");
+            await movedHandle.FocusAsync();
+            await movedHandle.PressAsync("Alt+ArrowDown");
+            await Assertions.Expect(rows.Locator(".resource-row-name")).ToHaveTextAsync([originalOrder[0], originalOrder[2], originalOrder[1]]);
+            await Assertions.Expect(movedHandle).ToBeFocusedAsync();
+            await movedHandle.PressAsync("Alt+ArrowDown");
+            await Assertions.Expect(rows.Locator(".resource-row-name")).ToHaveTextAsync(originalOrder);
+            await Assertions.Expect(movedHandle).ToBeFocusedAsync();
+
+            var search = pane.GetByRole(AriaRole.Searchbox);
+            await search.FillAsync("api");
+            await Assertions.Expect(pane.Locator("[data-resource-drag-handle]")).ToHaveCountAsync(0);
+            await search.FillAsync(string.Empty);
+            await Assertions.Expect(pane.Locator("[data-resource-drag-handle]")).ToHaveCountAsync(3);
+
+            await page.Locator("#resourcePaneGroupingButton").ClickAsync();
+            await page.GetByRole(AriaRole.Menuitemradio, new PageGetByRoleOptions { Name = Dashboard.Resources.Layout.ResourcePaneGroupingState, Exact = true }).ClickAsync();
+            await Assertions.Expect(pane.Locator("[data-resource-drag-handle]")).ToHaveCountAsync(0);
+            await page.Locator("#resourcePaneGroupingButton").ClickAsync();
+            await page.GetByRole(AriaRole.Menuitemradio, new PageGetByRoleOptions { Name = Dashboard.Resources.Layout.ResourcePaneGroupingNone, Exact = true }).ClickAsync();
+            await Assertions.Expect(rows.Locator(".resource-row-name")).ToHaveTextAsync(originalOrder);
+        });
+    }
+
+    [Fact]
+    [OuterloopTest("Resource-intensive Playwright browser test")]
     public async Task ViewOptionsMenu_ReportsExpandedState()
     {
         await RunTestAsync(async page =>

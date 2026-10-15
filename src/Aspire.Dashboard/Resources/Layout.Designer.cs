@@ -682,6 +682,42 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Group resources.
+        /// </summary>
+        public static string ResourcePaneGrouping {
+            get {
+                return ResourceManager.GetString("ResourcePaneGrouping", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to None.
+        /// </summary>
+        public static string ResourcePaneGroupingNone {
+            get {
+                return ResourceManager.GetString("ResourcePaneGroupingNone", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Resource type.
+        /// </summary>
+        public static string ResourcePaneGroupingResourceType {
+            get {
+                return ResourceManager.GetString("ResourcePaneGroupingResourceType", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to State.
+        /// </summary>
+        public static string ResourcePaneGroupingState {
+            get {
+                return ResourceManager.GetString("ResourcePaneGroupingState", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to {0}, {1}.
         /// </summary>
         public static string ResourcePaneTagGroupLabel {
@@ -759,6 +795,96 @@ namespace Aspire.Dashboard.Resources {
         public static string ResourceTabsLandmark {
             get {
                 return ResourceManager.GetString("ResourceTabsLandmark", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} moved after {1}..
+        /// </summary>
+        public static string ResourcePaneMovedAfter {
+            get {
+                return ResourceManager.GetString("ResourcePaneMovedAfter", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} moved before {1}..
+        /// </summary>
+        public static string ResourcePaneMovedBefore {
+            get {
+                return ResourceManager.GetString("ResourcePaneMovedBefore", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Unable to save the resource order. Try again..
+        /// </summary>
+        public static string ResourcePaneReorderFailed {
+            get {
+                return ResourceManager.GetString("ResourcePaneReorderFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Drag to reorder. Use Alt+Up or Alt+Down to move among siblings..
+        /// </summary>
+        public static string ResourcePaneReorderHint {
+            get {
+                return ResourceManager.GetString("ResourcePaneReorderHint", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Reorder {0}.
+        /// </summary>
+        public static string ResourcePaneReorderResource {
+            get {
+                return ResourceManager.GetString("ResourcePaneReorderResource", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Clear search, filters and grouping, and move resources within the same parent..
+        /// </summary>
+        public static string ResourcePaneReorderUnavailable {
+            get {
+                return ResourceManager.GetString("ResourcePaneReorderUnavailable", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Unable to save the group order. Try again..
+        /// </summary>
+        public static string ResourcePaneGroupReorderFailed {
+            get {
+                return ResourceManager.GetString("ResourcePaneGroupReorderFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Clear search and filters, and try reordering groups again..
+        /// </summary>
+        public static string ResourcePaneGroupReorderUnavailable {
+            get {
+                return ResourceManager.GetString("ResourcePaneGroupReorderUnavailable", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Reorder group {0}.
+        /// </summary>
+        public static string ResourcePaneReorderGroup {
+            get {
+                return ResourceManager.GetString("ResourcePaneReorderGroup", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Drag to reorder groups. Use Alt+Up or Alt+Down to move a group..
+        /// </summary>
+        public static string ResourcePaneReorderGroupHint {
+            get {
+                return ResourceManager.GetString("ResourcePaneReorderGroupHint", resourceCulture);
             }
         }
 

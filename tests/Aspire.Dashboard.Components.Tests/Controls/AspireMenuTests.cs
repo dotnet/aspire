@@ -13,6 +13,29 @@ namespace Aspire.Dashboard.Components.Tests.Controls;
 
 public class AspireMenuTests : DashboardTestContext
 {
+    [Theory]
+    [InlineData(false, null, "Item")]
+    [InlineData(false, "", "")]
+    [InlineData(false, "Help", "Help")]
+    [InlineData(true, null, "Item")]
+    [InlineData(true, "", "")]
+    [InlineData(true, "Help", "Help")]
+    public void ItemTooltip_UsesExplicitTextOrFallsBackToLabel(bool isGroupHeader, string? tooltip, string expected)
+    {
+        FluentUISetupHelpers.AddCommonDashboardServices(this);
+        FluentUISetupHelpers.SetupFluentUIComponents(this);
+        FluentUISetupHelpers.SetupFluentMenu(this);
+        FluentUISetupHelpers.SetupFluentAnchoredRegion(this);
+        var menuHost = Render<AspireMenu>(builder =>
+        {
+            builder.Add(p => p.Anchor, "menu-anchor");
+            builder.Add(p => p.Open, true);
+            builder.Add(p => p.Items, new[] { new MenuButtonItem { Text = "Item", Tooltip = tooltip, IsGroupHeader = isGroupHeader } });
+        });
+
+        Assert.Equal(expected, Assert.Single(menuHost.FindAll("[data-tooltip]")).GetAttribute("data-tooltip"));
+    }
+
     [Fact]
     public void UnkeyedItemsWithGeneratedIds_PreserveComponentIdentityAcrossRefresh()
     {

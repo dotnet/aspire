@@ -13,9 +13,9 @@
                 @Content.Description
             </FluentLabel>
 
-            @if (!HasFixedFormat)
-            {
-                <div class="dialog-format">
+            <div class="dialog-format">
+                @if (!HasFixedFormat)
+                {
                     <FluentSelect TOption="SelectViewModel<string>" TValue="SelectViewModel<string>"
                                   Id="@_selectFormatId"
                                   Items="@_options"
@@ -32,8 +32,32 @@
                             @context.Name
                         </OptionTemplate>
                     </FluentSelect>
-                </div>
-            }
+                }
+                @if (!_isLoading)
+                {
+                    @if (IsTextContentDisplayed)
+                    {
+                        <FluentButton Class="aspire-button text-visualizer-word-wrap"
+                                      Appearance="@(_noWrap ? ButtonAppearance.Default : ButtonAppearance.Primary)"
+                                      IconOnly="true"
+                                      IconStart="new Icons.Regular.Size16.TextWrap()"
+                                      OnClick="@ToggleWordWrap"
+                                      data-tooltip="@Loc[nameof(Dialogs.TextVisualizerWordWrap)]"
+                                      aria-label="@Loc[nameof(Dialogs.TextVisualizerWordWrap)]"
+                                      aria-pressed="@((!_noWrap).ToString().ToLowerInvariant())" />
+                    }
+                    <FluentButton Id="@_copyButtonId"
+                                  Class="aspire-button text-visualizer-copy"
+                                  Appearance="ButtonAppearance.Default"
+                                  IconOnly="true"
+                                  data-tooltip="@ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)]"
+                                  aria-label="@ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)]"
+                                  @attributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(TextVisualizerViewModel.FormattedText, ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)], ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)], ("data-copy-duration", 2000))">
+                        <FluentIcon Class="copy-icon" Icon="Icons.Regular.Size16.Copy" Color="Color.Primary" />
+                        <FluentIcon Class="checkmark-icon" Style="display:none" Icon="Icons.Regular.Size16.Checkmark" Color="Color.Primary" />
+                    </FluentButton>
+                }
+            </div>
         </div>
     </TitleTemplate>
 
@@ -50,13 +74,13 @@
 
             if (IsMarkdownFormat)
             {
-                <div class="markdown-content">
+                <div class="markdown-content @(_noWrap ? "markdown-content-no-wrap" : null)">
                     <MarkdownRenderer Markdown="@Content.Text" MarkdownProcessor="@GetMarkdownProcessor()" SuppressParagraphOnNewLines="false" />
                 </div>
             }
             else
             {
-                <TextVisualizer ViewModel="TextVisualizerViewModel" />
+                <TextVisualizer ViewModel="TextVisualizerViewModel" NoWrap="@_noWrap" />
             }
         }
         else if (ShowSecretsWarning is true)
@@ -77,7 +101,7 @@
     </ChildContent>
 
     <ActionTemplate>
-        @if (!_isLoading)
+        @if (!_isLoading && (ShowSecretsWarning is true || Content.DownloadFileName is not null))
         {
             <div class="button-container">
                 <div class="button-container-right">
@@ -100,21 +124,6 @@
                         </FluentButton>
                     }
 
-                    <FluentButton Id="@_copyButtonId"
-                                  Class="aspire-button"
-                                  Appearance="ButtonAppearance.Primary"
-                                  AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(TextVisualizerViewModel.FormattedText, ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)], ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)])">
-                        <span class="copy-button-icon" slot="start">
-                            @* Trim significant whitespace so the icon slot has the same width as its visible icon. *@
-                            @{
-                                <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Color="Color.Primary" />
-                            }
-                            @{
-                                <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Color="Color.Primary" />
-                            }
-                        </span>
-                        @ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)]
-                    </FluentButton>
                 </div>
             </div>
         }

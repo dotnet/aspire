@@ -164,3 +164,139 @@ export function unregisterPaneResizer(layoutElement) {
         unregister();
     }
 }
+
+const orderingRegistrations = new WeakMap();
+
+export function registerResourceOrdering(layoutElement, dotNetRef) {
+    unregisterResourceOrdering(layoutElement);
+
+    let draggedItem = null;
+    let pending = false;
+    let disposed = false;
+    const resourceSelector = '.resource-row[data-resource-name]';
+    const groupSelector = '.resource-tag-group[data-resource-group-key]';
+    const handleSelector = '[data-resource-drag-handle], [data-resource-group-drag-handle]';
+    const isGroup = item => item?.matches(groupSelector) === true;
+    const getItem = (element, group) => element?.closest?.(group ? groupSelector : resourceSelector);
+    const getHandleItem = handle => getItem(handle, handle?.hasAttribute('data-resource-group-drag-handle'));
+    const getKey = item => isGroup(item) ? item.dataset.resourceGroupKey : item.dataset.resourceName;
+    const isEnabled = item => {
+        const pane = item?.closest('.resource-pane-list');
+        return (isGroup(item) ? pane?.dataset.groupReorderEnabled : pane?.dataset.reorderEnabled) === 'true';
+    };
+    const canMove = (source, target) => source !== target && isEnabled(source) && isEnabled(target) &&
+        isGroup(source) === isGroup(target) &&
+        (isGroup(source) ? source.dataset.resourceGrouping === target.dataset.resourceGrouping
+            : source.dataset.resourceParent === target.dataset.resourceParent);
+    const clearIndicator = () => {
+        layoutElement.querySelectorAll('.resource-drop-before, .resource-drop-after').forEach(item => {
+            item.classList.remove('resource-drop-before', 'resource-drop-after');
+        });
+    };
+    const endDrag = () => {
+        clearIndicator();
+        draggedItem?.classList.remove('resource-dragging');
+        draggedItem = null;
+    };
+    const commit = async (source, target, after) => {
+        if (pending || !canMove(source, target)) {
+            return;
+        }
+        const sourceKey = getKey(source);
+        const group = isGroup(source);
+        pending = true;
+        try {
+            const moved = group
+                ? await dotNetRef.invokeMethodAsync('ReorderGroupAsync', source.dataset.resourceGrouping, sourceKey, getKey(target), after)
+                : await dotNetRef.invokeMethodAsync('ReorderResourceAsync', sourceKey, getKey(target), after);
+            if (moved && !disposed) {
+                const keyAttribute = group ? 'data-resource-group-key' : 'data-resource-name';
+                const handleAttribute = group ? 'data-resource-group-drag-handle' : 'data-resource-drag-handle';
+                layoutElement.querySelector(`[${keyAttribute}="${CSS.escape(sourceKey)}"] [${handleAttribute}]`)?.focus();
+            }
+        } catch (error) {
+            if (!disposed) {
+                console.error('Failed to reorder resources or groups.', error);
+            }
+        } finally {
+            pending = false;
+        }
+    };
+    const onDragStart = event => {
+        const handle = event.target.closest(handleSelector);
+        const item = getHandleItem(handle);
+        if (!item || !isEnabled(item) || pending) {
+            return;
+        }
+        draggedItem = item;
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', getKey(item));
+        item.classList.add('resource-dragging');
+    };
+    const onDragOver = event => {
+        clearIndicator();
+        const target = getItem(event.target, isGroup(draggedItem));
+        if (!draggedItem || !target || pending || !canMove(draggedItem, target)) {
+            return;
+        }
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+        const bounds = target.getBoundingClientRect();
+        target.classList.add(event.clientY >= bounds.top + bounds.height / 2 ? 'resource-drop-after' : 'resource-drop-before');
+    };
+    const onDragLeave = event => {
+        const target = getItem(event.target, isGroup(draggedItem));
+        if (target && !target.contains(event.relatedTarget)) {
+            clearIndicator();
+        }
+    };
+    const onDrop = event => {
+        const source = draggedItem;
+        const target = getItem(event.target, isGroup(source));
+        if (source && target && canMove(source, target)) {
+            event.preventDefault();
+            const bounds = target.getBoundingClientRect();
+            void commit(source, target, event.clientY >= bounds.top + bounds.height / 2);
+        }
+        endDrag();
+    };
+    const onKeyDown = event => {
+        if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.isComposing ||
+            (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) {
+            return;
+        }
+        const item = getHandleItem(event.target.closest(handleSelector));
+        if (!item || !isEnabled(item)) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        const siblings = [...item.closest('.resource-pane-list').querySelectorAll(isGroup(item) ? groupSelector : resourceSelector)]
+            .filter(sibling => isGroup(item) || sibling.dataset.resourceParent === item.dataset.resourceParent);
+        const after = event.key === 'ArrowDown';
+        const target = siblings[siblings.indexOf(item) + (after ? 1 : -1)];
+        if (target) {
+            void commit(item, target, after);
+        }
+    };
+
+    const handlers = { dragstart: onDragStart, dragover: onDragOver, dragleave: onDragLeave, drop: onDrop, dragend: endDrag, keydown: onKeyDown };
+    for (const [name, handler] of Object.entries(handlers)) {
+        layoutElement.addEventListener(name, handler);
+    }
+    orderingRegistrations.set(layoutElement, () => {
+        disposed = true;
+        endDrag();
+        for (const [name, handler] of Object.entries(handlers)) {
+            layoutElement.removeEventListener(name, handler);
+        }
+    });
+}
+
+export function unregisterResourceOrdering(layoutElement) {
+    const unregister = orderingRegistrations.get(layoutElement);
+    if (unregister) {
+        orderingRegistrations.delete(layoutElement);
+        unregister();
+    }
+}

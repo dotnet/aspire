@@ -287,10 +287,50 @@
         <target state="new">Expand resource list</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcePaneGroupReorderFailed">
+        <source>Unable to save the group order. Try again.</source>
+        <target state="new">Unable to save the group order. Try again.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcePaneGroupReorderUnavailable">
+        <source>Clear search and filters, and try reordering groups again.</source>
+        <target state="new">Clear search and filters, and try reordering groups again.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcePaneGrouping">
+        <source>Group resources</source>
+        <target state="new">Group resources</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcePaneGroupingNone">
+        <source>None</source>
+        <target state="new">None</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcePaneGroupingResourceType">
+        <source>Resource type</source>
+        <target state="new">Resource type</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcePaneGroupingState">
+        <source>State</source>
+        <target state="new">State</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcePaneLandmark">
         <source>Resources</source>
         <target state="new">Resources</target>
         <note />
+      </trans-unit>
+      <trans-unit id="ResourcePaneMovedAfter">
+        <source>{0} moved after {1}.</source>
+        <target state="new">{0} moved after {1}.</target>
+        <note>{0} is the moved resource name; {1} is the target resource name.</note>
+      </trans-unit>
+      <trans-unit id="ResourcePaneMovedBefore">
+        <source>{0} moved before {1}.</source>
+        <target state="new">{0} moved before {1}.</target>
+        <note>{0} is the moved resource name; {1} is the target resource name.</note>
       </trans-unit>
       <trans-unit id="ResourcePaneNoTagsDescription">
         <source>Add tags to a resource from its overview to group related resources here.</source>
@@ -305,6 +345,36 @@
       <trans-unit id="ResourcePaneOpen">
         <source>Show resource list</source>
         <target state="new">Show resource list</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcePaneReorderFailed">
+        <source>Unable to save the resource order. Try again.</source>
+        <target state="new">Unable to save the resource order. Try again.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcePaneReorderGroup">
+        <source>Reorder group {0}</source>
+        <target state="new">Reorder group {0}</target>
+        <note>{0} is the group name.</note>
+      </trans-unit>
+      <trans-unit id="ResourcePaneReorderGroupHint">
+        <source>Drag to reorder groups. Use Alt+Up or Alt+Down to move a group.</source>
+        <target state="new">Drag to reorder groups. Use Alt+Up or Alt+Down to move a group.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcePaneReorderHint">
+        <source>Drag to reorder. Use Alt+Up or Alt+Down to move among siblings.</source>
+        <target state="new">Drag to reorder. Use Alt+Up or Alt+Down to move among siblings.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcePaneReorderResource">
+        <source>Reorder {0}</source>
+        <target state="new">Reorder {0}</target>
+        <note>{0} is the resource name.</note>
+      </trans-unit>
+      <trans-unit id="ResourcePaneReorderUnavailable">
+        <source>Clear search, filters and grouping, and move resources within the same parent.</source>
+        <target state="new">Clear search, filters and grouping, and move resources within the same parent.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcePaneResize">
@@ -325,7 +395,7 @@
       <trans-unit id="ResourcePaneTagGroupToggle">
         <source>Expand or collapse {0}</source>
         <target state="new">Expand or collapse {0}</target>
-        <note>{0} is the tag name</note>
+        <note>{0} is the group name</note>
       </trans-unit>
       <trans-unit id="ResourcePaneTelemetryOnly">
         <source>Sends telemetry, not part of the app model</source>
