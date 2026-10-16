@@ -131,6 +131,13 @@ ignore:
 # only. targets may be test: / job: / a GROUP name / ALL.
 path_rules:
   - paths:
+      - .github/workflows/parse-command-line.py
+      - .github/workflows/enumerate-test-metadata.sh
+      - .github/workflows/write-test-matrix.ps1
+    targets: [ALL]
+    reason: shared argument parsing and test matrix generation
+
+  - paths:
       - Aspire.slnx
     targets: [ALL]
     reason: solution membership can add an existing project without touching that project's files, so run everything

@@ -1,5 +1,27 @@
 # GitHub Workflows
 
+## Script inputs
+
+Pass GitHub expressions containing inputs, matrix values, or step outputs through
+step `env:` values, then reference quoted shell variables (or `process.env` in
+JavaScript). Do not interpolate them into executable `run:` or `script:` bodies.
+See [GitHub's script injection guidance](https://docs.github.com/en/actions/security-for-github-actions/security-guides/security-hardening-for-github-actions#understanding-the-risk-of-script-injections).
+
+Reusable workflows accepting argument strings use `parse-command-line.py` to
+split them into literal argument arrays. These inputs support POSIX-style
+quoting, for example `--filter-trait "Partition=My Tests"`, on all platforms.
+They do not support shell expressions, command substitution, variable expansion,
+or wildcard expansion. Malformed quoting fails the step. The parser uses the
+Python installation supplied by the GitHub-hosted runner (`python` on Windows,
+`python3` on Linux/macOS); callers must pass the resulting arrays without
+evaluating them as shell source.
+
+Large matrices must travel through files rather than executable here-strings or
+environment variables, which are subject to per-variable OS size limits.
+`enumerate-tests` writes `artifacts/github-test-matrix.json` for `tests.yml`.
+Metadata enumeration and matrix-file transport live in `enumerate-test-metadata.sh`
+and `write-test-matrix.ps1`; behavior tests execute these scripts directly.
+
 ## Agentic workflow maintenance
 
 Agentic workflows are authored in `.github/workflows/*.md`. Upgrade the active

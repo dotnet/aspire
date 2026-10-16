@@ -287,20 +287,24 @@ jobs:
           tar -xzf "$archive" -C "${{ github.workspace }}/artifacts/bundle"
 
       - name: Build TypeScript validation image
+        env:
+          NODE_VERSION: ${{ matrix.node-version }}
         run: |
           docker build \
-            --build-arg NODE_VERSION=${{ matrix.node-version }} \
+            --build-arg "NODE_VERSION=$NODE_VERSION" \
             -f .github/workflows/polyglot-validation/Dockerfile.typescript \
-            -t polyglot-typescript-node-${{ matrix.node-version }} \
+            -t "polyglot-typescript-node-$NODE_VERSION" \
             .github/workflows/polyglot-validation/
 
       - name: Run TypeScript SDK validation
+        env:
+          NODE_VERSION: ${{ matrix.node-version }}
         run: |
           docker run --rm \
             -e ASPIRE_CLI_CHANNEL="${POLYGLOT_ASPIRE_CLI_CHANNEL}" \
             -v "${{ github.workspace }}:/workspace" \
             -v /var/run/docker.sock:/var/run/docker.sock \
-            polyglot-typescript-node-${{ matrix.node-version }}
+            "polyglot-typescript-node-$NODE_VERSION"
 
   results:
     if: ${{ always() && github.repository == 'microsoft/aspire' }}
