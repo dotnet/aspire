@@ -189,7 +189,7 @@ public class TerminalViewTests : DashboardTestContext
                 Assert.Equal(loc[nameof(Resources.TerminalStrings.TerminalToolbarGridSizeAuto)].Value, button.GetAttribute("aria-label"));
             });
         var dimensionsSelect = cut.FindComponent<FluentSelect<TerminalSizePreset, string>>();
-        Assert.Equal(loc[nameof(Resources.TerminalStrings.TerminalToolbarGridSize)].Value, dimensionsSelect.Instance.Placeholder);
+        Assert.Null(dimensionsSelect.Instance.Placeholder);
         Assert.Equal(loc[nameof(Resources.TerminalStrings.TerminalToolbarGridSize)].Value, dimensionsSelect.Instance.AriaLabel);
     }
 
@@ -340,6 +340,7 @@ public class TerminalViewTests : DashboardTestContext
         var module = TerminalSetupHelpers.SetupTerminalViewModule(this, "/Components/Controls/TerminalView.razor.js");
         module.Setup<int>("initTerminal", _ => true).SetResult(1);
         var cut = Render<TerminalView>(builder => builder.Add(p => p.ResourceName, "shell"));
+        Assert.Null(cut.FindComponent<FluentSelect<TerminalSizePreset, string>>().Instance.Placeholder);
         await cut.InvokeAsync(() => cut.Instance.OnTerminalStateChanged(new TerminalToolbarState
         {
             TerminalId = 1, Generation = 2, Disconnected = true,
@@ -347,6 +348,7 @@ public class TerminalViewTests : DashboardTestContext
         }));
         var picker = cut.FindComponent<FluentSelect<TerminalSizePreset, string>>().Instance;
         Assert.True(picker.Disabled);
+        Assert.Null(picker.Placeholder);
         Assert.Equal("97x38", picker.Value);
         Assert.NotNull(picker.Items);
         Assert.Equal([new("97x38", "97\u00d738", 97, 38), new TerminalSizePreset("80x24", "80\u00d724", 80, 24)], picker.Items);

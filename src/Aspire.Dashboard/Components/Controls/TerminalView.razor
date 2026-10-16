@@ -82,7 +82,6 @@
                     </FluentButton>
                     <label class="terminal-select-label" for="@_sizeSelectId">@Loc[nameof(Resources.TerminalStrings.TerminalSizeLabel)]</label>
                     <FluentSelect TOption="TerminalSizePreset" TValue="string" Id="@_sizeSelectId" Class="terminal-size-select aspire-input" Items="@DisplayedSizePresets"
-                                  Placeholder="@Loc[nameof(Resources.TerminalStrings.TerminalToolbarGridSize)]"
                                   OptionValue="@(p => p.Value)"
                                   OptionText="@(p => p.Label)"
                                   Value="@_state.SizeKey" ValueChanged="@(value => SetSizeModeAsync(value ?? string.Empty))"
