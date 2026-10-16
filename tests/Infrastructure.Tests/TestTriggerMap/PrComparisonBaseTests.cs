@@ -14,7 +14,7 @@ public sealed class PrComparisonBaseTests(ITestOutputHelper output)
     [InlineData(true, true)]
     [InlineData(false, true)]
     [RequiresTools(["git", "bash"])]
-    public async Task PinnedBaseExcludesBaseChurn(bool mergeBaseIntoPr, bool shallow)
+    public async Task PinnedBaseExcludesBaseChurn(bool mergeBaseIntoPr, bool clone)
     {
         using var workspace = TemporaryWorkspace.Create(output);
         var repo = workspace.CreateDirectory("origin").FullName;
@@ -27,11 +27,11 @@ public sealed class PrComparisonBaseTests(ITestOutputHelper output)
         }
 
         var checkout = repo;
-        if (shallow)
+        if (clone)
         {
             checkout = Path.Combine(workspace.Path, "checkout");
-            GitCli.Run(workspace.Path, "clone", "--depth=1", "--no-local", new Uri(repo).AbsoluteUri, checkout);
-            Assert.Equal("true", GitCli.Run(checkout, "rev-parse", "--is-shallow-repository"));
+            GitCli.Run(workspace.Path, "clone", "--no-local", new Uri(repo).AbsoluteUri, checkout);
+            Assert.Equal("false", GitCli.Run(checkout, "rev-parse", "--is-shallow-repository"));
         }
 
         var result = await Resolve(checkout, oldBase, head, "pull_request", merge, "refs/pull/42/merge");
@@ -141,6 +141,16 @@ public sealed class PrComparisonBaseTests(ITestOutputHelper output)
             pullRequest ? "pull_request" : "workflow_dispatch", merge,
             pullRequest ? "refs/pull/42/merge" : "refs/heads/main");
 
+        Assert.Equal(1, result.ExitCode);
+        Assert.Empty(result.StandardOutput);
+        Assert.Contains("Comparison history is shallow", result.StandardError);
+        Assert.Equal("true", GitCli.Run(checkout, "rev-parse", "--is-shallow-repository"));
+
+        GitCli.Run(checkout, "fetch", "--no-tags", "--unshallow", "origin");
+        result = await Resolve(checkout, pullRequest ? commonAncestor : currentBase, head,
+            pullRequest ? "pull_request" : "workflow_dispatch", merge,
+            pullRequest ? "refs/pull/42/merge" : "refs/heads/main");
+
         Assert.Equal(0, result.ExitCode);
         Assert.Equal(currentBase, result.StandardOutput.Trim());
         var actual = ChangedFiles(checkout, result.StandardOutput.Trim(), head);
@@ -151,37 +161,28 @@ public sealed class PrComparisonBaseTests(ITestOutputHelper output)
         Assert.Equal(merge, GitCli.Run(checkout, "rev-parse", "HEAD"));
     }
 
-    [Theory]
-    [InlineData(true, 1)]
-    [InlineData(false, 2)]
+    [Fact]
     [RequiresTools(["git", "bash"])]
-    public async Task IncompleteHistoryCannotReturnSelectiveComparison(bool shallowOrigin, int expectedExit)
+    public async Task IncompleteHistoryCannotReturnSelectiveComparison()
     {
         using var workspace = TemporaryWorkspace.Create(output);
         var repo = workspace.CreateDirectory("origin").FullName;
         var (_, _, _, merge) = CreateHistory(repo, mergeBaseIntoPr: true);
-        var source = Path.Combine(workspace.Path, "source");
-        GitCli.Run(workspace.Path, "clone", "--depth=1", "--no-local", new Uri(repo).AbsoluteUri, source);
         var checkout = Path.Combine(workspace.Path, "checkout");
-        GitCli.Run(workspace.Path, "clone", "--depth=1", "--no-local", new Uri(source).AbsoluteUri, checkout);
-        if (!shallowOrigin)
-        {
-            GitCli.Run(checkout, "remote", "set-url", "origin", Path.Combine(workspace.Path, "missing-origin"));
-        }
+        GitCli.Run(workspace.Path, "clone", "--depth=1", "--no-local", new Uri(repo).AbsoluteUri, checkout);
+        GitCli.Run(checkout, "remote", "remove", "origin");
 
         var result = await Resolve(checkout, merge, merge, "workflow_dispatch", merge, "refs/heads/main");
 
-        Assert.Equal(expectedExit, result.ExitCode);
+        Assert.Equal(1, result.ExitCode);
         Assert.Empty(result.StandardOutput);
-        Assert.Contains(shallowOrigin ? "::warning::" : "::error::", result.StandardError);
+        Assert.Contains("::warning::", result.StandardError);
         Assert.Equal("true", GitCli.Run(checkout, "rev-parse", "--is-shallow-repository"));
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
+    [Fact]
     [RequiresTools(["git", "bash"])]
-    public async Task CrissCrossHistoryRejectsAmbiguousComparison(bool shallow)
+    public async Task CrissCrossHistoryRejectsAmbiguousComparison()
     {
         using var workspace = TemporaryWorkspace.Create(output);
         var repo = workspace.CreateDirectory("origin").FullName;
@@ -210,14 +211,7 @@ public sealed class PrComparisonBaseTests(ITestOutputHelper output)
             GitCli.Run(repo, "merge-base", "--all", currentBase, head).Split('\n').Order(StringComparer.Ordinal));
         GitCli.Run(repo, "merge", "--no-ff", "-s", "ours", "topic", "-m", "Synthetic merge");
         var merge = GitCli.Run(repo, "rev-parse", "HEAD");
-        var checkout = repo;
-        if (shallow)
-        {
-            checkout = Path.Combine(workspace.Path, "checkout");
-            GitCli.Run(workspace.Path, "clone", "--depth=1", "--no-local", new Uri(repo).AbsoluteUri, checkout);
-        }
-
-        var result = await Resolve(checkout, root, head, "pull_request", merge, "refs/pull/42/merge");
+        var result = await Resolve(repo, root, head, "pull_request", merge, "refs/pull/42/merge");
 
         Assert.Equal(1, result.ExitCode);
         Assert.Empty(result.StandardOutput);
@@ -262,7 +256,7 @@ public sealed class PrComparisonBaseTests(ITestOutputHelper output)
 
     [Fact]
     [RequiresTools(["git", "bash"])]
-    public async Task MissingExplicitBaseFailsFetchRatherThanReturningAComparison()
+    public async Task MissingExplicitBaseFailsRatherThanReturningAComparison()
     {
         using var workspace = TemporaryWorkspace.Create(output);
         var (_, _, head, merge) = CreateHistory(workspace.Path, mergeBaseIntoPr: false);

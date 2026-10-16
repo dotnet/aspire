@@ -376,13 +376,16 @@ also force the full set.
 
 If the comparison cannot be verified, the selector **warns and runs ALL tests**
 to avoid under-selection. The skip gate instead **fails**, because it cannot
-safely declare CI skippable without a verified diff. Fetch failures fail either
-action rather than hiding an infrastructure problem behind a full test run.
+safely declare CI skippable without a verified diff. Missing comparison endpoints
+fail either action rather than hiding an infrastructure problem behind a full
+test run.
 
-The resolver requires complete comparison history. In a shallow checkout, Git
+Both callers require a full-history checkout (`fetch-depth: 0`), including when
+the selector reuses a caller's checkout. The shared resolver validates identity
+and ancestry without fetching or changing the checkout. In a shallow checkout, Git
 can find an older common ancestor through a short side branch while a newer one
-remains hidden, silently omitting PR changes. Completing the pinned history
-costs more fetching but prevents that unsafe selective result.
+remains hidden, silently omitting PR changes. Rejecting shallow history prevents
+that unsafe selective result even if a caller omits the checkout prerequisite.
 It also rejects comparisons with multiple equally good common ancestors, because
 choosing just one can hide changes relative to another.
 
@@ -401,8 +404,8 @@ The selector may still choose run-all intentionally for known-safe reasons:
   not `src/**`-only).
 
 Those are explicit selections of the full matrix. They are not fallbacks for a
-crashed selector or a failed graph computation. (A PR whose base SHA cannot be
-fetched is *not* one of them — that fails the step; see above.)
+crashed selector or a failed graph computation. Missing comparison endpoints
+are *not* one of them — that fails the step; see above.
 
 ## Debuggability and traceability
 
@@ -555,15 +558,15 @@ does not arise for them.
 
 ### Shallow checkout and the unresolved-merge-base fallback
 
-CI checkouts are shallow, so the merge-base may not be present locally. Our
-action deepens **both** endpoints until `git merge-base` resolves, and if it
-never does, warns and runs **all** tests rather than failing the PR. Both halves
-mirror established behavior:
+Selective CI requires full history at checkout, and rejects shallow history even
+when a merge-base is visible. An unverifiable comparison warns and runs **all**
+tests rather than risking under-selection. Related tools use different history
+preparation strategies but share the conservative fallback:
 
 - **dorny/paths-filter** doubles its `initial-fetch-depth` "until the merge-base
   is found, or there are no more commits in the history," and if there is no
   common ancestor "all files are considered as added" — i.e. everything matches.
-  That is the same deepen-then-degrade-to-all behavior, arrived at independently.
+  This shares the conservative run-all outcome when ancestry cannot be resolved.
 - **Turborepo** warns that "if the checkout is too shallow, then all packages
   will be considered changed," and recommends `--depth=0`.
 - **Nx** CI recipes use `fetch-depth: 0` for the same reason.

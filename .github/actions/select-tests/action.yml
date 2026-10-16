@@ -8,7 +8,7 @@ inputs:
   checkout:
     required: false
     default: 'true'
-    description: 'Whether to check out the repo. Set false when the caller has already checked out and the same working tree must be reused by a later step (e.g. enumerate-tests with checkout=false).'
+    description: 'Whether to check out the repo. Set false when the caller has already checked out full history (fetch-depth: 0) and the same working tree must be reused by a later step (e.g. enumerate-tests with checkout=false).'
   setupDotNet:
     required: false
     default: 'true'
@@ -78,9 +78,9 @@ runs:
       if: ${{ inputs.checkout == 'true' }}
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       # This action runs PR-authored code (the SelectTests build); don't leave the checkout's
-      # GITHUB_TOKEN persisted in .git/config where that code could read it. The base-commit fetch
-      # below is unauthenticated (public repo) and nothing here pushes, so dropping it is safe.
+      # GITHUB_TOKEN persisted in .git/config where that code could read it.
       with:
+        fetch-depth: 0
         persist-credentials: false
 
     # Minimal toolchain bootstrap -- not a full ./restore.sh. The repo SDK is .NET 11 while
@@ -139,14 +139,14 @@ runs:
         if [ "$FORCE_ALL" = "true" ]; then
           args+=(--force-all)
         elif [ -n "$PR_BASE_SHA" ]; then
-          # Verify the checkout identity and complete pinned history in the same helper as the
+          # Verify the checkout identity and pinned history in the same helper as the
           # top-level skip gate. Always diff to the real PR head, never the synthetic merge tree.
           if comparison_base=$(bash eng/github-ci/resolve-comparison-base.sh "$PR_BASE_SHA" "$HEAD_SHA"); then
             args+=(--from "$comparison_base" --to "$HEAD_SHA")
           else
             resolution_status=$?
             if [ "$resolution_status" -ne 1 ]; then
-              echo "::error::Failed to prepare the comparison history; cannot select tests." >&2
+              echo "::error::Comparison history is unavailable; cannot select tests." >&2
               exit "$resolution_status"
             fi
             echo "::warning::PR comparison identity or merge-base could not be verified; running ALL tests." >&2
