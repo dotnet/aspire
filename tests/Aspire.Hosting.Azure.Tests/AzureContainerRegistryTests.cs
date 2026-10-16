@@ -48,6 +48,10 @@ public class AzureContainerRegistryTests(ITestOutputHelper testOutputHelper)
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         Assert.Same(registry.Resource, Assert.Single(model.Resources.OfType<AzureContainerRegistryResource>()));
+        Assert.True(registry.Resource.TryGetLastAnnotation<ResourceIconAnnotation>(out var icon));
+        Assert.Equal("Archive", icon.IconName);
+        Assert.True(registry.Resource.TryGetLastAnnotation<DefaultRoleAssignmentsAnnotation>(out var defaultRoles));
+        Assert.Empty(defaultRoles.Roles);
     }
 
     [Fact]

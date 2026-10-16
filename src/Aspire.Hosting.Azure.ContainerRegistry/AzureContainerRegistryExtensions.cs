@@ -38,19 +38,9 @@ public static class AzureContainerRegistryExtensions
         builder.AddAzureProvisioning();
 
         var resource = new AzureContainerRegistryResource(name, ContainerRegistryInfrastructure.ConfigureContainerRegistry);
-
-        IResourceBuilder<AzureContainerRegistryResource> resourceBuilder;
-
-        if (builder.ExecutionContext.IsRunMode)
-        {
-            resourceBuilder = builder.AddResource(resource);
-        }
-        else
-        {
-            resourceBuilder = builder.AddResource(resource)
-                .WithIconName("Archive")
-                .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
-        }
+        var resourceBuilder = builder.AddResource(resource)
+            .WithIconName("Archive")
+            .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
 
         SubscribeToAddRegistryTargetAnnotations(builder, resource);
 
