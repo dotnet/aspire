@@ -101,13 +101,17 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         {
             Assert.False(File.Exists(Path.Combine(root, "component-archive-exists")));
         }
-        Assert.Equal(["Release", rid, "ci.test", "20261014.1", "staging", "", Path.Combine(root, "restore cache")],
-            File.ReadAllText(Path.Combine(root, "cli-properties")).Trim().Split('|'));
+        var cliProperties = File.ReadAllText(Path.Combine(root, "cli-properties")).Trim().Split('|');
+        Assert.Equal(["Release", rid, "ci.test", "20261014.1", "staging", ""], cliProperties[..6]);
+        var expectedCache = Path.GetFullPath(Path.Combine(root, "restore cache"));
+        Assert.Equal(expectedCache, Path.TrimEndingDirectorySeparator(Path.GetFullPath(cliProperties[6])));
         foreach (var line in File.ReadAllLines(Path.Combine(root, "cache-properties")))
         {
-            Assert.Equal(
-                [Path.Combine(root, "restore cache"), Path.Combine(root, "restore cache"), Path.Combine(root, "restore cache") + Path.DirectorySeparatorChar],
-                line.Split('|')[1..]);
+            var values = line.Split('|');
+            // MSBuild tasks forward cache properties, not an Exec environment.
+            var caches = values[0] is "prepare-tray" or "restore-tray" ? values[2..] : values[1..];
+            Assert.All(caches, cache =>
+                Assert.Equal(expectedCache, Path.TrimEndingDirectorySeparator(Path.GetFullPath(cache))));
         }
     }
 

@@ -4,7 +4,6 @@
 using System.Diagnostics;
 using System.Text.Json;
 using System.Xml.Linq;
-using Aspire.TestUtilities;
 using Xunit;
 using YamlDotNet.RepresentationModel;
 
@@ -373,9 +372,11 @@ public sealed class Hex1bNativePublishingTests : IDisposable
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task MacOSNativeBundleDebugSymbolsAreRemovedWithoutChangingPayloads(bool terminalSymbols)
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    public async Task MacOSNativeBundleDebugSymbolsAreRemovedWithoutChangingPayloads(bool terminalSymbols, bool trailingSeparator)
     {
         var dashboard = Path.Combine(_workspace.Path, "Dashboard publish");
         var terminal = Path.Combine(_workspace.Path, "TerminalHost publish");
@@ -390,8 +391,8 @@ public sealed class Hex1bNativePublishingTests : IDisposable
         var result = await RunDotNetAsync(
             ["msbuild", Path.Combine(RepoRoot.Path, "eng", "Bundle.proj"), "-nologo",
              "-t:_RemoveMacOSBundleDebugSymbols", "-p:TargetRid=osx-arm64", "-p:Sign=true",
-             $"-p:DashboardPublishDir={dashboard}{Path.DirectorySeparatorChar}",
-             $"-p:TerminalHostPublishDir={terminal}{Path.DirectorySeparatorChar}"]);
+             $"-p:DashboardPublishDir={dashboard}{(trailingSeparator ? Path.DirectorySeparatorChar.ToString() : "")}",
+             $"-p:TerminalHostPublishDir={terminal}{(trailingSeparator ? Path.DirectorySeparatorChar.ToString() : "")}"]);
 
         Assert.True(result.ExitCode == 0, result.Output);
         Assert.Equal(["Aspire.Dashboard"], Directory.GetFileSystemEntries(dashboard).Select(Path.GetFileName));

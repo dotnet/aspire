@@ -191,9 +191,9 @@ NuGet's user-cache default can leave build targets such as Grpc.Tools unimported
 even after restore succeeds. CreateLayout receives that same effective cache
 through `NUGET_PACKAGES`, so DCP discovery does not depend on a warm user cache.
 Caller-supplied `NUGET_PACKAGES` remains respected; an explicit
-`RestorePackagesPath` takes precedence. Every .NET child receives the matching
-`NUGET_PACKAGES` environment so Arcade's package import root follows the restore
-cache; CreateLayout uses that environment for DCP discovery too.
+`RestorePackagesPath` takes precedence. Subprocesses receive the matching
+`NUGET_PACKAGES` environment; tray task calls receive matching restore and package
+root properties. CreateLayout uses the environment for DCP discovery too.
 
 Packaging validates the expected RID/configuration publish files before doing
 work. Missing files fail rather than trigger a fallback publish.
