@@ -18,6 +18,7 @@ using Azure.Security.KeyVault.Secrets;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -302,6 +303,40 @@ public class AzureBicepProvisionerTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(AzureLocation.WestUS2.Name, subscription.Deployments.Content!.Location?.Name);
         Assert.StartsWith("subscriptionScoped-", subscription.Deployments.DeploymentName);
         AssertResourceGroupPropertyIsNull(services, resource.Name);
+    }
+
+    [Theory]
+    [InlineData(DistributedApplicationOperation.Publish, "aks")]
+    [InlineData(DistributedApplicationOperation.Publish, "akss")]
+    [InlineData(DistributedApplicationOperation.Publish, "production")]
+    [InlineData(DistributedApplicationOperation.Run, "production")]
+    public async Task GetOrCreateResourceAsync_BoundsDeploymentNames(DistributedApplicationOperation operation, string environmentName)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(operation, testOutputHelper);
+        builder.Services.AddSingleton<IDeploymentStateManager>(new MockDeploymentStateManager());
+        using var services = builder.Services.BuildServiceProvider();
+
+        var subscription = new TestSubscriptionResource([], subscriptionId: "00000000-0000-0000-0000-000000000042");
+        var resource = new AzureBicepResource(
+            $"{environmentName}-control-plane-identity-roles-{environmentName}-kubelet-identity",
+            templateString: "output result string = 'ok'");
+        resource.Scope = AzureBicepResourceScope.CreateForSubscription(subscription.Id.Name);
+
+        var timeProvider = new FakeTimeProvider(DateTimeOffset.FromUnixTimeSeconds(1792018800));
+        var provisioner = CreateProvisioner(services, operation, timeProvider);
+        var context = ProvisioningTestHelpers.CreateTestProvisioningContext(
+            armClient: new TestArmClient(subscription, new TestTenantResource([])),
+            subscription: subscription,
+            location: AzureLocation.WestUS2,
+            executionContext: new DistributedApplicationExecutionContext(operation));
+
+        await provisioner.GetOrCreateResourceAsync(resource, context, CancellationToken.None);
+
+        var suffix = operation is DistributedApplicationOperation.Publish ? "-1792018800" : string.Empty;
+        var expectedName = ResourceNameHelpers.TruncateWithHash(resource.Name, 64 - suffix.Length) + suffix;
+        Assert.Equal(expectedName, subscription.Deployments.DeploymentName);
+        Assert.Equal(64, subscription.Deployments.DeploymentName!.Length);
+        Assert.Equal($"{environmentName}-control-plane-identity-roles-{environmentName}-kubelet-identity", resource.Name);
     }
 
     [Fact]

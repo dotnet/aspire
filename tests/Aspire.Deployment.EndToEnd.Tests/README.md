@@ -135,6 +135,13 @@ the live workload selectors and actual node placement. The shared-storage scenar
 that exactly one account exists and both deployed Container Apps receive its blob endpoint
 and a managed identity with blob data access.
 
+`AksCrossResourceGroupRegistryDeploymentTests` covers both fresh deployment and upgrade
+from a system-assigned control plane with an AKS-created kubelet identity. The upgrade
+starts from a frozen Bicep topology, then applies the current Aspire model to the same
+cluster and VNet. Both scenarios verify private-image pulls from the external registry,
+the separate identity grants, a working API, and unchanged redeployment. The upgrade also
+checks that both identities changed and both node pools completed successfully.
+
 ### Run All Tests Locally
 
 ```bash

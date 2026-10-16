@@ -192,6 +192,33 @@ public class AzureKubernetesInfrastructureTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public async Task CrossGroupRegistryRoleProvisioningPrecedesHelmDeployment()
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        var reporter = new TestPipelineActivityReporter(output);
+        using var builder = AzureKubernetesTestBuilder.Create(
+            output, workspace, step: WellKnownPipelineSteps.Diagnostics, activityReporter: reporter);
+        var registry = builder.AddAzureContainerRegistry("registry").PublishAsExisting("existingacr", "registry-rg");
+        builder.AddAzureKubernetesEnvironment("aks").WithContainerRegistry(registry);
+        builder.AddContainer("api", "myimage").WithHttpEndpoint(targetPort: 8080);
+
+        await using var app = builder.Build();
+        await app.RunAsync();
+
+        var diagnostics = string.Join('\n', reporter.LoggedMessages
+            .Where(message => message.StepTitle == "diagnostics")
+            .Select(message => message.Message));
+        var lines = diagnostics.Split('\n').Select(line => line.Trim()).ToList();
+        Assert.Equal(
+            "Direct dependencies: create-provisioning-context, provision-aks-control-plane-identity, provision-aks-control-plane-identity-roles-aks-kubelet-identity, provision-aks-kubelet-identity, provision-aks-kubelet-identity-roles-registry",
+            GetDirectDependencies(lines, "provision-aks"));
+        Assert.Equal(
+            "Direct dependencies: create-provisioning-context, provision-aks-kubelet-identity, provision-registry",
+            GetDirectDependencies(lines, "provision-aks-kubelet-identity-roles-registry"));
+        await Verify(diagnostics, "txt");
+    }
+
+    [Fact]
     public async Task DestroyPipelineFetchesCredentialsBeforeClusterCleanupAndDeletesAzureLast()
     {
         using var workspace = TemporaryWorkspace.Create(output);

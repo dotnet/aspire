@@ -51,6 +51,10 @@ internal sealed class AzureResourcePreparer(
         }
 
         await BuildRoleAssignmentAnnotations(model, azureResources, cancellationToken).ConfigureAwait(false);
+        foreach (var roleAssignment in model.Resources.OfType<AzureRoleAssignmentResource>())
+        {
+            roleAssignment.TargetAzureResource.RegisterRoleAssignmentScope(roleAssignment);
+        }
         PropagateReferencedDeploymentPrerequisites(model);
 
         if (executionContext.IsRunMode)
@@ -432,8 +436,6 @@ internal sealed class AzureResourcePreparer(
                 ProvisioningBuildOptions = options.Value.ProvisioningBuildOptions,
             };
 
-            ApplyExistingResourceScope(roleAssignmentResource, targetResource);
-
             roleAssignmentResources.Add(roleAssignmentResource);
         }
 
@@ -556,6 +558,10 @@ internal sealed class AzureResourcePreparer(
         foreach (var resource in appModel.Resources.OfType<AzureBicepResource>().ToArray())
         {
             var prerequisiteResources = resource.GetExplicitAzureReferences()
+                // A role needs its target provisioned to resolve scope, not the target's own
+                // grants. Inheriting those grants would create cycles for reciprocal assignments.
+                .Where(reference => resource is not AzureRoleAssignmentResource roleAssignment ||
+                    reference != roleAssignment.TargetAzureResource)
                 .SelectMany(reference => reference.Annotations.OfType<DeploymentPrerequisitesAnnotation>())
                 .SelectMany(annotation => annotation.Resources)
                 .Where(prerequisite => prerequisite != resource)
@@ -582,18 +588,7 @@ internal sealed class AzureResourcePreparer(
             ProvisioningBuildOptions = options.Value.ProvisioningBuildOptions,
         };
 
-        ApplyExistingResourceScope(roleAssignmentResource, targetResource);
-
         return roleAssignmentResource;
-    }
-
-    private static void ApplyExistingResourceScope(AzureBicepResource roleAssignmentResource, AzureProvisioningResource targetResource)
-    {
-        if (targetResource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAnnotation) &&
-            AzureBicepResourceScope.FromExistingResourceAnnotation(existingAnnotation) is { } scope)
-        {
-            roleAssignmentResource.Scope = scope;
-        }
     }
 
     private void AddGlobalRoleAssignmentsInfrastructure(

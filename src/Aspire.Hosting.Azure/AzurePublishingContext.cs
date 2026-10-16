@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Pipelines;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
@@ -174,7 +175,7 @@ public sealed class AzurePublishingContext(
             Location = locationParam,
         };
 
-        var moduleMap = new Dictionary<AzureBicepResource, ModuleImport>();
+        var moduleMap = new Dictionary<AzureBicepResource, DependencyAwareModuleImport>();
 
         foreach (var resource in bicepResourcesToPublish)
         {
@@ -188,9 +189,11 @@ public sealed class AzurePublishingContext(
 
             var identifier = Infrastructure.NormalizeBicepIdentifier(resource.Name);
 
-            var module = new ModuleImport(identifier, $"{resource.Name}/{resource.Name}.bicep")
+            var module = new DependencyAwareModuleImport(identifier, $"{resource.Name}/{resource.Name}.bicep")
             {
-                Name = resource.Name
+                // ARM deployment names are limited to 64 characters, independently of logical resource names.
+                // https://learn.microsoft.com/azure/azure-resource-manager/management/resource-name-rules#microsoftresources
+                Name = ResourceNameHelpers.TruncateWithHash(resource.Name, 64)
             };
 
             moduleMap[resource] = module;
@@ -344,6 +347,14 @@ public sealed class AzurePublishingContext(
             var module = moduleMap[resource];
             module.Scope = GetScopeExpression(resource);
             module.Parameters.Add("location", locationParam);
+
+            // Role grants have no outputs consumed by their dependents. Preserve these explicit
+            // prerequisites when deploying main.bicep, not just in Aspire's per-resource pipeline.
+            foreach (var prerequisite in resource.References.OfType<AzureRoleAssignmentResource>()
+                .OrderBy(prerequisite => prerequisite.Name, StringComparer.Ordinal))
+            {
+                module.Dependencies.Add(moduleMap[prerequisite]);
+            }
 
             foreach (var parameter in resource.Parameters)
             {
@@ -571,5 +582,29 @@ public sealed class AzurePublishingContext(
 
         var bicepPath = Path.Combine(outputDirectoryPath, $"{MainInfrastructure.BicepName}.bicep");
         await File.WriteAllTextAsync(bicepPath, compiledBicep.Value).ConfigureAwait(false);
+    }
+
+    // Azure.Provisioning's ModuleImport does not expose or emit dependsOn. Extend its compiled
+    // body so parameter, scope, and name generation remain owned by the provisioning SDK.
+    private sealed class DependencyAwareModuleImport(string identifier, string path) : ModuleImport(identifier, path)
+    {
+        public List<ModuleImport> Dependencies { get; } = [];
+
+        protected override IEnumerable<BicepStatement> Compile()
+        {
+            if (Dependencies.Count == 0)
+            {
+                return base.Compile();
+            }
+
+            var module = (ModuleStatement)base.Compile().Single();
+            var body = (ObjectExpression)module.Body;
+            return
+            [
+                new ModuleStatement(module.Name, module.Type, new ObjectExpression(
+                    [.. body.Properties, new PropertyExpression("dependsOn", new ArrayExpression(
+                        [.. Dependencies.Select(dependency => new IdentifierExpression(dependency.BicepIdentifier))]))]))
+            ];
+        }
     }
 }
