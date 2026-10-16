@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import * as fs from 'fs';
 import * as path from 'path';
-import { findResource, getCommandInvocationCount, waitForCommandOutcome, waitForNoDebugSessions, waitForNoRunningAppHost, waitForRepositoryIdle, waitForResourceState, waitForWorkspaceAppHost } from './helpers/assertions';
+import { findResource, getCommandInvocationCount, isSamePath, waitForCommandOutcome, waitForNoDebugSessions, waitForNoRunningAppHost, waitForRepositoryIdle, waitForResourceState, waitForWorkspaceAppHost } from './helpers/assertions';
 import { executeE2eControlCommand, restoreWorkspaceCliPath, runE2eTeardown, stopPrimaryAppHostIfRunning } from './helpers/fixtures';
 import { invokeLanguageModelTool, prepareLanguageModelToolInvocation } from './helpers/languageModelTools';
 import { getPrimaryAppHostProjectPath, getWorkspaceRoot } from './helpers/paths';
@@ -319,7 +319,9 @@ suite('Aspire resource debug language model tool E2E', function () {
             assert.strictEqual(proof.resourceName, scenario.resourceName);
             assert.strictEqual(proof.debugType, scenario.debugType);
             assert.strictEqual(proof.breakpoint.matchingStackFrame.line, proof.breakpoint.line);
-            assert.ok(isSamePath(proof.breakpoint.matchingStackFrame.source?.path, scenario.sourcePath));
+            const breakpointSourcePath = proof.breakpoint.matchingStackFrame.source?.path;
+            assert.ok(breakpointSourcePath);
+            assert.ok(isSamePath(breakpointSourcePath, scenario.sourcePath));
             assert.ok(proof.attachRequests.length > 0);
             assert.ok(proof.breakpointResponses.some(response => response.success === true));
             assert.deepStrictEqual(proof.debugAdapterResponses, []);
@@ -364,6 +366,18 @@ suite('Aspire resource debug language model tool E2E', function () {
     });
 });
 
+suite('Aspire resource debug source paths', function () {
+    test('matches Windows drive-letter casing variants', function () {
+        if (process.platform !== 'win32' || !/^[a-z]:\\/i.test(__filename)) {
+            this.skip();
+        }
+
+        const uppercaseDrivePath = __filename.charAt(0).toUpperCase() + __filename.slice(1);
+        const lowercaseDrivePath = __filename.charAt(0).toLowerCase() + __filename.slice(1);
+        assert.strictEqual(isSamePath(uppercaseDrivePath, lowercaseDrivePath), true);
+    });
+});
+
 function toWorkspaceRelativePath(filePath: string): string {
     const relativePath = path.relative(getWorkspaceRoot(), filePath);
     assert.ok(relativePath.length > 0 && !relativePath.startsWith('..') && !path.isAbsolute(relativePath));
@@ -385,8 +399,4 @@ function findBreakpointLine(sourcePath: string, marker: string): number {
     }
 
     return index;
-}
-
-function isSamePath(left: string | undefined, right: string): boolean {
-    return left !== undefined && path.resolve(left) === path.resolve(right);
 }
