@@ -10,7 +10,7 @@ using Aspire.Cli.Utils;
 namespace Aspire.Cli.Agents;
 
 /// <summary>
-/// Shape checks shared by native handlers; unexpected values are never silently replaced.
+/// Native JSON shape checks and input tracking for agent configuration edits.
 /// </summary>
 internal static class AgentConfigurationJson
 {
@@ -106,10 +106,34 @@ internal static class AgentConfigurationJson
         private readonly Dictionary<string, Document> _documents = new(AgentPath.Comparer);
         private readonly Dictionary<string, string> _aliases = new(AgentPath.Comparer);
 
-        public async Task<Document> ReadAsync(string path, CancellationToken cancellationToken)
+        public Task<Document> ReadAsync(string path, CancellationToken cancellationToken)
+            => ReadAsync(path, static bytes => ParseObject(bytes.Span), cancellationToken);
+
+        public async Task<Document> ReadAsync(
+            string path, Func<ReadOnlyMemory<byte>, JsonObject> parse, CancellationToken cancellationToken)
+        {
+            var document = await ReadFileAsync(path, cancellationToken);
+            try
+            {
+                // Cache observations, not interpretations: aliased consumers must each
+                // validate the original bytes under their own format's parsing contract.
+                return document with { Root = document.Bytes is { } bytes ? parse(bytes) : null };
+            }
+            catch (AgentConfigurationException ex)
+            {
+                throw new AgentConfigurationException($"{document.Path}: {ex.Message}");
+            }
+        }
+
+        public async Task<Document> ReadFileAsync(string path, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var physicalPath = AgentPath.Resolve(path);
+            if (_aliases.TryGetValue(path, out var previousPath) && !AgentPath.Comparer.Equals(previousPath, physicalPath))
+            {
+                throw new AgentConfigurationException(AgentCommandStrings.Configuration_ConcurrentChange);
+            }
+
             _aliases[path] = physicalPath;
             if (_documents.TryGetValue(physicalPath, out var existing))
             {
@@ -117,17 +141,7 @@ internal static class AgentConfigurationJson
             }
 
             var bytes = await AgentFileWriter.ReadExistingAsync(physicalPath, cancellationToken);
-            JsonObject? root;
-            try
-            {
-                root = bytes is null ? null : ParseObject(bytes);
-            }
-            catch (AgentConfigurationException ex)
-            {
-                throw new AgentConfigurationException($"{physicalPath}: {ex.Message}");
-            }
-
-            var document = new Document(physicalPath, bytes, root);
+            var document = new Document(physicalPath, bytes, null);
             _documents.Add(physicalPath, document);
             return document;
         }

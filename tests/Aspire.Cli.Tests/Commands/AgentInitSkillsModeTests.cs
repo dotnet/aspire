@@ -138,4 +138,36 @@ public class AgentInitSkillsModeTests(ITestOutputHelper output)
         Assert.Equal(before, Directory.GetFileSystemEntries(context.Workspace.Path, "*", SearchOption.AllDirectories).Order());
         Assert.Equal(AgentEnvironment.None, hooks.ConfiguredEnvironments);
     }
+
+    [Theory]
+    [InlineData("copilot")]
+    [InlineData("claude")]
+    public async Task Native_FailedRegistration_StillConfiguresIndependentlyRequestedMcp(string clientId)
+    {
+        using var context = new AgentConfigurationTestContext(output);
+        var client = context.Environments.Single(client => client.Id == clientId);
+        var plugin = Assert.IsType<AgentPluginConfiguration>(client.Plugin);
+        var nativePath = Path.Combine(context.Project.FullName, plugin.ProjectDirectory, "settings.json");
+        const string malformed = "{broken";
+        await AgentConfigurationTestContext.WriteAsync(nativePath, malformed);
+        var interaction = new TestInteractionService();
+        var services = CliTestHelper.CreateServiceCollection(context.Workspace, output, options =>
+        {
+            options.CliExecutionContextFactory = _ => context.ExecutionContext;
+            options.InteractionServiceFactory = _ => interaction;
+        });
+        services.AddSingleton<IEnvironment>(context.Environment);
+        using var provider = services.BuildServiceProvider();
+
+        var result = provider.GetRequiredService<RootCommand>().Parse(
+            $"agent init --agents {clientId} --scope project --aspire-skills native --mcp");
+
+        Assert.Equal(CliExitCodes.InvalidCommand, await result.InvokeAsync().DefaultTimeout());
+        Assert.Single(interaction.DisplayedErrors);
+        Assert.Equal(malformed, await File.ReadAllTextAsync(nativePath));
+        var mcpPath = Path.Combine(context.Project.FullName, ".mcp.json");
+        var server = JsonNode.Parse(await File.ReadAllTextAsync(mcpPath))!["mcpServers"]!["aspire"]!;
+        Assert.Equal("aspire", (string?)server["command"]);
+        Assert.Equal(["agent", "mcp"], server["args"]!.AsArray().Select(value => (string?)value));
+    }
 }

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Agents;
+using Aspire.Cli.Agents.OpenCode;
 using Aspire.Cli.Tests.Utils;
 
 namespace Aspire.Cli.Tests.Agents;
@@ -37,16 +38,16 @@ internal sealed class AgentConfigurationTestContext : IDisposable
     public AgentClient Copilot { get; } = AgentClient.Copilot;
     public AgentClient ClaudeCode { get; } = AgentClient.ClaudeCode;
     public AgentClient OpenCode { get; } = AgentClient.OpenCode;
-    public string CopilotDirectory => Copilot.Plugin.GlobalDirectory(ExecutionContext, Environment);
-    public string ClaudeDirectory => ClaudeCode.Plugin.GlobalDirectory(ExecutionContext, Environment);
-    public string ClaudeManagedDirectory => ClaudeCode.Plugin.ManagedDirectory(ExecutionContext, Environment);
-    public string OpenCodeDirectory => OpenCode.Plugin.GlobalDirectory(ExecutionContext, Environment);
+    public string CopilotDirectory => Copilot.Plugin!.GlobalDirectory(ExecutionContext, Environment);
+    public string ClaudeDirectory => ClaudeCode.Plugin!.GlobalDirectory(ExecutionContext, Environment);
+    public string ClaudeManagedDirectory => ClaudeCode.Plugin!.ManagedDirectory(ExecutionContext, Environment);
+    public string OpenCodeDirectory => OpenCodePaths.GetConfigDirectory(ExecutionContext, Environment);
 
     public void SetVariable(string name, string value) => _variables[name] = value;
 
     public Task<IReadOnlyList<AgentTargetResult>> ConfigureNativeAsync(
         AgentConfigurationScope scope, IReadOnlyList<AgentClient> clients, CancellationToken cancellationToken = default)
-        => AspireSkillsPluginConfiguration.ConfigureAsync(Project, scope, clients, ExecutionContext, Environment, cancellationToken);
+        => AspireSkillsConfiguration.ConfigureAsync(Project, scope, clients, ExecutionContext, Environment, cancellationToken);
 
     public static async Task WriteAsync(string path, string content)
     {

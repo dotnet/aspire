@@ -453,7 +453,7 @@ internal sealed class AgentInitCommand : BaseCommand
                 }
             }
             else if (skillsMode is AspireSkillsMode.Bundled &&
-                await AspireSkillsPluginConfiguration.HasRegistrationAsync(
+                await AspireSkillsConfiguration.HasRegistrationAsync(
                     workspaceRoot, selectedClients, ExecutionContext, _environment, cancellationToken))
             {
                 conflict = AgentCommandStrings.InitCommand_NativeSkillsConflict;
@@ -514,8 +514,8 @@ internal sealed class AgentInitCommand : BaseCommand
         {
             InteractionService.DisplayMessage(KnownEmojis.Warning, AgentCommandStrings.InitCommand_PluginRiskWarning);
             InteractionService.DisplaySubtleMessage(string.Format(CultureInfo.CurrentCulture,
-                AgentCommandStrings.InitCommand_DirectSkillsAlternative, AspireSkillsPluginConfiguration.RepositoryUrl));
-            var results = await AspireSkillsPluginConfiguration.ConfigureAsync(
+                AgentCommandStrings.InitCommand_DirectSkillsAlternative, AspireSkillsConfiguration.RepositoryUrl));
+            var results = await AspireSkillsConfiguration.ConfigureAsync(
                 workspaceRoot, scope, selectedClients, ExecutionContext, _environment, cancellationToken);
             foreach (var result in results)
             {
@@ -617,61 +617,42 @@ internal sealed class AgentInitCommand : BaseCommand
         // --- Phase 5: Apply MCP server configuration if the user confirmed ---
         if (configureMcp)
         {
-            var pathComparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
-            // Aliased paths can use distinct server keys; coalesce file I/O, not client formats.
-            var targetsByPath = selectedClients.SelectMany(client =>
-                client.GetMcpConfigPaths(scope, workspaceRoot, ExecutionContext, _environment)
-                    .Select(target => (Client: client, target.Path, target.ServersPropertyName, target.ConfigureServer)))
-                .GroupBy(static target => target.Path, pathComparer);
-            foreach (var targets in targetsByPath)
+            var edits = new List<AgentFileEdit>();
+            foreach (var client in selectedClients)
             {
-                var firstTarget = targets.First();
-                var description = string.Format(CultureInfo.CurrentCulture,
-                    AgentCommandStrings.InitCommand_McpConfigurationDescription, firstTarget.Client.DisplayName, targets.Key);
-                try
+                edits.AddRange(await client.CreateMcpEditsAsync(
+                    scope, workspaceRoot, ExecutionContext, _environment, cancellationToken));
+            }
+
+            foreach (var result in await AgentConfigurationEditor.ApplyAsync(edits, cancellationToken))
+            {
+                if (result.Status is AgentConfigurationStatus.Blocked or AgentConfigurationStatus.Failed)
                 {
-                    var (config, configFilePath) = await McpConfigFileHelper.ReadSelectedConfigAsync(
-                        targets.Key, firstTarget.Client, scope, _environment, cancellationToken);
-                    var notifications = new List<(KnownEmoji Emoji, string Message)>();
-                    // Legacy repairs share the same selection, scope, and consent as new configuration.
-                    foreach (var (client, _, serversPropertyName, configureServer) in targets)
+                    InteractionService.DisplayError(result.Error?.Message ?? result.Message!);
+                    if (result.Error?.InnerException is JsonException)
                     {
-                        var updated = McpConfigFileHelper.UpdateDeprecatedCommand(config, serversPropertyName);
-                        var configured = configureServer && McpConfigFileHelper.ConfigureMcpServer(
-                            config, client, scope, configFilePath);
-
-                        if (updated)
-                        {
-                            notifications.Add((KnownEmojis.Wrench,
-                                string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.DeprecatedConfigUpdate_Description, client.DisplayName)));
-                        }
-
-                        if (configured)
-                        {
-                            notifications.Add((KnownEmojis.CheckMarkButton, string.Format(CultureInfo.CurrentCulture,
-                                AgentCommandStrings.InitCommand_McpConfigurationDescription, client.DisplayName, configFilePath)));
-                        }
-                    }
-
-                    if (notifications.Count > 0)
-                    {
-                        await ConfigurationHelper.WriteSettingsFileAsync(configFilePath, config, cancellationToken);
-                    }
-
-                    foreach (var (emoji, message) in notifications)
-                    {
-                        InteractionService.DisplayMessage(emoji, message);
-                    }
-                }
-                catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
-                {
-                    InteractionService.DisplayError(ex.Message);
-                    if (ex.InnerException is JsonException)
-                    {
+                        var description = string.Format(CultureInfo.CurrentCulture,
+                            AgentCommandStrings.InitCommand_McpConfigurationDescription, result.Environments[0].DisplayName, result.TargetPath);
                         InteractionService.DisplaySubtleMessage(
                             string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.SkippedMalformedConfigFile, description));
                     }
                     hasErrors = true;
+                    continue;
+                }
+
+                // Changes are only reported after the entire physical file is published.
+                foreach (var change in result.Changes)
+                {
+                    if (change.Edit.Repaired)
+                    {
+                        InteractionService.DisplayMessage(KnownEmojis.Wrench,
+                            string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.DeprecatedConfigUpdate_Description, change.Client.DisplayName));
+                    }
+                    if (change.Edit.Added)
+                    {
+                        InteractionService.DisplayMessage(KnownEmojis.CheckMarkButton,
+                            string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_McpConfigurationDescription, change.Client.DisplayName, change.Path));
+                    }
                 }
             }
         }

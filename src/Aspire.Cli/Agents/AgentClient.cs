@@ -29,7 +29,7 @@ internal sealed class AgentClient
             GlobalDirectory = static (context, environment) =>
                 AgentPath.Expand(CopilotPaths.GetConfigDirectory(context.HomeDirectory, environment), context),
             ManagedDirectory = static (context, environment) =>
-                GetManagedPluginDirectory(context, environment, "GitHubCopilot", "github-copilot"),
+                GetManagedSettingsDirectory(context, environment, "GitHubCopilot", "github-copilot"),
             // Copilot also consumes Claude project settings, but not Claude user settings.
             // https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference
             ProjectSettingsFiles =
@@ -71,7 +71,7 @@ internal sealed class AgentClient
             ProjectDirectory = ClaudeCodePaths.ConfigDirectoryName,
             GlobalDirectory = ClaudeCodePaths.GetConfigDirectory,
             ManagedDirectory = static (context, environment) =>
-                GetManagedPluginDirectory(context, environment, "ClaudeCode", "claude-code"),
+                GetManagedSettingsDirectory(context, environment, "ClaudeCode", "claude-code"),
             ProjectSettingsFiles =
             [
                 Path.Combine(".claude", "settings.json"),
@@ -94,21 +94,6 @@ internal sealed class AgentClient
         Id = "opencode",
         DisplayName = AgentCommandStrings.Environment_OpenCode,
         Environments = AgentEnvironment.OpenCode,
-        Plugin = new()
-        {
-            ProjectDirectory = string.Empty,
-            GlobalDirectory = static (context, environment) =>
-                Path.Combine(OpenCodePaths.GetOverride("XDG_CONFIG_HOME", context, environment) ??
-                    Path.Combine(context.HomeDirectory.FullName, ".config"), "opencode"),
-            // https://opencode.ai/docs/config/#managed-settings
-            ManagedDirectory = static (context, environment) => environment.IsWindows()
-                ? Path.Combine(AgentPath.GetOverride("ProgramData", context, environment) ??
-                    Path.Combine(Path.GetPathRoot(context.HomeDirectory.FullName)!, "ProgramData"), "opencode")
-                : environment.IsMacOS()
-                    ? Path.Combine(Path.DirectorySeparatorChar.ToString(), "Library", "Application Support", "opencode")
-                    : Path.Combine(Path.DirectorySeparatorChar.ToString(), "etc", "opencode"),
-            UsesSkillsCatalog = true
-        },
         Mcp = new()
         {
             ProjectConfigPath = OpenCodePaths.GetMcpConfigPath,
@@ -130,29 +115,13 @@ internal sealed class AgentClient
     public required string Id { get; init; }
     public required string DisplayName { get; init; }
     public required AgentEnvironment Environments { get; init; }
-    public required AgentPluginConfiguration Plugin { get; init; }
+    public AgentPluginConfiguration? Plugin { get; init; }
     public required AgentMcpConfiguration Mcp { get; init; }
     public string ProjectSkillsDirectory { get; init; } = s_universalSkillsDirectory;
     public Func<CliExecutionContext, IEnvironment, string> GlobalSkillsDirectory { get; init; }
         = static (context, _) => Path.Combine(context.HomeDirectory.FullName, s_universalSkillsDirectory);
 
     public bool Includes(AgentEnvironment environments) => (Environments & environments) != AgentEnvironment.None;
-
-    public string GetPluginConfigPath(AgentConfigurationScope scope, DirectoryInfo workspaceRoot, CliExecutionContext executionContext, IEnvironment environment)
-    {
-        if (Plugin.UsesSkillsCatalog)
-        {
-            return scope is AgentConfigurationScope.Project
-                ? OpenCodePaths.GetProjectConfigPath(workspaceRoot)
-                : Mcp.GlobalConfigPath(executionContext, environment);
-        }
-
-        var directory = scope is AgentConfigurationScope.Project
-            ? Path.Combine(workspaceRoot.FullName, Plugin.ProjectDirectory)
-            : Plugin.GlobalDirectory(executionContext, environment);
-
-        return Path.Combine(directory, "settings.json");
-    }
 
     public string GetSkillBaseDirectory(AgentConfigurationScope scope, DirectoryInfo workspaceRoot, CliExecutionContext executionContext, IEnvironment environment)
     {
@@ -182,9 +151,24 @@ internal sealed class AgentClient
         }
     }
 
+    public async Task<IReadOnlyList<AgentFileEdit>> CreateMcpEditsAsync(
+        AgentConfigurationScope scope, DirectoryInfo workspaceRoot,
+        CliExecutionContext executionContext, IEnvironment environment, CancellationToken cancellationToken)
+    {
+        if (this == OpenCode)
+        {
+            return [await OpenCodeConfiguration.CreateMcpEditAsync(
+                workspaceRoot, scope, executionContext, environment, cancellationToken)];
+        }
+
+        return GetMcpConfigPaths(scope, workspaceRoot, executionContext, environment)
+            .Select(target => McpConfigFileHelper.CreateEdit(
+                this, target.Path, target.ServersPropertyName, target.ConfigureServer, scope)).ToArray();
+    }
+
     public override string ToString() => Id;
 
-    private static string GetManagedPluginDirectory(CliExecutionContext context, IEnvironment environment, string productName, string unixName)
+    private static string GetManagedSettingsDirectory(CliExecutionContext context, IEnvironment environment, string productName, string unixName)
     {
         return environment.IsWindows()
             ? Path.Combine(AgentPath.GetOverride("ProgramFiles", context, environment) ??
@@ -201,7 +185,6 @@ internal sealed record AgentPluginConfiguration
     public required Func<CliExecutionContext, IEnvironment, string> GlobalDirectory { get; init; }
     public required Func<CliExecutionContext, IEnvironment, string> ManagedDirectory { get; init; }
     public IReadOnlyList<string> ProjectSettingsFiles { get; init; } = [];
-    public bool UsesSkillsCatalog { get; init; }
     public bool UsesManagedSettingsFragments { get; init; }
 }
 

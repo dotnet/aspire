@@ -7,7 +7,7 @@ using System.Text.Json.Nodes;
 namespace Aspire.Cli.Agents;
 
 /// <summary>
-/// Atomically publishes native JSON after revalidating its tracked inputs.
+/// Atomically publishes agent configuration JSON after revalidating its tracked inputs.
 /// </summary>
 internal static class AgentFileWriter
 {

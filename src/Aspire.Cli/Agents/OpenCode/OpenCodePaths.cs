@@ -22,6 +22,19 @@ internal static class OpenCodePaths
         yield return Path.Combine(directory, "opencode.jsonc");
     }
 
+    public static string GetConfigDirectory(CliExecutionContext context, IEnvironment environment)
+        => Path.Combine(GetOverride("XDG_CONFIG_HOME", context, environment) ??
+            Path.Combine(context.HomeDirectory.FullName, ".config"), "opencode");
+
+    // https://opencode.ai/docs/config/#managed-settings
+    public static string GetManagedSettingsDirectory(CliExecutionContext context, IEnvironment environment)
+        => environment.IsWindows()
+            ? Path.Combine(AgentPath.GetOverride("ProgramData", context, environment) ??
+                Path.Combine(Path.GetPathRoot(context.HomeDirectory.FullName)!, "ProgramData"), "opencode")
+            : environment.IsMacOS()
+                ? Path.Combine(Path.DirectorySeparatorChar.ToString(), "Library", "Application Support", "opencode")
+                : Path.Combine(Path.DirectorySeparatorChar.ToString(), "etc", "opencode");
+
     public static string GetGlobalMcpConfigPath(CliExecutionContext executionContext, IEnvironment environment)
     {
         if (GetOverride("OPENCODE_CONFIG", executionContext, environment) is { } configFile)

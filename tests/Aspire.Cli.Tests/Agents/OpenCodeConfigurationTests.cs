@@ -3,6 +3,9 @@
 
 using System.Text.Json.Nodes;
 using Aspire.Cli.Agents;
+using Aspire.Cli.Agents.OpenCode;
+using Aspire.Cli.Resources;
+using Aspire.Cli.Tests.TestServices;
 using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Cli.Tests.Agents;
@@ -10,6 +13,111 @@ namespace Aspire.Cli.Tests.Agents;
 public class OpenCodeConfigurationTests(ITestOutputHelper output) : IDisposable
 {
     private readonly AgentConfigurationTestContext _context = new(output);
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task McpEdit_NewHigherPrecedenceOwner_BlocksTheOriginalTarget(bool duringPublication)
+    {
+        var json = Path.Combine(_context.Project.FullName, "opencode.json");
+        var jsonc = Path.ChangeExtension(json, ".jsonc");
+        const string original = """{"mcp":{"aspire":{"command":["aspire","mcp","start"]}}}""";
+        const string replacement = """{"mcp":{"aspire":{"command":["pinned-aspire"]}}}""";
+        await File.WriteAllTextAsync(json, original);
+        var edit = await OpenCodeConfiguration.CreateMcpEditAsync(
+            _context.Project, AgentConfigurationScope.Project, _context.ExecutionContext,
+            _context.Environment, CancellationToken.None);
+        Assert.Equal(json, edit.TargetPath);
+        var selectedEdit = edit;
+        if (duringPublication)
+        {
+            selectedEdit = edit with
+            {
+                ApplyAsync = async (root, reader, token) =>
+                {
+                    var applied = await edit.ApplyAsync(root, reader, token);
+                    root["concurrent"] = CallbackJsonConverter.CreateValue(() => File.WriteAllText(jsonc, replacement));
+
+                    return applied;
+                }
+            };
+        }
+        else
+        {
+            await File.WriteAllTextAsync(jsonc, replacement);
+        }
+
+        var result = Assert.Single(await AgentConfigurationEditor.ApplyAsync([selectedEdit], CancellationToken.None));
+
+        Assert.Equal(AgentConfigurationStatus.Blocked, result.Status);
+        Assert.Equal(AgentCommandStrings.Configuration_ConcurrentChange, result.Message);
+        Assert.Empty(result.Changes);
+        Assert.Equal(original, await File.ReadAllTextAsync(json));
+        Assert.Equal(replacement, await File.ReadAllTextAsync(jsonc));
+    }
+
+    [Fact]
+    public async Task McpEdit_InheritanceInputChangedDuringPublication_BlocksTheRepair()
+    {
+        var json = Path.Combine(_context.Project.FullName, "opencode.json");
+        var jsonc = Path.ChangeExtension(json, ".jsonc");
+        const string original = """{"mcp":{"aspire":{"command":["aspire","mcp","start"]}}}""";
+        const string partial = """{"mcp":{"aspire":{"enabled":true}}}""";
+        const string replacement = """{"mcp":{"aspire":{"command":["pinned-aspire"]}}}""";
+        await File.WriteAllTextAsync(json, original);
+        await File.WriteAllTextAsync(jsonc, partial);
+        var edit = await OpenCodeConfiguration.CreateMcpEditAsync(
+            _context.Project, AgentConfigurationScope.Project, _context.ExecutionContext,
+            _context.Environment, CancellationToken.None);
+        Assert.Equal(json, edit.TargetPath);
+        var concurrentEdit = edit with
+        {
+            ApplyAsync = async (root, reader, token) =>
+            {
+                var applied = await edit.ApplyAsync(root, reader, token);
+                root["concurrent"] = CallbackJsonConverter.CreateValue(() => File.WriteAllText(jsonc, replacement));
+
+                return applied;
+            }
+        };
+
+        var result = Assert.Single(await AgentConfigurationEditor.ApplyAsync([concurrentEdit], CancellationToken.None));
+
+        Assert.Equal(AgentConfigurationStatus.Blocked, result.Status);
+        Assert.Equal(AgentCommandStrings.Configuration_ConcurrentChange, result.Message);
+        Assert.Empty(result.Changes);
+        Assert.Equal(original, await File.ReadAllTextAsync(json));
+        Assert.Equal(replacement, await File.ReadAllTextAsync(jsonc));
+        Assert.Equal(["opencode.json", "opencode.jsonc"],
+            _context.Project.EnumerateFiles().Select(file => file.Name).Order(StringComparer.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(FileShare.Read)]
+    [InlineData(FileShare.None)]
+    public async Task McpEdit_RemoteServer_DoesNotReadAnUnusedMalformedSibling(FileShare share)
+    {
+        var json = Path.Combine(_context.Project.FullName, "opencode.json");
+        var jsonc = Path.ChangeExtension(json, ".jsonc");
+        const string original = "{broken";
+        const string remote = """{"mcp":{"aspire":{"type":"remote","url":"https://example.test/mcp"}}}""";
+        await File.WriteAllTextAsync(json, original);
+        await File.WriteAllTextAsync(jsonc, remote);
+        await using (var unusedSibling = File.Open(json, FileMode.Open, FileAccess.Read, share))
+        {
+            var edit = await OpenCodeConfiguration.CreateMcpEditAsync(
+                _context.Project, AgentConfigurationScope.Project, _context.ExecutionContext,
+                _context.Environment, CancellationToken.None);
+
+            var result = Assert.Single(await AgentConfigurationEditor.ApplyAsync([edit], CancellationToken.None));
+
+            Assert.Equal(AgentConfigurationStatus.Unchanged, result.Status);
+            Assert.Equal(jsonc, result.TargetPath);
+        }
+
+        Assert.Equal(original, await File.ReadAllTextAsync(json));
+        Assert.Equal(remote, await File.ReadAllTextAsync(jsonc));
+    }
 
     [Theory]
     [InlineData("Project")]

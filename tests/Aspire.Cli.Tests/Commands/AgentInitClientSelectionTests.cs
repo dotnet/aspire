@@ -769,21 +769,6 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task OpenCodeMcpConfig_LocalPartialEntry_UsesSiblingCommand()
-    {
-        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
-        var jsoncPath = Path.Combine(workspace.WorkspaceRoot.FullName, "opencode.jsonc");
-        var jsonPath = Path.ChangeExtension(jsoncPath, ".json");
-        await File.WriteAllTextAsync(jsonPath, """{"mcp":{"aspire":{"type":"local","command":["aspire","mcp","start"]}}}""");
-        await File.WriteAllTextAsync(jsoncPath, """{"mcp":{"aspire":{"type":"local","enabled":true}}}""");
-
-        var (_, configFilePath) = await McpConfigFileHelper.ReadSelectedConfigAsync(
-            jsoncPath, AgentClient.OpenCode, AgentConfigurationScope.Project, new TestEnvironment(), CancellationToken.None);
-
-        Assert.Equal(jsonPath, configFilePath);
-    }
-
-    [Fact]
     public async Task AgentInit_OpenCodeExplicitConfigFile_DoesNotUseSiblingJsonPin()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
@@ -1021,6 +1006,30 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
 
         var result = provider.GetRequiredService<RootCommand>().Parse(
             "agent init --agents copilot,opencode --scope global --aspire-skills none --mcp");
+
+        Assert.Equal(CliExitCodes.InvalidCommand, await result.InvokeAsync().DefaultTimeout());
+        Assert.Contains(path, Assert.Single(interaction.DisplayedErrors));
+        Assert.Equal(original, await File.ReadAllTextAsync(path));
+        Assert.Equal(before, GetFilesWithoutCliLogs(workspace.WorkspaceRoot));
+    }
+
+    [Fact]
+    public async Task AgentInit_SharedMcpJsonc_DoesNotBypassClaudesStrictParser()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var path = Path.Combine(workspace.WorkspaceRoot.FullName, ".mcp.json");
+        const string original = """{/* comment */"preference":true,}""";
+        await File.WriteAllTextAsync(path, original);
+        var interaction = new TestInteractionService();
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.InteractionServiceFactory = _ => interaction;
+        });
+        using var provider = services.BuildServiceProvider();
+        var before = GetFilesWithoutCliLogs(workspace.WorkspaceRoot);
+
+        var result = provider.GetRequiredService<RootCommand>().Parse(
+            "agent init --agents copilot,claude --scope project --aspire-skills none --mcp");
 
         Assert.Equal(CliExitCodes.InvalidCommand, await result.InvokeAsync().DefaultTimeout());
         Assert.Contains(path, Assert.Single(interaction.DisplayedErrors));
