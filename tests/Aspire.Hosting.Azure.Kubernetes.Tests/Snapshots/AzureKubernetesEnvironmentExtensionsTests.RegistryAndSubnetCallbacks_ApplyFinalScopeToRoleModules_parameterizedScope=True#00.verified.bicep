@@ -75,9 +75,6 @@ module aks_control_plane_identity_roles_aks_kubelet_identity 'aks-control-plane-
     aks_kubelet_identity_outputs_principalname: aks_kubelet_identity.outputs.principalName
     principalId: aks_control_plane_identity.outputs.principalId
   }
-  dependsOn: [
-    aks_kubelet_identity_roles_registry
-  ]
 }
 
 module aks_control_plane_identity_roles_network 'aks-control-plane-identity-roles-network/aks-control-plane-identity-roles-network.bicep' = {

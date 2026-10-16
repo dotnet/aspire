@@ -61,9 +61,6 @@ module aks_control_plane_identity_roles_aks_kubelet_identity 'aks-control-plane-
     aks_kubelet_identity_outputs_principalname: aks_kubelet_identity.outputs.principalName
     principalId: aks_control_plane_identity.outputs.principalId
   }
-  dependsOn: [
-    aks_kubelet_identity_roles_aks_acr
-  ]
 }
 
 module aks_kubelet_identity_roles_aks_acr 'aks-kubelet-identity-roles-aks-acr/aks-kubelet-identity-roles-aks-acr.bicep' = {

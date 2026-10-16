@@ -7,6 +7,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning.KeyVault;
+using Azure.Provisioning.Resources;
 using Azure.Provisioning.SignalR;
 using Azure.Provisioning.Storage;
 using Microsoft.Extensions.DependencyInjection;
@@ -94,6 +95,34 @@ public class AzureResourcePreparerTests(ITestOutputHelper testOutputHelper)
         await Verify(storageManifest.BicepText, "bicep")
             .UseParameters(operation, parameterizedScope)
             .AppendContentAsFile(roleManifest.BicepText, "bicep");
+    }
+
+    [Fact]
+    public async Task ReciprocalIdentityRoleAssignmentsDependOnlyOnIdentityProvisioning()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper);
+        builder.AddAzureContainerAppEnvironment("env");
+        var first = builder.AddAzureUserAssignedIdentity("first");
+        var second = builder.AddAzureUserAssignedIdentity("second");
+        HashSet<RoleDefinition> operatorRoles = [new(ArmBuiltInRole.ManagedIdentityOperator.ToString(), ArmBuiltInRole.GetBuiltInRoleName(ArmBuiltInRole.ManagedIdentityOperator))];
+        first.WithAnnotation(new RoleAssignmentAnnotation(second.Resource, operatorRoles));
+        second.WithAnnotation(new RoleAssignmentAnnotation(first.Resource, operatorRoles));
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var preparer = app.Services.GetRequiredService<AzureResourcePreparer>();
+        await preparer.PrepareResourcesAsync(model, default);
+        await preparer.PrepareResourcesAsync(model, default);
+
+        var roles = model.Resources.OfType<AzureRoleAssignmentResource>().OrderBy(resource => resource.Name).ToArray();
+        Assert.Equal(["first-roles-second", "second-roles-first"], roles.Select(resource => resource.Name));
+        Assert.All(roles, role =>
+        {
+            Assert.Equal(["first", "second"], role.GetAzureReferences().Select(resource => resource.Name).Order());
+            Assert.Empty(role.Annotations.OfType<DeploymentPrerequisitesAnnotation>());
+        });
+        Assert.Same(roles[0], Assert.Single(first.Resource.Annotations.OfType<DeploymentPrerequisitesAnnotation>()).Resources.Single());
+        Assert.Same(roles[1], Assert.Single(second.Resource.Annotations.OfType<DeploymentPrerequisitesAnnotation>()).Resources.Single());
     }
 
     [Fact]

@@ -558,6 +558,10 @@ internal sealed class AzureResourcePreparer(
         foreach (var resource in appModel.Resources.OfType<AzureBicepResource>().ToArray())
         {
             var prerequisiteResources = resource.GetExplicitAzureReferences()
+                // A role needs its target provisioned to resolve scope, not the target's own
+                // grants. Inheriting those grants would create cycles for reciprocal assignments.
+                .Where(reference => resource is not AzureRoleAssignmentResource roleAssignment ||
+                    reference != roleAssignment.TargetAzureResource)
                 .SelectMany(reference => reference.Annotations.OfType<DeploymentPrerequisitesAnnotation>())
                 .SelectMany(annotation => annotation.Resources)
                 .Where(prerequisite => prerequisite != resource)
