@@ -510,6 +510,10 @@ public sealed class TestTriggerMapTests
     public static TheoryData<string, string[]> AuditedLoosePathCases => new()
     {
         {
+            "eng/github-ci/resolve-comparison-base.sh",
+            ["test:Infrastructure.Tests"]
+        },
+        {
             "eng/scripts/pack-cli-npm-package.ps1",
             ["test:Aspire.Cli.Tests", "test:Infrastructure.Tests"]
         },

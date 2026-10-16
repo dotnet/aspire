@@ -564,9 +564,10 @@ path_rules:
       - tools/SelectTests/**
       - eng/github-ci/test-trigger-map.yml
       - eng/github-ci/ci-skip-entirely-patterns.txt
+      - eng/github-ci/resolve-comparison-base.sh
       - .gitignore
     targets: [test:Infrastructure.Tests]
-    reason: Infrastructure.Tests validates the selector map, prefilter, and root ignore behavior
+    reason: Infrastructure.Tests validates selector inputs and comparison history
   - paths:
       - .github/workflows/**
       - .github/actionlint.yaml
