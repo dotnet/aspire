@@ -31,8 +31,7 @@ public class MicrosoftIdentityWebConfigurationTests
         using var builder = TestDistributedApplicationBuilder.Create();
         var secret = builder.AddParameter("EntraSecret", "test-client-secret", secret: true);
         var password = builder.AddParameter("CertificatePassword", "test-certificate-password", secret: true);
-        var entra = builder.AddEntraIdApplication("entra-web")
-            .AsExistingApplication(tenantId: TenantId, clientId: ClientId)
+        var entra = builder.AddExistingEntraApplication("entra-web", tenantId: TenantId, clientId: ClientId)
             .WithInstance("https://login.microsoftonline.us/")
             .WithSignInAudience(EntraIdSignInAudience.AzureADMultipleOrgs)
             .WithClientSecret(secret)
@@ -159,8 +158,7 @@ public class MicrosoftIdentityWebConfigurationTests
     public async Task WithReference_ConfiguresMicrosoftIdentityWebSignInOnly()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var entra = builder.AddEntraIdApplication("entra-web")
-            .AsExistingApplication(tenantId: TenantId, clientId: ClientId);
+        var entra = builder.AddExistingEntraApplication("entra-web", tenantId: TenantId, clientId: ClientId);
         var project = builder.AddResource(new ProjectResource("web")).WithReference(entra);
         var configuration = await GetConfigurationAsync(project.Resource, DistributedApplicationOperation.Run);
         var services = new ServiceCollection();

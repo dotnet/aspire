@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREAZURE001 // Azure environment resources are experimental.
 #pragma warning disable ASPIREAZURE003 // Tenant-scoped resource annotations are experimental.
 #pragma warning disable ASPIREPIPELINES001 // Verifies provisioning annotations on existing resources.
+#pragma warning disable ASPIREPIPELINES003 // Exercises the deployment pipeline for existing registrations.
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.EntraId.Provisioning;
@@ -151,7 +152,7 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         builder.AddEntraIdApplication("entra-web");
         builder.AddEntraIdApplication("entra-api")
             .WithParameter(AzureBicepResource.KnownParameters.TenantResourceSuffix, "production");
-        builder.AddEntraIdApplication("existing").AsExistingApplication(tenantId: TenantId, clientId: ClientId);
+        builder.AddExistingEntraApplication("existing", tenantId: TenantId, clientId: ClientId);
         using var app = builder.Build();
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         var environment = Assert.Single(model.Resources.OfType<AzureEnvironmentResource>());
@@ -205,7 +206,7 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         var web = builder.AddEntraIdApplication("entra-web")
             .WithSignInAudience(EntraIdSignInAudience.AzureADMultipleOrgs)
             .WithRedirectUris("https://localhost:7123/signin-oidc");
-        builder.AddEntraIdApplication("existing").AsExistingApplication(tenantId: TenantId, clientId: ClientId);
+        builder.AddExistingEntraApplication("existing", tenantId: TenantId, clientId: ClientId);
         builder.AddResource(new ProjectResource("web")).WithReference(web);
         builder.AddResource(new ProjectResource("api")).WithReference(api);
         builder.AddBicepTemplateString("consumer",
@@ -312,9 +313,7 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
     public async Task WithIdTokenIssuance_DoesNotProvisionExistingApplication(DistributedApplicationOperation operation)
     {
         using var builder = TestDistributedApplicationBuilder.Create(operation);
-        var entra = builder.AddEntraIdApplication("entra-web")
-            .WithIdTokenIssuance()
-            .AsExistingApplication(tenantId: TenantId, clientId: ClientId)
+        var entra = builder.AddExistingEntraApplication("entra-web", tenantId: TenantId, clientId: ClientId)
             .WithIdTokenIssuance();
 
         Assert.True(entra.Resource.IsExistingApplication);
@@ -327,11 +326,10 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task AsExistingApplication_DoesNotPublishOrAwaitProvisioning()
+    public async Task AddExistingEntraApplication_DoesNotPublishOrAwaitProvisioning()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var entra = builder.AddEntraIdApplication("entra-web")
-            .AsExistingApplication(tenantId: TenantId, clientId: ClientId);
+        var entra = builder.AddExistingEntraApplication("entra-web", tenantId: TenantId, clientId: ClientId);
 
         Assert.True(entra.Resource.IsExistingApplication);
         Assert.Null(entra.Resource.ProvisioningTaskCompletionSource);
@@ -340,16 +338,125 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         Assert.Null(await ManifestUtils.GetManifestOrNull(entra.Resource));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AsExistingApplication_PreservesAzureProvisioningSetup(bool useParameters)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var customization = new PipelineConfigurationAnnotation(_ => { });
+        var entra = builder.AddEntraIdApplication("entra-web")
+            .WithAnnotation(customization);
+        var existing = useParameters
+            ? entra.AsExistingApplication(builder.AddParameter("tenant-id", TenantId), builder.AddParameter("client-id", ClientId))
+            : entra.AsExistingApplication(TenantId, ClientId);
+
+        Assert.Same(entra, existing);
+        Assert.True(existing.Resource.IsExistingApplication);
+        Assert.Null(existing.Resource.ProvisioningTaskCompletionSource);
+        Assert.Single(builder.Resources.OfType<AzureEnvironmentResource>());
+        Assert.Empty(existing.Resource.Annotations.OfType<PipelineStepAnnotation>());
+        Assert.Same(customization, Assert.Single(existing.Resource.Annotations.OfType<PipelineConfigurationAnnotation>()));
+        Assert.Null(await ManifestUtils.GetManifestOrNull(existing.Resource));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AddExistingEntraApplication_DeployDoesNotRequireAzure(bool useParameters)
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create(
+            DistributedApplicationOperation.Publish, outputHelper, workspace.Path, step: WellKnownPipelineSteps.Deploy);
+        var entra = useParameters
+            ? builder.AddExistingEntraApplication("entra-web",
+                builder.AddParameter("tenant-id", TenantId), builder.AddParameter("client-id", ClientId))
+            : builder.AddExistingEntraApplication("entra-web", TenantId, ClientId);
+
+        Assert.True(entra.Resource.IsExistingApplication);
+        Assert.Empty(builder.Resources.OfType<AzureEnvironmentResource>());
+        Assert.All(builder.Services, service => Assert.NotEqual(typeof(ITokenCredentialProvider), service.ServiceType));
+        // Fail instead of acquiring real credentials if Azure authentication is accidentally activated.
+        builder.Services.AddSingleton<ITokenCredentialProvider>(_ => throw new InvalidOperationException("Azure authentication must not be used."));
+        var reporter = new TestPipelineActivityReporter(outputHelper);
+        builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
+        var deploymentExecuted = false;
+        builder.Pipeline.AddStep("verify-existing-registration", context =>
+        {
+            Assert.Empty(context.Model.Resources.OfType<AzureEnvironmentResource>());
+            Assert.All(context.PipelineContext.SelectedSteps, step =>
+                Assert.False(step.Name is "validate-azure-login" or "create-provisioning-context" or "provision-azure-bicep-resources"));
+            deploymentExecuted = true;
+            return Task.CompletedTask;
+        }, requiredBy: WellKnownPipelineSteps.Deploy);
+
+        using var app = builder.Build();
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        await app.RunAsync(cts.Token);
+
+        Assert.True(deploymentExecuted);
+        Assert.True(reporter.CompletePublishCalled);
+        Assert.NotEmpty(reporter.CompletedSteps);
+        Assert.All(reporter.CompletedSteps, step => Assert.Equal(CompletionState.Completed, step.CompletionState));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AddExistingEntraApplication_PreservesAzureProvisioningForOtherResources(bool addAzureFirst)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var name = builder.AddParameter("arm-name", "existing-resource");
+        var group = builder.AddParameter("arm-group", "existing-resource-group");
+        if (addAzureFirst)
+        {
+            builder.AddAzureInfrastructure("other", _ => { }).AsExisting(name, group);
+        }
+
+        var existing = builder.AddExistingEntraApplication("entra-web", TenantId, ClientId);
+        if (!addAzureFirst)
+        {
+            builder.AddAzureInfrastructure("other", _ => { }).AsExisting(name, group);
+        }
+
+        Assert.Single(builder.Resources.OfType<AzureEnvironmentResource>());
+        Assert.Empty(existing.Resource.Annotations.OfType<PipelineStepAnnotation>());
+        var azure = Assert.Single(builder.Resources.OfType<AzureProvisioningResource>(), resource => resource.Name == "other");
+        Assert.Single(azure.Annotations.OfType<PipelineStepAnnotation>());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AddExistingEntraApplication_PreservesProvisionedEntraRegistrations(bool addCreatedFirst)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        if (addCreatedFirst)
+        {
+            builder.AddEntraIdApplication("created");
+        }
+
+        builder.AddExistingEntraApplication("existing", TenantId, ClientId);
+        if (!addCreatedFirst)
+        {
+            builder.AddEntraIdApplication("created");
+        }
+
+        Assert.Single(builder.Resources.OfType<AzureEnvironmentResource>());
+        var created = Assert.Single(builder.Resources.OfType<EntraIdApplicationResource>(), resource => resource.Name == "created");
+        Assert.Single(created.Annotations.OfType<PipelineStepAnnotation>());
+        Assert.NotNull(created.ProvisioningTaskCompletionSource);
+    }
+
     [Fact]
-    public void AsExistingApplication_PreservesAppHostPipelineAnnotations()
+    public void AddExistingEntraApplication_PreservesAppHostPipelineAnnotations()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var customization = new PipelineConfigurationAnnotation(_ =>
         {
         });
-        var entra = builder.AddEntraIdApplication("entra-web")
-            .WithAnnotation(customization)
-            .AsExistingApplication(tenantId: TenantId, clientId: ClientId);
+        var entra = builder.AddExistingEntraApplication("entra-web", tenantId: TenantId, clientId: ClientId)
+            .WithAnnotation(customization);
 
         Assert.Same(customization, Assert.Single(entra.Resource.Annotations.OfType<PipelineConfigurationAnnotation>()));
     }
@@ -366,7 +473,7 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         var exception = Assert.Throws<InvalidOperationException>(entra.Resource.GetBicepTemplateString);
         Assert.Equal(
             "Entra ID applications are identified by tenant ID and client ID, not by an Azure resource name or resource group. " +
-            "Use AsExistingApplication(tenantId, clientId) to reference an existing registration without provisioning it.",
+            "Use AddExistingEntraApplication(name, tenantId, clientId) to reference an existing registration without provisioning it.",
             exception.Message);
     }
 
@@ -488,11 +595,9 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
     public void WithReference_DoesNotAddImplicitWaits(string resourceType, bool existing)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var entra = builder.AddEntraIdApplication("entra-web");
-        if (existing)
-        {
-            entra.AsExistingApplication(tenantId: TenantId, clientId: ClientId);
-        }
+        var entra = existing
+            ? builder.AddExistingEntraApplication("entra-web", tenantId: TenantId, clientId: ClientId)
+            : builder.AddEntraIdApplication("entra-web");
 
         IResourceBuilder<IResourceWithEnvironment> consumer = resourceType switch
         {

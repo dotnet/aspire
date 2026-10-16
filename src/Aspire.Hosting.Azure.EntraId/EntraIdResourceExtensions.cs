@@ -32,16 +32,13 @@ public static class EntraIdResourceExtensions
     /// <para>
     /// By default, Aspire provisions an application and service principal using the Microsoft Graph Bicep extension.
     /// This requires Azure provisioning configuration and permission to create registrations in the subscription's
-    /// tenant. Call <c>AsExistingApplication</c> to reference an existing registration without Azure or Graph access.
+    /// tenant. Call <c>AddExistingEntraApplication</c> to reference an existing registration without Azure or Graph access.
     /// </para>
     /// <example>
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// var entraApi = builder.AddEntraIdApplication("entra-api")
-    ///     .AsExistingApplication(
-    ///         tenantId: builder.AddParameter("EntraTenantId"),
-    ///         clientId: builder.AddParameter("EntraApiClientId"));
+    /// var entraApi = builder.AddEntraIdApplication("entra-api");
     ///
     /// builder.AddProject&lt;Projects.Api&gt;("api")
     ///     .WithReference(entraApi);
@@ -128,7 +125,7 @@ public static class EntraIdResourceExtensions
             ((resource.TenantIdParameter is null && resource.TenantId is null) ||
              (resource.ClientIdParameter is null && resource.ClientId is null)))
         {
-            logger.LogError("The app registration is not fully configured. Call AsExistingApplication with the registration's tenant ID and client ID.");
+            logger.LogError("The app registration is not fully configured. Call AddExistingEntraApplication with the registration's tenant ID and client ID.");
             await PublishFailedToStartAsync(resource, evt).ConfigureAwait(false);
             return;
         }
@@ -151,7 +148,7 @@ public static class EntraIdResourceExtensions
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
-                logger.LogError(ex, "Failed to provision the Entra ID application. If your tenant does not allow creating registrations, use AsExistingApplication with an existing registration's tenant ID and client ID.");
+                logger.LogError(ex, "Failed to provision the Entra ID application. If your tenant does not allow creating registrations, use AddExistingEntraApplication with an existing registration's tenant ID and client ID.");
                 await PublishFailedToStartAsync(resource, evt).ConfigureAwait(false);
                 return;
             }
@@ -311,9 +308,10 @@ public static class EntraIdResourceExtensions
     }
 
     /// <summary>
-    /// Marks this Entra ID application as an existing resource, identified by its tenant ID and client ID.
+    /// Adds a reference to an existing Microsoft Entra ID application registration without enabling Azure provisioning.
     /// </summary>
-    /// <param name="builder">The resource builder.</param>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource.</param>
     /// <param name="tenantId">
     /// A parameter containing the ID of the app's home tenant: the directory where the app is registered, shown as
     /// "Directory (tenant) ID" on the app registration's Overview page.
@@ -322,7 +320,7 @@ public static class EntraIdResourceExtensions
     /// A parameter containing the application (client) ID, shown as "Application (client) ID" on the app registration's
     /// Overview page.
     /// </param>
-    /// <returns>The resource builder for chaining.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{EntraIdApplicationResource}"/>.</returns>
     /// <remarks>
     /// <para>
     /// Both the tenant ID and client ID are required to identify an existing Entra ID application.
@@ -335,29 +333,42 @@ public static class EntraIdResourceExtensions
     /// reports <c>FailedToStart</c> and logs the reason.
     /// </para>
     /// <para>
-    /// This is deliberately not named <c>AsExisting</c>. Aspire's Azure resources use
-    /// <c>AsExisting(name, resourceGroup)</c>, so reusing that name here would give the same call shape
-    /// two different meanings once this resource participates in Azure provisioning.
+    /// The registration is used only for configuration. Aspire does not deploy Bicep or query Microsoft Graph
+    /// for this resource. Use <see cref="AddEntraIdApplication"/> to create a registration instead.
     /// </para>
+    /// <example>
+    /// <code lang="csharp">
+    /// var tenantId = builder.AddParameter("EntraTenantId");
+    /// var clientId = builder.AddParameter("EntraClientId");
+    /// var identity = builder.AddExistingEntraApplication("identity", tenantId, clientId);
+    /// builder.AddProject&lt;Projects.Api&gt;("api").WithReference(identity);
+    /// </code>
+    /// </example>
     /// </remarks>
-    public static IResourceBuilder<EntraIdApplicationResource> AsExistingApplication(
-        this IResourceBuilder<EntraIdApplicationResource> builder,
+    public static IResourceBuilder<EntraIdApplicationResource> AddExistingEntraApplication(
+        this IDistributedApplicationBuilder builder,
+        [ResourceName] string name,
         IResourceBuilder<ParameterResource> tenantId,
         IResourceBuilder<ParameterResource> clientId)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentNullException.ThrowIfNull(tenantId);
         ArgumentNullException.ThrowIfNull(clientId);
 
-        builder.Resource.TenantIdParameter = tenantId.Resource;
-        builder.Resource.ClientIdParameter = clientId.Resource;
-        return ConfigureExistingApplication(builder);
+        var resource = new EntraIdApplicationResource(name)
+        {
+            TenantIdParameter = tenantId.Resource,
+            ClientIdParameter = clientId.Resource
+        };
+        return ConfigureExistingApplication(builder, resource);
     }
 
     /// <summary>
-    /// Marks this Entra ID application as an existing resource, identified by its tenant ID and client ID.
+    /// Adds a reference to an existing Microsoft Entra ID application registration without enabling Azure provisioning.
     /// </summary>
-    /// <param name="builder">The resource builder.</param>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource.</param>
     /// <param name="tenantId">
     /// The ID of the app's home tenant: the directory where the app is registered, shown as "Directory (tenant) ID" on the
     /// app registration's Overview page. A domain such as <c>contoso.onmicrosoft.com</c> is also accepted.
@@ -365,7 +376,7 @@ public static class EntraIdResourceExtensions
     /// <param name="clientId">
     /// The application (client) ID, shown as "Application (client) ID" on the app registration's Overview page.
     /// </param>
-    /// <returns>The resource builder for chaining.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{EntraIdApplicationResource}"/>.</returns>
     /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="tenantId"/> is empty, is not a GUID or domain name, or is one of the sign-in audience
     /// keywords <c>organizations</c>, <c>common</c> or <c>consumers</c>; or when <paramref name="clientId"/> is empty
@@ -382,10 +393,103 @@ public static class EntraIdResourceExtensions
     /// <see cref="WithSignInAudience"/>.
     /// </para>
     /// <para>
-    /// This is deliberately not named <c>AsExisting</c>. Aspire's Azure resources use
-    /// <c>AsExisting(name, resourceGroup)</c>, so reusing that name here would give the same call shape
-    /// two different meanings once this resource participates in Azure provisioning.
+    /// The registration is used only for configuration. Aspire does not deploy Bicep or query Microsoft Graph
+    /// for this resource. Use <see cref="AddEntraIdApplication"/> to create a registration instead.
     /// </para>
+    /// <example>
+    /// <code lang="csharp">
+    /// var identity = builder.AddExistingEntraApplication(
+    ///     "identity",
+    ///     tenantId: "aaaabbbb-0000-cccc-1111-dddd2222eeee",
+    ///     clientId: "00001111-aaaa-2222-bbbb-3333cccc4444");
+    /// builder.AddProject&lt;Projects.Api&gt;("api").WithReference(identity);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<EntraIdApplicationResource> AddExistingEntraApplication(
+        this IDistributedApplicationBuilder builder,
+        [ResourceName] string name,
+        string tenantId,
+        string clientId)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ValidateExistingApplicationIds(tenantId, clientId);
+
+        var resource = new EntraIdApplicationResource(name)
+        {
+            TenantId = tenantId,
+            ClientId = clientId
+        };
+        return ConfigureExistingApplication(builder, resource);
+    }
+
+    /// <summary>
+    /// Configures this resource to reference an existing Microsoft Entra ID application registration.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="tenantId">A parameter containing the registration's home tenant ID.</param>
+    /// <param name="clientId">A parameter containing the registration's application (client) ID.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// Parameter values are validated when the application starts. The tenant ID must be a GUID or a domain such as
+    /// <c>contoso.onmicrosoft.com</c>, and the client ID must be a GUID.
+    /// </para>
+    /// <para>
+    /// <see cref="AddEntraIdApplication"/> enables Azure provisioning before this method is called.
+    /// This method does not disable that setup, so deployment can still require Azure authentication and provisioning
+    /// configuration. To reference an existing registration without enabling Azure provisioning, use
+    /// <see cref="AddExistingEntraApplication(IDistributedApplicationBuilder, string, IResourceBuilder{ParameterResource}, IResourceBuilder{ParameterResource})"/>.
+    /// </para>
+    /// <example>
+    /// <code lang="csharp">
+    /// var identity = builder.AddEntraIdApplication("identity")
+    ///     .AsExistingApplication(builder.AddParameter("TenantId"), builder.AddParameter("ClientId"));
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<EntraIdApplicationResource> AsExistingApplication(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        IResourceBuilder<ParameterResource> tenantId,
+        IResourceBuilder<ParameterResource> clientId)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(tenantId);
+        ArgumentNullException.ThrowIfNull(clientId);
+
+        builder.Resource.TenantIdParameter = tenantId.Resource;
+        builder.Resource.ClientIdParameter = clientId.Resource;
+        return ConfigureExistingApplication(builder);
+    }
+
+    /// <summary>
+    /// Configures this resource to reference an existing Microsoft Entra ID application registration.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="tenantId">The registration's home tenant ID, as a GUID or a domain such as <c>contoso.onmicrosoft.com</c>.</param>
+    /// <param name="clientId">The registration's application (client) ID.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <exception cref="ArgumentException">A tenant ID or client ID is empty or invalid.</exception>
+    /// <remarks>
+    /// <para>
+    /// Pass the home tenant ID, not a sign-in keyword such as <c>organizations</c>.
+    /// Use <see cref="WithSignInAudience"/> to allow accounts from other tenants to sign in.
+    /// </para>
+    /// <para>
+    /// <see cref="AddEntraIdApplication"/> enables Azure provisioning before this method is called.
+    /// This method does not disable that setup, so deployment can still require Azure authentication and provisioning
+    /// configuration. To reference an existing registration without enabling Azure provisioning, use
+    /// <see cref="AddExistingEntraApplication(IDistributedApplicationBuilder, string, string, string)"/>.
+    /// </para>
+    /// <example>
+    /// <code lang="csharp">
+    /// var identity = builder.AddEntraIdApplication("identity")
+    ///     .AsExistingApplication(
+    ///         tenantId: "aaaabbbb-0000-cccc-1111-dddd2222eeee",
+    ///         clientId: "00001111-aaaa-2222-bbbb-3333cccc4444");
+    /// </code>
+    /// </example>
     /// </remarks>
     public static IResourceBuilder<EntraIdApplicationResource> AsExistingApplication(
         this IResourceBuilder<EntraIdApplicationResource> builder,
@@ -393,6 +497,15 @@ public static class EntraIdResourceExtensions
         string clientId)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ValidateExistingApplicationIds(tenantId, clientId);
+
+        builder.Resource.TenantId = tenantId;
+        builder.Resource.ClientId = clientId;
+        return ConfigureExistingApplication(builder);
+    }
+
+    private static void ValidateExistingApplicationIds(string tenantId, string clientId)
+    {
         ArgumentException.ThrowIfNullOrEmpty(tenantId);
         ArgumentException.ThrowIfNullOrEmpty(clientId);
 
@@ -405,10 +518,13 @@ public static class EntraIdResourceExtensions
         {
             throw new ArgumentException($"'{clientId}' is not a valid client ID. {clientIdError}", nameof(clientId));
         }
+    }
 
-        builder.Resource.TenantId = tenantId;
-        builder.Resource.ClientId = clientId;
-        return ConfigureExistingApplication(builder);
+    private static IResourceBuilder<EntraIdApplicationResource> ConfigureExistingApplication(
+        IDistributedApplicationBuilder builder,
+        EntraIdApplicationResource resource)
+    {
+        return ConfigureExistingApplication(ConfigureEntraIdResource(builder.AddResource(resource)));
     }
 
     private static IResourceBuilder<EntraIdApplicationResource> ConfigureExistingApplication(
@@ -480,8 +596,7 @@ public static class EntraIdResourceExtensions
     /// </remarks>
     /// <example>
     /// <code lang="csharp">
-    /// var entraWeb = builder.AddEntraIdApplication("entra-web")
-    ///     .AsExistingApplication(tenantId, clientId)
+    /// var entraWeb = builder.AddExistingEntraApplication("entra-web", tenantId, clientId)
     ///     .WithFicMsi("00001111-aaaa-2222-bbbb-3333cccc4444");
     /// </code>
     /// </example>
@@ -651,8 +766,7 @@ public static class EntraIdResourceExtensions
     /// <example>
     /// Let work or school accounts from any organization sign in:
     /// <code lang="csharp">
-    /// var entraWeb = builder.AddEntraIdApplication("entra-web")
-    ///     .AsExistingApplication(tenantId, clientId)
+    /// var entraWeb = builder.AddExistingEntraApplication("entra-web", tenantId, clientId)
     ///     .WithSignInAudience(EntraIdSignInAudience.AzureADMultipleOrgs);
     /// </code>
     /// </example>
@@ -856,8 +970,7 @@ public static class EntraIdResourceExtensions
     /// </code>
     /// <example>
     /// <code lang="csharp">
-    /// var entraApi = builder.AddEntraIdApplication("entra-api")
-    ///     .AsExistingApplication(
+    /// var entraApi = builder.AddExistingEntraApplication("entra-api",
     ///         tenantId: tenantId,
     ///         clientId: clientId);
     ///

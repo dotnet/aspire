@@ -44,7 +44,7 @@ For .NET program resources, `WithReference` injects environment variables in the
 
 When the AppHost starts, the Entra ID resource validates its IDs, instance, and credentials, then reports **Running** and shows links to the app registration and its OpenID Connect discovery document in the dashboard. If a setting is invalid, the resource fails to start and its console logs explain why.
 
-Configure [local Azure provisioning](https://aspire.dev/integrations/cloud/azure/local-provisioning/) with your subscription and location, and sign in to Azure CLI. The registrations are created in **the subscription's tenant**, not necessarily your account's home tenant. Aspire does not explicitly assign application or service-principal owners; Microsoft Entra's default ownership behavior applies. If tenant policy prevents creation, use `AsExistingApplication`; existing registrations still require no Azure or Graph access.
+Configure [local Azure provisioning](https://aspire.dev/integrations/cloud/azure/local-provisioning/) with your subscription and location, and sign in to Azure CLI. The registrations are created in **the subscription's tenant**, not necessarily your account's home tenant. Aspire does not explicitly assign application or service-principal owners; Microsoft Entra's default ownership behavior applies. If tenant policy prevents creation, use `AddExistingEntraApplication` for a configuration-only reference that requires no Azure or Graph access.
 
 The module is generated in C# using `Azure.Provisioning`, including the Graph application, service principal, parameters, and outputs. Aspire emits the Microsoft Graph extension declaration from the infrastructure's `BicepExtensions` collection using a pinned inline registry reference. No `bicepconfig.json` is required, including when Aspire copies the module into temporary or published output. The first compilation downloads the extension from `mcr.microsoft.com`, which must be reachable.
 
@@ -58,8 +58,8 @@ For example, the resource `entra-web` with suffix `dev-a` creates `entra-web-dev
 The logical Aspire resource name and consumer environment-variable prefixes remain unchanged.
 
 The suffix is shared by participating registrations in the AppHost and saved with the Azure context. You can supply an initial
-value through `Azure:TenantResourceSuffix`, and edit or clear the saved value through **Change Azure context**. Existing-only
-references do not require this field or Azure provisioning.
+value through `Azure:TenantResourceSuffix`, and edit or clear the saved value through **Change Azure context**.
+References created with `AddExistingEntraApplication` do not require this field or enable Azure provisioning.
 
 Interactive `aspire deploy` also prompts for an optional suffix when `Azure:TenantResourceSuffix` is not configured.
 Set that configuration value, including an empty string, to skip the prompt. Non-interactive deployment uses an empty
@@ -77,7 +77,7 @@ The same tenant, resource name, and suffix target the same registration regardle
 suffixes when developers or AppHosts should not share a registration; competing deployments can overwrite shared settings.
 Changing the name or suffix targets another registration and leaves the previous application and service principal intact.
 Existing registrations with different `uniqueName` values are not automatically adopted: reference their IDs with
-`AsExistingApplication` or explicitly clean them up when migrating.
+`AddExistingEntraApplication` or explicitly clean them up when migrating.
 
 Configure callback URIs with `WithRedirectUris`; Aspire does not discover them automatically.
 
@@ -120,6 +120,20 @@ var api = builder.AddProject<Projects.Api>("api")
 
 Pass the **Directory (tenant) ID** and **Application (client) ID** shown on the app registration's **Overview** page. When the parameters have no value, the dashboard prompts for them.
 
+`AddEntraIdApplication` enables Azure provisioning before `AsExistingApplication` is called. The fluent API does not
+undo that setup: deploying the AppHost can still require Azure authentication and provisioning configuration, even
+though the existing registration itself is not deployed or queried through Microsoft Graph.
+
+For an AppHost that only references existing registrations and does not need Azure provisioning, use the top-level
+`AddExistingEntraApplication` instead:
+
+```csharp
+var entraApi = builder.AddExistingEntraApplication("entra-api", tenantId: tenantId, clientId: apiClientId);
+```
+
+This factory accepts parameters or literal IDs and does not enable Azure provisioning. Other Azure resources in the
+same AppHost still enable their normal provisioning behavior.
+
 ### Custom environment variable names
 
 `WithReference` automatically uses `"AzureAd"` with `"__"` separators for .NET program resources.
@@ -156,8 +170,7 @@ options; the integration does not automatically configure those libraries.
 By default, only accounts in the app's home tenant can sign in. When the app registration's **Supported account types** setting allows other accounts, call `WithSignInAudience` with the matching value:
 
 ```csharp
-var entraApi = builder.AddEntraIdApplication("entra-api")
-                      .AsExistingApplication(tenantId: tenantId, clientId: apiClientId)
+var entraApi = builder.AddExistingEntraApplication("entra-api", tenantId: tenantId, clientId: apiClientId)
                       .WithSignInAudience(EntraIdSignInAudience.AzureADMultipleOrgs);
 ```
 
@@ -168,7 +181,7 @@ var entraApi = builder.AddEntraIdApplication("entra-api")
 | `AzureADandPersonalMicrosoftAccount` | Accounts in any Microsoft Entra tenant and personal Microsoft accounts | `common` |
 | `PersonalMicrosoftAccount` | Personal Microsoft accounts only | `consumers` |
 
-For the audiences other than `AzureADMyOrg`, the home tenant ID is injected as `AzureAd__AppHomeTenantId`, which Microsoft.Identity.Web needs when the app acquires tokens as itself. Always pass the home tenant ID to `AsExistingApplication`, not `organizations`, `common`, or `consumers`.
+For the audiences other than `AzureADMyOrg`, the home tenant ID is injected as `AzureAd__AppHomeTenantId`, which Microsoft.Identity.Web needs when the app acquires tokens as itself. Always pass the home tenant ID to `AsExistingApplication` or `AddExistingEntraApplication`, not `organizations`, `common`, or `consumers`.
 
 ## Client credentials
 
@@ -179,8 +192,7 @@ An application that acquires tokens for itself needs a client credential. Each `
 ```csharp
 var webSecret = builder.AddParameter("EntraWebClientSecret", secret: true);
 
-var entraWeb = builder.AddEntraIdApplication("entra-web")
-                      .AsExistingApplication(tenantId: tenantId, clientId: webClientId)
+var entraWeb = builder.AddExistingEntraApplication("entra-web", tenantId: tenantId, clientId: webClientId)
                       .WithClientSecret(webSecret);
 ```
 
@@ -191,8 +203,7 @@ The parameter must be created with `secret: true`.
 For deployed applications, use a federated identity credential so that no secret is stored:
 
 ```csharp
-var entraWeb = builder.AddEntraIdApplication("entra-web")
-                      .AsExistingApplication(tenantId: tenantId, clientId: webClientId)
+var entraWeb = builder.AddExistingEntraApplication("entra-web", tenantId: tenantId, clientId: webClientId)
                       .WithFicMsi("00001111-aaaa-2222-bbbb-3333cccc4444");
 ```
 
@@ -205,16 +216,14 @@ Federation authenticates as the app registration using a managed identity assert
 ### Certificate from Azure Key Vault
 
 ```csharp
-var entraWeb = builder.AddEntraIdApplication("entra-web")
-                      .AsExistingApplication(tenantId: tenantId, clientId: webClientId)
+var entraWeb = builder.AddExistingEntraApplication("entra-web", tenantId: tenantId, clientId: webClientId)
                       .WithCertificateFromKeyVault("https://myvault.vault.azure.net", "MyCert");
 ```
 
 ### Certificate from the certificate store
 
 ```csharp
-var entraWeb = builder.AddEntraIdApplication("entra-web")
-                      .AsExistingApplication(tenantId: tenantId, clientId: webClientId)
+var entraWeb = builder.AddExistingEntraApplication("entra-web", tenantId: tenantId, clientId: webClientId)
                       .WithCertificateThumbprint("CurrentUser/My", "ABC123...");
 ```
 
@@ -225,8 +234,7 @@ Use `WithCertificateDistinguishedName` to locate the certificate by subject inst
 For credential types without a dedicated method, use `WithCredential`:
 
 ```csharp
-var entraWeb = builder.AddEntraIdApplication("entra-web")
-                      .AsExistingApplication(tenantId: tenantId, clientId: webClientId)
+var entraWeb = builder.AddExistingEntraApplication("entra-web", tenantId: tenantId, clientId: webClientId)
                       .WithCredential(new EntraIdSignedAssertionFileCredential());
 ```
 
@@ -235,9 +243,8 @@ var entraWeb = builder.AddEntraIdApplication("entra-web")
 To target a sovereign cloud instance such as Azure Government:
 
 ```csharp
-var entraApi = builder.AddEntraIdApplication("entra-api")
-                      .WithInstance("https://login.microsoftonline.us/")
-                      .AsExistingApplication(tenantId: tenantId, clientId: apiClientId);
+var entraApi = builder.AddExistingEntraApplication("entra-api", tenantId: tenantId, clientId: apiClientId)
+                      .WithInstance("https://login.microsoftonline.us/");
 ```
 
 ## Current limitations
