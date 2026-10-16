@@ -1438,7 +1438,8 @@ internal sealed class BicepProvisioner(
             resource.Parameters[AzureBicepResource.KnownParameters.PrincipalType] = context.Principal.Type;
         }
 
-        if (!resource.Parameters.TryGetValue(AzureBicepResource.KnownParameters.Location, out var location) || location is null)
+        if (resource.HasLocationParameter &&
+            (!resource.Parameters.TryGetValue(AzureBicepResource.KnownParameters.Location, out var location) || location is null))
         {
             resource.Parameters[AzureBicepResource.KnownParameters.Location] = context.Location.Name;
         }

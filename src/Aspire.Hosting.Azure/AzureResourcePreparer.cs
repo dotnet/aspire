@@ -60,6 +60,7 @@ internal sealed class AzureResourcePreparer(
         if (executionContext.IsRunMode)
         {
             AddPerResourceCommands(azureResources);
+            AddTenantResourceSuffixCommandArgument(model);
         }
 
         // set the ProvisioningBuildOptions on the resource, if necessary
@@ -85,6 +86,14 @@ internal sealed class AzureResourcePreparer(
 
             foreach (var command in AzureProvisioningController.ResourceCommandDefinitions)
             {
+                if (bicepResource.HasAnnotationOfType<TenantScopedResourceAnnotation>() &&
+                    command.Command is AzureProvisioningController.AzureResourceCommand.ChangeLocation or
+                        AzureProvisioningController.AzureResourceCommand.GetAzureResource or
+                        AzureProvisioningController.AzureResourceCommand.DeleteAzureResource)
+                {
+                    continue;
+                }
+
                 AddOrReplaceCommand(
                     resource.Resource,
                     command.Name,
@@ -109,6 +118,38 @@ internal sealed class AzureResourcePreparer(
 
     private static string GetDeploymentStateResourceName((IResource Resource, IAzureResource AzureResource) resource)
         => resource.AzureResource is AzureBicepResource bicepResource ? bicepResource.Name : resource.Resource.Name;
+
+    internal static bool RequiresTenantResourceSuffix(DistributedApplicationModel model) =>
+        GetAzureResourcesFromAppModel(model).Any(resource =>
+            resource.AzureResource.HasAnnotationOfType<TenantScopedResourceAnnotation>());
+
+    private static void AddTenantResourceSuffixCommandArgument(DistributedApplicationModel model)
+    {
+        if (!RequiresTenantResourceSuffix(model) ||
+            model.Resources.OfType<AzureEnvironmentResource>().SingleOrDefault() is not { } environment)
+        {
+            return;
+        }
+
+        var command = AzureProvisioningController.EnvironmentCommandDefinitions.Single(
+            command => command.Name == AzureProvisioningController.ChangeAzureContextCommandName);
+        AddOrReplaceCommand(
+            environment,
+            command.Name,
+            command.DisplayName,
+            context => command.ExecuteCommand(context.Services.GetRequiredService<AzureProvisioningController>(), context),
+            new CommandOptions
+            {
+                Description = command.Description,
+                ConfirmationMessage = command.ConfirmationMessage,
+                IconName = command.IconName,
+                IconVariant = command.IconVariant,
+                IsHighlighted = command.IsHighlighted,
+                Arguments = AzureProvisioningController.CreateAzureContextCommandArguments(includeTenantResourceSuffix: true),
+                ValidateArguments = command.ValidateArguments,
+                UpdateState = context => context.Services.GetRequiredService<AzureProvisioningController>().GetEnvironmentCommandState()
+            });
+    }
 
     private static void AddOrReplaceCommand(
         IResource resource,

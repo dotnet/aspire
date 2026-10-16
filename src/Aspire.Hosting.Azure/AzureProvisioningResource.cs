@@ -1,7 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREAZURE003 // Bicep extension declarations are experimental.
+
 using System.Diagnostics;
+using System.Text;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
 using Azure.Provisioning;
@@ -107,14 +110,27 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
 
         EnsureParametersAlign(infrastructure);
 
-        var generationPath = Directory.CreateTempSubdirectory("aspire").FullName;
-        var moduleSourcePath = Path.Combine(generationPath, "main.bicep");
-
         var plan = infrastructure.Build(ProvisioningBuildOptions);
+        HasLocationParameter = infrastructure.GetParameters().Any(parameter => parameter.BicepIdentifier == KnownParameters.Location);
         var compilation = plan.Compile();
         Debug.Assert(compilation.Count == 1);
         var compiledBicep = compilation.First();
-        File.WriteAllText(moduleSourcePath, compiledBicep.Value);
+
+        // Azure.Provisioning 1.6 has no extension statement and its statement AST cannot be extended externally.
+        // Emit only this missing declaration here; resources, parameters, outputs, and escaping use the SDK.
+        // https://github.com/Azure/azure-sdk-for-net/blob/Azure.Provisioning_1.6.0/sdk/provisioning/Azure.Provisioning/src/ProvisioningPlan.cs
+        var source = new StringBuilder();
+        foreach (var (alias, reference) in infrastructure.BicepExtensions)
+        {
+            Infrastructure.ValidateBicepIdentifier(alias, nameof(AzureResourceInfrastructure.BicepExtensions));
+            ArgumentException.ThrowIfNullOrWhiteSpace(reference, nameof(AzureResourceInfrastructure.BicepExtensions));
+            source.Append("extension ").Append(new StringLiteralExpression(reference)).Append(" as ").AppendLine(alias).AppendLine();
+        }
+        source.Append(compiledBicep.Value);
+
+        var generationPath = Directory.CreateTempSubdirectory("aspire").FullName;
+        var moduleSourcePath = Path.Combine(generationPath, "main.bicep");
+        File.WriteAllText(moduleSourcePath, source.ToString());
 
         var moduleDestinationPath = Path.Combine(directory ?? generationPath, $"{Name}.module.bicep");
         File.Copy(moduleSourcePath, moduleDestinationPath, true);

@@ -225,6 +225,22 @@ public sealed class AzurePublishingContext(
             }
         }
 
+        ProvisioningParameter? tenantResourceSuffix = null;
+        if (bicepResourcesToPublish.Any(resource =>
+            resource.Parameters.TryGetValue(AzureBicepResource.KnownParameters.TenantResourceSuffix, out var suffix) && suffix is null))
+        {
+            tenantResourceSuffix = ParameterLookup.Values.FirstOrDefault(parameter =>
+                parameter.BicepIdentifier == AzureBicepResource.KnownParameters.TenantResourceSuffix);
+            if (tenantResourceSuffix is null)
+            {
+                tenantResourceSuffix = new ProvisioningParameter(AzureBicepResource.KnownParameters.TenantResourceSuffix, typeof(string))
+                {
+                    Value = string.Empty
+                };
+                MainInfrastructure.Add(tenantResourceSuffix);
+            }
+        }
+
         static BicepValue<string> GetOutputs(ModuleImport module, string outputName) =>
             new MemberExpression(new MemberExpression(new IdentifierExpression(module.BicepIdentifier), "outputs"), outputName);
 
@@ -346,7 +362,10 @@ public sealed class AzurePublishingContext(
 
             var module = moduleMap[resource];
             module.Scope = GetScopeExpression(resource);
-            module.Parameters.Add("location", locationParam);
+            if (resource.HasLocationParameter)
+            {
+                module.Parameters.Add("location", locationParam);
+            }
 
             // Role grants have no outputs consumed by their dependents. Preserve these explicit
             // prerequisites when deploying main.bicep, not just in Aspire's per-resource pipeline.
@@ -358,6 +377,12 @@ public sealed class AzurePublishingContext(
 
             foreach (var parameter in resource.Parameters)
             {
+                if (parameter.Key == AzureBicepResource.KnownParameters.TenantResourceSuffix && parameter.Value is null)
+                {
+                    module.Parameters.Add(parameter.Key, tenantResourceSuffix!);
+                    continue;
+                }
+
                 if (parameter.Key == AzureBicepResource.KnownParameters.UserPrincipalId && parameter.Value is null)
                 {
                     module.Parameters.Add(parameter.Key, principalId);
