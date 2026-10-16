@@ -14,7 +14,8 @@ const browserTypes = new Set(['chrome', 'msedge', 'pwa-chrome', 'pwa-msedge']);
 
 export function registerBlazorWasmDebugRelay(owner: AspireResourceExtendedDebugConfiguration): vscode.Disposable {
     let disposed = false;
-    const relays = new Map<string, Promise<BlazorWasmDebugRelay>>();
+    // Resolutions have independent cancellation lifetimes, even for the same bridge.
+    const relays = new Set<Promise<BlazorWasmDebugRelay>>();
     const relayUris = new Set<string>();
     const provider = vscode.debug.registerDebugConfigurationProvider('*', {
         async resolveDebugConfigurationWithSubstitutedVariables(_folder, configuration, token) {
@@ -40,14 +41,11 @@ export function registerBlazorWasmDebugRelay(owner: AspireResourceExtendedDebugC
             }
 
             try {
-                let pending = relays.get(configuration.inspectUri);
-                if (!pending) {
-                    pending = createBlazorWasmDebugRelay(upstream);
-                    relays.set(configuration.inspectUri, pending);
-                }
+                const pending = createBlazorWasmDebugRelay(upstream);
+                relays.add(pending);
                 const relay = await pending;
                 if (disposed || token?.isCancellationRequested) {
-                    relays.delete(configuration.inspectUri);
+                    relays.delete(pending);
                     relay.dispose();
                     return undefined;
                 }
@@ -69,7 +67,7 @@ export function registerBlazorWasmDebugRelay(owner: AspireResourceExtendedDebugC
             }
             disposed = true;
             provider.dispose();
-            for (const pending of relays.values()) {
+            for (const pending of relays) {
                 void pending.then(relay => relay.dispose(), error => {
                     extensionLogOutputChannel.debug(`Blazor WASM debug relay initialization failed before cleanup: ${error instanceof Error ? error.message : String(error)}`);
                 });

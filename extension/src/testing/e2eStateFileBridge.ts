@@ -28,7 +28,6 @@ import { getSupportedCapabilities, javaLanguageExtensionId, useCsharpExtensionVe
 import { getCliPathTargetKey, workspaceFolderCliPathTarget } from '../utils/cliPathVariables';
 import { isEnabledCommand } from '../views/treePresentation';
 import { blazorWasmDebugProofTimeoutMs, getBlazorWasmDebugProofCleanupTimeoutMs } from './blazorWasmDebugProofTimeouts';
-import { installWasmInvestigationProbe } from './wasmInvestigationProbe';
 
 let atomicWriteSequence = 0;
 
@@ -52,7 +51,6 @@ export function createE2eStateFileBridge(
   }
 
   const extensionHostSessionId = randomUUID();
-  context.subscriptions.push(installWasmInvestigationProbe(context.logUri.fsPath));
   const commandInvocations: AspireExtensionE2ECommandInvocation[] = [];
   const terminalCommands: AspireExtensionE2ETerminalCommand[] = [];
   const debugLaunches: AspireExtensionE2EDebugLaunch[] = [];
@@ -1542,7 +1540,7 @@ async function proveBlazorWasmDebugging(command: BlazorWasmDebugProofCommand, ap
   vscode.debug.addBreakpoints([breakpoint]);
 
   try {
-    // Running resources can still publish a disabled debug command while endpoints initialize.
+    // A running resource can still have a disabled debug command.
     // Executing that snapshot is a UI no-op, not a browser launch to wait for.
     const debugCommandElement = await waitForProofValue(
       `enabled 'debug-in-browser' command for resource '${resourceName}'`,

@@ -303,6 +303,22 @@ suite('Blazor WASM debug relay', () => {
         assert.strictEqual(client.readyState, WebSocket.OPEN);
     });
 
+    test('canceling one pending resolution does not dispose an overlapping retry', async () => {
+        const registration = registerBlazorWasmDebugRelay(configuration({ type: 'blazorwasm' }));
+        cleanups.push(() => registration.dispose());
+        const cancellation = new vscode.CancellationTokenSource();
+        cleanups.push(() => cancellation.dispose());
+        const pending = resolve(configuration({ inspectUri: 'ws://localhost:1234{browserInspectUriPath}' }), cancellation.token);
+        cancellation.cancel();
+        const retry = resolve(configuration({ inspectUri: 'ws://localhost:1234{browserInspectUriPath}' }));
+
+        assert.strictEqual(await pending, undefined);
+        const resolved = await retry;
+        assert.ok(resolved);
+        const client = await connect(resolved.inspectUri);
+        assert.strictEqual(client.readyState, WebSocket.OPEN);
+    });
+
     test('run cleanup during initialization cancels the configuration', async () => {
         registerBlazorWasmDebugRelay(configuration({ type: 'blazorwasm' }));
         const pending = resolve(configuration({ inspectUri: 'ws://localhost:1234{browserInspectUriPath}' }));
