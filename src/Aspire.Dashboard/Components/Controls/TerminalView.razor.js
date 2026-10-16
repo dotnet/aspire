@@ -701,6 +701,12 @@ async function mountClient(state, generation, controller) {
                 if (level !== "error" || (!retained && (!current() || state.ended))) {
                     return;
                 }
+                // The worker emits this status after onClose, including for preserved
+                // views: "View disconnected (1001: Going away). Attach another view to reconnect."
+                // It describes the closed transport, not a failed renderer.
+                if (state.disconnected && /^View disconnected \([\s\S]*\)\. Attach another view to reconnect\.$/.test(message)) {
+                    return;
+                }
                 // Hex1b 0.173.0 prefixes nonfatal inspection/action errors, e.g.
                 // "Scrollbar: Terminal disconnected before the marker operation completed."
                 // These can arrive after onClose; only unprefixed renderer/worker errors

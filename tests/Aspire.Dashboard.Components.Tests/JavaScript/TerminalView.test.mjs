@@ -174,6 +174,8 @@ beforeEach(() => {
             close(code, reason = "", wasClean = true) {
                 client.connected = false;
                 options.onClose({ code, reason, wasClean });
+                // Match the worker's closed notification followed by its error-level status.
+                options.onStatus(`View disconnected (${code}${reason ? `: ${reason}` : ""}). Attach another view to reconnect.`, "error");
             },
             role(primary) {
                 client.peer = { ...client.peer, primaryId: primary ? client.peer.id : "cli-1", isPrimary: primary };
