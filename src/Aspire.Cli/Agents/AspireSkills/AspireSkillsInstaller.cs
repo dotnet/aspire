@@ -158,14 +158,14 @@ internal sealed class AspireSkillsInstaller(
         {
             yield return scope is AgentConfigurationScope.Project
                 ? Path.Combine(root, ".github", "skills")
-                : Path.Combine(agent.GlobalPluginDirectory(executionContext, environment), "skills");
+                : Path.Combine(agent.Plugin.GlobalDirectory(executionContext, environment), "skills");
         }
 
         if (agent == AgentClient.OpenCode)
         {
             var openCodeRoot = scope is AgentConfigurationScope.Project
                 ? Path.Combine(root, ".opencode")
-                : agent.GlobalPluginDirectory(executionContext, environment);
+                : agent.Plugin.GlobalDirectory(executionContext, environment);
             yield return Path.Combine(openCodeRoot, "skill");
             yield return Path.Combine(openCodeRoot, "skills");
             if (scope is AgentConfigurationScope.Global &&

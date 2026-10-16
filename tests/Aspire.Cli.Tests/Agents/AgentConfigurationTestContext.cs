@@ -37,10 +37,10 @@ internal sealed class AgentConfigurationTestContext : IDisposable
     public AgentClient Copilot { get; } = AgentClient.Copilot;
     public AgentClient ClaudeCode { get; } = AgentClient.ClaudeCode;
     public AgentClient OpenCode { get; } = AgentClient.OpenCode;
-    public string CopilotDirectory => Copilot.GlobalPluginDirectory(ExecutionContext, Environment);
-    public string ClaudeDirectory => ClaudeCode.GlobalPluginDirectory(ExecutionContext, Environment);
-    public string ClaudeManagedDirectory => ClaudeCode.ManagedPluginDirectory(ExecutionContext, Environment);
-    public string OpenCodeDirectory => OpenCode.GlobalPluginDirectory(ExecutionContext, Environment);
+    public string CopilotDirectory => Copilot.Plugin.GlobalDirectory(ExecutionContext, Environment);
+    public string ClaudeDirectory => ClaudeCode.Plugin.GlobalDirectory(ExecutionContext, Environment);
+    public string ClaudeManagedDirectory => ClaudeCode.Plugin.ManagedDirectory(ExecutionContext, Environment);
+    public string OpenCodeDirectory => OpenCode.Plugin.GlobalDirectory(ExecutionContext, Environment);
 
     public void SetVariable(string name, string value) => _variables[name] = value;
 

@@ -20,13 +20,13 @@ internal static class McpConfigFileHelper
         IEnvironment environment,
         CancellationToken cancellationToken)
     {
-        var config = await ReadConfigAsync(configFilePath, client.McpJsonDocumentOptions, cancellationToken);
+        var config = await ReadConfigAsync(configFilePath, client.Mcp.JsonDocumentOptions, cancellationToken);
         if (client == AgentClient.OpenCode &&
             Path.GetFileName(configFilePath) == "opencode.jsonc" &&
             (scope is AgentConfigurationScope.Project ||
                 environment.GetEnvironmentVariable("OPENCODE_CONFIG") is not { Length: > 0 }))
         {
-            var servers = GetServerContainer(config, client.McpServersPropertyName, configFilePath);
+            var servers = GetServerContainer(config, client.Mcp.ServersPropertyName, configFilePath);
             // Remote servers use their URL instead of an inherited local command.
             if (servers is not null &&
                 servers.TryGetPropertyValue("aspire", out var server) &&
@@ -45,8 +45,8 @@ internal static class McpConfigFileHelper
             // Explicit OPENCODE_CONFIG files do not use sibling discovery.
             // https://opencode.ai/docs/config/#locations
             var jsonPath = Path.ChangeExtension(configFilePath, ".json");
-            var jsonConfig = await ReadConfigAsync(jsonPath, client.McpJsonDocumentOptions, cancellationToken);
-            if (GetServerContainer(jsonConfig, client.McpServersPropertyName, jsonPath)?.ContainsKey("aspire") is true)
+            var jsonConfig = await ReadConfigAsync(jsonPath, client.Mcp.JsonDocumentOptions, cancellationToken);
+            if (GetServerContainer(jsonConfig, client.Mcp.ServersPropertyName, jsonPath)?.ContainsKey("aspire") is true)
             {
                 return (jsonConfig, jsonPath);
             }
@@ -97,13 +97,13 @@ internal static class McpConfigFileHelper
         AgentConfigurationScope scope,
         string configFilePath)
     {
-        var servers = GetServerContainer(config, client.McpServersPropertyName, configFilePath);
+        var servers = GetServerContainer(config, client.Mcp.ServersPropertyName, configFilePath);
         if (servers?.ContainsKey("aspire") is true)
         {
             return false;
         }
 
-        if (client.McpSchema is { } schema && !config.ContainsKey("$schema"))
+        if (client.Mcp.Schema is { } schema && !config.ContainsKey("$schema"))
         {
             config["$schema"] = schema;
         }
@@ -111,12 +111,12 @@ internal static class McpConfigFileHelper
         if (servers is null)
         {
             servers = new JsonObject();
-            config[client.McpServersPropertyName] = servers;
+            config[client.Mcp.ServersPropertyName] = servers;
         }
 
         var serverConfiguration = scope is AgentConfigurationScope.Global
-            ? client.GlobalMcpServerConfiguration ?? client.McpServerConfiguration
-            : client.McpServerConfiguration;
+            ? client.Mcp.GlobalServerConfiguration ?? client.Mcp.ServerConfiguration
+            : client.Mcp.ServerConfiguration;
         // JsonNodes have single-parent ownership; each destination needs its own copy.
         servers["aspire"] = serverConfiguration.DeepClone();
 

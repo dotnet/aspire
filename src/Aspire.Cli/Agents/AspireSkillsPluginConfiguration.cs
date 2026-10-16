@@ -73,7 +73,7 @@ internal static class AspireSkillsPluginConfiguration
                         throw new AgentConfigurationException(AgentCommandStrings.Configuration_ConcurrentChange);
                     }
 
-                    var edit = target.Client.UsesSkillsCatalog
+                    var edit = target.Client.Plugin.UsesSkillsCatalog
                         ? await ApplyOpenCodeCatalogAsync(root, reader, target.Path, workspaceRoot, scope,
                             executionContext, environment, cancellationToken)
                         : Apply(root, await AgentConfigurationJson.ReadSettingsAsync(reader,
@@ -125,7 +125,7 @@ internal static class AspireSkillsPluginConfiguration
         var reader = new AgentConfigurationJson.ReadContext();
         foreach (var client in clients)
         {
-            if (client.UsesSkillsCatalog &&
+            if (client.Plugin.UsesSkillsCatalog &&
                 environment.GetEnvironmentVariable("OPENCODE_CONFIG_CONTENT") is { Length: > 0 } inline &&
                 HasAspireCatalog(AgentConfigurationJson.ParseObject(Encoding.UTF8.GetBytes(inline))))
             {
@@ -135,7 +135,7 @@ internal static class AspireSkillsPluginConfiguration
             foreach (var path in PluginSettings(client, workspaceRoot, executionContext, environment))
             {
                 var config = await reader.ReadOptionalAsync(path, cancellationToken);
-                if (config is not null && (client.UsesSkillsCatalog ? HasAspireCatalog(config) : HasPlugin(config)))
+                if (config is not null && (client.Plugin.UsesSkillsCatalog ? HasAspireCatalog(config) : HasPlugin(config)))
                 {
                     return true;
                 }
@@ -257,33 +257,33 @@ internal static class AspireSkillsPluginConfiguration
     private static IEnumerable<string> PluginSettings(
         AgentClient client, DirectoryInfo workspaceRoot, CliExecutionContext context, IEnvironment environment)
     {
-        if (client.UsesSkillsCatalog)
+        if (client.Plugin.UsesSkillsCatalog)
         {
-            var defaultPaths = OpenCodePaths.GetConfigPaths(client.GlobalPluginDirectory(context, environment));
+            var defaultPaths = OpenCodePaths.GetConfigPaths(client.Plugin.GlobalDirectory(context, environment));
             var customDirectory = OpenCodePaths.GetOverride("OPENCODE_CONFIG_DIR", context, environment);
             IEnumerable<string> customPaths = customDirectory is null ? [] : OpenCodePaths.GetConfigPaths(customDirectory);
             var globalPaths = environment.GetEnvironmentVariable("OPENCODE_CONFIG") is { Length: > 0 }
-                ? new[] { client.GlobalMcpConfigPath(context, environment) }.Concat(customPaths).Concat(defaultPaths)
+                ? new[] { client.Mcp.GlobalConfigPath(context, environment) }.Concat(customPaths).Concat(defaultPaths)
                 : defaultPaths.Concat(customPaths);
 
             foreach (var path in OpenCodePaths.GetProjectConfigPaths(workspaceRoot).Concat(globalPaths)
-                .Concat(OpenCodePaths.GetConfigPaths(client.ManagedPluginDirectory(context, environment))).Distinct(AgentPath.Comparer))
+                .Concat(OpenCodePaths.GetConfigPaths(client.Plugin.ManagedDirectory(context, environment))).Distinct(AgentPath.Comparer))
             {
                 yield return path;
             }
             yield break;
         }
 
-        yield return Path.Combine(client.GlobalPluginDirectory(context, environment), "settings.json");
-        foreach (var path in client.ProjectPluginSettingsFiles)
+        yield return Path.Combine(client.Plugin.GlobalDirectory(context, environment), "settings.json");
+        foreach (var path in client.Plugin.ProjectSettingsFiles)
         {
             yield return Path.Combine(workspaceRoot.FullName, path);
         }
 
-        var managed = client.ManagedPluginDirectory(context, environment);
+        var managed = client.Plugin.ManagedDirectory(context, environment);
         yield return Path.Combine(managed, "managed-settings.json");
         var fragments = Path.Combine(managed, "managed-settings.d");
-        if (client.UsesManagedSettingsFragments && Directory.Exists(fragments))
+        if (client.Plugin.UsesManagedSettingsFragments && Directory.Exists(fragments))
         {
             foreach (var path in Directory.EnumerateFiles(fragments, "*.json").Order(StringComparer.Ordinal))
             {

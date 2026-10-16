@@ -1125,7 +1125,7 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
         var client = AgentClient.All.Single(client => client.Id == clientId);
         var scope = scopeName == "project" ? AgentConfigurationScope.Project : AgentConfigurationScope.Global;
         var path = client.GetMcpConfigPath(scope, workspace.WorkspaceRoot, executionContext, environment);
-        var original = $$"""{ "preference": true, "{{client.McpServersPropertyName}}": { "aspire": {{serverConfiguration}} } }""";
+        var original = $$"""{ "preference": true, "{{client.Mcp.ServersPropertyName}}": { "aspire": {{serverConfiguration}} } }""";
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         await File.WriteAllTextAsync(path, original);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
