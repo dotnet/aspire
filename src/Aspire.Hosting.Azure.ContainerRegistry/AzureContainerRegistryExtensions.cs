@@ -41,10 +41,9 @@ public static class AzureContainerRegistryExtensions
 
         IResourceBuilder<AzureContainerRegistryResource> resourceBuilder;
 
-        // Don't add the resource to the infrastructure if we're in run mode.
         if (builder.ExecutionContext.IsRunMode)
         {
-            resourceBuilder = builder.CreateResourceBuilder(resource);
+            resourceBuilder = builder.AddResource(resource);
         }
         else
         {
