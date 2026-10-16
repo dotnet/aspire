@@ -40,10 +40,8 @@ internal static class AgentPath
             : null;
 
     public static string Expand(string path, CliExecutionContext executionContext)
-        => Expand(path, executionContext.HomeDirectory.FullName, executionContext.WorkingDirectory.FullName);
-
-    public static string Expand(string path, string homeDirectory, string workingDirectory)
     {
+        var homeDirectory = executionContext.HomeDirectory.FullName;
         // Overrides accept "~", "~/config", and "~\config" against the injected home.
         // "~other-user" is not expanded. Defer path validation to each target's error boundary.
         if (path == "~")
@@ -57,7 +55,7 @@ internal static class AgentPath
             return Path.Join(homeDirectory, relative);
         }
 
-        return Path.IsPathFullyQualified(path) ? path : Path.Combine(workingDirectory, path);
+        return Path.IsPathFullyQualified(path) ? path : Path.Combine(executionContext.WorkingDirectory.FullName, path);
     }
 
     public static string Resolve(string path)
@@ -93,7 +91,6 @@ internal static class AgentPath
         // so aliases of its directory still share an identity before the first file write.
         // PathNormalizer queries actual filesystem casing rather than lowercasing paths,
         // which would collapse distinct files on case-sensitive macOS volumes.
-        var missing = new Stack<string>();
         var existing = path;
         while (!Path.Exists(existing))
         {
@@ -103,16 +100,10 @@ internal static class AgentPath
                 return path;
             }
 
-            missing.Push(Path.GetFileName(existing));
             existing = parent;
         }
 
         var canonical = PathNormalizer.ResolvePathCasing(existing);
-        foreach (var segment in missing)
-        {
-            canonical = Path.Combine(canonical, segment);
-        }
-
-        return canonical;
+        return Path.Join(canonical, path[existing.Length..]);
     }
 }
