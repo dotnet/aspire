@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Threading.Channels;
 using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Components.Resize;
@@ -29,6 +30,98 @@ namespace Aspire.Dashboard.Components.Tests.Layout;
 public partial class MainLayoutTests : DashboardTestContext
 {
     private IRenderedComponent<FluentMessageBarProvider>? _messageBarProvider;
+
+    [Fact]
+    public async Task HeaderShortcutsAndDocumentation_AreSeparateActions()
+    {
+        DialogParameters? capturedParameters = null;
+        var dialogService = new TestDialogService(onShowDialog: (_, parameters) =>
+        {
+            capturedParameters = parameters;
+            return Task.CompletedTask;
+        });
+        SetupMainLayoutServices(dialogService: dialogService);
+        var cut = Render<MainLayout>(builder => builder.Add(p => p.ViewportInformation,
+            new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false)));
+
+        var shortcutButton = cut.Find($"#{MainLayout.HelpButtonId}");
+        Assert.Equal(Resources.Layout.MainLayoutKeyboardShortcuts, shortcutButton.GetAttribute("aria-label"));
+        Assert.Equal("?", shortcutButton.GetAttribute("aria-keyshortcuts"));
+        var documentationLink = cut.Find($"header a[aria-label='{Resources.Layout.MainLayoutAspireDashboardHelpLink}']");
+        Assert.Equal("https://aspire.dev/dashboard/overview/", documentationLink.GetAttribute("href"));
+        Assert.Equal("_blank", documentationLink.GetAttribute("target"));
+        Assert.Equal("noreferrer noopener", documentationLink.GetAttribute("rel"));
+
+        await cut.InvokeAsync(() => shortcutButton.Click());
+
+        Assert.NotNull(capturedParameters);
+        Assert.Equal("HelpDialog", capturedParameters.Id);
+        Assert.Equal(Resources.Layout.MainLayoutKeyboardShortcuts, capturedParameters.Title);
+    }
+
+    [Theory]
+    [InlineData(AspireKeyboardShortcut.GoToHome, "/")]
+    [InlineData(AspireKeyboardShortcut.GoToResources, "/resources?pane=resources")]
+    [InlineData(AspireKeyboardShortcut.GoToParameters, "/parameters")]
+    [InlineData(AspireKeyboardShortcut.GoToGraph, "/graph")]
+    [InlineData(AspireKeyboardShortcut.GoToExtensions, "/extensions")]
+    [InlineData(AspireKeyboardShortcut.GoToTelemetrySources, "/structuredlogs?pane=telemetry")]
+    [InlineData(AspireKeyboardShortcut.GoToConsoleLogs, "/consolelogs")]
+    public async Task NavigationShortcut_OpensDestination(AspireKeyboardShortcut shortcut, string expectedUrl)
+    {
+        SetupMainLayoutServices(dashboardClient: new TestDashboardClient(isEnabled: true,
+            resourceChannelProvider: () => Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>()));
+        var navigationManager = Services.GetRequiredService<NavigationManager>();
+        navigationManager.NavigateTo("/consolelogs/resource/api?resource=api&resource=worker");
+        var cut = Render<MainLayout>(builder => builder.Add(p => p.ViewportInformation,
+            new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false)));
+        var shortcuts = Services.GetRequiredService<ShortcutManager>();
+        Assert.True(shortcuts.IsShortcutAvailable(shortcut));
+
+        await cut.InvokeAsync(() => shortcuts.OnGlobalKeyDown(shortcut));
+
+        Assert.Equal(navigationManager.ToAbsoluteUri(expectedUrl).AbsoluteUri, navigationManager.Uri);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task NavigationShortcuts_RespectResourceServiceAndGraphAvailability(bool resourceServiceEnabled, bool graphDisabled)
+    {
+        SetupMainLayoutServices(dashboardClient: new TestDashboardClient(isEnabled: resourceServiceEnabled,
+            resourceChannelProvider: () => Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>()),
+            configureOptions: options => options.UI.DisableResourceGraph = graphDisabled);
+        var navigationManager = Services.GetRequiredService<NavigationManager>();
+        var cut = Render<MainLayout>(builder => builder.Add(p => p.ViewportInformation,
+            new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false)));
+        var shortcuts = Services.GetRequiredService<ShortcutManager>();
+
+        foreach (var shortcut in new[]
+        {
+            AspireKeyboardShortcut.GoToHome,
+            AspireKeyboardShortcut.GoToResources,
+            AspireKeyboardShortcut.GoToParameters,
+            AspireKeyboardShortcut.GoToGraph,
+            AspireKeyboardShortcut.GoToExtensions,
+            AspireKeyboardShortcut.GoToConsoleLogs
+        })
+        {
+            var expectedAvailable = resourceServiceEnabled && (shortcut != AspireKeyboardShortcut.GoToGraph || !graphDisabled);
+            Assert.Equal(expectedAvailable, shortcuts.IsShortcutAvailable(shortcut));
+            if (!expectedAvailable)
+            {
+                var initialUri = navigationManager.Uri;
+                await cut.InvokeAsync(() => cut.Instance.OnPageKeyDownAsync(shortcut));
+                Assert.Equal(initialUri, navigationManager.Uri);
+            }
+        }
+
+        Assert.True(shortcuts.IsShortcutAvailable(AspireKeyboardShortcut.GoToTelemetrySources));
+        await cut.InvokeAsync(() => shortcuts.OnGlobalKeyDown(AspireKeyboardShortcut.GoToTelemetrySources));
+        Assert.Equal(navigationManager.ToAbsoluteUri(DashboardUrls.TelemetrySourcesUrl()).AbsoluteUri, navigationManager.Uri);
+    }
 
     [Fact]
     public void OnInitialize_BrowserInfoCircuitDisconnected_DoesNotThrow()
@@ -225,7 +318,7 @@ public partial class MainLayoutTests : DashboardTestContext
         else
         {
             var menuItemName = expectedDialogId == "HelpDialog"
-                ? "Help"
+                ? Resources.Layout.MainLayoutKeyboardShortcuts
                 : "Settings";
 
             await cut.InvokeAsync(() => cut.Find("#dashboard-navigation-button").Click());
@@ -1174,7 +1267,7 @@ public partial class MainLayoutTests : DashboardTestContext
         else
         {
             var menuItemName = expectedDialogId == "HelpDialog"
-                ? "Help"
+                ? Resources.Layout.MainLayoutKeyboardShortcuts
                 : "Settings";
 
             await cut.InvokeAsync(() => cut.Find("#dashboard-navigation-button").Click());

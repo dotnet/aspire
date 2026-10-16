@@ -132,6 +132,10 @@ public partial class DesktopNavMenu : ComponentBase, IDisposable
             yield return new NavItem(NavSection.Extensions, DashboardUrls.ExtensionsUrl(), Loc[nameof(Resources.Layout.NavMenuExtensionsTab)], ExtensionsIcon(), ExtensionsIcon(active: true));
         }
         yield return new NavItem(NavSection.Telemetry, DashboardUrls.TelemetrySourcesUrl(), Loc[nameof(Resources.Layout.NavMenuTelemetrySourcesTab)], TelemetryIcon(), TelemetryIcon(active: true));
+        if (DashboardClient.IsEnabled)
+        {
+            yield return new NavItem(NavSection.ConsoleLogs, DashboardUrls.ConsoleLogsUrl(), Loc[nameof(Resources.Layout.NavMenuConsoleLogsTab)], ConsoleLogsIcon(), ConsoleLogsIcon(active: true));
+        }
     }
 
     /// <summary>
@@ -162,6 +166,12 @@ public partial class DesktopNavMenu : ComponentBase, IDisposable
                 DashboardUrls.MetricsBasePath => NavSection.Telemetry,
                 _ => NavSection.None
             };
+        }
+
+        if (firstSegment == DashboardUrls.ConsoleLogBasePath &&
+            ResourcesLayout.ParseLocation(baseRelativePath).SelectedResourceNames.Count == 0)
+        {
+            return NavSection.ConsoleLogs;
         }
 
         return firstSegment switch
@@ -196,6 +206,7 @@ public partial class DesktopNavMenu : ComponentBase, IDisposable
         Graph,
         Terminals,
         Extensions,
+        ConsoleLogs,
         StructuredLogs,
         Traces,
         Metrics

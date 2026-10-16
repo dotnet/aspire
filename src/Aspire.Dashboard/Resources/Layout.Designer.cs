@@ -223,11 +223,20 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Help.
+        ///   Looks up a localized string similar to Dashboard documentation.
         /// </summary>
         public static string MainLayoutAspireDashboardHelpLink {
             get {
                 return ResourceManager.GetString("MainLayoutAspireDashboardHelpLink", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Keyboard shortcuts.
+        /// </summary>
+        public static string MainLayoutKeyboardShortcuts {
+            get {
+                return ResourceManager.GetString("MainLayoutKeyboardShortcuts", resourceCulture);
             }
         }
 

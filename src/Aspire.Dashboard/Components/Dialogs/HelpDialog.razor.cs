@@ -21,25 +21,33 @@ public partial class HelpDialog
         [
             new(Loc[nameof(Resources.Dialogs.HelpDialogCategoryPageNavigation)],
             [
+                new KeyboardShortcut(AspireKeyboardShortcut.GoToHome, ["h"], Loc[nameof(Resources.Dialogs.HelpDialogGoToHome)]),
                 new KeyboardShortcut(AspireKeyboardShortcut.GoToResources, ["r"], Loc[nameof(Resources.Dialogs.HelpDialogGoToResources)]),
+                new KeyboardShortcut(AspireKeyboardShortcut.GoToParameters, ["p"], Loc[nameof(Resources.Dialogs.HelpDialogGoToParameters)]),
+                new KeyboardShortcut(AspireKeyboardShortcut.GoToGraph, ["g"], Loc[nameof(Resources.Dialogs.HelpDialogGoToGraph)]),
+                new KeyboardShortcut(AspireKeyboardShortcut.GoToTerminals, ["e"], Loc[nameof(Resources.Dialogs.HelpDialogGoToTerminals)]),
+                new KeyboardShortcut(AspireKeyboardShortcut.GoToExtensions, ["x"], Loc[nameof(Resources.Dialogs.HelpDialogGoToExtensions)]),
+            ]),
+            new(Loc[nameof(Resources.Dialogs.HelpDialogCategoryTelemetry)],
+            [
+                new KeyboardShortcut(AspireKeyboardShortcut.GoToTelemetrySources, ["o"], Loc[nameof(Resources.Dialogs.HelpDialogGoToTelemetrySources)]),
                 new KeyboardShortcut(AspireKeyboardShortcut.GoToConsoleLogs, ["c"], Loc[nameof(Resources.Dialogs.HelpDialogGoToConsoleLogs)]),
                 new KeyboardShortcut(AspireKeyboardShortcut.GoToStructuredLogs, ["s"], Loc[nameof(Resources.Dialogs.HelpDialogGoToStructuredLogs)]),
                 new KeyboardShortcut(AspireKeyboardShortcut.GoToTraces, ["t"], Loc[nameof(Resources.Dialogs.HelpDialogGoToTraces)]),
                 new KeyboardShortcut(AspireKeyboardShortcut.GoToMetrics, ["m"], Loc[nameof(Resources.Dialogs.HelpDialogGoToMetrics)]),
-                new KeyboardShortcut(AspireKeyboardShortcut.GoToTerminals, ["e"], Loc[nameof(Resources.Dialogs.HelpDialogGoToTerminals)]),
             ]),
             new(Loc[nameof(Resources.Dialogs.HelpDialogCategoryPanels)],
             [
                 new KeyboardShortcut(AspireKeyboardShortcut.IncreasePanelSize, ["+"], Loc[nameof(Resources.Dialogs.HelpDialogIncreasePanelSize)]),
                 new KeyboardShortcut(AspireKeyboardShortcut.DecreasePanelSize, ["-"], Loc[nameof(Resources.Dialogs.HelpDialogDecreasePanelSize)]),
-                new KeyboardShortcut(AspireKeyboardShortcut.ResetPanelSize, ["shift", "r"], Loc[nameof(Resources.Dialogs.HelpDialogResetPanelSize)]),
-                new KeyboardShortcut(AspireKeyboardShortcut.ToggleOrientation, ["shift", "t"], Loc[nameof(Resources.Dialogs.HelpDialogTogglePanelOrientation)]),
-                new KeyboardShortcut(AspireKeyboardShortcut.ClosePanel, ["shift", "x"], Loc[nameof(Resources.Dialogs.HelpDialogTogglePanelOpen)]),
+                new KeyboardShortcut(AspireKeyboardShortcut.ResetPanelSize, ["Shift", "R"], Loc[nameof(Resources.Dialogs.HelpDialogResetPanelSize)]),
+                new KeyboardShortcut(AspireKeyboardShortcut.ToggleOrientation, ["Shift", "T"], Loc[nameof(Resources.Dialogs.HelpDialogTogglePanelOrientation)]),
+                new KeyboardShortcut(AspireKeyboardShortcut.ClosePanel, ["Shift", "X"], Loc[nameof(Resources.Dialogs.HelpDialogTogglePanelOpen)]),
             ]),
             new(Loc[nameof(Resources.Dialogs.HelpDialogCategoryNavigation)],
             [
                 new KeyboardShortcut(AspireKeyboardShortcut.Help, ["?"], Loc[nameof(Resources.Dialogs.HelpDialogGoToHelp)]),
-                new KeyboardShortcut(AspireKeyboardShortcut.Settings, ["shift", "s"], Loc[nameof(Resources.Dialogs.HelpDialogGoToSettings)]),
+                new KeyboardShortcut(AspireKeyboardShortcut.Settings, ["Shift", "S"], Loc[nameof(Resources.Dialogs.HelpDialogGoToSettings)]),
                 new KeyboardShortcut(AspireKeyboardShortcut.ToggleTerminalDock, ["`"], Loc[nameof(Resources.Dialogs.HelpDialogToggleTerminalDock)]),
             ])
         ];

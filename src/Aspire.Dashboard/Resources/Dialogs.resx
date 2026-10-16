@@ -175,17 +175,35 @@
   <data name="FilterDialogConditionInputLabel" xml:space="preserve">
     <value>Condition</value>
   </data>
-  <data name="HelpDialogGetHelpLinkText" xml:space="preserve">
-    <value>Go to aspire.dev documentation</value>
-  </data>
   <data name="HelpDialogCategoryPanels" xml:space="preserve">
     <value>Panels</value>
   </data>
   <data name="HelpDialogCategoryPageNavigation" xml:space="preserve">
-    <value>Page navigation</value>
+    <value>Dashboard navigation</value>
   </data>
   <data name="HelpDialogCategoryNavigation" xml:space="preserve">
-    <value>Site-wide navigation</value>
+    <value>General</value>
+  </data>
+  <data name="HelpDialogCategoryTelemetry" xml:space="preserve">
+    <value>Logs &amp; telemetry</value>
+  </data>
+  <data name="HelpDialogShortcutsHint" xml:space="preserve">
+    <value>Use shortcuts outside text fields and terminal input. Panel shortcuts apply to an open details panel. Press F6 in a terminal to focus its controls before using dashboard shortcuts.</value>
+  </data>
+  <data name="HelpDialogGoToHome" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="HelpDialogGoToParameters" xml:space="preserve">
+    <value>Parameters</value>
+  </data>
+  <data name="HelpDialogGoToGraph" xml:space="preserve">
+    <value>Resource graph</value>
+  </data>
+  <data name="HelpDialogGoToExtensions" xml:space="preserve">
+    <value>Extensions</value>
+  </data>
+  <data name="HelpDialogGoToTelemetrySources" xml:space="preserve">
+    <value>Telemetry sources</value>
   </data>
   <data name="HelpDialogIncreasePanelSize" xml:space="preserve">
     <value>Increase panel size</value>
@@ -203,34 +221,31 @@
     <value>Close panel</value>
   </data>
   <data name="HelpDialogGoToResources" xml:space="preserve">
-    <value>Go to Resources</value>
+    <value>Resources</value>
   </data>
   <data name="HelpDialogGoToConsoleLogs" xml:space="preserve">
-    <value>Go to Console Logs</value>
+    <value>Console logs (all resources)</value>
   </data>
   <data name="HelpDialogGoToStructuredLogs" xml:space="preserve">
-    <value>Go to Structured Logs</value>
+    <value>Structured logs</value>
   </data>
   <data name="HelpDialogGoToTraces" xml:space="preserve">
-    <value>Go to Traces</value>
+    <value>Traces</value>
   </data>
   <data name="HelpDialogGoToMetrics" xml:space="preserve">
-    <value>Go to Metrics</value>
+    <value>Metrics</value>
   </data>
   <data name="HelpDialogGoToTerminals" xml:space="preserve">
-    <value>Go to Terminals</value>
+    <value>Terminals</value>
   </data>
   <data name="HelpDialogGoToHelp" xml:space="preserve">
-    <value>Go to Help</value>
+    <value>Keyboard shortcuts</value>
   </data>
   <data name="HelpDialogGoToSettings" xml:space="preserve">
-    <value>Go to Settings</value>
+    <value>Settings</value>
   </data>
   <data name="HelpDialogToggleTerminalDock" xml:space="preserve">
-    <value>Toggle terminal</value>
-  </data>
-  <data name="HelpDialogKeyboardShortcutsTitle" xml:space="preserve">
-    <value>Keyboard Shortcuts</value>
+    <value>Toggle terminal dock</value>
   </data>
   <data name="DialogCloseButtonText" xml:space="preserve">
     <value>Close</value>

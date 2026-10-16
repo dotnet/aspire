@@ -313,7 +313,8 @@ function isActiveElementInput() {
     const tagName = currentElement.tagName.toLowerCase();
 
     // fluent components may have shadow roots that contain inputs
-    return tagName === "input" || tagName === "textarea" || tagName.startsWith("fluent") ? isInputElement(currentElement, false) : false;
+    return currentElement.isContentEditable || tagName === "select" ||
+        ((tagName === "input" || tagName === "textarea" || tagName.startsWith("fluent")) && isInputElement(currentElement, false));
 }
 
 function isInputElement(element, isRoot, isShadowRoot) {
@@ -401,6 +402,16 @@ window.registerGlobalKeydownListener = function (shortcutManager) {
                     return 240;
                 case "e": // go to terminals
                     return 250;
+                case "h": // go to home
+                    return 260;
+                case "p": // go to parameters
+                    return 270;
+                case "g": // go to graph
+                    return 280;
+                case "x": // go to extensions
+                    return 290;
+                case "o": // go to telemetry sources (observability)
+                    return 295;
             }
         }
 
@@ -408,7 +419,7 @@ window.registerGlobalKeydownListener = function (shortcutManager) {
     }
 
     const keydownListener = function (e) {
-        if (isActiveElementInput()) {
+        if (e.defaultPrevented || e.isComposing || isActiveElementInput()) {
             return;
         }
 

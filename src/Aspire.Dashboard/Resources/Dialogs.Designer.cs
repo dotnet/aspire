@@ -687,7 +687,7 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Site-wide navigation.
+        ///   Looks up a localized string similar to General.
         /// </summary>
         public static string HelpDialogCategoryNavigation {
             get {
@@ -696,7 +696,7 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Page navigation.
+        ///   Looks up a localized string similar to Dashboard navigation.
         /// </summary>
         public static string HelpDialogCategoryPageNavigation {
             get {
@@ -714,6 +714,15 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Logs &amp; telemetry.
+        /// </summary>
+        public static string HelpDialogCategoryTelemetry {
+            get {
+                return ResourceManager.GetString("HelpDialogCategoryTelemetry", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Decrease panel size.
         /// </summary>
         public static string HelpDialogDecreasePanelSize {
@@ -723,16 +732,7 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Go to aspire.dev documentation.
-        /// </summary>
-        public static string HelpDialogGetHelpLinkText {
-            get {
-                return ResourceManager.GetString("HelpDialogGetHelpLinkText", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Go to Console Logs.
+        ///   Looks up a localized string similar to Console logs (all resources).
         /// </summary>
         public static string HelpDialogGoToConsoleLogs {
             get {
@@ -741,7 +741,25 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Go to Help.
+        ///   Looks up a localized string similar to Extensions.
+        /// </summary>
+        public static string HelpDialogGoToExtensions {
+            get {
+                return ResourceManager.GetString("HelpDialogGoToExtensions", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Resource graph.
+        /// </summary>
+        public static string HelpDialogGoToGraph {
+            get {
+                return ResourceManager.GetString("HelpDialogGoToGraph", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Keyboard shortcuts.
         /// </summary>
         public static string HelpDialogGoToHelp {
             get {
@@ -750,7 +768,16 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Go to Metrics.
+        ///   Looks up a localized string similar to Home.
+        /// </summary>
+        public static string HelpDialogGoToHome {
+            get {
+                return ResourceManager.GetString("HelpDialogGoToHome", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Metrics.
         /// </summary>
         public static string HelpDialogGoToMetrics {
             get {
@@ -759,7 +786,16 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Go to Resources.
+        ///   Looks up a localized string similar to Parameters.
+        /// </summary>
+        public static string HelpDialogGoToParameters {
+            get {
+                return ResourceManager.GetString("HelpDialogGoToParameters", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Resources.
         /// </summary>
         public static string HelpDialogGoToResources {
             get {
@@ -768,7 +804,7 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Go to Settings.
+        ///   Looks up a localized string similar to Settings.
         /// </summary>
         public static string HelpDialogGoToSettings {
             get {
@@ -777,7 +813,7 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Go to Structured Logs.
+        ///   Looks up a localized string similar to Structured logs.
         /// </summary>
         public static string HelpDialogGoToStructuredLogs {
             get {
@@ -786,7 +822,16 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Go to Terminals.
+        ///   Looks up a localized string similar to Telemetry sources.
+        /// </summary>
+        public static string HelpDialogGoToTelemetrySources {
+            get {
+                return ResourceManager.GetString("HelpDialogGoToTelemetrySources", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Terminals.
         /// </summary>
         public static string HelpDialogGoToTerminals {
             get {
@@ -795,7 +840,7 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Go to Traces.
+        ///   Looks up a localized string similar to Traces.
         /// </summary>
         public static string HelpDialogGoToTraces {
             get {
@@ -813,20 +858,20 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Keyboard Shortcuts.
-        /// </summary>
-        public static string HelpDialogKeyboardShortcutsTitle {
-            get {
-                return ResourceManager.GetString("HelpDialogKeyboardShortcutsTitle", resourceCulture);
-            }
-        }
-
-        /// <summary>
         ///   Looks up a localized string similar to Reset panel sizes.
         /// </summary>
         public static string HelpDialogResetPanelSize {
             get {
                 return ResourceManager.GetString("HelpDialogResetPanelSize", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Use shortcuts outside text fields and terminal input. Panel shortcuts apply to an open details panel. Press F6 in a terminal to focus its controls before using dashboard shortcuts..
+        /// </summary>
+        public static string HelpDialogShortcutsHint {
+            get {
+                return ResourceManager.GetString("HelpDialogShortcutsHint", resourceCulture);
             }
         }
 
@@ -849,7 +894,7 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Toggle terminal.
+        ///   Looks up a localized string similar to Toggle terminal dock.
         /// </summary>
         public static string HelpDialogToggleTerminalDock {
             get {

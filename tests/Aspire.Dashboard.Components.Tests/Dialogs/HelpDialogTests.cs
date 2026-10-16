@@ -20,7 +20,7 @@ public class HelpDialogTests : DashboardTestContext
     {
         FluentUISetupHelpers.SetupDialogInfrastructure(this);
         var shortcutManager = Services.GetRequiredService<ShortcutManager>();
-        shortcutManager.AddGlobalKeydownListener(new TestGlobalKeydownListener(AspireKeyboardShortcut.GoToMetrics));
+        shortcutManager.AddGlobalKeydownListener(new TestGlobalKeydownListener(AspireKeyboardShortcut.GoToHome));
         if (expectTerminalsShortcut)
         {
             shortcutManager.AddGlobalKeydownListener(new TestGlobalKeydownListener(AspireKeyboardShortcut.GoToTerminals));
@@ -30,8 +30,8 @@ public class HelpDialogTests : DashboardTestContext
 
         var heading = Assert.Single(cut.FindAll("h6"), h => h.TextContent == Resources.Dialogs.HelpDialogCategoryPageNavigation);
         var navigationShortcuts = cut.Find($"dl[aria-labelledby='{heading.Id}']");
-        List<string> expectedDescriptions = [Resources.Dialogs.HelpDialogGoToMetrics];
-        List<string> expectedKeys = ["m"];
+        List<string> expectedDescriptions = [Resources.Dialogs.HelpDialogGoToHome];
+        List<string> expectedKeys = ["h"];
         if (expectTerminalsShortcut)
         {
             expectedDescriptions.Add(Resources.Dialogs.HelpDialogGoToTerminals);
@@ -62,7 +62,7 @@ public class HelpDialogTests : DashboardTestContext
         var heading = Assert.Single(cut.FindAll("h6"), h => h.TextContent == Resources.Dialogs.HelpDialogCategoryNavigation);
         var navigationShortcuts = cut.Find($"dl[aria-labelledby='{heading.Id}']");
         List<string> expectedDescriptions = [Resources.Dialogs.HelpDialogGoToHelp, Resources.Dialogs.HelpDialogGoToSettings];
-        List<string> expectedKeys = ["?", "shift", "s"];
+        List<string> expectedKeys = ["?", "Shift", "S"];
         if (expectTerminalShortcut)
         {
             expectedDescriptions.Add(Resources.Dialogs.HelpDialogToggleTerminalDock);
@@ -90,7 +90,7 @@ public class HelpDialogTests : DashboardTestContext
 
         Assert.Equal(
             [
-                Resources.Dialogs.HelpDialogCategoryPageNavigation,
+                Resources.Dialogs.HelpDialogCategoryTelemetry,
                 Resources.Dialogs.HelpDialogCategoryPanels,
                 Resources.Dialogs.HelpDialogCategoryNavigation
             ],
@@ -109,5 +109,47 @@ public class HelpDialogTests : DashboardTestContext
                 Resources.Dialogs.HelpDialogGoToSettings
             ],
             cut.FindAll("dt").Select(element => element.TextContent));
+    }
+
+    [Fact]
+    public void NavigationShortcuts_ShowsEveryAvailableDestinationWithItsBinding()
+    {
+        FluentUISetupHelpers.SetupDialogInfrastructure(this);
+        Services.GetRequiredService<ShortcutManager>().AddGlobalKeydownListener(new TestGlobalKeydownListener(
+            AspireKeyboardShortcut.GoToHome,
+            AspireKeyboardShortcut.GoToResources,
+            AspireKeyboardShortcut.GoToParameters,
+            AspireKeyboardShortcut.GoToGraph,
+            AspireKeyboardShortcut.GoToTerminals,
+            AspireKeyboardShortcut.GoToExtensions,
+            AspireKeyboardShortcut.GoToTelemetrySources,
+            AspireKeyboardShortcut.GoToConsoleLogs,
+            AspireKeyboardShortcut.GoToStructuredLogs,
+            AspireKeyboardShortcut.GoToTraces,
+            AspireKeyboardShortcut.GoToMetrics));
+
+        var cut = Render<HelpDialog>();
+        var categories = cut.FindAll(".help-shortcut-category").Take(2).ToList();
+
+        Assert.Equal(
+            [Resources.Dialogs.HelpDialogCategoryPageNavigation, Resources.Dialogs.HelpDialogCategoryTelemetry],
+            categories.Select(category => category.QuerySelector("h6")!.TextContent));
+        Assert.Equal(
+            [
+                (Resources.Dialogs.HelpDialogGoToHome, "h"),
+                (Resources.Dialogs.HelpDialogGoToResources, "r"),
+                (Resources.Dialogs.HelpDialogGoToParameters, "p"),
+                (Resources.Dialogs.HelpDialogGoToGraph, "g"),
+                (Resources.Dialogs.HelpDialogGoToTerminals, "e"),
+                (Resources.Dialogs.HelpDialogGoToExtensions, "x"),
+                (Resources.Dialogs.HelpDialogGoToTelemetrySources, "o"),
+                (Resources.Dialogs.HelpDialogGoToConsoleLogs, "c"),
+                (Resources.Dialogs.HelpDialogGoToStructuredLogs, "s"),
+                (Resources.Dialogs.HelpDialogGoToTraces, "t"),
+                (Resources.Dialogs.HelpDialogGoToMetrics, "m")
+            ],
+            categories.SelectMany(category => category.QuerySelectorAll(".help-shortcut"))
+                .Select(row => (row.QuerySelector("dt")!.TextContent, row.QuerySelector("kbd")!.TextContent)));
+        Assert.Equal(Resources.Dialogs.HelpDialogShortcutsHint, cut.Find(".help-shortcuts-hint").TextContent);
     }
 }

@@ -232,8 +232,17 @@ public partial class MobileNavMenu : ComponentBase, IAsyncDisposable
         );
 
         yield return new MobileNavMenuEntry(
-            Loc[nameof(Resources.Layout.MainLayoutAspireDashboardHelpLink)],
+            Loc[nameof(Resources.Layout.MainLayoutKeyboardShortcuts)],
             LaunchHelpAsync,
+            new Icons.Regular.Size24.Keyboard()
+        );
+
+        yield return new MobileNavMenuEntry(
+            Loc[nameof(Resources.Layout.MainLayoutAspireDashboardHelpLink)],
+            async () =>
+            {
+                await JS.InvokeVoidAsync("open", [MainLayout.DashboardDocumentationUrl, "_blank", "noopener,noreferrer"]);
+            },
             new Icons.Regular.Size24.QuestionCircle()
         );
 

@@ -121,7 +121,10 @@
     <value>Aspire repo</value>
   </data>
   <data name="MainLayoutAspireDashboardHelpLink" xml:space="preserve">
-    <value>Help</value>
+    <value>Dashboard documentation</value>
+  </data>
+  <data name="MainLayoutKeyboardShortcuts" xml:space="preserve">
+    <value>Keyboard shortcuts</value>
   </data>
   <data name="MainLayoutLaunchSettings" xml:space="preserve">
     <value>Settings</value>

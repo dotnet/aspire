@@ -49,6 +49,10 @@ public class DesktopNavMenuTests : DashboardTestContext
             expected.Add(DashboardUrls.ExtensionsUrl());
         }
         expected.Add(DashboardUrls.TelemetrySourcesUrl());
+        if (enabled)
+        {
+            expected.Add(DashboardUrls.ConsoleLogsUrl());
+        }
         var links = cut.FindAll("nav.main-rail > a");
         Assert.Equal(expected, links.Select(link => link.GetAttribute("href")));
         if (enabled && hasTerminals)
@@ -63,5 +67,34 @@ public class DesktopNavMenuTests : DashboardTestContext
             Assert.Equal(Resources.Layout.NavMenuTelemetrySourcesTab, structuredLogsLink.GetAttribute("aria-label"));
             Assert.Equal("page", structuredLogsLink.GetAttribute("aria-current"));
         }
+    }
+
+    [Fact]
+    public void ConsoleLogsNavigation_SelectsAllResourcesAndUpdatesActiveItem()
+    {
+        FluentUISetupHelpers.AddCommonDashboardServices(this);
+        FluentUISetupHelpers.SetupFluentUIComponents(this);
+        FluentUISetupHelpers.SetupFluentAnchoredRegion(this);
+        Services.AddSingleton<IDashboardClient>(new TestDashboardClient(isEnabled: true));
+        var navigationManager = Services.GetRequiredService<NavigationManager>();
+        navigationManager.NavigateTo("/consolelogs/resource/api?resource=api&resource=worker");
+        Render<FluentTooltipProvider>();
+        var cut = Render<DesktopNavMenu>();
+
+        Assert.Equal("main-rail-resources", cut.Find("a[aria-current='page']").Id);
+        var shortcut = cut.Find("#main-rail-consolelogs");
+        Assert.Equal(Resources.Layout.NavMenuConsoleLogsTab, shortcut.GetAttribute("aria-label"));
+        Assert.Equal("HR", shortcut.PreviousElementSibling?.TagName);
+        var url = shortcut.GetAttribute("href")!;
+        var location = ResourcesLayout.ParseLocation(url.TrimStart('/'));
+        Assert.Equal(ResourcesLayout.ResourceTab.Console, location.Tab);
+        Assert.Empty(location.SelectedResourceNames);
+        Assert.False(location.KeepSelection);
+
+        navigationManager.NavigateTo(url);
+        cut.WaitForAssertion(() => Assert.Equal("main-rail-consolelogs", cut.Find("a[aria-current='page']").Id));
+
+        navigationManager.NavigateTo("/consolelogs/resource/api");
+        cut.WaitForAssertion(() => Assert.Equal("main-rail-resources", cut.Find("a[aria-current='page']").Id));
     }
 }

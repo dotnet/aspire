@@ -93,13 +93,18 @@
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutAspireDashboardHelpLink">
-        <source>Help</source>
-        <target state="translated">Pomoc</target>
+        <source>Dashboard documentation</source>
+        <target state="needs-review-translation">Pomoc</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutAspireRepoLink">
         <source>Aspire repo</source>
         <target state="translated">Repozytorium Aspire</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MainLayoutKeyboardShortcuts">
+        <source>Keyboard shortcuts</source>
+        <target state="new">Keyboard shortcuts</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutLaunchAIAgents">

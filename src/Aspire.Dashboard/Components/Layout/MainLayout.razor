@@ -40,9 +40,15 @@
             <FluentButton Class="header-button"
                           Id="@HelpButtonId"
                           Appearance="ButtonAppearance.Default" OnClick="@(() => LaunchHelpAsync(HelpButtonId))"
-                          data-tooltip="@Loc[nameof(Layout.MainLayoutAspireDashboardHelpLink)]" aria-label="@Loc[nameof(Layout.MainLayoutAspireDashboardHelpLink)]">
-                <FluentIcon Value="@(new Icons.Regular.Size24.QuestionCircle())" Color="Color.Default"/>
+                          data-tooltip="@Loc[nameof(Layout.MainLayoutKeyboardShortcuts)]" aria-label="@Loc[nameof(Layout.MainLayoutKeyboardShortcuts)]"
+                          aria-keyshortcuts="?">
+                <FluentIcon Value="@(new Icons.Regular.Size24.Keyboard())" Color="Color.Default"/>
             </FluentButton>
+            <a class="header-button"
+               href="@DashboardDocumentationUrl" target="_blank" rel="noreferrer noopener"
+               data-tooltip="@Loc[nameof(Layout.MainLayoutAspireDashboardHelpLink)]" aria-label="@Loc[nameof(Layout.MainLayoutAspireDashboardHelpLink)]">
+                <FluentIcon Value="@(new Icons.Regular.Size24.QuestionCircle())" Color="Color.Default"/>
+            </a>
             @if (Options.CurrentValue.UI.DisableAgentHelp != true)
             {
                 <FluentButton Class="header-button"

@@ -43,6 +43,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     internal const string HelpButtonId = "dashboard-help-button";
     internal const string SettingsButtonId = "dashboard-settings-button";
     internal const string NavigationButtonId = "dashboard-navigation-button";
+    internal const string DashboardDocumentationUrl = "https://aspire.dev/dashboard/overview/";
 
     /// <summary>
     /// Name of the section in the desktop top bar where nested layouts can render page context, such as the selected resource.
@@ -351,7 +352,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     {
         DialogParameters parameters = new()
         {
-            Title = Loc[nameof(Resources.Layout.MainLayoutAspireDashboardHelpLink)],
+            Title = Loc[nameof(Resources.Layout.MainLayoutKeyboardShortcuts)],
             PrimaryAction = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)],
             PrimaryActionEnabled = true,
             SecondaryAction = null,
@@ -483,29 +484,42 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         AspireKeyboardShortcut.Settings,
         AspireKeyboardShortcut.GoToStructuredLogs,
         AspireKeyboardShortcut.GoToTraces,
-        AspireKeyboardShortcut.GoToMetrics
+        AspireKeyboardShortcut.GoToMetrics,
+        AspireKeyboardShortcut.GoToTelemetrySources
     };
 
     private static readonly IReadOnlySet<AspireKeyboardShortcut> s_resourceServiceSubscribedShortcuts = new HashSet<AspireKeyboardShortcut>(
         s_subscribedShortcuts)
     {
         AspireKeyboardShortcut.GoToResources,
-        AspireKeyboardShortcut.GoToConsoleLogs
+        AspireKeyboardShortcut.GoToConsoleLogs,
+        AspireKeyboardShortcut.GoToHome,
+        AspireKeyboardShortcut.GoToParameters,
+        AspireKeyboardShortcut.GoToExtensions
     };
 
-    private static readonly IReadOnlySet<AspireKeyboardShortcut> s_resourceTerminalsSubscribedShortcuts = new HashSet<AspireKeyboardShortcut>(
-        s_resourceServiceSubscribedShortcuts)
+    public IReadOnlySet<AspireKeyboardShortcut> SubscribedShortcuts
     {
-        AspireKeyboardShortcut.GoToTerminals
-    };
-
-    public IReadOnlySet<AspireKeyboardShortcut> SubscribedShortcuts =>
-        (DashboardClient.IsEnabled, _hasResourceTerminals) switch
+        get
         {
-            (true, true) => s_resourceTerminalsSubscribedShortcuts,
-            (true, false) => s_resourceServiceSubscribedShortcuts,
-            _ => s_subscribedShortcuts
-        };
+            if (!DashboardClient.IsEnabled)
+            {
+                return s_subscribedShortcuts;
+            }
+
+            var shortcuts = new HashSet<AspireKeyboardShortcut>(s_resourceServiceSubscribedShortcuts);
+            if (Options.CurrentValue.UI.DisableResourceGraph != true)
+            {
+                shortcuts.Add(AspireKeyboardShortcut.GoToGraph);
+            }
+            if (_hasResourceTerminals)
+            {
+                shortcuts.Add(AspireKeyboardShortcut.GoToTerminals);
+            }
+
+            return shortcuts;
+        }
+    }
 
     public async Task OnPageKeyDownAsync(AspireKeyboardShortcut shortcut)
     {
@@ -518,7 +532,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
                 await LaunchSettingsAsync();
                 break;
             case AspireKeyboardShortcut.GoToResources when DashboardClient.IsEnabled:
-                NavigationManager.NavigateTo(DashboardUrls.ResourceOverviewUrl());
+                NavigationManager.NavigateTo(DashboardUrls.ResourceListUrl());
                 break;
             case AspireKeyboardShortcut.GoToConsoleLogs when DashboardClient.IsEnabled:
                 NavigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl());
@@ -534,6 +548,21 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
                 break;
             case AspireKeyboardShortcut.GoToTerminals when DashboardClient.IsEnabled && _hasResourceTerminals:
                 NavigationManager.NavigateTo(DashboardUrls.TerminalsUrl());
+                break;
+            case AspireKeyboardShortcut.GoToHome when DashboardClient.IsEnabled:
+                NavigationManager.NavigateTo(DashboardUrls.HomeUrl());
+                break;
+            case AspireKeyboardShortcut.GoToParameters when DashboardClient.IsEnabled:
+                NavigationManager.NavigateTo(DashboardUrls.ParametersUrl());
+                break;
+            case AspireKeyboardShortcut.GoToGraph when DashboardClient.IsEnabled && Options.CurrentValue.UI.DisableResourceGraph != true:
+                NavigationManager.NavigateTo(DashboardUrls.GraphUrl());
+                break;
+            case AspireKeyboardShortcut.GoToExtensions when DashboardClient.IsEnabled:
+                NavigationManager.NavigateTo(DashboardUrls.ExtensionsUrl());
+                break;
+            case AspireKeyboardShortcut.GoToTelemetrySources:
+                NavigationManager.NavigateTo(DashboardUrls.TelemetrySourcesUrl());
                 break;
         }
     }

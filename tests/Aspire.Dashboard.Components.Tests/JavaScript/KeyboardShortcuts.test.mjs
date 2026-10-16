@@ -10,7 +10,7 @@ const source = await readFile(new URL("../../../src/Aspire.Dashboard/wwwroot/js/
 
 const backquote = { key: "`", code: "Backquote", shiftKey: false, altKey: false, ctrlKey: false, metaKey: false };
 const dashboardKeys = [
-    ...["c", "r", "s", "t", "m", "e", "?", "S", "+", "-"].map(key => ({ key })),
+    ...["c", "r", "s", "t", "m", "e", "h", "p", "g", "x", "o", "?", "S", "+", "-"].map(key => ({ key })),
     backquote,
     { ...backquote, key: "~", shiftKey: true },
 ];
@@ -69,7 +69,7 @@ test("nested shadow input focus suppresses dashboard shortcuts", () => {
 });
 
 test("native and Fluent inputs still suppress dashboard shortcuts", () => {
-    for (const target of [element("INPUT"), element("TEXTAREA"), element("FLUENT-TEXT-FIELD", element("INPUT"))]) {
+    for (const target of [element("INPUT"), element("TEXTAREA"), element("SELECT"), element("FLUENT-TEXT-FIELD", element("INPUT"))]) {
         assert.deepEqual(shortcutsFor(target), []);
     }
 });
@@ -90,7 +90,7 @@ test("Fluent dropdown controls and options suppress dashboard shortcuts", () => 
 
 test("dashboard shortcuts remain available outside inputs", () => {
     for (const target of [element("BODY"), element("BUTTON"), element("DIV", element("BUTTON"))]) {
-        assert.deepEqual(shortcutsFor(target), [210, 200, 220, 230, 240, 250, 100, 110, 330, 340, 400]);
+        assert.deepEqual(shortcutsFor(target), [210, 200, 220, 230, 240, 250, 260, 270, 280, 290, 295, 100, 110, 330, 340, 400]);
     }
 });
 
@@ -105,6 +105,33 @@ test("only unmodified e navigates to the terminals page", () => {
     ]) {
         assert.deepEqual(shortcutsFor(element("BUTTON"), [event]), []);
     }
+});
+
+test("new navigation shortcuts use unmodified keys without overriding browser shortcuts", () => {
+    for (const [key, shortcut] of [["h", 260], ["p", 270], ["g", 280], ["x", 290], ["o", 295]]) {
+        assert.deepEqual(shortcutsFor(element("BODY"), [{ key }]), [shortcut]);
+        for (const modifier of ["altKey", "ctrlKey", "metaKey", "shiftKey"]) {
+            assert.deepEqual(shortcutsFor(element("BODY"), [{ key, [modifier]: true }]), []);
+        }
+    }
+});
+
+test("editable content and composing or already handled events keep their input", () => {
+    const editor = element("DIV");
+    editor.isContentEditable = true;
+    assert.deepEqual(shortcutsFor(editor), []);
+    for (const flag of ["isComposing", "defaultPrevented"]) {
+        assert.deepEqual(shortcutsFor(element("BODY"), dashboardKeys.map(event => ({ ...event, [flag]: true }))), []);
+    }
+});
+
+test("shifted panel shortcuts remain distinct from navigation shortcuts", () => {
+    assert.deepEqual(shortcutsFor(element("BODY"), [
+        { key: "R", shiftKey: true },
+        { key: "T", shiftKey: true },
+        { key: "X", shiftKey: true },
+        { key: "S", shiftKey: true },
+    ]), [320, 300, 310, 110]);
 });
 
 test("the unmodified physical Backquote key toggles the dock across keyboard layouts", () => {

@@ -414,13 +414,13 @@ For more information about using AI agents with the dashboard, including setting
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogCategoryNavigation">
-        <source>Site-wide navigation</source>
-        <target state="translated">全網站瀏覽</target>
+        <source>General</source>
+        <target state="needs-review-translation">全網站瀏覽</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogCategoryPageNavigation">
-        <source>Page navigation</source>
-        <target state="translated">頁面瀏覽</target>
+        <source>Dashboard navigation</source>
+        <target state="needs-review-translation">頁面瀏覽</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogCategoryPanels">
@@ -428,54 +428,79 @@ For more information about using AI agents with the dashboard, including setting
         <target state="translated">面板</target>
         <note />
       </trans-unit>
+      <trans-unit id="HelpDialogCategoryTelemetry">
+        <source>Logs &amp; telemetry</source>
+        <target state="new">Logs &amp; telemetry</target>
+        <note />
+      </trans-unit>
       <trans-unit id="HelpDialogDecreasePanelSize">
         <source>Decrease panel size</source>
         <target state="translated">減少面板大小</target>
         <note />
       </trans-unit>
-      <trans-unit id="HelpDialogGetHelpLinkText">
-        <source>Go to aspire.dev documentation</source>
-        <target state="translated">前往 aspire.dev 文件</target>
+      <trans-unit id="HelpDialogGoToConsoleLogs">
+        <source>Console logs (all resources)</source>
+        <target state="needs-review-translation">前往 [主控台記錄]</target>
         <note />
       </trans-unit>
-      <trans-unit id="HelpDialogGoToConsoleLogs">
-        <source>Go to Console Logs</source>
-        <target state="translated">前往 [主控台記錄]</target>
+      <trans-unit id="HelpDialogGoToExtensions">
+        <source>Extensions</source>
+        <target state="new">Extensions</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToGraph">
+        <source>Resource graph</source>
+        <target state="new">Resource graph</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogGoToHelp">
-        <source>Go to Help</source>
-        <target state="translated">前往 [說明]</target>
+        <source>Keyboard shortcuts</source>
+        <target state="needs-review-translation">前往 [說明]</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToHome">
+        <source>Home</source>
+        <target state="new">Home</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogGoToMetrics">
-        <source>Go to Metrics</source>
-        <target state="translated">移至 [計量]</target>
+        <source>Metrics</source>
+        <target state="needs-review-translation">移至 [計量]</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToParameters">
+        <source>Parameters</source>
+        <target state="new">Parameters</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogGoToResources">
-        <source>Go to Resources</source>
-        <target state="translated">前往 [資源]</target>
+        <source>Resources</source>
+        <target state="needs-review-translation">前往 [資源]</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogGoToSettings">
-        <source>Go to Settings</source>
-        <target state="translated">前往 [設定]</target>
+        <source>Settings</source>
+        <target state="needs-review-translation">前往 [設定]</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogGoToStructuredLogs">
-        <source>Go to Structured Logs</source>
-        <target state="translated">前往 [結構化記錄]</target>
+        <source>Structured logs</source>
+        <target state="needs-review-translation">前往 [結構化記錄]</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToTelemetrySources">
+        <source>Telemetry sources</source>
+        <target state="new">Telemetry sources</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogGoToTerminals">
-        <source>Go to Terminals</source>
-        <target state="new">Go to Terminals</target>
+        <source>Terminals</source>
+        <target state="new">Terminals</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogGoToTraces">
-        <source>Go to Traces</source>
-        <target state="translated">前往 [追蹤]</target>
+        <source>Traces</source>
+        <target state="needs-review-translation">前往 [追蹤]</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogIncreasePanelSize">
@@ -483,14 +508,14 @@ For more information about using AI agents with the dashboard, including setting
         <target state="translated">增加面板大小</target>
         <note />
       </trans-unit>
-      <trans-unit id="HelpDialogKeyboardShortcutsTitle">
-        <source>Keyboard Shortcuts</source>
-        <target state="translated">鍵盤快速鍵</target>
-        <note />
-      </trans-unit>
       <trans-unit id="HelpDialogResetPanelSize">
         <source>Reset panel sizes</source>
         <target state="translated">重設面板大小</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogShortcutsHint">
+        <source>Use shortcuts outside text fields and terminal input. Panel shortcuts apply to an open details panel. Press F6 in a terminal to focus its controls before using dashboard shortcuts.</source>
+        <target state="new">Use shortcuts outside text fields and terminal input. Panel shortcuts apply to an open details panel. Press F6 in a terminal to focus its controls before using dashboard shortcuts.</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogTogglePanelOpen">
@@ -504,8 +529,8 @@ For more information about using AI agents with the dashboard, including setting
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogToggleTerminalDock">
-        <source>Toggle terminal</source>
-        <target state="new">Toggle terminal</target>
+        <source>Toggle terminal dock</source>
+        <target state="new">Toggle terminal dock</target>
         <note />
       </trans-unit>
       <trans-unit id="InteractionButtonCancel">

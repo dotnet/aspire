@@ -8,6 +8,7 @@ using Aspire.Dashboard.Utils;
 using Bunit;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Xunit;
 
@@ -27,9 +28,27 @@ public class MobileNavMenuTests : DashboardTestContext
         AssertMenuItemIsActive(cut, Resources.Layout.NavMenuTelemetrySourcesTab);
         Assert.Equal(
             [Resources.Layout.NavMenuTelemetrySourcesTab, Resources.Layout.MainLayoutAspireRepoLink,
+                Resources.Layout.MainLayoutKeyboardShortcuts,
                 Resources.Layout.MainLayoutAspireDashboardHelpLink, Resources.Layout.MainLayoutLaunchNotifications,
                 Resources.Layout.MainLayoutLaunchSettings],
             cut.FindAll("fluent-menu-item").Select(item => item.GetAttribute("data-tooltip")));
+    }
+
+    [Fact]
+    public async Task Documentation_OpensDashboardDocsInNewTabAndClosesMenu()
+    {
+        JSInterop.SetupVoid("open", _ => true).SetVoidResult();
+        var menuClosed = false;
+        var cut = RenderMobileNavMenu(DashboardUrls.HomeUrl(), () => menuClosed = true);
+        var documentationItem = cut.FindAll("fluent-menu-item")
+            .Single(item => item.GetAttribute("data-tooltip") == Resources.Layout.MainLayoutAspireDashboardHelpLink);
+
+        await cut.InvokeAsync(() => documentationItem.TriggerEvent("onmenuitemchange",
+            new MenuItemEventArgs { Id = documentationItem.Id, Text = documentationItem.TextContent }));
+
+        Assert.True(menuClosed);
+        var invocation = Assert.Single(JSInterop.Invocations, invocation => invocation.Identifier == "open");
+        Assert.Equal(["https://aspire.dev/dashboard/overview/", "_blank", "noopener,noreferrer"], invocation.Arguments);
     }
 
     [Theory]

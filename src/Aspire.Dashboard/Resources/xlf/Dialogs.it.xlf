@@ -414,13 +414,13 @@ For more information about using AI agents with the dashboard, including setting
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogCategoryNavigation">
-        <source>Site-wide navigation</source>
-        <target state="translated">Spostamento a livello di sito</target>
+        <source>General</source>
+        <target state="needs-review-translation">Spostamento a livello di sito</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogCategoryPageNavigation">
-        <source>Page navigation</source>
-        <target state="translated">Spostamento tra le pagine</target>
+        <source>Dashboard navigation</source>
+        <target state="needs-review-translation">Spostamento tra le pagine</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogCategoryPanels">
@@ -428,54 +428,79 @@ For more information about using AI agents with the dashboard, including setting
         <target state="translated">Pannelli</target>
         <note />
       </trans-unit>
+      <trans-unit id="HelpDialogCategoryTelemetry">
+        <source>Logs &amp; telemetry</source>
+        <target state="new">Logs &amp; telemetry</target>
+        <note />
+      </trans-unit>
       <trans-unit id="HelpDialogDecreasePanelSize">
         <source>Decrease panel size</source>
         <target state="translated">Riduci dimensioni del pannello</target>
         <note />
       </trans-unit>
-      <trans-unit id="HelpDialogGetHelpLinkText">
-        <source>Go to aspire.dev documentation</source>
-        <target state="translated">Vai alla documentazione di aspire.dev</target>
+      <trans-unit id="HelpDialogGoToConsoleLogs">
+        <source>Console logs (all resources)</source>
+        <target state="needs-review-translation">Vai a Log della console</target>
         <note />
       </trans-unit>
-      <trans-unit id="HelpDialogGoToConsoleLogs">
-        <source>Go to Console Logs</source>
-        <target state="translated">Vai a Log della console</target>
+      <trans-unit id="HelpDialogGoToExtensions">
+        <source>Extensions</source>
+        <target state="new">Extensions</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToGraph">
+        <source>Resource graph</source>
+        <target state="new">Resource graph</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogGoToHelp">
-        <source>Go to Help</source>
-        <target state="translated">Vai a Guida</target>
+        <source>Keyboard shortcuts</source>
+        <target state="needs-review-translation">Vai a Guida</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToHome">
+        <source>Home</source>
+        <target state="new">Home</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogGoToMetrics">
-        <source>Go to Metrics</source>
-        <target state="translated">Vai a Metriche</target>
+        <source>Metrics</source>
+        <target state="needs-review-translation">Vai a Metriche</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToParameters">
+        <source>Parameters</source>
+        <target state="new">Parameters</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogGoToResources">
-        <source>Go to Resources</source>
-        <target state="translated">Vai a Risorse</target>
+        <source>Resources</source>
+        <target state="needs-review-translation">Vai a Risorse</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogGoToSettings">
-        <source>Go to Settings</source>
-        <target state="translated">Vai a Impostazioni</target>
+        <source>Settings</source>
+        <target state="needs-review-translation">Vai a Impostazioni</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogGoToStructuredLogs">
-        <source>Go to Structured Logs</source>
-        <target state="translated">Vai a Log strutturati</target>
+        <source>Structured logs</source>
+        <target state="needs-review-translation">Vai a Log strutturati</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToTelemetrySources">
+        <source>Telemetry sources</source>
+        <target state="new">Telemetry sources</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogGoToTerminals">
-        <source>Go to Terminals</source>
-        <target state="new">Go to Terminals</target>
+        <source>Terminals</source>
+        <target state="new">Terminals</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogGoToTraces">
-        <source>Go to Traces</source>
-        <target state="translated">Vai a Tracce</target>
+        <source>Traces</source>
+        <target state="needs-review-translation">Vai a Tracce</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogIncreasePanelSize">
@@ -483,14 +508,14 @@ For more information about using AI agents with the dashboard, including setting
         <target state="translated">Aumenta dimensioni del pannello</target>
         <note />
       </trans-unit>
-      <trans-unit id="HelpDialogKeyboardShortcutsTitle">
-        <source>Keyboard Shortcuts</source>
-        <target state="translated">Scelte rapide da tastiera</target>
-        <note />
-      </trans-unit>
       <trans-unit id="HelpDialogResetPanelSize">
         <source>Reset panel sizes</source>
         <target state="translated">Ripristina dimensioni del pannello</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogShortcutsHint">
+        <source>Use shortcuts outside text fields and terminal input. Panel shortcuts apply to an open details panel. Press F6 in a terminal to focus its controls before using dashboard shortcuts.</source>
+        <target state="new">Use shortcuts outside text fields and terminal input. Panel shortcuts apply to an open details panel. Press F6 in a terminal to focus its controls before using dashboard shortcuts.</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogTogglePanelOpen">
@@ -504,8 +529,8 @@ For more information about using AI agents with the dashboard, including setting
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogToggleTerminalDock">
-        <source>Toggle terminal</source>
-        <target state="new">Toggle terminal</target>
+        <source>Toggle terminal dock</source>
+        <target state="new">Toggle terminal dock</target>
         <note />
       </trans-unit>
       <trans-unit id="InteractionButtonCancel">
