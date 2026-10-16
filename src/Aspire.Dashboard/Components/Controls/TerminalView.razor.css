@@ -275,12 +275,28 @@
 
 .terminal-error {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
     padding: 12px;
     border: 1px solid var(--colorNeutralStroke1);
-    border-radius: var(--border-radius);
-    background: var(--colorNeutralBackground1);
+    border-radius: var(--aspire-control-radius);
+    background: var(--colorNeutralBackground2);
     color: var(--colorNeutralForeground1);
+}
+
+.terminal-error span {
+    flex: 1 1 200px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.terminal-error ::deep fluent-button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.terminal-error ::deep fluent-button::part(control) {
+    white-space: nowrap;
 }

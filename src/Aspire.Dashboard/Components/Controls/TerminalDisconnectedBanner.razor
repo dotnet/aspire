@@ -4,7 +4,7 @@
 {
     <div class="terminal-disconnected-indicator">
         <FluentButton @ref="_toggleButton"
-                      Appearance="ButtonAppearance.Default"
+                      Appearance="ButtonAppearance.Outline"
                       IconOnly="true"
                       Class="terminal-show-banner"
                       Title="@ShowBannerLabel"
@@ -22,7 +22,7 @@ else
         <span role="status">@Message</span>
         @if (OnReconnect.HasDelegate)
         {
-            <FluentButton Appearance="ButtonAppearance.Default"
+            <FluentButton Appearance="ButtonAppearance.Outline"
                           Class="terminal-reconnect"
                           OnClick="@OnReconnect">
                 @Loc[nameof(Resources.TerminalStrings.TerminalRetry)]
@@ -30,7 +30,7 @@ else
         }
         @if (RestartCommand is not null)
         {
-            <FluentButton Appearance="ButtonAppearance.Default"
+            <FluentButton Appearance="ButtonAppearance.Outline"
                           Class="terminal-restart-resource"
                           Disabled="@RestartDisabled"
                           OnClick="@RestartResourceAsync">
@@ -39,7 +39,7 @@ else
         }
         @if (OnClose.HasDelegate)
         {
-            <FluentButton Appearance="ButtonAppearance.Default"
+            <FluentButton Appearance="ButtonAppearance.Outline"
                           Class="terminal-close-tab"
                           Disabled="@_executing"
                           OnClick="@CloseAsync">
@@ -47,7 +47,7 @@ else
             </FluentButton>
         }
         <FluentButton @ref="_toggleButton"
-                      Appearance="ButtonAppearance.Default"
+                      Appearance="ButtonAppearance.Outline"
                       Class="terminal-show-output"
                       aria-expanded="true"
                       OnClick="@(() => SetCollapsedAsync(true))">

@@ -5,15 +5,24 @@
     gap: 8px;
     padding: 12px;
     border: 1px solid var(--colorNeutralStroke1);
-    border-radius: var(--borderRadiusMedium);
-    background: var(--colorNeutralBackground1);
+    border-radius: var(--aspire-control-radius);
+    background: var(--colorNeutralBackground2);
     color: var(--colorNeutralForeground1);
-    box-shadow: var(--shadow4);
 }
 
 .terminal-disconnected-banner span {
     flex: 1 1 200px;
     min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.terminal-disconnected-banner ::deep fluent-button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.terminal-disconnected-banner ::deep fluent-button::part(control) {
+    white-space: nowrap;
 }
 
 @media (forced-colors: active) {
@@ -31,6 +40,6 @@
 .terminal-disconnected-indicator ::deep .terminal-show-banner {
     width: 36px;
     height: 36px;
-    border-radius: var(--borderRadiusMedium);
-    box-shadow: var(--shadow4);
+    border-radius: var(--aspire-control-radius);
+    background: var(--colorNeutralBackground2);
 }
