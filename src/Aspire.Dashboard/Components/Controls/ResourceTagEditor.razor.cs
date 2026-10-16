@@ -31,6 +31,13 @@ public sealed partial class ResourceTagEditor : ComponentBase, IDisposable
     [Parameter, EditorRequired]
     public required string ResourceName { get; set; }
 
+    /// <summary>Gets or sets the AppHost-defined tags that cannot be removed from the dashboard.</summary>
+    [Parameter]
+    public IReadOnlyList<string> AppHostTags { get; set; } = [];
+
+    [Parameter]
+    public IReadOnlyList<string> AvailableTags { get; set; } = [];
+
     [Inject]
     public required ResourceTagStore TagStore { get; init; }
 
@@ -46,7 +53,7 @@ public sealed partial class ResourceTagEditor : ComponentBase, IDisposable
 
     protected override void OnParametersSet()
     {
-        _tags = TagStore.GetTags(ResourceName);
+        UpdateTags();
         UpdateOptions();
     }
 
@@ -79,7 +86,7 @@ public sealed partial class ResourceTagEditor : ComponentBase, IDisposable
         // Tags can change from another browser tab or the resource list, and the event can be raised on any thread.
         _ = InvokeAsync(() =>
         {
-            _tags = TagStore.GetTags(ResourceName);
+            UpdateTags();
             UpdateOptions();
             StateHasChanged();
         });
@@ -110,7 +117,8 @@ public sealed partial class ResourceTagEditor : ComponentBase, IDisposable
         }
 
         var text = ResourceTagStore.NormalizeTag(_text);
-        var allTags = TagStore.GetAllTags();
+        var allTags = AvailableTags.Concat(AppHostTags).Concat(TagStore.GetAllTags())
+            .Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.CurrentCultureIgnoreCase).ToArray();
 
         // Existing tags are suggested first, with the closest matches at the top, so typing part of a tag and
         // pressing Enter reuses it.
@@ -159,15 +167,21 @@ public sealed partial class ResourceTagEditor : ComponentBase, IDisposable
                 break;
             case "Backspace" when _text.Length == 0 && _tags.Count > 0:
                 // Like other token inputs, Backspace in an empty input removes the last tag.
-                RemoveTag(_tags[^1]);
+                if (_tags.LastOrDefault(t => !IsAppHostTag(t)) is { } removableTag)
+                {
+                    RemoveTag(removableTag);
+                }
                 break;
         }
     }
 
     private void AddTag(string tag)
     {
-        TagStore.AddTag(ResourceName, tag);
-        _tags = TagStore.GetTags(ResourceName);
+        if (!IsAppHostTag(tag))
+        {
+            TagStore.AddTag(ResourceName, tag);
+        }
+        UpdateTags();
         _text = string.Empty;
         _pendingFocus = FocusTarget.Input;
         UpdateOptions();
@@ -175,10 +189,19 @@ public sealed partial class ResourceTagEditor : ComponentBase, IDisposable
 
     private void RemoveTag(string tag)
     {
+        if (IsAppHostTag(tag))
+        {
+            return;
+        }
         TagStore.RemoveTag(ResourceName, tag);
-        _tags = TagStore.GetTags(ResourceName);
+        UpdateTags();
         UpdateOptions();
     }
+
+    private bool IsAppHostTag(string tag) => AppHostTags.Contains(tag, StringComparer.OrdinalIgnoreCase);
+
+    private void UpdateTags() =>
+        _tags = AppHostTags.Concat(TagStore.GetTags(ResourceName)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
 
     public void Dispose()
     {

@@ -107,6 +107,28 @@ public sealed class ResourceTagStore
         }
     }
 
+    /// <summary>Gets editable tags merged with immutable tags in the selected run's resource snapshots.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<string>> GetTagsByResource(IEnumerable<ResourceViewModel> resources)
+    {
+        var tagsByResource = new Dictionary<string, IReadOnlyList<string>>(GetTagsByResource(), StringComparers.ResourceName);
+        foreach (var resource in resources)
+        {
+            var appHostTags = resource.AppHostTags;
+            if (appHostTags.Count > 0)
+            {
+                tagsByResource[resource.DisplayName] = appHostTags
+                    .Concat(tagsByResource.GetValueOrDefault(resource.DisplayName) ?? [])
+                    .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+            }
+        }
+
+        return tagsByResource;
+    }
+
+    public IReadOnlyList<string> GetAllTags(IEnumerable<ResourceViewModel> resources) =>
+        GetTagsByResource(resources).Values.SelectMany(tags => tags).Distinct(StringComparer.OrdinalIgnoreCase)
+            .Order(StringComparer.CurrentCultureIgnoreCase).ToArray();
+
     /// <summary>
     /// Adds a tag to a resource. A tag that matches an existing tag ignoring case reuses the existing tag's casing.
     /// </summary>

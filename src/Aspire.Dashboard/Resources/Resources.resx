@@ -547,6 +547,9 @@
   <data name="ResourceTagsRemove" xml:space="preserve">
     <value>Remove tag {0}</value>
   </data>
+  <data name="ResourceTagsAppHostDefined" xml:space="preserve">
+    <value>Defined by the AppHost. This tag cannot be removed.</value>
+  </data>
   <data name="ResourceTagsCreate" xml:space="preserve">
     <value>Create tag "{0}"</value>
   </data>

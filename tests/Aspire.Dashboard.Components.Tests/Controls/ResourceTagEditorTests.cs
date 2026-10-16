@@ -13,7 +13,43 @@ namespace Aspire.Dashboard.Components.Tests.Controls;
 
 public class ResourceTagEditorTests : DashboardTestContext
 {
+    [Fact]
+    public void AppHostTagsAreLockedAndOnlyUserTagsCanBeRemoved()
+    {
+        var store = Services.GetRequiredService<ResourceTagStore>();
+        store.AddTag("api", "Personal");
+        store.AddTag("api", "backend");
+        var cut = Render<ResourceTagEditor>(p => p.Add(c => c.ResourceName, "api")
+            .Add(c => c.AppHostTags, new[] { "Backend", "API" }));
+
+        Assert.Equal(["Backend", "API", "Personal"], cut.FindAll(".tag-chip-name").Select(c => c.TextContent));
+        Assert.Single(cut.FindAll(".tag-chip-remove"));
+        Assert.Equal(["Defined by the AppHost. This tag cannot be removed.", "Defined by the AppHost. This tag cannot be removed."],
+            cut.FindAll(".tag-chip-lock[role=img]").Select(e => e.GetAttribute("aria-label")));
+        cut.Find(".tag-add").Click();
+        cut.Find("[role=combobox]").KeyDown("Backspace");
+        cut.Find("[role=combobox]").KeyDown("Backspace");
+
+        Assert.Equal(["Backend", "API"], cut.FindAll(".tag-chip-name").Select(c => c.TextContent));
+        Assert.Empty(cut.FindAll(".tag-chip-remove"));
+        Assert.Equal(["backend"], store.GetTags("api"));
+    }
+
     private readonly ResourceTagStore _tagStore = new(databasePath: null, NullLogger.Instance);
+
+    [Fact]
+    public void AppHostTagsFromOtherResourcesCanBeAddedAsEditableUserTags()
+    {
+        var cut = Render<ResourceTagEditor>(p => p.Add(c => c.ResourceName, "api")
+            .Add(c => c.AvailableTags, new[] { "Backend" }));
+        cut.Find(".tag-add").Click();
+        cut.Find(".tag-input").Input("back");
+
+        Assert.Equal(["Backend", "Create tag \"back\""], cut.FindAll("[role=option]").Select(o => o.TextContent.Trim()));
+        cut.Find(".tag-input").KeyDown("Enter");
+        Assert.Equal(["Backend"], _tagStore.GetTags("api"));
+        Assert.Single(cut.FindAll(".tag-chip-remove"));
+    }
 
     public ResourceTagEditorTests()
     {

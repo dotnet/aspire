@@ -862,6 +862,15 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Defined by the AppHost. This tag cannot be removed..
+        /// </summary>
+        public static string ResourceTagsAppHostDefined {
+            get {
+                return ResourceManager.GetString("ResourceTagsAppHostDefined", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Tags.
         /// </summary>
         public static string ResourceTagsSuggestions {

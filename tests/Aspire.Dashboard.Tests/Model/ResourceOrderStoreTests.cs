@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
+using Aspire.Tests.Shared.DashboardModel;
+using Google.Protobuf.WellKnownTypes;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -10,6 +12,40 @@ namespace Aspire.Dashboard.Tests.Model;
 
 public sealed class ResourceOrderStoreTests(ITestOutputHelper testOutputHelper) : IDisposable
 {
+    [Fact]
+    public void AppHostDefaultsSeedOrderingAndSavedMovesTakePrecedence()
+    {
+        var databasePath = Path.Combine(_workspace.Path, ResourceTagStore.DatabaseFileName);
+        var store = new ResourceOrderStore(databasePath, NullLogger.Instance);
+        var name = KnownProperties.Resource.TraitPrefix + KnownResourceTraits.DashboardPosition;
+        var api = ModelTestHelpers.CreateResource("api", properties: new()
+        {
+            [name] = new(name, Value.ForList(Value.ForString("20")), false, null, 0, null, false)
+        });
+        var cache = ModelTestHelpers.CreateResource("cache", properties: new()
+        {
+            [name] = new(name, Value.ForList(Value.ForString("-10")), false, null, 0, null, false)
+        });
+        var worker = ModelTestHelpers.CreateResource("worker");
+        store.EnsureResources([api, cache, worker]);
+
+        Assert.Equal([cache.PersistentKey, api.PersistentKey, worker.PersistentKey],
+            store.GetPositions().OrderBy(p => p.Value).Select(p => p.Key));
+
+        // A restart must not turn inferred order into a user customization.
+        store = new ResourceOrderStore(databasePath, NullLogger.Instance);
+        cache.Properties[name].Value.ListValue.Values[0].StringValue = "30";
+        store.EnsureResources([api, cache, worker]);
+        Assert.Equal([api.PersistentKey, cache.PersistentKey, worker.PersistentKey],
+            store.GetPositions().OrderBy(p => p.Value).Select(p => p.Key));
+        Assert.True(store.TryMove(cache.PersistentKey, api.PersistentKey, false));
+
+        store = new ResourceOrderStore(databasePath, NullLogger.Instance);
+        store.EnsureResources([api, cache, worker]);
+        Assert.Equal([cache.PersistentKey, api.PersistentKey, worker.PersistentKey],
+            store.GetPositions().OrderBy(p => p.Value).Select(p => p.Key));
+    }
+
     private readonly TemporaryWorkspace _workspace = TemporaryWorkspace.Create(testOutputHelper);
 
     [Fact]

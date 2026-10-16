@@ -26,6 +26,32 @@ namespace Aspire.Dashboard.Components.Tests.Layout;
 [UseCulture("en-US")]
 public class ResourcesLayoutTests : DashboardTestContext
 {
+    [Fact]
+    public void AppHostTagsParticipateInGroupingWithoutUserTags()
+    {
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        var channel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var name = KnownProperties.Resource.TraitPrefix + KnownResourceTraits.DashboardTag;
+        ResourceSetupHelpers.SetupResourcesLayout(this, viewport, new TestDashboardClient(isEnabled: true,
+            initialResources:
+            [
+                ModelTestHelpers.CreateResource("api", properties: new()
+                {
+                    [name] = new(name, Value.ForList(Value.ForString("Backend"), Value.ForString("API")), false, null, 0, null, false)
+                }),
+                ModelTestHelpers.CreateResource("cache")
+            ], resourceChannelProvider: () => channel));
+        var storage = Assert.IsType<TestLocalStorage>(Services.GetRequiredService<ILocalStorage>());
+        storage.OnGetUnprotectedAsync = key => key == BrowserStorageKeys.ResourcePaneGrouping ? (true, "Tags") : (false, null);
+        Render<FluentToastProvider>();
+        var cut = Render<ResourcesLayout>(p => p.AddCascadingValue(viewport));
+
+        cut.WaitForAssertion(() => Assert.Equal(["Tags:API", "Tags:Backend", "Tags:"],
+            cut.FindAll(".resource-tag-group").Select(g => g.GetAttribute("data-resource-group-key"))));
+        Assert.Equal(["api", "api", "cache"], cut.FindAll(".resource-tag-group .resource-row-name").Select(n => n.TextContent.Trim()));
+        Assert.Empty(Services.GetRequiredService<ResourceTagStore>().GetAllTags());
+    }
+
     [Theory]
     [InlineData("Tags", "Tags:A new group")]
     [InlineData("ResourceType", "ResourceType:AAA")]

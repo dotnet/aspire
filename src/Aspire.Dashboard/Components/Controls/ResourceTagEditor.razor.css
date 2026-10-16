@@ -32,17 +32,22 @@
     white-space: nowrap;
 }
 
+.tag-chip-lock,
 .tag-chip-remove {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 18px;
     height: 18px;
+    flex-shrink: 0;
+    color: var(--colorNeutralForeground2);
+}
+
+.tag-chip-remove {
     padding: 0;
     border: 0;
     border-radius: 50%;
     background: transparent;
-    color: var(--colorNeutralForeground2);
     cursor: pointer;
 }
 

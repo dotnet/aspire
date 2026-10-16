@@ -3,6 +3,8 @@
 
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
+using Aspire.Tests.Shared.DashboardModel;
+using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -11,6 +13,24 @@ namespace Aspire.Dashboard.Tests.Model;
 public sealed class ResourceTagStoreTests(ITestOutputHelper testOutputHelper) : IDisposable
 {
     private readonly TemporaryWorkspace _workspace = TemporaryWorkspace.Create(testOutputHelper);
+
+    [Fact]
+    public void AppHostTagsAreMergedWithoutPersistingDeclaredTags()
+    {
+        var store = CreateStore();
+        store.AddTag("api", "backend");
+        store.AddTag("api", "Personal");
+        var name = KnownProperties.Resource.TraitPrefix + KnownResourceTraits.DashboardTag;
+        var resource = ModelTestHelpers.CreateResource("api", properties: new()
+        {
+            [name] = new(name, Value.ForList(Value.ForString("Backend"), Value.ForString("API")), false, null, 0, null, false)
+        });
+
+        Assert.Equal(["Backend", "API", "Personal"], store.GetTagsByResource([resource])["api"]);
+        Assert.Equal(["API", "Backend", "Personal"], store.GetAllTags([resource]));
+        Assert.Equal(["backend", "Personal"], store.GetTags("api"));
+        Assert.Equal(["backend", "Personal"], store.GetTagsByResource([])["api"]);
+    }
 
     [Fact]
     public void AddTag_AddsTagsInOrderAndRaisesChanged()

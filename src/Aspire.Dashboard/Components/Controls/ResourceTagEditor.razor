@@ -9,13 +9,24 @@
                 <li class="tag-chip" @key="tag">
                     <FluentIcon Value="@(new Icons.Filled.Size16.Tag())" Width="12px" Color="Color.Custom" CustomColor="@ColorGenerator.Instance.GetColorVariableByKey(tag)" />
                     <span class="tag-chip-name">@tag</span>
-                    <button type="button"
-                            class="tag-chip-remove"
-                            data-tooltip="@string.Format(CultureInfo.CurrentCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceTagsRemove)], tag)"
-                            aria-label="@string.Format(CultureInfo.CurrentCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceTagsRemove)], tag)"
-                            @onclick="@(() => RemoveTag(tag))">
-                        <FluentIcon Value="@(new Icons.Regular.Size12.Dismiss())" Width="10px" Color="Color.Custom" CustomColor="currentColor" />
-                    </button>
+                    @if (IsAppHostTag(tag))
+                    {
+                        <span class="tag-chip-lock" role="img"
+                              data-tooltip="@Loc[nameof(Dashboard.Resources.Resources.ResourceTagsAppHostDefined)]"
+                              aria-label="@Loc[nameof(Dashboard.Resources.Resources.ResourceTagsAppHostDefined)]">
+                            <FluentIcon Value="@(new Icons.Regular.Size12.LockClosed())" Width="10px" Color="Color.Custom" CustomColor="currentColor" />
+                        </span>
+                    }
+                    else
+                    {
+                        <button type="button"
+                                class="tag-chip-remove"
+                                data-tooltip="@string.Format(CultureInfo.CurrentCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceTagsRemove)], tag)"
+                                aria-label="@string.Format(CultureInfo.CurrentCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceTagsRemove)], tag)"
+                                @onclick="@(() => RemoveTag(tag))">
+                            <FluentIcon Value="@(new Icons.Regular.Size12.Dismiss())" Width="10px" Color="Color.Custom" CustomColor="currentColor" />
+                        </button>
+                    }
                 </li>
             }
         </ul>

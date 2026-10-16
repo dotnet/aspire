@@ -126,7 +126,8 @@
                     <h2 id="overview-tags-title">@Loc[nameof(Dashboard.Resources.Resources.ResourceTagsLabel)]</h2>
                 </div>
                 @* Tags are keyed by display name so they apply to every replica and survive the random replica suffix changing between runs. *@
-                <ResourceTagEditor ResourceName="@resource.DisplayName" />
+                <ResourceTagEditor ResourceName="@resource.DisplayName" AppHostTags="@resource.AppHostTags"
+                                   AvailableTags="@(ResourcesLayout?.AvailableResourceTags ?? [])" />
             </section>
 
             <section class="overview-card" style="@cardLayout.Style(OverviewCard.Status)" aria-labelledby="overview-status-title">

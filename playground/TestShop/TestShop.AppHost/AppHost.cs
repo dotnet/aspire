@@ -54,6 +54,10 @@ if (builder.Environment.IsDevelopment() && builder.ExecutionContext.IsRunMode)
 }
 
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
+                            .WithTags("Backend", "API")
+                            .WithTrait("Owner", "Finance")
+                            .WithTrait("Owner", "Platform")
+                            .WithDashboardPosition(10)
                             .WithReference(catalogDb)
                             .WaitFor(catalogDb)
                             .WaitFor(catalogDbApp)
@@ -81,12 +85,16 @@ var messaging = builder.AddRabbitMQ("messaging")
                        .PublishAsContainer();
 
 var basketService = builder.AddProject("basketservice", @"..\BasketService\BasketService.csproj")
+                           .WithTags("Backend")
+                           .WithDashboardPosition(20)
                            .WithReference(basketCache)
                            .WaitFor(basketCache)
                            .WithReference(messaging)
                            .WaitFor(messaging);
 
 var frontend = builder.AddProject<Projects.MyFrontend>("frontend")
+    .WithTags("Frontend")
+    .WithDashboardPosition(0)
     .WithExternalHttpEndpoints()
     .WithReference(basketService)
     .WaitFor(basketService)

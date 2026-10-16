@@ -178,6 +178,8 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
     /// </summary>
     internal IEnumerable<ResourceViewModel> SelectedResources => _selectedItems.Select(i => i.Resource).OfType<ResourceViewModel>();
 
+    internal IReadOnlyList<string> AvailableResourceTags => TagStore.GetAllTags(_resourceByName.Values);
+
     internal ConcurrentDictionary<string, ResourceViewModel> ResourceByName => _resourceByName;
 
     /// <summary>
@@ -286,8 +288,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
             UpsertResource(resource);
         }
         OrderStore.EnsureResources(snapshot.Where(r => !r.IsParameter)
-            .OrderBy(r => r.ResourceType).ThenBy(r => r, ResourceViewModelNameComparer.Instance)
-            .Select(r => r.PersistentKey));
+            .OrderBy(r => r.ResourceType).ThenBy(r => r, ResourceViewModelNameComparer.Instance));
         EnsureGroupOrder();
 
         _isLoaded = true;
@@ -307,7 +308,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
                         UpsertResource(resource);
                         if (!resource.IsParameter)
                         {
-                            OrderStore.EnsureResources([resource.PersistentKey]);
+                            OrderStore.EnsureResources([resource]);
                         }
                     }
                     else if (changeType == ResourceViewModelChangeType.Delete)
@@ -772,8 +773,8 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
         // Register groups independently of search/type/state/health filters, so a filtered view cannot change
         // their saved order. Hidden resources participate once the user chooses to show them.
         var resources = _resourceByName.Values.Where(r => !r.IsParameter && !r.IsResourceHidden(_filter.ShowHiddenResources)).ToList();
-        var tagsByResource = TagStore.GetTagsByResource();
-        var tags = TagStore.GetAllTags()
+        var tagsByResource = TagStore.GetTagsByResource(resources);
+        var tags = TagStore.GetAllTags(resources)
             .Where(tag => resources.Any(r => tagsByResource.TryGetValue(r.DisplayName, out var resourceTags) && resourceTags.Contains(tag, StringComparer.OrdinalIgnoreCase)))
             .ToList();
         if (resources.Any(r => !tagsByResource.ContainsKey(r.DisplayName)))
@@ -827,9 +828,9 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
             .ThenBy(r => r, ResourceViewModelNameComparer.Instance)
             .ToList();
 
-        var tagsByResource = TagStore.GetTagsByResource();
+        var tagsByResource = TagStore.GetTagsByResource(resources);
         var groups = new List<ResourceGroup>();
-        foreach (var tag in TagStore.GetAllTags())
+        foreach (var tag in TagStore.GetAllTags(resources))
         {
             var tagMatchesFilter = textFilter.Length == 0 || tag.Contains(textFilter, StringComparisons.UserTextSearch);
             var taggedResources = resources

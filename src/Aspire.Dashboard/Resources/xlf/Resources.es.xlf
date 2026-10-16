@@ -422,6 +422,11 @@
         <target state="new">Add tag</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceTagsAppHostDefined">
+        <source>Defined by the AppHost. This tag cannot be removed.</source>
+        <target state="new">Defined by the AppHost. This tag cannot be removed.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceTagsCreate">
         <source>Create tag "{0}"</source>
         <target state="new">Create tag "{0}"</target>

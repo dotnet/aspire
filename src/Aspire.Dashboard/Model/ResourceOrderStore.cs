@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Dashboard.Configuration;
 using Aspire.Shared;
 using Microsoft.Data.Sqlite;
@@ -16,11 +17,13 @@ public sealed class ResourceOrderStore
     private readonly Lock _lock = new();
     private readonly ILogger _logger;
     private readonly Dictionary<string, long> _positions = new(StringComparers.ResourceName);
+    private readonly Dictionary<string, long> _defaultPositions = new(StringComparers.ResourceName);
     private readonly Dictionary<string, Dictionary<string, long>> _groupPositions = new(StringComparer.Ordinal);
     private readonly string? _databasePath;
     private readonly string? _connectionString;
     private bool _loaded;
     private bool _loadFailed;
+    private bool _hasCustomResourceOrder;
 
     public ResourceOrderStore(IOptions<DashboardOptions> options, ILogger<ResourceOrderStore> logger)
         : this(ResourceTagStore.GetDatabasePath(options.Value), logger)
@@ -54,13 +57,39 @@ public sealed class ResourceOrderStore
         lock (_lock)
         {
             EnsureLoaded();
-            return new Dictionary<string, long>(GetScopePositions(grouping), StringComparers.ResourceName);
+            return grouping is null ? GetEffectiveResourcePositions() : new Dictionary<string, long>(GetScopePositions(grouping), StringComparers.ResourceName);
         }
     }
 
     // Keys must be ResourceViewModel.PersistentKey, not run-specific resource names. Keep positions for absent
     // resources so restarting a run, temporarily removing a resource, or changing its state doesn't reset its order.
     public void EnsureResources(IEnumerable<string> resourceKeys) => EnsureItems(grouping: null, resourceKeys);
+
+    public void EnsureResources(IEnumerable<ResourceViewModel> resources)
+    {
+        var snapshot = resources.ToList();
+        var defaultsChanged = false;
+        lock (_lock)
+        {
+            foreach (var resource in snapshot)
+            {
+                if (resource.DefaultDashboardPosition is { } position)
+                {
+                    defaultsChanged |= !_defaultPositions.TryGetValue(resource.PersistentKey, out var previous) || previous != position;
+                    _defaultPositions[resource.PersistentKey] = position;
+                }
+                else
+                {
+                    defaultsChanged |= _defaultPositions.Remove(resource.PersistentKey);
+                }
+            }
+        }
+        EnsureItems(grouping: null, snapshot.Select(r => r.PersistentKey));
+        if (defaultsChanged)
+        {
+            Changed?.Invoke();
+        }
+    }
 
     public void EnsureGroups(string grouping, IEnumerable<string> groupKeys) => EnsureItems(grouping, groupKeys);
 
@@ -80,7 +109,7 @@ public sealed class ResourceOrderStore
                     positions.Add(key, nextPosition++);
                 }
                 changed = true;
-                Save(grouping, positions);
+                Save(grouping, positions, isUserMove: false);
             }
         }
         if (changed)
@@ -108,13 +137,14 @@ public sealed class ResourceOrderStore
                 return true;
             }
 
-            var orderedKeys = currentPositions.OrderBy(pair => pair.Value).Select(pair => pair.Key).ToList();
+            var effectivePositions = grouping is null ? GetEffectiveResourcePositions() : currentPositions;
+            var orderedKeys = effectivePositions.OrderBy(pair => pair.Value).Select(pair => pair.Key).ToList();
             orderedKeys.RemoveAll(key => StringComparers.ResourceName.Equals(key, resourceKey));
             var targetIndex = orderedKeys.FindIndex(key => StringComparers.ResourceName.Equals(key, targetKey));
             orderedKeys.Insert(targetIndex + (after ? 1 : 0), resourceKey);
             var positions = orderedKeys.Select((key, index) => (key, position: (long)index))
                 .ToDictionary(pair => pair.key, pair => pair.position, StringComparers.ResourceName);
-            if (!Save(grouping, positions))
+            if (!Save(grouping, positions, isUserMove: true))
             {
                 return false;
             }
@@ -122,6 +152,10 @@ public sealed class ResourceOrderStore
             foreach (var pair in positions)
             {
                 currentPositions.Add(pair.Key, pair.Value);
+            }
+            if (grouping is null)
+            {
+                _hasCustomResourceOrder = true;
             }
         }
         Changed?.Invoke();
@@ -138,6 +172,25 @@ public sealed class ResourceOrderStore
         {
             positions = new Dictionary<string, long>(StringComparers.ResourceName);
             _groupPositions.Add(grouping, positions);
+        }
+
+        return positions;
+    }
+
+    private Dictionary<string, long> GetEffectiveResourcePositions()
+    {
+        if (_hasCustomResourceOrder || _defaultPositions.Count == 0)
+        {
+            return new Dictionary<string, long>(_positions, StringComparers.ResourceName);
+        }
+
+        // Keep declared defaults separate from saved order: a new AppHost default must take
+        // effect until the user explicitly reorders, including after restarting the dashboard.
+        var positions = new Dictionary<string, long>(StringComparers.ResourceName);
+        var nextPosition = _defaultPositions.Values.Max() + 1;
+        foreach (var pair in _positions.OrderBy(p => p.Value))
+        {
+            positions[pair.Key] = _defaultPositions.TryGetValue(pair.Key, out var position) ? position : nextPosition++;
         }
 
         return positions;
@@ -171,6 +224,10 @@ public sealed class ResourceOrderStore
                     position INTEGER NOT NULL,
                     PRIMARY KEY (grouping, group_key)
                 );
+                CREATE TABLE IF NOT EXISTS resource_order_settings (
+                    id INTEGER NOT NULL PRIMARY KEY CHECK (id = 1),
+                    custom_order INTEGER NOT NULL
+                );
                 SELECT resource_key, position FROM resource_order ORDER BY position;
                 """;
             using (var reader = command.ExecuteReader())
@@ -180,6 +237,16 @@ public sealed class ResourceOrderStore
                     _positions.Add(reader.GetString(0), reader.GetInt64(1));
                 }
             }
+
+            command.CommandText = "SELECT custom_order FROM resource_order_settings WHERE id = 1;";
+            var customOrder = command.ExecuteScalar();
+            // Older settings do not record whether order was inferred or customized; preserve
+            // their existing order rather than risk undoing a user's drag-and-drop customization.
+            _hasCustomResourceOrder = customOrder is null ? _positions.Count > 0 : Convert.ToBoolean(customOrder, CultureInfo.InvariantCulture);
+            command.CommandText = "INSERT OR IGNORE INTO resource_order_settings (id, custom_order) VALUES (1, $customOrder);";
+            command.Parameters.AddWithValue("$customOrder", _hasCustomResourceOrder);
+            command.ExecuteNonQuery();
+            command.Parameters.Clear();
 
             command.CommandText = "SELECT grouping, group_key, position FROM resource_group_order ORDER BY grouping, position;";
             using var groupReader = command.ExecuteReader();
@@ -195,7 +262,7 @@ public sealed class ResourceOrderStore
         }
     }
 
-    private bool Save(string? grouping, IReadOnlyDictionary<string, long> positions)
+    private bool Save(string? grouping, IReadOnlyDictionary<string, long> positions, bool isUserMove)
     {
         if (_loadFailed)
         {
@@ -225,6 +292,12 @@ public sealed class ResourceOrderStore
             {
                 keyParameter.Value = pair.Key;
                 positionParameter.Value = pair.Value;
+                command.ExecuteNonQuery();
+            }
+            if (grouping is null && isUserMove)
+            {
+                command.Parameters.Clear();
+                command.CommandText = "UPDATE resource_order_settings SET custom_order = 1 WHERE id = 1;";
                 command.ExecuteNonQuery();
             }
             transaction.Commit();

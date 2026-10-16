@@ -49,6 +49,24 @@ public sealed class ResourceViewModel
     internal bool ConsoleLogsLoaded { get; set; }
     public bool IsParameter => string.Equals(ResourceType, KnownResourceTypes.Parameter, StringComparison.Ordinal);
 
+    /// <summary>Gets the immutable AppHost values for a case-sensitive trait name.</summary>
+    public IReadOnlyList<string> GetTraitValues(string name) =>
+        Properties.TryGetValue(KnownProperties.Resource.TraitPrefix + name, out var property) && property.Value.KindCase == Value.KindOneofCase.ListValue
+            ? property.Value.ListValue.Values.Where(v => v.HasStringValue).Select(v => v.StringValue).ToArray()
+            : [];
+
+    internal IReadOnlyList<string> AppHostTags => GetTraitValues(KnownResourceTraits.DashboardTag);
+
+    internal int? DefaultDashboardPosition
+    {
+        get
+        {
+            var values = GetTraitValues(KnownResourceTraits.DashboardPosition);
+
+            return values.Count > 0 && int.TryParse(values[^1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var position) ? position : null;
+        }
+    }
+
     /// <summary>
     /// A persistent key for the resource that takes into account replicas.
     /// This key should be used instead of resource name because the name includes randomly generated suffix that changes each time the app host is restarted.
