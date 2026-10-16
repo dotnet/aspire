@@ -438,6 +438,10 @@ public sealed partial class TerminalView : ComponentBase, IAsyncDisposable
         return $"{scheme}://{endpoint.Authority}{boundPathAndQuery}";
     }
 
+    // A failed mount may follow a transport close before any frame was received.
+    // Show its connection/renderer error, not a claim that output was preserved.
+    private bool ShowDisconnectedRecovery => _state.Disconnected && _terminalError is not "mount-failed";
+
     private string GetErrorMessage() => Loc[_terminalError switch
     {
         "disconnected" => nameof(Resources.TerminalStrings.TerminalDisconnected),

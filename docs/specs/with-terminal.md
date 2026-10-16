@@ -348,8 +348,13 @@ its retry budget, including after producer completion or exhausted automatic ret
 The retained screen remains visible until the replacement receives a frame.
 Docked terminals offer **Close tab** through the existing dock close
 action. Other surfaces show the disconnected message without a close-tab action.
-All banners offer **Show terminal**, which hides the banner and accompanying
-retry error behind a floating disconnected icon at the top right. The icon
+Connection or renderer initialization failures show a single error with
+**Reconnect terminal**, rather than also claiming that output was preserved.
+The failure stays visible after automatic retries are exhausted. A disconnected
+recovery banner replaces the redundant transport error when output is retained;
+unrelated action failures remain visible alongside recovery.
+All banners offer **Show terminal**, which hides the banner
+behind a floating disconnected icon at the top right. The icon
 reopens the recovery actions without reconnecting, restarting, or replacing the
 retained renderer. Collapse persists through transport retries and resets after
 a successful reconnect. The floating icon is inset from the terminal's focus

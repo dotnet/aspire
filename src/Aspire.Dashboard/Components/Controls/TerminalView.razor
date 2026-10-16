@@ -31,14 +31,14 @@
             <div class="terminal-container" @ref="_terminalElement"></div>
             @if (_state.Disconnected || _terminalError is not null)
             {
-                <div class="terminal-overlays @(_state.Disconnected && _bannerCollapsed ? "terminal-overlays-collapsed" : null)">
-                    @if (_state.Disconnected)
+                <div class="terminal-overlays @(ShowDisconnectedRecovery && _bannerCollapsed ? "terminal-overlays-collapsed" : null)">
+                    @if (ShowDisconnectedRecovery)
                     {
                         <TerminalDisconnectedBanner @key="ResourceName" ResourceName="@ResourceName" ReadOnly="@ReadOnly" OnClose="@OnClose"
                                                     OnRestarted="@ReconnectAfterRestartAsync"
                                                     OnCollapsedChanged="@(collapsed => _bannerCollapsed = collapsed)" />
                     }
-                    @if (_terminalError is not null && !(_state.Disconnected && _bannerCollapsed && _terminalError is "disconnected" or "mount-failed"))
+                    @if (_terminalError is not null && !(ShowDisconnectedRecovery && _terminalError is "disconnected"))
                     {
                         <div class="terminal-error">
                             <span role="alert">@GetErrorMessage()</span>

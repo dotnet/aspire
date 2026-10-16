@@ -1609,11 +1609,27 @@ test("automatic retries are bounded and explicit reconnect resets the exhausted 
     }
     assert.equal(attempts.length, 31);
     assert.equal(timers.size, 0);
-    assert.equal(terminal.getToolbarState(id).error, "disconnected");
+    assert.equal(terminal.getToolbarState(id).error, "mount-failed");
     terminal.reconnectTerminal(id, "wss://dashboard/api/terminal?resource=app");
     attempts.at(-1).reject();
     await settle();
     assert.equal(retry(), 500);
+});
+
+test("refreshing an unavailable terminal preserves its mount error through transport retries and exhaustion", async () => {
+    const { id } = mount();
+    for (let i = 0; i <= 30; i++) {
+        attempts.at(-1).close(1006);
+        attempts.at(-1).reject();
+        await settle();
+        assert.equal(terminal.getToolbarState(id).disconnected, true);
+        assert.equal(terminal.getToolbarState(id).error, "mount-failed");
+        if (i < 30) {
+            retry();
+        }
+    }
+    assert.equal(timers.size, 0);
+    assert.equal(attempts.length, 31);
 });
 
 function clickFooter(footer, control, { selectOption = false, ...options } = {}) {

@@ -334,7 +334,7 @@ function scheduleReconnect(state, generation) {
         return;
     }
     if (state.attempts >= MAX_RECONNECT_ATTEMPTS) {
-        state.error = "disconnected";
+        state.error ??= "disconnected";
         notifyToolbar(state);
         return;
     }
