@@ -59,7 +59,7 @@ public sealed class AspireFluentDataGridTests : DashboardTestContext
         var provider = EnumerableGridItemsProvider.Create(() => items);
         var column = new AspireTemplateColumn<int>();
         ParameterView.FromDictionary(new Dictionary<string, object?> { [nameof(column.SortBy)] = EnumerableGridSort<int>.ByAscending(item => item) }).SetParameterProperties(column);
-        var request = new GridItemsProviderRequest<int> { SortByColumn = column, SortByAscending = true, StartIndex = 1, Count = 2 };
+        var request = new GridItemsProviderRequest<int> { SortColumns = [new(column, Ascending: true)], StartIndex = 1, Count = 2 };
 
         var result = await provider(request);
         Assert.Equal([2, 3], result.Items);
@@ -97,7 +97,7 @@ public sealed class AspireFluentDataGridTests : DashboardTestContext
         var column = new AspireTemplateColumn<int>();
         ParameterView.FromDictionary(new Dictionary<string, object?> { [nameof(column.SortBy)] = GridSort<int>.ByAscending(item => item) }).SetParameterProperties(column);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(async () => await provider(new GridItemsProviderRequest<int> { SortByColumn = column }));
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await provider(new GridItemsProviderRequest<int> { SortColumns = [new(column, Ascending: true)] }));
     }
 
     [Fact]

@@ -1,14 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREDOTNETPROJECT001
 #pragma warning disable ASPIREEXTENSION001
 #pragma warning disable ASPIREPERSISTENCE001
-#pragma warning disable ASPIREPIPELINES001
 #pragma warning disable ASPIREPIPELINES003
 #pragma warning disable ASPIREPROJECTS001
 #pragma warning disable ASPIRECONTAINERRUNTIME001
-#pragma warning disable ASPIRECSHARPAPPS001
 
 using System.Globalization;
 using System.Reflection;
@@ -308,9 +305,11 @@ public class DotnetProjectResourceTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         var assets = builder.AddContainer("assets", imageName, ImageTag)
             .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/sentinel.txt" });
+#pragma warning disable CS0618 // Compare legacy CSharpApp publishing with AddDotnetProject.
         IResourceBuilder<IComputeResource> resource = legacyProject
             ? builder.AddCSharpApp("file-app", appPath, options => options.ExcludeLaunchProfile = true)
             : builder.AddDotnetProject("file-app", appPath, options => options.ExcludeLaunchProfile = true);
+#pragma warning restore CS0618
         resource
             .WithAnnotation(new ContainerFilesDestinationAnnotation
             {
@@ -521,22 +520,39 @@ public class DotnetProjectResourceTests(ITestOutputHelper outputHelper)
     public async Task AddDotnetProject_RebuilderUsesConfiguredBuildConfiguration(string projectFileName)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
+        var versionProvider = UseDotnetSdkVersion(builder, "11.0.100-rc.2.1");
         var projectPath = Path.Combine(builder.AppHostDirectory, "MyService", projectFileName);
         var project = builder.AddDotnetProject("svc", projectPath, options => options.ExcludeLaunchProfile = true);
         var launchDefaults = Assert.Single(project.Resource.Annotations.OfType<ProjectLaunchDefaultsAnnotation>());
         launchDefaults.BuildConfiguration = "Release";
 
         var rebuilder = Assert.Single(builder.Resources.OfType<ProjectRebuilderResource>());
-        var args = await ArgumentEvaluator.GetArgumentListAsync(rebuilder);
+        await using var app = builder.Build();
+        await EventingTestHelpers.SubscribeEventingSubscribersAsync(
+            app,
+            TestContext.Current.CancellationToken);
+        await builder.Eventing.PublishAsync(
+            new BeforeResourceStartedEvent(rebuilder, app.Services),
+            TestContext.Current.CancellationToken);
+        var args = await ArgumentEvaluator.GetArgumentListAsync(rebuilder, app.Services);
 
-        Assert.Equal(
-            [
-                "build",
-                projectPath,
-                "--configuration",
-                "Release"
-            ],
-            args);
+        var expected = new List<string>
+        {
+            "build",
+            projectPath,
+        };
+        var isProjectBuild = projectFileName.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase);
+        if (isProjectBuild)
+        {
+            expected.Add("-mt");
+        }
+
+        expected.Add("--configuration");
+        expected.Add("Release");
+
+        Assert.Equal(expected, args);
+        Assert.Equal(1, versionProvider.CallCount);
+        Assert.Equal(rebuilder.WorkingDirectory, Assert.Single(versionProvider.WorkingDirectories));
     }
 
     [Fact]
@@ -1070,6 +1086,15 @@ public class DotnetProjectResourceTests(ITestOutputHelper outputHelper)
             expected.Add("--configuration");
             expected.Add(configuration);
         }
+    }
+
+    private static TestDotnetSdkVersionProvider UseDotnetSdkVersion(
+        IDistributedApplicationBuilder builder,
+        string? version)
+    {
+        var provider = new TestDotnetSdkVersionProvider(version);
+        builder.Services.AddSingleton<IDotnetSdkVersionProvider>(provider);
+        return provider;
     }
 
     private static async Task ExecutePipelineAsync(DistributedApplication app)

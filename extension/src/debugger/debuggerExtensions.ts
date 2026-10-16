@@ -1,5 +1,5 @@
 import path from "path";
-import { ExecutableLaunchConfiguration, EnvVar, LaunchOptions, AspireResourceExtendedDebugConfiguration, AspireExtendedDebugConfiguration, AspireResourceDebugSession, isProjectLaunchConfiguration } from "../dcp/types";
+import { ExecutableLaunchConfiguration, EnvVar, LaunchOptions, AspireResourceExtendedDebugConfiguration, AspireExtendedDebugConfiguration, AspireResourceDebugSession, getLaunchConfigurationExecutablePaths, getLaunchConfigurationTargetPath, isProjectLaunchConfiguration } from "../dcp/types";
 import { debugProject, runProject } from "../loc/strings";
 import { getEnvironmentForChildProcess, mergeEnvs } from "../utils/environment";
 import { extensionLogOutputChannel } from "../utils/logging";
@@ -8,7 +8,7 @@ import { isAzureFunctionsExtensionInstalled, isBunInstalled, isCsharpInstalled, 
 import { pythonDebuggerExtension } from "./languages/python";
 import { nodeDebuggerExtension } from "./languages/node";
 import { browserDebuggerExtension } from "./languages/browser";
-import { azureFunctionsDebuggerExtension } from "./languages/azureFunctions";
+import { azureFunctionsDebuggerExtension, azureFunctionsNodeDebuggerExtension } from "./languages/azureFunctions";
 import { goDebuggerExtension } from "./languages/go";
 import { createDefaultRustDebuggerExtension } from "./languages/rust";
 import { bunDebuggerExtension } from "./languages/bun";
@@ -98,6 +98,17 @@ export async function prepareDebugSession(debugSessionConfig: AspireExtendedDebu
         alreadyStartedSession = await debuggerExtension.createDebugSessionConfigurationCallback(launchConfig, args, env, launchOptions, configuration) ?? undefined;
     }
 
+    // Debugger-specific callbacks can replace `program` with an output binary,
+    // runtime executable, or package-manager command. Keep the source target and
+    // resource executable identity from DCP's typed launch metadata so editor
+    // assistance never has to inspect the final debug configuration or infer
+    // identity from free-form args/environment.
+    configuration.targetPath = getLaunchConfigurationTargetPath(launchConfig);
+    const resourceExecutablePaths = getLaunchConfigurationExecutablePaths(launchConfig);
+    if (resourceExecutablePaths.length > 0) {
+        configuration.resourceExecutablePaths = resourceExecutablePaths;
+    }
+
     return {
         debugConfiguration: configuration,
         alreadyStartedSession
@@ -114,6 +125,8 @@ export function getResourceDebuggerExtensions(platform: NodeJS.Platform = proces
             extensions.push(azureFunctionsDebuggerExtension);
         }
     }
+
+    extensions.push(azureFunctionsNodeDebuggerExtension);
 
     if (isPythonInstalled()) {
         extensions.push(pythonDebuggerExtension);

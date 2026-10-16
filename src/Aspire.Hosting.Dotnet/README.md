@@ -5,7 +5,7 @@ Use this integration to model, configure, and orchestrate C# projects and file-b
 `Aspire.Hosting.Python`, and `Aspire.Hosting.JavaScript`.
 
 > [!NOTE]
-> `AddDotnetProject` is experimental and is exposed under the `ASPIREDOTNETPROJECT001` diagnostic.
+> `Aspire.Hosting.Dotnet` is a prerelease package.
 > Its API surface may change in future releases.
 
 ## Getting started
@@ -67,6 +67,17 @@ project-based resources. Use the Rebuild command after source changes to rebuild
 
 Endpoints, environment variables, and service discovery are configured from the project's
 `launchSettings.json` and Kestrel configuration, matching `AddProject<T>`.
+
+### Migrating from AddCSharpApp
+
+`AddCSharpApp` (and the polyglot `addCSharpApp` export) is obsolete. Add the
+`Aspire.Hosting.Dotnet` integration and replace it with `AddDotnetProject` / `addDotnetProject`.
+The replacement accepts the same kinds of paths: `.cs`, `.csproj`, or a directory containing
+a single `.csproj`.
+
+The new API returns a `DotnetProjectResource`, not a `ProjectResource` / `CSharpAppResource`.
+Update explicitly typed resource builders and project-specific customizations accordingly.
+Legacy `AddCSharpApp` calls retain their existing launch and publishing behavior.
 
 ### Restoring projects individually
 
@@ -228,6 +239,14 @@ conventions. See the [SDK archive publishing documentation](https://learn.micros
 Call `PublishAsDockerFile(...)` or `publishAsDockerFile(...)` to use an explicit Dockerfile instead of .NET SDK
 container publishing. Call `ExcludeFromManifest()` or `excludeFromManifest()` when the resource is intentionally
 available only during local orchestration.
+
+## Migrating from legacy project resources
+
+For C# and TypeScript AppHosts targeting Aspire 13.6 or newer, the
+[`aspire-project-v2-migration` agent skill](https://github.com/microsoft/aspire-skills/tree/main/skills/aspire-project-v2-migration)
+assesses existing project resources and proposes a migration for approval before editing.
+It preserves supported resource configuration and identifies unsupported patterns, including
+Azure Functions and custom integrations tied to `ProjectResource`. It does not upgrade the AppHost's Aspire version.
 
 ## Additional documentation
 

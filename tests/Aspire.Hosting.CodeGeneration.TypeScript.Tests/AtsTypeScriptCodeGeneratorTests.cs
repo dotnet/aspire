@@ -64,6 +64,7 @@ public class AtsTypeScriptCodeGeneratorTests
         // would have to be regenerated on every change to the source resource.
         Assert.Equal(EmbeddedResources.Read("base.mts"), files["base.mts"]);
         Assert.Equal(EmbeddedResources.Read("transport.mts"), files["transport.mts"]);
+        Assert.Equal(EmbeddedResources.Read("integration-host.mts"), files["integration-host.mts"]);
     }
 
     [Fact]
@@ -639,6 +640,60 @@ public class AtsTypeScriptCodeGeneratorTests
     }
 
     [Fact]
+    public void Scanner_HostingAssembly_ParameterResourceValueManagementCapabilities()
+    {
+        var capabilities = ScanCapabilitiesFromHostingAssembly();
+
+        var setValue = Assert.Single(capabilities, c => c.CapabilityId == "Aspire.Hosting.ApplicationModel/ParameterResource.setValueAsync");
+        Assert.Equal(AtsCapabilityKind.InstanceMethod, setValue.CapabilityKind);
+        Assert.Equal("setValueAsync", setValue.MethodName);
+        Assert.Equal("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ParameterResource", setValue.TargetTypeId);
+        Assert.Equal(AtsConstants.Void, setValue.ReturnType.TypeId);
+        Assert.NotEqual(true, setValue.ReturnType.IsNullable);
+
+        var valueParameter = Assert.Single(setValue.Parameters, p => p.Name == "value");
+        Assert.True(valueParameter.IsOptional);
+        // Reference-type parameter nullability is not surfaced in the ATS model. This parameter
+        // is still omittable because it has a C# default (= null), which IsOptional captures above.
+        Assert.False(valueParameter.IsNullable);
+        Assert.NotNull(valueParameter.Type);
+        Assert.Equal("string", valueParameter.Type.TypeId);
+        // AtsTypeRef.IsNullable is bool? and is left unset (null) for non-nullable types; assert it is not true.
+        Assert.NotEqual(true, valueParameter.Type.IsNullable);
+
+        var tryGetCurrentValue = Assert.Single(capabilities, c => c.CapabilityId == "Aspire.Hosting.ApplicationModel/ParameterResource.tryGetCurrentValue");
+        Assert.Equal(AtsCapabilityKind.InstanceMethod, tryGetCurrentValue.CapabilityKind);
+        Assert.Equal("tryGetCurrentValue", tryGetCurrentValue.MethodName);
+        Assert.Equal("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ParameterResource", tryGetCurrentValue.TargetTypeId);
+        Assert.DoesNotContain(tryGetCurrentValue.Parameters, p => p.Name != "context");
+        Assert.NotNull(tryGetCurrentValue.ReturnType);
+        Assert.Equal("string", tryGetCurrentValue.ReturnType.TypeId);
+        Assert.True(tryGetCurrentValue.ReturnType.IsNullable);
+    }
+
+    [Theory]
+    [InlineData("getNullableString", "string", true)]
+    [InlineData("getNullableStringTaskAsync", "string", true)]
+    [InlineData("getNullableStringValueTaskAsync", "string", true)]
+    [InlineData("getString", "string", false)]
+    [InlineData("getStringTaskAsync", "string", false)]
+    [InlineData("getStringValueTaskAsync", "string", false)]
+    [InlineData("getNullableInt", "number", true)]
+    [InlineData("getNullableIntTaskAsync", "number", true)]
+    [InlineData("getNullableIntValueTaskAsync", "number", true)]
+    [InlineData("getInt", "number", false)]
+    [InlineData("getIntTaskAsync", "number", false)]
+    [InlineData("getIntValueTaskAsync", "number", false)]
+    [InlineData("getStaticNullableStringAsync", "string", true)]
+    public void Scanner_MethodReturnTypes_PreserveNullability(string methodName, string typeId, bool nullable)
+    {
+        var capability = Assert.Single(ScanCapabilitiesFromTestAssembly(), c => c.MethodName == methodName);
+
+        Assert.Equal(typeId, capability.ReturnType.TypeId);
+        Assert.Equal(nullable, capability.ReturnType.IsNullable == true);
+    }
+
+    [Fact]
     public void Scanner_BrowsersAssembly_WithBrowserLogsCapability()
     {
         var capabilities = ScanCapabilitiesFromBrowsersAssembly();
@@ -952,6 +1007,62 @@ public class AtsTypeScriptCodeGeneratorTests
     }
 
     [Fact]
+    public void GenerateCallbackTypeSignature_MapsCollectionsAsJsonData()
+    {
+        var projector = new TypeScriptApiProjector(CreateContextFromTestAssembly());
+
+        var stringType = new AtsTypeRef
+        {
+            TypeId = "string",
+            Category = AtsTypeCategory.Primitive
+        };
+        var listType = new AtsTypeRef
+        {
+            TypeId = "list",
+            Category = AtsTypeCategory.List,
+            ElementType = stringType
+        };
+        var dictionaryType = new AtsTypeRef
+        {
+            TypeId = "dictionary",
+            Category = AtsTypeCategory.Dict,
+            KeyType = stringType,
+            ValueType = stringType
+        };
+
+        Assert.Equal("() => Promise<string[]>", projector.GenerateCallbackTypeSignature([], listType));
+        Assert.Equal("() => Promise<Record<string, string>>", projector.GenerateCallbackTypeSignature([], dictionaryType));
+    }
+
+    [Fact]
+    public void GenerateCallbackTypeSignature_MapsNestedNullableCollectionsAsJsonData()
+    {
+        var projector = new TypeScriptApiProjector(CreateContextFromTestAssembly());
+        var nullableNumber = new AtsTypeRef
+        {
+            TypeId = AtsConstants.Number,
+            Category = AtsTypeCategory.Primitive,
+            IsNullable = true
+        };
+        var returnType = new AtsTypeRef
+        {
+            TypeId = "dictionary",
+            Category = AtsTypeCategory.Dict,
+            KeyType = new AtsTypeRef { TypeId = AtsConstants.String, Category = AtsTypeCategory.Primitive },
+            ValueType = new AtsTypeRef
+            {
+                TypeId = "list",
+                Category = AtsTypeCategory.List,
+                ElementType = nullableNumber
+            }
+        };
+
+        Assert.Equal(
+            "() => Promise<Record<string, (number | null)[]>>",
+            projector.GenerateCallbackTypeSignature([], returnType));
+    }
+
+    [Fact]
     public async Task Scanner_BaseTypeHierarchy_IsCollected()
     {
         // Verify that AtsTypeInfo includes base type hierarchy for inheritance expansion.
@@ -1166,6 +1277,40 @@ public class AtsTypeScriptCodeGeneratorTests
                 line.Contains(
                     "options?: WithKubernetesPersistentVolumeMountOptions",
                     StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Generate_KubernetesPersistentVolume_WithPersistentVolumeNameExposesCapability()
+    {
+        var scanResult = AtsCapabilityScanner.ScanAssemblies(
+        [
+            typeof(DistributedApplication).Assembly,
+            typeof(global::Aspire.Hosting.Kubernetes.KubernetesPersistentVolumeResource).Assembly
+        ]);
+        var files = _generator.GenerateDistributedApplication(scanResult.ToAtsContext());
+        var generatedCode = files["aspire.mts"];
+
+        var capability = Assert.Single(
+            scanResult.Capabilities,
+            c => c.CapabilityId == "Aspire.Hosting.Kubernetes/withPersistentVolumeName");
+        Assert.Equal("withPersistentVolumeName", capability.MethodName);
+        Assert.Equal("string", capability.Parameters.Single().Type?.TypeId);
+        Assert.DoesNotContain("withConfiguration", generatedCode);
+
+        Assert.Contains(
+            generatedCode.Split('\n'),
+            line => line.Contains("withPersistentVolumeName(", StringComparison.Ordinal) &&
+                line.Contains("persistentVolumeName: string", StringComparison.Ordinal));
+
+        var withoutStorageClassCapability = Assert.Single(
+            scanResult.Capabilities,
+            c => c.CapabilityId == "Aspire.Hosting.Kubernetes/withoutStorageClass");
+        Assert.Equal("withoutStorageClass", withoutStorageClassCapability.MethodName);
+        Assert.Empty(withoutStorageClassCapability.Parameters);
+
+        Assert.Contains(
+            generatedCode.Split('\n'),
+            line => line.Contains("withoutStorageClass()", StringComparison.Ordinal));
     }
 
     // ===== 2-Pass Scanning / Cross-Assembly Expansion Tests =====
@@ -2241,6 +2386,9 @@ public class AtsTypeScriptCodeGeneratorTests
         var legacyTypeId = AtsTypeMapping.DeriveTypeId(typeof(ProjectResourceOptions));
         Assert.Single(context.HandleTypes, type => type.AtsTypeId == legacyTypeId);
         var addCSharpApp = Assert.Single(context.Capabilities, capability => capability.CapabilityId == "Aspire.Hosting/addCSharpApp");
+        Assert.True(addCSharpApp.IsObsolete);
+        Assert.False(addCSharpApp.IsExperimental);
+        Assert.Equal("Use addDotnetProject from the Aspire.Hosting.Dotnet package instead.", addCSharpApp.ObsoleteMessage);
         var legacyOptions = Assert.Single(addCSharpApp.Parameters, parameter => parameter.Name == "options");
         Assert.NotNull(legacyOptions.Type);
         Assert.Equal(AtsTypeCategory.Handle, legacyOptions.Type.Category);

@@ -4,8 +4,8 @@
     <Platform Name="x64" />
   </Configurations>
   <Folder Name="/Components/">
-    <Project Path="src/Components/Aspire.Azure.AI.Inference/Aspire.Azure.AI.Inference.csproj" />
-    <Project Path="src/Components/Aspire.Azure.AI.OpenAI/Aspire.Azure.AI.OpenAI.csproj" />
+    <Project Path="src/Components/Aspire.Azure.AI.Extensions.OpenAI/Aspire.Azure.AI.Extensions.OpenAI.csproj" />
+    <Project Path="src/Components/Aspire.Azure.AI.Projects/Aspire.Azure.AI.Projects.csproj" />
     <Project Path="src/Components/Aspire.Azure.Data.Tables/Aspire.Azure.Data.Tables.csproj" />
     <Project Path="src/Components/Aspire.Azure.Messaging.EventHubs/Aspire.Azure.Messaging.EventHubs.csproj" />
     <Project Path="src/Components/Aspire.Azure.Messaging.ServiceBus/Aspire.Azure.Messaging.ServiceBus.csproj" />
@@ -26,7 +26,6 @@
     <Project Path="src/Components/Aspire.Microsoft.EntityFrameworkCore.SqlServer/Aspire.Microsoft.EntityFrameworkCore.SqlServer.csproj" />
     <Project Path="src/Components/Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration/Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration.csproj" />
     <Project Path="src/Components/Aspire.Milvus.Client/Aspire.Milvus.Client.csproj" />
-    <Project Path="src/Components/Aspire.MongoDB.Driver.v2/Aspire.MongoDB.Driver.v2.csproj" />
     <Project Path="src/Components/Aspire.MongoDB.Driver/Aspire.MongoDB.Driver.csproj" />
     <Project Path="src/Components/Aspire.MongoDB.EntityFrameworkCore/Aspire.MongoDB.EntityFrameworkCore.csproj" Id="61b0efc4-439c-4d09-a336-b4c5763c6bd7" />
     <Project Path="src/Components/Aspire.MySqlConnector/Aspire.MySqlConnector.csproj" />
@@ -37,7 +36,6 @@
     <Project Path="src/Components/Aspire.Oracle.EntityFrameworkCore/Aspire.Oracle.EntityFrameworkCore.csproj" />
     <Project Path="src/Components/Aspire.Pomelo.EntityFrameworkCore.MySql/Aspire.Pomelo.EntityFrameworkCore.MySql.csproj" />
     <Project Path="src/Components/Aspire.Qdrant.Client/Aspire.Qdrant.Client.csproj" />
-    <Project Path="src/Components/Aspire.RabbitMQ.Client.v6/Aspire.RabbitMQ.Client.v6.csproj" />
     <Project Path="src/Components/Aspire.RabbitMQ.Client/Aspire.RabbitMQ.Client.csproj" />
     <Project Path="src/Components/Aspire.Seq/Aspire.Seq.csproj" />
     <Project Path="src/Components/Aspire.StackExchange.Redis.DistributedCaching/Aspire.StackExchange.Redis.DistributedCaching.csproj" />
@@ -97,6 +95,7 @@
     <Project Path="src/Aspire.Hosting.Azure.ConnectorNamespace/Aspire.Hosting.Azure.ConnectorNamespace.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.ContainerRegistry/Aspire.Hosting.Azure.ContainerRegistry.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.CosmosDB/Aspire.Hosting.Azure.CosmosDB.csproj" />
+    <Project Path="src/Aspire.Hosting.Azure.EntraId/Aspire.Hosting.Azure.EntraId.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.EventHubs/Aspire.Hosting.Azure.EventHubs.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.FrontDoor/Aspire.Hosting.Azure.FrontDoor.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.Functions/Aspire.Hosting.Azure.Functions.csproj" />
@@ -282,6 +281,10 @@
   </Folder>
   <Folder Name="/playground/dockerfile/">
     <Project Path="playground/withdockerfile/WithDockerfile.AppHost/WithDockerfile.AppHost.csproj" />
+  </Folder>
+  <Folder Name="/playground/EntraId/">
+    <Project Path="playground/EntraId/EntraId.AppHost/EntraId.AppHost.csproj" />
+    <Project Path="playground/EntraId/EntraId.Web/EntraId.Web.csproj" />
   </Folder>
   <Folder Name="/playground/EventHubs/">
     <Project Path="playground/AspireEventHub/EventHubs.AppHost/EventHubs.AppHost.csproj" />
@@ -481,6 +484,8 @@
     <Project Path="src/Aspire.Hosting.CodeGeneration.TypeScript/Aspire.Hosting.CodeGeneration.TypeScript.csproj" />
     <Project Path="src/Aspire.Hosting.RemoteHost/Aspire.Hosting.RemoteHost.csproj" />
     <Project Path="src/Aspire.Managed/Aspire.Managed.csproj" />
+    <Project Path="src/Aspire.Tray/Mac/Aspire.Tray.Mac.csproj" />
+    <Project Path="src/Aspire.Tray/Windows/Aspire.Tray.Windows.csproj" />
   </Folder>
   <Folder Name="/Testing/">
     <Project Path="src/Aspire.Hosting.Testing/Aspire.Hosting.Testing.csproj" />
@@ -502,10 +507,11 @@
     <Project Path="tests/Aspire.Acquisition.Tests/Aspire.Acquisition.Tests.csproj" />
     <Project Path="tests/Aspire.Cli.EndToEnd.Tests/Aspire.Cli.EndToEnd.Tests.csproj" />
     <Project Path="tests/Aspire.Cli.Tests/Aspire.Cli.Tests.csproj" />
+    <Project Path="tests/Aspire.Tray.Tests/Aspire.Tray.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/Components/">
-    <Project Path="tests/Aspire.Azure.AI.Inference.Tests/Aspire.Azure.AI.Inference.Tests.csproj" />
-    <Project Path="tests/Aspire.Azure.AI.OpenAI.Tests/Aspire.Azure.AI.OpenAI.Tests.csproj" />
+    <Project Path="tests/Aspire.Azure.AI.Extensions.OpenAI.Tests/Aspire.Azure.AI.Extensions.OpenAI.Tests.csproj" />
+    <Project Path="tests/Aspire.Azure.AI.Projects.Tests/Aspire.Azure.AI.Projects.Tests.csproj" />
     <Project Path="tests/Aspire.Azure.Data.Tables.Tests/Aspire.Azure.Data.Tables.Tests.csproj" />
     <Project Path="tests/Aspire.Azure.Messaging.EventHubs.Tests/Aspire.Azure.Messaging.EventHubs.Tests.csproj" />
     <Project Path="tests/Aspire.Azure.Messaging.ServiceBus.Tests/Aspire.Azure.Messaging.ServiceBus.Tests.csproj" />
@@ -528,7 +534,6 @@
     <Project Path="tests/Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration.Tests/Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration.Tests.csproj" />
     <Project Path="tests/Aspire.Milvus.Client.Tests/Aspire.Milvus.Client.Tests.csproj" />
     <Project Path="tests/Aspire.MongoDB.Driver.Tests/Aspire.MongoDB.Driver.Tests.csproj" />
-    <Project Path="tests/Aspire.MongoDB.Driver.v2.Tests/Aspire.MongoDB.Driver.v2.Tests.csproj" />
     <Project Path="tests/Aspire.MongoDB.EntityFrameworkCore.Tests/Aspire.MongoDB.EntityFrameworkCore.Tests.csproj" Id="79ef6bd3-8f2b-4b42-8993-6707fd8be598" />
     <Project Path="tests/Aspire.MySqlConnector.Tests/Aspire.MySqlConnector.Tests.csproj" />
     <Project Path="tests/Aspire.NATS.Net.Tests/Aspire.NATS.Net.Tests.csproj" />
@@ -539,7 +544,6 @@
     <Project Path="tests/Aspire.Pomelo.EntityFrameworkCore.MySql.Tests/Aspire.Pomelo.EntityFrameworkCore.MySql.Tests.csproj" />
     <Project Path="tests/Aspire.Qdrant.Client.Tests/Aspire.Qdrant.Client.Tests.csproj" />
     <Project Path="tests/Aspire.RabbitMQ.Client.Tests/Aspire.RabbitMQ.Client.Tests.csproj" />
-    <Project Path="tests/Aspire.RabbitMQ.Client.v6.Tests/Aspire.RabbitMQ.Client.v6.Tests.csproj" />
     <Project Path="tests/Aspire.Seq.Tests/Aspire.Seq.Tests.csproj" />
     <Project Path="tests/Aspire.StackExchange.Redis.DistributedCaching.Tests/Aspire.StackExchange.Redis.DistributedCaching.Tests.csproj" />
     <Project Path="tests/Aspire.StackExchange.Redis.OutputCaching.Tests/Aspire.StackExchange.Redis.OutputCaching.Tests.csproj" />
@@ -547,6 +551,7 @@
   </Folder>
   <Folder Name="/tests/Dashboard/">
     <Project Path="tests/Aspire.Dashboard.Components.Tests/Aspire.Dashboard.Components.Tests.csproj" />
+    <Project Path="tests/Aspire.Dashboard.Playwright.Tests/Aspire.Dashboard.Playwright.Tests.csproj" />
     <Project Path="tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/Hosting/">
@@ -574,6 +579,7 @@
     <Project Path="tests/Aspire.Hosting.Java.Tests/Aspire.Hosting.Java.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.JavaScript.Tests/Aspire.Hosting.JavaScript.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Kafka.Tests/Aspire.Hosting.Kafka.Tests.csproj" />
+    <Project Path="tests/Aspire.Hosting.Azure.EntraId.Tests/Aspire.Hosting.Azure.EntraId.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Keycloak.Tests/Aspire.Hosting.Keycloak.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Kubernetes.Tests/Aspire.Hosting.Kubernetes.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Maui.Tests/Aspire.Hosting.Maui.Tests.csproj" />
@@ -621,6 +627,7 @@
     <Project Path="tools/AspireMcpTools/AspireMcpTools.csproj" />
     <Project Path="tools/CreateFailingTestIssue/CreateFailingTestIssue.csproj" />
     <Project Path="tools/CreateLayout/CreateLayout.csproj" />
+    <Project Path="tools/GenerateTemplateManifest/GenerateTemplateManifest.csproj" />
     <Project Path="tools/GenerateTestSummary/GenerateTestSummary.csproj" />
     <Project Path="tools/SelectTests/SelectTests.csproj" />
     <Project Path="tools/TypeScriptApiCompat/TypeScriptApiCompat.csproj" />

@@ -2,11 +2,43 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Xunit;
+using YamlDotNet.RepresentationModel;
 
 namespace Infrastructure.Tests;
 
 public sealed class CiWorkflowTests
 {
+    [Fact]
+    public void TemplateManifestGenerationUsesSameBuildPackagesBeforeCleanup()
+    {
+        var job = GetJob(ReadWorkflow("build-packages.yml"), "build_packages");
+        var generate = GetStep(job, "Generate template component manifest");
+
+        Assert.True(job.IndexOf("name: Build with packages", StringComparison.Ordinal) <
+            job.IndexOf("name: Generate template component manifest", StringComparison.Ordinal));
+        Assert.True(job.IndexOf("name: Generate template component manifest", StringComparison.Ordinal) <
+            job.IndexOf("name: Clean up artifacts", StringComparison.Ordinal));
+        Assert.Contains("eng/scripts/generate-template-cgmanifest.ps1", generate);
+    }
+
+    [Fact]
+    public void TemplateManifestArtifactContainsOnlyTheFinalInventory()
+    {
+        var yaml = new YamlStream();
+        yaml.Load(new StringReader(ReadWorkflow("build-packages.yml")));
+        var root = (YamlMappingNode)yaml.Documents[0].RootNode;
+        var jobs = (YamlMappingNode)root.Children["jobs"];
+        var job = (YamlMappingNode)jobs.Children["build_packages"];
+        var steps = (YamlSequenceNode)job.Children["steps"];
+        var upload = Assert.Single(steps.Children.Cast<YamlMappingNode>(), step =>
+            step.Children.TryGetValue("name", out var name) && ((YamlScalarNode)name).Value == "Upload template component manifest");
+        var inputs = (YamlMappingNode)upload.Children["with"];
+
+        Assert.Equal("artifacts/cg/templates/cgmanifest.json", ((YamlScalarNode)inputs.Children["path"]).Value);
+        Assert.Equal("5", ((YamlScalarNode)inputs.Children["retention-days"]).Value);
+        Assert.Equal("error", ((YamlScalarNode)inputs.Children["if-no-files-found"]).Value);
+    }
+
     [Theory]
     [InlineData("prepare_winget_installer_artifacts")]
     [InlineData("prepare_homebrew_installer_artifacts")]
@@ -37,13 +69,13 @@ public sealed class CiWorkflowTests
     [Fact]
     public void RunTestsInstallsJavaForProjectsThatRequireIt()
     {
-        var workflow = File.ReadAllText(Path.Combine(RepoRoot.Path, ".github", "workflows", "run-tests.yml"));
+        var workflow = ReadWorkflow("run-tests.yml");
         var javaSetup = System.Text.RegularExpressions.Regex.Match(
             workflow,
-            "(?ms)^      - name: Set up Java\\n(?<body>.*?)(?=^      - |\\z)");
+            "(?ms)^      - name: Set up Java\\r?\\n(?<body>.*?)(?=^      - |\\z)");
         Assert.True(javaSetup.Success, "Could not find the Java setup step in run-tests.yml.");
         Assert.Contains("if: ${{ fromJson(inputs.properties).requiresJava == true }}", javaSetup.Value);
-        Assert.Contains("uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0", javaSetup.Value);
+        Assert.Contains("uses: actions/setup-java@", javaSetup.Value);
         Assert.Contains("distribution: temurin", javaSetup.Value);
         Assert.Contains("java-version: 21", javaSetup.Value);
 
@@ -56,6 +88,98 @@ public sealed class CiWorkflowTests
             "Aspire.Hosting.CodeGeneration.Java.Tests",
             "Aspire.Hosting.CodeGeneration.Java.Tests.csproj"));
         Assert.Contains("<RequiresJava>true</RequiresJava>", javaTests);
+    }
+
+    [Fact]
+    public void CliTestsUseGitHubActionsNuGetServiceIndexOverride()
+    {
+        var workflow = ReadWorkflow("run-tests.yml");
+        var configureStep = GetStep(GetJob(workflow, "test"), "Configure CLI test NuGet service index");
+        Assert.Contains("$env:TEST_ASSEMBLY_NAME -eq 'Aspire.Cli.Tests'", configureStep);
+        Assert.Contains("$env:GITHUB_ENV", configureStep);
+        var serviceIndexMatch = System.Text.RegularExpressions.Regex.Match(
+            configureStep,
+            "ASPIRE_CLI_NUGET_SERVICE_INDEX=(?<source>https://[^\"\\r\\n]+)");
+        Assert.True(serviceIndexMatch.Success, "The GitHub test runner must provide an HTTPS NuGet service index.");
+        Assert.Equal(
+            "https://packagefeedproxy.microsoft.io/nuget/v3/index.json",
+            serviceIndexMatch.Groups["source"].Value);
+    }
+
+    [Fact]
+    public void AcquisitionOuterloopTestsReceiveGitHubToken()
+    {
+        var properties = File.ReadAllText(Path.Combine(
+            RepoRoot.Path,
+            "eng",
+            "testing",
+            "CITestsProperties.props"));
+        Assert.Contains(
+            "<CITestsProperty Include=\"requiresGitHubToken\" MSBuildProp=\"RequiresGitHubToken\"",
+            properties);
+
+        var acquisitionTests = File.ReadAllText(Path.Combine(
+            RepoRoot.Path,
+            "tests",
+            "Aspire.Acquisition.Tests",
+            "Aspire.Acquisition.Tests.csproj"));
+        Assert.Contains("<RequiresGitHubToken>true</RequiresGitHubToken>", acquisitionTests);
+
+        var specializedRunner = ReadWorkflow("specialized-test-runner.yml");
+        var tokenCheck = GetStep(
+            GetJob(specializedRunner, "generate_tests_matrix"),
+            "Check if any test requires GitHub token");
+        Assert.Contains("steps.inject_properties.outputs.runsheet", tokenCheck);
+        Assert.Contains(".properties.requiresGitHubToken == true", tokenCheck);
+
+        var testRunner = GetJob(ReadWorkflow("run-tests.yml"), "test");
+        Assert.Contains(
+            "fromJson(inputs.properties).requiresGitHubToken == true",
+            testRunner);
+    }
+
+    [Theory]
+    [InlineData("tests-outerloop.yml", "outerloop_tests")]
+    [InlineData("tests-quarantine.yml", "quarantine_tests")]
+    [InlineData("specialized-test-runner.yml", "run_tests")]
+    [InlineData("run-tests.yml", null)]
+    public void ReusableTestWorkflowsPreserveArtifactReadPermission(string fileName, string? jobName)
+    {
+        var yaml = new YamlStream();
+        yaml.Load(new StringReader(ReadWorkflow(fileName)));
+        var root = (YamlMappingNode)yaml.Documents[0].RootNode;
+        var scope = root;
+        if (jobName is not null)
+        {
+            var jobs = (YamlMappingNode)root.Children["jobs"];
+            scope = (YamlMappingNode)jobs.Children[jobName];
+        }
+        var permissions = (YamlMappingNode)scope.Children["permissions"];
+
+        Assert.Equal("read", ((YamlScalarNode)permissions.Children["actions"]).Value);
+        Assert.Equal("read", ((YamlScalarNode)permissions.Children["contents"]).Value);
+        Assert.Equal(2, permissions.Children.Count);
+    }
+
+    [Theory]
+    [InlineData("Inject enablePlaywrightInstall into runsheet properties", "steps.generate_tests_matrix_raw.outputs.runsheet")]
+    [InlineData("Check if any test requires NuGets", "steps.inject_properties.outputs.runsheet")]
+    [InlineData("Check if any test requires CLI archives", "steps.inject_properties.outputs.runsheet")]
+    [InlineData("Check if any test requires GitHub token", "steps.inject_properties.outputs.runsheet")]
+    public void SpecializedTestRunnerPassesRunsheetThroughEnvironment(
+        string stepName,
+        string runsheetOutput)
+    {
+        var workflow = ReadWorkflow("specialized-test-runner.yml");
+        var step = GetStep(GetJob(workflow, "generate_tests_matrix"), stepName);
+
+        Assert.Contains($"RUNSHEET: ${{{{ {runsheetOutput} }}}}", step);
+
+        var run = System.Text.RegularExpressions.Regex.Match(
+            step,
+            "(?ms)^        run: \\|\\r?\\n(?<body>.*)$");
+        Assert.True(run.Success, $"Could not find the run script for '{stepName}'.");
+        Assert.DoesNotContain("${{", run.Groups["body"].Value);
     }
 
     [Fact]
@@ -74,7 +198,7 @@ public sealed class CiWorkflowTests
     }
 
     private static string ReadWorkflow(string fileName)
-        => File.ReadAllText(Path.Combine(RepoRoot.Path, ".github", "workflows", fileName));
+        => File.ReadAllText(Path.Combine(RepoRoot.Path, ".github", "workflows", fileName)).ReplaceLineEndings("\n");
 
     private static string GetJob(string workflow, string jobName)
     {

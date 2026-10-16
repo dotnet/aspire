@@ -9,13 +9,67 @@ namespace Infrastructure.Tests.CreateLayout;
 public class CreateLayoutTests(ITestOutputHelper testOutputHelper)
 {
     [Theory]
+    [InlineData("win-x64")]
+    [InlineData("win-arm64")]
+    [InlineData("linux-x64")]
+    [InlineData("linux-arm64")]
+    [InlineData("linux-musl-x64")]
+    [InlineData("osx-x64")]
+    [InlineData("osx-arm64")]
+    public void CopyTerminalHostRequiresNativeDependenciesAndExcludesSymbols(string rid)
+    {
+        using var workspace = TemporaryWorkspace.Create(testOutputHelper);
+        var publish = Path.Combine(workspace.Path, "bin", "Aspire.TerminalHost", "Debug", "net11.0", rid, "publish");
+        var files = Aspire.Shared.TerminalHostPayload.GetRequiredFiles(rid);
+        foreach (var file in files)
+        {
+            var path = Path.Combine(publish, file);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, file);
+        }
+        File.WriteAllText(Path.Combine(publish, "Aspire.TerminalHost.pdb"), "symbols");
+        using var builder = new LayoutBuilder(Path.Combine(workspace.Path, "layout"), workspace.Path, rid, "Debug", "1.0", false, null, null);
+        builder.CopyTerminalHost();
+        var target = Path.Combine(workspace.Path, "layout", "terminalhost");
+        Assert.Equal(files.Order(StringComparer.Ordinal), Directory.GetFiles(target, "*", SearchOption.AllDirectories)
+            .Select(path => Path.GetRelativePath(target, path).Replace('\\', '/')).Order(StringComparer.Ordinal));
+
+        File.Delete(Path.Combine(publish, files[^1]));
+        Assert.Throws<InvalidOperationException>(builder.CopyTerminalHost);
+    }
+
+    [Fact]
+    public void TerminalHostPayloadValidationUsesCurrentRidAndRequiresNonEmptyFiles()
+    {
+        using var workspace = TemporaryWorkspace.Create(testOutputHelper);
+        var rid = System.Runtime.InteropServices.RuntimeInformation.RuntimeIdentifier;
+        var files = Aspire.Shared.TerminalHostPayload.GetRequiredFiles(rid);
+
+        Assert.False(Aspire.Shared.TerminalHostPayload.IsValid(workspace.Path));
+        foreach (var file in files)
+        {
+            var path = Path.Combine(workspace.Path, file);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, file);
+        }
+
+        Assert.True(Aspire.Shared.TerminalHostPayload.IsValid(workspace.Path));
+        Assert.True(Aspire.Shared.TerminalHostPayload.IsValid(workspace.Path, rid));
+
+        File.WriteAllText(Path.Combine(workspace.Path, files[^1]), string.Empty);
+
+        Assert.False(Aspire.Shared.TerminalHostPayload.IsValid(workspace.Path));
+        Assert.False(Aspire.Shared.TerminalHostPayload.IsValid(workspace.Path, rid));
+    }
+
+    [Theory]
     [InlineData("Debug", "Release")]
     [InlineData("Release", "Debug")]
     [InlineData("Custom", "Release")]
     public void FindPublishPath_UsesOnlyRequestedConfiguration(string configuration, string otherConfiguration)
     {
         using var workspace = TemporaryWorkspace.Create(testOutputHelper);
-        using var builder = new LayoutBuilder(Path.Combine(workspace.Path, "layout"), workspace.Path, "win-x64", configuration, "1.0.0", verbose: false);
+        using var builder = new LayoutBuilder(Path.Combine(workspace.Path, "layout"), workspace.Path, "win-x64", configuration, "1.0.0", verbose: false, trayAppPath: null, windowsTrayPath: null);
         var expectedPaths = GetPublishPaths(workspace.Path, configuration);
 
         foreach (var path in expectedPaths.Concat(GetPublishPaths(workspace.Path, otherConfiguration)))
@@ -36,7 +90,7 @@ public class CreateLayoutTests(ITestOutputHelper testOutputHelper)
     public void FindPublishPath_RequireRidSpecific_IgnoresNonRidPublish()
     {
         using var workspace = TemporaryWorkspace.Create(testOutputHelper);
-        using var builder = new LayoutBuilder(Path.Combine(workspace.Path, "layout"), workspace.Path, "win-x64", "Debug", "1.0.0", verbose: false);
+        using var builder = new LayoutBuilder(Path.Combine(workspace.Path, "layout"), workspace.Path, "win-x64", "Debug", "1.0.0", verbose: false, trayAppPath: null, windowsTrayPath: null);
         var nonRidPath = GetPublishPaths(workspace.Path, "Debug")[^1];
         Directory.CreateDirectory(nonRidPath);
 
@@ -100,7 +154,7 @@ public class CreateLayoutTests(ITestOutputHelper testOutputHelper)
         }
 
         var outputPath = Path.Combine(workspace.Path, "layout");
-        using var builder = new LayoutBuilder(outputPath, workspace.Path, rid, "Debug", "1.0.0", verbose: false);
+        using var builder = new LayoutBuilder(outputPath, workspace.Path, rid, "Debug", "1.0.0", verbose: false, trayAppPath: null, windowsTrayPath: null);
 
         builder.CopyDashboard();
 
@@ -122,7 +176,7 @@ public class CreateLayoutTests(ITestOutputHelper testOutputHelper)
         var wwwrootPath = Path.Combine(publishPath, "wwwroot");
         Directory.Delete(wwwrootPath, recursive: true);
         var outputPath = Path.Combine(workspace.Path, "layout");
-        using var builder = new LayoutBuilder(outputPath, workspace.Path, "win-x64", "Debug", "1.0.0", verbose: false);
+        using var builder = new LayoutBuilder(outputPath, workspace.Path, "win-x64", "Debug", "1.0.0", verbose: false, trayAppPath: null, windowsTrayPath: null);
 
         var exception = Assert.Throws<InvalidOperationException>(builder.CopyDashboard);
 
@@ -148,7 +202,7 @@ public class CreateLayoutTests(ITestOutputHelper testOutputHelper)
         }
 
         var outputPath = Path.Combine(workspace.Path, "layout");
-        using var builder = new LayoutBuilder(outputPath, workspace.Path, "win-x64", "Debug", "1.0.0", verbose: false);
+        using var builder = new LayoutBuilder(outputPath, workspace.Path, "win-x64", "Debug", "1.0.0", verbose: false, trayAppPath: null, windowsTrayPath: null);
 
         var exception = Assert.Throws<InvalidOperationException>(builder.CopyDashboard);
 
@@ -178,7 +232,7 @@ public class CreateLayoutTests(ITestOutputHelper testOutputHelper)
         }
 
         var outputPath = Path.Combine(workspace.Path, "layout");
-        using var builder = new LayoutBuilder(outputPath, workspace.Path, rid, "Debug", "1.0.0", verbose: false);
+        using var builder = new LayoutBuilder(outputPath, workspace.Path, rid, "Debug", "1.0.0", verbose: false, trayAppPath: null, windowsTrayPath: null);
 
         var exception = Assert.Throws<InvalidOperationException>(builder.CopyDashboard);
 
