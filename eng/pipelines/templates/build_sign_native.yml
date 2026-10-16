@@ -49,11 +49,6 @@ jobs:
 
         variables:
         - TeamName: ${{ parameters.teamName }}
-        - ${{ if eq(parameters.codeSign, true) }}:
-          - _buildArgs: '-sign'
-        - ${{ else }}:
-          - _buildArgs: ''
-
         - ${{ if eq(parameters.agentOs, 'windows') }}:
           - scriptName: build.cmd
           - dotnetScript: dotnet.cmd
@@ -184,124 +179,31 @@ jobs:
             name: computeCliChannel
             displayName: 🟣Determine Aspire CLI channel
 
-          # Both CI systems prepare the same component outputs. Signing stays
-          # between the shared phases so packaging never overwrites signed files.
+          - task: NodeTool@0
+            displayName: 🟣Install node.js
+            inputs:
+              versionSpec: '22.x'
+
+          # Keep signing credentials/plugin setup in the pipeline; Bundle.proj
+          # owns ordering and invokes fresh Arcade build/sign/pack processes.
           - script: >-
               $(Build.SourcesDirectory)/$(dotnetScript)
               msbuild
               $(Build.SourcesDirectory)/eng/Bundle.proj
-              /t:PublishBundleComponents
-              /p:Configuration=$(_BuildConfig)
-              /p:TargetRid=${{ targetRid }}
-              /p:ContinuousIntegrationBuild=true
-              /p:AspireCliChannel=$(aspireCliChannel)
-              /p:DashboardPublishLogPath="$(Build.Arcade.LogsPath)PublishNativeDashboard.log"
-              ${{ parameters.extraBuildArgs }}
-              /bl:$(Build.Arcade.LogsPath)PublishBundleComponents.binlog
-            displayName: 🟣Publish bundle components
-
-          - pwsh: >-
-              & "$(Build.SourcesDirectory)/eng/scripts/verify-native-dashboard-warnings.ps1"
-              -BuildLog "$(Build.Arcade.LogsPath)PublishNativeDashboard.log"
-            displayName: 🟣Verify Native AOT Dashboard warnings
-
-          # On macOS, ad-hoc codesign aspire-managed with JIT entitlements BEFORE Arcade signing.
-          # MicroBuild (MacDeveloperHardenWithNotarization) preserves entitlements from the prior
-          # ad-hoc signature when re-signing with the real certificate. Without this step,
-          # hardened runtime blocks CoreCLR JIT (W^X memory mapping) causing HRESULT: 0x80070008.
-          # This follows the same pattern used by dotnet/sdk for managed binaries (roslyn-entitlements.plist).
-          - ${{ if eq(parameters.agentOs, 'macos') }}:
-            - script: >-
-                codesign --sign - --force
-                --entitlements $(Build.SourcesDirectory)/eng/aspire-managed-entitlements.plist
-                $(Build.SourcesDirectory)/artifacts/bin/Aspire.Managed/Release/net10.0/${{ targetRid }}/publish/aspire-managed
-              displayName: 🟣Ad-hoc codesign aspire-managed with JIT entitlements
-
-          - ${{ if and(eq(parameters.codeSign, true), eq(parameters.agentOs, 'macos')) }}:
-            # PrepareTraySigning only archives the published app; it does not rebuild or
-            # stamp it, so build identity and signing arguments are unnecessary here.
-            - script: >-
-                $(Build.SourcesDirectory)/$(dotnetScript)
-                msbuild
-                $(Build.SourcesDirectory)/src/Aspire.Tray/Mac/Aspire.Tray.Mac.csproj
-                /t:PrepareTraySigning
-                /p:Configuration=$(_BuildConfig)
-                /p:RuntimeIdentifier=${{ targetRid }}
-              displayName: 🟣Prepare tray app signing input
-
-          # ESRP treats executable paths as discovery patterns and otherwise finds adjacent
-          # .dSYM DWARF binaries with the same names. Native bundle components do not ship
-          # symbols, so remove them before any signing pass evaluates inputs.
-          - ${{ if and(eq(parameters.codeSign, true), eq(parameters.agentOs, 'macos')) }}:
-            - pwsh: |
-                & "$(Build.SourcesDirectory)/eng/scripts/remove-native-bundle-debug-symbols.ps1" `
-                  -DashboardPublishDirectory "$(Build.SourcesDirectory)/artifacts/bin/Aspire.Dashboard/${{ targetRid }}/Release/net11.0/${{ targetRid }}/publish" `
-                  -TerminalHostPublishDirectory "$(Build.SourcesDirectory)/artifacts/bin/Aspire.TerminalHost/Release/net11.0/${{ targetRid }}/publish"
-              displayName: 🟣Remove Native AOT bundle debug symbols
-
-          - ${{ if eq(parameters.codeSign, true) }}:
-            - script: >-
-                $(Build.SourcesDirectory)/$(scriptName)
-                -restore -sign
-                ${{ parameters.extraBuildArgs }}
-                -projects "$(Build.SourcesDirectory)/src/Aspire.Managed/Aspire.Managed.csproj"
-                /bl:$(Build.Arcade.LogsPath)SignManaged.binlog
-              # eng/Signing.props includes the Windows tray publish output.
-              displayName: 🟣Sign bundle components
-              env:
-                SYSTEM_ACCESSTOKEN: $(System.AccessToken)
-
-          - ${{ if and(eq(parameters.codeSign, true), eq(parameters.agentOs, 'macos')) }}:
-            - script: >-
-                $(Build.SourcesDirectory)/$(dotnetScript)
-                msbuild
-                $(Build.SourcesDirectory)/eng/pipelines/SignTray.proj
-                -restore
-                /t:SignTray
-                /p:Configuration=$(_BuildConfig)
-                /p:RuntimeIdentifier=${{ targetRid }}
-                /p:SignType=real
-                /bl:$(Build.Arcade.LogsPath)SignTray.binlog
-              displayName: 🟣Sign and notarize whole tray app
-              env:
-                SYSTEM_ACCESSTOKEN: $(System.AccessToken)
-            - script: >-
-                $(Build.SourcesDirectory)/$(dotnetScript)
-                msbuild
-                $(Build.SourcesDirectory)/src/Aspire.Tray/Mac/Aspire.Tray.Mac.csproj
-                /t:RestoreSignedTray
-                /p:Configuration=$(_BuildConfig)
-                /p:RuntimeIdentifier=${{ targetRid }}
-              displayName: 🟣Restore and verify signed tray app
-
-          # On macOS/Linux, restore the execute bit after Arcade signing.
-          # MicroBuild rewrites the binary file during signing, which resets permissions
-          # to the default umask (typically 644). The execute bit must be restored before
-          # CreateLayout packs the binary into the bundle archive.
-          - ${{ if and(eq(parameters.codeSign, true), ne(parameters.agentOs, 'windows')) }}:
-            - script: |
-                chmod +x $(Build.SourcesDirectory)/artifacts/bin/Aspire.Managed/Release/net10.0/${{ targetRid }}/publish/aspire-managed
-                chmod +x $(Build.SourcesDirectory)/artifacts/bin/Aspire.Dashboard/${{ targetRid }}/Release/net11.0/${{ targetRid }}/publish/Aspire.Dashboard
-                chmod +x $(Build.SourcesDirectory)/artifacts/bin/Aspire.TerminalHost/Release/net11.0/${{ targetRid }}/publish/Aspire.TerminalHost
-              displayName: 🟣Restore execute permissions on managed executables
-
-          # Packaging consumes the prepared/signed files without any publish
-          # dependency. Official DCP packages are owned by the managed build.
-          - script: >-
-              $(Build.SourcesDirectory)/$(dotnetScript)
-              msbuild
-              $(Build.SourcesDirectory)/eng/Bundle.proj
-              /t:PackageBundlePayload
+              /t:BuildNativeBundle
               /p:Configuration=$(_BuildConfig)
               /p:TargetRid=${{ targetRid }}
               /p:BundleVersion=ci-bundlepayload
               /p:ContinuousIntegrationBuild=true
               /p:AspireCliChannel=$(aspireCliChannel)
-              /p:RequireWindowsTraySignature=${{ parameters.codeSign }}
-              /p:RequireMacTraySignature=${{ parameters.codeSign }}
+              /p:DashboardPublishLogPath="$(Build.Arcade.LogsPath)PublishNativeDashboard.log"
               ${{ parameters.extraBuildArgs }}
-              /bl:$(Build.Arcade.LogsPath)PackageBundlePayload.binlog
-            displayName: 🟣Package bundle payload
+              /p:Sign=${{ iif(eq(parameters.codeSign, true), '$(_Sign)', 'false') }}
+              /p:DotNetSignType=${{ iif(eq(parameters.codeSign, true), '$(_SignType)', 'test') }}
+              /bl:$(Build.Arcade.LogsPath)BuildNativeBundle.binlog
+            displayName: 🟣Build native bundle and CLI packages
+            env:
+              SYSTEM_ACCESSTOKEN: $(System.AccessToken)
 
           # The native_archives artifact publishes only artifacts/packages. Stage
           # the Dashboard runtime zip there so Assemble can recover it alongside
@@ -340,33 +242,11 @@ jobs:
             displayName: 🟣Smoke test packaged Native AOT Dashboard (${{ targetRid }})
             condition: and(succeeded(), eq(variables['Agent.OSArchitecture'], variables['_ridAgentArch']), not(contains('${{ targetRid }}', 'musl')))
 
-          - task: NodeTool@0
-            displayName: 🟣Install node.js
-            inputs:
-              versionSpec: '22.x'
-
           - pwsh: >-
               & "$(Build.SourcesDirectory)/eng/scripts/test-native-terminalhost.ps1"
               -TerminalHostPath "$(Build.SourcesDirectory)/artifacts/bundle/${{ targetRid }}/terminalhost/Aspire.TerminalHost${{ iif(eq(parameters.agentOs, 'windows'), '.exe', '') }}"
             displayName: 🟣Smoke test bundled Native AOT TerminalHost
             condition: and(succeeded(), eq(variables['Agent.OSArchitecture'], variables['_ridAgentArch']), not(contains('${{ targetRid }}', 'musl')))
-
-          - script: >-
-              $(Build.SourcesDirectory)/$(scriptName)
-              -ci
-              -build
-              -pack
-              -restore
-              /p:SkipManagedBuild=true
-              /p:TargetRids=${{ targetRid }}
-              /p:BundlePayloadPath=$(Build.SourcesDirectory)/artifacts/bundle/aspire-ci-bundlepayload-${{ targetRid }}.tar.gz
-              /p:AspireCliChannel=$(aspireCliChannel)
-              $(_buildArgs)
-              ${{ parameters.extraBuildArgs }}
-              /bl:$(Build.Arcade.LogsPath)Build.binlog
-            displayName: 🟣Build native packages
-            env:
-              SYSTEM_ACCESSTOKEN: $(System.AccessToken) # Needed for the signing task
 
           - pwsh: |
               $ErrorActionPreference = 'Stop'

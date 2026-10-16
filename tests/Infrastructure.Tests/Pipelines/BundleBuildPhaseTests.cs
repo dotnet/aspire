@@ -10,6 +10,180 @@ namespace Infrastructure.Tests;
 public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
 {
     [Theory]
+    [InlineData("linux-x64", "", false)]
+    [InlineData("win-x64", "test", true)]
+    [InlineData("win-x64", "test", false)]
+    [InlineData("osx-arm64", "", false)]
+    [InlineData("osx-arm64", "test", true)]
+    [InlineData("osx-arm64", "real", true)]
+    public async Task NativeOrchestrationPackagesFinalSignedBytesOnce(string rid, string signType, bool sign)
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        var root = workspace.CreateDirectory("native orchestration with spaces").FullName;
+        var project = CreateOrchestrationProject(root, rid);
+        // Windows publish requires a Windows AOT lane; provide the same prepared
+        // outputs on other hosts while still executing the production sign/pack graph.
+        var windows = rid.StartsWith("win-", StringComparison.Ordinal);
+        if (windows)
+        {
+            await RunAsync(project, "PublishBundleComponents", rid, "SkipTrayBuild=true");
+            var tray = Path.Combine(root, "artifacts", "tray");
+            Directory.CreateDirectory(tray);
+            File.WriteAllText(Path.Combine(tray, "aspire-tray.exe"), "tray");
+            File.WriteAllText(Path.Combine(tray, "Aspire.ico"), "icon");
+            File.Delete(Path.Combine(root, "events"));
+            File.Delete(Path.Combine(root, "cache-properties"));
+        }
+
+        await RunAsync(project, "BuildNativeBundle", rid,
+            $"Sign={sign}", $"DotNetSignType={signType}", "MicroBuild_SigningEnabled=true",
+            $"SkipManagedBuild={windows}", $"SkipTrayBuild={windows}", "SkipNativeBuild=true",
+            "BundleVersion=ci-bundlepayload", "RestorePackagesPath=" + Path.Combine(root, "restore cache"), "PackDcpPackage=true",
+            "RequireMacTraySignature=false", "RequireWindowsTraySignature=false");
+
+        var expected = new List<string>();
+        if (!windows)
+        {
+            expected.AddRange(["managed", "dashboard", "terminalhost"]);
+        }
+        if (rid.StartsWith("osx-", StringComparison.Ordinal))
+        {
+            Assert.Equal(signType == "real" ? "true" : "false",
+                File.ReadAllText(Path.Combine(root, "require-tray-signature")).Trim());
+            expected.AddRange(["tray", "adhoc"]);
+            if (signType == "real")
+            {
+                expected.Add("prepare-tray");
+            }
+        }
+        if (sign)
+        {
+            expected.Add("sign-components");
+        }
+        if (signType == "real")
+        {
+            expected.AddRange(["sign-tray", "notarize-tray", "restore-tray"]);
+        }
+        expected.AddRange(["package", "dcp-package", "restore", "layout"]);
+        if (!rid.StartsWith("linux-", StringComparison.Ordinal))
+        {
+            expected.Add("verify");
+        }
+        expected.Add("cli");
+        if (sign)
+        {
+            expected.Add("sign-archive");
+        }
+        expected.Add("cli-pack");
+        Assert.Equal(expected, File.ReadAllLines(Path.Combine(root, "events")));
+        var dashboardBytes = sign ? "signed Dashboard" : "dashboard";
+        Assert.Equal(dashboardBytes, File.ReadAllText(Path.Combine(root, "package-dashboard")).Trim());
+        Assert.Equal(dashboardBytes, File.ReadAllText(Path.Combine(root, "layout-dashboard")).Trim());
+        Assert.Equal(dashboardBytes, File.ReadAllText(Path.Combine(root, "cli-payload")).Trim());
+        Assert.Equal(sign ? "signed CLI archive" : "CLI archive", File.ReadAllText(Path.Combine(root, "cli-package")).Trim());
+        if (rid.StartsWith("osx-", StringComparison.Ordinal))
+        {
+            Assert.Equal(signType == "real" ? "signed tray" : "tray",
+                File.ReadAllText(Path.Combine(root, "layout-tray")).Trim());
+            if (sign && !OperatingSystem.IsWindows())
+            {
+                foreach (var path in new[] { ManagedPath(root, rid), DashboardPath(root, rid), TerminalHostPath(root, rid) })
+                {
+                    Assert.True(File.GetUnixFileMode(path).HasFlag(UnixFileMode.UserExecute));
+                }
+            }
+        }
+        if (sign)
+        {
+            Assert.Equal("False", File.ReadAllText(Path.Combine(root, "component-archive-exists")).Trim());
+        }
+        else
+        {
+            Assert.False(File.Exists(Path.Combine(root, "component-archive-exists")));
+        }
+        Assert.Equal(["Release", rid, "ci.test", "20261014.1", "staging", "", Path.Combine(root, "restore cache")],
+            File.ReadAllText(Path.Combine(root, "cli-properties")).Trim().Split('|'));
+        foreach (var line in File.ReadAllLines(Path.Combine(root, "cache-properties")))
+        {
+            Assert.Equal([Path.Combine(root, "restore cache"), Path.Combine(root, "restore cache")], line.Split('|')[1..]);
+        }
+    }
+
+    [Theory]
+    [InlineData("warning", "tray")]
+    [InlineData("adhoc", "tray")]
+    [InlineData("sign-components", "prepare-tray")]
+    [InlineData("sign-tray", "sign-components")]
+    [InlineData("notarize-tray", "sign-tray")]
+    [InlineData("restore-tray", "notarize-tray")]
+    [InlineData("verify", "layout")]
+    [InlineData("cli", "verify")]
+    [InlineData("sign-archive", "cli")]
+    public async Task NativeOrchestrationStopsOnFailedPhase(string phase, string lastEvent)
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        const string rid = "osx-arm64";
+        var project = CreateOrchestrationProject(workspace.Path, rid);
+        File.WriteAllText(Path.Combine(workspace.Path, "fail-" + phase), "");
+
+        var result = await ExecuteAsync(project, "BuildNativeBundle", rid,
+            "Sign=true", "DotNetSignType=real", "MicroBuild_SigningEnabled=true", "BundleVersion=ci-bundlepayload");
+
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Equal(lastEvent, File.ReadAllLines(Path.Combine(workspace.Path, "events"))[^1]);
+    }
+
+    [Theory]
+    [InlineData("Sign=invalid", "Sign must be true or false.")]
+    [InlineData("Sign=true", "Signing requires DotNetSignType")]
+    [InlineData("DotNetSignType=invalid", "DotNetSignType must be")]
+    [InlineData("DotNetSignType=real", "Real signing requires")]
+    [InlineData("RequireMacTraySignature=true", "Tray signature verification requires")]
+    [InlineData("VersionSuffix=unsafe&argument", "VersionSuffix must contain")]
+    [InlineData("AspireCliChannel=unsafe&argument", "AspireCliChannel must contain")]
+    public async Task NativeOrchestrationRejectsInconsistentInputsBeforePublishing(string property, string message)
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        var project = CreateOrchestrationProject(workspace.Path, "osx-arm64");
+
+        var result = await ExecuteAsync(project, "BuildNativeBundle", "osx-arm64", property);
+
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains(message, result.Output);
+        Assert.False(File.Exists(Path.Combine(workspace.Path, "events")));
+    }
+
+    [Fact]
+    public async Task LinuxOfficialIdentityDoesNotEnableSigning()
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        var project = CreateOrchestrationProject(workspace.Path, "linux-x64");
+
+        var result = await ExecuteAsync(project, "BuildNativeBundle", "linux-x64", "Sign=true", "DotNetSignType=test");
+
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains("Linux native bundle lanes must disable signing.", result.Output);
+        Assert.False(File.Exists(Path.Combine(workspace.Path, "events")));
+    }
+
+    [Theory]
+    [InlineData("MicroBuild_SigningEnabled=false", "Real signing requires")]
+    [InlineData("OfficialBuild=false", "Real signing requires an official build identity")]
+    [InlineData("ForceDryRunSigning=true", "Real signing requires an official build identity")]
+    public async Task RealSigningRejectsDisabledServicesOrDryRuns(string property, string message)
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        var project = CreateOrchestrationProject(workspace.Path, "osx-arm64");
+
+        var result = await ExecuteAsync(project, "BuildNativeBundle", "osx-arm64",
+            "Sign=true", "DotNetSignType=real", "MicroBuild_SigningEnabled=true", property);
+
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains(message, result.Output);
+        Assert.False(File.Exists(Path.Combine(workspace.Path, "events")));
+    }
+
+    [Theory]
     [InlineData("linux-x64", false)]
     [InlineData("linux-arm64", true)]
     [InlineData("osx-arm64", false)]
@@ -189,8 +363,12 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         Assert.Equal(["restore", "layout", "verify"], File.ReadAllLines(Path.Combine(workspace.Path, "events")));
     }
 
-    [Fact]
-    public async Task ColdCiPublishRestoresAndImportsRealProtobufBuildTargets()
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task ColdCiPublishRestoresAndImportsRealProtobufBuildTargets(bool explicitRestoreCache, bool environmentCache)
     {
         using var workspace = TemporaryWorkspace.Create(output);
         var root = workspace.Path;
@@ -209,8 +387,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         new XDocument(new XElement("Project",
             new XElement("PropertyGroup",
                 Property("BaseIntermediateOutputPath", Path.Combine(root, "obj") + Path.DirectorySeparatorChar),
-                Property("DirectoryPackagesPropsPath", Path.Combine(RepoRoot.Path, "Directory.Packages.props")),
-                Property("NuGetPackageRoot", Path.Combine(root, ".packages") + Path.DirectorySeparatorChar)),
+                Property("DirectoryPackagesPropsPath", Path.Combine(RepoRoot.Path, "Directory.Packages.props"))),
             new XElement("Import", new XAttribute("Project", "Sdk.props"), new XAttribute("Sdk", "Microsoft.NET.Sdk")),
             new XElement("PropertyGroup",
                 Property("TargetFramework", "net11.0"),
@@ -228,11 +405,20 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         bundle.Root!.Element("PropertyGroup")!.Element("DashboardProjectPath")!.Value = dashboardProject;
         bundle.Save(project);
 
-        // Isolate Arcade's import cache so a previous native build cannot hide a
-        // restore/import mismatch by leaving Grpc.Tools in the repository cache.
-        await RunAsync(project, "PublishBundleComponents", rid,
-            "RepoRoot=" + root + Path.DirectorySeparatorChar, "NUGET_PACKAGES=");
+        // Let Arcade select its real import root. Hardcoding NuGetPackageRoot
+        // would mask a mismatch with RestorePackagesPath, even in a cold cache.
+        var environment = new Dictionary<string, string?>
+        {
+            ["NUGET_PACKAGES"] = environmentCache ? Path.Combine(root, "environment cache") : null
+        };
+        var properties = new List<string> { "RepoRoot=" + root + Path.DirectorySeparatorChar };
+        if (explicitRestoreCache)
+        {
+            properties.Add("RestorePackagesPath=" + Path.Combine(root, "explicit restore cache"));
+        }
+        var result = await ExecuteAsync(project, "PublishBundleComponents", rid, environment, [.. properties]);
 
+        Assert.True(result.ExitCode == 0, result.Output);
         var generated = Assert.Single(Directory.GetFiles(generatedDirectory, "*.cs"));
         Assert.Contains("sealed partial class PreparedComponent", File.ReadAllText(generated));
     }
@@ -296,6 +482,11 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         WriteChild(managed, "Publish", "managed", ManagedPath(root, rid));
         WriteChild(dashboard, "Publish", "dashboard", DashboardPath(root, rid),
             new XElement("Warning", new XAttribute("Text", "shared Dashboard publish warning")),
+            new XElement("Warning", new XAttribute("Code", "IL2026"),
+                new XAttribute("Text", "Microsoft.AspNetCore.Http.Json.JsonOptions.CreateDefaultTypeResolver()")),
+            new XElement("Warning", new XAttribute("Condition", $"Exists('{Path.Combine(root, "fail-warning")}')"),
+                new XAttribute("Code", "IL2026"), new XAttribute("Text", "Unexpected trimming warning")),
+            new XElement("MakeDir", new XAttribute("Directories", Path.Combine(dashboardDirectory, "Aspire.Dashboard.dSYM"))),
             Write(Path.Combine(root, "dashboard-platform"), "$(PlatformName)"),
             Write(Path.Combine(dashboardDirectory, "wwwroot", "_framework", "blazor.web.js"), "Blazor"),
             Write(Path.Combine(dashboardDirectory, rid.StartsWith("osx-", StringComparison.Ordinal) ? "libe_sqlite3.dylib"
@@ -318,6 +509,9 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
                 Property("ArtifactsDir", Path.Combine(root, "artifacts") + Path.DirectorySeparatorChar),
                 Property("ArtifactsLogDir", Path.Combine(root, "artifacts", "log", "Release") + Path.DirectorySeparatorChar),
                 Property("DashboardPublishLogPath", Path.Combine(root, "artifacts", "log", "Release", "PublishNativeDashboard.log")),
+                Property("ManagedPublishDir", Path.GetDirectoryName(ManagedPath(root, rid))!),
+                Property("DashboardPublishDir", dashboardDirectory),
+                Property("TerminalHostPublishDir", Path.GetDirectoryName(TerminalHostPath(root, rid))!),
                 Property("ManagedProjectPath", managed),
                 Property("DashboardProjectPath", dashboard),
                 Property("TerminalHostProjectPath", terminal),
@@ -366,8 +560,129 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
                     Record(component),
                     new XElement("WriteLinesToFile", new XAttribute("File", properties),
                         new XAttribute("Lines", $"{component}|{propertyRecord}"), new XAttribute("Overwrite", "false")),
+                    new XElement("WriteLinesToFile", new XAttribute("File", Path.Combine(root, "cache-properties")),
+                        new XAttribute("Lines", $"{component}|$(NUGET_PACKAGES)|$(RestorePackagesPath)"), new XAttribute("Overwrite", "false")),
                     payloadPath is null ? null : Write(payloadPath, component),
                     tasks))).Save(path);
+        }
+    }
+
+    private static string CreateOrchestrationProject(string root, string rid)
+    {
+        var project = CreateProject(root, rid);
+        var events = Path.Combine(root, "events");
+        var signer = Path.Combine(root, "signer.proj");
+        var archive = Path.Combine(root, "aspire-cli-final.tar.gz");
+        var tray = Path.Combine(root, "tray.proj");
+        var trayExecutable = Path.Combine(root, "artifacts", "tray", "Aspire Tray.app", "Contents", "MacOS", "aspire-tray");
+        var trayArchive = Path.Combine(root, "custom signing path", "AspireTray.zip");
+        var bundle = XDocument.Load(project);
+        bundle.Root!.Element("PropertyGroup")!.Add(
+            Property("BuildScriptPath", Path.Combine(root, OperatingSystem.IsWindows() ? "build.cmd" : "build.sh")),
+            Property("TraySigningArchive", trayArchive),
+            Property("TraySigningProjectPath", signer));
+        var layout = bundle.Root.Elements("Target").Single(target => target.Attribute("Name")!.Value == "_RunCreateLayout");
+        layout.Add(Copy(Path.Combine(root, "layout-dashboard"),
+            Path.Combine(root, "artifacts", "bundle", "aspire-$(BundleVersion)-$(TargetRid).tar.gz")));
+        if (rid.StartsWith("osx-", StringComparison.Ordinal))
+        {
+            layout.Add(Copy(trayExecutable, Path.Combine(root, "layout-tray")));
+        }
+        // The final CLI wrapper, not _PublishNativeCli, must be the only CLI owner.
+        bundle.Root.Add(new XElement("Target", new XAttribute("Name", "_PublishNativeCli"),
+            new XElement("Error", new XAttribute("Text", "The CLI must not publish twice."))));
+        foreach (var target in bundle.Root.Elements("Target").Where(target =>
+            target.Attribute("Name")!.Value is "_VerifyNativeTrayArchive" or "_VerifyWindowsTrayArchive"))
+        {
+            target.AddFirst(Fail("verify"));
+            target.Add(Write(Path.Combine(root, "require-tray-signature"),
+                rid.StartsWith("osx-", StringComparison.Ordinal) ? "$(RequireMacTraySignature)" : "$(RequireWindowsTraySignature)"));
+        }
+        bundle.Save(project);
+        var trayProject = XDocument.Load(tray);
+        trayProject.Root!.Add(Phase("PrepareTraySigning", "prepare-tray", Copy(trayExecutable, "$(TraySigningArchive)")),
+            Phase("RestoreSignedTray", "restore-tray", Copy("$(TraySigningArchive)", "$(TrayAppPath)/Contents/MacOS/aspire-tray")));
+        trayProject.Save(tray);
+        new XDocument(new XElement("Project",
+            new XElement("PropertyGroup",
+                Property("ArtifactsBinDir", Path.Combine(root, "artifacts", "bin") + Path.DirectorySeparatorChar),
+                Property("ArtifactsPackagesDir", root + Path.DirectorySeparatorChar),
+                Property("ArtifactsShippingPackagesDir", Path.Combine(root, "shipping") + Path.DirectorySeparatorChar),
+                Property("VisualStudioSetupInsertionPath", Path.Combine(root, "insertion"))),
+            // Exercise the production evaluation-time archive glob, not a
+            // second synthetic discovery rule that could mask stale evaluation.
+            new XElement("Import", new XAttribute("Project", Path.Combine(RepoRoot.Path, "eng", "Signing.props"))),
+            new XElement("ItemGroup", new XElement("ArchiveToSign",
+                new XAttribute("Include", $"@(ItemsToSign->WithMetadataValue('FullPath', '{archive}'))"))),
+            new XElement("Target", new XAttribute("Name", "Restore")),
+            Phase("SignComponents", "sign-components",
+                Write(Path.Combine(root, "component-archive-exists"), "$([System.IO.File]::Exists('" + archive + "'))"),
+                Write(DashboardPath(root, rid), "signed Dashboard"),
+                new XElement("Exec", new XAttribute("Condition", "!$([MSBuild]::IsOSPlatform('Windows')) and $(TargetRid.StartsWith('osx-'))"),
+                    new XAttribute("Command", $"chmod 644 \"{ManagedPath(root, rid)}\" \"{DashboardPath(root, rid)}\" \"{TerminalHostPath(root, rid)}\""))),
+            Phase("SignTray", "sign-tray", Write("$(TraySigningArchive)", "signed tray")),
+            Phase("NotarizeTray", "notarize-tray"),
+            Phase("BuildCli", "cli",
+                new XElement("Error", new XAttribute("Condition", "'$(SkipNativeBuild)' != ''"),
+                    new XAttribute("Text", "Do not inherit SkipNativeBuild.")),
+                Copy("$(BundlePayloadPath)", Path.Combine(root, "cli-payload")),
+                Write(Path.Combine(root, "cli-properties"), "$(Configuration)|$(TargetRids)|$(VersionSuffix)|$(OfficialBuildId)|$(AspireCliChannel)|$(SkipNativeBuild)|$(RestorePackagesPath)"),
+                Write(archive, "CLI archive")),
+            Phase("SignArchive", "sign-archive",
+                new XElement("Error", new XAttribute("Condition", "'@(ArchiveToSign)' == ''"),
+                    new XAttribute("Text", "Fresh signing evaluation must discover the final archive.")),
+                Write(archive, "signed CLI archive")),
+            Phase("PackCli", "cli-pack", Copy(archive, Path.Combine(root, "cli-package")))))
+            .Save(signer);
+        File.WriteAllText(Path.Combine(root, "build.ps1"), $$"""
+            $ErrorActionPreference = 'Stop'
+            $BuildArguments = $args
+            $properties = @($BuildArguments | Where-Object { $_.StartsWith('/p:') })
+            $project = Join-Path $PSScriptRoot 'signer.proj'
+            $targets = if ($BuildArguments -contains '-build') {
+                @('BuildCli') + $(if ($BuildArguments -contains '-sign') { 'SignArchive' }) + @('PackCli')
+            } else { @('SignComponents') }
+            foreach ($target in $targets) {
+                & dotnet msbuild $project "-t:$target" @properties
+                if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            }
+            """);
+        // SignTray's real implementation signs and then notarizes. Keep those
+        // operations independently fallible in the small subprocess fixture.
+        var signerProject = XDocument.Load(signer);
+        signerProject.Root!.Elements("Target").Single(target => target.Attribute("Name")!.Value == "SignTray")
+            .Add(new XElement("CallTarget", new XAttribute("Targets", "NotarizeTray")));
+        signerProject.Save(signer);
+        var tools = Path.Combine(root, "bin");
+        Directory.CreateDirectory(tools);
+        File.WriteAllText(Path.Combine(root, "codesign.ps1"), $$"""
+            $ErrorActionPreference = 'Stop'
+            if (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'fail-adhoc')) { exit 1 }
+            Add-Content -LiteralPath (Join-Path $PSScriptRoot 'events') -Value 'adhoc'
+            """);
+        WriteLauncher(Path.Combine(root, OperatingSystem.IsWindows() ? "build.cmd" : "build.sh"), Path.Combine(root, "build.ps1"));
+        WriteLauncher(Path.Combine(tools, OperatingSystem.IsWindows() ? "codesign.cmd" : "codesign"), Path.Combine(root, "codesign.ps1"));
+        return project;
+
+        XElement Fail(string phase) => new("Error", new XAttribute("Condition", $"Exists('{Path.Combine(root, "fail-" + phase)}')"),
+            new XAttribute("Text", "Failed " + phase));
+
+        XElement Phase(string name, string phase, params XElement[] tasks) => new("Target",
+            new XAttribute("Name", name), Fail(phase),
+            new XElement("WriteLinesToFile", new XAttribute("File", events),
+                new XAttribute("Lines", phase), new XAttribute("Overwrite", "false")),
+            new XElement("WriteLinesToFile", new XAttribute("File", Path.Combine(root, "cache-properties")),
+                new XAttribute("Lines", $"{phase}|$(NUGET_PACKAGES)|$(RestorePackagesPath)"), new XAttribute("Overwrite", "false")), tasks);
+
+        static void WriteLauncher(string path, string script)
+        {
+            File.WriteAllText(path, OperatingSystem.IsWindows()
+                ? $"@pwsh -NoProfile -File \"{script}\" %*\r\n"
+                : $"#!/bin/sh\nexec pwsh -NoProfile -File \"{script}\" \"$@\"\n");
+            if (!OperatingSystem.IsWindows())
+            {
+                File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            }
         }
     }
 
@@ -412,7 +727,8 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
             UseShellExecute = false
         };
         // Bundle's Exec children must use the same SDK as this MSBuild invocation.
-        start.Environment["PATH"] = Path.GetDirectoryName(dotnet) + Path.PathSeparator + start.Environment["PATH"];
+        start.Environment["PATH"] = Path.Combine(Path.GetDirectoryName(project)!, "bin") + Path.PathSeparator
+            + Path.GetDirectoryName(dotnet) + Path.PathSeparator + start.Environment["PATH"];
         foreach (var (name, value) in environment)
         {
             if (value is null)

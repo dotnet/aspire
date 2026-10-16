@@ -133,39 +133,46 @@ That keeps `build_packages` focused on the shared package feed, and because `ext
 
 Each CLI archive job:
 
-1. Runs `PublishBundleComponents` to publish Managed, Dashboard, TerminalHost,
-   and the Windows/macOS tray once for the target RID.
-2. Verifies Dashboard warnings from that publish's `PublishNativeDashboard.log`.
-3. Runs `PackageBundlePayload` with `PackDcpPackage=true` to produce the
-   Dashboard/DCP packages and bundle archive without publishing components again.
-4. Builds the native CLI archive from the embedded bundle payload.
-5. Uploads packages as `built-nugets-for-{rid}` and archives as
+1. Installs Node for npm packaging.
+2. Invokes `BuildNativeBundle` with `PackDcpPackage=true` to publish, validate,
+   assemble the bundle, and build the CLI archive/tool/npm packages.
+3. Smoke-tests the prepared payload and verifies the final packages.
+4. Uploads packages as `built-nugets-for-{rid}` and archives as
    `cli-native-archives-{rid}`.
 
 This makes the archive job self-sufficient for the RID-specific artifacts it needs.
 
-### Shared bundle phases and the official signing seam
+### Shared native bundle orchestration
 
-`eng/Bundle.proj` owns both phases, used by GitHub and
+`eng/Bundle.proj` owns the ordered build used by GitHub and
 `eng/pipelines/templates/build_sign_native.yml`:
 
 ```bash
-./dotnet.sh msbuild eng/Bundle.proj /t:PublishBundleComponents /p:Configuration=Release /p:TargetRid=linux-x64 /p:ContinuousIntegrationBuild=true
-# Official builds sign the prepared components here.
-./dotnet.sh msbuild eng/Bundle.proj /t:PackageBundlePayload /p:Configuration=Release /p:TargetRid=linux-x64 /p:ContinuousIntegrationBuild=true /p:BundleVersion=ci-bundlepayload
+./dotnet.sh msbuild eng/Bundle.proj /t:BuildNativeBundle /p:Configuration=Release /p:TargetRid=linux-x64 /p:ContinuousIntegrationBuild=true /p:BundleVersion=ci-bundlepayload /p:PackDcpPackage=true
 ```
 
-Both phases require exactly one supported RID and enforce Release in CI.
+The target publishes components once, validates Dashboard warnings, prepares
+macOS JIT entitlements, optionally signs components and the tray, restores Unix
+execute permissions, packages the payload, and invokes the existing CLI
+build/sign/pack flow. `PublishBundleComponents` and `PackageBundlePayload` remain
+independently callable. Packaging never depends on publishing.
+
+All entry points require exactly one supported RID and enforce Release in CI.
 Child processes explicitly receive configuration, RID, CI identity, version
 suffix, official build ID, release-version policy, and CLI channel. Orchestration
-switches are not propagated into component builds.
+switches such as `SkipNativeBuild` are not propagated into children. The native
+GitHub workflow accepts a discrete `versionSuffix`; it does not parse a generated
+MSBuild command string. Other workflows retain their existing version arguments.
 
 On cold CI agents without `NUGET_PACKAGES`, child restores use the repository
 `.packages` cache that Arcade selects for package-target imports. Otherwise,
 NuGet's user-cache default can leave build targets such as Grpc.Tools unimported
 even after restore succeeds. CreateLayout receives that same effective cache
 through `NUGET_PACKAGES`, so DCP discovery does not depend on a warm user cache.
-Caller-supplied `NUGET_PACKAGES` remains respected.
+Caller-supplied `NUGET_PACKAGES` remains respected; an explicit
+`RestorePackagesPath` takes precedence. Every .NET child receives the matching
+`NUGET_PACKAGES` environment so Arcade's package import root follows the restore
+cache; CreateLayout uses that environment for DCP discovery too.
 
 Packaging validates the expected RID/configuration publish files before doing
 work. Missing files fail rather than trigger a fallback publish.
@@ -173,23 +180,31 @@ Dashboard packages, standalone ZIPs, and the bundle consume the same prepared
 Dashboard, excluding symbols. The default standalone `Build` retains its skip
 options and creates the bundle without adding Dashboard/DCP packages.
 
-The macOS symbol cleanup uses `eng/scripts/remove-native-bundle-debug-symbols.ps1`,
-which removes Dashboard symbols and optional TerminalHost symbols without
-changing the published payloads. Behavioral tests execute this script against
-fixture publish directories; signing order is validated by the internal pipeline.
+Signing is explicit: `Sign=false` is unsigned; `Sign=true` requires
+`DotNetSignType=test` or `real`. Real signing additionally requires the
+MicroBuild plugin and an official build identity without dry-run overrides.
+Identity alone never enables signing. Linux lanes disable signing, and public/PR
+official-pipeline runs use their unsigned/test policy rather than attempting real
+tray signing. Only real macOS signing prepares, notarizes, restores, and verifies
+the whole signed tray app. Unsigned macOS still receives ad-hoc JIT entitlements.
 
-Official signing remains between phases: macOS entitlements, symbol cleanup,
-Arcade signing, whole-app tray signing/notarization, signed tray restoration,
-and executable permissions are still pipeline-owned. `PackageBundlePayload`
-has no dependency on publishing, so these changes survive packaging.
-Official DCP packages remain managed-build-owned; only GitHub sets
-`PackDcpPackage=true`. Source indexing and canonical CLI archive/tool/npm
-packaging are unchanged.
+Fresh build-wrapper processes evaluate Arcade signing globs after component
+publishing and after final CLI archive creation. The standalone bundle project
+does not import `Signing.props`. The existing clipack/`AfterSigning.targets` flow
+is the sole final CLI publisher and builds tool/npm packages from the final
+archive. Final npm signing stays in the cross-RID Windows assembly stage.
 
-Matching build phases does not imply byte equality between unsigned CI and
-signed official outputs, or between different release identities/toolchains.
-The previous GitHub second Dashboard publish could lose CI/version properties;
-the shared preparation now keeps one explicit build identity for all surfaces.
+The pipeline retains SDK/plugin bootstrap, authentication, agents, artifact
+uploads, and smoke tests. Official DCP packages remain managed-build-owned;
+only GitHub sets `PackDcpPackage=true`. Custom tray paths and signing archives
+are forwarded to preparation and restoration. macOS debug-symbol cleanup runs
+before signing discovery.
+
+Behavioral tests run the production MSBuild target graph with small subprocess
+fixtures, validating ordering, failure stops, signed-byte preservation, and fresh
+archive discovery. Real service signing, notarization, and cross-platform Native
+AOT still require GitHub/internal pipeline validation. Matching orchestration
+does not imply byte equality across signing identities or toolchains.
 
 ### Native CLI packaging
 

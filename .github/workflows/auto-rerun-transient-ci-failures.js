@@ -41,6 +41,7 @@ const ignoredFailureStepPatterns = [
     /^Run nuget dependent tests\b/i,
     /^Build test project$/i,
     /^Build and archive test project$/i,
+    /^Build native bundle and CLI packages$/i,
     /^Publish bundle components$/i,
     /^Build bundle payload archive$/i,
     // Keep the previous step name for reruns of older workflow revisions.

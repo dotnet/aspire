@@ -684,7 +684,7 @@ public sealed class TestTriggerMapTests
         },
         {
             "eng/scripts/verify-native-dashboard-warnings.ps1",
-            ["test:Infrastructure.Tests", "job:native-dashboard-validation"]
+            ["test:Aspire.Cli.EndToEnd.Tests", "test:Aspire.Templates.Tests", "test:Infrastructure.Tests", "job:cli-starter-validation", "job:native-dashboard-validation", "job:extension-e2e", "job:homebrew-installer", "job:polyglot", "job:winget-installer"]
         },
         {
             ".github/workflows/native-dashboard-validation.yml",
@@ -1068,10 +1068,13 @@ public sealed class TestTriggerMapTests
             result.Jobs.Order(StringComparer.Ordinal));
     }
 
-    [Fact]
-    public void SharedBundlePhasesSelectRegularRuntimePackageConsumers()
+    [Theory]
+    [InlineData("eng/Bundle.proj")]
+    [InlineData("eng/scripts/verify-native-dashboard-warnings.ps1")]
+    [InlineData("eng/aspire-managed-entitlements.plist")]
+    public void SharedBundlePhasesSelectRegularRuntimePackageConsumers(string path)
     {
-        var result = SelectWithRealMap("eng/Bundle.proj");
+        var result = SelectWithRealMap(path);
 
         Assert.False(result.SelectsAll);
         Assert.Empty(result.UnmatchedFiles);
@@ -1079,7 +1082,7 @@ public sealed class TestTriggerMapTests
             ["Aspire.Cli.EndToEnd.Tests", "Aspire.Templates.Tests", "Infrastructure.Tests"],
             result.TestProjects.Order(StringComparer.Ordinal));
         Assert.Contains(result.TestCauses["Aspire.Templates.Tests"],
-            cause => cause.Kind == CauseKind.PathRule && cause.Trigger == "eng/Bundle.proj");
+            cause => cause.Kind == CauseKind.PathRule && cause.Trigger == path);
         Assert.Equal(
             ["job:cli-starter-validation", "job:extension-e2e", "job:homebrew-installer", "job:native-dashboard-validation", "job:polyglot", "job:winget-installer"],
             result.Jobs.Order(StringComparer.Ordinal));

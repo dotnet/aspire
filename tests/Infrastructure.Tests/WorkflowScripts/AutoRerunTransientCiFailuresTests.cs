@@ -255,6 +255,8 @@ public sealed class AutoRerunTransientCiFailuresTests : IDisposable
 
     [Theory]
     [InlineData("Publish bundle components", true)]
+    [InlineData("Build native bundle and CLI packages", true)]
+    [InlineData("Build native bundle and CLI packages", false)]
     [InlineData("Publish bundle components", false)]
     [InlineData("Build bundle payload archive", true)]
     [InlineData("Build bundle payload archive", false)]
