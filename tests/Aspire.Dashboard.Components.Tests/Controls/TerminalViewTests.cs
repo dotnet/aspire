@@ -335,6 +335,24 @@ public class TerminalViewTests : DashboardTestContext
     }
 
     [Fact]
+    public async Task DisconnectedSizePicker_DisplaysRetainedDimensionsWhileDisabled()
+    {
+        var module = TerminalSetupHelpers.SetupTerminalViewModule(this, "/Components/Controls/TerminalView.razor.js");
+        module.Setup<int>("initTerminal", _ => true).SetResult(1);
+        var cut = Render<TerminalView>(builder => builder.Add(p => p.ResourceName, "shell"));
+        await cut.InvokeAsync(() => cut.Instance.OnTerminalStateChanged(new TerminalToolbarState
+        {
+            TerminalId = 1, Generation = 2, Disconnected = true,
+            Cols = 97, Rows = 38, SizeKey = "97x38"
+        }));
+        var picker = cut.FindComponent<FluentSelect<TerminalSizePreset, string>>().Instance;
+        Assert.True(picker.Disabled);
+        Assert.Equal("97x38", picker.Value);
+        Assert.NotNull(picker.Items);
+        Assert.Equal([new("97x38", "97\u00d738", 97, 38), new TerminalSizePreset("80x24", "80\u00d724", 80, 24)], picker.Items);
+    }
+
+    [Fact]
     public void AutoFit_ChangesDuringInitializationApplyWithoutReconnecting()
     {
         var module = TerminalSetupHelpers.SetupTerminalViewModule(this, "/Components/Controls/TerminalView.razor.js");

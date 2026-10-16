@@ -606,7 +606,8 @@ function connectClient(state) {
     const generation = ++state.generation;
     releaseClient(state);
     state.peer = { id: null, primaryId: null, isPrimary: false };
-    state.geometry = null;
+    // The disabled size picker describes the retained screen until a new frame arrives.
+    state.geometry = state.retainedClient?.client.geometry ?? null;
     state.connected = false;
     state.pendingSizing = null;
     state.autoFitPending = state.autoFit;

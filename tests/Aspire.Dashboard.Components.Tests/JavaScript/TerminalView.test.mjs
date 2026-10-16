@@ -2202,23 +2202,29 @@ test("transport retries retain the last screen until a replacement frame arrives
     assert.equal(original.options.signal.aborted, false);
     assert.equal(terminal.getToolbarState(id).disconnected, true);
     assert.equal(terminal.getTerminalSnapshot(element).screenText, "Final output with graphics");
+    assert.equal(terminal.getToolbarState(id).sizeKey, "100x30");
 
     retry();
+    assert.equal(terminal.getToolbarState(id).sizeKey, "100x30");
+    assert.equal(terminal.getToolbarState(id).sizeSelectEnabled, false);
     attempts[1].reject();
     await settle();
     assert.equal(original.client.disposed, false);
     assert.equal(terminal.getTerminalSnapshot(element).screenText, "Final output with graphics");
     assert.equal(terminal.getToolbarState(id).disconnected, true);
+    assert.equal(terminal.getToolbarState(id).sizeKey, "100x30");
     terminal.setTerminalPalette("light");
     assert.equal(original.client.colorMode, "light");
     retry();
     const replacement = attempts[2];
+    replacement.client.geometry = { columns: 97, rows: 38 };
     replacement.client.screenText = "Reconnected output";
     replacement.resolve();
     await settle();
     assert.equal(original.client.disposed, true);
     assert.equal(original.options.signal.aborted, true);
     assert.equal(terminal.getToolbarState(id).disconnected, false);
+    assert.equal(terminal.getToolbarState(id).sizeKey, "97x38");
     assert.equal(terminal.getTerminalSnapshot(element).screenText, "Reconnected output");
 });
 
