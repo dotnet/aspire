@@ -21,6 +21,7 @@ internal class AppHostRpcTarget(
     PipelineActivityReporter activityReporter,
     IHostApplicationLifetime lifetime,
     DistributedApplicationOptions options,
+    DistributedApplicationExecutionContext executionContext,
     AppHostStartupState startupState,
     IInteractionFileUploadStore fileUploadStore,
     IConfiguration configuration)
@@ -178,6 +179,13 @@ internal class AppHostRpcTarget(
     public async Task<DashboardUrlsState> GetDashboardUrlsAsync(CancellationToken cancellationToken)
     {
         using var activity = profilingTelemetry.StartJsonRpcServerCall(nameof(GetDashboardUrlsAsync), streaming: false);
+        // The run command requests dashboard readiness, but publish mode never starts the
+        // dashboard and relies on the publishing CLI to consume progress and stop the AppHost.
+        if (executionContext.IsPublishMode)
+        {
+            throw new DistributedApplicationException("The AppHost is in publish mode and cannot be started with 'aspire run'. Use 'aspire publish' instead.");
+        }
+
         if (!options.DashboardEnabled)
         {
             logger.LogDebug("Dashboard URL requested but dashboard is disabled.");
