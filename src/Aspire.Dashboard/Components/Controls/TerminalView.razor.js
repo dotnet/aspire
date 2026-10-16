@@ -724,7 +724,7 @@ async function mountClient(state, generation, controller) {
                     // error must release that renderer, not cancel its pending replacement.
                     console.warn("Dashboard retained terminal renderer failed.", message);
                     releaseRetainedClient(state);
-                    state.connectionError = "mount-failed";
+                    state.connectionError = state.ended ? "renderer-failed" : "mount-failed";
                     notifyToolbar(state);
                     return;
                 }

@@ -2496,6 +2496,38 @@ for (const failure of ["mount", "retained", "completed"]) {
     });
 }
 
+test("fatal retained renderer failure after a frameless ended retry preserves completed recovery", async () => {
+    const { id, element } = mount();
+    const original = attempts[0];
+    original.client.screenText = "Retained final output";
+    original.resolve();
+    await settle();
+    original.close(1006);
+    retry();
+    const replacement = attempts[1];
+    replacement.close(4000);
+    replacement.reject();
+    await settle();
+    assert.equal(terminal.getTerminalSnapshot(element).ended, true);
+    assert.equal(terminal.getTerminalSnapshot(element).screenText, "Retained final output");
+    original.options.onStatus("WebGL2 context lost", "error");
+    assert.equal(original.client.disposed, true);
+    assert.equal(original.options.signal.aborted, true);
+    assert.equal(terminal.getTerminalSnapshot(element).screenText, "");
+    assert.equal(terminal.getTerminalSnapshot(element).ended, true);
+    assert.equal(terminal.getToolbarState(id).connectionError, "renderer-failed");
+    assert.equal(terminal.getToolbarState(id).disconnected, true);
+    assert.equal(timers.size, 0);
+    terminal.reconnectTerminal(id, original.options.url);
+    assert.equal(attempts.length, 2);
+    terminal.restartTerminal(id);
+    assert.equal(attempts.length, 3);
+    attempts[2].resolve();
+    await settle();
+    assert.equal(terminal.getToolbarState(id).connected, true);
+    assert.equal(terminal.getToolbarState(id).connectionError, null);
+});
+
 test("fatal completed renderer errors release output without reopening the ended endpoint", async () => {
     const { id, element } = mount();
     const original = attempts[0];
