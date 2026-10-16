@@ -490,7 +490,6 @@ path_rules:
     reason: Infrastructure.Tests validates the Nix flake, package derivation, update script, and release asset manifest; the Nix package smoke runs nix flake check, nix build, and the packaged CLI
   - paths:
       - eng/scripts/download-native-archives.ps1
-      - eng/scripts/remove-native-bundle-debug-symbols.ps1
       - eng/scripts/stage-native-cli-tool-packages.ps1
       - eng/scripts/validate-npm-package-signatures.ps1
       - eng/scripts/validate-npm-release-aliases.ps1

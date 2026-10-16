@@ -58,7 +58,6 @@ jobs:
     outputs:
       skip_workflow: ${{ (steps.check_for_changes.outputs.no_changes == 'true' || steps.check_for_changes.outputs.only_changed == 'true') && 'true' || 'false' }}
       VERSION_SUFFIX_OVERRIDE: ${{ steps.compute_version_suffix.outputs.VERSION_SUFFIX_OVERRIDE }}
-      NATIVE_VERSION_SUFFIX: ${{ steps.compute_version_suffix.outputs.NATIVE_VERSION_SUFFIX }}
       EXTENSION_VERSION_OVERRIDE: ${{ steps.compute_version_suffix.outputs.EXTENSION_VERSION_OVERRIDE }}
       # Re-enable once the .NET 11 dependencies are GA. Export the switch so Final
       # Results can distinguish intentionally disabled PRs from unexpected skips.
@@ -93,7 +92,6 @@ jobs:
             exit 1
           }
           $SHORT_SHA = $Env:PR_HEAD_SHA.Substring(0,8)
-          "NATIVE_VERSION_SUFFIX=pr.$($Env:PR_NUMBER).g$SHORT_SHA" | Out-File -FilePath $Env:GITHUB_OUTPUT -Append -Encoding utf8
           $VERSION_SUFFIX = "/p:VersionSuffix=pr.$($Env:PR_NUMBER).g$SHORT_SHA /p:DotNetFinalVersionKind=prerelease"
           Write-Host "Computed VERSION_SUFFIX_OVERRIDE=$VERSION_SUFFIX"
           "VERSION_SUFFIX_OVERRIDE=$VERSION_SUFFIX" | Out-File -FilePath $Env:GITHUB_OUTPUT -Append -Encoding utf8
@@ -119,7 +117,6 @@ jobs:
     if: ${{ github.repository_owner == 'microsoft' && needs.prepare_for_ci.outputs.skip_workflow != 'true' }}
     with:
       versionOverrideArg: ${{ needs.prepare_for_ci.outputs.VERSION_SUFFIX_OVERRIDE }}
-      nativeVersionSuffix: ${{ needs.prepare_for_ci.outputs.NATIVE_VERSION_SUFFIX }}
       extensionVersionOverride: ${{ needs.prepare_for_ci.outputs.EXTENSION_VERSION_OVERRIDE }}
 
   # Stabilization gate.

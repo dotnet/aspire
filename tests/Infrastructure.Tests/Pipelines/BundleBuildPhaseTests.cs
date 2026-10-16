@@ -105,7 +105,9 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
             File.ReadAllText(Path.Combine(root, "cli-properties")).Trim().Split('|'));
         foreach (var line in File.ReadAllLines(Path.Combine(root, "cache-properties")))
         {
-            Assert.Equal([Path.Combine(root, "restore cache"), Path.Combine(root, "restore cache")], line.Split('|')[1..]);
+            Assert.Equal(
+                [Path.Combine(root, "restore cache"), Path.Combine(root, "restore cache"), Path.Combine(root, "restore cache") + Path.DirectorySeparatorChar],
+                line.Split('|')[1..]);
         }
     }
 
@@ -582,6 +584,12 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
                 Property("TrayAppPath", trayApp),
                 Property("WindowsTrayPath", Path.Combine(root, "artifacts", "tray")),
                 Property("AppHostProjectPath", apphost)),
+            // Test-only entry points exercise the production dependency lists in
+            // isolation without copying their ordering into the fixture.
+            new XElement("Target", new XAttribute("Name", "PublishBundleComponents"),
+                new XAttribute("DependsOnTargets", "$(PublishBundleComponentsDependsOn)")),
+            new XElement("Target", new XAttribute("Name", "PackageBundlePayload"),
+                new XAttribute("DependsOnTargets", "$(PackageBundlePayloadDependsOn)")),
             // Execute the production phase graph and child processes with tiny publish/pack
             // projects. Layout copying substitutes for native execution, not for phase ordering.
             new XElement("Target", new XAttribute("Name", "_RunCreateLayout"),
@@ -622,7 +630,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
                     new XElement("WriteLinesToFile", new XAttribute("File", properties),
                         new XAttribute("Lines", $"{component}|{propertyRecord}"), new XAttribute("Overwrite", "false")),
                     new XElement("WriteLinesToFile", new XAttribute("File", Path.Combine(root, "cache-properties")),
-                        new XAttribute("Lines", $"{component}|$(NUGET_PACKAGES)|$(RestorePackagesPath)"), new XAttribute("Overwrite", "false")),
+                        new XAttribute("Lines", $"{component}|$(NUGET_PACKAGES)|$(RestorePackagesPath)|$(NuGetPackageRoot)"), new XAttribute("Overwrite", "false")),
                     payloadPath is null ? null : Write(payloadPath, component),
                     tasks))).Save(path);
         }
@@ -745,7 +753,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
             new XElement("WriteLinesToFile", new XAttribute("File", events),
                 new XAttribute("Lines", phase), new XAttribute("Overwrite", "false")),
             new XElement("WriteLinesToFile", new XAttribute("File", Path.Combine(root, "cache-properties")),
-                new XAttribute("Lines", $"{phase}|$(NUGET_PACKAGES)|$(RestorePackagesPath)"), new XAttribute("Overwrite", "false")), tasks);
+                new XAttribute("Lines", $"{phase}|$(NUGET_PACKAGES)|$(RestorePackagesPath)|$(NuGetPackageRoot)"), new XAttribute("Overwrite", "false")), tasks);
 
         static void WriteLauncher(string path, string script)
         {

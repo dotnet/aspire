@@ -151,18 +151,39 @@ This makes the archive job self-sufficient for the RID-specific artifacts it nee
 ./dotnet.sh msbuild eng/Bundle.proj /t:BuildNativeBundle /p:Configuration=Release /p:TargetRid=linux-x64 /p:ContinuousIntegrationBuild=true /p:BundleVersion=ci-bundlepayload /p:PackDcpPackage=true
 ```
 
-The target publishes components once, validates Dashboard warnings, prepares
-macOS JIT entitlements, optionally signs components and the tray, restores Unix
-execute permissions, packages the payload, and invokes the existing CLI
-build/sign/pack flow. `PublishBundleComponents` and `PackageBundlePayload` remain
-independently callable. Packaging never depends on publishing.
+The two production entry points serve different callers:
+
+- `Build` is the default, used by `eng/build.sh`, `eng/build.ps1`, and the
+  deployment-tests workflow. It validates configuration, cleans CI caches,
+  publishes components, restores DCP, assembles/verifies the layout, and
+  publishes the CLI unless `SkipNativeBuild=true`. It retains standalone skip
+  options without producing Dashboard/DCP or CLI tool/npm packages.
+- `BuildNativeBundle` is selected explicitly by the GitHub native-archive
+  workflow and the official Azure native template. It validates signing inputs,
+  publishes components once, validates Dashboard warnings, prepares macOS signing
+  inputs, optionally signs components and the tray, restores Unix execute
+  permissions, packages the prepared payload, and invokes the existing CLI
+  build/sign/pack flow.
+
+`BuildDependsOn` and `BuildNativeBundleDependsOn` define those ordered target
+lists near the top of `eng/Bundle.proj`. They compose the shared
+`PublishBundleComponentsDependsOn` list and, for native packaging,
+`PackageBundlePayloadDependsOn`. These are dependency properties, not separately
+callable production targets or a phase framework. Packaging never includes
+publishing, which would overwrite signed files. Behavioral fixtures provide
+test-only entry points into the shared lists to exercise publishing and packaging
+independently.
 
 All entry points require exactly one supported RID and enforce Release in CI.
 Child processes explicitly receive configuration, RID, CI identity, version
 suffix, official build ID, release-version policy, and CLI channel. Orchestration
 switches such as `SkipNativeBuild` are not propagated into children. The native
-GitHub workflow accepts a discrete `versionSuffix`; it does not parse a generated
-MSBuild command string. Other workflows retain their existing version arguments.
+GitHub workflow uses the shared `versionOverrideArg` MSBuild argument string,
+passing it through a response file so MSBuild handles multiple switches and
+quoted values without shell evaluation. When an override is present, the native
+calling script appends `DotNetFinalVersionKind=prerelease` after the response
+file. The existing CI producer and nonnative consumers keep their version
+arguments unchanged.
 
 On cold CI agents without `NUGET_PACKAGES`, child restores use the repository
 `.packages` cache that Arcade selects for package-target imports. Otherwise,
@@ -200,8 +221,15 @@ archive. Final npm signing stays in the cross-RID Windows assembly stage.
 The pipeline retains SDK/plugin bootstrap, authentication, agents, artifact
 uploads, and smoke tests. Official DCP packages remain managed-build-owned;
 only GitHub sets `PackDcpPackage=true`. Custom tray paths and signing archives
-are forwarded to preparation and restoration. macOS debug-symbol cleanup runs
-before signing discovery.
+are forwarded to preparation and restoration. macOS debug-symbol cleanup uses
+MSBuild's `RemoveDir` before signing discovery. Missing Dashboard symbols fail
+the cleanup; TerminalHost symbols are optional.
+
+Tray archive preparation and signed-app restoration use the `MSBuild` task
+with explicit identity, cache, and path properties. They operate on files inside
+their targets and do not require fresh project evaluation. Tray signing retains
+`dotnet msbuild -restore` so restored MicroBuild targets are imported before
+`SignTray` executes.
 
 Behavioral tests run the production MSBuild target graph with small subprocess
 fixtures, validating ordering, failure stops, signed-byte preservation, and fresh

@@ -3,7 +3,7 @@ name: Build native CLI archives
 on:
   workflow_call:
     inputs:
-      versionSuffix:
+      versionOverrideArg:
         required: false
         type: string
       configuration:
@@ -78,7 +78,7 @@ jobs:
         env:
           BUNDLE_CONFIGURATION: ${{ inputs.configuration }}
           BUNDLE_TARGET_RID: ${{ matrix.targets.rids }}
-          BUNDLE_VERSION_SUFFIX: ${{ inputs.versionSuffix }}
+          VERSION_OVERRIDE_ARGS: ${{ inputs.versionOverrideArg }}
         run: |
           $dotnetScript = if ($IsWindows) { "./dotnet.cmd" } else { "./dotnet.sh" }
           $arguments = @(
@@ -93,8 +93,14 @@ jobs:
             "/p:AspireCliChannel=$env:ASPIRE_CLI_CHANNEL",
             "/bl:$env:GITHUB_WORKSPACE/artifacts/log/$env:BUNDLE_CONFIGURATION/BuildNativeBundle.binlog"
           )
-          if ($env:BUNDLE_VERSION_SUFFIX) {
-            $arguments += "/p:VersionSuffix=$env:BUNDLE_VERSION_SUFFIX", "/p:DotNetFinalVersionKind=prerelease"
+          if (-not [string]::IsNullOrWhiteSpace($env:VERSION_OVERRIDE_ARGS)) {
+            # For example: /p:VersionSuffix=pr.123.gabcdef12 /p:DotNetFinalVersionKind=prerelease
+            # "--" leaves response-file parsing to MSBuild; dotnet otherwise
+            # expands each response-file line as a single argument.
+            $responseFile = Join-Path $env:GITHUB_WORKSPACE "artifacts/log/$env:BUNDLE_CONFIGURATION/NativeVersionOverride.rsp"
+            New-Item -ItemType Directory -Path (Split-Path $responseFile) -Force | Out-Null
+            Set-Content -LiteralPath $responseFile -Value $env:VERSION_OVERRIDE_ARGS -Encoding utf8
+            $arguments += "--", "@$responseFile", "/p:DotNetFinalVersionKind=prerelease"
           }
 
           & $dotnetScript @arguments

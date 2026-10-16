@@ -4,9 +4,6 @@ name: Tests
 on:
   workflow_call:
     inputs:
-      nativeVersionSuffix:
-        required: false
-        type: string
       versionOverrideArg:
         required: false
         type: string
@@ -265,14 +262,14 @@ jobs:
     name: Build native CLI archive (Linux)
     uses: ./.github/workflows/build-cli-native-archives.yml
     with:
-      versionSuffix: ${{ inputs.nativeVersionSuffix }}
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
       targets: '[{"os": "ubuntu-latest", "runner": "8-core-ubuntu-latest", "rids": "linux-x64"}]'
 
   build_cli_archive_linux_arm64:
     name: Build native CLI archive (Linux ARM64)
     uses: ./.github/workflows/build-cli-native-archives.yml
     with:
-      versionSuffix: ${{ inputs.nativeVersionSuffix }}
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
       targets: '[{"os": "ubuntu-latest", "runner": "ubuntu-24.04-arm", "rids": "linux-arm64"}]'
 
   # Per-OS CLI archive builds produce RID-specific DCP and Dashboard NuGets.
@@ -283,14 +280,14 @@ jobs:
     name: Build native CLI archive (Windows)
     uses: ./.github/workflows/build-cli-native-archives.yml
     with:
-      versionSuffix: ${{ inputs.nativeVersionSuffix }}
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
       targets: '[{"os": "windows-latest", "runner": "windows-latest", "rids": "win-x64"}]'
 
   build_cli_archive_windows_arm64:
     name: Build native CLI archive (Windows ARM64)
     uses: ./.github/workflows/build-cli-native-archives.yml
     with:
-      versionSuffix: ${{ inputs.nativeVersionSuffix }}
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
       # Use the newer VS 2026 ARM linker; the VS 2022 image fails on Aspire.Dashboard.obj with LNK1322.
       targets: '[{"os": "windows-latest", "runner": "windows-11-vs2026-arm", "rids": "win-arm64"}]'
 
@@ -298,14 +295,14 @@ jobs:
     name: Build native CLI archive (macOS)
     uses: ./.github/workflows/build-cli-native-archives.yml
     with:
-      versionSuffix: ${{ inputs.nativeVersionSuffix }}
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
       targets: '[{"os": "macos-latest", "runner": "macos-latest", "rids": "osx-arm64"}]'
 
   build_cli_archive_macos_x64:
     name: Build native CLI archive (macOS x64)
     uses: ./.github/workflows/build-cli-native-archives.yml
     with:
-      versionSuffix: ${{ inputs.nativeVersionSuffix }}
+      versionOverrideArg: ${{ inputs.versionOverrideArg }}
       # Cross-compile osx-x64 on the Apple Silicon (arm64) macos-latest runner
       # instead of the Intel macos-15-intel runner. The Intel runner is ~2.5x
       # slower per core and made this the long pole of the CLI build (~18m vs

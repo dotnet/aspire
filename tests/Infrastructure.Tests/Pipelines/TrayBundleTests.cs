@@ -236,14 +236,6 @@ public sealed class TrayBundleTests(ITestOutputHelper output)
             result.Jobs.Order(StringComparer.Ordinal));
     }
 
-    [Fact]
-    public void BundleUsesProductTrayProjectAndOutputDirectory()
-    {
-        var project = LoadProject("eng/Bundle.proj");
-        Assert.Equal(@"$(RepoRoot)src\Aspire.Tray\Mac\Aspire.Tray.Mac.csproj", Assert.Single(project.Descendants("TrayProjectPath")).Value);
-        Assert.Equal(@"$(ArtifactsDir)bin\Aspire.Tray.Mac\$(Configuration)\net10.0\$(TargetRid)\app\Aspire Tray.app", Assert.Single(project.Descendants("TrayAppPath")).Value);
-    }
-
     [Theory]
     [InlineData("win-x64")]
     [InlineData("win-arm64")]

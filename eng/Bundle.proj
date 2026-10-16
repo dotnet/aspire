@@ -4,22 +4,26 @@
 
     Usage: dotnet msbuild eng/Bundle.proj /p:TargetRid=linux-x64 /p:Configuration=Release
 
-    This project:
-    1. Publishes Aspire.Managed as self-contained and Dashboard/TerminalHost with Native AOT
-    2. Publishes the native Windows/macOS tray (even with SkipNativeBuild=true)
-    3. Restores DCP package
-    4. Runs CreateLayout to assemble the bundle
-    5. Publishes native CLI with the embedded payload (unless SkipNativeBuild=true)
+    Entry points and major steps:
+    - Build (default): Used by eng/build.sh, eng/build.ps1, and deployment tests.
+      Validate and clean caches -> publish components -> restore DCP -> assemble
+      and verify the bundle layout -> publish the CLI unless SkipNativeBuild=true.
+      This standalone path does not produce Dashboard/DCP or CLI tool/npm packages.
+    - BuildNativeBundle: Selected explicitly by GitHub native-archive CI and the
+      official build_sign_native.yml template.
+      Validate signing inputs -> publish components -> validate Dashboard warnings
+      -> prepare macOS signing inputs -> optionally sign components and tray
+      -> restore execute permissions -> package prepared payload -> build/sign/pack CLI.
+      The existing clipack/AfterSigning flow owns the final CLI publish and packages.
 
-    Targets:
-    - BuildNativeBundle: Publish, validate, optionally sign, bundle, and pack the native CLI
-    - PublishBundleComponents: Prepare component publishes before optional signing
-    - PackageBundlePayload: Package prepared components without publishing them
+    The dependency properties below define execution order. Publishing prepares
+    Aspire.Managed, Native AOT Dashboard/TerminalHost, and the platform tray.
+    Packaging consumes those prepared files without republishing signed inputs.
 
     Options:
     - SkipNativeBuild=true: Skip building native CLI (use pre-built from artifacts)
     - SkipManagedBuild=true: Skip building managed projects (use pre-built)
-    - PackDcpPackage=true: Also produce the RID-specific DCP package during PackageBundlePayload
+    - PackDcpPackage=true: Also produce the RID-specific DCP package during native payload packaging
     - SkipTrayBuild=true: Use a pre-built native tray (required after official signing)
     - TrayAppPath: Override the pre-built macOS app directory
     - WindowsTrayPath: Override the pre-built Windows tray publish directory
@@ -29,6 +33,43 @@
 
   <!-- Import Versions.props for version info -->
   <Import Project="Versions.props" />
+
+  <PropertyGroup>
+    <PublishBundleComponentsDependsOn>
+      _ValidateBundleConfiguration;
+      _PublishManagedProjects;
+      _PublishNativeTray
+    </PublishBundleComponentsDependsOn>
+    <!-- Never add publishing here: republishing would overwrite signed inputs. -->
+    <PackageBundlePayloadDependsOn>
+      _ValidateBundleConfiguration;
+      _ValidatePreparedBundle;
+      _PackDashboardPackage;
+      _PackDcpPackage;
+      _RestoreDcpPackage;
+      _RunCreateLayout
+    </PackageBundlePayloadDependsOn>
+    <BuildDependsOn>
+      _ShowBanner;
+      _CleanCaches;
+      $(PublishBundleComponentsDependsOn);
+      _RestoreDcpPackage;
+      _RunCreateLayout;
+      _PublishNativeCli
+    </BuildDependsOn>
+    <BuildNativeBundleDependsOn>
+      _ValidateAndSetNativeBundleSigningProperties;
+      $(PublishBundleComponentsDependsOn);
+      _ValidateDashboardWarnings;
+      _PrepareMacOSBundleSigning;
+      _RemoveMacOSBundleDebugSymbols;
+      _SignBundleComponents;
+      _SignMacOSBundleTray;
+      _RestoreBundleExecutePermissions;
+      $(PackageBundlePayloadDependsOn);
+      _BuildNativePackages
+    </BuildNativeBundleDependsOn>
+  </PropertyGroup>
 
   <PropertyGroup>
     <!-- Configuration -->
@@ -53,12 +94,12 @@
     <TerminalHostProjectPath>$(RepoRoot)src\Aspire.TerminalHost\Aspire.TerminalHost.csproj</TerminalHostProjectPath>
     <AppHostProjectPath>$(RepoRoot)src\Aspire.Hosting.AppHost\Aspire.Hosting.AppHost.csproj</AppHostProjectPath>
     <CreateLayoutProjectPath>$(RepoRoot)tools\CreateLayout\CreateLayout.csproj</CreateLayoutProjectPath>
-    <DashboardPackProjectPath>$(RepoRoot)eng\dashboardpack\Aspire.Dashboard.Sdk.$(TargetRid).csproj</DashboardPackProjectPath>
-    <DcpPackProjectPath>$(RepoRoot)eng\dcppack\Aspire.Hosting.Orchestration.$(TargetRid).csproj</DcpPackProjectPath>
+    <DashboardPackProjectPath>$([MSBuild]::NormalizePath('$(RepoRoot)', 'eng', 'dashboardpack', 'Aspire.Dashboard.Sdk.$(TargetRid).csproj'))</DashboardPackProjectPath>
+    <DcpPackProjectPath>$([MSBuild]::NormalizePath('$(RepoRoot)', 'eng', 'dcppack', 'Aspire.Hosting.Orchestration.$(TargetRid).csproj'))</DcpPackProjectPath>
     <TrayProjectPath>$(RepoRoot)src\Aspire.Tray\Mac\Aspire.Tray.Mac.csproj</TrayProjectPath>
-    <TrayAppPath Condition="'$(TrayAppPath)' == ''">$(ArtifactsDir)bin\Aspire.Tray.Mac\$(Configuration)\net10.0\$(TargetRid)\app\Aspire Tray.app</TrayAppPath>
+    <TrayAppPath Condition="'$(TrayAppPath)' == ''">$([MSBuild]::NormalizePath('$(ArtifactsDir)', 'bin', 'Aspire.Tray.Mac', '$(Configuration)', '$(DefaultTargetFramework)', '$(TargetRid)', 'app', 'Aspire Tray.app'))</TrayAppPath>
     <WindowsTrayProjectPath>$(RepoRoot)src\Aspire.Tray\Windows\Aspire.Tray.Windows.csproj</WindowsTrayProjectPath>
-    <WindowsTrayPath Condition="'$(WindowsTrayPath)' == ''">$(ArtifactsDir)bin\Aspire.Tray.Windows\$(Configuration)\net10.0\$(TargetRid)\publish</WindowsTrayPath>
+    <WindowsTrayPath Condition="'$(WindowsTrayPath)' == ''">$([MSBuild]::NormalizeDirectory('$(ArtifactsDir)', 'bin', 'Aspire.Tray.Windows', '$(Configuration)', '$(DefaultTargetFramework)', '$(TargetRid)', 'publish'))</WindowsTrayPath>
     <RequireWindowsTraySignature Condition="'$(RequireWindowsTraySignature)' == ''">false</RequireWindowsTraySignature>
     <RequireMacTraySignature Condition="'$(RequireMacTraySignature)' == ''">false</RequireMacTraySignature>
 
@@ -69,14 +110,17 @@
 
     <ContinuousIntegrationBuild Condition="'$(ContinuousIntegrationBuild)' == ''">false</ContinuousIntegrationBuild>
     <Sign Condition="'$(Sign)' == ''">false</Sign>
-    <BuildScriptPath Condition="'$(BuildScriptPath)' == '' and $([MSBuild]::IsOSPlatform('Windows'))">$(RepoRoot)build.cmd</BuildScriptPath>
-    <BuildScriptPath Condition="'$(BuildScriptPath)' == ''">$(RepoRoot)build.sh</BuildScriptPath>
-    <ManagedPublishDir Condition="'$(ManagedPublishDir)' == ''">$(ArtifactsDir)bin\Aspire.Managed\$(Configuration)\net10.0\$(TargetRid)\publish</ManagedPublishDir>
-    <DashboardPublishDir Condition="'$(DashboardPublishDir)' == ''">$(ArtifactsDir)bin\Aspire.Dashboard\$(TargetRid)\$(Configuration)\net11.0\$(TargetRid)\publish</DashboardPublishDir>
-    <TerminalHostPublishDir Condition="'$(TerminalHostPublishDir)' == ''">$(ArtifactsDir)bin\Aspire.TerminalHost\$(Configuration)\net11.0\$(TargetRid)\publish</TerminalHostPublishDir>
-    <TraySigningProjectPath Condition="'$(TraySigningProjectPath)' == ''">$(RepoRoot)eng\pipelines\SignTray.proj</TraySigningProjectPath>
-    <TraySigningArchive Condition="'$(TraySigningArchive)' == ''">$(ArtifactsDir)bin\Aspire.Tray.Mac\$(Configuration)\net10.0\$(TargetRid)\signing\AspireTray.zip</TraySigningArchive>
-    <DashboardPublishLogPath>$(ArtifactsLogDir)PublishNativeDashboard.log</DashboardPublishLogPath>
+
+    <BuildScriptPath Condition="'$(BuildScriptPath)' == '' and $([MSBuild]::IsOSPlatform('Windows'))">$([MSBuild]::NormalizePath('$(RepoRoot)', 'build.cmd'))</BuildScriptPath>
+    <BuildScriptPath Condition="'$(BuildScriptPath)' == ''">$([MSBuild]::NormalizePath('$(RepoRoot)', 'build.sh'))</BuildScriptPath>
+
+    <ManagedPublishDir Condition="'$(ManagedPublishDir)' == ''">$([MSBuild]::NormalizeDirectory('$(ArtifactsDir)', 'bin', 'Aspire.Managed', '$(Configuration)', '$(DefaultTargetFramework)', '$(TargetRid)', 'publish'))</ManagedPublishDir>
+    <DashboardPublishDir Condition="'$(DashboardPublishDir)' == ''">$([MSBuild]::NormalizeDirectory('$(ArtifactsDir)', 'bin', 'Aspire.Dashboard', '$(TargetRid)', '$(Configuration)', '$(AspireDashboardTargetFramework)', '$(TargetRid)', 'publish'))</DashboardPublishDir>
+    <TerminalHostPublishDir Condition="'$(TerminalHostPublishDir)' == ''">$([MSBuild]::NormalizeDirectory('$(ArtifactsDir)', 'bin', 'Aspire.TerminalHost', '$(Configuration)', '$(AspireTerminalHostTargetFramework)', '$(TargetRid)', 'publish'))</TerminalHostPublishDir>
+
+    <TraySigningProjectPath Condition="'$(TraySigningProjectPath)' == ''">$([MSBuild]::NormalizePath('$(RepoRoot)', 'eng', 'pipelines', 'SignTray.proj'))</TraySigningProjectPath>
+    <TraySigningArchive Condition="'$(TraySigningArchive)' == ''">$([MSBuild]::NormalizePath('$(ArtifactsDir)', 'bin', 'Aspire.Tray.Mac', '$(Configuration)', '$(DefaultTargetFramework)', '$(TargetRid)', 'signing', 'AspireTray.zip'))</TraySigningArchive>
+    <DashboardPublishLogPath>$([MSBuild]::NormalizePath('$(ArtifactsLogDir)', 'PublishNativeDashboard.log'))</DashboardPublishLogPath>
 
     <!-- Exec does not inherit MSBuild properties. Forward build identity explicitly,
          but not orchestration switches such as SkipNativeBuild, which would disable
@@ -86,38 +130,50 @@
          dotnet restore otherwise uses the user cache. Match those locations on
          cold agents so Grpc.Tools targets are imported and protobufs generated.
          Respect an existing NUGET_PACKAGES cache supplied by the caller. -->
-    <_BundleNuGetCache Condition="'$(RestorePackagesPath)' != ''">$(RestorePackagesPath)</_BundleNuGetCache>
-    <_BundleNuGetCache Condition="'$(_BundleNuGetCache)' == '' and '$(NUGET_PACKAGES)' != ''">$(NUGET_PACKAGES)</_BundleNuGetCache>
-    <_BundleNuGetCache Condition="'$(_BundleNuGetCache)' == '' and '$(ContinuousIntegrationBuild)' == 'true' and '$(NUGET_PACKAGES)' == ''">$(RepoRoot).packages</_BundleNuGetCache>
-    <_BundleChildArgs Condition="'$(_BundleNuGetCache)' != ''">$(_BundleChildArgs) "/p:RestorePackagesPath=$(_BundleNuGetCache)"</_BundleChildArgs>
-    <!-- Arcade's NuGetPackageRoot (used by generated package imports) follows
-         NUGET_PACKAGES, not RestorePackagesPath. Every .NET child needs both
-         aligned; CreateLayout also discovers DCP through this environment. -->
+    <_BundleNuGetCache Condition="'$(RestorePackagesPath)' != ''">$([MSBuild]::EnsureTrailingSlash('$(RestorePackagesPath)'))</_BundleNuGetCache>
+    <_BundleNuGetCache Condition="'$(_BundleNuGetCache)' == '' and '$(NUGET_PACKAGES)' != ''">$([MSBuild]::EnsureTrailingSlash('$(NUGET_PACKAGES)'))</_BundleNuGetCache>
+    <_BundleNuGetCache Condition="'$(_BundleNuGetCache)' == '' and '$(ContinuousIntegrationBuild)' == 'true' and '$(NUGET_PACKAGES)' == ''">$([MSBuild]::NormalizeDirectory('$(RepoRoot)', '.packages'))</_BundleNuGetCache>
+    <!-- Arcade's NuGetPackageRoot drives generated package imports and DcpDir
+         in Directory.Build.props. Keep it aligned with RestorePackagesPath. -->
+    <_BundleNuGetRoot Condition="'$(_BundleNuGetCache)' != ''">$([MSBuild]::EnsureTrailingSlash('$(_BundleNuGetCache)'))</_BundleNuGetRoot>
+    <_BundleChildArgs Condition="'$(_BundleNuGetCache)' != ''">$(_BundleChildArgs) "/p:RestorePackagesPath=$(_BundleNuGetCache)" "/p:NuGetPackageRoot=$(_BundleNuGetRoot)"</_BundleChildArgs>
+    <!-- CreateLayout discovers DCP from this cache path. -->
     <_BundleChildEnvironment Condition="'$(_BundleNuGetCache)' != ''">NUGET_PACKAGES=$(_BundleNuGetCache)</_BundleChildEnvironment>
+
     <_BundleChildArgs Condition="'$(VersionSuffix)' != ''">$(_BundleChildArgs) /p:VersionSuffix=$(VersionSuffix)</_BundleChildArgs>
-    <_BundleChildArgs Condition="'$(OfficialBuildId)' != ''">$(_BundleChildArgs) /p:OfficialBuildId=$(OfficialBuildId)</_BundleChildArgs>
     <_BundleChildArgs Condition="'$(DotNetFinalVersionKind)' != ''">$(_BundleChildArgs) /p:DotNetFinalVersionKind=$(DotNetFinalVersionKind)</_BundleChildArgs>
     <_BundleChildArgs Condition="'$(StabilizePackageVersion)' != ''">$(_BundleChildArgs) /p:StabilizePackageVersion=$(StabilizePackageVersion)</_BundleChildArgs>
+
+    <!-- Official build identity -->
+    <_BundleChildArgs Condition="'$(OfficialBuildId)' != ''">$(_BundleChildArgs) /p:OfficialBuildId=$(OfficialBuildId)</_BundleChildArgs>
     <_BundleChildArgs Condition="'$(IsOfficialBuild)' != ''">$(_BundleChildArgs) /p:IsOfficialBuild=$(IsOfficialBuild)</_BundleChildArgs>
     <_BundleChildArgs Condition="'$(OfficialBuild)' != ''">$(_BundleChildArgs) /p:OfficialBuild=$(OfficialBuild)</_BundleChildArgs>
+
     <_BundleChildArgs Condition="'$(AspireCliChannel)' != ''">$(_BundleChildArgs) /p:AspireCliChannel=$(AspireCliChannel)</_BundleChildArgs>
+
+    <!-- Tray preparation/restoration need no fresh evaluation. Task calls inherit
+         global properties; forward locally evaluated identity and cache values too. -->
+    <_BundleTrayProperties>Configuration=$(Configuration);TargetRid=$(TargetRid);RuntimeIdentifier=$(TargetRid);ContinuousIntegrationBuild=$(ContinuousIntegrationBuild);VersionPrefix=$(VersionPrefix);TrayAppPath=$(TrayAppPath);TraySigningArchive=$(TraySigningArchive)</_BundleTrayProperties>
+    <_BundleTrayProperties Condition="'$(_BundleNuGetCache)' != ''">$(_BundleTrayProperties);RestorePackagesPath=$(_BundleNuGetCache);NuGetPackageRoot=$(_BundleNuGetRoot)</_BundleTrayProperties>
+    <_BundleTrayProperties Condition="'$(VersionSuffix)' != ''">$(_BundleTrayProperties);VersionSuffix=$(VersionSuffix)</_BundleTrayProperties>
+    <_BundleTrayProperties Condition="'$(DotNetFinalVersionKind)' != ''">$(_BundleTrayProperties);DotNetFinalVersionKind=$(DotNetFinalVersionKind)</_BundleTrayProperties>
+    <_BundleTrayProperties Condition="'$(StabilizePackageVersion)' != ''">$(_BundleTrayProperties);StabilizePackageVersion=$(StabilizePackageVersion)</_BundleTrayProperties>
+    <_BundleTrayProperties Condition="'$(OfficialBuildId)' != ''">$(_BundleTrayProperties);OfficialBuildId=$(OfficialBuildId)</_BundleTrayProperties>
+    <_BundleTrayProperties Condition="'$(IsOfficialBuild)' != ''">$(_BundleTrayProperties);IsOfficialBuild=$(IsOfficialBuild)</_BundleTrayProperties>
+    <_BundleTrayProperties Condition="'$(OfficialBuild)' != ''">$(_BundleTrayProperties);OfficialBuild=$(OfficialBuild)</_BundleTrayProperties>
+    <_BundleTrayProperties Condition="'$(AspireCliChannel)' != ''">$(_BundleTrayProperties);AspireCliChannel=$(AspireCliChannel)</_BundleTrayProperties>
   </PropertyGroup>
+
+  <ItemGroup>
+    <_SupportedBundleRid Include="win-x64;win-arm64;osx-x64;osx-arm64;linux-x64;linux-arm64;linux-musl-x64" />
+  </ItemGroup>
 
   <!-- Each wrapper invocation is a fresh evaluation: Signing.props discovers files
        with evaluation-time globs, including archives that do not exist until Pack.
        The clipack/AfterSigning flow owns the final CLI publish and package signing. -->
-  <Target Name="BuildNativeBundle" DependsOnTargets="
-    _ValidateNativeBundleSigning;
-    PublishBundleComponents;
-    _ValidateDashboardWarnings;
-    _PrepareBundleSigning;
-    _SignBundleComponents;
-    _SignBundleTray;
-    _RestoreBundleExecutePermissions;
-    PackageBundlePayload;
-    _BuildNativePackages" />
+  <Target Name="BuildNativeBundle" DependsOnTargets="$(BuildNativeBundleDependsOn)" />
 
-  <Target Name="_ValidateNativeBundleSigning" DependsOnTargets="_ValidateBundleConfiguration">
+  <Target Name="_ValidateAndSetNativeBundleSigningProperties" DependsOnTargets="_ValidateBundleConfiguration">
     <!-- These discrete values are forwarded to shell children, never parsed as
          command strings. Reject shell syntax before any child is launched. -->
     <Error Condition="'$(VersionSuffix)' != '' and !$([System.Text.RegularExpressions.Regex]::IsMatch('$(VersionSuffix)', '^[A-Za-z0-9][A-Za-z0-9.-]*$'))"
@@ -158,63 +214,69 @@
     <Exec Command="pwsh -NoProfile -File &quot;$(RepoRoot)eng/scripts/verify-native-dashboard-warnings.ps1&quot; -BuildLog &quot;$(DashboardPublishLogPath)&quot;" />
   </Target>
 
-  <Target Name="_PrepareBundleSigning" Condition="$(TargetRid.StartsWith('osx-'))">
+  <Target Name="_PrepareMacOSBundleSigning" Condition="$(TargetRid.StartsWith('osx-'))">
     <!-- MicroBuild preserves these entitlements when re-signing. Without them,
          hardened runtime prevents CoreCLR JIT in aspire-managed. Also needed unsigned. -->
-    <Exec Command="codesign --sign - --force --entitlements &quot;$(RepoRoot)eng/aspire-managed-entitlements.plist&quot; &quot;$(ManagedPublishDir)/aspire-managed&quot;" />
-    <Exec EnvironmentVariables="$(_BundleChildEnvironment)" Condition="'$(Sign)' == 'true' and '$(DotNetSignType)' == 'real'"
-          Command="dotnet msbuild &quot;$(TrayProjectPath)&quot; /t:PrepareTraySigning /p:RuntimeIdentifier=$(TargetRid) /p:TrayAppPath=&quot;$(TrayAppPath)&quot; /p:TraySigningArchive=&quot;$(TraySigningArchive)&quot; $(_BundleChildArgs)" />
-    <!-- ESRP's executable discovery also matches adjacent dSYM DWARF binaries. -->
-    <Exec Condition="'$(Sign)' == 'true'"
-          Command="pwsh -NoProfile -File &quot;$(RepoRoot)eng/scripts/remove-native-bundle-debug-symbols.ps1&quot; -DashboardPublishDirectory &quot;$(DashboardPublishDir)&quot; -TerminalHostPublishDirectory &quot;$(TerminalHostPublishDir)&quot;" />
+    <Exec Command="codesign --sign - --force --entitlements &quot;$(RepoRoot)eng/aspire-managed-entitlements.plist&quot; &quot;$(ManagedPublishDir)aspire-managed&quot;" />
+    <MSBuild Projects="$(TrayProjectPath)"
+             Targets="PrepareTraySigning"
+             Condition="'$(Sign)' == 'true' and '$(DotNetSignType)' == 'real'"
+             Properties="$(_BundleTrayProperties)"
+             RemoveProperties="SkipNativeBuild;SkipManagedBuild;SkipTrayBuild" />
+  </Target>
+
+  <Target Name="_RemoveMacOSBundleDebugSymbols" Condition="$(TargetRid.StartsWith('osx-')) and '$(Sign)' == 'true'">
+    <!-- ESRP discovery also matches executables inside adjacent dSYM bundles.
+         Dashboard symbols are required; TerminalHost does not always emit them. -->
+    <Error Condition="!Exists('$(DashboardPublishDir)Aspire.Dashboard.dSYM')"
+           Text="Dashboard debug symbols are missing: $(DashboardPublishDir)Aspire.Dashboard.dSYM" />
+    <RemoveDir Directories="$(DashboardPublishDir)Aspire.Dashboard.dSYM;$(TerminalHostPublishDir)Aspire.TerminalHost.dSYM" />
   </Target>
 
   <Target Name="_SignBundleComponents" Condition="'$(Sign)' == 'true'">
-    <Exec EnvironmentVariables="$(_BundleChildEnvironment)" Command="&quot;$(BuildScriptPath)&quot; -restore -sign -configuration $(Configuration) -projects &quot;$(ManagedProjectPath)&quot; $(_BundleChildArgs) $(_BundleSigningArgs) &quot;/bl:$(ArtifactsLogDir)SignBundleComponents.binlog&quot;" />
+    <MakeDir Directories="$(ArtifactsLogDir)" />
+    <Exec Command="&quot;$(BuildScriptPath)&quot; -restore -sign -configuration $(Configuration) -projects &quot;$(ManagedProjectPath)&quot; $(_BundleChildArgs) $(_BundleSigningArgs) &quot;/bl:$(ArtifactsLogDir)SignBundleComponents.binlog&quot;"
+          EnvironmentVariables="$(_BundleChildEnvironment)" />
   </Target>
 
-  <Target Name="_SignBundleTray" Condition="$(TargetRid.StartsWith('osx-')) and '$(Sign)' == 'true' and '$(DotNetSignType)' == 'real'">
-    <Exec EnvironmentVariables="$(_BundleChildEnvironment)" Command="dotnet msbuild &quot;$(TraySigningProjectPath)&quot; -restore /t:SignTray /p:RuntimeIdentifier=$(TargetRid) /p:SignType=real /p:TraySigningArchive=&quot;$(TraySigningArchive)&quot; $(_BundleChildArgs) $(_BundleSigningArgs) &quot;/bl:$(ArtifactsLogDir)SignTray.binlog&quot;" />
-    <Exec EnvironmentVariables="$(_BundleChildEnvironment)" Command="dotnet msbuild &quot;$(TrayProjectPath)&quot; /t:RestoreSignedTray /p:RuntimeIdentifier=$(TargetRid) /p:TrayAppPath=&quot;$(TrayAppPath)&quot; /p:TraySigningArchive=&quot;$(TraySigningArchive)&quot; $(_BundleChildArgs)" />
+  <Target Name="_SignMacOSBundleTray" Condition="$(TargetRid.StartsWith('osx-')) and '$(Sign)' == 'true' and '$(DotNetSignType)' == 'real'">
+    <MakeDir Directories="$(ArtifactsLogDir)" />
+    <!-- Restore must finish before a fresh evaluation imports MicroBuild's SignFiles task. -->
+    <Exec Command="dotnet msbuild &quot;$(TraySigningProjectPath)&quot; -restore /t:SignTray /p:RuntimeIdentifier=$(TargetRid) /p:SignType=real /p:TraySigningArchive=&quot;$(TraySigningArchive)&quot; $(_BundleChildArgs) $(_BundleSigningArgs) &quot;/bl:$(ArtifactsLogDir)SignTray.binlog&quot;"
+          EnvironmentVariables="$(_BundleChildEnvironment)" />
+    <MSBuild Projects="$(TrayProjectPath)"
+             Targets="RestoreSignedTray"
+             Properties="$(_BundleTrayProperties)"
+             RemoveProperties="SkipNativeBuild;SkipManagedBuild;SkipTrayBuild" />
   </Target>
 
   <Target Name="_RestoreBundleExecutePermissions" Condition="!$(TargetRid.StartsWith('win-')) and '$(Sign)' == 'true'">
     <!-- MicroBuild replaces signed files, resetting their mode to the agent umask. -->
-    <Exec Command="chmod +x &quot;$(ManagedPublishDir)/aspire-managed&quot; &quot;$(DashboardPublishDir)/Aspire.Dashboard&quot; &quot;$(TerminalHostPublishDir)/Aspire.TerminalHost&quot;" />
+    <Exec Command="chmod +x &quot;$(ManagedPublishDir)aspire-managed&quot; &quot;$(DashboardPublishDir)Aspire.Dashboard&quot; &quot;$(TerminalHostPublishDir)Aspire.TerminalHost&quot;" />
   </Target>
 
   <Target Name="_BuildNativePackages">
-    <Exec EnvironmentVariables="$(_BundleChildEnvironment)" Command="&quot;$(BuildScriptPath)&quot; -ci -restore -build -pack -configuration $(Configuration) $(_BundleSignSwitch) /p:SkipManagedBuild=true /p:TargetRids=$(TargetRid) &quot;/p:BundlePayloadPath=$(ArtifactsDir)bundle/aspire-$(BundleVersion)-$(TargetRid).tar.gz&quot; $(_BundleChildArgs) $(_BundleSigningArgs) &quot;/bl:$(ArtifactsLogDir)BuildNativePackages.binlog&quot;" />
+    <MakeDir Directories="$(ArtifactsLogDir)" />
+    <Exec Command="&quot;$(BuildScriptPath)&quot; -ci -restore -build -pack -configuration $(Configuration) $(_BundleSignSwitch) /p:SkipManagedBuild=true /p:TargetRids=$(TargetRid) &quot;/p:BundlePayloadPath=$(ArtifactsDir)bundle/aspire-$(BundleVersion)-$(TargetRid).tar.gz&quot; $(_BundleChildArgs) $(_BundleSigningArgs) &quot;/bl:$(ArtifactsLogDir)BuildNativePackages.binlog&quot;"
+          EnvironmentVariables="$(_BundleChildEnvironment)" />
   </Target>
 
-  <!-- Main target with conditional dependencies -->
-  <Target Name="Build" DependsOnTargets="
-    _ShowBanner;
-    _CleanCaches;
-    PublishBundleComponents;
-    _RestoreDcpPackage;
-    _RunCreateLayout;
-    _PublishNativeCli">
+  <Target Name="Build" DependsOnTargets="$(BuildDependsOn)">
     <Message Importance="high" Text="" />
     <Message Importance="high" Text="Bundle created at: $(BundleOutputDir)" />
   </Target>
 
   <Target Name="_ValidateBundleConfiguration">
+    <ItemGroup>
+      <_MatchingBundleRid Include="@(_SupportedBundleRid)"
+                          Condition="$([System.String]::Equals('%(_SupportedBundleRid.Identity)', '$(TargetRid)'))" />
+    </ItemGroup>
     <!-- CI archives must exercise the optimized payload that we ship, not Debug Native AOT output. -->
     <Error Condition="'$(ContinuousIntegrationBuild)' == 'true' and '$(Configuration)' != 'Release'"
            Text="CI native bundles must use Configuration=Release." />
-    <Error Condition="!$([System.Text.RegularExpressions.Regex]::IsMatch('$(TargetRid)', '^(win-(x64|arm64)|osx-(x64|arm64)|linux-(x64|arm64)|linux-musl-x64)$'))"
-           Text="TargetRid must be exactly one supported bundle RID, not a RID list: '$(TargetRid)'." />
-    <MakeDir Directories="$(ArtifactsLogDir)" />
+    <Error Condition="'@(_MatchingBundleRid)' == ''"
+           Text="TargetRid must be exactly one supported bundle RID, not a RID list: '$(TargetRid)'. Supported RIDs: @(_SupportedBundleRid, ', ')." />
   </Target>
-
-  <Target Name="PublishBundleComponents"
-          DependsOnTargets="_ValidateBundleConfiguration;_PublishManagedProjects;_PublishNativeTray" />
-
-  <!-- This phase must never depend on PublishBundleComponents: official callers
-       sign the prepared files between phases, and republishing would erase signatures. -->
-  <Target Name="PackageBundlePayload"
-          DependsOnTargets="_ValidateBundleConfiguration;_ValidatePreparedBundle;_PackDashboardPackage;_PackDcpPackage;_RestoreDcpPackage;_RunCreateLayout" />
 
   <Target Name="_ShowBanner" DependsOnTargets="_ValidateBundleConfiguration">
     <Message Importance="high" Text="" />
@@ -230,80 +292,94 @@
 
   <Target Name="_CleanCaches" Condition="'$(ContinuousIntegrationBuild)' == 'true'">
     <Message Importance="high" Text="Cleaning caches to free disk space..." />
-    <Exec EnvironmentVariables="$(_BundleChildEnvironment)" Command="dotnet nuget locals http-cache --clear" IgnoreExitCode="true" StandardOutputImportance="low" />
+    <Exec Command="dotnet nuget locals http-cache --clear" EnvironmentVariables="$(_BundleChildEnvironment)" IgnoreExitCode="true" StandardOutputImportance="low" />
   </Target>
 
   <Target Name="_PublishNativeCli" Condition="'$(SkipNativeBuild)' != 'true'">
+    <MakeDir Directories="$(ArtifactsLogDir)" Condition="'$(ContinuousIntegrationBuild)' == 'true'" />
     <PropertyGroup>
-      <_CliBinlog Condition="'$(ContinuousIntegrationBuild)' == 'true'">"-bl:$(ArtifactsLogDir)PublishCli.binlog"</_CliBinlog>
+      <_CliBinlogArg Condition="'$(ContinuousIntegrationBuild)' == 'true'">-bl:$(ArtifactsLogDir)PublishCli.binlog</_CliBinlogArg>
       <!-- The tar.gz archive produced by CreateLayout is embedded as a resource in the CLI binary -->
-      <_BundleArchivePath>$(ArtifactsDir)bundle\aspire-$(BundleVersion)-$(TargetRid).tar.gz</_BundleArchivePath>
-      <_CliPublishOutputArg Condition="'$(CliPublishDir)' != ''">--output "$(CliPublishDir)"</_CliPublishOutputArg>
+      <_BundleArchivePath>$([MSBuild]::NormalizePath('$(ArtifactsDir)', 'bundle', 'aspire-$(BundleVersion)-$(TargetRid).tar.gz'))</_BundleArchivePath>
+      <_CliPublishOutputArg Condition="'$(CliPublishDir)' != ''">--output "$([MSBuild]::NormalizePath('$(CliPublishDir)'))"</_CliPublishOutputArg>
     </PropertyGroup>
     <Message Importance="high" Text="Publishing native AOT CLI with embedded bundle: $(_BundleArchivePath)" />
-    <Exec EnvironmentVariables="$(_BundleChildEnvironment)" Command="dotnet publish &quot;$(CliProjectPath)&quot; -r $(TargetRid) $(_CliPublishOutputArg) /p:BundlePayloadPath=&quot;$(_BundleArchivePath)&quot; $(_BundleChildArgs) $(_CliBinlog)" />
+    <Exec Command="dotnet publish &quot;$(CliProjectPath)&quot; -r $(TargetRid) $(_CliPublishOutputArg) /p:BundlePayloadPath=&quot;$(_BundleArchivePath)&quot; $(_BundleChildArgs) &quot;$(_CliBinlogArg)&quot;"
+          EnvironmentVariables="$(_BundleChildEnvironment)" />
   </Target>
 
   <Target Name="_PublishManagedProjects" Condition="'$(SkipManagedBuild)' != 'true'">
+    <MakeDir Directories="$(ArtifactsLogDir)" />
     <PropertyGroup>
-      <_ManagedBinlog Condition="'$(ContinuousIntegrationBuild)' == 'true'">"-bl:$(ArtifactsLogDir)PublishManaged.binlog"</_ManagedBinlog>
-      <_DashboardBinlog Condition="'$(ContinuousIntegrationBuild)' == 'true'">"-bl:$(ArtifactsLogDir)PublishDashboard.binlog"</_DashboardBinlog>
-      <_TerminalHostBinlog Condition="'$(ContinuousIntegrationBuild)' == 'true'">"-bl:$(ArtifactsLogDir)PublishTerminalHost.binlog"</_TerminalHostBinlog>
+      <_ManagedBinlogArg Condition="'$(ContinuousIntegrationBuild)' == 'true'">-bl:$(ArtifactsLogDir)PublishManaged.binlog</_ManagedBinlogArg>
+      <_DashboardBinlogArg Condition="'$(ContinuousIntegrationBuild)' == 'true'">-bl:$(ArtifactsLogDir)PublishDashboard.binlog</_DashboardBinlogArg>
+      <_TerminalHostBinlogArg Condition="'$(ContinuousIntegrationBuild)' == 'true'">-bl:$(ArtifactsLogDir)PublishTerminalHost.binlog</_TerminalHostBinlogArg>
     </PropertyGroup>
     <Message Importance="high" Text="Publishing aspire-managed (self-contained)..." />
     <!-- Publish as self-contained single-file for the target RID -->
-    <Exec EnvironmentVariables="$(_BundleChildEnvironment)" Command="dotnet publish &quot;$(ManagedProjectPath)&quot; -r $(TargetRid) --self-contained /p:GenerateDocumentationFile=false /p:EnforceCodeStyleInBuild=false $(_BundleChildArgs) $(_ManagedBinlog)" />
+    <Exec Command="dotnet publish &quot;$(ManagedProjectPath)&quot; -r $(TargetRid) --self-contained /p:GenerateDocumentationFile=false /p:EnforceCodeStyleInBuild=false $(_BundleChildArgs) &quot;$(_ManagedBinlogArg)&quot;"
+          EnvironmentVariables="$(_BundleChildEnvironment)" />
     <Message Importance="high" Text="Publishing Aspire Dashboard (Native AOT)..." />
-    <Exec EnvironmentVariables="$(_BundleChildEnvironment)" Command="dotnet publish &quot;$(DashboardProjectPath)&quot; -r $(TargetRid) /p:PlatformName=$(TargetRid) /p:GenerateDocumentationFile=false /p:EnforceCodeStyleInBuild=false $(_BundleChildArgs) $(_DashboardBinlog) &quot;-flp:logfile=$(DashboardPublishLogPath);verbosity=normal&quot;" />
+    <Exec Command="dotnet publish &quot;$(DashboardProjectPath)&quot; -r $(TargetRid) /p:PlatformName=$(TargetRid) /p:GenerateDocumentationFile=false /p:EnforceCodeStyleInBuild=false $(_BundleChildArgs) &quot;$(_DashboardBinlogArg)&quot; &quot;-flp:logfile=$(DashboardPublishLogPath);verbosity=normal&quot;"
+          EnvironmentVariables="$(_BundleChildEnvironment)" />
     <Message Importance="high" Text="Publishing Aspire TerminalHost (Native AOT)..." />
-    <Exec EnvironmentVariables="$(_BundleChildEnvironment)" Command="dotnet publish &quot;$(TerminalHostProjectPath)&quot; -r $(TargetRid) /p:GenerateDocumentationFile=false /p:EnforceCodeStyleInBuild=false $(_BundleChildArgs) $(_TerminalHostBinlog)" />
+    <Exec Command="dotnet publish &quot;$(TerminalHostProjectPath)&quot; -r $(TargetRid) /p:GenerateDocumentationFile=false /p:EnforceCodeStyleInBuild=false $(_BundleChildArgs) &quot;$(_TerminalHostBinlogArg)&quot;"
+          EnvironmentVariables="$(_BundleChildEnvironment)" />
   </Target>
 
   <Target Name="_ValidatePreparedBundle">
     <PropertyGroup>
-      <_PreparedDashboardDir>$(ArtifactsDir)bin\Aspire.Dashboard\$(TargetRid)\$(Configuration)\net11.0\$(TargetRid)\publish</_PreparedDashboardDir>
+      <_PreparedDashboardDir>$([MSBuild]::NormalizeDirectory('$(ArtifactsDir)', 'bin', 'Aspire.Dashboard', '$(TargetRid)', '$(Configuration)', '$(AspireDashboardTargetFramework)', '$(TargetRid)', 'publish'))</_PreparedDashboardDir>
       <_PreparedExecutableExtension Condition="$(TargetRid.StartsWith('win-'))">.exe</_PreparedExecutableExtension>
       <_PreparedSqliteLibrary>libe_sqlite3.so</_PreparedSqliteLibrary>
       <_PreparedSqliteLibrary Condition="$(TargetRid.StartsWith('win-'))">e_sqlite3.dll</_PreparedSqliteLibrary>
       <_PreparedSqliteLibrary Condition="$(TargetRid.StartsWith('osx-'))">libe_sqlite3.dylib</_PreparedSqliteLibrary>
     </PropertyGroup>
     <ItemGroup>
-      <_RequiredPreparedBundleFile Include="$(ArtifactsDir)bin\Aspire.Managed\$(Configuration)\net10.0\$(TargetRid)\publish\aspire-managed$(_PreparedExecutableExtension)" />
-      <_RequiredPreparedBundleFile Include="$(ArtifactsDir)bin\Aspire.TerminalHost\$(Configuration)\net11.0\$(TargetRid)\publish\Aspire.TerminalHost$(_PreparedExecutableExtension)" />
-      <_RequiredPreparedBundleFile Include="$(_PreparedDashboardDir)\Aspire.Dashboard$(_PreparedExecutableExtension);$(_PreparedDashboardDir)\wwwroot\_framework\blazor.web.js;$(_PreparedDashboardDir)\$(_PreparedSqliteLibrary)" />
-      <_RequiredPreparedBundleFile Include="$(WindowsTrayPath)\aspire-tray.exe;$(WindowsTrayPath)\Aspire.ico" Condition="$(TargetRid.StartsWith('win-'))" />
-      <_RequiredPreparedBundleFile Include="$(TrayAppPath)\Contents\MacOS\aspire-tray;$(TrayAppPath)\Contents\Info.plist;$(TrayAppPath)\Contents\Resources\Aspire.icns" Condition="$(TargetRid.StartsWith('osx-'))" />
+      <_RequiredPreparedBundleFile Include="$(ArtifactsDir)bin\Aspire.Managed\$(Configuration)\$(DefaultTargetFramework)\$(TargetRid)\publish\aspire-managed$(_PreparedExecutableExtension)" />
+      <_RequiredPreparedBundleFile Include="$(ArtifactsDir)bin\Aspire.TerminalHost\$(Configuration)\$(AspireTerminalHostTargetFramework)\$(TargetRid)\publish\Aspire.TerminalHost$(_PreparedExecutableExtension)" />
+      <_RequiredPreparedBundleFile Include="$(_PreparedDashboardDir)Aspire.Dashboard$(_PreparedExecutableExtension);$(_PreparedDashboardDir)wwwroot\_framework\blazor.web.js;$(_PreparedDashboardDir)$(_PreparedSqliteLibrary)" />
+      <_RequiredPreparedBundleFile Include="$(WindowsTrayPath)aspire-tray.exe;$(WindowsTrayPath)Aspire.ico" Condition="$(TargetRid.StartsWith('win-'))" />
+      <_RequiredPreparedBundleFile Include="$(TrayAppPath)Contents\MacOS\aspire-tray;$(TrayAppPath)Contents\Info.plist;$(TrayAppPath)Contents\Resources\Aspire.icns" Condition="$(TargetRid.StartsWith('osx-'))" />
     </ItemGroup>
     <Error Condition="!Exists('%(_RequiredPreparedBundleFile.Identity)')"
-           Text="Prepared bundle input is missing: %(_RequiredPreparedBundleFile.Identity). Run PublishBundleComponents before signing and packaging." />
+           Text="Prepared bundle input is missing: %(_RequiredPreparedBundleFile.Identity). Publish bundle components before signing and packaging." />
   </Target>
 
   <Target Name="_PackDashboardPackage">
-    <Exec EnvironmentVariables="$(_BundleChildEnvironment)" Command="dotnet build &quot;$(DashboardPackProjectPath)&quot; $(_BundleChildArgs) /p:SkipDashboardPublish=true" />
+    <Exec Command="dotnet build &quot;$(DashboardPackProjectPath)&quot; $(_BundleChildArgs) /p:SkipDashboardPublish=true"
+          EnvironmentVariables="$(_BundleChildEnvironment)" />
   </Target>
 
   <Target Name="_PackDcpPackage" Condition="'$(PackDcpPackage)' == 'true'">
-    <Exec EnvironmentVariables="$(_BundleChildEnvironment)" Command="dotnet build &quot;$(DcpPackProjectPath)&quot; $(_BundleChildArgs)" />
+    <Exec Command="dotnet build &quot;$(DcpPackProjectPath)&quot; $(_BundleChildArgs)"
+          EnvironmentVariables="$(_BundleChildEnvironment)" />
   </Target>
 
   <!-- SkipNativeBuild skips the outer CLI publish, not native payload components.
        Official builds publish/sign the app first, then reuse it with SkipTrayBuild. -->
   <Target Name="_PublishNativeTray" Condition="($(TargetRid.StartsWith('osx-')) or $(TargetRid.StartsWith('win-'))) and '$(SkipTrayBuild)' != 'true'">
+    <MakeDir Directories="$(ArtifactsLogDir)" Condition="'$(ContinuousIntegrationBuild)' == 'true'" />
     <PropertyGroup>
-      <_TrayBinlog Condition="'$(ContinuousIntegrationBuild)' == 'true'">"-bl:$(ArtifactsLogDir)PublishTray.binlog"</_TrayBinlog>
+      <_TrayBinlogArg Condition="'$(ContinuousIntegrationBuild)' == 'true'">-bl:$(ArtifactsLogDir)PublishTray.binlog</_TrayBinlogArg>
     </PropertyGroup>
     <Error Condition="$(TargetRid.StartsWith('win-')) and !$([MSBuild]::IsOSPlatform('Windows'))"
            Text="Windows NativeAOT tray publishing requires a Windows build lane." />
     <Error Condition="$(TargetRid.StartsWith('win-')) and '$(TargetRid)' != 'win-x64' and '$(TargetRid)' != 'win-arm64'"
            Text="Windows tray supports only win-x64 and win-arm64." />
     <Message Importance="high" Text="Publishing native tray for $(TargetRid)..." />
-    <Exec EnvironmentVariables="$(_BundleChildEnvironment)" Condition="$(TargetRid.StartsWith('osx-'))" Command="dotnet publish &quot;$(TrayProjectPath)&quot; -r $(TargetRid) /p:TrayAppPath=&quot;$(TrayAppPath)&quot; $(_BundleChildArgs) $(_TrayBinlog)" />
-    <Exec EnvironmentVariables="$(_BundleChildEnvironment)" Condition="$(TargetRid.StartsWith('win-'))" Command="dotnet publish &quot;$(WindowsTrayProjectPath)&quot; -r $(TargetRid) --self-contained --output &quot;$(WindowsTrayPath)&quot; $(_BundleChildArgs) $(_TrayBinlog)" />
+    <Exec Command="dotnet publish &quot;$(TrayProjectPath)&quot; -r $(TargetRid) /p:TrayAppPath=&quot;$(TrayAppPath)&quot; $(_BundleChildArgs) &quot;$(_TrayBinlogArg)&quot;"
+          EnvironmentVariables="$(_BundleChildEnvironment)"
+          Condition="$(TargetRid.StartsWith('osx-'))" />
+    <Exec Command="dotnet publish &quot;$(WindowsTrayProjectPath)&quot; -r $(TargetRid) --self-contained --output &quot;$(WindowsTrayPath)&quot; $(_BundleChildArgs) &quot;$(_TrayBinlogArg)&quot;"
+          EnvironmentVariables="$(_BundleChildEnvironment)"
+          Condition="$(TargetRid.StartsWith('win-'))" />
   </Target>
 
   <Target Name="_RestoreDcpPackage">
+    <MakeDir Directories="$(ArtifactsLogDir)" Condition="'$(ContinuousIntegrationBuild)' == 'true'" />
     <PropertyGroup>
-      <_DcpBinlog Condition="'$(ContinuousIntegrationBuild)' == 'true'">"-bl:$(ArtifactsLogDir)RestoreDcp.binlog"</_DcpBinlog>
+      <_DcpBinlogArg Condition="'$(ContinuousIntegrationBuild)' == 'true'">-bl:$(ArtifactsLogDir)RestoreDcp.binlog</_DcpBinlogArg>
 
       <!-- Map TargetRid to DCP BuildOs/BuildArch so the AppHost restore downloads
            the correct DCP package for the target platform, not the build machine's platform.
@@ -324,7 +400,8 @@
     <Error Condition="'$(_BundleBuildOs)' == '' or '$(_BundleBuildArch)' == ''"
            Text="Could not map TargetRid '$(TargetRid)' to DCP BuildOs/BuildArch. Supported RID patterns: win-x64, win-arm64, linux-x64, linux-arm64, linux-musl-x64, osx-x64, osx-arm64." />
     <Message Importance="high" Text="Restoring DCP package for $(TargetRid) (BuildOs=$(_BundleBuildOs), BuildArch=$(_BundleBuildArch))..." />
-    <Exec EnvironmentVariables="$(_BundleChildEnvironment)" Command="dotnet restore &quot;$(AppHostProjectPath)&quot; /p:BuildOs=$(_BundleBuildOs) /p:BuildArch=$(_BundleBuildArch) $(_BundleChildArgs) $(_DcpBinlog)" />
+    <Exec Command="dotnet restore &quot;$(AppHostProjectPath)&quot; /p:BuildOs=$(_BundleBuildOs) /p:BuildArch=$(_BundleBuildArch) &quot;$(_DcpBinlogArg)&quot; $(_BundleChildArgs)"
+          EnvironmentVariables="$(_BundleChildEnvironment)" />
   </Target>
 
   <Target Name="_RunCreateLayout">
@@ -339,7 +416,8 @@
     </PropertyGroup>
 
     <Message Importance="high" Text="Creating bundle layout..." />
-    <Exec EnvironmentVariables="$(_BundleChildEnvironment)" Command="dotnet run --project &quot;$(CreateLayoutProjectPath)&quot; $(_BundleChildArgs) -- $(_CreateLayoutArgs)" />
+    <Exec Command="dotnet run --project &quot;$(CreateLayoutProjectPath)&quot; $(_BundleChildArgs) -- $(_CreateLayoutArgs)"
+          EnvironmentVariables="$(_BundleChildEnvironment)" />
   </Target>
 
   <!-- Verify the actual tar payload, not the source app. This also runs in the

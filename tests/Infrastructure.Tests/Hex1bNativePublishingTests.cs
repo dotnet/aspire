@@ -375,7 +375,6 @@ public sealed class Hex1bNativePublishingTests : IDisposable
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    [RequiresTools(["pwsh"])]
     public async Task MacOSNativeBundleDebugSymbolsAreRemovedWithoutChangingPayloads(bool terminalSymbols)
     {
         var dashboard = Path.Combine(_workspace.Path, "Dashboard publish");
@@ -388,29 +387,39 @@ public sealed class Hex1bNativePublishingTests : IDisposable
             WriteFile(Path.Combine(terminal, "Aspire.TerminalHost.dSYM", "Contents", "Resources", "DWARF", "Aspire.TerminalHost"), "terminal symbols");
         }
 
-        using var command = new PowerShellCommand(
-            Path.Combine(RepoRoot.Path, "eng", "scripts", "remove-native-bundle-debug-symbols.ps1"), _output);
-        var result = await command.ExecuteAsync("-DashboardPublishDirectory", $"\"{dashboard}\"", "-TerminalHostPublishDirectory", $"\"{terminal}\"");
+        var result = await RunDotNetAsync(
+            ["msbuild", Path.Combine(RepoRoot.Path, "eng", "Bundle.proj"), "-nologo",
+             "-t:_RemoveMacOSBundleDebugSymbols", "-p:TargetRid=osx-arm64", "-p:Sign=true",
+             $"-p:DashboardPublishDir={dashboard}{Path.DirectorySeparatorChar}",
+             $"-p:TerminalHostPublishDir={terminal}{Path.DirectorySeparatorChar}"]);
 
-        result.EnsureSuccessful();
+        Assert.True(result.ExitCode == 0, result.Output);
         Assert.Equal(["Aspire.Dashboard"], Directory.GetFileSystemEntries(dashboard).Select(Path.GetFileName));
         Assert.Equal(["Aspire.TerminalHost"], Directory.GetFileSystemEntries(terminal).Select(Path.GetFileName));
         Assert.Equal("dashboard payload", await File.ReadAllTextAsync(Path.Combine(dashboard, "Aspire.Dashboard")));
         Assert.Equal("terminal payload", await File.ReadAllTextAsync(Path.Combine(terminal, "Aspire.TerminalHost")));
     }
 
-    [Fact]
-    [RequiresTools(["pwsh"])]
-    public async Task MacOSNativeBundleCleanupFailsWhenDashboardSymbolsAreMissing()
+    [Theory]
+    [InlineData("Debug", "osx-arm64")]
+    [InlineData("Release", "osx-x64")]
+    public async Task BundleResolvesProductTrayProjectAndOutputDirectory(string configuration, string rid)
     {
-        var dashboard = Directory.CreateDirectory(Path.Combine(_workspace.Path, "dashboard")).FullName;
-        var terminal = Directory.CreateDirectory(Path.Combine(_workspace.Path, "terminal")).FullName;
-        using var command = new PowerShellCommand(
-            Path.Combine(RepoRoot.Path, "eng", "scripts", "remove-native-bundle-debug-symbols.ps1"), _output);
+        var result = await RunDotNetAsync(
+            ["msbuild", Path.Combine(RepoRoot.Path, "eng", "Bundle.proj"), "-nologo",
+             $"-p:Configuration={configuration}", $"-p:TargetRid={rid}",
+             "-getProperty:TrayProjectPath,TrayAppPath,DefaultTargetFramework"]);
 
-        var result = await command.ExecuteAsync("-DashboardPublishDirectory", $"\"{dashboard}\"", "-TerminalHostPublishDirectory", $"\"{terminal}\"");
-
-        Assert.NotEqual(0, result.ExitCode);
+        Assert.True(result.ExitCode == 0, result.Output);
+        using var document = JsonDocument.Parse(result.StandardOutput);
+        var properties = document.RootElement.GetProperty("Properties");
+        Assert.Equal(
+            Path.Combine(RepoRoot.Path, "src", "Aspire.Tray", "Mac", "Aspire.Tray.Mac.csproj"),
+            Path.GetFullPath(properties.GetProperty("TrayProjectPath").GetString()!));
+        Assert.Equal(
+            Path.Combine(RepoRoot.Path, "artifacts", "bin", "Aspire.Tray.Mac", configuration,
+                properties.GetProperty("DefaultTargetFramework").GetString()!, rid, "app", "Aspire Tray.app"),
+            Path.TrimEndingDirectorySeparator(Path.GetFullPath(properties.GetProperty("TrayAppPath").GetString()!)));
     }
 
     private string CreatePublishProject(string rid, bool singleFile, bool duplicateUnrelatedAsset)

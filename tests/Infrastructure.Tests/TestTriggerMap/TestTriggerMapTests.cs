@@ -750,10 +750,6 @@ public sealed class TestTriggerMapTests
             ["test:Aspire.Cli.EndToEnd.Tests", "test:Aspire.Templates.Tests", "test:Infrastructure.Tests", "job:cli-starter-validation", "job:native-dashboard-validation", "job:extension-e2e", "job:homebrew-installer", "job:polyglot", "job:winget-installer"]
         },
         {
-            "eng/scripts/remove-native-bundle-debug-symbols.ps1",
-            ["test:Infrastructure.Tests"]
-        },
-        {
             "tools/CreateLayout/verify-tray-payload.sh",
             ["test:Aspire.Cli.EndToEnd.Tests", "test:Infrastructure.Tests", "job:cli-starter-validation", "job:extension-e2e", "job:winget-installer", "job:homebrew-installer"]
         },
