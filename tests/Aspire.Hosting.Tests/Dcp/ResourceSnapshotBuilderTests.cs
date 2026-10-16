@@ -165,10 +165,14 @@ public class ResourceSnapshotBuilderTests
     [InlineData("run", "run", "-c", "-f")]
     [InlineData("run", "run", "--configuration=Release", "--framework")]
     [InlineData("run", "run", "-c=Release", "-f=net10.0")]
+    [InlineData("run", "run", "--configuration:Release", "--framework:net10.0")]
+    [InlineData("run", "run", "-c:Release", "-f:net10.0")]
     [InlineData("WATCH", "watch", "--configuration", "--framework=net10.0")]
     [InlineData("watch", "watch", "-c", "-f")]
     [InlineData("watch", "watch", "--configuration=Release", "--framework")]
     [InlineData("watch", "watch", "-c=Release", "-f=net10.0")]
+    [InlineData("watch", "watch", "--configuration:Release", "--framework:net10.0")]
+    [InlineData("watch", "watch", "-c:Release", "-f:net10.0")]
     public void ProjectSnapshotIncludesSafeDotNetLaunchMetadata(
         string launchCommand,
         string expectedLaunchCommand,
@@ -185,12 +189,12 @@ public class ResourceSnapshotBuilderTests
             "/app/project.csproj",
             configurationArgument
         };
-        if (!configurationArgument.Contains('='))
+        if (configurationArgument is "--configuration" or "-c")
         {
             effectiveArgs.Add("Release");
         }
         effectiveArgs.Add(targetFrameworkArgument);
-        if (!targetFrameworkArgument.Contains('='))
+        if (targetFrameworkArgument is "--framework" or "-f")
         {
             effectiveArgs.Add("net10.0");
         }

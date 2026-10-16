@@ -291,6 +291,7 @@ internal class ResourceSnapshotBuilder
 
         // DCP reports dotnet launch arguments as:
         //   ["watch", "--project", "/repo/api.csproj", "--configuration", "Release", "--framework=net10.0", "--", ...appArgs]
+        //   ["run", "--configuration:Release", "-f:net10.0", "--", ...appArgs]
         //   ["[env:NAME=value]", "--diagnostics", "run", "--project", "/repo/api.csproj"]
         //   ["-d", "watch", "--project", "/repo/api.csproj"]
         // Only launcher arguments before "--" are safe to publish as launch metadata. Application
@@ -403,10 +404,11 @@ internal class ResourceSnapshotBuilder
         {
             foreach (var option in new[] { longOption, shortOption })
             {
-                var prefix = option + "=";
-                if (argument.StartsWith(prefix, StringComparison.Ordinal))
+                if (argument.Length > option.Length &&
+                    argument.StartsWith(option, StringComparison.Ordinal) &&
+                    argument[option.Length] is '=' or ':')
                 {
-                    value = NormalizeValue(argument[prefix.Length..]);
+                    value = NormalizeValue(argument[(option.Length + 1)..]);
                     return true;
                 }
             }
