@@ -6,7 +6,9 @@ using Aspire.Cli.Documentation;
 using Aspire.Cli.Documentation.ApiDocs;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging.Testing;
 
 namespace Aspire.Cli.Tests.Documentation.ApiDocs;
 
@@ -14,6 +16,7 @@ public class ApiDocsFetcherTests
 {
     private const string DefaultSitemapUrl = "https://aspire.dev/sitemap-index.xml";
     private const string DefaultPageUrl = "https://aspire.dev/reference/api/csharp/aspire.test.package/testtype/methods";
+    private const string TruncatedUrlSet = """<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://aspire.dev/reference/api/csharp/aspire.test.package</loc>""";
 
     private static ApiDocsFetcher CreateFetcher(HttpClient httpClient, IApiDocsCache cache, IConfiguration? configuration = null)
     {
@@ -260,6 +263,56 @@ public class ApiDocsFetcherTests
         var result = await fetcher.FetchSitemapAsync();
 
         Assert.Null(result);
+    }
+
+    [Theory]
+    [InlineData(TruncatedUrlSet)]
+    [InlineData("<!DOCTYPE html><html><body>Bad gateway</body></html>")]
+    [InlineData("Bad gateway")]
+    public async Task FetchSitemapAsync_ReturnsNullWhenChildSitemapIsNotWellFormedXml(string childContent)
+    {
+        const string childUrl = "https://aspire.dev/sitemap-api.xml";
+        var sitemaps = new Dictionary<string, string>
+        {
+            [DefaultSitemapUrl] = SitemapIndex("https://aspire.dev/sitemap-0.xml", childUrl),
+            ["https://aspire.dev/sitemap-0.xml"] = UrlSet("https://aspire.dev/docs/get-started"),
+            [childUrl] = childContent
+        };
+        using var httpClient = new HttpClient(CreateSitemapHandler(sitemaps, []));
+        var logger = new FakeLogger<ApiDocsFetcher>();
+        var fetcher = new ApiDocsFetcher(httpClient, new MockApiDocsCache(), new ConfigurationBuilder().Build(), logger);
+
+        var result = await fetcher.FetchSitemapAsync();
+
+        Assert.Null(result);
+        var warning = Assert.Single(logger.Collector.GetSnapshot(), static record => record.Level is LogLevel.Warning);
+        Assert.Contains(childUrl, warning.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task FetchSitemapAsync_RecoversWhenMalformedChildSitemapIsFixed()
+    {
+        const string childUrl = "https://aspire.dev/sitemap-api.xml";
+        var goodChild = UrlSet("https://aspire.dev/reference/api/csharp/aspire.test.package");
+        var sitemaps = new Dictionary<string, string>
+        {
+            [DefaultSitemapUrl] = SitemapIndex("https://aspire.dev/sitemap-0.xml", childUrl),
+            ["https://aspire.dev/sitemap-0.xml"] = UrlSet("https://aspire.dev/docs/get-started"),
+            [childUrl] = goodChild
+        };
+        using var httpClient = new HttpClient(CreateSitemapHandler(sitemaps, []));
+        var fetcher = CreateFetcher(httpClient, new MockApiDocsCache());
+        var first = await fetcher.FetchSitemapAsync();
+
+        sitemaps[childUrl] = TruncatedUrlSet;
+        var second = await fetcher.FetchSitemapAsync();
+
+        sitemaps[childUrl] = goodChild;
+        var third = await fetcher.FetchSitemapAsync();
+
+        Assert.NotNull(first);
+        Assert.Null(second);
+        Assert.Equal(first, third);
     }
 
     private static IConfiguration CreateConfiguration(string sitemapUrl)

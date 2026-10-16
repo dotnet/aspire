@@ -84,7 +84,7 @@ internal sealed class ApiDocsFetcher(HttpClient httpClient, IApiDocsCache cache,
             }
         }
 
-        return MergeSitemaps(childContents!);
+        return MergeSitemaps(rebasedChildUrls, childContents!);
     }
 
     /// <summary>
@@ -139,24 +139,35 @@ internal sealed class ApiDocsFetcher(HttpClient httpClient, IApiDocsCache cache,
         }
     }
 
-    private static string MergeSitemaps(IEnumerable<string> sitemapContents)
+    private string? MergeSitemaps(string[] sitemapUrls, string[] sitemapContents)
     {
         // Union the entries across children and sort them so the merged document, and therefore the index
         // fingerprint, is stable regardless of child order. A page can legitimately appear in more than one child.
         var locations = new SortedSet<string>(StringComparer.Ordinal);
-        foreach (var sitemapContent in sitemapContents)
+        for (var i = 0; i < sitemapContents.Length; i++)
         {
-            using var reader = CreateXmlReader(sitemapContent);
-            while (reader.Read())
+            try
             {
-                if (reader.NodeType is XmlNodeType.Element && reader.LocalName is "loc")
+                using var reader = CreateXmlReader(sitemapContents[i]);
+                while (reader.Read())
                 {
-                    var location = reader.ReadElementContentAsString().Trim();
-                    if (location.Length > 0)
+                    if (reader.NodeType is XmlNodeType.Element && reader.LocalName is "loc")
                     {
-                        locations.Add(location);
+                        var location = reader.ReadElementContentAsString().Trim();
+                        if (location.Length > 0)
+                        {
+                            locations.Add(location);
+                        }
                     }
                 }
+            }
+            catch (XmlException ex)
+            {
+                // A child can answer 200 with a body that is not well-formed XML, such as a truncated download
+                // or an HTML error page. Treat it like a missing child so the caller falls back to its cached
+                // index instead of failing the command.
+                _logger.LogWarning(ex, "API child sitemap {SitemapUrl} is not well-formed XML; the API catalog is incomplete", sitemapUrls[i]);
+                return null;
             }
         }
 
