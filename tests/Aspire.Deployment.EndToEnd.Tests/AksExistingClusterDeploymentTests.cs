@@ -83,7 +83,7 @@ public sealed class AksExistingClusterDeploymentTests(ITestOutputHelper output)
 
                 var aks = builder.AddAzureKubernetesEnvironment("aks")
                     .AsExistingInResourceGroup(clusterId.Name, resourceGroup, subscription);
-                builder.AddProject<Projects.ExistingAks_ApiService>("apiservice")
+                builder.AddDotnetProject("apiservice", "../ExistingAks.ApiService/ExistingAks.ApiService.csproj")
                     .WithComputeEnvironment(aks);
 
                 builder.Build().Run();
@@ -98,7 +98,7 @@ public sealed class AksExistingClusterDeploymentTests(ITestOutputHelper output)
                 counter);
             await auto.TypeAsync("aspire deploy");
             await auto.EnterAsync();
-            await auto.WaitForPipelineSuccessAsync(TimeSpan.FromMinutes(25));
+            await auto.WaitForPipelineSuccessAsync(TimeSpan.FromMinutes(25), counter);
             await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromMinutes(2));
 
             await DotnetProjectDeploymentHelpers.RunScriptAsync(auto, counter, """
