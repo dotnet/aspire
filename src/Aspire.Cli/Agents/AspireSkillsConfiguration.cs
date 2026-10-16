@@ -2,13 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json.Nodes;
-using Aspire.Cli.Agents.OpenCode;
 using Aspire.Cli.Resources;
 
 namespace Aspire.Cli.Agents;
 
 /// <summary>
-/// Registers the official plugin or skills catalog without acquiring or activating it.
+/// Shared Copilot/Claude plugin registration without acquiring or activating it.
 /// </summary>
 internal static class AspireSkillsConfiguration
 {
@@ -17,94 +16,22 @@ internal static class AspireSkillsConfiguration
     internal const string Repository = "microsoft/aspire-skills";
     internal const string RepositoryUrl = "https://github.com/" + Repository;
 
-    public static Task<IReadOnlyList<AgentTargetResult>> ConfigureAsync(
-        DirectoryInfo workspaceRoot, AgentConfigurationScope scope, IReadOnlyList<AgentClient> selectedClients,
-        CliExecutionContext executionContext, IEnvironment environment, CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        var edits = new List<AgentFileEdit>();
-        foreach (var client in selectedClients.Distinct())
-        {
-            if (client.Plugin is { } plugin)
-            {
-                var path = GetPluginConfigPath(plugin, scope, workspaceRoot, executionContext, environment);
-                edits.Add(new(client, path, static bytes => AgentConfigurationJson.ParseObject(bytes.Span),
-                    async (root, reader, token) => ApplyPlugin(root, await AgentConfigurationJson.ReadSettingsAsync(reader,
-                        PluginSettings(plugin, workspaceRoot, executionContext, environment), token))));
-            }
+    public static AgentFileEdit CreatePluginEdit(AgentClient client, string path, IEnumerable<string> settings)
+        => new(client, path, static bytes => AgentConfigurationJson.ParseObject(bytes.Span),
+            async (root, reader, token) => ApplyPlugin(root, await AgentConfigurationJson.ReadSettingsAsync(reader, settings, token)));
 
-            if (client == AgentClient.OpenCode)
-            {
-                edits.Add(OpenCodeConfiguration.CreateCatalogEdit(
-                    workspaceRoot, scope, executionContext, environment));
-            }
-        }
-
-        return AgentConfigurationEditor.ApplyAsync(edits, cancellationToken);
-    }
-
-    public static async Task<bool> HasRegistrationAsync(
-        DirectoryInfo workspaceRoot, IReadOnlyList<AgentClient> clients,
-        CliExecutionContext executionContext, IEnvironment environment, CancellationToken cancellationToken)
+    public static async Task<bool> HasPluginRegistrationAsync(IEnumerable<string> settings, CancellationToken cancellationToken)
     {
         var reader = new AgentConfigurationJson.ReadContext();
-        foreach (var client in clients)
+        foreach (var path in settings)
         {
-            if (client.Plugin is { } plugin)
-            {
-                foreach (var path in PluginSettings(plugin, workspaceRoot, executionContext, environment))
-                {
-                    if (await reader.ReadOptionalAsync(path, cancellationToken) is { } config && HasPlugin(config))
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            if (client == AgentClient.OpenCode &&
-                await OpenCodeConfiguration.HasCatalogAsync(
-                    reader, workspaceRoot, executionContext, environment, cancellationToken))
+            if (await reader.ReadOptionalAsync(path, cancellationToken) is { } config && HasPlugin(config))
             {
                 return true;
             }
         }
 
         return false;
-    }
-
-    private static string GetPluginConfigPath(
-        AgentPluginConfiguration plugin, AgentConfigurationScope scope, DirectoryInfo workspaceRoot,
-        CliExecutionContext executionContext, IEnvironment environment)
-    {
-        var directory = scope is AgentConfigurationScope.Project
-            ? Path.Combine(workspaceRoot.FullName, plugin.ProjectDirectory)
-            : plugin.GlobalDirectory(executionContext, environment);
-
-        return Path.Combine(directory, "settings.json");
-    }
-
-    private static IEnumerable<string> PluginSettings(
-        AgentPluginConfiguration plugin, DirectoryInfo workspaceRoot, CliExecutionContext context, IEnvironment environment)
-    {
-        yield return Path.Combine(plugin.GlobalDirectory(context, environment), "settings.json");
-        foreach (var path in plugin.ProjectSettingsFiles)
-        {
-            yield return Path.Combine(workspaceRoot.FullName, path);
-        }
-
-        var managed = plugin.ManagedDirectory(context, environment);
-        yield return Path.Combine(managed, "managed-settings.json");
-        var fragments = Path.Combine(managed, "managed-settings.d");
-        if (plugin.UsesManagedSettingsFragments && Directory.Exists(fragments))
-        {
-            foreach (var path in Directory.EnumerateFiles(fragments, "*.json").Order(StringComparer.Ordinal))
-            {
-                if (!Path.GetFileName(path).StartsWith('.'))
-                {
-                    yield return path;
-                }
-            }
-        }
     }
 
     private static bool HasPlugin(JsonObject root)

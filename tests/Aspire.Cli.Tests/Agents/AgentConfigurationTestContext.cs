@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Agents;
+using Aspire.Cli.Agents.ClaudeCode;
+using Aspire.Cli.Agents.Copilot;
 using Aspire.Cli.Agents.OpenCode;
 using Aspire.Cli.Tests.Utils;
 
@@ -27,6 +29,10 @@ internal sealed class AgentConfigurationTestContext : IDisposable
         // Keep platform-specific policy reads inside the fixture on every test OS.
         Environment = TestEnvironment.CreateWindows(_variables);
         ExecutionContext = TestExecutionContextHelper.CreateExecutionContext(Project, homeDirectory: Home);
+        Copilot = new CopilotAgentClient(ExecutionContext, Environment);
+        ClaudeCode = new ClaudeCodeAgentClient(ExecutionContext, Environment);
+        OpenCode = new OpenCodeAgentClient(ExecutionContext, Environment);
+        Clients = [Copilot, ClaudeCode, OpenCode];
     }
 
     public TemporaryWorkspace Workspace { get; }
@@ -34,20 +40,25 @@ internal sealed class AgentConfigurationTestContext : IDisposable
     public DirectoryInfo Home { get; }
     public TestEnvironment Environment { get; }
     public CliExecutionContext ExecutionContext { get; }
-    public IReadOnlyList<AgentClient> Environments { get; } = AgentClient.All;
-    public AgentClient Copilot { get; } = AgentClient.Copilot;
-    public AgentClient ClaudeCode { get; } = AgentClient.ClaudeCode;
-    public AgentClient OpenCode { get; } = AgentClient.OpenCode;
-    public string CopilotDirectory => Copilot.Plugin!.GlobalDirectory(ExecutionContext, Environment);
-    public string ClaudeDirectory => ClaudeCode.Plugin!.GlobalDirectory(ExecutionContext, Environment);
-    public string ClaudeManagedDirectory => ClaudeCode.Plugin!.ManagedDirectory(ExecutionContext, Environment);
+    public IReadOnlyList<AgentClient> Clients { get; }
+    public AgentClient Copilot { get; }
+    public AgentClient ClaudeCode { get; }
+    public AgentClient OpenCode { get; }
+    public string CopilotDirectory => AgentPath.Expand(CopilotPaths.GetConfigDirectory(Home, Environment), ExecutionContext);
+    public string ClaudeDirectory => ClaudeCodePaths.GetConfigDirectory(ExecutionContext, Environment);
+    public string ClaudeManagedDirectory => AgentPath.GetManagedSettingsDirectory(ExecutionContext, Environment, "ClaudeCode", "claude-code");
     public string OpenCodeDirectory => OpenCodePaths.GetConfigDirectory(ExecutionContext, Environment);
 
     public void SetVariable(string name, string value) => _variables[name] = value;
 
-    public Task<IReadOnlyList<AgentTargetResult>> ConfigureNativeAsync(
+    public async Task<IReadOnlyList<AgentTargetResult>> ConfigureNativeAsync(
         AgentConfigurationScope scope, IReadOnlyList<AgentClient> clients, CancellationToken cancellationToken = default)
-        => AspireSkillsConfiguration.ConfigureAsync(Project, scope, clients, ExecutionContext, Environment, cancellationToken);
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var edits = clients.Distinct().Select(client => client.CreateNativeSkillsEdit(Project, scope)).ToArray();
+
+        return await AgentConfigurationEditor.ApplyAsync(edits, cancellationToken);
+    }
 
     public static async Task WriteAsync(string path, string content)
     {

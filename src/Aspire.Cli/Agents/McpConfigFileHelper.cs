@@ -17,18 +17,31 @@ internal static class McpConfigFileHelper
     public static AgentFileEdit CreateEdit(
         AgentClient client,
         string configFilePath,
-        string serversPropertyName,
+        Configuration configuration,
         bool configureServer,
         AgentConfigurationScope scope)
     {
         return new(client, configFilePath,
-            bytes => ParseConfig(bytes, client.Mcp.JsonDocumentOptions, configFilePath),
+            bytes => ParseConfig(bytes, configuration.JsonDocumentOptions, configFilePath),
             (config, _, _) =>
             {
-                var repaired = UpdateDeprecatedCommand(config, serversPropertyName);
-                var configured = configureServer && ConfigureMcpServer(config, client.Mcp, scope, configFilePath);
+                var repaired = UpdateDeprecatedCommand(config, configuration.ServersPropertyName);
+                var configured = configureServer && ConfigureMcpServer(config, configuration, scope, configFilePath);
                 return Task.FromResult(AgentConfigurationEdit.Applied() with { Repaired = repaired, Added = configured });
             });
+    }
+
+    internal sealed record Configuration
+    {
+        public required string ServersPropertyName { get; init; }
+        public JsonDocumentOptions JsonDocumentOptions { get; init; }
+        public string? Schema { get; init; }
+        public JsonObject ServerConfiguration { get; init; } = new()
+        {
+            ["command"] = "aspire",
+            ["args"] = new JsonArray("agent", "mcp")
+        };
+        public JsonObject? GlobalServerConfiguration { get; init; }
     }
 
     public static JsonObject ParseConfig(ReadOnlyMemory<byte> content, JsonDocumentOptions documentOptions, string configFilePath)
@@ -55,7 +68,7 @@ internal static class McpConfigFileHelper
 
     public static bool ConfigureMcpServer(
         JsonObject config,
-        AgentMcpConfiguration configuration,
+        Configuration configuration,
         AgentConfigurationScope scope,
         string configFilePath)
     {

@@ -145,9 +145,8 @@ public class AgentInitSkillsModeTests(ITestOutputHelper output)
     public async Task Native_FailedRegistration_StillConfiguresIndependentlyRequestedMcp(string clientId)
     {
         using var context = new AgentConfigurationTestContext(output);
-        var client = context.Environments.Single(client => client.Id == clientId);
-        var plugin = Assert.IsType<AgentPluginConfiguration>(client.Plugin);
-        var nativePath = Path.Combine(context.Project.FullName, plugin.ProjectDirectory, "settings.json");
+        var client = context.Clients.Single(client => client.Id == clientId);
+        var nativePath = client.CreateNativeSkillsEdit(context.Project, AgentConfigurationScope.Project).TargetPath;
         const string malformed = "{broken";
         await AgentConfigurationTestContext.WriteAsync(nativePath, malformed);
         var interaction = new TestInteractionService();

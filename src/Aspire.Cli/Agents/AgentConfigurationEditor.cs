@@ -52,8 +52,12 @@ internal static class AgentConfigurationEditor
                 // Aliases share one publication, but every consuming format must accept it.
                 var reader = new AgentConfigurationJson.ReadContext();
                 var document = await reader.ReadAsync(targets[0].TargetPath, targets[0].Parse, cancellationToken);
+                if (!AgentPath.Comparer.Equals(document.Path, physicalPath))
+                {
+                    throw new AgentConfigurationException(AgentCommandStrings.Configuration_ConcurrentChange);
+                }
                 var root = document.Root?.DeepClone().AsObject() ?? new JsonObject();
-                foreach (var target in targets)
+                foreach (var target in targets.Skip(1))
                 {
                     if (!AgentPath.Comparer.Equals(
                         (await reader.ReadAsync(target.TargetPath, target.Parse, cancellationToken)).Path, physicalPath))
@@ -140,7 +144,7 @@ internal enum AgentConfigurationStatus
 }
 
 internal sealed record AgentTargetResult(
-    IReadOnlyList<AgentClient> Environments,
+    IReadOnlyList<AgentClient> Clients,
     string TargetPath,
     AgentConfigurationStatus Status,
     string? Message)

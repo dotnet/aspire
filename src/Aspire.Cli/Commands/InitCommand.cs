@@ -236,12 +236,12 @@ internal sealed class InitCommand : BaseCommand
     {
         var commands = new List<string>();
 
-        if (selectedClients.Contains(AgentClient.ClaudeCode))
+        if (selectedClients.Any(client => client.Id == AgentClient.ClaudeCodeId))
         {
             commands.Add("claude \"run the aspireify skill\"");
         }
 
-        if (selectedClients.Contains(AgentClient.OpenCode))
+        if (selectedClients.Any(client => client.Id == AgentClient.OpenCodeId))
         {
             commands.Add("opencode --prompt \"run the aspireify skill\"");
         }

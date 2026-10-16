@@ -656,8 +656,7 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
         };
         var subtleMessages = new List<string>();
         interactionService.DisplaySubtleMessageCallback = subtleMessages.Add;
-        interactionService.PromptForSelectionsCallback = (_, _, _, _) =>
-            [AgentClient.Copilot, AgentClient.ClaudeCode, AgentClient.OpenCode];
+        interactionService.PromptForSelectionsCallback = (_, choices, _, _) => choices.Cast<object>().ToArray();
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
@@ -694,7 +693,8 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
 
         var subtleMessages = new List<string>();
         interactionService.DisplaySubtleMessageCallback = subtleMessages.Add;
-        interactionService.PromptForSelectionsCallback = (_, _, _, _) => [AgentClient.ClaudeCode];
+        interactionService.PromptForSelectionsCallback = (_, choices, _, _) =>
+            choices.Cast<AgentClient>().Where(client => client.Id == AgentClient.ClaudeCodeId).Cast<object>().ToArray();
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {

@@ -27,7 +27,7 @@ public class NativeAgentConfigurationTests(ITestOutputHelper output) : IDisposab
         Assert.All(results, result =>
         {
             Assert.Equal(AgentConfigurationStatus.Configured, result.Status);
-            Assert.Equal(clients, result.Environments);
+            Assert.Equal(clients, result.Clients);
         });
         Assert.Equal(Path.Combine(_context.CopilotDirectory, "settings.json"), Assert.Single(userResults).TargetPath);
         var project = await File.ReadAllTextAsync(Path.Combine(_context.Project.FullName, ".github", "copilot", "settings.json")).DefaultTimeout();
@@ -75,7 +75,7 @@ public class NativeAgentConfigurationTests(ITestOutputHelper output) : IDisposab
     [InlineData("Claude Code")]
     public async Task NativePlugins_DoNotOverrideAnExplicitGlobalDisable(string clientName)
     {
-        var client = _context.Environments.Single(client => client.DisplayName == clientName);
+        var client = _context.Clients.Single(client => client.DisplayName == clientName);
         var userDirectory = client == _context.ClaudeCode ? _context.ClaudeDirectory : _context.CopilotDirectory;
         var path = Path.Combine(userDirectory, "settings.json");
         const string existing = """{"enabledPlugins":{"aspire@aspire-skills":false},"autoUpdate":false}""";

@@ -46,7 +46,7 @@ public class NativePluginRegistrationTests(ITestOutputHelper output) : IDisposab
 
         var result = Assert.Single(results);
         Assert.Equal(AgentConfigurationStatus.Configured, result.Status);
-        Assert.Equal([_context.Copilot, _context.ClaudeCode], result.Environments);
+        Assert.Equal([_context.Copilot, _context.ClaudeCode], result.Clients);
         Assert.Equal([result.TargetPath], Directory.EnumerateFiles(_context.Home.FullName, "*", SearchOption.AllDirectories));
     }
 
@@ -66,7 +66,7 @@ public class NativePluginRegistrationTests(ITestOutputHelper output) : IDisposab
 
         var result = Assert.Single(results);
         Assert.Equal(AgentConfigurationStatus.Skipped, result.Status);
-        Assert.Equal([_context.Copilot, _context.ClaudeCode], result.Environments);
+        Assert.Equal([_context.Copilot, _context.ClaudeCode], result.Clients);
         Assert.Equal(original, await File.ReadAllTextAsync(path));
     }
 

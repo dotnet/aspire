@@ -4,6 +4,8 @@
 using System.Text;
 using Aspire.Cli.Acquisition;
 using Aspire.Cli.Agents;
+using Aspire.Cli.Agents.ClaudeCode;
+using Aspire.Cli.Agents.Copilot;
 using Aspire.Cli.Agents.Hooks;
 using Aspire.Cli.Agents.AspireSkills;
 using Aspire.Cli.Agents.OpenCode;
@@ -187,6 +189,9 @@ internal static class CliTestHelper
         services.AddSingleton(options.AspireSkillsInstallerFactory);
         services.AddSingleton(options.PlaywrightCliRunnerFactory);
         services.AddSingleton<PlaywrightCliInstaller>();
+        services.AddSingleton<AgentClient, CopilotAgentClient>();
+        services.AddSingleton<AgentClient, ClaudeCodeAgentClient>();
+        services.AddSingleton<AgentClient, OpenCodeAgentClient>();
         services.AddSingleton<IOpenCodeCliRunner>(new FakeOpenCodeCliRunner(null));
         services.AddSingleton<ITelemetryHookInstaller, TelemetryHookInstaller>();
         services.AddSingleton(options.TelemetryHookConfiguratorFactory);

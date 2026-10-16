@@ -3,7 +3,6 @@
 
 using System.Text.Json.Nodes;
 using Aspire.Cli.Agents;
-using Aspire.Cli.Agents.OpenCode;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Tests.TestServices;
 using Microsoft.AspNetCore.InternalTesting;
@@ -24,9 +23,8 @@ public class OpenCodeConfigurationTests(ITestOutputHelper output) : IDisposable
         const string original = """{"mcp":{"aspire":{"command":["aspire","mcp","start"]}}}""";
         const string replacement = """{"mcp":{"aspire":{"command":["pinned-aspire"]}}}""";
         await File.WriteAllTextAsync(json, original);
-        var edit = await OpenCodeConfiguration.CreateMcpEditAsync(
-            _context.Project, AgentConfigurationScope.Project, _context.ExecutionContext,
-            _context.Environment, CancellationToken.None);
+        var edit = Assert.Single(await _context.OpenCode.CreateMcpEditsAsync(
+            _context.Project, AgentConfigurationScope.Project, CancellationToken.None));
         Assert.Equal(json, edit.TargetPath);
         var selectedEdit = edit;
         if (duringPublication)
@@ -66,9 +64,8 @@ public class OpenCodeConfigurationTests(ITestOutputHelper output) : IDisposable
         const string replacement = """{"mcp":{"aspire":{"command":["pinned-aspire"]}}}""";
         await File.WriteAllTextAsync(json, original);
         await File.WriteAllTextAsync(jsonc, partial);
-        var edit = await OpenCodeConfiguration.CreateMcpEditAsync(
-            _context.Project, AgentConfigurationScope.Project, _context.ExecutionContext,
-            _context.Environment, CancellationToken.None);
+        var edit = Assert.Single(await _context.OpenCode.CreateMcpEditsAsync(
+            _context.Project, AgentConfigurationScope.Project, CancellationToken.None));
         Assert.Equal(json, edit.TargetPath);
         var concurrentEdit = edit with
         {
@@ -105,9 +102,8 @@ public class OpenCodeConfigurationTests(ITestOutputHelper output) : IDisposable
         await File.WriteAllTextAsync(jsonc, remote);
         await using (var unusedSibling = File.Open(json, FileMode.Open, FileAccess.Read, share))
         {
-            var edit = await OpenCodeConfiguration.CreateMcpEditAsync(
-                _context.Project, AgentConfigurationScope.Project, _context.ExecutionContext,
-                _context.Environment, CancellationToken.None);
+            var edit = Assert.Single(await _context.OpenCode.CreateMcpEditsAsync(
+                _context.Project, AgentConfigurationScope.Project, CancellationToken.None));
 
             var result = Assert.Single(await AgentConfigurationEditor.ApplyAsync([edit], CancellationToken.None));
 
@@ -259,7 +255,7 @@ public class OpenCodeConfigurationTests(ITestOutputHelper output) : IDisposable
     {
         _context.SetVariable("OPENCODE_CONFIG_DIR", Path.Combine("~", "custom-opencode"));
         var expected = Path.Combine(_context.Project.FullName, "~", "custom-opencode", "opencode.jsonc");
-        var mcpPath = _context.OpenCode.GetMcpConfigPath(AgentConfigurationScope.Global, _context.Project, _context.ExecutionContext, _context.Environment);
+        var mcpPath = _context.OpenCode.GetMcpConfigPath(AgentConfigurationScope.Global, _context.Project);
 
         var results = await _context.ConfigureNativeAsync(AgentConfigurationScope.Global, [_context.OpenCode]);
 

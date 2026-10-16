@@ -12,7 +12,16 @@ namespace Aspire.Cli.Agents;
 /// </summary>
 internal static class AgentPath
 {
+    public static string UniversalSkillsDirectory { get; } = Path.Combine(".agents", "skills");
     public static StringComparer Comparer { get; } = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+
+    public static string GetManagedSettingsDirectory(CliExecutionContext context, IEnvironment environment, string productName, string unixName)
+        => environment.IsWindows()
+            ? Path.Combine(GetOverride("ProgramFiles", context, environment) ??
+                Path.Combine(Path.GetPathRoot(context.HomeDirectory.FullName)!, "Program Files"), productName)
+            : environment.IsMacOS()
+                ? Path.Combine(Path.DirectorySeparatorChar.ToString(), "Library", "Application Support", productName)
+                : Path.Combine(Path.DirectorySeparatorChar.ToString(), "etc", unixName);
 
     public static IEnumerable<DirectoryInfo> ProjectDirectories(DirectoryInfo workingDirectory, DirectoryInfo workspaceRoot)
     {

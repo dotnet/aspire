@@ -43,8 +43,7 @@ internal static class OpenCodePaths
         }
 
         var configDirectory = GetOverride("OPENCODE_CONFIG_DIR", executionContext, environment)
-            ?? Path.Combine(GetOverride("XDG_CONFIG_HOME", executionContext, environment)
-                ?? Path.Combine(executionContext.HomeDirectory.FullName, ".config"), "opencode");
+            ?? GetConfigDirectory(executionContext, environment);
 
         return GetMcpConfigPath(new DirectoryInfo(configDirectory));
     }

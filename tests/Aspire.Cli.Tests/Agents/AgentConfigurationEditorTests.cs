@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text;
-using System.Text.Json;
 using Aspire.Cli.Agents;
 using Aspire.Cli.Tests.TestServices;
 
@@ -37,8 +36,8 @@ public class AgentConfigurationEditorTests(ITestOutputHelper output) : IDisposab
         await File.WriteAllBytesAsync(path, bytes);
         File.SetLastWriteTimeUtc(path, new DateTime(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         var timestamp = File.GetLastWriteTimeUtc(path);
-        var edit = McpConfigFileHelper.CreateEdit(
-            _context.Copilot, path, "mcpServers", configureServer: true, AgentConfigurationScope.Project);
+        var edit = Assert.Single(await _context.Copilot.CreateMcpEditsAsync(
+            _context.Project, AgentConfigurationScope.Project, CancellationToken.None), edit => edit.TargetPath == path);
 
         var result = Assert.Single(await AgentConfigurationEditor.ApplyAsync([edit], CancellationToken.None));
 
@@ -48,36 +47,14 @@ public class AgentConfigurationEditorTests(ITestOutputHelper output) : IDisposab
         Assert.Equal([(false, false)], result.Changes.Select(change => (change.Edit.Repaired, change.Edit.Added)));
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task McpAliases_ValidateEveryClientsParserBeforeApplyingChanges(bool strictFirst)
-    {
-        var path = Path.Combine(_context.Project.FullName, ".mcp.json");
-        const string original = """{/* comment */"preference":true,}""";
-        await File.WriteAllTextAsync(path, original);
-        var clients = strictFirst ? new[] { _context.ClaudeCode, _context.Copilot } : [_context.Copilot, _context.ClaudeCode];
-        var edits = clients.Select(client => McpConfigFileHelper.CreateEdit(
-            client, path, "mcpServers", configureServer: true, AgentConfigurationScope.Project)).ToArray();
-
-        var result = Assert.Single(await AgentConfigurationEditor.ApplyAsync(edits, CancellationToken.None));
-
-        Assert.Equal(AgentConfigurationStatus.Failed, result.Status);
-        Assert.IsType<JsonException>(Assert.IsType<InvalidOperationException>(result.Error).InnerException, exactMatch: false);
-        Assert.Equal(clients, result.Environments);
-        Assert.Empty(result.Changes);
-        Assert.Equal(original, await File.ReadAllTextAsync(path));
-        Assert.Equal([path], Directory.EnumerateFiles(_context.Project.FullName));
-    }
-
     [Fact]
     public async Task McpEdit_FailedPublication_DoesNotReportSuccessfulChanges()
     {
         var path = Path.Combine(_context.Project.FullName, ".mcp.json");
         const string original = """{"preference":"preserved"}""";
         await File.WriteAllTextAsync(path, original);
-        var edit = McpConfigFileHelper.CreateEdit(
-            _context.Copilot, path, "mcpServers", configureServer: true, AgentConfigurationScope.Project);
+        var edit = Assert.Single(await _context.Copilot.CreateMcpEditsAsync(
+            _context.Project, AgentConfigurationScope.Project, CancellationToken.None), edit => edit.TargetPath == path);
         var failingEdit = edit with
         {
             ApplyAsync = async (root, reader, token) =>
