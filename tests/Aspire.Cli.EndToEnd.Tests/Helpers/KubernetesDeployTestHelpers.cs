@@ -252,7 +252,8 @@ internal static class KubernetesDeployTestHelpers
         string[] apiClientPackages,
         string appHostCode,
         string apiProgramCode,
-        ITestOutputHelper output)
+        ITestOutputHelper output,
+        bool useLegacyProjectResources = false)
     {
         // Step 1: Run aspire new inline (rather than AspireNewAsync) so we can assert on
         // the "Using project templates version:" message that appears during execution.
@@ -360,6 +361,25 @@ internal static class KubernetesDeployTestHelpers
         Assert.True(File.Exists(Path.Combine(appHostDir, "AppHost.cs")));
         Assert.True(File.Exists(Path.Combine(apiDir, $"{projectName}.ApiService.csproj")));
         Assert.True(File.Exists(Path.Combine(apiDir, "Properties", "launchSettings.json")));
+        if (useLegacyProjectResources)
+        {
+            // The new default is package-only. Legacy AddProject coverage must explicitly
+            // retain the SDK that generates Projects.* metadata from ProjectReference items.
+            var projectFile = Path.Combine(appHostDir, $"{projectName}.AppHost.csproj");
+            var project = System.Xml.Linq.XDocument.Load(projectFile, System.Xml.Linq.LoadOptions.PreserveWhitespace);
+            var version = CliE2ETestHelpers.GetAppHostVersion(File.ReadAllText(projectFile));
+            project.Root!.SetAttributeValue("Sdk", $"Aspire.AppHost.Sdk/{version}");
+            var references = new System.Xml.Linq.XElement("ItemGroup");
+            foreach (var resourceProject in new[] { $"{projectName}.ApiService", $"{projectName}.Web" })
+            {
+                var resourceProjectPath = Path.Combine(projectDir, resourceProject, $"{resourceProject}.csproj");
+                Assert.True(File.Exists(resourceProjectPath), $"Expected legacy resource project: {resourceProjectPath}");
+                references.Add(new System.Xml.Linq.XElement("ProjectReference",
+                    new System.Xml.Linq.XAttribute("Include", $"../{resourceProject}/{resourceProject}.csproj")));
+            }
+            project.Root.Add(references);
+            project.Save(projectFile);
+        }
         output.WriteLine($"Writing AppHost.cs to: {Path.Combine(appHostDir, "AppHost.cs")}");
         File.WriteAllText(Path.Combine(appHostDir, "AppHost.cs"), appHostCode);
         File.WriteAllText(Path.Combine(apiDir, "Program.cs"), apiProgramCode);
