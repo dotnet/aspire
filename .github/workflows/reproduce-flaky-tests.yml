@@ -33,6 +33,7 @@ jobs:
           fetch-depth: 0
 
       - name: Verify CLI artifact source
+        working-directory: ${{ github.workspace }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
