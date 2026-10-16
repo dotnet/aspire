@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using Aspire.Hosting.Orchestrator;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Utils;
@@ -11,6 +12,52 @@ namespace Aspire.Hosting.Tests;
 [Trait("Partition", "2")]
 public class LaunchGroupTests
 {
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task ExecutableConstructorArgumentsIncludeReferencedResources(bool expression, bool lateStart)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.AddLaunchGroups("frontend", "backend", "empty");
+        builder.Configuration["LaunchGroup"] = lateStart ? "empty" : "frontend";
+        var dependency = builder.AddExecutable("backend", "unused", ".")
+            .WithHttpEndpoint().WithLaunchGroup("backend");
+        var endpoint = dependency.GetEndpoint("http");
+        object argument = expression ? ReferenceExpression.Create($"--server={endpoint}") : endpoint;
+        var frontend = builder.AddExecutable("frontend", "unused", ".", new object[] { argument }).WithLaunchGroup("frontend");
+        var callbacks = 0;
+        frontend.WithArgs(context => { Interlocked.Increment(ref callbacks); });
+        var started = new ConcurrentBag<string>();
+        foreach (var resource in new[] { dependency, frontend })
+        {
+            resource.WithCommand(KnownResourceCommands.StartCommand, "Start", async context =>
+            {
+                started.Add(resource.Resource.Name);
+                await context.Services.GetRequiredService<ResourceNotificationService>().PublishUpdateAsync(
+                    resource.Resource, snapshot => snapshot with { State = KnownResourceStates.Running });
+                return CommandResults.Success();
+            });
+        }
+        await using var app = builder.Build();
+        await app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(lateStart, dependency.Resource.HasAnnotationOfType<ExplicitStartupAnnotation>());
+        Assert.Equal(lateStart, frontend.Resource.HasAnnotationOfType<ExplicitStartupAnnotation>());
+        if (lateStart)
+        {
+            foreach (var resource in new[] { dependency, frontend })
+            {
+                await app.ResourceNotifications.PublishUpdateAsync(resource.Resource, snapshot => snapshot with { State = KnownResourceStates.NotStarted });
+            }
+            var result = await app.ResourceCommands.ExecuteCommandAsync(frontend.Resource, KnownResourceCommands.StartCommand, TestContext.Current.CancellationToken);
+            Assert.True(result.Success, result.Message);
+            Assert.Equal(["backend", "frontend"], started.Order(StringComparer.Ordinal));
+        }
+        Assert.Equal(0, callbacks);
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]
