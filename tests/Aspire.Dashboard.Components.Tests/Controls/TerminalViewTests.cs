@@ -479,15 +479,28 @@ public class TerminalViewTests : DashboardTestContext
         });
         await cut.InvokeAsync(() => cut.Instance.OnTerminalStateChanged(new TerminalToolbarState
         {
-            TerminalId = 1, Generation = 31, Disconnected = true, Error = "disconnected"
+            TerminalId = 1, Generation = 31, Disconnected = true, RetriesExhausted = true, Error = "disconnected"
         }));
 
         Assert.Empty(cut.FindAll(".terminal-error"));
         Assert.Equal(Resources.TerminalStrings.TerminalRetry, cut.Find(".terminal-reconnect").TextContent.Trim());
+        await cut.InvokeAsync(() => cut.Instance.OnTerminalStateChanged(new TerminalToolbarState
+        {
+            TerminalId = 1, Generation = 31, Disconnected = true, RetriesExhausted = true, Error = "palette-failed"
+        }));
+        Assert.Equal(Resources.TerminalStrings.TerminalPaletteSaveFailed, cut.Find("[role=alert]").TextContent);
+        Assert.Single(cut.FindAll(".terminal-reconnect"));
+        await cut.Find(".terminal-error fluent-button").ClickAsync(new());
+        await cut.InvokeAsync(() => cut.Instance.OnTerminalStateChanged(new TerminalToolbarState
+        {
+            TerminalId = 1, Generation = 31, Disconnected = true, RetriesExhausted = true
+        }));
+        Assert.Empty(cut.FindAll(".terminal-error"));
+        Assert.Single(cut.FindAll(".terminal-reconnect"));
         await cut.Find(".terminal-reconnect").ClickAsync(new());
         Assert.Single(module.Invocations, i => i.Identifier == "reconnectTerminal");
         Assert.Single(module.Invocations, i => i.Identifier == "initTerminal");
-        Assert.Equal(["initTerminal", "getSizePresets", "reconnectTerminal"], module.Invocations.Select(i => i.Identifier));
+        Assert.Equal(["initTerminal", "getSizePresets", "dismissError", "reconnectTerminal"], module.Invocations.Select(i => i.Identifier));
         Assert.Single(cut.FindAll(".terminal-container"));
 
         await cut.InvokeAsync(() => cut.Instance.OnTerminalStateChanged(new TerminalToolbarState

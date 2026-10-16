@@ -334,6 +334,7 @@ function scheduleReconnect(state, generation) {
         return;
     }
     if (state.attempts >= MAX_RECONNECT_ATTEMPTS) {
+        state.retriesExhausted = true;
         state.error ??= "disconnected";
         notifyToolbar(state);
         return;
@@ -381,6 +382,7 @@ function connectionClosed(state, generation, details) {
         return;
     }
     state.ended = true;
+    state.retriesExhausted = false;
     state.connected = false;
     state.pendingSizing = null;
     state.autoFitPending = false;
@@ -595,6 +597,7 @@ function connectClient(state) {
     }
     cancelReconnect(state);
     state.failurePending = false;
+    state.retriesExhausted = false;
     const generation = ++state.generation;
     releaseClient(state);
     state.peer = { id: null, primaryId: null, isPrimary: false };
@@ -688,6 +691,15 @@ async function mountClient(state, generation, controller) {
             // https://github.com/mitchdenny/hex1b/pull/491
             renderer: /\bFirefox\//.test(navigator.userAgent) ? "webgl2" : "auto",
             onStatus(message, level) {
+                if (!state.disposed && level === "error" && state.retainedClient?.controller === controller) {
+                    // Retained renderers outlive their connection generation. A fatal
+                    // error must release that renderer, not cancel its pending replacement.
+                    console.warn("Dashboard retained terminal renderer failed.", message);
+                    releaseRetainedClient(state);
+                    state.error = "mount-failed";
+                    notifyToolbar(state);
+                    return;
+                }
                 if (!current() || state.ended || level !== "error") {
                     return;
                 }
@@ -827,6 +839,7 @@ export function initTerminal(element, wsUrl, dotNetRef, options, selectionTempla
         ended: false,
         connected: false,
         disconnected: false,
+        retriesExhausted: false,
         title: "",
         workingDirectory: null,
         workingDirectoryUri: null,
@@ -1072,7 +1085,7 @@ export function getToolbarState(id) {
         terminalId: id,
         generation: state.generation,
         status: !connected ? "connecting" : isPrimary ? "primary" : state.peer.primaryId === null ? "no-primary" : "viewer",
-        connected, disconnected: state.disconnected, isPrimary, canTakeControl,
+        connected, disconnected: state.disconnected, retriesExhausted: state.retriesExhausted, isPrimary, canTakeControl,
         title: state.title,
         workingDirectory: state.workingDirectory,
         workingDirectoryUri: state.workingDirectoryUri,

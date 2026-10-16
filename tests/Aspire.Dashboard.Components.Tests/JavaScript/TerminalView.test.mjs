@@ -1048,7 +1048,7 @@ test("init returns an id while mount waits for its first connected frame", async
     attempts[0].resolve();
     await settle();
     assert.deepEqual(snapshots.at(-1), {
-        terminalId: id, generation: 1, status: "viewer", connected: true, disconnected: false,
+        terminalId: id, generation: 1, status: "viewer", connected: true, disconnected: false, retriesExhausted: false,
         title: "", workingDirectory: null, workingDirectoryUri: null,
         progressState: "none", progressPercentage: null,
         isPrimary: false, canTakeControl: true, sizeMode: "font", sizeKey: "100x30",
@@ -1316,7 +1316,7 @@ test("a disconnect schedules only one retry and restores focus only if still app
     document.activeElement = attempts[0].client.element;
     attempts[0].client.connected = false;
     attempts[0].close(1006);
-    attempts[0].options.onStatus("closed again", "error");
+    attempts[0].close(1006);
     await settle();
     assert.equal(timers.size, 1);
     assert.equal(attempts[0].client.disposed, false);
@@ -2252,11 +2252,37 @@ test("exhausted retries keep the final screen until the view is disposed", async
     }
     assert.equal(timers.size, 0);
     assert.equal(terminal.getToolbarState(id).error, "disconnected");
+    assert.equal(terminal.getToolbarState(id).retriesExhausted, true);
     assert.equal(terminal.getToolbarState(id).disconnected, true);
     assert.equal(terminal.getTerminalSnapshot(element).screenText, "Final output");
     assert.equal(attempts[0].client.disposed, false);
     terminal.disposeTerminal(id);
     assert.equal(attempts[0].client.disposed, true);
+});
+
+test("palette failures and dismissal preserve retry exhaustion until an explicit reconnect", async () => {
+    const { id } = mount({ options: { readOnly: true } });
+    attempts[0].resolve();
+    await settle();
+    attempts[0].close(1006);
+    for (let i = 0; i < 30; i++) {
+        retry();
+        attempts.at(-1).reject();
+        await settle();
+    }
+    mock.method(localStorage, "setItem", () => { throw new Error("Storage disabled"); });
+    terminal.setPaletteFromHost(id, "light");
+    assert.equal(terminal.getToolbarState(id).error, "palette-failed");
+    assert.equal(terminal.getToolbarState(id).retriesExhausted, true);
+    terminal.dismissError(id);
+    assert.equal(terminal.getToolbarState(id).error, null);
+    assert.equal(terminal.getToolbarState(id).retriesExhausted, true);
+    assert.equal(timers.size, 0);
+    terminal.reconnectTerminal(id, attempts[0].options.url);
+    assert.equal(terminal.getToolbarState(id).retriesExhausted, false);
+    attempts.at(-1).resolve();
+    await settle();
+    assert.equal(terminal.getToolbarState(id).connected, true);
 });
 
 test("successful resource restart resets exhausted retries and preserves the screen until a new frame", async () => {
@@ -2323,6 +2349,42 @@ test("renderer failures surface an error rather than retaining an unusable view"
     assert.equal(attempts[0].client.disposed, true);
     assert.equal(timers.size, 1);
 });
+
+for (const pendingReplacement of [false, true]) {
+    test(`fatal retained renderer errors release the view ${pendingReplacement ? "during" : "before"} replacement mounting`, async () => {
+        const { id, element } = mount();
+        const original = attempts[0];
+        original.client.screenText = "Retained output";
+        original.resolve();
+        await settle();
+        original.close(1006);
+        if (pendingReplacement) {
+            retry();
+        }
+        original.options.onStatus("WebGL2 context lost", "error");
+        await settle();
+        assert.equal(original.client.disposed, true);
+        assert.equal(original.options.signal.aborted, true);
+        assert.equal(terminal.getTerminalSnapshot(element).screenText, "");
+        assert.equal(terminal.getToolbarState(id).error, "mount-failed");
+        if (!pendingReplacement) {
+            assert.equal(timers.size, 1);
+            retry();
+        }
+        const replacement = attempts[1];
+        assert.equal(replacement.options.signal.aborted, false);
+        assert.equal(replacement.client.disposed, false);
+        replacement.client.screenText = "New output";
+        replacement.resolve();
+        await settle();
+        assert.equal(terminal.getTerminalSnapshot(element).screenText, "New output");
+        assert.equal(terminal.getToolbarState(id).connected, true);
+        assert.equal(terminal.getToolbarState(id).error, null);
+        original.options.onStatus("Late renderer error", "error");
+        assert.equal(terminal.getToolbarState(id).error, null);
+        assert.equal(replacement.client.disposed, false);
+    });
+}
 
 test("disposing a view ignores later native close callbacks", async () => {
     const { id } = mount();

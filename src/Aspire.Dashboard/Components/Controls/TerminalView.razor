@@ -36,7 +36,7 @@
                     {
                         <TerminalDisconnectedBanner @key="ResourceName" ResourceName="@ResourceName" ReadOnly="@ReadOnly" OnClose="@OnClose"
                                                     OnRestarted="@ReconnectAfterRestartAsync"
-                                                    OnReconnect="@(_terminalError is "disconnected" ? EventCallback.Factory.Create(this, RetryAsync) : default)"
+                                                    OnReconnect="@(_state.RetriesExhausted ? EventCallback.Factory.Create(this, RetryAsync) : default)"
                                                     OnCollapsedChanged="@(collapsed => _bannerCollapsed = collapsed)" />
                     }
                     @if (_terminalError is not null && !(ShowDisconnectedRecovery && _terminalError is "disconnected"))

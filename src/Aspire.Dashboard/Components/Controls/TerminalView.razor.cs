@@ -564,6 +564,8 @@ public sealed record TerminalToolbarState
     public bool Connected { get; init; }
     /// <summary>Whether the transport closed, including while reconnecting or after producer completion.</summary>
     public bool Disconnected { get; init; }
+    /// <summary>Whether automatic transport retries stopped without reconnecting.</summary>
+    public bool RetriesExhausted { get; init; }
     /// <summary>The workload-reported title, or empty when unset.</summary>
     public string Title { get; init; } = string.Empty;
     /// <summary>The decoded working directory reported by the shell, or null when unset.</summary>

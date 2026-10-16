@@ -355,6 +355,7 @@ recovery banner replaces the redundant transport error when output is retained;
 unrelated action failures remain visible alongside recovery.
 After automatic transport retries are exhausted, recovery offers **Reconnect terminal**
 without restarting the resource, including in read-only and docked views.
+This action remains available while unrelated action errors are displayed or dismissed.
 All banners offer **Show terminal**, which hides the banner
 behind a floating disconnected icon at the top right. The icon
 reopens the recovery actions without reconnecting, restarting, or replacing the
@@ -371,6 +372,8 @@ a connected frame arrives; successful reconnect removes the treatment and
 releases the old view. Producer completion keeps the screen until the view is
 closed. Rebinding to another endpoint discards the previous screen. Retention
 does not imply producer completion or guarantee output that was never received.
+A fatal error in a retained renderer releases that unusable view and surfaces an
+error without canceling a pending replacement connection.
 The terminal host defers viewer handshakes until its producer has connected,
 including after a recycle. Its listening socket alone is not proof of a live
 terminal: reconnecting to an empty relay while a shell is stopped must not
