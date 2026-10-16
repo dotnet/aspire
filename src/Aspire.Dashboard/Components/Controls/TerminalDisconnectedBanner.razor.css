@@ -17,6 +17,7 @@
 }
 
 .terminal-disconnected-banner ::deep fluent-button {
+    --colorNeutralBackground1: var(--colorNeutralBackground2);
     flex: 0 0 auto;
     white-space: nowrap;
 }
@@ -41,5 +42,5 @@
     width: 36px;
     height: 36px;
     border-radius: var(--aspire-control-radius);
-    background: var(--colorNeutralBackground2);
+    --colorNeutralBackground1: var(--colorNeutralBackground2);
 }

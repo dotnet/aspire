@@ -293,6 +293,7 @@
 }
 
 .terminal-error ::deep fluent-button {
+    --colorNeutralBackground1: var(--colorNeutralBackground2);
     flex: 0 0 auto;
     white-space: nowrap;
 }

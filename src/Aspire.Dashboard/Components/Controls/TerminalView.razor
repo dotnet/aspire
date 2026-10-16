@@ -45,11 +45,11 @@
                             <span role="alert">@GetErrorMessage()</span>
                             @if (_terminalError is "input-failed" or "sizing-failed" or "palette-failed")
                             {
-                                <FluentButton Appearance="ButtonAppearance.Outline" OnClick="DismissErrorAsync">@Loc[nameof(Resources.TerminalStrings.TerminalDismissError)]</FluentButton>
+                                <FluentButton Appearance="ButtonAppearance.Default" OnClick="DismissErrorAsync">@Loc[nameof(Resources.TerminalStrings.TerminalDismissError)]</FluentButton>
                             }
                             else
                             {
-                                <FluentButton Appearance="ButtonAppearance.Outline" OnClick="RetryAsync">@Loc[nameof(Resources.TerminalStrings.TerminalRetry)]</FluentButton>
+                                <FluentButton Appearance="ButtonAppearance.Default" OnClick="RetryAsync">@Loc[nameof(Resources.TerminalStrings.TerminalRetry)]</FluentButton>
                             }
                         </div>
                     }
