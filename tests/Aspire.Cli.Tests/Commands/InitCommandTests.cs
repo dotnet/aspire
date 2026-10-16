@@ -679,10 +679,8 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
         Assert.Empty(Directory.GetFiles(workspace.WorkspaceRoot.FullName, "*mcp*.json*", SearchOption.AllDirectories));
     }
 
-    [Theory]
-    [InlineData("none")]
-    [InlineData("native")]
-    public async Task InitCommand_WhenAspireifyNotInstalled_DoesNotPrintFollowUpCommands(string skillsMode)
+    [Fact]
+    public async Task InitCommand_WhenAspireSkillsNone_DoesNotPrintFollowUpCommands()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
@@ -706,7 +704,7 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
         using var serviceProvider = services.BuildServiceProvider();
         var initCommand = serviceProvider.GetRequiredService<InitCommand>();
 
-        var parseResult = initCommand.Parse($"init --language typescript --aspire-skills {skillsMode}");
+        var parseResult = initCommand.Parse("init --language typescript --aspire-skills none");
         var exitCode = await parseResult.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(CliExitCodes.Success, exitCode);
