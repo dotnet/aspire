@@ -370,7 +370,14 @@ function connectionClosed(state, generation, details) {
     if (details.code !== TERMINAL_ENDED_CLOSE_CODE) {
         // Normal closure (1000), missing close frames (1006), reasons and wasClean
         // describe transport state, never whether the producer has completed.
-        connectionFailed(state, generation, new Error(`Terminal WebSocket closed (${details.code}).`), true);
+        const fail = () => connectionFailed(state, generation, new Error(`Terminal WebSocket closed (${details.code}).`), true);
+        if (!state.client && state.controller) {
+            // The first-frame promise can be fulfilled before its continuation adopts
+            // the renderer. Let that queued continuation run before cleanup can abort it.
+            queueMicrotask(fail);
+        } else {
+            fail();
+        }
         return;
     }
     state.ended = true;

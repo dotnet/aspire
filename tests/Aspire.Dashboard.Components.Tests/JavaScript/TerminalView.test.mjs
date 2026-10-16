@@ -2090,35 +2090,38 @@ test("authoritative close keeps the existing presentation read-only without remo
 });
 
 for (const reconnect of [false, true]) {
-    test(`completion before the ${reconnect ? "replacement" : "initial"} mount continuation retains only the latest frame`, async () => {
-        const { id, element } = mount({ options: { autoFit: true } });
-        const original = attempts[0];
-        if (reconnect) {
-            original.client.screenText = "Old screen";
-            original.resolve();
+    for (const code of [4000, 1000, 1001, 1006]) {
+        test(`close ${code} before the ${reconnect ? "replacement" : "initial"} mount continuation retains only the latest frame`, async () => {
+            const { id, element } = mount({ options: { autoFit: true } });
+            const original = attempts[0];
+            if (reconnect) {
+                original.client.screenText = "Old screen";
+                original.resolve();
+                await settle();
+                original.close(1006);
+                retry();
+                assert.equal(original.client.disposed, false);
+            }
+            const replacement = attempts.at(-1);
+            replacement.client.screenText = "Newest final frame";
+            replacement.resolve();
+            replacement.close(code);
             await settle();
-            original.close(1006);
-            retry();
-            assert.equal(original.client.disposed, false);
-        }
-        const replacement = attempts.at(-1);
-        replacement.client.screenText = "Newest final frame";
-        replacement.resolve();
-        replacement.close(4000);
-        await settle();
-        assert.equal(terminal.getTerminalSnapshot(element).ended, true);
-        assert.equal(terminal.getTerminalSnapshot(element).screenText, "Newest final frame");
-        assert.equal(terminal.getToolbarState(id).connected, false);
-        assert.equal(terminal.getToolbarState(id).error, null);
-        assert.equal(replacement.client.readOnly, true);
-        assert.equal(replacement.client.primaryRequests, 0);
-        assert.equal(replacement.client.disposed, false);
-        if (reconnect) {
-            assert.equal(original.client.disposed, true);
-            assert.equal(original.options.signal.aborted, true);
-        }
-        assert.equal(timers.size, 0);
-    });
+            assert.equal(terminal.getTerminalSnapshot(element).ended, code === 4000);
+            assert.equal(terminal.getTerminalSnapshot(element).screenText, "Newest final frame");
+            assert.equal(terminal.getToolbarState(id).connected, false);
+            assert.equal(terminal.getToolbarState(id).error, null);
+            assert.equal(replacement.client.readOnly, code === 4000);
+            assert.equal(replacement.client.primaryRequests, 0);
+            assert.equal(replacement.client.disposed, false);
+            assert.equal(replacement.options.signal.aborted, false);
+            if (reconnect) {
+                assert.equal(original.client.disposed, true);
+                assert.equal(original.options.signal.aborted, true);
+            }
+            assert.equal(timers.size, code === 4000 ? 0 : 1);
+        });
+    }
 }
 
 for (const code of [1000, 1001, 1006]) {
@@ -2134,6 +2137,8 @@ for (const code of [1000, 1001, 1006]) {
             await settle();
             assert.equal(terminal.getTerminalSnapshot(element).ended, false);
             assert.equal(terminal.getToolbarState(id).connected, false);
+            assert.equal(attempts[0].options.signal.aborted, !mounted);
+            assert.equal(attempts[0].client.disposed, false);
             assert.equal(timers.size, 1);
             assert.equal(retry(), 500);
             attempts[1].resolve();
@@ -2141,6 +2146,30 @@ for (const code of [1000, 1001, 1006]) {
             assert.equal(terminal.getToolbarState(id).connected, true);
         });
     }
+}
+
+for (const action of ["dispose", "rebind"]) {
+    test(`${action} releases a pending frame before deferred transport cleanup`, async () => {
+        const { id } = mount();
+        const original = attempts[0];
+        original.resolve();
+        original.close(1006);
+        if (action === "dispose") {
+            terminal.disposeTerminal(id);
+        } else {
+            terminal.reconnectTerminal(id, "wss://dashboard/api/terminal?resource=next");
+            attempts[1].resolve();
+        }
+        await settle();
+        assert.equal(original.client.disposed, true);
+        assert.equal(original.options.signal.aborted, true);
+        assert.equal(timers.size, 0);
+        if (action === "rebind") {
+            assert.equal(attempts[1].client.disposed, false);
+            assert.equal(terminal.getToolbarState(id).connected, true);
+            assert.equal(terminal.getToolbarState(id).error, null);
+        }
+    });
 }
 
 test("rebind ignores authoritative close from the old connection", async () => {
