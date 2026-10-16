@@ -4,11 +4,15 @@
 using System.Text;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Dcp.Process;
+using Aspire.Hosting.Diagnostics;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Aspire.TestUtilities;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Go.Tests;
 
@@ -59,16 +63,30 @@ public class GoRunDebuggingTests(ITestOutputHelper outputHelper)
             environment["GOFLAGS"]);
     }
 
-    [Fact]
-    public async Task ResourceGoFlagsAreMergedAfterModelConfigurationAndRemainSensitive()
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task ResourceGoFlagsAreMergedAfterModelConfigurationAndPreserveSensitivity(
+        bool useEnvironmentCallback, bool secret)
     {
         const string flags = "-ldflags=-X=main.version=1.2.3";
+        const string expectedFlags = "\"-ldflags=-s=false -w=false\" -ldflags=-X=main.version=1.2.3 \"-ldflags=-X=main.version=1.2.3 -s=false -w=false\"";
         using var builder = TestDistributedApplicationBuilder.Create();
         var runner = new TestProcessRunner();
         builder.Services.AddSingleton<IProcessRunner>(runner);
-        var parameter = builder.AddParameter("linker-flags", () => flags, secret: true);
+        var parameter = builder.AddParameter("linker-flags", () => flags, secret: secret);
         var go = builder.AddGoApp("api", builder.AppHostDirectory)
-            .WithEnvironment("GOFLAGS", parameter);
+            .WithEnvironment("PUBLIC_FLAGS", "-tags=netgo");
+        if (useEnvironmentCallback)
+        {
+            go.WithEnvironment(context => context.EnvironmentVariables["GOFLAGS"] = parameter);
+        }
+        else
+        {
+            go.WithEnvironment("GOFLAGS", parameter);
+        }
 
         await using var app = builder.Build();
         await builder.Eventing.PublishAsync(new BeforeStartEvent(
@@ -78,11 +96,22 @@ public class GoRunDebuggingTests(ITestOutputHelper outputHelper)
             .BuildAsync(builder.ExecutionContext);
 
         Assert.Null(configuration.Exception);
-        var expression = Assert.IsAssignableFrom<IValueProvider>(
-            configuration.EnvironmentVariablesWithUnprocessed.Single(value => value.Key == "GOFLAGS").Value.Unprocessed);
-        var resolved = await ExpressionResolver.ResolveAsync(
-            expression, new ValueProviderContext { ExecutionContext = builder.ExecutionContext, Caller = go.Resource }, CancellationToken.None);
-        Assert.True(resolved.IsSensitive);
+        Assert.Equal(expectedFlags, Assert.Single(configuration.EnvironmentVariables, variable => variable.Key == "GOFLAGS").Value);
+
+        await app.Services.GetRequiredService<ResourceNotificationService>().PublishUpdateAsync(go.Resource, snapshot => snapshot with
+        {
+            EnvironmentVariables = [.. configuration.EnvironmentVariables
+                .Select(variable => new EnvironmentVariableSnapshot(variable.Key, variable.Value, true))]
+        });
+        var target = new AuxiliaryBackchannelRpcTarget(
+            NullLogger<AuxiliaryBackchannelRpcTarget>.Instance,
+            app.Services.GetRequiredService<IConfiguration>(),
+            app.Services.GetRequiredService<ProfilingTelemetry>(),
+            app.Services);
+        var snapshot = Assert.Single(await target.GetResourceSnapshotsAsync(), resource => resource.DisplayName == "api");
+
+        Assert.Equal(secret ? null : expectedFlags, Assert.Single(snapshot.EnvironmentVariables, variable => variable.Name == "GOFLAGS").Value);
+        Assert.Equal("-tags=netgo", Assert.Single(snapshot.EnvironmentVariables, variable => variable.Name == "PUBLIC_FLAGS").Value);
     }
 
     [Theory]

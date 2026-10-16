@@ -21,6 +21,11 @@ internal static class GoRunDebugging
         var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
         object? original = context.EnvironmentVariables
             .LastOrDefault(variable => string.Equals(variable.Key, "GOFLAGS", comparison)).Value;
+        if (original is IResourceBuilder<IResource> resourceBuilder)
+        {
+            original = resourceBuilder.Resource;
+        }
+
         var goFlags = original is null ? null :
             (await context.Resource.ResolveValueAsync(
                 context.ExecutionContext, context.Logger, original, "GOFLAGS", context.CancellationToken).ConfigureAwait(false))?.Value;
