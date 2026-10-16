@@ -442,7 +442,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         const string rid = "linux-x64";
         var project = CreateProject(root, rid);
         var dashboardProject = Path.Combine(root, "ColdProtobufFixture.csproj");
-        var generatedDirectory = Path.Combine(root, "generated");
+        var generatedDirectory = Path.Combine(root, "obj", "generated");
         // Block ancestor discovery so repository-local workspaces also reproduce
         // CI workspaces outside the repository's central package configuration.
         File.WriteAllText(Path.Combine(root, "Directory.Packages.props"), "<Project />");
@@ -461,6 +461,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
                 Property("Protobuf_OutputPath", generatedDirectory)),
             new XElement("ItemGroup",
                 new XElement("PackageReference", new XAttribute("Include", "Grpc.Tools"), new XAttribute("PrivateAssets", "all")),
+                new XElement("PackageReference", new XAttribute("Include", "Google.Protobuf")),
                 new XElement("Protobuf", new XAttribute("Include", Path.Combine(root, "fixture.proto")),
                     new XAttribute("ProtoRoot", root), new XAttribute("GrpcServices", "None"))),
             new XElement("Import", new XAttribute("Project", "Sdk.targets"), new XAttribute("Sdk", "Microsoft.NET.Sdk")),
@@ -468,6 +469,14 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
             // test compile the full Dashboard or invoke its Native AOT toolchain.
             new XElement("Target", new XAttribute("Name", "Publish"), new XAttribute("DependsOnTargets", "Protobuf_Compile"))))
             .Save(dashboardProject);
+        File.WriteAllText(Path.Combine(root, "PreparedComponentConsumer.cs"), """
+            using ColdBundle;
+
+            internal static class PreparedComponentConsumer
+            {
+                public static string GetName() => new PreparedComponent { Name = "prepared" }.Name;
+            }
+            """);
         var bundle = XDocument.Load(project);
         bundle.Root!.Element("PropertyGroup")!.Element("DashboardProjectPath")!.Value = dashboardProject;
         bundle.Save(project);
@@ -486,8 +495,8 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         var result = await ExecuteAsync(project, "PublishBundleComponents", rid, environment, [.. properties]);
 
         Assert.True(result.ExitCode == 0, result.Output);
-        var generated = Assert.Single(Directory.GetFiles(generatedDirectory, "*.cs"));
-        Assert.Contains("sealed partial class PreparedComponent", File.ReadAllText(generated));
+        var build = await ExecuteAsync(dashboardProject, "Build", rid, environment, [.. properties]);
+        Assert.True(build.ExitCode == 0, build.Output);
     }
 
     [Theory]
