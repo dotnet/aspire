@@ -17,10 +17,97 @@ namespace Aspire.Hosting.Tests;
 public class ResourceCommandServiceTests(ITestOutputHelper testOutputHelper)
 {
     [Theory]
-    [InlineData(true, false)]
-    [InlineData(false, false)]
-    [InlineData(false, true)]
-    public async Task LaunchGroupLateStartsDoNotDeadlockMixedReferenceAndWaitGraph(bool rootSucceeds, bool throwOnFailure)
+    [InlineData("Finished", WaitType.WaitUntilStarted, false)]
+    [InlineData("Exited", WaitType.WaitUntilStarted, false)]
+    [InlineData("Finished", WaitType.WaitUntilHealthy, false)]
+    [InlineData("Exited", WaitType.WaitUntilHealthy, false)]
+    [InlineData("Exited", WaitType.WaitUntilHealthy, true)]
+    public async Task LaunchGroupLateStartWaitsForStoppedDependencyRestart(string stoppedState, WaitType waitType, bool childDependency)
+    {
+        using var builder = CreateBuilder();
+        builder.AddLaunchGroups("selected", "other");
+        builder.Configuration["LaunchGroup"] = "selected";
+        var restartEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseRestart = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var rootEntered = new TaskCompletionSource<Task>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var postgres = childDependency ? builder.AddPostgres("dependency").WithLaunchGroup("other") : null;
+        IResourceBuilder<IResource> dependency = postgres is not null
+            ? postgres
+            : builder.AddResource(new CustomResource("dependency")).WithLaunchGroup("other");
+        IResourceBuilder<IResource> waitedResource = postgres is not null ? postgres.AddDatabase("database") : dependency;
+        dependency.WithCommand(KnownResourceCommands.StartCommand, "Start", async context =>
+        {
+            restartEntered.TrySetResult();
+            await releaseRestart.Task.WaitAsync(context.CancellationToken);
+            await context.Services.GetRequiredService<ResourceNotificationService>().PublishUpdateAsync(
+                waitedResource.Resource, snapshot => snapshot with
+                {
+                    State = KnownResourceStates.Running,
+                    ResourceReadyEvent = new EventSnapshot(Task.CompletedTask)
+                });
+            return CommandResults.Success();
+        });
+        var root = builder.AddResource(new CustomResource("root")).WithLaunchGroup("other")
+            .WithAnnotation(new WaitAnnotation(waitedResource.Resource, waitType));
+        root.WithCommand(KnownResourceCommands.StartCommand, "Start", async context =>
+        {
+            var notifications = context.Services.GetRequiredService<ResourceNotificationService>();
+            var wait = notifications.WaitForDependenciesAsync(root.Resource, context.CancellationToken);
+            rootEntered.TrySetResult(wait);
+            await wait;
+            return CommandResults.Success();
+        });
+        await using var app = builder.Build();
+        await app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken);
+        await app.ResourceNotifications.PublishUpdateAsync(dependency.Resource, snapshot => snapshot with
+        {
+            State = stoppedState,
+            ExitCode = 0,
+            ResourceReadyEvent = new EventSnapshot(Task.CompletedTask)
+        });
+        await app.ResourceNotifications.PublishUpdateAsync(root.Resource, snapshot => snapshot with { State = KnownResourceStates.NotStarted });
+        if (childDependency)
+        {
+            await app.ResourceNotifications.PublishUpdateAsync(waitedResource.Resource, snapshot => snapshot with
+            {
+                State = stoppedState,
+                ExitCode = 0,
+                ResourceReadyEvent = new EventSnapshot(Task.CompletedTask)
+            });
+        }
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        var start = app.ResourceCommands.ExecuteCommandAsync(root.Resource, KnownResourceCommands.StartCommand, cts.Token);
+        try
+        {
+            await restartEntered.Task.DefaultTimeout();
+            var wait = await rootEntered.Task.DefaultTimeout();
+            Assert.False(wait.IsCompleted);
+            Assert.True(app.ResourceNotifications.TryGetCurrentState(dependency.Resource.Name, out var current));
+            Assert.Equal(KnownResourceStates.Starting, current.Snapshot.State?.Text);
+            Assert.Null(current.Snapshot.ExitCode);
+            Assert.True(current.Snapshot.ResourceReadyEvent?.EventTask.IsCompletedSuccessfully);
+            Assert.True(app.ResourceNotifications.TryGetCurrentState(waitedResource.Resource.Name, out var waited));
+            Assert.Equal(KnownResourceStates.Starting, waited.Snapshot.State?.Text);
+
+            releaseRestart.TrySetResult();
+            Assert.True((await start.DefaultTimeout()).Success);
+        }
+        finally
+        {
+            releaseRestart.TrySetResult();
+            await cts.CancelAsync();
+        }
+    }
+
+    [Theory]
+    [InlineData(true, false, "NotStarted")]
+    [InlineData(false, false, "NotStarted")]
+    [InlineData(false, true, "NotStarted")]
+    [InlineData(true, false, "Finished")]
+    [InlineData(false, false, "Finished")]
+    [InlineData(false, true, "Finished")]
+    public async Task LaunchGroupLateStartsDoNotDeadlockMixedReferenceAndWaitGraph(bool rootSucceeds, bool throwOnFailure, string initialState)
     {
         using var builder = CreateBuilder();
         builder.AddLaunchGroups("selected", "other");
@@ -54,7 +141,11 @@ public class ResourceCommandServiceTests(ITestOutputHelper testOutputHelper)
         await app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken);
         foreach (var resource in new[] { dependency, root })
         {
-            await app.ResourceNotifications.PublishUpdateAsync(resource.Resource, snapshot => snapshot with { State = KnownResourceStates.NotStarted });
+            await app.ResourceNotifications.PublishUpdateAsync(resource.Resource, snapshot => snapshot with
+            {
+                State = initialState,
+                ExitCode = initialState == KnownResourceStates.Finished ? 0 : null
+            });
         }
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
@@ -157,6 +248,126 @@ public class ResourceCommandServiceTests(ITestOutputHelper testOutputHelper)
         {
             release.TrySetResult();
         }
+    }
+
+    [Fact]
+    public async Task LaunchGroupOverlappingStartWaitsForPredecessorSnapshotPreparation()
+    {
+        using var builder = CreateBuilder();
+        builder.AddLaunchGroups("selected", "other");
+        builder.Configuration["LaunchGroup"] = "selected";
+        var preparing = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var releasePreparation = new ManualResetEventSlim();
+        var blocked = 0;
+        var rootEntered = 0;
+        var dependency = builder.AddResource(new CustomResource("dependency")).WithLaunchGroup("other");
+        dependency.WithCommand(KnownResourceCommands.StartCommand, "Start", async context =>
+        {
+            await context.Services.GetRequiredService<ResourceNotificationService>().PublishUpdateAsync(
+                dependency.Resource, snapshot => snapshot with { State = KnownResourceStates.Running });
+            return CommandResults.Success();
+        }, commandOptions: new CommandOptions
+        {
+            UpdateState = context =>
+            {
+                if (context.ResourceSnapshot.State?.Text == KnownResourceStates.Starting &&
+                    Interlocked.Exchange(ref blocked, 1) == 0)
+                {
+                    // The start is registered, but notification snapshot publication has not completed.
+                    preparing.TrySetResult();
+                    releasePreparation.Wait(TestContext.Current.CancellationToken);
+                }
+
+                return ResourceCommandState.Enabled;
+            }
+        });
+        var root = builder.AddResource(new CustomResource("root")).WithLaunchGroup("other").WaitForStart(dependency);
+        root.WithCommand(KnownResourceCommands.StartCommand, "Start", async context =>
+        {
+            Interlocked.Exchange(ref rootEntered, 1);
+            await context.Services.GetRequiredService<ResourceNotificationService>()
+                .WaitForDependenciesAsync(root.Resource, context.CancellationToken);
+            return CommandResults.Success();
+        });
+        await using var app = builder.Build();
+        await app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken);
+        foreach (var resource in new[] { dependency, root })
+        {
+            await app.ResourceNotifications.PublishUpdateAsync(resource.Resource, snapshot => snapshot with
+            {
+                State = KnownResourceStates.Finished,
+                ExitCode = 0
+            });
+        }
+
+        var directStart = Task.Run(() => app.ResourceCommands.ExecuteCommandAsync(
+            dependency.Resource, KnownResourceCommands.StartCommand, TestContext.Current.CancellationToken));
+        try
+        {
+            await preparing.Task.DefaultTimeout();
+            var dependentStart = app.ResourceCommands.ExecuteCommandAsync(
+                root.Resource, KnownResourceCommands.StartCommand, TestContext.Current.CancellationToken);
+            Assert.False(dependentStart.IsCompleted);
+            Assert.Equal(0, Volatile.Read(ref rootEntered));
+
+            releasePreparation.Set();
+            var results = await Task.WhenAll(directStart, dependentStart).DefaultTimeout();
+            Assert.All(results, result => Assert.True(result.Success, result.Message));
+            Assert.Equal(1, Volatile.Read(ref rootEntered));
+        }
+        finally
+        {
+            releasePreparation.Set();
+            await directStart.DefaultTimeout();
+        }
+    }
+
+    [Fact]
+    public async Task LaunchGroupFailedWaitingStartCanRetryItsDependency()
+    {
+        using var builder = CreateBuilder();
+        builder.AddLaunchGroups("selected", "other");
+        builder.Configuration["LaunchGroup"] = "selected";
+        var attempts = 0;
+        var dependency = builder.AddResource(new CustomResource("dependency")).WithLaunchGroup("other");
+        dependency.WithCommand(KnownResourceCommands.StartCommand, "Start", async context =>
+        {
+            if (Interlocked.Increment(ref attempts) == 1)
+            {
+                return new ExecuteCommandResult { Success = false, Message = "First attempt failed." };
+            }
+
+            await context.Services.GetRequiredService<ResourceNotificationService>().PublishUpdateAsync(
+                dependency.Resource, snapshot => snapshot with { State = KnownResourceStates.Running });
+            return CommandResults.Success();
+        });
+        var root = builder.AddResource(new CustomResource("root")).WithLaunchGroup("other").WaitForStart(dependency);
+        root.WithCommand(KnownResourceCommands.StartCommand, "Start", async context =>
+        {
+            await context.Services.GetRequiredService<ResourceNotificationService>()
+                .WaitForDependenciesAsync(root.Resource, context.CancellationToken);
+            return CommandResults.Success();
+        });
+        await using var app = builder.Build();
+        await app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken);
+        foreach (var resource in new[] { dependency, root })
+        {
+            await app.ResourceNotifications.PublishUpdateAsync(resource.Resource, snapshot => snapshot with
+            {
+                State = KnownResourceStates.Finished,
+                ExitCode = 0
+            });
+        }
+
+        var first = await app.ResourceCommands.ExecuteCommandAsync(root.Resource, KnownResourceCommands.StartCommand, TestContext.Current.CancellationToken).DefaultTimeout();
+        Assert.False(first.Success);
+        Assert.Equal("First attempt failed.", first.Message);
+        Assert.True(app.ResourceNotifications.TryGetCurrentState(root.Resource.Name, out var current));
+        Assert.Equal(KnownResourceStates.FailedToStart, current.Snapshot.State?.Text);
+        var retry = await app.ResourceCommands.ExecuteCommandAsync(root.Resource, KnownResourceCommands.StartCommand, TestContext.Current.CancellationToken).DefaultTimeout();
+
+        Assert.True(retry.Success, retry.Message);
+        Assert.Equal(2, attempts);
     }
 
     [Fact]
@@ -300,7 +511,7 @@ public class ResourceCommandServiceTests(ITestOutputHelper testOutputHelper)
         var result = await app.ResourceCommands.ExecuteCommandAsync(root.Resource, KnownResourceCommands.StartCommand, TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
-        Assert.Equal(shouldStart ? ["dependency", "root"] : ["root"], started);
+        Assert.Equal(shouldStart ? ["dependency", "root"] : ["root"], started.Order(StringComparer.Ordinal));
     }
 
     [Theory]
@@ -314,12 +525,14 @@ public class ResourceCommandServiceTests(ITestOutputHelper testOutputHelper)
         builder.Configuration["LaunchGroup"] = "catalog";
         var started = new ConcurrentQueue<string>();
         var dependency = builder.AddResource(new CustomResource("dependency")).WithLaunchGroup("basket");
-        var first = builder.AddResource(new CustomResource("first")).WithLaunchGroup("basket").WithReferenceRelationship(dependency);
-        var second = builder.AddResource(new CustomResource("second")).WithLaunchGroup("basket").WithReferenceRelationship(dependency);
+        var first = builder.AddResource(new CustomResource("first")).WithLaunchGroup("basket").WaitForStart(dependency);
+        var second = builder.AddResource(new CustomResource("second")).WithLaunchGroup("basket").WaitForStart(dependency);
         foreach (var resource in new[] { dependency, first, second })
         {
             resource.WithCommand(KnownResourceCommands.StartCommand, "Start", async context =>
             {
+                await context.Services.GetRequiredService<ResourceNotificationService>()
+                    .WaitForDependenciesAsync(resource.Resource, context.CancellationToken);
                 started.Enqueue(context.ResourceName);
                 if (resource == dependency && !dependencySucceeds)
                 {
@@ -353,7 +566,7 @@ public class ResourceCommandServiceTests(ITestOutputHelper testOutputHelper)
         }
         else
         {
-            Assert.Equal(dependencyRunning ? ["first", "second"] : ["dependency", "first", "second"], started);
+            Assert.Equal(dependencyRunning ? ["first", "second"] : ["dependency", "first", "second"], started.Order(StringComparer.Ordinal));
         }
     }
 

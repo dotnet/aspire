@@ -233,6 +233,11 @@ internal sealed class ApplicationOrchestrator
 
     private async Task OnResourceStarting(OnResourceStartingContext context)
     {
+        if (context.DcpResourceName is { } resourceId)
+        {
+            _notificationService.CompleteResourceStart(context.Resource, resourceId);
+        }
+
         switch (context.ResourceType)
         {
             case KnownResourceTypes.Project:
@@ -577,7 +582,10 @@ internal sealed class ApplicationOrchestrator
 
     private async Task OnResourceChanged(OnResourceChangedContext context)
     {
-        await _notificationService.PublishUpdateAsync(context.Resource, context.DcpResourceName, context.UpdateSnapshot).ConfigureAwait(false);
+        if (!await _notificationService.TryPublishDcpUpdateAsync(context.Resource, context.DcpResourceName, context.UpdateSnapshot).ConfigureAwait(false))
+        {
+            return;
+        }
 
         if (context.ResourceType == KnownResourceTypes.Container)
         {

@@ -852,6 +852,66 @@ public class ResourceNotificationService : IDisposable
         }
     }
 
+    internal async Task<IDisposable> BeginResourceStartAsync(IResource resource, string resourceId)
+    {
+        var notificationState = GetResourceNotificationState(resourceId, resource);
+        var attempt = new PendingResourceStart(notificationState);
+        await PublishUpdateAsync(resource, resourceId, snapshot =>
+        {
+            notificationState.PendingStart = attempt;
+            return snapshot with
+            {
+                State = KnownResourceStates.Starting,
+                ExitCode = null,
+                StartTimeStamp = null,
+                StopTimeStamp = null,
+                // Readiness callbacks are model-wide; a sibling replica can keep that monitor alive.
+                // Retain its event task and use the fresh state/health reports to gate this instance.
+                HealthReports = [.. snapshot.HealthReports.Select(report => new HealthReportSnapshot(report.Name, null, null, null))]
+            };
+        }).ConfigureAwait(false);
+
+        return attempt;
+    }
+
+    internal void CompleteResourceStart(IResource resource, string resourceId)
+    {
+        var notificationState = GetResourceNotificationState(resourceId, resource);
+        lock (notificationState)
+        {
+            notificationState.PendingStart = null;
+        }
+    }
+
+    internal bool IsResourceStartPending(IResource resource, string resourceId)
+    {
+        var notificationState = GetResourceNotificationState(resourceId, resource);
+        lock (notificationState)
+        {
+            return notificationState.PendingStart is not null;
+        }
+    }
+
+    internal async Task<bool> TryPublishDcpUpdateAsync(IResource resource, string resourceId, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
+    {
+        var notificationState = GetResourceNotificationState(resourceId, resource);
+        var published = false;
+        await PublishUpdateAsync(resource, resourceId, snapshot =>
+        {
+            // A launch-group start has reserved the next attempt, but DCP may still be deleting the old
+            // object. OnResourceStarting releases this guard after deletion and UID supersession finish.
+            if (notificationState.PendingStart is not null)
+            {
+                return snapshot;
+            }
+
+            published = true;
+            return stateFactory(snapshot);
+        }).ConfigureAwait(false);
+
+        return published;
+    }
+
     /// <summary>
     /// Updates the snapshot of the <see cref="CustomResourceSnapshot"/> for a resource.
     /// </summary>
@@ -1419,11 +1479,26 @@ public class ResourceNotificationService : IDisposable
         _disposing.Cancel();
     }
 
+    private sealed class PendingResourceStart(ResourceNotificationState state) : IDisposable
+    {
+        public void Dispose()
+        {
+            lock (state)
+            {
+                if (ReferenceEquals(state.PendingStart, this))
+                {
+                    state.PendingStart = null;
+                }
+            }
+        }
+    }
+
     /// <summary>
     /// The annotation that allows publishing and subscribing to changes in the state of a resource.
     /// </summary>
     private sealed class ResourceNotificationState(IResource resource)
     {
+        public PendingResourceStart? PendingStart { get; set; }
         private long _lastVersion = 1;
         public long GetNextVersion() => _lastVersion++;
         public CustomResourceSnapshot? LastSnapshot { get; set; }
