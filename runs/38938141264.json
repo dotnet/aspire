@@ -1,0 +1,101 @@
+{
+  "run_id": 38938141264,
+  "run_attempt": 1,
+  "run_url": "https://github.com/microsoft/aspire/actions/runs/38938141264",
+  "run_scope": "main",
+  "analyzed_at": "2026-10-16T19:28:37Z",
+  "verdict": "mixed",
+  "pr": null,
+  "triggering_merge_pr": null,
+  "main_context": {
+    "last_successful_main_sha": "88ff9ba57c2841cce759adffa849373f9406b0f5",
+    "failed_sha": "77205c8d2a6895a6e8e0c9eff448bdc1ca48e2ea",
+    "candidate_merge_history_state": "incomplete",
+    "candidate_merges": null
+  },
+  "failed_jobs": [
+    {
+      "name": "Tests / No-package tests (collection, Aspire.Hosting.Tests, Hosting-2, Hosting-2, tests/Aspire.Hosting.Te... / Hosting-2 (windows-latest)",
+      "id": 117123469623,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38938141264/job/117123469623",
+      "classification": "flaky-test",
+      "reason": "Single test ResourceCommandServiceTests.ExecuteCommandAsync_RebuildCommand_ReturnsBuildOutput failed with Assert.True() Failure; matches prior recurring flaky-test cause on Windows.",
+      "failed_steps": [
+        "Run tests (Windows)"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (windows-latest)",
+      "id": 117123487458,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38938141264/job/117123487458",
+      "classification": "flaky-test",
+      "reason": "Single test ChildProcessTests.Windows_GracefulTimeoutPreservesAppHostCleanupWorkerButReapsOwnedTrees failed with InvalidOperationException reading ExitCode; matches an existing recurring flaky-test cause.",
+      "failed_steps": [
+        "Run tests (Windows)"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (macos-latest)",
+      "id": 117123493550,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38938141264/job/117123493550",
+      "classification": "transient-infra",
+      "reason": "Test host crashed with exit code 137 (SIGKILL) after all 7094 tests succeeded (0 failed); matches known recurring macOS Aspire.Cli.Tests SIGKILL infrastructure issue.",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x)",
+      "id": 117127669808,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38938141264/job/117127669808",
+      "classification": "main-repository-breakage",
+      "reason": "All 59 TypeScript validation AppHosts passed, but the Nuxt integration test's docker build step fails deterministically ('npm ci'), matching a long-standing recurring repository-level breakage (35 prior occurrences).",
+      "failed_steps": [
+        "Run TypeScript SDK validation"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / Polyglot Validation Results",
+      "id": 117132257461,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38938141264/job/117132257461",
+      "classification": "main-repository-breakage",
+      "reason": "Aggregator job reports 'TypeScript: failure' and exits 1, deterministically reflecting the upstream TypeScript SDK Validation job's Nuxt docker build breakage.",
+      "failed_steps": [
+        "Check validation results"
+      ]
+    }
+  ],
+  "failed_tests": [
+    {
+      "name": "Aspire.Hosting.Tests.ResourceCommandServiceTests.ExecuteCommandAsync_RebuildCommand_ReturnsBuildOutput",
+      "job": "Tests / No-package tests (collection, Aspire.Hosting.Tests, Hosting-2, Hosting-2, tests/Aspire.Hosting.Te... / Hosting-2 (windows-latest)",
+      "error": "Assert.True() Failure\nExpected: True\nActual:   False",
+      "stack_trace": "at Aspire.Hosting.Tests.ResourceCommandServiceTests.ExecuteCommandAsync_RebuildCommand_ReturnsBuildOutput() in D:\\a\\aspire\\aspire\\tests\\Aspire.Hosting.Tests\\ResourceCommandServiceTests.cs:line 1758\n--- End of stack trace from previous location ---",
+      "standard_output": "Temporary workspace created at: C:\\Users\\runneradmin\\AppData\\Local\\Temp\\Aspire.Hosting.TestUtilities\\Workspace\\tito4hol.xle\n| [2026-10-16T18:17:38] Aspire.Hosting.DistributedApplication Information: Aspire AppHost version: 17.0.0-ci\n| [2026-10-16T18:17:38] Aspire.Hosting.DistributedApplication Information: Distributed application starting.\n| [2026-10-16T18:17:38] Aspire.Hosting.DistributedApplication Information: Application host directory is: D:\\a\\aspire\\aspire\\tests\\Aspire.Hosting.TestUtilities\n| [2026-10-16T18:17:38] Aspire.Hosting.Cli.CliOrphanDetector Debug: No CLI process ID configured. Orphan detection disabled.\n| [2026-10-16T18:17:38] Aspire.Hosting.Cli.BackchannelService Debug: Backchannel socket path was not specified.\n| [2026-10-16T18:17:38] Aspire.Hosting.Devcontainers.Codespaces.CodespacesResourceUrlRewriterService Trace: Not running in Codespaces, skipping URL rewriting.\n| [2026-10-16T18:17:38] Aspire.Hosting.Backchannel.AuxiliaryBackchannelService Debug: Starting auxiliary backchannel service on socket path: C:\\Users\\runneradmin\\.aspire\\cli\\bch\\vygPxKePKFA1xqn9-_G.6944\n| [2026-10-16T18:17:38] Aspire.Hosting.Backchannel.AuxiliaryBackchannelService Debug: Auxiliary backchannel listening on C:\\Users\\runneradmin\\.aspire\\cli\\bch\\vygPxKePKFA1xqn9-_G.6944\n| [2026-10-16T18:17:39] Aspire.Hosting.Dcp.DcpHost Warning: No trusted Aspire development certificate was found. See https://aka.ms/aspire/devcerts for more information.\n| [2026-10-16T18:17:39] Aspire.Hosting.FileSystemService Debug: Allocated temporary directory: C:\\Users\\runneradmin\\AppData\\Local\\Temp\\aspire-dcpuezjqvpz.hut\n| [2026-10-16T18:17:39] Aspire.Hosting.Dcp.DcpHost Information: Starting DCP with arguments: start-apiserver --monitor 6944 --detach --kubeconfig \"C:\\Users\\runneradmin\\AppData\\Local\\Temp\\aspire-dcpuezjqvpz.hut\\kubeconfig\"\n| [2026-10-16T18:17:39] Aspire.Hosting.Dcp.DcpHost Debug: A complete bundled ConPTY provider was not found; DCP will use the inbox Windows provider.\n| [2026-10-16T18:17:39] Aspire.Hosting.Dcp.DcpExecutor Debug: Preparing services. Ports randomized: True\n| [2026-10-16T18:17:39] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Version: 1 Resource myProject/myProject-dgjqgvpn update published: ResourceType = Project, CreationTimeStamp = (null), State = { Text = (null), Style = (null) }, IsHidden = False, HeathStatus = (null), ResourceReady = False, ExitCode = (null), Urls = {  }, EnvironmentVariables = {  }, Properties = {  }, HealthReports = {  }, Commands = { start (Start) = Disabled stop (Stop) = Hidden restart (Restart) = Disabled rebuild (Rebuild) = Disabled }\n| [2026-10-16T18:17:39] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Version: 1 Resource myProject-rebuilder/myProject-rebuilder-zhdywqbt update published: ResourceType = Executable, CreationTimeStamp = (null), State = { Text = NotStarted, Style = (null) }, IsHidden = True, HeathStatus = (null), ResourceReady = False, ExitCode = (null), Urls = {  }, EnvironmentVariables = {  }, Properties = { resource.parentName = myProject-dgjqgvpn }, HealthReports = {  }, Commands = {  }\n| [2026-10-16T18:17:39] Aspire.Hosting.Dcp.DcpExecutor Debug: Watching over DCP Endpoint resources.\n| [2026-10-16T18:17:39] Aspire.Hosting.Dcp.DcpExecutor Debug: Watching over DCP Executable resources.\n| [2026-10-16T18:17:39] Aspire.Hosting.Dcp.DcpExecutor Debug: Watching over DCP Container resources.\n| [2026-10-16T18:17:39] Aspire.Hosting.Orchestrator.ApplicationOrchestrator Trace: Converting relative endpoint URLs to absolute URLs for resource 'myProject-rebuilder'.\n| [2026-10-16T18:17:39] Aspire.Hosting.Orchestrator.ApplicationOrchestrator Trace: Added total of 0 URLs to resource 'myProject-rebuilder'\n| [2026-10-16T18:17:39] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Resource myProject-rebuilder/myProject-rebuilder-zhdywqbt update skipped because the snapshot is unchanged.\n| [2026-10-16T18:17:39] Aspire.Hosting.Dcp.DcpExecutor Debug: Wa",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Matches prior cause aspire-hosting-resourcecommandservice-rebuild-asserttrue-flaky (2 prior occurrences); this test times a rebuild and asserts build-output state that races with background DCP rebuild/stop activity."
+    },
+    {
+      "name": "Aspire.Shared.Tests.ChildProcessTests.Windows_GracefulTimeoutPreservesAppHostCleanupWorkerButReapsOwnedTrees(dispose: True, ownedTree: False)",
+      "job": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (windows-latest)",
+      "error": "System.InvalidOperationException : Process was not started by this object, so requested information cannot be determined.",
+      "stack_trace": "at System.Diagnostics.Process.get_ExitCode()\n   at Aspire.Shared.Tests.ChildProcessTests.Windows_GracefulTimeoutPreservesAppHostCleanupWorkerButReapsOwnedTrees(Boolean dispose, Boolean ownedTree) in D:\\a\\aspire\\aspire\\tests\\Shared\\Processes\\ChildProcessTests.cs:line 384\n   at Aspire.Shared.Tests.ChildProcessTests.Windows_GracefulTimeoutPreservesAppHostCleanupWorkerButReapsOwnedTrees(Boolean dispose, Boolean ownedTree) in D:\\a\\aspire\\aspire\\tests\\Shared\\Processes\\ChildProcessTests.cs:line 396\n   at Aspire.Shared.Tests.ChildProcessTests.Windows_GracefulTimeoutPreservesAppHostCleanupWorkerButReapsOwnedTrees(Boolean dispose, Boolean ownedTree) in D:\\a\\aspire\\aspire\\tests\\Shared\\Processes\\ChildProcessTests.cs:line 396\n--- End of stack trace from previous location ---",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Exactly matches prior cause aspire-shared-tests-childprocesstests-windows-gracefultimeout-exitcode-race (6 prior occurrences); a known race reading ExitCode on a process not started by the current object."
+    }
+  ],
+  "causes": [
+    "aspire-hosting-resourcecommandservice-rebuild-asserttrue-flaky",
+    "aspire-shared-tests-childprocesstests-windows-gracefultimeout-exitcode-race",
+    "aspire-cli-tests-macos-testhost-sigkill-137",
+    "typescript-sdk-nuxt-integration-npm-ci-docker-build-failure"
+  ]
+}
