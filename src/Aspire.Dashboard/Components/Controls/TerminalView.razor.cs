@@ -440,9 +440,12 @@ public sealed partial class TerminalView : ComponentBase, IAsyncDisposable
 
     // A failed mount may follow a transport close before any frame was received.
     // Show its connection/renderer error, not a claim that output was preserved.
-    private bool ShowDisconnectedRecovery => _state.Disconnected && _terminalError is not "mount-failed";
+    private string? ConnectionError => _state.ConnectionError ??
+        (_terminalError is "mount-failed" or "renderer-failed" or "disconnected" ? _terminalError : null);
 
-    private string GetErrorMessage() => Loc[_terminalError switch
+    private bool ShowDisconnectedRecovery => _state.Disconnected && ConnectionError is not "mount-failed";
+
+    private string GetErrorMessage(string? error) => Loc[error switch
     {
         "disconnected" => nameof(Resources.TerminalStrings.TerminalDisconnected),
         "input-failed" => nameof(Resources.TerminalStrings.TerminalInputFailed),
@@ -604,6 +607,8 @@ public sealed record TerminalToolbarState
     public int Rows { get; init; }
     /// <summary>The localized error category, or null when healthy.</summary>
     public string? Error { get; init; }
+    /// <summary>The persistent connection or renderer failure, independent of dismissible action errors.</summary>
+    public string? ConnectionError { get; init; }
 }
 
 /// <summary>A named grid preset exposed by the JS terminal.</summary>

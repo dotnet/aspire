@@ -606,6 +606,39 @@ public class TerminalViewTests : DashboardTestContext
         Assert.True(closed);
     }
 
+    [Theory]
+    [InlineData("mount-failed")]
+    [InlineData("renderer-failed")]
+    public async Task Disconnect_PaletteFailureAndDismissalDoNotChangeProjectionFailure(string connectionError)
+    {
+        var module = TerminalSetupHelpers.SetupTerminalViewModule(this, "/Components/Controls/TerminalView.razor.js");
+        module.Setup<int>("initTerminal", _ => true).SetResult(1);
+        var cut = Render<TerminalView>(builder => builder
+            .Add(p => p.ResourceName, "shell")
+            .Add(p => p.OnClose, () => { }));
+        var state = new TerminalToolbarState
+        {
+            TerminalId = 1, Generation = 1, Disconnected = true,
+            ConnectionError = connectionError, Error = connectionError
+        };
+        await cut.InvokeAsync(() => cut.Instance.OnTerminalStateChanged(state));
+        await cut.InvokeAsync(() => cut.Instance.OnTerminalStateChanged(state with { Error = "palette-failed" }));
+        Assert.Equal(
+            new[] { Resources.TerminalStrings.TerminalMountFailed, Resources.TerminalStrings.TerminalPaletteSaveFailed },
+            cut.FindAll("[role=alert]").Select(e => e.TextContent));
+        Assert.Empty(cut.FindAll(".terminal-show-output, .terminal-show-banner"));
+        Assert.Equal(connectionError == "renderer-failed" ? 1 : 0, cut.FindAll(".terminal-close-tab").Count);
+        if (connectionError == "mount-failed")
+        {
+            Assert.Equal(2, cut.FindAll(".terminal-error fluent-button").Count);
+        }
+        await cut.FindAll(".terminal-error fluent-button")[^1].ClickAsync(new());
+        Assert.Single(module.Invocations, invocation => invocation.Identifier == "dismissError");
+        await cut.InvokeAsync(() => cut.Instance.OnTerminalStateChanged(state));
+        Assert.Equal(Resources.TerminalStrings.TerminalMountFailed, cut.Find("[role=alert]").TextContent);
+        Assert.Empty(cut.FindAll(".terminal-show-output, .terminal-show-banner"));
+    }
+
     [Fact]
     public async Task Disconnect_SuccessfulResourceRestartReconnectsExhaustedViewWithoutReplacingContainer()
     {

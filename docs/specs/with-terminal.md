@@ -380,6 +380,9 @@ If a completed terminal's renderer fails, the recovery banner reports unavailabl
 output instead of claiming it is preserved, retains applicable restart and close
 actions, and does not reopen the completed endpoint. Failed automatic retries
 do not dismiss unrelated local-action errors such as a failed palette save.
+Connection and renderer failures remain independent of dismissible action errors;
+failed palette saves and their dismissal cannot restore an output-preserved claim
+or remove the connection failure's retry action when no usable projection remains.
 Nonfatal scrollbar, selection UI, and link-detection errors do not discard retained output.
 The terminal host defers viewer handshakes until its producer has connected,
 including after a recycle. Its listening socket alone is not proof of a live

@@ -340,7 +340,7 @@ function scheduleReconnect(state, generation) {
     }
     if (state.attempts >= MAX_RECONNECT_ATTEMPTS) {
         state.retriesExhausted = true;
-        state.error ??= "disconnected";
+        state.connectionError ??= "disconnected";
         notifyToolbar(state);
         return;
     }
@@ -364,7 +364,7 @@ function connectionFailed(state, generation, error, preserve) {
     console.warn("Dashboard terminal connection failed.", error);
     releaseClient(state, preserve);
     if (!state.retainedClient) {
-        state.error = "mount-failed";
+        state.connectionError = "mount-failed";
     }
     scheduleReconnect(state, generation);
     notifyToolbar(state);
@@ -394,7 +394,7 @@ function connectionClosed(state, generation, details) {
     state.pendingSizing = null;
     state.autoFitPending = false;
     state.waitingForVisibility = false;
-    state.error = null;
+    state.connectionError = null;
     cancelReconnect(state);
     state.client?.setReadOnly(true);
     // Keep an already mounted projection until the user dismisses the view.
@@ -724,14 +724,14 @@ async function mountClient(state, generation, controller) {
                     // error must release that renderer, not cancel its pending replacement.
                     console.warn("Dashboard retained terminal renderer failed.", message);
                     releaseRetainedClient(state);
-                    state.error = "mount-failed";
+                    state.connectionError = "mount-failed";
                     notifyToolbar(state);
                     return;
                 }
                 if (completed) {
                     console.warn("Dashboard completed terminal renderer failed.", message);
                     releaseClient(state);
-                    state.error = "renderer-failed";
+                    state.connectionError = "renderer-failed";
                     notifyToolbar(state);
                     return;
                 }
@@ -781,6 +781,7 @@ async function mountClient(state, generation, controller) {
         // Mount resolves after a replacement frame arrives, even if completion was
         // reported in the same turn. The old projection must not obscure that frame.
         releaseRetainedClient(state);
+        state.connectionError = null;
         if (state.ended) {
             notifyToolbar(state);
             return;
@@ -790,7 +791,6 @@ async function mountClient(state, generation, controller) {
         state.peer = client.peer;
         state.geometry = client.geometry;
         state.sizing = client.sizing;
-        state.error = null;
         state.attempts = 0;
         applyPendingFocus(state);
         applyAutoFit(state);
@@ -877,6 +877,7 @@ export function initTerminal(element, wsUrl, dotNetRef, options, selectionTempla
         pendingSizing: null,
         autoFitPending: false,
         error: null,
+        connectionError: null,
         generation: 0,
         attempts: 0,
         reconnectTimer: null,
@@ -969,6 +970,7 @@ export function reconnectTerminal(id, wsUrl) {
     }
     if (state.wsUrl !== wsUrl) {
         releaseRetainedClient(state);
+        state.connectionError = null;
         state.disconnected = false;
         state.title = "";
         state.workingDirectory = null;
@@ -979,6 +981,9 @@ export function reconnectTerminal(id, wsUrl) {
     state.ended = false;
     state.attempts = 0;
     state.error = null;
+    if (state.connectionError === "renderer-failed") {
+        state.connectionError = "mount-failed";
+    }
     requestFocus(state);
     connectClient(state);
     return state.generation;
@@ -1131,7 +1136,8 @@ export function getToolbarState(id) {
         fitEnabled: !state.readOnly && (isPrimary || canTakeControl) && !(isPrimary && state.sizing.mode === "auto"),
         cols: state.geometry?.columns ?? 0,
         rows: state.geometry?.rows ?? 0,
-        error: state.error,
+        error: state.error ?? state.connectionError,
+        connectionError: state.connectionError,
     };
 }
 

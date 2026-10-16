@@ -1063,7 +1063,7 @@ test("init returns an id while mount waits for its first connected frame", async
         fontPx: 13, fontControlsEnabled: true, sizeSelectEnabled: true,
         fitEnabled: true,
         canDecreaseFontSize: true, canIncreaseFontSize: true,
-        cols: 100, rows: 30, error: null,
+        cols: 100, rows: 30, error: null, connectionError: null,
     });
     assert.equal(attempts[0].client.primaryRequests, 0);
     assert.equal(typeof attempts[0].options.onInput, "function");
@@ -2308,7 +2308,7 @@ test("palette failures and dismissal preserve retry exhaustion until an explicit
     assert.equal(terminal.getToolbarState(id).error, "palette-failed");
     assert.equal(terminal.getToolbarState(id).retriesExhausted, true);
     terminal.dismissError(id);
-    assert.equal(terminal.getToolbarState(id).error, null);
+    assert.equal(terminal.getToolbarState(id).error, "disconnected");
     assert.equal(terminal.getToolbarState(id).retriesExhausted, true);
     assert.equal(timers.size, 0);
     terminal.reconnectTerminal(id, attempts[0].options.url);
@@ -2453,6 +2453,46 @@ for (const pendingReplacement of [false, true]) {
         original.options.onStatus("Late renderer error", "error");
         assert.equal(terminal.getToolbarState(id).error, null);
         assert.equal(replacement.client.disposed, false);
+    });
+}
+
+for (const failure of ["mount", "retained", "completed"]) {
+    test(`palette failure and dismissal preserve ${failure} projection failure`, async () => {
+        const { id, element } = mount();
+        const original = attempts[0];
+        if (failure !== "mount") {
+            original.resolve();
+            await settle();
+            original.close(failure === "completed" ? 4000 : 1006);
+            original.options.onStatus("WebGL2 context lost", "error");
+        } else {
+            original.close(1006);
+            original.reject();
+            await settle();
+        }
+        const connectionError = failure === "completed" ? "renderer-failed" : "mount-failed";
+        assert.equal(terminal.getToolbarState(id).connectionError, connectionError);
+        mock.method(localStorage, "setItem", () => { throw new Error("Storage disabled"); });
+        terminal.setPaletteFromHost(id, "light");
+        assert.equal(terminal.getToolbarState(id).error, "palette-failed");
+        assert.equal(terminal.getToolbarState(id).connectionError, connectionError);
+        terminal.dismissError(id);
+        assert.equal(terminal.getToolbarState(id).error, connectionError);
+        assert.equal(terminal.getToolbarState(id).connectionError, connectionError);
+        assert.equal(terminal.getTerminalSnapshot(element).screenText, "");
+        assert.equal(terminal.getTerminalSnapshot(element).ended, failure === "completed");
+        if (failure === "completed") {
+            terminal.restartTerminal(id);
+        } else {
+            retry();
+        }
+        assert.equal(terminal.getToolbarState(id).connectionError, "mount-failed");
+        attempts.at(-1).client.screenText = "Recovered output";
+        attempts.at(-1).resolve();
+        await settle();
+        assert.equal(terminal.getToolbarState(id).connectionError, null);
+        assert.equal(terminal.getToolbarState(id).error, null);
+        assert.equal(terminal.getTerminalSnapshot(element).screenText, "Recovered output");
     });
 }
 
