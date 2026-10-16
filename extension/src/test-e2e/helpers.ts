@@ -20,6 +20,7 @@ interface BlazorWasmDebugSessionSnapshot {
         projectPath?: unknown;
         resourceType?: unknown;
         noDebug?: unknown;
+        inspectUri?: unknown;
     };
 }
 
@@ -101,6 +102,11 @@ export async function proveBlazorScenario(options: ProveBlazorScenarioOptions): 
         `Expected Blazor client project '${options.clientProjectPath}', got '${String(proof.rootSession.configuration.projectPath)}'.`);
     assert.ok([expectedBrowserAlias, expectedBrowserSessionType].includes(proof.browserSession.type));
     assert.strictEqual(proof.browserSession.parentSessionId, proof.rootSession.id);
+    if (proof.managedSession.type === 'monovsdbg_wasm') {
+        assert.ok(typeof proof.browserSession.configuration.inspectUri === 'string');
+        assert.match(proof.browserSession.configuration.inspectUri,
+            /^ws:\/\/127\.0\.0\.1:\d+\/[0-9a-f-]+\{browserInspectUriPath\}$/);
+    }
     assert.strictEqual(proof.breakpointResponse.success, true);
     assert.strictEqual(proof.stoppedEvent.reason, 'breakpoint');
     assert.ok(
