@@ -1,0 +1,19 @@
+{
+  "area": "CLI",
+  "areaEmoji": "💻",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Improvements",
+  "communityContributors": [],
+  "description": "`aspire agent init`, `new`, and `init` now share a unified prompt flow for choosing agent clients (GitHub Copilot, Claude Code, OpenCode), assets, and project/global installation scope, instead of asking users to pick skill folders directly. Detected agents are preselected, and selecting no agents performs no writes.",
+  "docsPrs": [],
+  "docsRequired": true,
+  "emoji": "🤝",
+  "firstMergedAt": "2026-10-15T23:03:59Z",
+  "lastMergedAt": "2026-10-15T23:03:59Z",
+  "name": "Unified agent client and scope selection",
+  "owner": "ellahathaway",
+  "prs": [
+    20932
+  ]
+}

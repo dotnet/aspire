@@ -6,7 +6,9 @@
   "changeType": "Improvements",
   "communityContributors": [],
   "description": "Dashboards generated for Docker Compose and Kubernetes deployments now set `ASPIRE_DASHBOARD_TELEMETRY_OPTOUT=true` by default, so deployed dashboards no longer report product usage/error telemetry unless explicitly re-enabled. Application OpenTelemetry ingestion and local AppHost dashboard behavior are unchanged.",
-  "docsPrs": [],
+  "docsPrs": [
+    1888
+  ],
   "docsRequired": true,
   "emoji": "🔕",
   "firstMergedAt": "2026-10-14T01:30:51Z",

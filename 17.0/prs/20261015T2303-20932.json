@@ -1,0 +1,9 @@
+{
+  "author": "ellahathaway",
+  "comment": "Unified agent client and scope selection for agent init/new/init",
+  "mergedAt": "2026-10-15T23:03:59Z",
+  "number": 20932,
+  "runDate": "2026-10-16T00:07:24Z",
+  "status": "included",
+  "title": "Select supported agent clients and configuration scope"
+}

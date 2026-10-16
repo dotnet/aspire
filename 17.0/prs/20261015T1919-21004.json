@@ -1,0 +1,9 @@
+{
+  "author": "danegsta",
+  "comment": "aspire doctor now recognizes WSLc and clarifies runtime selection",
+  "mergedAt": "2026-10-15T19:19:35Z",
+  "number": 21004,
+  "runDate": "2026-10-16T00:07:24Z",
+  "status": "included",
+  "title": "Recognize WSLc in Aspire doctor and clarify runtime selection"
+}

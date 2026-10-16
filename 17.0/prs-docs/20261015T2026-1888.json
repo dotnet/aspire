@@ -1,0 +1,9 @@
+{
+  "author": "app/aspire-repo-bot",
+  "comment": "Documents the dashboard telemetry opt-out default for Docker Compose and Kubernetes deployments (PR #20906)",
+  "mergedAt": "2026-10-15T20:26:45Z",
+  "number": 1888,
+  "runDate": "2026-10-16T00:07:24Z",
+  "status": "included",
+  "title": "[docs] Document dashboard telemetry opt-out for Docker Compose and Kubernetes deployments"
+}

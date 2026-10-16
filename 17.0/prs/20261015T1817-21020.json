@@ -1,0 +1,9 @@
+{
+  "author": "mitchdenny",
+  "comment": "Test-only repairs for deployment E2E tests, no product changes",
+  "mergedAt": "2026-10-15T18:17:29Z",
+  "number": 21020,
+  "runDate": "2026-10-16T00:07:24Z",
+  "status": "excluded",
+  "title": "Repair existing deployment E2E tests for current templates"
+}

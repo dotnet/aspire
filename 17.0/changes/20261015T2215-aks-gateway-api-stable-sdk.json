@@ -1,0 +1,19 @@
+{
+  "area": "Integrations",
+  "areaEmoji": "🔌",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Improvements",
+  "communityContributors": [],
+  "description": "Updated the AKS integration to the latest Azure Provisioning SDK, which now has typed support for `ManagedClusterIngressProfile` and Gateway API configuration. Gateway API-only deployments use the SDK's stable API version, while only the application load balancer feature still requires a preview API version.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "🧭",
+  "firstMergedAt": "2026-10-15T22:15:49Z",
+  "lastMergedAt": "2026-10-15T22:15:49Z",
+  "name": "AKS Gateway API uses stable provisioning SDK",
+  "owner": "eerhardt",
+  "prs": [
+    21025
+  ]
+}

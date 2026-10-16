@@ -1,0 +1,9 @@
+{
+  "author": "JamesNK",
+  "comment": "Test-only fix for async disposal timeouts, no product changes",
+  "mergedAt": "2026-10-15T21:16:39Z",
+  "number": 21021,
+  "runDate": "2026-10-16T00:07:24Z",
+  "status": "excluded",
+  "title": "Bound async disposal in process shutdown tests"
+}

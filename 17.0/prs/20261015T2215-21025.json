@@ -1,0 +1,9 @@
+{
+  "author": "eerhardt",
+  "comment": "Dependency bump that enables stable AKS Gateway API support, user-visible AKS behavior change",
+  "mergedAt": "2026-10-15T22:15:49Z",
+  "number": 21025,
+  "runDate": "2026-10-16T00:07:24Z",
+  "status": "included",
+  "title": "Update Azure.Provisioning.ContainerService to 1.0.0-beta.7"
+}
