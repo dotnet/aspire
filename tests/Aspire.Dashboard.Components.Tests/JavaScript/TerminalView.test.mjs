@@ -2080,7 +2080,7 @@ test("authoritative close keeps the existing presentation read-only without remo
     attempts[0].resolve();
     await settle();
     attempts[0].close(4000);
-    attempts[0].options.onStatus("Late transport error", "error");
+    attempts[0].options.onStatus("View disconnected (4000). Attach another view to reconnect.", "error");
     await settle();
     assert.equal(terminal.getTerminalSnapshot(element).ended, true);
     assert.equal(terminal.getToolbarState(id).disconnected, true);
@@ -2273,6 +2273,26 @@ test("exhausted retries keep the final screen until the view is disposed", async
     assert.equal(attempts[0].client.disposed, true);
 });
 
+test("failed automatic retries preserve palette errors until dismissal", async () => {
+    const { id, element } = mount();
+    const original = attempts[0];
+    original.client.screenText = "Retained output";
+    original.resolve();
+    await settle();
+    original.close(1006);
+    retry();
+    mock.method(localStorage, "setItem", () => { throw new Error("Storage disabled"); });
+    terminal.setPaletteFromHost(id, "light");
+    attempts[1].reject();
+    await settle();
+    assert.equal(terminal.getToolbarState(id).error, "palette-failed");
+    assert.equal(terminal.getTerminalSnapshot(element).screenText, "Retained output");
+    assert.equal(original.client.disposed, false);
+    terminal.dismissError(id);
+    assert.equal(terminal.getToolbarState(id).error, null);
+    assert.equal(timers.size, 1);
+});
+
 test("palette failures and dismissal preserve retry exhaustion until an explicit reconnect", async () => {
     const { id } = mount({ options: { readOnly: true } });
     attempts[0].resolve();
@@ -2435,6 +2455,35 @@ for (const pendingReplacement of [false, true]) {
         assert.equal(replacement.client.disposed, false);
     });
 }
+
+test("fatal completed renderer errors release output without reopening the ended endpoint", async () => {
+    const { id, element } = mount();
+    const original = attempts[0];
+    original.client.screenText = "Completed output";
+    original.resolve();
+    await settle();
+    original.close(4000);
+    original.options.onStatus("Scrollbar: Terminal disconnected before the marker operation completed.", "error");
+    assert.equal(original.client.disposed, false);
+    assert.equal(terminal.getToolbarState(id).error, null);
+    original.options.onStatus("WebGL2 context lost", "error");
+    assert.equal(original.client.disposed, true);
+    assert.equal(original.options.signal.aborted, true);
+    assert.equal(terminal.getTerminalSnapshot(element).screenText, "");
+    assert.equal(terminal.getTerminalSnapshot(element).ended, true);
+    assert.equal(terminal.getToolbarState(id).error, "renderer-failed");
+    assert.equal(timers.size, 0);
+    terminal.reconnectTerminal(id, original.options.url);
+    assert.equal(attempts.length, 1);
+    original.options.onStatus("Late transport failure", "error");
+    assert.equal(terminal.getToolbarState(id).error, "renderer-failed");
+    terminal.restartTerminal(id);
+    assert.equal(attempts.length, 2);
+    attempts[1].resolve();
+    await settle();
+    assert.equal(terminal.getToolbarState(id).connected, true);
+    assert.equal(terminal.getToolbarState(id).error, null);
+});
 
 test("disposing a view ignores later native close callbacks", async () => {
     const { id } = mount();

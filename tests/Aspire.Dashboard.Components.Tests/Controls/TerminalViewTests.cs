@@ -1,9 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Threading.Channels;
 using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Components.Tests.Shared;
+using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Terminal;
+using Aspire.Dashboard.Tests.Shared;
+using Aspire.Tests.Shared.DashboardModel;
 using Bunit;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
@@ -564,6 +568,42 @@ public class TerminalViewTests : DashboardTestContext
 
         await cut.Find(".terminal-error fluent-button").ClickAsync(new());
         Assert.Single(module.Invocations, i => i.Identifier == "reconnectTerminal");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Disconnect_CompletedRendererFailureKeepsRecoveryActionsWithoutClaimingPreservedOutput(bool collapsed)
+    {
+        var resource = ModelTestHelpers.CreateResource(resourceName: "shell", state: KnownResourceState.Finished,
+            commands: [new CommandViewModel(CommandViewModel.StartCommand, CommandViewModelState.Enabled,
+                "Start", string.Empty, string.Empty, [], false, "ArrowClockwise", IconVariant.Regular)]);
+        var client = new TestDashboardClient(isEnabled: true, initialResources: [resource],
+            resourceChannelProvider: () => Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>());
+        Services.AddSingleton<IDashboardClient>(client);
+        var module = TerminalSetupHelpers.SetupTerminalViewModule(this, "/Components/Controls/TerminalView.razor.js");
+        module.Setup<int>("initTerminal", _ => true).SetResult(1);
+        var closed = false;
+        var cut = Render<TerminalView>(builder => builder
+            .Add(p => p.ResourceName, "shell")
+            .Add(p => p.OnClose, () => closed = true));
+        await cut.InvokeAsync(() => cut.Instance.OnTerminalStateChanged(new TerminalToolbarState
+        {
+            TerminalId = 1, Generation = 1, Disconnected = true
+        }));
+        if (collapsed)
+        {
+            await cut.Find(".terminal-show-output").ClickAsync(new());
+        }
+        await cut.InvokeAsync(() => cut.Instance.OnTerminalStateChanged(new TerminalToolbarState
+        {
+            TerminalId = 1, Generation = 1, Disconnected = true, Error = "renderer-failed"
+        }));
+        cut.WaitForAssertion(() => Assert.Single(cut.FindAll(".terminal-restart-resource")));
+        Assert.Equal(Resources.TerminalStrings.TerminalMountFailed, cut.Find("[role=alert]").TextContent);
+        Assert.Empty(cut.FindAll(".terminal-disconnected-banner [role=status], .terminal-show-output, .terminal-show-banner, .terminal-error, .terminal-overlays-collapsed"));
+        await cut.Find(".terminal-close-tab").ClickAsync(new());
+        Assert.True(closed);
     }
 
     [Fact]

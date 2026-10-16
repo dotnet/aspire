@@ -31,15 +31,16 @@
             <div class="terminal-container" @ref="_terminalElement"></div>
             @if (_state.Disconnected || _terminalError is not null)
             {
-                <div class="terminal-overlays @(ShowDisconnectedRecovery && _bannerCollapsed ? "terminal-overlays-collapsed" : null)">
+                <div class="terminal-overlays @(ShowDisconnectedRecovery && _bannerCollapsed && _terminalError is not "renderer-failed" ? "terminal-overlays-collapsed" : null)">
                     @if (ShowDisconnectedRecovery)
                     {
                         <TerminalDisconnectedBanner @key="ResourceName" ResourceName="@ResourceName" ReadOnly="@ReadOnly" OnClose="@OnClose"
+                                                    OutputUnavailable="@(_terminalError is "renderer-failed")"
                                                     OnRestarted="@ReconnectAfterRestartAsync"
                                                     OnReconnect="@(_state.RetriesExhausted ? EventCallback.Factory.Create(this, RetryAsync) : default)"
                                                     OnCollapsedChanged="@(collapsed => _bannerCollapsed = collapsed)" />
                     }
-                    @if (_terminalError is not null && !(ShowDisconnectedRecovery && _terminalError is "disconnected"))
+                    @if (_terminalError is not null && !(ShowDisconnectedRecovery && _terminalError is "disconnected" or "renderer-failed"))
                     {
                         <div class="terminal-error">
                             <span role="alert">@GetErrorMessage()</span>

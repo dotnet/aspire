@@ -30,6 +30,10 @@ public sealed partial class TerminalDisconnectedBanner : ComponentBase, IAsyncDi
     [Parameter]
     public bool ReadOnly { get; set; }
 
+    /// <summary>Gets or sets whether the disconnected renderer can no longer display its output.</summary>
+    [Parameter]
+    public bool OutputUnavailable { get; set; }
+
     /// <summary>Raised when the user closes the owning dock tab.</summary>
     [Parameter]
     public EventCallback OnClose { get; set; }
@@ -65,7 +69,9 @@ public sealed partial class TerminalDisconnectedBanner : ComponentBase, IAsyncDi
 
     private int? ExitCode => Resource is { } resource && resource.TryGetExitCode(out var exitCode) ? exitCode : null;
 
-    private string Message => ExitCode is { } exitCode
+    private string Message => OutputUnavailable
+        ? Loc[nameof(Resources.TerminalStrings.TerminalMountFailed)].Value
+        : ExitCode is { } exitCode
         ? Loc[nameof(Resources.TerminalStrings.TerminalDisconnectedWithExitCode), exitCode].Value
         : Loc[nameof(Resources.TerminalStrings.TerminalDisconnectedMessage)].Value;
 

@@ -363,7 +363,9 @@ function connectionFailed(state, generation, error, preserve) {
     state.pendingSizing = null;
     console.warn("Dashboard terminal connection failed.", error);
     releaseClient(state, preserve);
-    state.error = state.retainedClient ? null : "mount-failed";
+    if (!state.retainedClient) {
+        state.error = "mount-failed";
+    }
     scheduleReconnect(state, generation);
     notifyToolbar(state);
 }
@@ -698,7 +700,8 @@ async function mountClient(state, generation, controller) {
             renderer: /\bFirefox\//.test(navigator.userAgent) ? "webgl2" : "auto",
             onStatus(message, level) {
                 const retained = !state.disposed && state.retainedClient?.controller === controller;
-                if (level !== "error" || (!retained && (!current() || state.ended))) {
+                const completed = !state.disposed && state.ended && state.controller === controller && state.client !== null;
+                if (level !== "error" || (!retained && !completed && (!current() || state.ended))) {
                     return;
                 }
                 // The worker emits this status after onClose, including for preserved
@@ -722,6 +725,13 @@ async function mountClient(state, generation, controller) {
                     console.warn("Dashboard retained terminal renderer failed.", message);
                     releaseRetainedClient(state);
                     state.error = "mount-failed";
+                    notifyToolbar(state);
+                    return;
+                }
+                if (completed) {
+                    console.warn("Dashboard completed terminal renderer failed.", message);
+                    releaseClient(state);
+                    state.error = "renderer-failed";
                     notifyToolbar(state);
                     return;
                 }

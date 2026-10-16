@@ -1,6 +1,6 @@
 @namespace Aspire.Dashboard.Components.Controls
 
-@if (_collapsed)
+@if (_collapsed && !OutputUnavailable)
 {
     <div class="terminal-disconnected-indicator">
         <FluentButton @ref="_toggleButton"
@@ -19,7 +19,7 @@ else
 {
     <div class="terminal-disconnected-banner">
         <FluentIcon Value="@(new Icons.Regular.Size20.PlugDisconnected())" Color="Color.Default" />
-        <span role="status">@Message</span>
+        <span role="@(OutputUnavailable ? "alert" : "status")">@Message</span>
         @if (OnReconnect.HasDelegate)
         {
             <FluentButton Appearance="ButtonAppearance.Default"
@@ -46,12 +46,15 @@ else
                 @Loc[nameof(Resources.TerminalStrings.TerminalCloseTab)]
             </FluentButton>
         }
-        <FluentButton @ref="_toggleButton"
-                      Appearance="ButtonAppearance.Default"
-                      Class="terminal-show-output"
-                      aria-expanded="true"
-                      OnClick="@(() => SetCollapsedAsync(true))">
-            @Loc[nameof(Resources.TerminalStrings.TerminalShowOutput)]
-        </FluentButton>
+        @if (!OutputUnavailable)
+        {
+            <FluentButton @ref="_toggleButton"
+                          Appearance="ButtonAppearance.Default"
+                          Class="terminal-show-output"
+                          aria-expanded="true"
+                          OnClick="@(() => SetCollapsedAsync(true))">
+                @Loc[nameof(Resources.TerminalStrings.TerminalShowOutput)]
+            </FluentButton>
+        }
     </div>
 }
