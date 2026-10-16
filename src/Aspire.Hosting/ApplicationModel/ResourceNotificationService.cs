@@ -502,7 +502,10 @@ public class ResourceNotificationService : IDisposable
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task.</returns>
     /// <exception cref="DistributedApplicationException"></exception>
-    public async Task WaitForDependenciesAsync(IResource resource, CancellationToken cancellationToken)
+    public Task WaitForDependenciesAsync(IResource resource, CancellationToken cancellationToken) =>
+        WaitForDependenciesAsync(resource, resourceId: null, cancellationToken);
+
+    internal async Task WaitForDependenciesAsync(IResource resource, string? resourceId, CancellationToken cancellationToken)
     {
         if (!resource.TryGetAnnotationsOfType<WaitAnnotation>(out var waitAnnotations))
         {
@@ -538,7 +541,7 @@ public class ResourceNotificationService : IDisposable
                 return;
             }
 
-            await PublishWaitingForDependenciesAsync(resource, pendingDependencyCounts.Keys).ConfigureAwait(false);
+            await PublishWaitingForDependenciesAsync(resource, resourceId, pendingDependencyCounts.Keys).ConfigureAwait(false);
 
             using var pendingDependencyLock = new SemaphoreSlim(1, 1);
 
@@ -565,11 +568,11 @@ public class ResourceNotificationService : IDisposable
 
                     if (waitingFor.Length > 0)
                     {
-                        await PublishWaitingForDependenciesAsync(resource, waitingFor).ConfigureAwait(false);
+                        await PublishWaitingForDependenciesAsync(resource, resourceId, waitingFor).ConfigureAwait(false);
                     }
                     else
                     {
-                        await ClearWaitingForDependenciesAsync(resource).ConfigureAwait(false);
+                        await ClearWaitingForDependenciesAsync(resource, resourceId).ConfigureAwait(false);
                     }
                 }
                 finally
@@ -603,7 +606,7 @@ public class ResourceNotificationService : IDisposable
 
             if (clearRemainingDependencies)
             {
-                await ClearWaitingForDependenciesAsync(resource).ConfigureAwait(false);
+                await ClearWaitingForDependenciesAsync(resource, resourceId).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException ex)
@@ -623,7 +626,7 @@ public class ResourceNotificationService : IDisposable
         }
     }
 
-    private Task PublishWaitingForDependenciesAsync(IResource resource, IEnumerable<string> dependencyNames)
+    private Task PublishWaitingForDependenciesAsync(IResource resource, string? resourceId, IEnumerable<string> dependencyNames)
     {
         var waitingFor = dependencyNames
             .Where(static dependencyName => !string.IsNullOrWhiteSpace(dependencyName))
@@ -636,14 +639,16 @@ public class ResourceNotificationService : IDisposable
         // so they are always allowed to transition to Waiting if they are waiting on dependencies.
         var allowNotStarted = !resource.HasAnnotationOfType<ExplicitStartupAnnotation>() || !resource.TryGetInstances(out _);
 
-        return PublishUpdateAsync(resource, s =>
+        return resourceId is null ? PublishUpdateAsync(resource, UpdateSnapshot) : PublishUpdateAsync(resource, resourceId, UpdateSnapshot);
+
+        CustomResourceSnapshot UpdateSnapshot(CustomResourceSnapshot s) =>
             CanTransitionToWaiting(s.State?.Text, allowNotStarted)
                 ? s with
                 {
                     State = KnownResourceStates.Waiting,
                     Properties = s.Properties.SetResourceProperty(KnownProperties.Resource.WaitingFor, waitingFor)
                 }
-                : s);
+                : s;
     }
 
     private static bool CanTransitionToWaiting(string? state, bool allowNotStarted) =>
@@ -652,12 +657,14 @@ public class ResourceNotificationService : IDisposable
         || state == KnownResourceStates.Starting
         || state == KnownResourceStates.Waiting;
 
-    private Task ClearWaitingForDependenciesAsync(IResource resource)
+    private Task ClearWaitingForDependenciesAsync(IResource resource, string? resourceId)
     {
-        return PublishUpdateAsync(resource, s => s with
+        return resourceId is null ? PublishUpdateAsync(resource, UpdateSnapshot) : PublishUpdateAsync(resource, resourceId, UpdateSnapshot);
+
+        static CustomResourceSnapshot UpdateSnapshot(CustomResourceSnapshot s) => s with
         {
             Properties = s.Properties.RemoveResourceProperty(KnownProperties.Resource.WaitingFor)
-        });
+        };
     }
 
     /// <summary>

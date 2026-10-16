@@ -864,8 +864,10 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
         await startingTask.DefaultTimeout();
     }
 
-    [Fact]
-    public async Task StartingNotStartedReplicaIsForwardedToDcpWhileSiblingWaits()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task StartingInactiveReplicaIsForwardedToDcpWhileSiblingWaits(bool preparedStart)
     {
         // The consequence of WaitingUpdateDoesNotDisturbNotStartedReplicas: StartResourceAsync reads "Waiting" as
         // proof that startup is already in flight and only updates the snapshot, skipping DCP. If the waiting update
@@ -899,6 +901,13 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
 
         await PublishReplicaStatesAsync(resourceNotificationService, waiter.Resource, KnownResourceStates.NotStarted);
 
+        using var firstPreparedStart = preparedStart
+            ? await resourceNotificationService.BeginResourceStartAsync(waiter.Resource, "waiter-abc123")
+            : null;
+        using var secondPreparedStart = preparedStart
+            ? await resourceNotificationService.BeginResourceStartAsync(waiter.Resource, "waiter-def456")
+            : null;
+
         var startingTask = events.PublishAsync(new OnResourceStartingContext(
             CancellationToken.None, KnownResourceTypes.Executable, waiter.Resource, "waiter-abc123"));
 
@@ -906,6 +915,10 @@ public class ApplicationOrchestratorTests(ITestOutputHelper testOutputHelper)
             waiter.Resource.Name,
             e => e.ResourceId == "waiter-abc123" && e.Snapshot.State?.Text == KnownResourceStates.Waiting,
             TestContext.Current.CancellationToken).DefaultTimeout();
+
+        Assert.True(resourceNotificationService.TryGetCurrentState("waiter-def456", out var sibling));
+        Assert.Equal(preparedStart ? KnownResourceStates.Starting : KnownResourceStates.NotStarted, sibling.Snapshot.State?.Text);
+        Assert.False(startingTask.IsCompleted);
 
         // Stand in for the user invoking the start command on the replica that was never started.
         await appOrchestrator.StartResourceAsync("waiter-def456", TestContext.Current.CancellationToken).DefaultTimeout();

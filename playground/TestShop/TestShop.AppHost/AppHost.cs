@@ -13,6 +13,7 @@ var catalogDb = builder.AddPostgres("postgres")
                        .WithDataVolume()
                        .WithPgAdmin(resource =>
                        {
+                           resource.WithLaunchGroup("catalog");
                            resource.WithUrlForEndpoint("http", u => u.DisplayText = "PG Admin");
                        })
                        .AddDatabase("catalogdb");
@@ -24,11 +25,13 @@ var basketCache = builder.AddRedis("basketcache")
 #if !SKIP_DASHBOARD_REFERENCE
 basketCache.WithRedisCommander(c =>
             {
+                c.WithLaunchGroup("basket");
                 c.WithHostPort(33801);
                 c.WithUrlForEndpoint("http", u => u.DisplayText = "Redis Commander");
             })
            .WithRedisInsight(c =>
             {
+                c.WithLaunchGroup("basket");
                 c.WithHostPort(33802);
                 c.WithUrlForEndpoint("http", u => u.DisplayText = "Redis Insight");
             });

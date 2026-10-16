@@ -12,6 +12,19 @@ namespace Aspire.Playground.Tests;
 public class LaunchGroupTests(ITestOutputHelper output)
 {
     [Fact]
+    public async Task TestShopAdminResourcesUseTheirServiceLaunchGroups()
+    {
+        var builder = await DistributedApplicationTestFactory.CreateAsync(typeof(Projects.TestShop_AppHost), output);
+        var pgAdmin = Assert.Single(builder.Resources, resource => resource.Name == "pgadmin");
+        Assert.Equal("catalog", Assert.Single(pgAdmin.Annotations.OfType<LaunchGroupAnnotation>()).LaunchGroupName);
+        foreach (var admin in builder.Resources.Where(resource => resource.Name is "rediscommander" or "redisinsight"))
+        {
+            Assert.Equal("basket", Assert.Single(admin.Annotations.OfType<LaunchGroupAnnotation>()).LaunchGroupName);
+        }
+        await using var app = await builder.BuildAsync();
+    }
+
+    [Fact]
     public async Task TestShopPartialRunSupportsAdditionalResourceStarts()
     {
         var builder = await DistributedApplicationTestFactory.CreateAsync(typeof(Projects.TestShop_AppHost), output);
@@ -29,7 +42,9 @@ public class LaunchGroupTests(ITestOutputHelper output)
                 .Select(name => app.ResourceNotifications.WaitForResourceHealthyAsync(name, readiness.Token)));
         }
 
-        foreach (var name in new[] { "basketcache", "basketservice", "messaging", "frontend", "orderprocessor", "apigateway" })
+        var unselected = new[] { "basketcache", "basketservice", "messaging", "frontend", "orderprocessor", "apigateway" }
+            .Concat(builder.Resources.Where(resource => resource.Name is "rediscommander" or "redisinsight").Select(resource => resource.Name));
+        foreach (var name in unselected)
         {
             Assert.True(app.ResourceNotifications.TryGetCurrentState(name, out var current));
             Assert.Equal(KnownResourceStates.NotStarted, current.Snapshot.State?.Text);
