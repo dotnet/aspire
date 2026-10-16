@@ -83,6 +83,7 @@ suite('Blazor WASM debug relay', () => {
         return {
             url: `ws://127.0.0.1:${address.port}`,
             requests, received, opening,
+            connections: upgrades.clients,
             release: () => release(),
         };
     }
@@ -198,6 +199,24 @@ suite('Blazor WASM debug relay', () => {
         sinon.assert.calledWithExactly(warning, 'Blazor WASM debug relay connection failed: Unexpected server response: 503');
     });
 
+    for (const closedBy of ['IDE', 'bridge']) {
+        test(`closing an established ${closedBy} connection releases its peer`, async () => {
+            const upstream = await bridge();
+            const guard = await relay(upstream.url);
+            const client = await connect(guard.inspectUri);
+            const response = once(client, 'message');
+            client.send('start');
+            await response;
+            const [peer] = upstream.connections;
+            const closed = Promise.all([once(client, 'close'), once(peer, 'close')]);
+            (closedBy === 'IDE' ? client : peer).close();
+            await closed;
+
+            assert.strictEqual(client.readyState, WebSocket.CLOSED);
+            assert.strictEqual(peer.readyState, WebSocket.CLOSED);
+        });
+    }
+
     for (const invalid of ['wrong-token', 'wrong-path', 'browser-origin']) {
         test(`rejects ${invalid} without contacting the bridge`, async () => {
             const upstream = await bridge();
@@ -237,6 +256,18 @@ suite('Blazor WASM debug relay', () => {
         assert.deepStrictEqual(upstream.requests, []);
     });
 
+    for (const type of ['chrome', 'msedge', 'pwa-chrome', 'pwa-msedge']) {
+        test(`supports the C# generated ${type} browser configuration`, async () => {
+            const registration = registerBlazorWasmDebugRelay(configuration({ type: 'blazorwasm' }));
+            cleanups.push(() => registration.dispose());
+            const resolved = await resolve(configuration({ type, inspectUri: 'ws://localhost:1234{browserInspectUriPath}' }));
+            assert.ok(resolved);
+            assert.strictEqual(resolved.type, type);
+            const client = await connect(resolved.inspectUri);
+            assert.strictEqual(client.readyState, WebSocket.OPEN);
+        });
+    }
+
     for (const overrides of [
         { runId: 'other-run' },
         { debugSessionId: 'other-dcp' },
@@ -270,5 +301,14 @@ suite('Blazor WASM debug relay', () => {
         assert.ok(retry);
         const client = await connect(retry.inspectUri);
         assert.strictEqual(client.readyState, WebSocket.OPEN);
+    });
+
+    test('run cleanup during initialization cancels the configuration', async () => {
+        registerBlazorWasmDebugRelay(configuration({ type: 'blazorwasm' }));
+        const pending = resolve(configuration({ inspectUri: 'ws://localhost:1234{browserInspectUriPath}' }));
+        cleanupRun('relay-run');
+
+        assert.strictEqual(await pending, undefined);
+        sinon.assert.calledOnce(providerDisposed);
     });
 });

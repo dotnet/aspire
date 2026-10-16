@@ -103,8 +103,8 @@ export async function proveBlazorScenario(options: ProveBlazorScenarioOptions): 
     assert.ok([expectedBrowserAlias, expectedBrowserSessionType].includes(proof.browserSession.type));
     assert.strictEqual(proof.browserSession.parentSessionId, proof.rootSession.id);
     if (proof.managedSession.type === 'monovsdbg_wasm') {
-        assert.ok(typeof proof.browserSession.configuration.inspectUri === 'string');
-        assert.match(proof.browserSession.configuration.inspectUri,
+        assert.ok(typeof proof.rootSession.configuration.inspectUri === 'string');
+        assert.match(proof.rootSession.configuration.inspectUri,
             /^ws:\/\/127\.0\.0\.1:\d+\/[0-9a-f-]+\{browserInspectUriPath\}$/);
     }
     assert.strictEqual(proof.breakpointResponse.success, true);

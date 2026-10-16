@@ -118,15 +118,38 @@ jobs:
           $helper = $helper.Replace('        noDebug?: unknown;', "        noDebug?: unknown;`n        inspectUri?: unknown;")
           $relayAssertion = @'
               if (proof.managedSession.type === 'monovsdbg_wasm') {
-                  assert.ok(typeof proof.browserSession.configuration.inspectUri === 'string');
-                  assert.match(proof.browserSession.configuration.inspectUri,
+                  assert.ok(typeof proof.rootSession.configuration.inspectUri === 'string');
+                  assert.match(proof.rootSession.configuration.inspectUri,
                       /^ws:\/\/127\.0\.0\.1:\d+\/[0-9a-f-]+\{browserInspectUriPath\}$/);
               }
           '@
           $helper = $helper.Replace($marker, "$relayAssertion`n$marker")
           [IO.File]::WriteAllText($helperPath, $helper)
           $bridgePath = Join-Path (Get-Location) 'src\testing\e2eStateFileBridge.ts'
-          $bridge = [IO.File]::ReadAllText($bridgePath)
+          $bridge = [IO.File]::ReadAllText($bridgePath).Replace("`r`n", "`n")
+          $oldCommand = @'
+              const debugCommandElement = getResourceCommandElement(appHostTreeProvider, {
+                name: 'executeResourceCommandItem',
+                appHostPath,
+                resourceName,
+                commandName: 'debug-in-browser',
+              });
+          '@
+          $readyCommand = @'
+              const debugCommandElement = await waitForProofValue(
+                `enabled 'debug-in-browser' command for resource '${resourceName}'`,
+                () => {
+                  const element = getResourceCommandElement(appHostTreeProvider, {
+                    name: 'executeResourceCommandItem',
+                    appHostPath,
+                    resourceName,
+                    commandName: 'debug-in-browser',
+                  });
+                  return isEnabledCommand(element.commandJson as ResourceCommandJson) ? element : undefined;
+                });
+          '@
+          if (($bridge.Split($oldCommand)).Count -ne 2) { throw 'Expected one browser debug command preparation.' }
+          $bridge = $bridge.Replace($oldCommand, $readyCommand)
           if (-not $bridge.Contains('installWasmInvestigationProbe')) {
             $marker = '  const extensionHostSessionId = randomUUID();'
             if (($bridge.Split($marker)).Count -ne 2) { throw 'Expected one E2E bridge initialization marker.' }
