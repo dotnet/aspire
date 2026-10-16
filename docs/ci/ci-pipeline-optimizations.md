@@ -183,6 +183,9 @@ options and creates the bundle without adding Dashboard/DCP packages.
 Signing is explicit: `Sign=false` is unsigned; `Sign=true` requires
 `DotNetSignType=test` or `real`. Real signing additionally requires the
 MicroBuild plugin and an official build identity without dry-run overrides.
+Plugin availability is validated in the signing projects after their MicroBuild
+imports, not in standalone `Bundle.proj`. `MicroBuild_SigningEnabled` is a
+computed plugin property, not a pipeline setup environment flag.
 Identity alone never enables signing. Linux lanes disable signing, and public/PR
 official-pipeline runs use their unsigned/test policy rather than attempting real
 tray signing. Only real macOS signing prepares, notarizes, restores, and verifies

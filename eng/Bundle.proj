@@ -130,8 +130,11 @@
            Text="DotNetSignType must be empty, test, or real." />
     <Error Condition="'$(Sign)' == 'true' and '$(DotNetSignType)' == ''"
            Text="Signing requires DotNetSignType=test or real." />
-    <Error Condition="'$(DotNetSignType)' == 'real' and ('$(Sign)' != 'true' or '$(MicroBuild_SigningEnabled)' != 'true')"
-           Text="Real signing requires Sign=true and the MicroBuild signing plugin." />
+    <!-- MicroBuild_SigningEnabled is computed by plugin props imported in signing
+         children. This standalone project does not import them; the signing
+         projects must validate plugin availability in their own evaluation. -->
+    <Error Condition="'$(DotNetSignType)' == 'real' and '$(Sign)' != 'true'"
+           Text="Real signing requires Sign=true." />
     <!-- Arcade otherwise silently dry-runs Sign.proj, even when the plugin is
          installed. Identity permits real signing only after the explicit request. -->
     <Error Condition="'$(DotNetSignType)' == 'real' and ('$(OfficialBuild)' == 'false' or ('$(OfficialBuild)' != 'true' and '$(OfficialBuildId)' == '') or '$(ForceDryRunSigning)' == 'true')"
@@ -146,7 +149,6 @@
       <_BundleSigningArgs>$(_BundleSigningArgs) "/p:ArtifactsDir=$(ArtifactsDir.TrimEnd('\').TrimEnd('/'))/"</_BundleSigningArgs>
       <_BundleSigningArgs Condition="'$(TeamName)' != ''">$(_BundleSigningArgs) "/p:TeamName=$(TeamName)"</_BundleSigningArgs>
       <_BundleSigningArgs Condition="'$(DotNetPublishUsingPipelines)' != ''">$(_BundleSigningArgs) /p:DotNetPublishUsingPipelines=$(DotNetPublishUsingPipelines)</_BundleSigningArgs>
-      <_BundleSigningArgs Condition="'$(MicroBuild_SigningEnabled)' != ''">$(_BundleSigningArgs) /p:MicroBuild_SigningEnabled=$(MicroBuild_SigningEnabled)</_BundleSigningArgs>
       <RequireWindowsTraySignature Condition="$(TargetRid.StartsWith('win-')) and '$(Sign)' == 'true' and '$(DotNetSignType)' == 'real'">true</RequireWindowsTraySignature>
       <RequireMacTraySignature Condition="$(TargetRid.StartsWith('osx-')) and '$(Sign)' == 'true' and '$(DotNetSignType)' == 'real'">true</RequireMacTraySignature>
     </PropertyGroup>

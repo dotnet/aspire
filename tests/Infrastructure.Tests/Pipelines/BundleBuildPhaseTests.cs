@@ -36,7 +36,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         }
 
         await RunAsync(project, "BuildNativeBundle", rid,
-            $"Sign={sign}", $"DotNetSignType={signType}", "MicroBuild_SigningEnabled=true",
+            $"Sign={sign}", $"DotNetSignType={signType}",
             $"SkipManagedBuild={windows}", $"SkipTrayBuild={windows}", "SkipNativeBuild=true",
             "BundleVersion=ci-bundlepayload", "RestorePackagesPath=" + Path.Combine(root, "restore cache"), "PackDcpPackage=true",
             "RequireMacTraySignature=false", "RequireWindowsTraySignature=false");
@@ -127,7 +127,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         File.WriteAllText(Path.Combine(workspace.Path, "fail-" + phase), "");
 
         var result = await ExecuteAsync(project, "BuildNativeBundle", rid,
-            "Sign=true", "DotNetSignType=real", "MicroBuild_SigningEnabled=true", "BundleVersion=ci-bundlepayload");
+            "Sign=true", "DotNetSignType=real", "BundleVersion=ci-bundlepayload");
 
         Assert.NotEqual(0, result.ExitCode);
         Assert.Equal(lastEvent, File.ReadAllLines(Path.Combine(workspace.Path, "events"))[^1]);
@@ -167,20 +167,81 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [InlineData("MicroBuild_SigningEnabled=false", "Real signing requires")]
     [InlineData("OfficialBuild=false", "Real signing requires an official build identity")]
     [InlineData("ForceDryRunSigning=true", "Real signing requires an official build identity")]
-    public async Task RealSigningRejectsDisabledServicesOrDryRuns(string property, string message)
+    public async Task RealSigningRejectsDryRunIdentity(string property, string message)
     {
         using var workspace = TemporaryWorkspace.Create(output);
         var project = CreateOrchestrationProject(workspace.Path, "osx-arm64");
 
         var result = await ExecuteAsync(project, "BuildNativeBundle", "osx-arm64",
-            "Sign=true", "DotNetSignType=real", "MicroBuild_SigningEnabled=true", property);
+            "Sign=true", "DotNetSignType=real", property);
 
         Assert.NotEqual(0, result.ExitCode);
         Assert.Contains(message, result.Output);
         Assert.False(File.Exists(Path.Combine(workspace.Path, "events")));
+    }
+
+    [Fact]
+    public async Task MissingSigningPluginFailsInSigningChildBeforePackaging()
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        var project = CreateOrchestrationProject(workspace.Path, "osx-arm64");
+        File.Delete(Path.Combine(workspace.Path, "signing-plugin.props"));
+
+        var result = await ExecuteAsync(project, "BuildNativeBundle", "osx-arm64",
+            "Sign=true", "DotNetSignType=real");
+
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains("Signing child requires the MicroBuild plugin.", result.Output);
+        Assert.Equal(["managed", "dashboard", "terminalhost", "tray", "adhoc", "prepare-tray"],
+            File.ReadAllLines(Path.Combine(workspace.Path, "events")));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task TraySigningValidatesPluginAfterRealPackageImports(bool installed)
+    {
+        Assert.SkipUnless(OperatingSystem.IsMacOS(), "The production tray signing validator requires macOS.");
+        using var workspace = TemporaryWorkspace.Create(output);
+        var plugins = workspace.CreateDirectory("plugins").FullName;
+        if (installed)
+        {
+            // Use MicroBuild Core's documented override discovery, not a global
+            // SigningEnabled property that would bypass the package import.
+            var build = workspace.CreateDirectory("plugins/MicroBuild.Plugins.Signing/1.0.0/build").FullName;
+            new XDocument(new XElement("Project",
+                new XElement("PropertyGroup", Property("MicroBuild_SigningEnabled", "true"))))
+                .Save(Path.Combine(build, "MicroBuild.Plugins.Signing.props"));
+        }
+        var archive = Path.Combine(workspace.Path, "AspireTray.zip");
+        File.WriteAllText(archive, "prepared tray");
+        var project = Path.Combine(RepoRoot.Path, "eng", "pipelines", "SignTray.proj");
+        var environment = new Dictionary<string, string?>
+        {
+            ["MicroBuild_SigningEnabled"] = null,
+            ["MicroBuildOverridePluginDirectory"] = plugins,
+            ["NUGET_PACKAGES"] = Path.Combine(workspace.Path, "cache")
+        };
+        string[] properties =
+        [
+            "RuntimeIdentifier=osx-arm64", "SignType=real", "TraySigningArchive=" + archive,
+            "MSBuildProjectExtensionsPath=" + Path.Combine(workspace.Path, "obj") + Path.DirectorySeparatorChar,
+            "BaseIntermediateOutputPath=" + Path.Combine(workspace.Path, "obj") + Path.DirectorySeparatorChar,
+            "ArtifactsDir=" + Path.Combine(workspace.Path, "artifacts") + Path.DirectorySeparatorChar
+        ];
+        var restore = await ExecuteAsync(project, "Restore", "osx-arm64", environment, properties);
+        Assert.True(restore.ExitCode == 0, restore.Output);
+
+        // Validate only: this must never submit a signing or notarization request.
+        var result = await ExecuteAsync(project, "ValidateTraySigning", "osx-arm64", environment, properties);
+
+        Assert.Equal(installed, result.ExitCode == 0);
+        if (!installed)
+        {
+            Assert.Contains("The official MicroBuild signing plugin must be enabled for tray signing.", result.Output);
+        }
     }
 
     [Theory]
@@ -576,6 +637,11 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         var tray = Path.Combine(root, "tray.proj");
         var trayExecutable = Path.Combine(root, "artifacts", "tray", "Aspire Tray.app", "Contents", "MacOS", "aspire-tray");
         var trayArchive = Path.Combine(root, "custom signing path", "AspireTray.zip");
+        var signingPlugin = Path.Combine(root, "signing-plugin.props");
+        // The official job installs plugins, but SigningEnabled is computed
+        // only when a signing child imports plugin props, not in Bundle.proj.
+        new XDocument(new XElement("Project",
+            new XElement("PropertyGroup", Property("MicroBuild_SigningEnabled", "true")))).Save(signingPlugin);
         var bundle = XDocument.Load(project);
         bundle.Root!.Element("PropertyGroup")!.Add(
             Property("BuildScriptPath", Path.Combine(root, OperatingSystem.IsWindows() ? "build.cmd" : "build.sh")),
@@ -609,12 +675,19 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
                 Property("ArtifactsPackagesDir", root + Path.DirectorySeparatorChar),
                 Property("ArtifactsShippingPackagesDir", Path.Combine(root, "shipping") + Path.DirectorySeparatorChar),
                 Property("VisualStudioSetupInsertionPath", Path.Combine(root, "insertion"))),
+            new XElement("Import", new XAttribute("Project", signingPlugin),
+                new XAttribute("Condition", $"Exists('{signingPlugin}')")),
             // Exercise the production evaluation-time archive glob, not a
             // second synthetic discovery rule that could mask stale evaluation.
             new XElement("Import", new XAttribute("Project", Path.Combine(RepoRoot.Path, "eng", "Signing.props"))),
             new XElement("ItemGroup", new XElement("ArchiveToSign",
                 new XAttribute("Include", $"@(ItemsToSign->WithMetadataValue('FullPath', '{archive}'))"))),
             new XElement("Target", new XAttribute("Name", "Restore")),
+            new XElement("Target", new XAttribute("Name", "ValidateSigningPlugin"),
+                new XAttribute("BeforeTargets", "SignComponents;SignTray;SignArchive"),
+                new XAttribute("Condition", "'$(DotNetSignType)' == 'real'"),
+                new XElement("Error", new XAttribute("Condition", "'$(MicroBuild_SigningEnabled)' != 'true'"),
+                    new XAttribute("Text", "Signing child requires the MicroBuild plugin."))),
             Phase("SignComponents", "sign-components",
                 Write(Path.Combine(root, "component-archive-exists"), "$([System.IO.File]::Exists('" + archive + "'))"),
                 Write(DashboardPath(root, rid), "signed Dashboard"),
