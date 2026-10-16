@@ -347,7 +347,9 @@ reporting. A successful resource restart explicitly reconnects the view and rese
 its retry budget, including after producer completion or exhausted automatic retries.
 The retained screen remains visible until the replacement receives a frame.
 Docked terminals offer **Close tab** through the existing dock close
-action. Other surfaces show the disconnected message without a close-tab action.
+action. Closing from the banner restores keyboard focus after the pane is removed,
+unless the user has moved focus elsewhere. Other surfaces show the disconnected
+message without a close-tab action.
 Connection or renderer initialization failures show a single error with
 **Reconnect terminal**, rather than also claiming that output was preserved.
 The failure stays visible after automatic retries are exhausted. A disconnected
