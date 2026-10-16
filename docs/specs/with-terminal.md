@@ -353,6 +353,8 @@ Connection or renderer initialization failures show a single error with
 The failure stays visible after automatic retries are exhausted. A disconnected
 recovery banner replaces the redundant transport error when output is retained;
 unrelated action failures remain visible alongside recovery.
+After automatic transport retries are exhausted, recovery offers **Reconnect terminal**
+without restarting the resource, including in read-only and docked views.
 All banners offer **Show terminal**, which hides the banner
 behind a floating disconnected icon at the top right. The icon
 reopens the recovery actions without reconnecting, restarting, or replacing the

@@ -455,6 +455,49 @@ public class TerminalViewTests : DashboardTestContext
     }
 
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task Disconnect_ExhaustedRetriesOfferReconnectWithoutRestartingResource(bool docked, bool readOnly)
+    {
+        var module = TerminalSetupHelpers.SetupTerminalViewModule(this, "/Components/Controls/TerminalView.razor.js");
+        module.Setup<int>("initTerminal", _ => true).SetResult(1);
+        module.Setup<int>("reconnectTerminal", _ => true).SetResult(32);
+        var cut = Render<TerminalView>(builder =>
+        {
+            builder.Add(p => p.ReadOnly, readOnly);
+            if (docked)
+            {
+                builder.Add(p => p.EndpointPathAndQuery, "/api/apphost-terminal?terminalId=shell");
+                builder.Add(p => p.OnClose, () => { });
+            }
+            else
+            {
+                builder.Add(p => p.ResourceName, "shell");
+            }
+        });
+        await cut.InvokeAsync(() => cut.Instance.OnTerminalStateChanged(new TerminalToolbarState
+        {
+            TerminalId = 1, Generation = 31, Disconnected = true, Error = "disconnected"
+        }));
+
+        Assert.Empty(cut.FindAll(".terminal-error"));
+        Assert.Equal(Resources.TerminalStrings.TerminalRetry, cut.Find(".terminal-reconnect").TextContent.Trim());
+        await cut.Find(".terminal-reconnect").ClickAsync(new());
+        Assert.Single(module.Invocations, i => i.Identifier == "reconnectTerminal");
+        Assert.Single(module.Invocations, i => i.Identifier == "initTerminal");
+        Assert.Equal(["initTerminal", "getSizePresets", "reconnectTerminal"], module.Invocations.Select(i => i.Identifier));
+        Assert.Single(cut.FindAll(".terminal-container"));
+
+        await cut.InvokeAsync(() => cut.Instance.OnTerminalStateChanged(new TerminalToolbarState
+        {
+            TerminalId = 1, Generation = 32, Disconnected = true
+        }));
+        Assert.Empty(cut.FindAll(".terminal-reconnect"));
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task Disconnect_BeforeFirstFrameShowsOnlyMountFailureAndCanRetry(bool collapsed)

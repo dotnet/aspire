@@ -38,6 +38,10 @@ public sealed partial class TerminalDisconnectedBanner : ComponentBase, IAsyncDi
     [Parameter]
     public EventCallback OnRestarted { get; set; }
 
+    /// <summary>Raised to retry an exhausted transport connection without restarting the resource.</summary>
+    [Parameter]
+    public EventCallback OnReconnect { get; set; }
+
     /// <summary>Raised when the banner is collapsed or expanded over the retained output.</summary>
     [Parameter]
     public EventCallback<bool> OnCollapsedChanged { get; set; }

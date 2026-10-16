@@ -20,6 +20,14 @@ else
     <div class="terminal-disconnected-banner">
         <FluentIcon Value="@(new Icons.Regular.Size20.PlugDisconnected())" Color="Color.Default" />
         <span role="status">@Message</span>
+        @if (OnReconnect.HasDelegate)
+        {
+            <FluentButton Appearance="ButtonAppearance.Default"
+                          Class="terminal-reconnect"
+                          OnClick="@OnReconnect">
+                @Loc[nameof(Resources.TerminalStrings.TerminalRetry)]
+            </FluentButton>
+        }
         @if (RestartCommand is not null)
         {
             <FluentButton Appearance="ButtonAppearance.Default"
