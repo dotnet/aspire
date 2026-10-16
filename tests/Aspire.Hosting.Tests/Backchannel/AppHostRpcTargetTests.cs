@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Resources;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
@@ -29,7 +30,7 @@ public class AppHostRpcTargetTests(ITestOutputHelper outputHelper)
         var exception = await Assert.ThrowsAsync<DistributedApplicationException>(
             () => target.GetDashboardUrlsAsync(TestContext.Current.CancellationToken).DefaultTimeout());
 
-        Assert.Equal("The AppHost is in publish mode and cannot be started with 'aspire run'. Use 'aspire publish' instead.", exception.Message);
+        Assert.Equal(MessageStrings.PublishModeNotSupportedByRunCommand, exception.Message);
     }
 
     [Fact]

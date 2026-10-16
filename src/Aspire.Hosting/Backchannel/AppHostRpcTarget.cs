@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Diagnostics;
 using Aspire.Hosting.Pipelines;
+using Aspire.Hosting.Resources;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -183,7 +184,7 @@ internal class AppHostRpcTarget(
         // dashboard and relies on the publishing CLI to consume progress and stop the AppHost.
         if (executionContext.IsPublishMode)
         {
-            throw new DistributedApplicationException("The AppHost is in publish mode and cannot be started with 'aspire run'. Use 'aspire publish' instead.");
+            throw new DistributedApplicationException(MessageStrings.PublishModeNotSupportedByRunCommand);
         }
 
         if (!options.DashboardEnabled)
