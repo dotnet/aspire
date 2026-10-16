@@ -1,0 +1,111 @@
+{
+  "run_id": 38971986469,
+  "run_attempt": 1,
+  "run_url": "https://github.com/microsoft/aspire/actions/runs/38971986469",
+  "run_scope": "main",
+  "analyzed_at": "2026-10-16T23:18:36Z",
+  "verdict": "mixed",
+  "pr": null,
+  "triggering_merge_pr": null,
+  "main_context": {
+    "last_successful_main_sha": "88ff9ba57c2841cce759adffa849373f9406b0f5",
+    "failed_sha": "7f111550ed5917abd6c9a908dc2dd18e457ac952",
+    "candidate_merge_history_state": "incomplete",
+    "candidate_merges": null
+  },
+  "failed_jobs": [
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Dashboard.Tests, Dashboard, Dashboard, tests/Aspire.Dashboard.T... / Dashboard (windows-latest)",
+      "id": 117213041014,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38971986469/job/117213041014",
+      "classification": "flaky-test",
+      "reason": "Single HistogramAllocationTests test failed asserting zero GC allocation (actual 5536 bytes); the other 2420 tests passed. Zero-allocation micro-benchmark assertions are inherently sensitive to incidental GC/runtime noise on shared CI hardware.",
+      "failed_steps": [
+        "Run tests (Windows)"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (macos-latest)",
+      "id": 117213042440,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38971986469/job/117213042440",
+      "classification": "flaky-test",
+      "reason": "TelemetryShutdownTests.Shutdown_HandlesBlockedDeliveryAndStorage(Dashboard) RemoteExecutor timed out after 60000ms waiting for a remote process on macOS; matches a previously tracked recurring CPU-contention timeout for this exact test/scenario.",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x)",
+      "id": 117215654783,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38971986469/job/117215654783",
+      "classification": "main-repository-breakage",
+      "reason": "All 59 TypeScript validation AppHosts passed; failure occurs afterward while running the Nuxt integration test's Docker build/publish step, matching a long-recurring deterministic 'npm ci' Docker build failure for the generated Nuxt publish image, independent of any single candidate merge.",
+      "failed_steps": [
+        "Run TypeScript SDK validation"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, apphost-tree)",
+      "id": 117218909932,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38971986469/job/117218909932",
+      "classification": "flaky-test",
+      "reason": "A single E2E test ('global refresh clears loading after switching to the workspace view') timed out waiting for a UI state transition after 30000ms; a timing-sensitive Playwright/E2E UI assertion consistent with known flaky apphost-tree shard behavior.",
+      "failed_steps": [
+        "Run extension E2E tests"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / Polyglot Validation Results",
+      "id": 117219276901,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38971986469/job/117219276901",
+      "classification": "main-repository-breakage",
+      "reason": "Aggregation job deterministically fails because the TypeScript SDK validation leg failed (Python/Go/Java/Rust all succeeded); downstream consequence of the main-repository Nuxt Docker build breakage.",
+      "failed_steps": [
+        "Check validation results"
+      ]
+    }
+  ],
+  "failed_tests": [
+    {
+      "name": "Aspire.Dashboard.Tests.HistogramAllocationTests.Create_UnchangedCumulativeSnapshot_DoesNotAllocate",
+      "job": "Tests / No-package tests (regular, Aspire.Dashboard.Tests, Dashboard, Dashboard, tests/Aspire.Dashboard.T... / Dashboard (windows-latest)",
+      "error": "Assert.Equal() Failure: Values differ\nExpected: 0\nActual:   5536",
+      "stack_trace": "at Aspire.Dashboard.Tests.HistogramAllocationTests.Create_UnchangedCumulativeSnapshot_DoesNotAllocate() in D:\\a\\aspire\\aspire\\tests\\Aspire.Dashboard.Tests\\HistogramAllocationTests.cs:line 36\n   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\n   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "A zero-allocation micro-benchmark assertion; 5536 bytes of incidental allocation on a shared Windows CI runner indicates environmental GC/runtime noise, not a deterministic code defect, especially with only 1 of 2421 tests failing."
+    },
+    {
+      "name": "Aspire.Cli.Tests.Telemetry.TelemetryShutdownTests.Shutdown_HandlesBlockedDeliveryAndStorage(scenario: \"Dashboard\")",
+      "job": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (macos-latest)",
+      "error": "Microsoft.DotNet.RemoteExecutor.RemoteExecutionException : Half-way through waiting for remote process.\nTimed out at 10/16/2026 9:56:18 PM after 60000ms waiting for remote process.\n\tProcess ID: 10433\n\tName: dotnet\n\tMainModule: /Users/runner/work/aspire/aspire/.dotnet/dotnet\n\tStartTime: 10/16/2026 9:55:18 PM\n\tTotalProcessorTime: 00:00:00.3541541",
+      "stack_trace": "at Microsoft.DotNet.RemoteExecutor.RemoteInvokeHandle.Dispose(Boolean disposing) in /_/src/Microsoft.DotNet.RemoteExecutor/src/RemoteInvokeHandle.cs:line 157\n   at Microsoft.DotNet.RemoteExecutor.RemoteInvokeHandle.Dispose() in /_/src/Microsoft.DotNet.RemoteExecutor/src/RemoteInvokeHandle.cs:line 58\n   at Aspire.Cli.Tests.Telemetry.TelemetryShutdownTests.Shutdown_HandlesBlockedDeliveryAndStorage(String scenario) in /Users/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/Telemetry/TelemetryShutdownTests.cs:line 262\n   at Aspire.Cli.Tests.Telemetry.TelemetryShutdownTests.Shutdown_HandlesBlockedDeliveryAndStorage(String scenario) in /Users/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/Telemetry/TelemetryShutdownTests.cs:line 113\n   at InvokeStub_TelemetryShutdownTests.Shutdown_HandlesBlockedDeliveryAndStorage(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)",
+      "standard_output": "Temporary workspace created at: /var/folders/n6/hn37q6pj7sj_9dmqqc2113800000gn/T/Aspire.Cli.Tests/Workspace/0vcqgvsy.skd\nDisposing temporary workspace at: /var/folders/n6/hn37q6pj7sj_9dmqqc2113800000gn/T/Aspire.Cli.Tests/Workspace/0vcqgvsy.skd",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "RemoteExecutor-based test timing out waiting for a remote process on a macOS runner; matches a previously tracked recurring CPU-contention timeout for this exact test and scenario ('Dashboard')."
+    },
+    {
+      "name": "Aspire AppHost tree E2E global refresh clears loading after switching to the workspace view",
+      "job": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, apphost-tree)",
+      "error": "Timed out after 30000ms waiting for workspace view to retain the shared ps refresh loading state.\nLast error: <none>\nLast state: {\n  \"extensionHostSessionId\": \"3db77454-3eea-4074-9366-ea8e35357d8b\",\n  \"updatedAt\": \"2026-10-16T22:15:25.006Z\",\n  \"runId\": \"4524-1792188726134\",\n  \"state\": {\n    \"viewMode\": \"workspace\",\n    \"isRepositoryLoading\": false,\n    \"isWorkspaceAppHostDiscoveryComplete\": true,\n    \"hasError\": false,\n    \"workspaceAppHostName\": \"AspireE2E.AppHost.csproj\",\n    \"workspaceAppHostPath\": \"C:\\\\Users\\\\runneradmin\\\\AppData\\\\Local\\\\Temp\\\\aev-Lg4xzi\\\\workspace\\\\AspireE2E.AppHost\\\\AspireE2E.AppHost.csproj\",\n    \"workspaceAppHostCandidatePaths\": [\n      \"C:\\\\Users\\\\runneradmin\\\\AppData\\\\Local\\\\Temp\\\\aev-Lg4xzi\\\\workspace\\\\AspireE2E.AppHost\\\\AspireE2E.AppHost.csproj\"\n    ],\n    \"workspaceAppHostDescription\": \"Workspace view selected because aspire ls found one buildable C# AppHost.\",\n    \"workspaceResources\": [],\n    \"appHosts\": [],\n    \"launchingPaths\": [],\n    \"stoppingPaths\": ",
+      "stack_trace": "Error: Timed out after 30000ms waiting for workspace view to retain the shared ps refresh loading state.\nLast error: <none>\nLast state: {\n  \"extensionHostSessionId\": \"3db77454-3eea-4074-9366-ea8e35357d8b\",\n  \"updatedAt\": \"2026-10-16T22:15:25.006Z\",\n  \"runId\": \"4524-1792188726134\",\n  \"state\": {\n    \"viewMode\": \"workspace\",\n    \"isRepositoryLoading\": false,\n    \"isWorkspaceAppHostDiscoveryComplete\": true,\n    \"hasError\": false,\n    \"workspaceAppHostName\": \"AspireE2E.AppHost.csproj\",\n    \"workspaceAppHostPath\": \"C:\\\\Users\\\\runneradmin\\\\AppData\\\\Local\\\\Temp\\\\aev-Lg4xzi\\\\workspace\\\\AspireE2E.AppHost\\\\AspireE2E.AppHost.csproj\",\n    \"workspaceAppHostCandidatePaths\": [\n      \"C:\\\\Users\\\\runneradmin\\\\AppData\\\\Local\\\\Temp\\\\aev-Lg4xzi\\\\workspace\\\\AspireE2E.AppHost\\\\AspireE2E.AppHost.csproj\"\n    ],\n    \"workspaceAppHostDescription\": \"Workspace view selected because aspire ls found one buildable C# AppHost.\",\n    \"workspaceResources\": [],\n    \"appHosts\": [],\n    \"launchingPaths\": [],\n    \"stoppingPaths\": [],\n    \"debugSessions\": []\n  },\n  \"commandInvocations\": [\n    {\n      \"command\": \"aspire-vscode.switchToWorkspaceView\",\n      \"outcome\": \"success\",\n      \"durationMs\": 1,\n      \"source\": \"tree\",\n      \"sequence\": 1\n    },\n    {\n      \"command\": \"aspire-vscode.refreshAppHosts\",\n      \"outcome\": \"success\",\n      \"durationMs\": 11,\n      \"source\": \"tree\",\n      \"sequence\": 2\n    },\n    {\n      \"command\": \"aspire-vscode.switchToWorkspaceView\",\n      \"outcome\": \"success\",\n      \"durationMs\": 1,\n      \"source\": \"tree\",\n      \"sequence\": 3\n    },\n    {\n      \"command\": \"aspire-vscode.refreshAppHosts\",\n      \"outcome\": \"success\",\n      \"durationMs\": 9,\n      \"source\": \"tree\",\n      \"sequence\": 4\n    },\n    {\n      \"command\": \"aspire-vscode.switchToWorkspaceView\",\n      \"outcome\": \"success\",\n      \"durationMs\": 1,\n      \"source\": \"tree\",\n      \"sequence\": 5\n    },\n    {\n      \"command\": \"aspire-vscode.refreshAppHosts\",\n      \"outcome\": \"success\",\n      \"durationMs\": 12,\n      \"source\": \"",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Timing-sensitive VS Code extension E2E assertion waiting on a shared refresh-loading UI state; consistent with other known flaky apphost-tree shard timeouts tracked for this test suite."
+    }
+  ],
+  "causes": [
+    "aspire-dashboard-histogramallocationtests-createunchangedcumulativesnapshot-flaky",
+    "aspire-cli-tests-telemetryshutdowntests-shutdown-handlesblockeddeliveryandstorage-macos",
+    "vscode-e2e-windows-apphost-tree-global-refresh-clears-loading-flaky",
+    "typescript-sdk-nuxt-integration-npm-ci-docker-build-failure"
+  ]
+}

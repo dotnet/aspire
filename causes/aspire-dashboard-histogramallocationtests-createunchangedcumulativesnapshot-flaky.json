@@ -1,0 +1,16 @@
+{
+  "id": "aspire-dashboard-histogramallocationtests-createunchangedcumulativesnapshot-flaky",
+  "type": "flaky-test",
+  "title": "Flaky: HistogramAllocationTests.Create_UnchangedCumulativeSnapshot_DoesNotAllocate observes incidental GC allocation on windows-latest",
+  "test_name": "Aspire.Dashboard.Tests.HistogramAllocationTests.Create_UnchangedCumulativeSnapshot_DoesNotAllocate",
+  "error_pattern": "Assert.Equal() Failure: Values differ\nExpected: 0\nActual:   5536\n   at Aspire.Dashboard.Tests.HistogramAllocationTests.Create_UnchangedCumulativeSnapshot_DoesNotAllocate() in HistogramAllocationTests.cs:36",
+  "occurrences": [
+    {
+      "run_id": 38971986469,
+      "run_url": "https://github.com/microsoft/aspire/actions/runs/38971986469",
+      "job": "Tests / No-package tests (regular, Aspire.Dashboard.Tests, Dashboard, Dashboard, tests/Aspire.Dashboard.T... / Dashboard (windows-latest)",
+      "pr_number": 0,
+      "observed_at": "2026-10-16T23:18:36Z"
+    }
+  ]
+}

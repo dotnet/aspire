@@ -1,0 +1,16 @@
+{
+  "id": "vscode-e2e-windows-apphost-tree-global-refresh-clears-loading-flaky",
+  "type": "flaky-test",
+  "title": "Flaky: VS Code extension E2E (Windows, apphost-tree) 'global refresh clears loading after switching to the workspace view' times out waiting for shared ps refresh loading state",
+  "test_name": "Aspire AppHost tree E2E global refresh clears loading after switching to the workspace view",
+  "error_pattern": "Timed out after 30000ms waiting for workspace view to retain the shared ps refresh loading state.\nLast error: <none>\nLast state: { \"viewMode\": \"workspace\", \"isRepositoryLoading\": false, \"isWorkspaceAppHostDiscoveryComplete\": true, \"hasError\": false, ... }",
+  "occurrences": [
+    {
+      "run_id": 38971986469,
+      "run_url": "https://github.com/microsoft/aspire/actions/runs/38971986469",
+      "job": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, apphost-tree)",
+      "pr_number": 0,
+      "observed_at": "2026-10-16T23:18:36Z"
+    }
+  ]
+}
