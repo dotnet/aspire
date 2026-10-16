@@ -189,9 +189,9 @@ internal static class CliTestHelper
         services.AddSingleton(options.AspireSkillsInstallerFactory);
         services.AddSingleton(options.PlaywrightCliRunnerFactory);
         services.AddSingleton<PlaywrightCliInstaller>();
-        services.AddSingleton<AgentClient, CopilotAgentClient>();
-        services.AddSingleton<AgentClient, ClaudeCodeAgentClient>();
-        services.AddSingleton<AgentClient, OpenCodeAgentClient>();
+        services.AddSingleton<IAgentClient, CopilotAgentClient>();
+        services.AddSingleton<IAgentClient, ClaudeCodeAgentClient>();
+        services.AddSingleton<IAgentClient, OpenCodeAgentClient>();
         services.AddSingleton<IOpenCodeCliRunner>(new FakeOpenCodeCliRunner(null));
         services.AddSingleton<ITelemetryHookInstaller, TelemetryHookInstaller>();
         services.AddSingleton(options.TelemetryHookConfiguratorFactory);

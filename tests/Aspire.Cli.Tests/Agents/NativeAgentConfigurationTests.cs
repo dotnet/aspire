@@ -14,7 +14,7 @@ public class NativeAgentConfigurationTests(ITestOutputHelper output) : IDisposab
     [Fact]
     public async Task Copilot_RegistersOneSharedSourcePerScope()
     {
-        AgentClient[] clients = [_context.Copilot];
+        IAgentClient[] clients = [_context.Copilot];
 
         var projectResults = await _context.ConfigureNativeAsync(AgentConfigurationScope.Project, clients).DefaultTimeout();
         Assert.Equal(Path.Combine(_context.Project.FullName, ".github", "copilot", "settings.json"),

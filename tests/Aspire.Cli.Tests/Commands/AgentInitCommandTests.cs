@@ -28,7 +28,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         interactionService.PromptForSelectionsCallback = (_, choices, _, _) => choices.Cast<object>()
             .Where(choice => choice switch
             {
-                AgentClient client => client.Id == AgentClient.CopilotId,
+                IAgentClient client => client.Id == "copilot",
                 SkillDefinition skill => skill.HasName(CommonAgentApplicators.AspireSkillName),
                 _ => false
             })
@@ -107,7 +107,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         interactionService.PromptForSelectionsCallback = (_, choices, _, _) => choices.Cast<object>()
             .Where(choice => choice switch
             {
-                AgentClient client => client.Id == AgentClient.CopilotId,
+                IAgentClient client => client.Id == "copilot",
                 SkillDefinition skill => skill.HasName(CommonAgentApplicators.AspireSkillName),
                 _ => false
             })

@@ -3273,8 +3273,8 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         interactionService.PromptForSelectionsCallback = (_, choices, _, _) =>
         {
             var items = choices.Cast<object>().ToList();
-            Assert.All(items, static item => Assert.IsAssignableFrom<AgentClient>(item));
-            return items.Cast<AgentClient>().Where(client => client.Id == AgentClient.CopilotId).Cast<object>().ToArray();
+            Assert.All(items, static item => Assert.IsAssignableFrom<IAgentClient>(item));
+            return items.Cast<IAgentClient>().Where(client => client.Id == "copilot").Cast<object>().ToArray();
         };
 
         var services = CreateServiceCollection(workspace, options =>

@@ -694,7 +694,7 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
         var subtleMessages = new List<string>();
         interactionService.DisplaySubtleMessageCallback = subtleMessages.Add;
         interactionService.PromptForSelectionsCallback = (_, choices, _, _) =>
-            choices.Cast<AgentClient>().Where(client => client.Id == AgentClient.ClaudeCodeId).Cast<object>().ToArray();
+            choices.Cast<IAgentClient>().Where(client => client.Id == "claude").Cast<object>().ToArray();
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {

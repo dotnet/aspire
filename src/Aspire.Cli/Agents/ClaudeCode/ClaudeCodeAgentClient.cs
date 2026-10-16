@@ -6,24 +6,30 @@ using Aspire.Cli.Resources;
 namespace Aspire.Cli.Agents.ClaudeCode;
 
 internal sealed class ClaudeCodeAgentClient(CliExecutionContext context, IEnvironment environment)
-    : AgentClient(ClaudeCodeId, AgentCommandStrings.Environment_ClaudeCode, AgentEnvironment.ClaudeCode)
+    : IAgentClient
 {
+    public const string ClientId = "claude";
+
     private static readonly McpConfigFileHelper.Configuration s_mcp = new() { ServersPropertyName = "mcpServers" };
 
-    public override string GetSkillBaseDirectory(AgentConfigurationScope scope, DirectoryInfo workspaceRoot)
+    public string Id => ClientId;
+    public string DisplayName { get; } = AgentCommandStrings.Environment_ClaudeCode;
+    public AgentEnvironment Environments => AgentEnvironment.ClaudeCode;
+
+    public string GetSkillBaseDirectory(AgentConfigurationScope scope, DirectoryInfo workspaceRoot)
         => Path.Combine(scope is AgentConfigurationScope.Project
             ? Path.Combine(workspaceRoot.FullName, ClaudeCodePaths.ConfigDirectoryName)
             : ClaudeCodePaths.GetConfigDirectory(context, environment), "skills");
 
-    public override IEnumerable<string> GetLocalSkillDirectories(AgentConfigurationScope scope, DirectoryInfo workspaceRoot)
+    public IEnumerable<string> GetLocalSkillDirectories(AgentConfigurationScope scope, DirectoryInfo workspaceRoot)
     {
         yield return GetSkillBaseDirectory(scope, workspaceRoot);
     }
 
-    public override Task<bool> HasNativeSkillsRegistrationAsync(DirectoryInfo workspaceRoot, CancellationToken cancellationToken)
+    public Task<bool> HasNativeSkillsRegistrationAsync(DirectoryInfo workspaceRoot, CancellationToken cancellationToken)
         => AspireSkillsConfiguration.HasPluginRegistrationAsync(GetSettingsFiles(workspaceRoot), cancellationToken);
 
-    public override AgentFileEdit CreateNativeSkillsEdit(DirectoryInfo workspaceRoot, AgentConfigurationScope scope)
+    public AgentFileEdit CreateNativeSkillsEdit(DirectoryInfo workspaceRoot, AgentConfigurationScope scope)
     {
         var directory = scope is AgentConfigurationScope.Project
             ? Path.Combine(workspaceRoot.FullName, ClaudeCodePaths.ConfigDirectoryName)
@@ -33,17 +39,19 @@ internal sealed class ClaudeCodeAgentClient(CliExecutionContext context, IEnviro
             this, Path.Combine(directory, "settings.json"), GetSettingsFiles(workspaceRoot));
     }
 
-    public override string GetMcpConfigPath(AgentConfigurationScope scope, DirectoryInfo workspaceRoot)
+    public string GetMcpConfigPath(AgentConfigurationScope scope, DirectoryInfo workspaceRoot)
         => scope is AgentConfigurationScope.Project ? Path.Combine(workspaceRoot.FullName, ".mcp.json")
             : ClaudeCodePaths.GetGlobalMcpConfigPath(context, environment);
 
-    public override Task<IReadOnlyList<AgentFileEdit>> CreateMcpEditsAsync(
+    public Task<IReadOnlyList<AgentFileEdit>> CreateMcpEditsAsync(
         DirectoryInfo workspaceRoot, AgentConfigurationScope scope, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         return Task.FromResult<IReadOnlyList<AgentFileEdit>>(
             [McpConfigFileHelper.CreateEdit(this, GetMcpConfigPath(scope, workspaceRoot), s_mcp, true, scope)]);
     }
+
+    public override string ToString() => Id;
 
     private IEnumerable<string> GetSettingsFiles(DirectoryInfo workspaceRoot)
     {

@@ -8,6 +8,7 @@ using System.Globalization;
 using System.Text.Json;
 using Aspire.Cli.Agents;
 using Aspire.Cli.Agents.AspireSkills;
+using Aspire.Cli.Agents.Copilot;
 using Aspire.Cli.Agents.Hooks;
 using Aspire.Cli.Agents.Playwright;
 using Aspire.Cli.Git;
@@ -26,7 +27,7 @@ namespace Aspire.Cli.Commands;
 internal sealed class AgentInitCommand : BaseCommand
 {
     private readonly IAgentEnvironmentDetector _agentEnvironmentDetector;
-    private readonly IReadOnlyList<AgentClient> _clients;
+    private readonly IReadOnlyList<IAgentClient> _clients;
     private readonly IAspireSkillsInstaller _aspireSkillsInstaller;
     private readonly PlaywrightCliInstaller _playwrightCliInstaller;
     private readonly IGitRepository _gitRepository;
@@ -36,7 +37,7 @@ internal sealed class AgentInitCommand : BaseCommand
     private readonly ICliHostEnvironment _hostEnvironment;
     public AgentInitCommand(
         IAgentEnvironmentDetector agentEnvironmentDetector,
-        IEnumerable<AgentClient> clients,
+        IEnumerable<IAgentClient> clients,
         IAspireSkillsInstaller aspireSkillsInstaller,
         PlaywrightCliInstaller playwrightCliInstaller,
         IGitRepository gitRepository,
@@ -48,6 +49,7 @@ internal sealed class AgentInitCommand : BaseCommand
     {
         _agentEnvironmentDetector = agentEnvironmentDetector;
         _clients = clients.ToArray();
+        AgentsOption = CreateAgentsOption(_clients);
         _aspireSkillsInstaller = aspireSkillsInstaller;
         _playwrightCliInstaller = playwrightCliInstaller;
         _gitRepository = gitRepository;
@@ -57,14 +59,14 @@ internal sealed class AgentInitCommand : BaseCommand
         _hostEnvironment = services.HostEnvironment;
         Options.Add(s_workspaceRootOption);
         Options.Add(s_mcpOption);
-        Options.Add(s_agentsOption);
+        Options.Add(AgentsOption);
         Options.Add(s_scopeOption);
         Options.Add(s_playwrightOption);
         Options.Add(s_dotnetInspectOption);
         Options.Add(s_aspireSkillsOption);
     }
 
-    internal static readonly Option<string?> s_agentsOption = CreateAgentsOption();
+    internal Option<string?> AgentsOption { get; }
     internal static readonly Option<AgentConfigurationScope> s_scopeOption = CreateScopeOption();
 
     internal static readonly Option<string?> s_workspaceRootOption = new("--workspace-root")
@@ -150,9 +152,10 @@ internal sealed class AgentInitCommand : BaseCommand
         return option;
     }
 
-    private static Option<string?> CreateAgentsOption()
+    private static Option<string?> CreateAgentsOption(IReadOnlyList<IAgentClient> clients)
     {
-        var supportedClients = string.Join(",", AgentClient.Ids);
+        var clientIds = clients.Select(static client => client.Id).ToArray();
+        var supportedClients = string.Join(",", clientIds);
         var option = new Option<string?>("--agents")
         {
             HelpName = "agents",
@@ -168,7 +171,7 @@ internal sealed class AgentInitCommand : BaseCommand
                 }
 
                 var value = result.Tokens[0].Value;
-                var selected = ConsoleInteractionService.MatchChoices(value, AgentClient.Ids, static id => id);
+                var selected = ConsoleInteractionService.MatchChoices(value, clientIds, static id => id);
                 if (selected is null || selected.Count == 0 &&
                     !string.Equals(value, ConsoleInteractionService.NoneChoice, StringComparison.OrdinalIgnoreCase))
                 {
@@ -180,8 +183,8 @@ internal sealed class AgentInitCommand : BaseCommand
             }
         };
         option.CompletionSources.Clear();
-        option.CompletionSources.Add(static _ =>
-            [.. AgentClient.Ids.Select(static id => new CompletionItem(id)),
+        option.CompletionSources.Add(_ =>
+            [.. clientIds.Select(static id => new CompletionItem(id)),
                 new CompletionItem(ConsoleInteractionService.AllChoice), new CompletionItem(ConsoleInteractionService.NoneChoice)]);
         return option;
     }
@@ -268,7 +271,7 @@ internal sealed class AgentInitCommand : BaseCommand
         var workspaceRoot = await PromptForWorkspaceRootAsync(parseResult, cancellationToken);
         var result = await ExecuteAgentInitAsync(
             workspaceRoot,
-            PromptBinding.Create(parseResult, s_agentsOption),
+            PromptBinding.Create(parseResult, AgentsOption),
             CreateConfirmationBinding(parseResult, s_playwrightOption),
             CreateConfirmationBinding(parseResult, s_dotnetInspectOption),
             PromptBinding.Create(parseResult, s_aspireSkillsOption, AspireSkillsMode.Bundled),
@@ -327,7 +330,7 @@ internal sealed class AgentInitCommand : BaseCommand
         AgentEnvironment? detectedEnvironments = null;
 
         var (agentsProvided, requestedAgents) = agentsBinding.Resolve();
-        IReadOnlyList<AgentClient> selectedClients;
+        IReadOnlyList<IAgentClient> selectedClients;
         if (agentsProvided && requestedAgents is not null)
         {
             var matchedClients = ConsoleInteractionService.MatchChoices(requestedAgents, _clients, static client => client.Id);
@@ -351,10 +354,10 @@ internal sealed class AgentInitCommand : BaseCommand
             // Shared discovery does not authorize configuring another agent. Defaults
             // express detected agent use, independently of assets and their destinations.
             var defaultClients = _clients
-                .Where(client => client.Includes(detectedEnvironments.Value)).ToArray();
+                .Where(client => (client.Environments & detectedEnvironments.Value) != AgentEnvironment.None).ToArray();
             if (defaultClients.Length == 0)
             {
-                defaultClients = [_clients.Single(client => client.Id == AgentClient.CopilotId)];
+                defaultClients = [_clients.Single(client => client.Id == CopilotAgentClient.ClientId)];
             }
 
             selectedClients = await InteractionService.PromptForSelectionsAsync(
@@ -863,7 +866,7 @@ internal sealed class AgentInitCommand : BaseCommand
         return scope is AgentConfigurationScope.Global ? $"~/{displayRelativePath}" : displayRelativePath;
     }
 
-    private void DisplayInstallationLocations(IReadOnlyList<AgentClient> clients, AgentConfigurationScope scope, DirectoryInfo workspaceRoot, bool installSkills, bool configureMcp)
+    private void DisplayInstallationLocations(IReadOnlyList<IAgentClient> clients, AgentConfigurationScope scope, DirectoryInfo workspaceRoot, bool installSkills, bool configureMcp)
     {
         var lines = new List<string> { AgentCommandStrings.InitCommand_InstallationLocations };
         var pathComparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
@@ -899,7 +902,7 @@ internal sealed class AgentInitCommand : BaseCommand
 
         InteractionService.DisplaySubtleMessage(string.Join(Environment.NewLine, lines));
 
-        void AddLocation(string format, string path, IReadOnlyList<AgentClient> sharedClients)
+        void AddLocation(string format, string path, IReadOnlyList<IAgentClient> sharedClients)
         {
             var location = GetDisplayConfigurationPath(path, scope, workspaceRoot);
             if (sharedClients.Count > 1)
@@ -914,7 +917,7 @@ internal sealed class AgentInitCommand : BaseCommand
     }
 
     private static async Task<bool> HasNativeSkillsRegistrationAsync(
-        DirectoryInfo workspaceRoot, IReadOnlyList<AgentClient> clients, CancellationToken cancellationToken)
+        DirectoryInfo workspaceRoot, IReadOnlyList<IAgentClient> clients, CancellationToken cancellationToken)
     {
         foreach (var client in clients)
         {
@@ -954,7 +957,7 @@ internal sealed class AgentInitCommand : BaseCommand
 
 internal readonly record struct AgentInitExecutionResult(
     int ExitCode,
-    IReadOnlyList<AgentClient> SelectedClients,
+    IReadOnlyList<IAgentClient> SelectedClients,
     IReadOnlyList<SkillDefinition> SelectedSkills);
 
 internal enum AspireSkillsMode

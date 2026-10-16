@@ -65,7 +65,7 @@ internal sealed class AspireSkillsInstaller(
     internal static (IReadOnlyList<string> Files, IReadOnlyList<string> Errors) FindLocalSkills(
         DirectoryInfo workingDirectory,
         DirectoryInfo workspaceRoot,
-        IEnumerable<AgentClient> agents,
+        IEnumerable<IAgentClient> agents,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();

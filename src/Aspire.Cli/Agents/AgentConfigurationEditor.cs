@@ -45,7 +45,7 @@ internal static class AgentConfigurationEditor
             var status = AgentConfigurationStatus.Configured;
             string? message = null;
             Exception? error = null;
-            var changes = new List<(AgentClient Client, string Path, AgentConfigurationEdit Edit)>();
+            var changes = new List<(IAgentClient Client, string Path, AgentConfigurationEdit Edit)>();
             try
             {
                 // A fresh reader lets later files observe earlier successful writes.
@@ -117,7 +117,7 @@ internal static class AgentConfigurationEditor
 }
 
 internal sealed record AgentFileEdit(
-    AgentClient Client,
+    IAgentClient Client,
     string TargetPath,
     Func<ReadOnlyMemory<byte>, JsonObject> Parse,
     Func<JsonObject, AgentConfigurationJson.ReadContext, CancellationToken, Task<AgentConfigurationEdit>> ApplyAsync);
@@ -144,11 +144,11 @@ internal enum AgentConfigurationStatus
 }
 
 internal sealed record AgentTargetResult(
-    IReadOnlyList<AgentClient> Clients,
+    IReadOnlyList<IAgentClient> Clients,
     string TargetPath,
     AgentConfigurationStatus Status,
     string? Message)
 {
     public Exception? Error { get; init; }
-    public IReadOnlyList<(AgentClient Client, string Path, AgentConfigurationEdit Edit)> Changes { get; init; } = [];
+    public IReadOnlyList<(IAgentClient Client, string Path, AgentConfigurationEdit Edit)> Changes { get; init; } = [];
 }

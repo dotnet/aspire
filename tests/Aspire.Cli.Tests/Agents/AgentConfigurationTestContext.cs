@@ -40,10 +40,10 @@ internal sealed class AgentConfigurationTestContext : IDisposable
     public DirectoryInfo Home { get; }
     public TestEnvironment Environment { get; }
     public CliExecutionContext ExecutionContext { get; }
-    public IReadOnlyList<AgentClient> Clients { get; }
-    public AgentClient Copilot { get; }
-    public AgentClient ClaudeCode { get; }
-    public AgentClient OpenCode { get; }
+    public IReadOnlyList<IAgentClient> Clients { get; }
+    public IAgentClient Copilot { get; }
+    public IAgentClient ClaudeCode { get; }
+    public IAgentClient OpenCode { get; }
     public string CopilotDirectory => AgentPath.Expand(CopilotPaths.GetConfigDirectory(Home, Environment), ExecutionContext);
     public string ClaudeDirectory => ClaudeCodePaths.GetConfigDirectory(ExecutionContext, Environment);
     public string ClaudeManagedDirectory => AgentPath.GetManagedSettingsDirectory(ExecutionContext, Environment, "ClaudeCode", "claude-code");
@@ -52,7 +52,7 @@ internal sealed class AgentConfigurationTestContext : IDisposable
     public void SetVariable(string name, string value) => _variables[name] = value;
 
     public async Task<IReadOnlyList<AgentTargetResult>> ConfigureNativeAsync(
-        AgentConfigurationScope scope, IReadOnlyList<AgentClient> clients, CancellationToken cancellationToken = default)
+        AgentConfigurationScope scope, IReadOnlyList<IAgentClient> clients, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var edits = clients.Distinct().Select(client => client.CreateNativeSkillsEdit(Project, scope)).ToArray();

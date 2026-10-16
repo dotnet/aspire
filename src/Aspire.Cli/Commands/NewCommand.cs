@@ -89,7 +89,7 @@ internal sealed class NewCommand : BaseCommand
         Options.Add(s_sourceOption);
         Options.Add(s_versionOption);
         Options.Add(s_suppressAgentInitOption);
-        Options.Add(AgentInitCommand.s_agentsOption);
+        Options.Add(_agentInitCommand.AgentsOption);
         Options.Add(AgentInitCommand.s_scopeOption);
         Options.Add(AgentInitCommand.s_playwrightOption);
         Options.Add(AgentInitCommand.s_dotnetInspectOption);
@@ -614,7 +614,7 @@ internal sealed class NewCommand : BaseCommand
             templateResult.ExitCode,
             workspaceRoot,
             agentInitBinding,
-            PromptBinding.Create(parseResult, AgentInitCommand.s_agentsOption),
+            PromptBinding.Create(parseResult, _agentInitCommand.AgentsOption),
             AgentInitCommand.CreateConfirmationBinding(parseResult, AgentInitCommand.s_playwrightOption),
             AgentInitCommand.CreateConfirmationBinding(parseResult, AgentInitCommand.s_dotnetInspectOption),
             PromptBinding.Create(parseResult, AgentInitCommand.s_aspireSkillsOption, AspireSkillsMode.Bundled),

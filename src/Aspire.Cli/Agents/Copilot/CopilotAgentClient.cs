@@ -8,9 +8,10 @@ using Aspire.Cli.Utils;
 namespace Aspire.Cli.Agents.Copilot;
 
 internal sealed class CopilotAgentClient(CliExecutionContext context, IEnvironment environment)
-    : AgentClient(CopilotId, AgentCommandStrings.Environment_Copilot,
-        AgentEnvironment.CopilotCli | AgentEnvironment.CopilotApp | AgentEnvironment.VsCode)
+    : IAgentClient
 {
+    public const string ClientId = "copilot";
+
     private static readonly McpConfigFileHelper.Configuration s_mcp = new()
     {
         ServersPropertyName = "mcpServers",
@@ -25,11 +26,15 @@ internal sealed class CopilotAgentClient(CliExecutionContext context, IEnvironme
         }
     };
 
-    public override string GetSkillBaseDirectory(AgentConfigurationScope scope, DirectoryInfo workspaceRoot)
+    public string Id => ClientId;
+    public string DisplayName { get; } = AgentCommandStrings.Environment_Copilot;
+    public AgentEnvironment Environments => AgentEnvironment.CopilotCli | AgentEnvironment.CopilotApp | AgentEnvironment.VsCode;
+
+    public string GetSkillBaseDirectory(AgentConfigurationScope scope, DirectoryInfo workspaceRoot)
         => Path.Combine(scope is AgentConfigurationScope.Project ? workspaceRoot.FullName : context.HomeDirectory.FullName,
             AgentPath.UniversalSkillsDirectory);
 
-    public override IEnumerable<string> GetLocalSkillDirectories(AgentConfigurationScope scope, DirectoryInfo workspaceRoot)
+    public IEnumerable<string> GetLocalSkillDirectories(AgentConfigurationScope scope, DirectoryInfo workspaceRoot)
     {
         // https://docs.github.com/en/copilot/concepts/agents/about-agent-skills
         var root = scope is AgentConfigurationScope.Project ? workspaceRoot.FullName : context.HomeDirectory.FullName;
@@ -40,10 +45,10 @@ internal sealed class CopilotAgentClient(CliExecutionContext context, IEnvironme
             : Path.Combine(GetSettingsDirectory(), "skills");
     }
 
-    public override Task<bool> HasNativeSkillsRegistrationAsync(DirectoryInfo workspaceRoot, CancellationToken cancellationToken)
+    public Task<bool> HasNativeSkillsRegistrationAsync(DirectoryInfo workspaceRoot, CancellationToken cancellationToken)
         => AspireSkillsConfiguration.HasPluginRegistrationAsync(GetSettingsFiles(workspaceRoot), cancellationToken);
 
-    public override AgentFileEdit CreateNativeSkillsEdit(DirectoryInfo workspaceRoot, AgentConfigurationScope scope)
+    public AgentFileEdit CreateNativeSkillsEdit(DirectoryInfo workspaceRoot, AgentConfigurationScope scope)
     {
         var directory = scope is AgentConfigurationScope.Project
             ? Path.Combine(workspaceRoot.FullName, ".github", "copilot") : GetSettingsDirectory();
@@ -52,11 +57,11 @@ internal sealed class CopilotAgentClient(CliExecutionContext context, IEnvironme
             this, Path.Combine(directory, "settings.json"), GetSettingsFiles(workspaceRoot));
     }
 
-    public override string GetMcpConfigPath(AgentConfigurationScope scope, DirectoryInfo workspaceRoot)
+    public string GetMcpConfigPath(AgentConfigurationScope scope, DirectoryInfo workspaceRoot)
         => scope is AgentConfigurationScope.Project ? Path.Combine(workspaceRoot.FullName, ".mcp.json")
             : Path.Combine(CopilotPaths.GetConfigDirectory(context.HomeDirectory, environment), "mcp-config.json");
 
-    public override Task<IReadOnlyList<AgentFileEdit>> CreateMcpEditsAsync(
+    public Task<IReadOnlyList<AgentFileEdit>> CreateMcpEditsAsync(
         DirectoryInfo workspaceRoot, AgentConfigurationScope scope, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -73,6 +78,8 @@ internal sealed class CopilotAgentClient(CliExecutionContext context, IEnvironme
 
         return Task.FromResult<IReadOnlyList<AgentFileEdit>>(edits);
     }
+
+    public override string ToString() => Id;
 
     private string GetSettingsDirectory()
         => AgentPath.Expand(CopilotPaths.GetConfigDirectory(context.HomeDirectory, environment), context);

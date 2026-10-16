@@ -15,7 +15,7 @@ namespace Aspire.Cli.Agents;
 internal static class McpConfigFileHelper
 {
     public static AgentFileEdit CreateEdit(
-        AgentClient client,
+        IAgentClient client,
         string configFilePath,
         Configuration configuration,
         bool configureServer,

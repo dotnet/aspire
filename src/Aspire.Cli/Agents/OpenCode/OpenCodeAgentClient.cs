@@ -10,8 +10,10 @@ using Aspire.Cli.Utils;
 namespace Aspire.Cli.Agents.OpenCode;
 
 internal sealed class OpenCodeAgentClient(CliExecutionContext context, IEnvironment environment)
-    : AgentClient(OpenCodeId, AgentCommandStrings.Environment_OpenCode, AgentEnvironment.OpenCode)
+    : IAgentClient
 {
+    public const string ClientId = "opencode";
+
     private const string V1Catalog = "https://raw.githubusercontent.com/microsoft/aspire-skills/main/opencode/v1/";
     private const string V2Catalog = "https://raw.githubusercontent.com/microsoft/aspire-skills/main/opencode/v2/";
 
@@ -28,11 +30,15 @@ internal sealed class OpenCodeAgentClient(CliExecutionContext context, IEnvironm
         }
     };
 
-    public override string GetSkillBaseDirectory(AgentConfigurationScope scope, DirectoryInfo workspaceRoot)
+    public string Id => ClientId;
+    public string DisplayName { get; } = AgentCommandStrings.Environment_OpenCode;
+    public AgentEnvironment Environments => AgentEnvironment.OpenCode;
+
+    public string GetSkillBaseDirectory(AgentConfigurationScope scope, DirectoryInfo workspaceRoot)
         => Path.Combine(scope is AgentConfigurationScope.Project ? workspaceRoot.FullName : context.HomeDirectory.FullName,
             AgentPath.UniversalSkillsDirectory);
 
-    public override IEnumerable<string> GetLocalSkillDirectories(AgentConfigurationScope scope, DirectoryInfo workspaceRoot)
+    public IEnumerable<string> GetLocalSkillDirectories(AgentConfigurationScope scope, DirectoryInfo workspaceRoot)
     {
         // https://opencode.ai/docs/skills/
         var root = scope is AgentConfigurationScope.Project ? workspaceRoot.FullName : context.HomeDirectory.FullName;
@@ -50,11 +56,11 @@ internal sealed class OpenCodeAgentClient(CliExecutionContext context, IEnvironm
         }
     }
 
-    public override string GetMcpConfigPath(AgentConfigurationScope scope, DirectoryInfo workspaceRoot)
+    public string GetMcpConfigPath(AgentConfigurationScope scope, DirectoryInfo workspaceRoot)
         => scope is AgentConfigurationScope.Project ? OpenCodePaths.GetMcpConfigPath(workspaceRoot)
             : OpenCodePaths.GetGlobalMcpConfigPath(context, environment);
 
-    public override async Task<IReadOnlyList<AgentFileEdit>> CreateMcpEditsAsync(
+    public async Task<IReadOnlyList<AgentFileEdit>> CreateMcpEditsAsync(
         DirectoryInfo workspaceRoot, AgentConfigurationScope scope, CancellationToken cancellationToken)
     {
         var path = GetMcpConfigPath(scope, workspaceRoot);
@@ -95,6 +101,8 @@ internal sealed class OpenCodeAgentClient(CliExecutionContext context, IEnvironm
             }
         }];
     }
+
+    public override string ToString() => Id;
 
     private async Task<string> SelectMcpConfigPathAsync(
         DirectoryInfo workspaceRoot, AgentConfigurationScope scope,
@@ -157,7 +165,7 @@ internal sealed class OpenCodeAgentClient(CliExecutionContext context, IEnvironm
         => (await reader.ReadAsync(path,
             bytes => McpConfigFileHelper.ParseConfig(bytes, s_mcp.JsonDocumentOptions, path), cancellationToken)).Root ?? new JsonObject();
 
-    public override AgentFileEdit CreateNativeSkillsEdit(DirectoryInfo workspaceRoot, AgentConfigurationScope scope)
+    public AgentFileEdit CreateNativeSkillsEdit(DirectoryInfo workspaceRoot, AgentConfigurationScope scope)
     {
         var path = GetCatalogConfigPath(scope, workspaceRoot);
 
@@ -166,7 +174,7 @@ internal sealed class OpenCodeAgentClient(CliExecutionContext context, IEnvironm
                 root, reader, path, workspaceRoot, scope, token));
     }
 
-    public override async Task<bool> HasNativeSkillsRegistrationAsync(DirectoryInfo workspaceRoot, CancellationToken cancellationToken)
+    public async Task<bool> HasNativeSkillsRegistrationAsync(DirectoryInfo workspaceRoot, CancellationToken cancellationToken)
     {
         var reader = new AgentConfigurationJson.ReadContext();
         // Inline settings can activate skills, but are not a writable registration target.

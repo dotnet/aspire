@@ -16,7 +16,7 @@ internal static class AspireSkillsConfiguration
     internal const string Repository = "microsoft/aspire-skills";
     internal const string RepositoryUrl = "https://github.com/" + Repository;
 
-    public static AgentFileEdit CreatePluginEdit(AgentClient client, string path, IEnumerable<string> settings)
+    public static AgentFileEdit CreatePluginEdit(IAgentClient client, string path, IEnumerable<string> settings)
         => new(client, path, static bytes => AgentConfigurationJson.ParseObject(bytes.Span),
             async (root, reader, token) => ApplyPlugin(root, await AgentConfigurationJson.ReadSettingsAsync(reader, settings, token)));
 

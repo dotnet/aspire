@@ -82,8 +82,11 @@ Native skills registration and MCP configuration have independent consent and
 execution phases. MCP configuration is available only from standalone
 `aspire agent init`, not the follow-up flows in `aspire new` or `aspire init`.
 
-`AgentClient` is the DI contract for Copilot, Claude Code, and OpenCode. Each
-implementation owns its paths and configuration semantics and prepares edits;
+`IAgentClient` is the DI contract for Copilot, Claude Code, and OpenCode. Commands
+consume the registered `IEnumerable<IAgentClient>`; the same clients supply
+`--agents` help, validation, completion, and selection without a separate catalog.
+Each implementation owns its identity, paths, and configuration semantics and
+prepares edits;
 `AgentInitCommand` owns selection, consent, scope, acquisition, and sequencing.
 `AgentConfigurationEditor` groups edits to the same physical file, validates every
 selected consumer, and publishes within each independent feature phase. Detected
