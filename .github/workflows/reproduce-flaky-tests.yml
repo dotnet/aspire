@@ -135,6 +135,7 @@ jobs:
                 commandName: 'debug-in-browser',
               });
           '@
+          $oldCommand = $oldCommand.Replace("`r`n", "`n")
           $readyCommand = @'
               const debugCommandElement = await waitForProofValue(
                 `enabled 'debug-in-browser' command for resource '${resourceName}'`,
@@ -148,6 +149,7 @@ jobs:
                   return isEnabledCommand(element.commandJson as ResourceCommandJson) ? element : undefined;
                 });
           '@
+          $readyCommand = $readyCommand.Replace("`r`n", "`n")
           if (($bridge.Split($oldCommand)).Count -ne 2) { throw 'Expected one browser debug command preparation.' }
           $bridge = $bridge.Replace($oldCommand, $readyCommand)
           if (-not $bridge.Contains('installWasmInvestigationProbe')) {
