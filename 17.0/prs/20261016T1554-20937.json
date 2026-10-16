@@ -1,0 +1,9 @@
+{
+  "author": "eerhardt",
+  "comment": "New Microsoft Entra ID application registration integration for C# AppHosts via Azure.Provisioning",
+  "mergedAt": "2026-10-16T15:54:05Z",
+  "number": 20937,
+  "runDate": "2026-10-16T18:06:26Z",
+  "status": "included",
+  "title": "Provision Microsoft Entra registrations using Azure.Provisioning"
+}

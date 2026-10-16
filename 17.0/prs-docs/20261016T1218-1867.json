@@ -1,0 +1,9 @@
+{
+  "author": "app/aspire-repo-bot",
+  "comment": "Documents the new dashboard startup telemetry event and Dashboard:LaunchContext config option from #20846",
+  "mergedAt": "2026-10-16T12:18:42Z",
+  "number": 1867,
+  "runDate": "2026-10-16T18:06:26Z",
+  "status": "included",
+  "title": "[docs] Document dashboard startup telemetry"
+}

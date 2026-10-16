@@ -1,0 +1,19 @@
+{
+  "area": "Integrations",
+  "areaEmoji": "🔌",
+  "backport": false,
+  "breaking": true,
+  "changeType": "Bug fixes",
+  "communityContributors": [],
+  "description": "AKS clusters can now pull application images from an existing Azure Container Registry in a different resource group or subscription, using role assignments scoped to the registry. Separate pre-created identities are used for the control plane and kubelets instead of the previous AKS-managed kubelet identity.",
+  "docsPrs": [],
+  "docsRequired": true,
+  "emoji": "🔐",
+  "firstMergedAt": "2026-10-16T13:48:39Z",
+  "lastMergedAt": "2026-10-16T13:48:39Z",
+  "name": "Cross-resource-group ACR pull for AKS",
+  "owner": "mitchdenny",
+  "prs": [
+    20919
+  ]
+}

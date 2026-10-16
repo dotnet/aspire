@@ -1,0 +1,9 @@
+{
+  "author": "IEvangelist",
+  "comment": "Restores diagram assets for the Keycloak docs article; not tied to any Aspire product changelog entry",
+  "mergedAt": "2026-10-16T14:33:27Z",
+  "number": 1844,
+  "runDate": "2026-10-16T18:06:26Z",
+  "status": "excluded",
+  "title": "Restore Keycloak authentication flow diagrams and themed rendering"
+}

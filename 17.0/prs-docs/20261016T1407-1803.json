@@ -1,0 +1,9 @@
+{
+  "author": "Webmekanic",
+  "comment": "Fixes the aspire.dev build's contributor-data generation (rate-limited GitHub API calls); not tied to any Aspire product changelog entry",
+  "mergedAt": "2026-10-16T14:07:27Z",
+  "number": 1803,
+  "runDate": "2026-10-16T18:06:26Z",
+  "status": "excluded",
+  "title": "Fix Pre-generate Contributor Data"
+}

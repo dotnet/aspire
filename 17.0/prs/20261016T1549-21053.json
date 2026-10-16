@@ -1,0 +1,9 @@
+{
+  "author": "app/copilot-swe-agent",
+  "comment": "New GetEndpointId API on AzureFrontDoorResource to support DNS apex alias records",
+  "mergedAt": "2026-10-16T15:49:34Z",
+  "number": 21053,
+  "runDate": "2026-10-16T18:06:26Z",
+  "status": "included",
+  "title": "Expose Azure Front Door endpoint resource IDs"
+}

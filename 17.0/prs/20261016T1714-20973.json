@@ -1,0 +1,9 @@
+{
+  "author": "radical",
+  "comment": "CI test-selection infrastructure fix for determining changed files; not user-facing",
+  "mergedAt": "2026-10-16T17:14:17Z",
+  "number": 20973,
+  "runDate": "2026-10-16T18:06:26Z",
+  "status": "excluded",
+  "title": "fix(ci): fix test selection - determining changes"
+}

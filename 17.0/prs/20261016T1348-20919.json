@@ -1,0 +1,9 @@
+{
+  "author": "mitchdenny",
+  "comment": "AKS clusters can now pull images from an existing ACR in another resource group/subscription via scoped role assignments; breaking identity model change",
+  "mergedAt": "2026-10-16T13:48:39Z",
+  "number": 20919,
+  "runDate": "2026-10-16T18:06:26Z",
+  "status": "included",
+  "title": "Fix AKS AcrPull for existing cross-resource-group registries"
+}

@@ -1,0 +1,9 @@
+{
+  "author": "mitchdenny",
+  "comment": "Internal dependency pin to resolve a NuGet security advisory (NU1902); no user-facing behavior change",
+  "mergedAt": "2026-10-16T12:04:49Z",
+  "number": 21051,
+  "runDate": "2026-10-16T18:06:26Z",
+  "status": "excluded",
+  "title": "Pin MessagePack to 2.5.307 for security fixes"
+}
