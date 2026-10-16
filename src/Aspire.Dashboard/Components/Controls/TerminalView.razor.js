@@ -691,7 +691,20 @@ async function mountClient(state, generation, controller) {
             // https://github.com/mitchdenny/hex1b/pull/491
             renderer: /\bFirefox\//.test(navigator.userAgent) ? "webgl2" : "auto",
             onStatus(message, level) {
-                if (!state.disposed && level === "error" && state.retainedClient?.controller === controller) {
+                const retained = !state.disposed && state.retainedClient?.controller === controller;
+                if (level !== "error" || (!retained && (!current() || state.ended))) {
+                    return;
+                }
+                // Hex1b 0.173.0 prefixes nonfatal inspection/action errors, e.g.
+                // "Scrollbar: Terminal disconnected before the marker operation completed."
+                // These can arrive after onClose; only unprefixed renderer/worker errors
+                // imply that a disconnected projection is unusable.
+                if (/^(?:Scrollbar(?: tooltip)?|Link detection|Selection UI failed): /.test(message) ||
+                    (!retained && state.client?.connected)) {
+                    console.log("Dashboard terminal status error.", message);
+                    return;
+                }
+                if (retained) {
                     // Retained renderers outlive their connection generation. A fatal
                     // error must release that renderer, not cancel its pending replacement.
                     console.warn("Dashboard retained terminal renderer failed.", message);
@@ -700,16 +713,8 @@ async function mountClient(state, generation, controller) {
                     notifyToolbar(state);
                     return;
                 }
-                if (!current() || state.ended || level !== "error") {
-                    return;
-                }
-                if (state.client?.connected) {
-                    // Local action/inspection failures do not break the connection.
-                    // Fatal renderer and transport failures disconnect before reporting status.
-                    console.log("Dashboard terminal status error.", message);
-                } else {
-                    connectionFailed(state, generation, message, false);
-                }
+                // Fatal renderer and transport failures disconnect before reporting status.
+                connectionFailed(state, generation, message, false);
             },
             onGeometry(geometry) {
                 if (current()) {

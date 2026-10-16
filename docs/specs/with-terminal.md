@@ -374,6 +374,7 @@ closed. Rebinding to another endpoint discards the previous screen. Retention
 does not imply producer completion or guarantee output that was never received.
 A fatal error in a retained renderer releases that unusable view and surfaces an
 error without canceling a pending replacement connection.
+Nonfatal scrollbar, selection UI, and link-detection errors do not discard retained output.
 The terminal host defers viewer handshakes until its producer has connected,
 including after a recycle. Its listening socket alone is not proof of a live
 terminal: reconnecting to an empty relay while a shell is stopped must not

@@ -2350,6 +2350,43 @@ test("renderer failures surface an error rather than retaining an unusable view"
     assert.equal(timers.size, 1);
 });
 
+for (const prefix of ["Scrollbar", "Scrollbar tooltip", "Link detection", "Selection UI failed"]) {
+    for (const pendingReplacement of [false, true]) {
+        test(`${prefix} errors after disconnect preserve the renderer ${pendingReplacement ? "during" : "before"} replacement mounting`, async () => {
+            const { id, element } = mount();
+            const original = attempts[0];
+            original.client.screenText = "Retained output with graphics";
+            original.resolve();
+            await settle();
+            const markerOperation = Promise.withResolvers();
+            const reported = markerOperation.promise.catch(error =>
+                original.options.onStatus(`${prefix}: ${error.message}`, "error"));
+            original.close(1006);
+            if (pendingReplacement) {
+                retry();
+            }
+            markerOperation.reject(new Error("Terminal disconnected before the marker operation completed."));
+            await reported;
+            await settle();
+            assert.equal(original.client.disposed, false);
+            assert.equal(original.options.signal.aborted, false);
+            assert.equal(terminal.getTerminalSnapshot(element).screenText, "Retained output with graphics");
+            assert.equal(terminal.getToolbarState(id).error, null);
+            assert.equal(terminal.getToolbarState(id).disconnected, true);
+            if (!pendingReplacement) {
+                assert.equal(timers.size, 1);
+                retry();
+            }
+            attempts[1].client.screenText = "Reconnected output";
+            attempts[1].resolve();
+            await settle();
+            assert.equal(original.client.disposed, true);
+            assert.equal(terminal.getTerminalSnapshot(element).screenText, "Reconnected output");
+            assert.equal(terminal.getToolbarState(id).connected, true);
+        });
+    }
+}
+
 for (const pendingReplacement of [false, true]) {
     test(`fatal retained renderer errors release the view ${pendingReplacement ? "during" : "before"} replacement mounting`, async () => {
         const { id, element } = mount();
