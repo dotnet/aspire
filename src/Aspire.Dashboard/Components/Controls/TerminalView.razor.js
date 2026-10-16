@@ -286,6 +286,7 @@ function configureTerminalChrome(client) {
     style.textContent = `
         .return-live { display: none !important; }
         .inspection-message[data-aspire-history-position] { display: none !important; }
+        .inspection-message[data-aspire-history-unavailable] { display: none !important; }
         .inspection-message[data-aspire-disconnected-status] { display: none !important; }
         :host([data-aspire-pointer-input="true"]) .scrollbar-accessibility:focus-visible { outline: none; }
         .viewport {
@@ -317,6 +318,10 @@ function configureTerminalChrome(client) {
         // feedback and navigation errors and must not be suppressed.
         status.toggleAttribute("data-aspire-history-position",
             status.dataset.level !== "error" && /^\d+ rows above live$/.test(status.textContent));
+        // Unavailable history is expected for terminal views without text history,
+        // not an actionable error. Preserve unrelated navigation and clipboard errors.
+        status.toggleAttribute("data-aspire-history-unavailable",
+            status.textContent === "Text history is not available for this terminal view");
         // Hex1b can report "Terminal view is not connected" directly or with an
         // action prefix, e.g. "Scrollbar: Terminal view is not connected".
         // Aspire's recovery banner owns this state; keep unrelated errors visible.

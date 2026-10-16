@@ -977,18 +977,23 @@ test("history chrome suppression preserves errors and selection feedback and dis
     const observer = themeObservers.find(observer => observer.element === status);
     assert.ok(observer);
     assert.match(shadow.styles[0], /\.return-live \{ display: none !important; \}/);
+    assert.match(shadow.styles[0], /\.inspection-message\[data-aspire-history-unavailable\] \{ display: none !important; \}/);
     for (const [text, level, hidden] of [
         ["42 rows above live", "info", true],
         ["0 rows above live", "info", true],
         ["Selection copied", "info", false],
         ["Navigation rejected", "error", false],
         ["42 rows above live", "error", false],
+        ["Text history is not available for this terminal view", "error", false],
+        ["Text history is not available for this terminal view", "info", false],
         ["", "info", false],
     ]) {
         status.textContent = text;
         status.dataset.level = level;
         observer.callback();
         assert.equal(status.attributes.has("data-aspire-history-position"), hidden);
+        assert.equal(status.attributes.has("data-aspire-history-unavailable"),
+            text === "Text history is not available for this terminal view");
     }
     terminal.reconnectTerminal(id, attempts[0].options.url);
     assert.equal(observer.disconnected, true);
