@@ -5,7 +5,7 @@ param cluster_name string
 
 param acrName string
 
-resource aks 'Microsoft.ContainerService/managedClusters@2026-01-01' existing = {
+resource aks 'Microsoft.ContainerService/managedClusters@2026-07-01' existing = {
   name: cluster_name
 }
 

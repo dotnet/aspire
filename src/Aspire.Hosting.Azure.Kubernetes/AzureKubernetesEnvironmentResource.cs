@@ -25,9 +25,9 @@ public partial class AzureKubernetesEnvironmentResource :
     IAzureNspAssociationTarget
 {
     /// <summary>
-    /// The API version exposing both managed Gateway API and application load balancer properties.
+    /// The preview API version exposing application load balancer properties.
     /// </summary>
-    internal const string PreviewIngressApiVersion = "2025-09-02-preview";
+    internal const string PreviewIngressApiVersion = "2026-07-02-preview";
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureKubernetesEnvironmentResource"/> class.
@@ -330,14 +330,10 @@ public partial class AzureKubernetesEnvironmentResource :
     internal bool ApplicationLoadBalancerEnabled { get; set; }
 
     /// <summary>
-    /// Whether the cluster needs to be emitted using a preview Bicep API version because
-    /// it depends on <c>ingressProfile.gatewayAPI</c> or <c>ingressProfile.applicationLoadBalancer</c>,
-    /// neither of which is in any stable AKS API version yet (latest stable
-    /// <c>2026-01-01</c> doesn't have them; <c>gatewayAPI</c> first appears in
-    /// <c>2025-08-02-preview</c>, <c>applicationLoadBalancer</c> in
-    /// <c>2025-09-02-preview</c>).
+    /// Whether the cluster needs a preview Bicep API version for
+    /// <c>ingressProfile.applicationLoadBalancer</c>. Gateway API is supported by the stable API.
     /// </summary>
-    internal bool RequiresPreviewIngressApi => GatewayApiEnabled || ApplicationLoadBalancerEnabled;
+    internal bool RequiresPreviewIngressApi => ApplicationLoadBalancerEnabled;
 
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)

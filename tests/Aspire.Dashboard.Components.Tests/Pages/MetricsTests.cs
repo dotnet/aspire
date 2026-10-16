@@ -378,7 +378,7 @@ public partial class MetricsTests : DashboardTestContext
         var filterPopover = cut.FindComponent<ChartFilterPopover>().Instance;
         var filterButtonId = cut.Find(".chart-filter-button").Id;
         cut.Find(".chart-filter-button").Click();
-        Assert.Equal("true", cut.Find("fluent-popover-b.chart-filter-popover").GetAttribute("opened"));
+        cut.WaitForAssertion(() => Assert.Equal("true", cut.Find("fluent-popover-b.chart-filter-popover").GetAttribute("opened")));
 
         await telemetryRepository.AddMetricsAsync(new AddContext(), new RepeatedField<ResourceMetrics>
         {

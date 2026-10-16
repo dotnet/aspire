@@ -42,6 +42,8 @@
     <Compile Include="$(SharedDir)KnownContainerRuntimes.cs" Link="Utils\KnownContainerRuntimes.cs" />
     <Compile Include="$(SharedDir)DebugSessionInfoParser.cs" Link="Utils\DebugSessionInfoParser.cs" />
     <Compile Include="$(SharedDir)ContainerRuntimeDetector.cs" Link="Publishing\ContainerRuntimeDetector.cs" />
+    <Compile Include="$(SharedDir)ContainerRuntimeProbe.cs" Link="Publishing\ContainerRuntimeProbe.cs" />
+    <Compile Include="$(SharedDir)WslcContainerRuntimeProbe.cs" Link="Publishing\WslcContainerRuntimeProbe.cs" />
     <Compile Include="$(SharedDir)KnownOtelConfigNames.cs" Link="Utils\KnownOtelConfigNames.cs" />
     <Compile Include="$(SharedDir)OtlpEndpointResolver.cs" Link="Utils\OtlpEndpointResolver.cs" />
     <Compile Include="$(SharedDir)PathNormalizer.cs" Link="Utils\PathNormalizer.cs" />
@@ -65,10 +67,13 @@
     <Compile Include="$(SharedDir)LaunchProfiles\*.cs" />
     <Compile Include="$(SharedDir)PackageUpdateHelpers.cs" Link="Utils\PackageUpdateHelpers.cs" />
     <Compile Include="$(SharedDir)InteractionHelpers.cs" Link="Utils\InteractionHelpers.cs" />
+    <Compile Include="$(SharedDir)Json\JsonFlattener.cs" Link="Utils\JsonFlattener.cs" />
     <Compile Include="$(SharedDir)LocaleHelpers.cs" Link="Utils\LocaleHelpers.cs" />
     <Compile Include="$(SharedDir)PathLookupHelper.cs" Link="Utils\PathLookupHelper.cs" />
     <Compile Include="$(SharedDir)MsBuildResponseFile.cs" Link="Utils\MsBuildResponseFile.cs" />
     <Compile Include="$(SharedDir)BackchannelConstants.cs" Link="Backchannel\BackchannelConstants.cs" />
+    <Compile Include="$(SharedDir)UserSecrets\AspireSecretsPathHelper.cs" Link="UserSecrets\AspireSecretsPathHelper.cs" />
+    <Compile Include="$(SharedDir)UserSecrets\SecretsStore.cs" Link="UserSecrets\SecretsStore.cs" />
     <Compile Include="$(SharedDir)RequestIdTypeInfoResolver.cs" Link="Backchannel\RequestIdTypeInfoResolver.cs" />
     <Compile Include="$(SharedDir)AppHostSocketManager.cs" Link="Backchannel\AppHostSocketManager.cs" />
     <Compile Include="$(SharedDir)TerminalHost\*.cs" Link="Backchannel\TerminalHost\%(Filename)%(Extension)" />

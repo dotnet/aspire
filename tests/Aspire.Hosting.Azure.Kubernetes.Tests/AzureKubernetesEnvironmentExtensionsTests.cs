@@ -38,6 +38,29 @@ public class AzureKubernetesEnvironmentExtensionsTests(ITestOutputHelper outputH
     }
 
     [Fact]
+    public async Task AddAzureKubernetesEnvironment_ConfigureInfrastructureCanSelectFreeTier()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var builder = AzureKubernetesTestBuilder.Create(
+            outputHelper,
+            workspace,
+            operation: DistributedApplicationOperation.Run);
+
+        var aks = builder.AddAzureKubernetesEnvironment("aks")
+            .ConfigureInfrastructure(infrastructure =>
+            {
+                var cluster = infrastructure.GetProvisionableResources()
+                    .OfType<ContainerServiceManagedCluster>()
+                    .Single();
+
+                cluster.Sku.Tier = ManagedClusterSkuTier.Free;
+            });
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(aks.Resource);
+        await Verify(manifest.BicepText, extension: "bicep");
+    }
+
+    [Fact]
     public void AddNodePool_ReturnsNodePoolResource()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
@@ -584,6 +607,37 @@ public class AzureKubernetesEnvironmentExtensionsTests(ITestOutputHelper outputH
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
     private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void RequiresPreviewIngressApi_DependsOnApplicationLoadBalancer(bool gatewayApiEnabled, bool applicationLoadBalancerEnabled)
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var builder = AzureKubernetesTestBuilder.Create(outputHelper, workspace);
+
+        var aks = builder.AddAzureKubernetesEnvironment("aks");
+        aks.Resource.GatewayApiEnabled = gatewayApiEnabled;
+        aks.Resource.ApplicationLoadBalancerEnabled = applicationLoadBalancerEnabled;
+
+        Assert.Equal(applicationLoadBalancerEnabled, aks.Resource.RequiresPreviewIngressApi);
+    }
+
+    [Fact]
+    public async Task GatewayApiEnabled_BicepUsesStableApi()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var builder = AzureKubernetesTestBuilder.Create(outputHelper, workspace);
+
+        var aks = builder.AddAzureKubernetesEnvironment("aks");
+        aks.Resource.GatewayApiEnabled = true;
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(aks.Resource);
+        Assert.Contains("resource aks 'Microsoft.ContainerService/managedClusters@2026-07-01' = {", manifest.BicepText);
+        Assert.Contains("installation: 'Standard'", manifest.BicepText);
+    }
 
     [Theory]
     [InlineData(false)]

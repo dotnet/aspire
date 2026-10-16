@@ -75,6 +75,20 @@ Common quota increase requests:
 
 ## Prerequisites
 
+### Node Azure Functions storage bindings
+
+`AzureFunctionsDeploymentTests.DeployNodeFunctionsWithStorageBindingsToAzureContainerApps`
+deploys a TypeScript Functions fixture without a Dockerfile or prebuilt JavaScript.
+It verifies the deployed Container App's `functionapp` kind and ingress port 80,
+then invokes an HTTP trigger that writes a blob and enqueues work using runtime
+output bindings. A queue trigger writes a second blob; an HTTP GET reads both
+through blob input bindings and checks the unique request payload. Storage
+connections use managed identity, including a custom queue connection name.
+This requires the current-build Aspire bundle, Docker, npm, Python 3, and Azure
+permissions to provision Container Apps, ACR, storage, and managed-identity role
+assignments. Run it on the Linux deployment test infrastructure; it creates real
+Azure resources and requests resource-group cleanup in a `finally` block.
+
 ### For Local Development
 
 1. **Linux environment** - Hex1b requires a Linux terminal (WSL2 works on Windows)
@@ -109,6 +123,17 @@ export ASPIRE_DEPLOYMENT_TEST_RG_PREFIX="my-aspire-tests"
 ```
 
 ## Running Tests
+
+Starter-template scenarios use `AddDotnetProject` declarations. Source transformations
+must use `DotnetProjectDeploymentHelpers.ReplaceExactlyOnce` (or an equivalent required
+replacement) so template drift fails during setup instead of silently dropping references,
+node-pool constraints, or image annotations. The ACA starter scenario explicitly converts
+the declarations to path-based `AddProject` to retain separate `ProjectResource` coverage.
+
+The multiple-node-pool scenario pins the API to a non-default user pool and checks both
+the live workload selectors and actual node placement. The shared-storage scenario checks
+that exactly one account exists and both deployed Container Apps receive its blob endpoint
+and a managed identity with blob data access.
 
 ### Run All Tests Locally
 

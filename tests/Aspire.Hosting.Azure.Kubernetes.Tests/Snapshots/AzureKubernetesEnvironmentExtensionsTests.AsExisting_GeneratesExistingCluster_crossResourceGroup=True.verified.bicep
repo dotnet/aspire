@@ -9,7 +9,7 @@ param cluster_rg string
 
 param acrName string
 
-resource aks 'Microsoft.ContainerService/managedClusters@2026-01-01' existing = {
+resource aks 'Microsoft.ContainerService/managedClusters@2026-07-01' existing = {
   name: cluster_name
   scope: resourceGroup(cluster_subscription, cluster_rg)
 }
