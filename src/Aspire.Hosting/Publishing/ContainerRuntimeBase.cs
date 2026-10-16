@@ -471,29 +471,46 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
     /// Builds secret arguments without command-line quoting.
     /// </summary>
     /// <param name="buildSecrets">The build secrets to include.</param>
+    /// <param name="useCsv">Whether the runtime parses secret specifications as CSV records.</param>
     /// <param name="requireValue">Whether to require a non-null value for secrets (default: false).</param>
     /// <returns>The secret switches and specifications.</returns>
-    internal static List<string> BuildSecrets(Dictionary<string, BuildImageSecretValue> buildSecrets, bool requireValue = false)
+    internal static List<string> BuildSecrets(Dictionary<string, BuildImageSecretValue> buildSecrets, bool useCsv, bool requireValue = false)
     {
         var arguments = new List<string>();
         foreach (var buildSecret in buildSecrets)
         {
             arguments.Add("--secret");
+            var id = FormatSecretField($"id={buildSecret.Key}", useCsv);
             if (buildSecret.Value.Type == BuildImageSecretType.File)
             {
-                arguments.Add($"id={buildSecret.Key},type=file,src={buildSecret.Value.Value}");
+                var source = FormatSecretField($"src={buildSecret.Value.Value}", useCsv);
+                arguments.Add($"{id},type=file,{source}");
             }
             else if (requireValue && buildSecret.Value.Value is null)
             {
-                arguments.Add($"id={buildSecret.Key},type=env");
+                arguments.Add($"{id},type=env");
             }
             else
             {
-                arguments.Add($"id={buildSecret.Key},type=env,env={buildSecret.Key.ToUpperInvariant()}");
+                var environment = FormatSecretField($"env={buildSecret.Key.ToUpperInvariant()}", useCsv);
+                arguments.Add($"{id},type=env,{environment}");
             }
         }
 
         return arguments;
+    }
+
+    private static string FormatSecretField(string field, bool useCsv)
+    {
+        // Docker Buildx and WSLc parse a CSV record: id=npmrc,type=file,"src=C:\team,a\.npmrc".
+        // These quotes belong to the secret specification, not to process argument escaping.
+        // https://github.com/docker/buildx/blob/master/util/buildflags/secrets.go
+        if (useCsv && field.AsSpan().ContainsAny(",\"\r\n"))
+        {
+            return $"\"{field.Replace("\"", "\"\"", StringComparison.Ordinal)}\"";
+        }
+
+        return field;
     }
 
     /// <summary>

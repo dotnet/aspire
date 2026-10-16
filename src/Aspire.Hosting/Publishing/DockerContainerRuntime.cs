@@ -102,7 +102,7 @@ internal sealed class DockerContainerRuntime : ContainerRuntimeBase<DockerContai
             arguments.AddRange(BuildArguments(buildArguments));
 
             // Add build secrets if specified
-            arguments.AddRange(BuildSecrets(buildSecrets));
+            arguments.AddRange(BuildSecrets(buildSecrets, useCsv: true));
 
             // Add stage if specified
             arguments.AddRange(BuildStage(stage));

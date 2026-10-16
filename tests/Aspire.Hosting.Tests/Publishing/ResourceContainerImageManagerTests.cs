@@ -1590,7 +1590,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
             ["MY_SECRET"] = new BuildImageSecretValue("secret-value", BuildImageSecretType.Environment)
         };
 
-        var result = ContainerRuntimeBase<DockerContainerRuntime>.BuildSecrets(secrets);
+        var result = ContainerRuntimeBase<DockerContainerRuntime>.BuildSecrets(secrets, useCsv: true);
 
         Assert.Equal(["--secret", "id=MY_SECRET,type=env,env=MY_SECRET"], result);
     }
@@ -1603,7 +1603,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
             ["npmrc"] = new BuildImageSecretValue("/path/to/.npmrc", BuildImageSecretType.File)
         };
 
-        var result = ContainerRuntimeBase<DockerContainerRuntime>.BuildSecrets(secrets);
+        var result = ContainerRuntimeBase<DockerContainerRuntime>.BuildSecrets(secrets, useCsv: true);
 
         Assert.Equal(["--secret", "id=npmrc,type=file,src=/path/to/.npmrc"], result);
     }
@@ -1616,7 +1616,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
             ["MY_SECRET"] = new BuildImageSecretValue(null, BuildImageSecretType.Environment)
         };
 
-        var result = ContainerRuntimeBase<DockerContainerRuntime>.BuildSecrets(secrets, requireValue: true);
+        var result = ContainerRuntimeBase<DockerContainerRuntime>.BuildSecrets(secrets, useCsv: false, requireValue: true);
 
         Assert.Equal(["--secret", "id=MY_SECRET,type=env"], result);
     }
@@ -1630,7 +1630,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
             ["npmrc"] = new BuildImageSecretValue("/app/.npmrc", BuildImageSecretType.File)
         };
 
-        var result = ContainerRuntimeBase<DockerContainerRuntime>.BuildSecrets(secrets);
+        var result = ContainerRuntimeBase<DockerContainerRuntime>.BuildSecrets(secrets, useCsv: true);
 
         Assert.Equal(["--secret", "id=ENV_TOKEN,type=env,env=ENV_TOKEN", "--secret", "id=npmrc,type=file,src=/app/.npmrc"], result);
     }

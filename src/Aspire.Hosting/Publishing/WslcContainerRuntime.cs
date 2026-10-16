@@ -78,7 +78,7 @@ internal sealed class WslcContainerRuntime : ContainerRuntimeBase<WslcContainerR
         var normalizedContextPath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(contextPath));
         var arguments = new List<string> { "build", "--file", dockerfilePath, "--tag", imageName };
         arguments.AddRange(BuildArguments(buildArguments));
-        arguments.AddRange(BuildSecrets(buildSecrets));
+        arguments.AddRange(BuildSecrets(buildSecrets, useCsv: true));
         arguments.AddRange(BuildStage(stage));
         arguments.Add(normalizedContextPath);
 

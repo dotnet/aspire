@@ -54,7 +54,7 @@ public class ContainerRuntimeBaseTests
         };
         var contextPath = Path.GetFullPath("context with spaces");
         var dockerfile = Path.Combine(contextPath, "Dockerfile");
-        const string secretPath = """C:\secrets with spaces\config "quoted".json""";
+        const string secretPath = """C:\secrets with spaces\team,a\config "quoted".json""";
         const string stage = "stage with spaces";
         var values = new Dictionary<string, string?>
         {
@@ -89,13 +89,35 @@ public class ContainerRuntimeBaseTests
             expected.AddRange(["--build-arg", value is null ? key : $"{key}={value}"]);
         }
         expected.AddRange([
-            "--secret", $"id=file,type=file,src={secretPath}",
+            "--secret", runtimeName == KnownContainerRuntimes.Podman
+                ? $"id=file,type=file,src={secretPath}"
+                : "id=file,type=file,\"src=C:\\secrets with spaces\\team,a\\config \"\"quoted\"\".json\"",
             "--secret", "id=token,type=env,env=TOKEN",
             "--secret", runtimeName == KnownContainerRuntimes.Podman ? "id=inherited,type=env" : "id=inherited,type=env,env=INHERITED",
             "--target", stage, contextPath]);
         Assert.Null(spec.Arguments);
         Assert.Equal(expected, spec.ArgumentList);
         Assert.Equal("secret-value", spec.EnvironmentVariables["TOKEN"]);
+    }
+
+    [Theory]
+    [InlineData(@"C:\team,a\.npmrc", "\"src=C:\\team,a\\.npmrc\"")]
+    [InlineData("path\"quoted", "\"src=path\"\"quoted\"")]
+    [InlineData("path\r\nnext", "\"src=path\r\nnext\"")]
+    [InlineData(@"C:\plain\.npmrc", @"src=C:\plain\.npmrc")]
+    public void BuildSecrets_EncodesCsvFieldsOnlyWhenRequested(string path, string expectedSource)
+    {
+        var secrets = new Dictionary<string, BuildImageSecretValue>
+        {
+            ["npmrc"] = new(path, BuildImageSecretType.File)
+        };
+
+        Assert.Equal(
+            ["--secret", $"id=npmrc,type=file,{expectedSource}"],
+            ContainerRuntimeBase<DockerContainerRuntime>.BuildSecrets(secrets, useCsv: true));
+        Assert.Equal(
+            ["--secret", $"id=npmrc,type=file,src={path}"],
+            ContainerRuntimeBase<PodmanContainerRuntime>.BuildSecrets(secrets, useCsv: false));
     }
 
     [Fact]

@@ -189,7 +189,7 @@ internal sealed class PodmanContainerRuntime : ContainerRuntimeBase<PodmanContai
         arguments.AddRange(BuildArguments(buildArguments));
 
         // Add build secrets if specified
-        arguments.AddRange(BuildSecrets(buildSecrets, requireValue: true));
+        arguments.AddRange(BuildSecrets(buildSecrets, useCsv: false, requireValue: true));
 
         // Add stage if specified
         arguments.AddRange(BuildStage(stage));
