@@ -1,0 +1,89 @@
+{
+  "run_id": 38898050967,
+  "run_attempt": 1,
+  "run_url": "https://github.com/microsoft/aspire/actions/runs/38898050967",
+  "run_scope": "main",
+  "analyzed_at": "2026-10-16T12:48:50Z",
+  "verdict": "mixed",
+  "pr": null,
+  "triggering_merge_pr": null,
+  "main_context": {
+    "last_successful_main_sha": "88ff9ba57c2841cce759adffa849373f9406b0f5",
+    "failed_sha": "104378df623464592ac23dd5390bf74924f6fb89",
+    "candidate_merge_history_state": "incomplete",
+    "candidate_merges": null
+  },
+  "failed_jobs": [
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Hosting.Azure.Tests, Hosting.Azure, Hosting.Azure, tests/Aspire... / Hosting.Azure (ubuntu-latest)",
+      "id": 116963961717,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38898050967/job/116963961717",
+      "classification": "flaky-test",
+      "reason": "Single test AzureSandboxesTests.AzureDevComputeClientKeepsCancellationAfterRejectedCreateDefinite failed with Assert.False Expected False Actual True at line 1605, a known race between a 10ms cancellation and an immediate mocked response; matches prior cause from run 38283756224.",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x)",
+      "id": 116967600485,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38898050967/job/116967600485",
+      "classification": "main-repository-breakage",
+      "reason": "All 59/59 TypeScript validation AppHosts pass, but the job fails deterministically at exit code 1 after the NuxtApp Docker publish step, matching the long-running recurring Nuxt 'npm ci' Docker build failure (issue #20866) seen in 30+ prior main runs.",
+      "failed_steps": [
+        "Run TypeScript SDK validation"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, azure-functions-node)",
+      "id": 116970605295,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38898050967/job/116970605295",
+      "classification": "flaky-test",
+      "reason": "The debugger E2E test 'hits an HTTP breakpoint' timed out after 300000ms waiting for a breakpoint, an environment-timing failure matching the prior known-flaky cause from run 38540541716 with an identical error message shape.",
+      "failed_steps": [
+        "Run extension E2E tests"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / Polyglot Validation Results",
+      "id": 116971540683,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/38898050967/job/116971540683",
+      "classification": "main-repository-breakage",
+      "reason": "Downstream aggregation step 'Check validation results' deterministically fails because the TypeScript SDK Validation leg reported failure; this is a direct consequence of the Nuxt Docker build breakage, not an independent issue.",
+      "failed_steps": [
+        "Check validation results"
+      ]
+    }
+  ],
+  "failed_tests": [
+    {
+      "name": "Aspire Node Functions debugger E2E starts Core Tools, attaches pwa-node, hits an HTTP breakpoint and cleans up the worker",
+      "job": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, azure-functions-node)",
+      "error": "Failed to apply E2E control revision 1792153643782: Error: Timed out after 300000ms waiting for breakpoint in /tmp/aev-xBkxJd/workspace/AspireE2E.NodeFunctionsDebugger/Program.cs:4. Last error: <none>.\nDiagnostics:\n{\n  \"supportedCapabilities\": [\n    \"prompting\",\n    \"baseline.v1\",\n    \"secret-prompts.v1\",\n    \"file-pickers.v1\",\n    \"message-actions.v1\",\n    \"build-dotnet-using-cli\",\n    \"apphost-log-output.v1\",\n    \"project\",\n    \"project-with-external-build.v1\",\n    \"ms-dotnettools.csharp\",\n    \"node\",\n    \"deno.v1\",\n    \"browser\",\n    \"azure-functions-node\",\n    \"deno\"\n  ],\n  \"debugSessions\": [\n    {\n      \"id\": \"1fc7035c-75a9-4bc0-8c04-8c0757a95789\",\n      \"type\": \"aspire\",\n      \"name\": \"Aspire run: AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n      \"configuration\": {\n        \"type\": \"aspire\",\n        \"name\": \"Aspire run: AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n        \"request\": \"launch\",\n        \"program\": \"/tmp/aev-xBk",
+      "stack_trace": "Error: Failed to apply E2E control revision 1792153643782: Error: Timed out after 300000ms waiting for breakpoint in /tmp/aev-xBkxJd/workspace/AspireE2E.NodeFunctionsDebugger/Program.cs:4. Last error: <none>.\nDiagnostics:\n{\n  \"supportedCapabilities\": [\n    \"prompting\",\n    \"baseline.v1\",\n    \"secret-prompts.v1\",\n    \"file-pickers.v1\",\n    \"message-actions.v1\",\n    \"build-dotnet-using-cli\",\n    \"apphost-log-output.v1\",\n    \"project\",\n    \"project-with-external-build.v1\",\n    \"ms-dotnettools.csharp\",\n    \"node\",\n    \"deno.v1\",\n    \"browser\",\n    \"azure-functions-node\",\n    \"deno\"\n  ],\n  \"debugSessions\": [\n    {\n      \"id\": \"1fc7035c-75a9-4bc0-8c04-8c0757a95789\",\n      \"type\": \"aspire\",\n      \"name\": \"Aspire run: AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n      \"configuration\": {\n        \"type\": \"aspire\",\n        \"name\": \"Aspire run: AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n        \"request\": \"launch\",\n        \"program\": \"/tmp/aev-xBkxJd/workspace/AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n        \"command\": \"run\",\n        \"noDebug\": false,\n        \"__aspireAppHostSelectionOrigin\": \"user-selection\",\n        \"__aspireAppHostLaunchToken\": 1,\n        \"__aspireAppHostLaunchReservationId\": \"1\",\n        \"resolvedCliPath\": \"/tmp/aev-xBkxJd/cli/aspire\"\n      }\n    }\n  ],\n  \"launchRequests\": [\n    {\n      \"sessionId\": \"1fc7035c-75a9-4bc0-8c04-8c0757a95789\",\n      \"sessionType\": \"aspire\",\n      \"sessionName\": \"Aspire run: AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n      \"arguments\": {\n        \"type\": \"aspire\",\n        \"name\": \"Aspire run: AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n        \"request\": \"launch\",\n        \"program\": \"/tmp/aev-xBkxJd/workspace/AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n        \"command\": \"run\",\n        \"noDebug\": false,\n        \"__aspireAppHostSelectionOrigin\": \"user-selec",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Timing-sensitive breakpoint wait in a debugger E2E test that previously failed intermittently the same way with a different revision id/tmp dir (prior cause observed 2026-10-14)."
+    },
+    {
+      "name": "Aspire.Hosting.Azure.Tests.AzureSandboxesTests.AzureDevComputeClientKeepsCancellationAfterRejectedCreateDefinite",
+      "job": "Tests / No-package tests (regular, Aspire.Hosting.Azure.Tests, Hosting.Azure, Hosting.Azure, tests/Aspire... / Hosting.Azure (ubuntu-latest)",
+      "error": "Assert.False() Failure\nExpected: False\nActual:   True",
+      "stack_trace": "at Aspire.Hosting.Azure.Tests.AzureSandboxesTests.AzureDevComputeClientKeepsCancellationAfterRejectedCreateDefinite() in /home/runner/work/aspire/aspire/tests/Aspire.Hosting.Azure.Tests/AzureSandboxesTests.cs:line 1605\n--- End of stack trace from previous location ---",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Known race condition between a 10ms cancellation and an immediate mocked response in this single test, previously observed identically on 2026-10-12 (issue #20931)."
+    }
+  ],
+  "causes": [
+    "azure-sandboxes-devcomputeclient-cancellation-race",
+    "vscode-e2e-linux-azure-functions-node-breakpoint-timeout",
+    "typescript-sdk-nuxt-integration-npm-ci-docker-build-failure"
+  ]
+}
