@@ -1,4 +1,5 @@
 ﻿@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Utils
 @namespace Aspire.Dashboard.Components
 
 @if (DisplayedUrls.Count == 0)
@@ -73,6 +74,11 @@ else if (DisplayedUrls.Count > 1)
         var labelPrefix = label is not null ? $"{label}: " : null;
         var address = GetTooltipText(displayedUrl);
 
-        return @<text>@labelPrefix<a href="@address" target="_blank" @onclick:stopPropagation="true" @onkeydown:stopPropagation="true">@address</a></text>;
+        // The address can contain credentials in the query string, e.g. the dashboard's own /login?t=<token> URL, so mask
+        // the values anywhere they're displayed (the link text and the tooltip). The link target must stay unmasked to work.
+        // The popover has a maximum width and clips long addresses, so the tooltip lets the full (masked) address be read.
+        var displayAddress = DashboardUIHelpers.MaskQueryStringValues(address);
+
+        return @<text>@labelPrefix<a href="@address" target="_blank" title="@displayAddress" @onclick:stopPropagation="true" @onkeydown:stopPropagation="true">@displayAddress</a></text>;
     }
 }

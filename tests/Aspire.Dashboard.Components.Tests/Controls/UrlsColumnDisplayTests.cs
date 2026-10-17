@@ -53,14 +53,16 @@ public class UrlsColumnDisplayTests : DashboardTestContext
         FluentUISetupHelpers.SetupFluentOverflow(this);
         FluentUISetupHelpers.AddCommonDashboardServices(this);
 
-        // 20 items render inline, so the last 5 are the ones shown in the popover.
-        var displayedUrls = CreateDisplayedUrls(25);
+        // 20 items render inline, so the last 6 are the ones shown in the popover.
+        var displayedUrls = CreateDisplayedUrls(26);
         displayedUrls[21].DisplayName = "Display name";
         displayedUrls[22].Name = "-";
         displayedUrls[23].Name = "-";
         displayedUrls[23].DisplayName = "Only display name";
         displayedUrls[24].Url = null;
         displayedUrls[24].OriginalUrlString = "tcp://localhost:5024";
+        displayedUrls[25].Url = "https://localhost:5025/login?t=secret-token";
+        displayedUrls[25].OriginalUrlString = "https://localhost:5025/login?t=secret-token";
         var resource = ModelTestHelpers.CreateResource(resourceName: "test-resource", resourceType: "Project", state: KnownResourceState.Running);
 
         var cut = Render<UrlsColumnDisplay>(builder =>
@@ -72,21 +74,25 @@ public class UrlsColumnDisplayTests : DashboardTestContext
 
         // The label ("{display name ?? endpoint name}: ") is plain text so only the address is the link. The address
         // is always a link, including for schemes that aren't browsable, and the label is omitted if there isn't one.
+        // Query string values are masked in the displayed address and tooltip (the address can hold a credential, such as
+        // the dashboard's login token), but the link target is the real address.
         var popupItems = cut.FindAll(".url-overflow-popover .url-link");
         Assert.Collection(popupItems,
-            item => AssertPopupItem(item, "https-20: https://localhost:5020", "https://localhost:5020"),
-            item => AssertPopupItem(item, "Display name: https://localhost:5021", "https://localhost:5021"),
-            item => AssertPopupItem(item, "https://localhost:5022", "https://localhost:5022"),
-            item => AssertPopupItem(item, "Only display name: https://localhost:5023", "https://localhost:5023"),
-            item => AssertPopupItem(item, "https-24: tcp://localhost:5024", "tcp://localhost:5024"));
+            item => AssertPopupItem(item, "https-20: https://localhost:5020", "https://localhost:5020", "https://localhost:5020"),
+            item => AssertPopupItem(item, "Display name: https://localhost:5021", "https://localhost:5021", "https://localhost:5021"),
+            item => AssertPopupItem(item, "https://localhost:5022", "https://localhost:5022", "https://localhost:5022"),
+            item => AssertPopupItem(item, "Only display name: https://localhost:5023", "https://localhost:5023", "https://localhost:5023"),
+            item => AssertPopupItem(item, "https-24: tcp://localhost:5024", "tcp://localhost:5024", "tcp://localhost:5024"),
+            item => AssertPopupItem(item, "https-25: https://localhost:5025/login?t=●●●●●●●●", "https://localhost:5025/login?t=secret-token", "https://localhost:5025/login?t=●●●●●●●●"));
 
-        static void AssertPopupItem(AngleSharp.Dom.IElement item, string expectedText, string expectedAddress)
+        static void AssertPopupItem(AngleSharp.Dom.IElement item, string expectedText, string expectedHref, string expectedDisplayedAddress)
         {
             Assert.Equal(expectedText, item.TextContent.Trim());
 
             var link = Assert.Single(item.QuerySelectorAll("a"));
-            Assert.Equal(expectedAddress, link.TextContent);
-            Assert.Equal(expectedAddress, link.GetAttribute("href"));
+            Assert.Equal(expectedDisplayedAddress, link.TextContent);
+            Assert.Equal(expectedDisplayedAddress, link.GetAttribute("title"));
+            Assert.Equal(expectedHref, link.GetAttribute("href"));
         }
     }
 
