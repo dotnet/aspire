@@ -83,8 +83,10 @@ internal sealed partial class MacTrayApplication
             AddCallback(callbackClass, "smokeTrackingStart:", &OnSmokeTrackingStart);
             AddCallback(callbackClass, "smokeTrackingWorker:", &OnSmokeTrackingWorker);
             AddCallback(callbackClass, "smokeTrackingDeadline:", &OnSmokeTrackingDeadline);
+            AddPanelCallbacks(callbackClass);
             AppKit.RegisterClass(callbackClass);
             _target = AppKit.Get(callbackClass, "new");
+            RegisterPanelClasses();
             CreateApplicationMenu();
 
             _runLoop = AppKit.CFRetain(AppKit.CFRunLoopGetMain());
@@ -235,6 +237,7 @@ internal sealed partial class MacTrayApplication
 
         try
         {
+            HidePanel();
             RemoveStatusItem();
             var defaults = AppKit.Get(AppKit.Class("NSUserDefaults"), "standardUserDefaults");
             // AppKit exposes no public placement setter. For this explicit recovery action
@@ -247,7 +250,6 @@ internal sealed partial class MacTrayApplication
                 AppKit.String($"NSStatusItem Preferred Position {_autosaveName}"));
             AppKit.Set(defaults, "removeObjectForKey:", AppKit.String($"NSStatusItem Visible {_autosaveName}"));
             CreateStatusItem();
-            AppKit.Set(_statusItem, "setMenu:", _menu);
             UpdateMenu(_controller.State);
             request.Completion.TrySetResult();
         }
@@ -273,6 +275,9 @@ internal sealed partial class MacTrayApplication
         // outside its status item through which a user could make it visible again.
         AppKit.SendBool(_statusItem, AppKit.Selector("setVisible:"), 1);
         SetIcon();
+        // The menu is not attached permanently: a left click opens the flyout panel and the
+        // menu is attached only while a right click (or keyboard/VoiceOver activation) shows it.
+        AttachStatusItemAction();
     }
 
     private void RemoveStatusItem()
@@ -328,6 +333,7 @@ internal sealed partial class MacTrayApplication
         AppKit.Set(button, "setImage:", GetTrayImage(GetTrayIconState(state)));
         AppKit.Set(button, "setToolTip:", AppKit.String($"Aspire\n{state.Status}"));
         AppKit.Set(button, "setAccessibilityLabel:", AppKit.String($"Aspire, {TrayIconDescription(GetTrayIconState(state))}, {state.Status}"));
+        UpdatePanel(state);
     }
 
     private void RebuildMenu(TrayViewState state)
@@ -343,7 +349,6 @@ internal sealed partial class MacTrayApplication
         try
         {
             PopulateMenu(state);
-            AppKit.Set(_statusItem, "setMenu:", _menu);
         }
         finally
         {
@@ -701,6 +706,7 @@ internal sealed partial class MacTrayApplication
         {
             AppKit.SendVoid(_application, AppKit.Selector("abortModal"));
         }
+        HidePanel();
         CloseSettings();
         AppKit.Set(_application, "stop:", 0);
         // stop: alone does not wake nextEventMatchingMask: when invoked by a run-loop source
@@ -753,6 +759,7 @@ internal sealed partial class MacTrayApplication
             AppKit.CFRelease(_runLoop);
         }
         DetachMenuDelegates();
+        DisposePanel();
         RemoveStatusItem();
         AppKit.Release(_menu);
         AppKit.Release(_brandImage);

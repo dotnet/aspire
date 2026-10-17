@@ -30,6 +30,7 @@ internal sealed unsafe partial class TrayApplication
             _dpiDirty = false;
         }
         UpdateTrayIcon(state);
+        UpdatePanel(state);
         if (ReferenceEquals(state, _displayedState) && (retained || !_menuStructureDirty))
         {
             return;

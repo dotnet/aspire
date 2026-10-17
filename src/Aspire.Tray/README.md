@@ -2,16 +2,19 @@
 
 An experimental **C# NativeAOT** companion for the Aspire CLI, bundled on macOS and Windows.
 It uses native AppKit status items on macOS and Win32 notification icons and menus
-on Windows through small platform interop layers. It does not require a Swift build
+on Windows through small platform interop layers. A left click opens a flyout panel
+that is drawn the same way on both platforms; a right click opens the native menu. It does not require a Swift build
 step, a WebView, a macOS .NET workload, Windows Forms, or an installed .NET runtime
 on the machine running the published app.
 
 ## Project layout
 
-- `src/Aspire.Tray/Common/`: shared protocol client, controller, and lifecycle code.
+- `src/Aspire.Tray/Common/`: shared protocol client, controller, and lifecycle code, plus the
+  flyout panel's layout, glyphs, palettes, and interaction (`TrayPanel*.cs`).
 - `src/Aspire.Tray/Mac/`: native AppKit frontend and macOS app packaging.
 - `src/Aspire.Tray/Windows/`: native Win32 frontend and Windows publishing.
-- `tests/Aspire.Tray.Tests/`: protocol, controller, and lifecycle tests in the normal test matrix.
+- `tests/Aspire.Tray.Tests/`: protocol, controller, lifecycle, and panel layout tests in the normal
+  test matrix, and an SVG renderer of the panel for previews.
 
 The platform projects and tests are included in `Aspire.slnx` and inherit the
 repository build, analyzer, versioning, and test infrastructure. Shared code is
@@ -71,6 +74,55 @@ log pathname. Symlinked log files or parent directories are rejected.
 Quit the tray using its original CLI or **Quit Aspire** before upgrading from an
 earlier preview. The state directory has been renamed; a still-running older
 preview uses a separate control endpoint and must be stopped before starting this build.
+
+## Flyout panel
+
+A left click on the tray icon opens a flyout panel, similar to OneDrive's. It is the
+same on macOS and Windows: a header with the Aspire logo and a one-line status
+("3 running · 1 needs attention", "Connecting…") behind a colored connection dot, an
+optional banner for real problems (storage, discovery, or a failed action), the AppHost
+list, and a footer with **Documentation**, **Settings**, and **Quit**.
+
+The list has **Running**, **Pinned**, and **Recent** sections. Recent is collapsed while
+other AppHosts are listed, and its header has a **Clear** button. Each row shows a
+status glyph, the AppHost name, and `{status} · {parent/folder}`; the PID is added only
+when two running AppHosts share a name. Status glyphs differ by shape as well as color:
+a check (healthy), an exclamation mark (needs attention), a cross (unhealthy), a question
+mark (unknown), an outlined stop (stopped), and a ring (starting or stopping).
+Hovering or focusing a row shows its buttons: **Open dashboard**, **Stop**, and **More**
+for running AppHosts, **Start** and **More** for offline ones. **More** opens the same
+action submenu as the native menu (Pin, Open In, Show in Finder/File Explorer, Copy
+Path). Clicking a row opens its dashboard, or **More** when it has none. The list scrolls
+when it is taller than the screen allows; the header and footer stay in place.
+The keyboard works too: Up/Down and Home/End move between rows, Tab and Shift-Tab
+also reach the row buttons, Enter or Space activates, and Escape closes the panel.
+Clicking elsewhere closes it, like a menu.
+
+Everything except drawing is shared code in `Common/`: `TrayPanel` turns the view state
+and interaction state into a display list (paths, text boxes, the logo, clips) and hit
+targets in device-independent pixels. All glyphs are vector paths defined there. The
+macOS host draws the list with `NSBezierPath` and `NSAttributedString` in a borderless
+`NSPanel`; the Windows host draws shapes with the GDI+ flat API and text with GDI
+`DrawTextW` (ClearType) in a `WS_POPUP` window, rounded by DWM on Windows 11 or by a
+window region on Windows 10. Text uses the system font at the same sizes (SF on
+macOS, Segoe UI Variable Text or Segoe UI on Windows); layout never measures text, and
+each renderer truncates it to its box. The panel follows the light or dark appearance,
+the macOS **Increase contrast** setting, and the Windows high-contrast theme.
+
+The custom-drawn panel is not exposed to VoiceOver or UI Automation. The native menu
+remains the accessible and complete path: a right click, Control-click on macOS,
+keyboard activation of the icon, or VoiceOver's press action opens it.
+
+To preview the panel without running the tray, run the panel tests with
+`ASPIRE_TRAY_PANEL_PREVIEW_DIR` set. They write SVG images of the light and dark
+themes for several states (typical, problems, empty, connecting, disconnected, many
+rows), drawn from the same display list:
+
+```sh
+ASPIRE_TRAY_PANEL_PREVIEW_DIR="$PWD/artifacts/tray-panel" \
+    dotnet test --project tests/Aspire.Tray.Tests/Aspire.Tray.Tests.csproj \
+    --no-launch-profile -- --filter-class "*.TrayPanelTests"
+```
 
 ## Build and run on macOS
 
@@ -134,7 +186,8 @@ The app bundle and dialogs continue to use `src/Shared/Aspire_icon_256.png`.
 The lower-right connection badge replaces a numeric count: the idle mark is
 unbadged, dots indicate connecting, a cross indicates unavailable discovery, and
 a solid dot indicates active AppHosts. The badge's transparent border reveals the menu-bar background rather
-than painting an opaque outline. Native two-line AppHost
+than painting an opaque outline. A left click opens the [flyout panel](#flyout-panel);
+a right click or Control-click opens the native menu described here. Native two-line AppHost
 rows show the project/worktree name first and directory context and PID underneath.
 The redundant branded/count header is omitted when AppHosts are listed; an empty
 placeholder or actionable error/disconnection notice is shown when appropriate.
@@ -314,7 +367,10 @@ Windows uses the original colored `src/Shared/Aspire.ico`, not the macOS wave
 artwork. Its notification icon has no badge when discovery is connected but idle,
 a purple badge for active AppHosts, a gray dash while connecting, and an amber
 exclamation mark when discovery is unavailable. A stale AppHost list no longer
-looks like a working connection. The AppHost menus use the same shared health, history, pinning,
+looks like a working connection. A left click opens the [flyout panel](#flyout-panel);
+a right click, or Enter/Space on the focused icon, opens the native menu. The panel's
+Windows rendering has not been validated on a Windows desktop yet.
+The AppHost menus use the same shared health, history, pinning,
 explicit Start, and exact-instance Stop behavior described above. AppHost rows retain
 color-coded status indicators: green circles for healthy resources, orange for waiting/degraded,
 transitional, or unavailable discovery states, red for unhealthy resources or action
@@ -503,6 +559,11 @@ Scenarios include empty/disconnected discovery, missing dashboards,
 independent pending stops, reordered rows, process replacement, retained
 senders after menu closure, updates during genuine native menu tracking, and
 acknowledged hidden-icon restoration deferred until menus close.
+On macOS it also opens the flyout panel through the production path, checks
+that the window matches the shared layout and that Escape closes it, and verifies
+that the status item keeps no permanently attached menu. Set
+`ASPIRE_TRAY_SMOKE_PANEL_CAPTURE_DIR` to an absolute directory to also write PNGs
+of the panel rendered by AppKit (light, dark, and dark with hover).
 It never opens a browser or starts/stops real AppHosts and exits automatically.
 Smoke bypasses the normal singleton lock, so it can run alongside the tray.
 

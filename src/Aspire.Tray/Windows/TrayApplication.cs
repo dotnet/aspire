@@ -362,6 +362,7 @@ internal sealed unsafe partial class TrayApplication(TrayController controller, 
             case NativeMethods.WmSysColorChange:
             case NativeMethods.WmThemeChanged:
                 _dpiDirty = true;
+                _panelPaletteDirty = true;
                 RequestRefresh();
                 return 0;
             case NativeMethods.WmMenuRightButtonUp when _menuOpen && _modalDepth == 0:
@@ -373,8 +374,16 @@ internal sealed unsafe partial class TrayApplication(TrayController controller, 
             case NativeMethods.TrayCallback when !_menuOpen && !_quitRequested && _modalDepth == 0:
                 // NIM_SETVERSION(4): LOWORD(lParam)=event; wParam holds signed screen coordinates.
                 var notification = (uint)((nuint)lParam & 0xFFFF);
-                if (notification is NativeMethods.WmContextMenu or NativeMethods.NinSelect or NativeMethods.NinKeySelect)
+                if (notification == NativeMethods.NinSelect)
                 {
+                    // A left click toggles the flyout panel.
+                    TogglePanel();
+                }
+                else if (notification is NativeMethods.WmContextMenu or NativeMethods.NinKeySelect)
+                {
+                    // A right click and keyboard selection (Enter or Space on the focused icon) open
+                    // the native menu, which is the accessible and feature-complete path.
+                    HidePanel();
                     ShowMenu(wParam);
                 }
                 return 0;
@@ -430,6 +439,7 @@ internal sealed unsafe partial class TrayApplication(TrayController controller, 
         }
         _quitRequested = true;
         HideMenuTooltip();
+        HidePanel();
         lock (_lifecycleGate)
         {
             _shutdownRequested = true;
@@ -509,6 +519,8 @@ internal sealed unsafe partial class TrayApplication(TrayController controller, 
             {
                 return;
             }
+            // The flyout is owned by the message window, so destroy it first.
+            DisposePanel();
             if (_window != 0)
             {
                 // Keep the static receiver if destruction fails; native code could still call it.

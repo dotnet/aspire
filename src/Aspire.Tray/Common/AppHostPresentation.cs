@@ -44,11 +44,14 @@ internal static class AppHostPresentation
 
     public static string GetDirectory(AppHostInfo host) => Path.GetDirectoryName(host.AppHostPath) ?? host.AppHostPath;
 
-    private static string GetLocation(AppHostInfo host)
+    private static string GetLocation(AppHostInfo host) => GetLocation(host.AppHostPath);
+
+    /// <summary>Returns the AppHost's directory and its parent, such as "src/Shop.AppHost".</summary>
+    public static string GetLocation(string appHostPath)
     {
-        var directory = GetDirectory(host);
+        var directory = Path.GetDirectoryName(appHostPath) ?? appHostPath;
         var parent = Path.GetDirectoryName(directory);
-        return parent is null ? directory : Path.Combine(Path.GetFileName(parent), Path.GetFileName(directory));
+        return ToSingleLine(parent is null ? directory : Path.Combine(Path.GetFileName(parent), Path.GetFileName(directory)));
     }
 
     private static string Compact(string value, int maximumTextElements)

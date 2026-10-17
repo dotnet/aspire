@@ -538,8 +538,10 @@ internal sealed class NativeSmokeHarness
                     "Stop-warning opt-out must survive other actions without suppressing Clear or missing-file confirmations.");
                 // Interactive preview should still expose the real alert for manual inspection.
                 _controller.SetConfirmStop(true);
+                Console.WriteLine("Flyout " + _application.VerifyPanelForSmoke(
+                    Environment.GetEnvironmentVariable("ASPIRE_TRAY_SMOKE_PANEL_CAPTURE_DIR") is { Length: > 0 } capture ? capture : null) + ".");
                 _finished = true;
-                Console.WriteLine($"Native smoke passed: 36 phases; adaptive 1x/2x brand mask; distinct active/idle/connecting/disconnected icons; semantic health symbols and accessibility; exact Unicode Copy Path in live/pinned/recent menus, retained senders and missing files, clipboard failure reporting (injected, real clipboard untouched); Stop checkbox/default/cancel/stale-lifetime safety, persisted opt-out and repeat skip; context pin/unpin; missing-pin pruning; explicit start; filtered recents; unsuppressed clear/remove dialogs; distinct Documentation/Settings; native startup Settings and callbacks; identity and tracking regressions; CLI discovery: {(_discovery is null ? "not requested" : "live")}.");
+                Console.WriteLine($"Native smoke passed: 36 phases; flyout panel open/size/Escape; adaptive 1x/2x brand mask; distinct active/idle/connecting/disconnected icons; semantic health symbols and accessibility; exact Unicode Copy Path in live/pinned/recent menus, retained senders and missing files, clipboard failure reporting (injected, real clipboard untouched); Stop checkbox/default/cancel/stale-lifetime safety, persisted opt-out and repeat skip; context pin/unpin; missing-pin pruning; explicit start; filtered recents; unsuppressed clear/remove dialogs; distinct Documentation/Settings; native startup Settings and callbacks; identity and tracking regressions; CLI discovery: {(_discovery is null ? "not requested" : "live")}.");
                 if (_interactiveSmokeRequested)
                 {
                     _inspectionMode = true;

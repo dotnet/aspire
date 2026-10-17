@@ -642,6 +642,13 @@ internal sealed class TrayController : IAsyncDisposable
         {
             RecentAppHosts = recent,
             CanClearRecent = _savedState.AppHosts.Any(host => host.IsRecent),
+            Notice = _savedStateError ?? _pinProbeError ?? _snapshot.Discovery switch
+            {
+                DiscoveryState.Disconnected => "Discovery is unavailable. Reconnecting\u2026",
+                DiscoveryState.Incompatible => "This tray does not match the installed Aspire CLI. Use the matching Aspire build.",
+                DiscoveryState.LimitExceeded => "Discovery limit exceeded: too many AppHosts or too much metadata.",
+                _ => _actionError
+            },
             HasActiveAppHosts = running > 0 || starting > 0,
             ShowStatus = rows.Count == 0 || !live || _actionError is not null || _savedStateError is not null
                 || _pinProbeError is not null || failures > 0
