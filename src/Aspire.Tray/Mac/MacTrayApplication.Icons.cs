@@ -8,14 +8,15 @@ internal sealed partial class MacTrayApplication
     private const double TrayCanvasSize = 22;
     private const double StatusIconSize = 14;
 
-    // The logo is drawn 19 points wide, centered horizontally. The source triangle ends
-    // about 13% above the bottom of its square artwork, so the square sits half a point
-    // above the canvas bottom to center the visible triangle vertically.
-    private static readonly AppKit.NativeRect s_trayLogoRect = new(new(1.5, 0.5), new(19, 19));
+    // The logo is drawn 17 points wide, centered horizontally, so the visible triangle is about
+    // 14 points tall like the system's menu bar glyphs (Wi-Fi, battery). The source triangle ends
+    // about 13% above the bottom of its square artwork, so the square sits 1.5 points above the
+    // canvas bottom to center the visible triangle vertically.
+    private static readonly AppKit.NativeRect s_trayLogoRect = new(new(2.5, 1.5), new(17, 17));
 
     // The status dot sits in the lower-right corner (non-flipped image coordinates). The
     // logo is cut out 1.5 points around it, so the dot reads on any menu-bar background.
-    private static readonly AppKit.NativeRect s_trayBadgeRect = new(new(13.5, 0.5), new(8, 8));
+    private static readonly AppKit.NativeRect s_trayBadgeRect = new(new(13.5, 1), new(7, 7));
     private const double TrayBadgeGap = 1.5;
 
     private nint _trayBadge;

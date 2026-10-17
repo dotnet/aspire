@@ -535,7 +535,7 @@ internal sealed partial class MacTrayApplication
         VerifyTrayMarkForSmoke();
         VerifyIconPixel(GetTrayImage(true), new(10, 21.5), 0, 0, "transparent top margin");
         VerifyIconPixel(GetTrayImage(true), new(0.5, 0.5), 0, 0, "transparent mark background");
-        VerifyIconPixel(GetTrayImage(true), new(17.5, 4.5), 0, 0, "badge cut-out");
+        VerifyIconPixel(GetTrayImage(true), new(17, 4.5), 0, 0, "badge cut-out");
         VerifyIconPixel(GetTrayImage(true), new(12.5, 4.5), 0, 0, "badge gap");
         VerifyTrayStatusesForSmoke();
     }
@@ -690,8 +690,9 @@ internal sealed partial class MacTrayApplication
             {
                 throw new InvalidOperationException($"The monochrome logo lost its outline or facets at {scale}x ({opaque} opaque, {partial} partial pixels).");
             }
-            // Measure the visible logo, not the image frame: padding must not shrink the icon.
-            if (right - left + 1 < 17 * scale || bottom - top + 1 < 14 * scale)
+            // Measure the visible logo, not the image frame: padding must not shrink the icon below
+            // the size of the system's menu bar glyphs (about 14 points tall).
+            if (right - left + 1 < 15 * scale || bottom - top + 1 < 13 * scale)
             {
                 throw new InvalidOperationException($"The visible tray logo is too small at {scale}x: {right - left + 1} by {bottom - top + 1} pixels.");
             }
