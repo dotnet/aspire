@@ -28,7 +28,7 @@ internal sealed partial class MacTrayApplication
     private nint _clearRecent;
     private nint _brandImage;
     private nint _trayMarkImage;
-    private readonly Dictionary<TrayIconState, nint> _trayImages = [];
+    private readonly Dictionary<bool, nint> _trayImages = [];
     private readonly Dictionary<(AppHostHealth Health, bool Running), nint> _healthImages = [];
     private bool _showStatus;
     private nint _runLoop;
@@ -282,6 +282,7 @@ internal sealed partial class MacTrayApplication
 
     private void RemoveStatusItem()
     {
+        RemoveTrayBadge();
         if (_statusItem != 0)
         {
             AppKit.Set(_statusItem, "setMenu:", 0);
@@ -330,9 +331,10 @@ internal sealed partial class MacTrayApplication
 
         var button = AppKit.Get(_statusItem, "button");
         AppKit.Set(button, "setTitle:", AppKit.String(""));
-        AppKit.Set(button, "setImage:", GetTrayImage(GetTrayIconState(state)));
+        var iconStatus = TrayIconStatusRules.Get(state);
+        ApplyTrayIcon(iconStatus);
         AppKit.Set(button, "setToolTip:", AppKit.String($"Aspire\n{state.Status}"));
-        AppKit.Set(button, "setAccessibilityLabel:", AppKit.String($"Aspire, {TrayIconDescription(GetTrayIconState(state))}, {state.Status}"));
+        AppKit.Set(button, "setAccessibilityLabel:", AppKit.String($"Aspire, {TrayIconStatusRules.Describe(iconStatus)}, {state.Status}"));
         UpdatePanel(state);
     }
 
@@ -518,8 +520,8 @@ internal sealed partial class MacTrayApplication
             _trayMarkImage = LoadTrayMark();
         }
         var button = AppKit.Get(_statusItem, "button");
-        AppKit.Set(button, "setImage:", GetTrayImage(GetTrayIconState(_controller.State)));
         AppKit.Set(button, "setImagePosition:", 2);
+        ApplyTrayIcon(TrayIconStatusRules.Get(_controller.State));
     }
 
     private static unsafe nint LoadEmbeddedImage(string resourceName)

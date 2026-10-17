@@ -160,11 +160,12 @@ internal sealed class NativeSmokeHarness
         var connectionDescription = state.Discovery switch
         {
             DiscoveryState.Connecting => "Connecting to discovery",
-            DiscoveryState.Live => state.HasActiveAppHosts ? "AppHosts running" : "No AppHosts running",
+            DiscoveryState.Live when !state.HasActiveAppHosts => "No AppHosts running",
+            DiscoveryState.Live => TrayIconStatusRules.Get(state) == TrayIconStatus.Attention ? "AppHosts need attention" : "AppHosts running",
             _ => "Discovery unavailable"
         };
         Require(menu.AccessibilityLabel == $"Aspire, {connectionDescription}, {state.Status}",
-            "The tray must distinguish idle, active, connecting, and disconnected states for accessibility.");
+            "The tray must distinguish idle, running, attention, connecting, and disconnected states for accessibility.");
         _application.VerifyCopyMenusForSmoke();
 
         if (_trackingInProgress)
@@ -541,7 +542,7 @@ internal sealed class NativeSmokeHarness
                 Console.WriteLine("Flyout " + _application.VerifyPanelForSmoke(
                     Environment.GetEnvironmentVariable("ASPIRE_TRAY_SMOKE_PANEL_CAPTURE_DIR") is { Length: > 0 } capture ? capture : null) + ".");
                 _finished = true;
-                Console.WriteLine($"Native smoke passed: 36 phases; flyout panel open/size/Escape; adaptive 1x/2x brand mask; distinct active/idle/connecting/disconnected icons; semantic health symbols and accessibility; exact Unicode Copy Path in live/pinned/recent menus, retained senders and missing files, clipboard failure reporting (injected, real clipboard untouched); Stop checkbox/default/cancel/stale-lifetime safety, persisted opt-out and repeat skip; context pin/unpin; missing-pin pruning; explicit start; filtered recents; unsuppressed clear/remove dialogs; distinct Documentation/Settings; native startup Settings and callbacks; identity and tracking regressions; CLI discovery: {(_discovery is null ? "not requested" : "live")}.");
+                Console.WriteLine($"Native smoke passed: 36 phases; flyout panel open/size/Escape; monochrome 1x/2x logo template; idle/running/attention/dimmed status dot; semantic health symbols and accessibility; exact Unicode Copy Path in live/pinned/recent menus, retained senders and missing files, clipboard failure reporting (injected, real clipboard untouched); Stop checkbox/default/cancel/stale-lifetime safety, persisted opt-out and repeat skip; context pin/unpin; missing-pin pruning; explicit start; filtered recents; unsuppressed clear/remove dialogs; distinct Documentation/Settings; native startup Settings and callbacks; identity and tracking regressions; CLI discovery: {(_discovery is null ? "not requested" : "live")}.");
                 if (_interactiveSmokeRequested)
                 {
                     _inspectionMode = true;

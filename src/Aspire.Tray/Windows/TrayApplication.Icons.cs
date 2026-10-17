@@ -7,7 +7,7 @@ internal sealed unsafe partial class TrayApplication
 {
     private void UpdateTrayIcon(TrayViewState state)
     {
-        var status = GetIconState(state);
+        var status = TrayIconStatusRules.Get(state);
         if (_iconState == status)
         {
             return;
@@ -17,13 +17,7 @@ internal sealed unsafe partial class TrayApplication
         {
             var buffer = new Span<char>(tip, 128);
             buffer.Clear();
-            var text = status switch
-            {
-                IconState.Active => "Aspire - active AppHosts",
-                IconState.Idle => "Aspire - no active AppHosts",
-                IconState.Connecting => "Aspire - connecting to discovery",
-                _ => "Aspire - discovery unavailable"
-            };
+            var text = $"Aspire - {TrayIconStatusRules.Describe(status)}";
             text.AsSpan().CopyTo(buffer);
         }
         if (_iconAdded && NativeMethods.ShellNotifyIcon(NativeMethods.NimModify, ref _iconData) == 0)
@@ -35,14 +29,6 @@ internal sealed unsafe partial class TrayApplication
         _iconState = status;
     }
 
-    private static IconState GetIconState(TrayViewState state) => state.Discovery switch
-    {
-        DiscoveryState.Connecting => IconState.Connecting,
-        DiscoveryState.Live => state.HasActiveAppHosts ? IconState.Active : IconState.Idle,
-        _ => IconState.Unavailable
-    };
-
-    private enum IconState { Idle, Active, Connecting, Unavailable }
     private enum MenuStatus { Unknown, Healthy, Warning, Unhealthy, Stopped }
 
     private static MenuStatus GetMenuStatus(AppHostMenuItem? host, bool discoveryAvailable) => host switch
@@ -85,9 +71,11 @@ internal sealed unsafe partial class TrayApplication
                 NativeCallException.Require(original != 0, "LoadImageW(Aspire.ico)");
                 _icons.Add(original);
                 Original = original;
-                Connected = CreateTrayIcon(original, IconState.Active);
-                Disconnected = CreateTrayIcon(original, IconState.Unavailable);
-                Connecting = CreateTrayIcon(original, IconState.Connecting);
+                var light = IsLightTaskbar();
+                // The panel's success and warning colors, picked for contrast with the taskbar.
+                Running = CreateTrayIcon(original, light ? 0xFF1E9E57 : 0xFF34C46E, dimmed: false);
+                Attention = CreateTrayIcon(original, light ? 0xFFD98A00 : 0xFFF2A93B, dimmed: false);
+                Dimmed = CreateTrayIcon(original, badge: null, dimmed: true);
                 var glyphHeight = Math.Max(1, (int)Math.Round(12d * dpi / 96));
                 // Segoe MDL2 Assets: Library (E8F1) and Settings (E713).
                 // https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font
@@ -119,20 +107,36 @@ internal sealed unsafe partial class TrayApplication
 
         internal int Size { get; }
         internal nint Original { get; }
-        internal nint Connected { get; }
-        internal nint Disconnected { get; }
-        internal nint Connecting { get; }
+        internal nint Running { get; }
+        internal nint Attention { get; }
+        internal nint Dimmed { get; }
         internal nint DocumentationBitmap { get; }
         internal nint SettingsBitmap { get; }
         internal nint Status(MenuStatus status) => _statusBitmaps[status].Handle;
 
-        internal nint TrayIcon(IconState state) => state switch
+        internal nint TrayIcon(TrayIconStatus status) => status switch
         {
-            IconState.Active => Connected,
-            IconState.Connecting => Connecting,
-            IconState.Unavailable => Disconnected,
-            _ => Original
+            TrayIconStatus.Running => Running,
+            TrayIconStatus.Attention => Attention,
+            TrayIconStatus.Idle => Original,
+            _ => Dimmed
         };
+
+        private static bool IsLightTaskbar()
+        {
+            // The taskbar follows the system theme, not the app theme. The value is absent on
+            // builds older than the light taskbar, which were dark.
+            // https://learn.microsoft.com/windows/apps/desktop/modernize/apply-windows-themes
+            try
+            {
+                using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+                return key?.GetValue("SystemUsesLightTheme") is int value && value != 0;
+            }
+            catch (Exception ex) when (ex is System.Security.SecurityException or UnauthorizedAccessException or IOException)
+            {
+                return false;
+            }
+        }
 
         private nint CreateMenuBitmap(string glyph, int glyphHeight)
         {
@@ -142,25 +146,24 @@ internal sealed unsafe partial class TrayApplication
             return canvas.Handle;
         }
 
-        private nint CreateTrayIcon(nint original, IconState state)
+        private nint CreateTrayIcon(nint original, uint? badge, bool dimmed)
         {
             using var canvas = new PixelCanvas(_owner, Size);
             canvas.DrawIcon(original);
-            // Preserve the original multicolor Aspire artwork. Only the compact bottom-right
-            // status badge is overlaid; a white border contrasts with both taskbar themes.
-            var radius = Math.Max(3, Size * 0.22);
-            var center = Size - radius;
-            canvas.Circle(center, center, radius, 0xFFFFFFFF);
-            canvas.Circle(center, center, radius - Size * 0.045,
-                state == IconState.Active ? 0xFF7255CC : state == IconState.Connecting ? 0xFF606060 : 0xFF9B6900);
-            if (state == IconState.Unavailable)
+            // The same rules as macOS: the colored logo alone when idle, a status dot in a
+            // transparent cut-out while AppHosts run, and a faded logo while discovery is
+            // connecting or unavailable. The cut-out shows the taskbar itself, so the dot
+            // stays readable on light, dark and accent-colored taskbars.
+            if (badge is uint color)
             {
-                canvas.Line(center, center - radius * 0.4, center, center, Size * 0.065, 0xFFFFFFFF);
-                canvas.Circle(center, center + radius * 0.4, Size * 0.035, 0xFFFFFFFF);
+                var radius = Size * 0.21;
+                var center = Size - radius - Size * 0.01;
+                canvas.Erase(center, center, radius + Size * 0.07);
+                canvas.Circle(center, center, radius, color);
             }
-            else if (state == IconState.Connecting)
+            if (dimmed)
             {
-                canvas.Line(center - radius * 0.4, center, center + radius * 0.4, center, Size * 0.065, 0xFFFFFFFF);
+                canvas.Fade(0.45);
             }
             // CreateIconIndirect copies both bitmaps. A zero AND mask is used with the
             // 32-bit alpha channel; CreateBitmap(NULL) would leave that mask uninitialized.
@@ -230,6 +233,39 @@ internal sealed unsafe partial class TrayApplication
 
         internal void Circle(double x, double y, double radius, uint color)
             => DrawShape((px, py) => Math.Sqrt((px - x) * (px - x) + (py - y) * (py - y)) - radius, color);
+
+        /// <summary>Clears an anti-aliased disc to transparent.</summary>
+        internal void Erase(double x, double y, double radius)
+        {
+            for (var row = 0; row < _size; row++)
+            {
+                for (var column = 0; column < _size; column++)
+                {
+                    var distance = Math.Sqrt((column + 0.5 - x) * (column + 0.5 - x) + (row + 0.5 - y) * (row + 0.5 - y)) - radius;
+                    var coverage = Math.Clamp(0.5 - distance, 0, 1);
+                    if (coverage > 0)
+                    {
+                        Scale(ref Pixels[row * _size + column], 1 - coverage);
+                    }
+                }
+            }
+        }
+
+        /// <summary>Multiplies the whole canvas's opacity, keeping premultiplied channels consistent.</summary>
+        internal void Fade(double opacity)
+        {
+            for (var index = 0; index < _size * _size; index++)
+            {
+                Scale(ref Pixels[index], opacity);
+            }
+        }
+
+        private static void Scale(ref uint pixel, double factor)
+        {
+            // Premultiplied BGRA: every channel scales by the same factor.
+            uint Channel(uint value, int shift) => (uint)Math.Round(((value >> shift) & 255) * factor) << shift;
+            pixel = Channel(pixel, 24) | Channel(pixel, 16) | Channel(pixel, 8) | Channel(pixel, 0);
+        }
 
         internal void Square(double x, double y, double halfSize, uint color)
             => DrawShape((px, py) => Math.Max(Math.Abs(px - x), Math.Abs(py - y)) - halfSize, color);

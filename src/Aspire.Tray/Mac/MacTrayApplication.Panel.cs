@@ -647,16 +647,7 @@ internal sealed partial class MacTrayApplication
     private string CapturePanel(string path)
     {
         LayoutPanel();
-        var bounds = AppKit.GetRect(_panelView, "bounds");
-        var bitmap = AppKit.SendRect(_panelView, AppKit.Selector("bitmapImageRepForCachingDisplayInRect:"), bounds);
-        AppKit.SendRectAndPointer(_panelView, AppKit.Selector("cacheDisplayInRect:toBitmapImageRep:"), bounds, bitmap);
-        // NSBitmapImageFileTypePNG (4).
-        var data = AppKit.SendTwoPointers(bitmap, AppKit.Selector("representationUsingType:properties:"), 4,
-            AppKit.Get(AppKit.Class("NSDictionary"), "dictionary"));
-        if (data == 0 || AppKit.SendTwoPointersReturningBool(data, AppKit.Selector("writeToFile:atomically:"), AppKit.String(path), 1) == 0)
-        {
-            throw new InvalidOperationException("Could not write the panel capture.");
-        }
+        CaptureView(_panelView, path);
         return path;
     }
 

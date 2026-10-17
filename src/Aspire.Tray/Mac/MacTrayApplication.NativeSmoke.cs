@@ -242,7 +242,7 @@ internal sealed partial class MacTrayApplication
             AppKit.GetBool(_statusItem, AppKit.Selector("isVisible")) != 0,
             _recentRows.Select(row => row.Id.AppHostPath).ToArray(),
             Enabled(_clearRecent),
-            AppKit.Get(AppKit.Get(_statusItem, "button"), "image") == GetTrayImage(GetTrayIconState(_controller.State)),
+            AppKit.Get(AppKit.Get(_statusItem, "button"), "image") == GetTrayImage(TrayIconStatusRules.HasBadge(TrayIconStatusRules.Get(_controller.State))),
             AppKit.Text(AppKit.Get(AppKit.Get(_statusItem, "button"), "accessibilityLabel")));
     }
 
@@ -497,7 +497,7 @@ internal sealed partial class MacTrayApplication
     {
         foreach (var discovery in new[] { DiscoveryState.Disconnected, DiscoveryState.Incompatible, DiscoveryState.LimitExceeded })
         {
-            if (GetTrayIconState(new(discovery, [], "")) != TrayIconState.Disconnected)
+            if (TrayIconStatusRules.Get(new(discovery, [], "")) != TrayIconStatus.Unavailable)
             {
                 throw new InvalidOperationException("Discovery failures must never use the idle artwork.");
             }
@@ -518,29 +518,105 @@ internal sealed partial class MacTrayApplication
                 throw new InvalidOperationException("AppHost status symbols must use a consistent 14-point size.");
             }
         }
-        foreach (var state in Enum.GetValues<TrayIconState>())
+        foreach (var badge in new[] { false, true })
         {
-            var image = GetTrayImage(state);
+            var image = GetTrayImage(badge);
             if (AppKit.GetSize(image, AppKit.Selector("size")) != new AppKit.NativeSize(22, 22)
                 || AppKit.GetBool(image, AppKit.Selector("isTemplate")) == 0)
             {
                 throw new InvalidOperationException("The tray artwork must be an appearance-adaptive 22-point template.");
             }
-            foreach (var other in Enum.GetValues<TrayIconState>().Where(other => other != state))
+        }
+        if (AppKit.SendReturningBool(AppKit.Get(GetTrayImage(false), "TIFFRepresentation"), AppKit.Selector("isEqualToData:"),
+            AppKit.Get(GetTrayImage(true), "TIFFRepresentation")) != 0)
+        {
+            throw new InvalidOperationException("The badged tray artwork must cut out room for the status dot.");
+        }
+        VerifyTrayMarkForSmoke();
+        VerifyIconPixel(GetTrayImage(true), new(10, 21.5), 0, 0, "transparent top margin");
+        VerifyIconPixel(GetTrayImage(true), new(0.5, 0.5), 0, 0, "transparent mark background");
+        VerifyIconPixel(GetTrayImage(true), new(17.5, 4.5), 0, 0, "badge cut-out");
+        VerifyIconPixel(GetTrayImage(true), new(12.5, 4.5), 0, 0, "badge gap");
+        VerifyTrayStatusesForSmoke();
+    }
+
+    /// <summary>
+    /// Applies each icon status to the real status button and checks the image, the dimmed
+    /// state, and the dot's visibility, color and placement over the cut-out.
+    /// </summary>
+    private void VerifyTrayStatusesForSmoke()
+    {
+        var running = new AppHostMenuItem(new("/smoke/Shop/apphost.cs", 1, 1), "Shop", "", "Shop", true, true, false, null)
+        {
+            Health = AppHostHealth.Healthy
+        };
+        var button = AppKit.Get(_statusItem, "button");
+        var captureDirectory = Environment.GetEnvironmentVariable("ASPIRE_TRAY_SMOKE_PANEL_CAPTURE_DIR");
+        try
+        {
+            foreach (var (status, state) in new (TrayIconStatus, TrayViewState)[]
             {
-                if (AppKit.SendReturningBool(AppKit.Get(image, "TIFFRepresentation"), AppKit.Selector("isEqualToData:"),
-                    AppKit.Get(GetTrayImage(other), "TIFFRepresentation")) != 0)
+                (TrayIconStatus.Idle, new(DiscoveryState.Live, [], "")),
+                (TrayIconStatus.Running, new(DiscoveryState.Live, [running], "")),
+                (TrayIconStatus.Attention, new(DiscoveryState.Live, [running with { Health = AppHostHealth.Unhealthy }], "")),
+                (TrayIconStatus.Connecting, new(DiscoveryState.Connecting, [], "")),
+                (TrayIconStatus.Unavailable, new(DiscoveryState.Disconnected, [running], ""))
+            })
+            {
+                if (TrayIconStatusRules.Get(state) != status)
                 {
-                    throw new InvalidOperationException("Active, idle, connecting, and disconnected tray artwork must be distinct.");
+                    throw new InvalidOperationException($"Unexpected tray icon status for {status}.");
+                }
+                ApplyTrayIcon(status);
+                var badge = TrayIconStatusRules.HasBadge(status);
+                var badgeVisible = _trayBadge != 0 && AppKit.GetBool(_trayBadge, AppKit.Selector("isHidden")) == 0;
+                if (AppKit.Get(button, "image") != GetTrayImage(badge) || badgeVisible != badge
+                    || (AppKit.GetBool(button, AppKit.Selector("appearsDisabled")) != 0) != TrayIconStatusRules.IsDimmed(status))
+                {
+                    throw new InvalidOperationException($"The status button does not show the {status} icon.");
+                }
+                if (badge)
+                {
+                    var expected = AppKit.Get(AppKit.Class("NSColor"), status == TrayIconStatus.Running ? "systemGreenColor" : "systemOrangeColor");
+                    var frame = AppKit.GetRect(_trayBadge, "frame");
+                    var bounds = AppKit.GetRect(button, "bounds");
+                    if (AppKit.SendReturningBool(AppKit.Get(_trayBadge, "fillColor"), AppKit.Selector("isEqual:"), expected) == 0
+                        || frame.Size != s_trayBadgeRect.Size
+                        || frame.Origin.X < 0 || frame.Origin.Y < 0
+                        || frame.Origin.X + frame.Size.Width > bounds.Size.Width || frame.Origin.Y + frame.Size.Height > bounds.Size.Height)
+                    {
+                        throw new InvalidOperationException($"The {status} dot has the wrong color or does not fit the status button.");
+                    }
+                }
+                if (captureDirectory is { Length: > 0 })
+                {
+                    Directory.CreateDirectory(captureDirectory);
+                    foreach (var (name, appearance) in new[] { ("light", "NSAppearanceNameAqua"), ("dark", "NSAppearanceNameDarkAqua") })
+                    {
+                        AppKit.Set(button, "setAppearance:", AppKit.Get(AppKit.Class("NSAppearance"), "appearanceNamed:", AppKit.Constant(appearance)));
+                        CaptureView(button, Path.Combine(captureDirectory, $"tray-{status.ToString().ToLowerInvariant()}-{name}.png"));
+                    }
+                    AppKit.Set(button, "setAppearance:", 0);
                 }
             }
         }
-        VerifyTrayMarkForSmoke();
-        VerifyIconPixel(GetTrayImage(TrayIconState.Active), new(10, 21.5), 0, 0, "transparent top margin");
-        VerifyIconPixel(GetTrayImage(TrayIconState.Active), new(0.5, 0.5), 0, 0, "transparent mark background");
-        VerifyIconPixel(GetTrayImage(TrayIconState.Active), new(17.5, 4.5), 0, 1, "active template badge");
-        VerifyIconPixel(GetTrayImage(TrayIconState.Active), new(17.5, 9.5), 0, 0, "transparent badge border");
-        VerifyIconPixel(GetTrayImage(TrayIconState.Active), new(12.5, 4.5), 0, 0, "transparent inner badge border");
+        finally
+        {
+            ApplyTrayIcon(TrayIconStatusRules.Get(_controller.State));
+        }
+    }
+
+    private static void CaptureView(nint view, string path)
+    {
+        var bounds = AppKit.GetRect(view, "bounds");
+        var bitmap = AppKit.SendRect(view, AppKit.Selector("bitmapImageRepForCachingDisplayInRect:"), bounds);
+        AppKit.SendRectAndPointer(view, AppKit.Selector("cacheDisplayInRect:toBitmapImageRep:"), bounds, bitmap);
+        var data = AppKit.SendTwoPointers(bitmap, AppKit.Selector("representationUsingType:properties:"), 4,
+            AppKit.Get(AppKit.Class("NSDictionary"), "dictionary"));
+        if (data == 0 || AppKit.SendTwoPointersReturningBool(data, AppKit.Selector("writeToFile:atomically:"), AppKit.String(path), 1) == 0)
+        {
+            throw new InvalidOperationException("Could not write the tray capture.");
+        }
     }
 
     private static void VerifySymbolForSmoke(nint image, string symbol, string description)
@@ -572,70 +648,54 @@ internal sealed partial class MacTrayApplication
 
     private unsafe void VerifyTrayMarkForSmoke()
     {
-        if (AppKit.GetSize(_trayMarkImage, AppKit.Selector("size")) != new AppKit.NativeSize(20, 20)
-            || AppKit.GetBool(_trayMarkImage, AppKit.Selector("isTemplate")) == 0)
+        if (AppKit.GetBool(_trayMarkImage, AppKit.Selector("isTemplate")) == 0)
         {
-            throw new InvalidOperationException("The supplied tray template must have a 20-point logical size.");
+            throw new InvalidOperationException("The tray logo must be a template image.");
         }
-        nuint* sourcePixel = stackalloc nuint[4];
-        nuint* renderedPixel = stackalloc nuint[4];
+        nuint* pixel = stackalloc nuint[4];
         foreach (var scale in new[] { 1, 2 })
         {
-            var source = GetBitmapForSmoke(_trayMarkImage, 20 * scale);
-            foreach (var state in Enum.GetValues<TrayIconState>())
+            var rendered = GetBitmapForSmoke(GetTrayImage(false), 22 * scale);
+            var size = 22 * scale;
+            var left = size;
+            var top = size;
+            var right = -1;
+            var bottom = -1;
+            var opaque = 0;
+            var partial = 0;
+            for (var y = 0; y < size; y++)
             {
-                var image = GetTrayImage(state);
-                if (AppKit.GetBool(image, AppKit.Selector("isTemplate")) == 0)
+                for (var x = 0; x < size; x++)
                 {
-                    throw new InvalidOperationException("The composite must adapt its contrast to the menu bar.");
-                }
-                var rendered = GetBitmapForSmoke(image, 22 * scale);
-                var opaquePixels = 0;
-                var transparentPixels = 0;
-                var left = 20 * scale;
-                var top = 20 * scale;
-                var right = -1;
-                var bottom = -1;
-                for (var y = 0; y < 20 * scale; y++)
-                {
-                    for (var x = 0; x < 20 * scale; x++)
+                    AppKit.GetPixel(rendered, AppKit.Selector("getPixel:atX:y:"), pixel, x, y);
+                    if (pixel[0] != 0 || pixel[1] != 0 || pixel[2] != 0)
                     {
-                        // The badge intentionally cuts into the lower-right mark. Elsewhere,
-                        // compare every source alpha sample, including its separator cutouts.
-                        if (state != TrayIconState.Idle && x >= 12 * scale && y >= 11 * scale)
-                        {
-                            continue;
-                        }
-                        AppKit.GetPixel(source, AppKit.Selector("getPixel:atX:y:"), sourcePixel, x, y);
-                        // Bitmap rows start at the top: the (0, 1) mark has one point above it.
-                        AppKit.GetPixel(rendered, AppKit.Selector("getPixel:atX:y:"), renderedPixel, x, y + scale);
-                        if (Math.Abs((double)sourcePixel[3] - renderedPixel[3]) > 1)
-                        {
-                            throw new InvalidOperationException($"The supplied tray mask changed at ({x}, {y}), {scale}x, state={state}: expected alpha {sourcePixel[3]}, got {renderedPixel[3]}.");
-                        }
-                        opaquePixels += sourcePixel[3] == 255 ? 1 : 0;
-                        transparentPixels += sourcePixel[3] == 0 ? 1 : 0;
-                        if (renderedPixel[3] >= 128)
-                        {
-                            left = Math.Min(left, x);
-                            top = Math.Min(top, y);
-                            right = Math.Max(right, x);
-                            bottom = Math.Max(bottom, y);
-                        }
+                        throw new InvalidOperationException("Template artwork must be black; only alpha may vary.");
+                    }
+                    // The outline is about 1.5 points wide, so at 1x antialiasing keeps it a little
+                    // under full coverage.
+                    opaque += pixel[3] >= 200 ? 1 : 0;
+                    // The logo's lighter facets become partly transparent rather than vanishing.
+                    partial += pixel[3] is >= 30 and <= 180 ? 1 : 0;
+                    if (pixel[3] >= 128)
+                    {
+                        left = Math.Min(left, x);
+                        top = Math.Min(top, y);
+                        right = Math.Max(right, x);
+                        bottom = Math.Max(bottom, y);
                     }
                 }
-                if (opaquePixels == 0 || transparentPixels == 0)
-                {
-                    throw new InvalidOperationException("The tray template must include opaque artwork and transparent cutouts.");
-                }
-                // Measure the visible mark, excluding the badge, rather than just its
-                // image frame. Transparent source padding previously made a 20-point icon tiny.
-                if (right - left + 1 < 15 * scale || bottom - top + 1 < 17 * scale)
-                {
-                    throw new InvalidOperationException($"The visible tray mark is too small at {scale}x: {right - left + 1} by {bottom - top + 1} pixels.");
-                }
-                Console.WriteLine($"Visible tray mark at {scale}x, state={state}: {right - left + 1} by {bottom - top + 1} pixels.");
             }
+            if (opaque == 0 || partial < 10 * scale * scale)
+            {
+                throw new InvalidOperationException($"The monochrome logo lost its outline or facets at {scale}x ({opaque} opaque, {partial} partial pixels).");
+            }
+            // Measure the visible logo, not the image frame: padding must not shrink the icon.
+            if (right - left + 1 < 17 * scale || bottom - top + 1 < 14 * scale)
+            {
+                throw new InvalidOperationException($"The visible tray logo is too small at {scale}x: {right - left + 1} by {bottom - top + 1} pixels.");
+            }
+            Console.WriteLine($"Visible tray logo at {scale}x: {right - left + 1} by {bottom - top + 1} pixels; {opaque} outline and {partial} facet pixels.");
         }
     }
 

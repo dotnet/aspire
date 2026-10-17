@@ -39,7 +39,7 @@ internal sealed unsafe partial class TrayApplication(TrayController controller, 
     private TrayViewState? _displayedState;
     private Exception? _callbackFailure;
     private Artwork? _artwork;
-    private IconState? _iconState;
+    private TrayIconStatus? _iconState;
     private bool _dpiDirty;
     private bool _interactiveSmoke;
 

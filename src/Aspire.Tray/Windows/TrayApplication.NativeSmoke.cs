@@ -213,12 +213,14 @@ internal sealed unsafe partial class TrayApplication
         RequireSmoke();
         var state = controller.State;
         var menu = _menu!;
-        NativeSmokeHarness.Require(_artwork is { Original: not 0, Connected: not 0, Disconnected: not 0 }
-            && _artwork.Connected != _artwork.Disconnected && _artwork.Original != _artwork.Connected, "Native icon ownership is incomplete.");
-        NativeSmokeHarness.Require(_iconAdded && _iconData.Icon == _artwork!.TrayIcon(GetIconState(state)),
+        NativeSmokeHarness.Require(_artwork is { Original: not 0, Running: not 0, Attention: not 0, Dimmed: not 0 },
+            "Native icon ownership is incomplete.");
+        NativeSmokeHarness.Require(_iconAdded && _iconData.Icon == _artwork!.TrayIcon(TrayIconStatusRules.Get(state)),
             "The native tray icon does not represent discovery and active AppHosts.");
-        NativeSmokeHarness.Require(Enum.GetValues<IconState>().Select(_artwork!.TrayIcon).Distinct().Count() == 4,
-            "Idle, connecting, active, and unavailable need distinct notification icons.");
+        // Connecting and unavailable deliberately share the dimmed logo; the tooltip tells them apart.
+        NativeSmokeHarness.Require(Enum.GetValues<TrayIconStatus>().Select(_artwork!.TrayIcon).Distinct().Count() == 4
+            && _artwork.TrayIcon(TrayIconStatus.Connecting) == _artwork.TrayIcon(TrayIconStatus.Unavailable),
+            "Idle, running, attention, and dimmed need distinct notification icons.");
         NativeSmokeHarness.Require(_artwork.DocumentationBitmap != 0 && _artwork.SettingsBitmap != 0
             && _artwork.DocumentationBitmap != _artwork.SettingsBitmap,
             "Documentation and Settings must own distinct native menu bitmaps.");

@@ -124,6 +124,24 @@ ASPIRE_TRAY_PANEL_PREVIEW_DIR="$PWD/artifacts/tray-panel" \
     --no-launch-profile -- --filter-class "*.TrayPanelTests"
 ```
 
+## Tray icon status
+
+Both platforms follow the same rules (`Common/TrayIconStatus.cs`):
+
+| State | Icon |
+| --- | --- |
+| No AppHosts running | The logo alone. |
+| AppHosts running or starting | The logo with a green dot. |
+| Something needs attention | The logo with an amber dot: an unhealthy or degraded resource, a failed start or stop, or a storage or pin error, while AppHosts run. |
+| Connecting to discovery | The logo dimmed, no dot. |
+| Discovery unavailable or incompatible | The logo dimmed, no dot. The tooltip and the panel's banner explain. |
+
+The dot sits in the lower-right corner, in a transparent cut-out of the logo, so it
+stays readable on any menu bar, wallpaper tint or taskbar color. On macOS the logo is a
+template image and the dot is a small view over it, colored with the system green and
+orange; the dimmed state is AppKit's own disabled status-item rendering. The tooltip and
+accessibility label state the status in words, so the dot's color is never the only cue.
+
 ## Build and run on macOS
 
 Building requires a compatible .NET SDK and Xcode Command Line Tools. From the
@@ -175,18 +193,11 @@ The foreground development entrypoint's `--cli` argument must be an existing
 **absolute executable path**. Unlike the packaged start command, this development
 entrypoint also accepts a managed CLI apphost when its .NET runtime is available.
 
-The menu bar shows the 20-point single-wave artwork from `Mac/Assets/AspireTrayTemplate.png`
-and `AspireTrayTemplate@2x.png` on a 22-point canvas. Excess transparent padding is
-trimmed from the supplied high-resolution artwork before generating the 20- and
-40-pixel standard/Retina representations, so the visible mark fills the tray space.
-The composite is an AppKit template image, preserving the assets' transparent
-diagonal wave and adapting its foreground to the menu-bar background. These are Aspire-inspired concept assets, not
-official brand masters; their supplied provenance is in `Mac/Assets/PROVENANCE.txt`.
-The app bundle and dialogs continue to use `src/Shared/Aspire_icon_256.png`.
-The lower-right connection badge replaces a numeric count: the idle mark is
-unbadged, dots indicate connecting, a cross indicates unavailable discovery, and
-a solid dot indicates active AppHosts. The badge's transparent border reveals the menu-bar background rather
-than painting an opaque outline. A left click opens the [flyout panel](#flyout-panel);
+The menu bar shows the same Aspire logo as Windows (`src/Shared/Aspire_icon_256.png`),
+converted at startup to a one-color AppKit template image, as Apple recommends for
+menu bar extras. Darker parts of the logo (its outline) become opaque and lighter facets
+partly transparent, so the logo keeps its inner structure in the menu bar's own color.
+See [Tray icon status](#tray-icon-status) for the status dot. A left click opens the [flyout panel](#flyout-panel);
 a right click or Control-click opens the native menu described here. Native two-line AppHost
 rows show the project/worktree name first and directory context and PID underneath.
 The redundant branded/count header is omitted when AppHosts are listed; an empty
@@ -363,11 +374,9 @@ in Settings.
 
 ## Windows companion
 
-Windows uses the original colored `src/Shared/Aspire.ico`, not the macOS wave
-artwork. Its notification icon has no badge when discovery is connected but idle,
-a purple badge for active AppHosts, a gray dash while connecting, and an amber
-exclamation mark when discovery is unavailable. A stale AppHost list no longer
-looks like a working connection. A left click opens the [flyout panel](#flyout-panel);
+Windows uses the original colored `src/Shared/Aspire.ico` (the same logo as macOS, in color)
+artwork, with the status dot described in [Tray icon status](#tray-icon-status).
+The dot's green and amber are picked for the taskbar's light or dark theme. A left click opens the [flyout panel](#flyout-panel);
 a right click, or Enter/Space on the focused icon, opens the native menu. The panel's
 Windows rendering has not been validated on a Windows desktop yet.
 The AppHost menus use the same shared health, history, pinning,
