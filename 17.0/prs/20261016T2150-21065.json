@@ -1,0 +1,9 @@
+{
+  "author": "DamianEdwards",
+  "comment": "Fixes hang when dotnet run launches AppHost in publish mode; user-facing bug fix",
+  "mergedAt": "2026-10-16T21:50:00Z",
+  "number": 21065,
+  "runDate": "2026-10-17T00:06:43Z",
+  "status": "included",
+  "title": "Fail promptly when dotnet run launches an AppHost in publish mode"
+}

@@ -1,0 +1,9 @@
+{
+  "author": "IEvangelist",
+  "comment": "Internal repo tooling/workflow automation change, not related to a product changelog entry",
+  "mergedAt": "2026-10-16T21:58:36Z",
+  "number": 1899,
+  "runDate": "2026-10-17T00:06:43Z",
+  "status": "excluded",
+  "title": "Simplify Integration Data Updater and auto-merge on green CI"
+}

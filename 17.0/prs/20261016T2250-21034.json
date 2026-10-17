@@ -1,0 +1,9 @@
+{
+  "author": "radical",
+  "comment": "CI-only pipeline maintenance (CodeQL SDK bootstrap); not user-facing",
+  "mergedAt": "2026-10-16T22:50:03Z",
+  "number": 21034,
+  "runDate": "2026-10-17T00:06:43Z",
+  "status": "excluded",
+  "title": "fix(ci): Let CodeQL bootstrap the pinned prerelease .NET SDK"
+}

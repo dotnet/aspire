@@ -1,0 +1,19 @@
+{
+  "area": "AppHost",
+  "areaEmoji": "🏠",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Bug fixes",
+  "communityContributors": [],
+  "description": "`dotnet run --operation publish` no longer hangs at \"Starting dashboard...\" when the CLI run hook starts an AppHost in publish mode. The backchannel now rejects the dashboard-readiness request and exits promptly with guidance to use `aspire publish` instead.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "🚦",
+  "firstMergedAt": "2026-10-16T21:50:00Z",
+  "lastMergedAt": "2026-10-16T21:50:00Z",
+  "name": "Fail promptly when dotnet run launches an AppHost in publish mode",
+  "owner": "DamianEdwards",
+  "prs": [
+    21065
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "author": "app/aspire-repo-bot",
+  "comment": "Documents WSLc support in aspire doctor (PR #21004)",
+  "mergedAt": "2026-10-16T21:42:33Z",
+  "number": 1898,
+  "runDate": "2026-10-17T00:06:43Z",
+  "status": "included",
+  "title": "[docs] Recognize WSLc in aspire doctor container runtime docs"
+}
