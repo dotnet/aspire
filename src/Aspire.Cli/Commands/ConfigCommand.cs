@@ -163,8 +163,9 @@ internal sealed class ConfigCommand : BaseCommand
 
         private async Task<int> ExecuteAsync(string key, string value, bool isGlobal, CancellationToken cancellationToken)
         {
-            if (isGlobal && key.StartsWith(KnownFeatures.FeaturePrefix + ".", StringComparison.Ordinal) &&
-                KnownFeatures.GetFeatureMetadata(key[(KnownFeatures.FeaturePrefix.Length + 1)..]) is { ProjectOnly: true } feature)
+            var normalizedKey = key.Replace(':', '.');
+            if (isGlobal && normalizedKey.StartsWith(KnownFeatures.FeaturePrefix + ".", StringComparison.Ordinal) &&
+                KnownFeatures.GetFeatureMetadata(normalizedKey[(KnownFeatures.FeaturePrefix.Length + 1)..]) is { ProjectOnly: true } feature)
             {
                 InteractionService.DisplayError(feature.Description);
                 return CliExitCodes.InvalidCommand;

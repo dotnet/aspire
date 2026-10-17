@@ -297,9 +297,12 @@ internal sealed class LayoutBuilder : IDisposable
             ?? throw new InvalidOperationException("AppHost Server v2 publish output not found.");
         var extension = _rid.StartsWith("win-", StringComparison.Ordinal) ? ".exe" : "";
         var source = Path.Combine(publishPath, "Aspire.Hosting.Native.Server" + extension);
-        if (!File.Exists(source) || new FileInfo(source).Length == 0)
+        foreach (var requiredFile in new[] { source, Path.Combine(publishPath, "ats-contract.json") })
         {
-            throw new InvalidOperationException($"AppHost Server v2 executable not found at {source}");
+            if (!File.Exists(requiredFile) || new FileInfo(requiredFile).Length == 0)
+            {
+                throw new InvalidOperationException($"AppHost Server v2 payload missing or empty at {requiredFile}");
+            }
         }
         var destination = Path.Combine(_outputPath, "apphost-server");
         CopyDirectory(publishPath, destination, excludeSymbols: true);

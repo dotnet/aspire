@@ -28,6 +28,10 @@ internal static class NativeBackchannelProtocol
     {
         var cancellation = request.Params?.Deserialize(NativeCliJsonContext.Default.NativeCliCancellation)
             ?? throw new InvalidDataException("Cancellation requires a request ID.");
+        if (cancellation.Id.ValueKind is not (JsonValueKind.String or JsonValueKind.Number))
+        {
+            throw new InvalidDataException("Cancellation requires a string or number request ID.");
+        }
 
         return cancellation.Id.GetRawText();
     }

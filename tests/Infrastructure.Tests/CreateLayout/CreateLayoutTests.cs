@@ -19,6 +19,7 @@ public class CreateLayoutTests(ITestOutputHelper testOutputHelper)
         var symbolDirectory = Path.Combine(source, "Aspire.Hosting.Native.Server.dSYM");
         Directory.CreateDirectory(symbolDirectory);
         File.WriteAllText(Path.Combine(source, "Aspire.Hosting.Native.Server" + extension), "server");
+        File.WriteAllText(Path.Combine(source, "ats-contract.json"), "contract");
         File.WriteAllText(Path.Combine(source, "sidecar.json"), "sidecar");
         File.WriteAllText(Path.Combine(source, "Aspire.Hosting.Native.Server.pdb"), "symbols");
         File.WriteAllText(Path.Combine(symbolDirectory, "symbols"), "symbols");
@@ -29,10 +30,35 @@ public class CreateLayoutTests(ITestOutputHelper testOutputHelper)
         builder.CopyAppHostServer();
 
         var destination = Path.Combine(output, "apphost-server");
-        Assert.Equal(["aspire-apphost-server" + extension, "sidecar.json"],
+        Assert.Equal(["aspire-apphost-server" + extension, "ats-contract.json", "sidecar.json"],
             Directory.GetFiles(destination, "*", SearchOption.AllDirectories).Select(Path.GetFileName).Order(StringComparer.Ordinal));
         Assert.Equal("server", File.ReadAllText(Path.Combine(destination, "aspire-apphost-server" + extension)));
+        Assert.Equal("contract", File.ReadAllText(Path.Combine(destination, "ats-contract.json")));
         Assert.Equal("sidecar", File.ReadAllText(Path.Combine(destination, "sidecar.json")));
+    }
+
+    [Theory]
+    [InlineData("publish", null)]
+    [InlineData("publish", "")]
+    [InlineData("native", null)]
+    [InlineData("native", "")]
+    public void CopyAppHostServer_RejectsMissingOrEmptyContract(string directory, string? contract)
+    {
+        using var workspace = TemporaryWorkspace.Create(testOutputHelper);
+        var source = Path.Combine(workspace.Path, "bin", "Aspire.Hosting.Native.Server", "Debug", "net11.0", "linux-x64", directory);
+        Directory.CreateDirectory(source);
+        File.WriteAllText(Path.Combine(source, "Aspire.Hosting.Native.Server"), "server");
+        if (contract is not null)
+        {
+            File.WriteAllText(Path.Combine(source, "ats-contract.json"), contract);
+        }
+        var output = Path.Combine(workspace.Path, "layout");
+        using var builder = new LayoutBuilder(output, workspace.Path, "linux-x64", "Debug", "1.0.0", false, null, null);
+
+        var failure = Assert.Throws<InvalidOperationException>(builder.CopyAppHostServer);
+
+        Assert.Contains("ats-contract.json", failure.Message, StringComparison.Ordinal);
+        Assert.False(Directory.Exists(Path.Combine(output, "apphost-server")));
     }
 
     [Theory]

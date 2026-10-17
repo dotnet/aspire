@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json;
 using Aspire.Hosting.Native.Api;
 using Aspire.Hosting.Native.Cli;
 using Aspire.Hosting.Native.Core.Tests.TestServices;
@@ -15,6 +16,37 @@ namespace Aspire.Hosting.Native.Core.Tests;
 
 public class NativeCliProtocolTests
 {
+    [Theory]
+    [InlineData("{}")]
+    [InlineData("""{"id":null}""")]
+    [InlineData("""{"id":true}""")]
+    [InlineData("""{"id":[]}""")]
+    [InlineData("""{"id":{}}""")]
+    public async Task MalformedCancellationDisconnectsWithoutEscapingProtocolHandlers(string parameters)
+    {
+        using var stream = new MemoryStream();
+        var notification = JsonSerializer.SerializeToUtf8Bytes(new
+        {
+            jsonrpc = "2.0", method = "$/cancelRequest", @params = JsonSerializer.Deserialize<JsonElement>(parameters)
+        });
+        await NativeRpcFraming.WriteAsync(stream, notification, TestContext.Current.CancellationToken);
+        stream.Position = 0;
+        var rpc = new NativeBackchannelRpc(new(), NullLogger.Instance);
+        await rpc.ServeAsync(stream, (_, _) => throw new InvalidOperationException("Cancellation must not reach request dispatch."),
+            TestContext.Current.CancellationToken);
+    }
+
+    [Theory]
+    [InlineData("""{"id":"pending"}""", "\"pending\"")]
+    [InlineData("""{"id":42}""", "42")]
+    public void CancellationPreservesStringAndNumberRequestIds(string parameters, string expected)
+    {
+        using var document = JsonDocument.Parse(parameters);
+        var request = new NativeCliRequest { Jsonrpc = "2.0", Method = "$/cancelRequest", Params = document.RootElement };
+
+        Assert.Equal(expected, NativeBackchannelProtocol.ReadCancellationId(request));
+    }
+
     [Fact]
     public async Task RpcImplementationCanBeReplacedWithoutChangingProtocolDependencies()
     {

@@ -135,15 +135,17 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal("bar", settings["foo"]?.ToString());
     }
 
-    [Fact]
-    public async Task ConfigSetCommand_RejectsGlobalAppHostServerV2()
+    [Theory]
+    [InlineData("features.appHostServerV2")]
+    [InlineData("features:appHostServerV2")]
+    public async Task ConfigSetCommand_RejectsGlobalAppHostServerV2(string key)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         using var provider = services.BuildServiceProvider();
         var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
 
-        var exitCode = await command.Parse("config set features.appHostServerV2 true --global").InvokeAsync().DefaultTimeout();
+        var exitCode = await command.Parse($"config set {key} true --global").InvokeAsync().DefaultTimeout();
 
         Assert.Equal(CliExitCodes.InvalidCommand, exitCode);
     }
