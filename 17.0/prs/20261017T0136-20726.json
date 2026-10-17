@@ -1,0 +1,9 @@
+{
+  "author": "mitchdenny",
+  "comment": "New terminal disconnect recovery feature in the dashboard",
+  "mergedAt": "2026-10-17T01:36:36Z",
+  "number": 20726,
+  "runDate": "2026-10-17T06:05:35Z",
+  "status": "included",
+  "title": "Preserve disconnected terminal output and add recovery actions"
+}
