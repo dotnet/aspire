@@ -22,7 +22,7 @@ public static class DistributedApplication
 }
 
 /// <summary>Records typed composition commands. This is not a second runtime graph or credential evaluator.</summary>
-public sealed class DistributedApplicationBuilder
+public sealed partial class DistributedApplicationBuilder
 {
     private readonly List<Func<NativeBuildContext, Task>> _declarations = [];
     private readonly List<Func<NativeBuildContext, Task>> _configuration = [];
@@ -32,7 +32,8 @@ public sealed class DistributedApplicationBuilder
     internal NativeBuilderSettings Settings { get; }
     /// <summary>Gets environment, supplied configuration and application arguments in increasing precedence.</summary>
     public IConfiguration Configuration => Settings.Configuration;
-    internal IReadOnlyList<Resource> Resources => _resources;
+    /// <summary>Gets inert authored declarations for integration callback lookup, not native runtime state.</summary>
+    public IReadOnlyList<Resource> Resources => _resources.AsReadOnly();
     internal IReadOnlyDictionary<string, string> Providers => _providers;
     internal DistributedApplicationBuilder(NativeBuilderSettings settings) => Settings = settings;
 

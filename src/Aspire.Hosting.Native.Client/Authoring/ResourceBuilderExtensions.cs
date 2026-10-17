@@ -78,14 +78,14 @@ public static class ResourceBuilderExtensions
         return resource;
     }
     /// <summary>Declares a named endpoint without allocating a host port.</summary>
-    /// <typeparam name="T">The container resource type.</typeparam>
+    /// <typeparam name="T">The workload resource type.</typeparam>
     /// <param name="resource">The endpoint owner.</param>
     /// <param name="name">The endpoint name.</param>
     /// <param name="targetPort">The container port.</param>
     /// <param name="scheme">The URI scheme for native endpoint references.</param>
     /// <returns>The same fluent builder.</returns>
     public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> resource, string name, int targetPort,
-        string scheme = "tcp") where T : ContainerResource
+        string scheme = "tcp") where T : Resource
     {
         resource.ApplicationBuilder.Record(context => context.Declaration(resource.Resource).WithEndpointAsync(new()
         {
@@ -131,7 +131,7 @@ public static class ResourceBuilderExtensions
     /// <param name="producer">The connection owner in the same transport plan.</param>
     /// <returns>The consumer builder.</returns>
     public static IResourceBuilder<T> WithReference<T, TProducer>(this IResourceBuilder<T> consumer,
-        IResourceBuilder<TProducer> producer) where T : Resource where TProducer : Resource, IResourceWithConnectionString
+        IResourceBuilder<TProducer> producer) where T : Resource where TProducer : Resource
     {
         RequireSameBuilder(consumer, producer);
         consumer.ApplicationBuilder.Record(async context => await context.Declaration(consumer.Resource)

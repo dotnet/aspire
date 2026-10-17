@@ -31,6 +31,7 @@ internal sealed class NativeBuilderSettings
 {
     internal NativeBuilderOptions Options { get; private init; } = new();
     internal string? Endpoint { get; private set; }
+    internal string ApplicationDirectory { get; private set; } = Directory.GetCurrentDirectory();
     internal string VolumePrefix { get; private set; } = CreateVolumePrefix(Directory.GetCurrentDirectory(), null);
     internal ConfigurationManager Configuration { get; } = new();
     internal Dictionary<string, (string Executable, string[] Arguments)> Providers { get; } = new(StringComparer.Ordinal);
@@ -82,6 +83,7 @@ internal sealed class NativeBuilderSettings
         settings.Configuration.AddInMemoryCollection(applicationArguments);
         settings.Endpoint ??= settings.Configuration["ASPIRE_NATIVE_RPC_ENDPOINT"];
         settings.VolumePrefix = volumePrefix ?? CreateVolumePrefix(applicationRoot, applicationName);
+        settings.ApplicationDirectory = Path.GetFullPath(applicationRoot);
         return settings;
     }
 
@@ -227,6 +229,12 @@ public sealed class NativeApplication : IAsyncDisposable
         try
         {
             context = await builder.MaterializeAsync(revision, token).ConfigureAwait(false);
+            if (initial && builder.Pipeline.HasCustomizations)
+            {
+                var model = System.Text.Json.Nodes.JsonNode.Parse(await revision.ExportPublishModelAsync(token).ConfigureAwait(false))!.AsObject();
+                await builder.Pipeline.ExecuteAsync(_client!.Server, new(model, builder.AppHostDirectory, builder.AppHostDirectory,
+                    builder.Configuration["environment"] ?? "Development", token) { IsRunMode = true }, "before-start").ConfigureAwait(false);
+            }
         }
         catch
         {

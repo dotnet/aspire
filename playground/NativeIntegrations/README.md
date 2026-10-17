@@ -64,6 +64,12 @@ AppHosts require both that contract and the bundle's managed tooling.
 - `TypeScript/provider.mts`: framework provider entry point and offline metadata
   emission.
 - `TypeScript/apphost.mts`: consumer of the offline-generated provider client.
+- `CSharp/DockerCompose`: independent C# implementation of the v2 Compose target,
+  with native graph export, typed customization and native-scheduled deployment steps.
+- `CSharp/DockerComposeAppHost`: standalone C# publish/deploy comparison AppHost,
+  sharing the TypeScript Compose sample's actual web application.
+- `TypeScript/DockerCompose`: TypeScript version of the same target. See the
+  [side-by-side comparison](CSharp/DockerCompose/README.md#side-by-side-implementation).
 
 ## Validation
 

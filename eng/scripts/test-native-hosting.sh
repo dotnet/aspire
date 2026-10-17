@@ -117,6 +117,19 @@ run_logged sdk-compile "$sdk/node_modules/.bin/tsc" --module NodeNext --moduleRe
     --target ES2022 --strict --skipLibCheck --esModuleInterop --outDir "$sdk/out" "$sdk/"*.mts
 run_logged typescript-compose-provider-tests node --test "$sdk/out/docker-compose.test.mjs"
 run_logged typescript-pipeline-tests node --test "$sdk/out/native-pipeline.test.mjs"
+run_logged csharp-compose-apphost-build dotnet build \
+    playground/NativeIntegrations/CSharp/DockerComposeAppHost/NativeIntegrations.DockerCompose.AppHost.Sample.csproj -c Debug
+csharp_compose_dll="$(dotnet msbuild playground/NativeIntegrations/CSharp/DockerComposeAppHost/NativeIntegrations.DockerCompose.AppHost.Sample.csproj -nologo -getProperty:TargetPath)"
+run_logged csharp-compose-comparison-tests env \
+    ASPIRE_NATIVE_CSHARP_TEST_SERVER="$work/server/Aspire.Hosting.Native.Server" \
+    ASPIRE_NATIVE_COMPOSE_TYPESCRIPT="$sdk/out/NativeComposeComparison.mjs" \
+    ASPIRE_NATIVE_COMPOSE_CSHARP_APPHOST="$(dirname "$csharp_compose_dll")/NativeIntegrations.DockerCompose.AppHost.Sample" \
+    ASPIRE_NATIVE_COMPOSE_SAMPLE_DIRECTORY="$repo_root/playground/NativeIntegrations/TypeScript/DockerCompose/AppHost" \
+    ASPIRE_NATIVE_SYMBOLIC_TEST_NODE="$(command -v node)" \
+    dotnet test --project tests/Aspire.Hosting.Native.Core.Tests/Aspire.Hosting.Native.Core.Tests.csproj --no-launch-profile -- \
+    --filter-class '*.NativeComposeCSharpTests' --filter-class '*.NativeComposeCSharpDockerTests' \
+    --filter-class '*.NativeBuilderAuthoringTests' \
+    --filter-not-trait 'quarantined=true' --filter-not-trait 'outerloop=true'
 run_logged compose-publish-deploy-smoke env ASPIRE_LAYOUT_PATH="$layout" \
     node "$sdk/out/NativeComposeSmoke.mjs" "$cli" "$work/server/Aspire.Hosting.Native.Server" "$repo_root" "$work/compose-apphosts"
 run_logged rpc-authoring-projection-tests env ASPIRE_NATIVE_CSHARP_TEST_SERVER="$work/server/Aspire.Hosting.Native.Server" \

@@ -15,6 +15,7 @@
     <ProjectReference Include="../../src/Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Server.csproj" />
     <ProjectReference Include="../../src/Aspire.Hosting.Native.CodeGeneration/Aspire.Hosting.Native.CodeGeneration.csproj" />
     <ProjectReference Include="../../src/Aspire.Hosting.Native.Client/Aspire.Hosting.Native.Client.csproj" />
+    <ProjectReference Include="../../playground/NativeIntegrations/CSharp/DockerCompose/NativeIntegrations.DockerCompose.csproj" />
     <ProjectReference Include="../../playground/NativeIntegrations/CSharp/Contracts/NativeIntegrations.Contracts.csproj" />
     <ProjectReference Include="../../playground/NativeIntegrations/CSharp/RedisContracts/NativeIntegrations.Redis.Contracts.csproj" Aliases="RedisContracts" />
     <ProjectReference Include="AotSmoke/Aspire.Hosting.Native.Core.AotSmoke.csproj" ReferenceOutputAssembly="false" />

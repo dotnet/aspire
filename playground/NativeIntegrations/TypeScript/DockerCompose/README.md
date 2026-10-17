@@ -6,6 +6,9 @@ leaves local container/executable/lifecycle behavior unchanged.
 The normal CLI SDK overlay packages this module alongside generated `native-builder.mjs`.
 This playground is not a production deployment recommendation.
 
+An independent [C# implementation and side-by-side comparison](../../CSharp/DockerCompose/README.md)
+uses the same native publish model, native pipeline scheduler and sample web application.
+
 ```typescript
 import { createBuilder } from './.aspire/modules/aspire.mjs';
 

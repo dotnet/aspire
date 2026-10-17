@@ -106,12 +106,18 @@ public sealed class EndpointReference
 {
     internal EndpointReference(Resource resource, string name)
     {
+        Resource = resource;
+        Name = name;
         Host = Property("host");
         Port = Property("port");
         HostAndPort = Property("hostAndPort");
         ReferenceExpression Property(string property) => new(context =>
-            context.Composition.CreateEndpointValueAsync(context.Declaration(resource), name, property, context.Token));
+            context.Composition.CreateEndpointValueAsync(context.Declaration(Resource), Name, property, context.Token));
     }
+    /// <summary>Gets the inert resource owning the named endpoint.</summary>
+    public Resource Resource { get; }
+    /// <summary>Gets the endpoint's authored name.</summary>
+    public string Name { get; }
     /// <summary>Gets symbolic host syntax.</summary>
     public ReferenceExpression Host { get; }
     /// <summary>Gets symbolic port syntax.</summary>
