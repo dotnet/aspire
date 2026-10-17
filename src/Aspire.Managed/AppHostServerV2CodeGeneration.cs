@@ -89,7 +89,9 @@ internal static class AppHostServerV2CodeGeneration
             var projected = content;
             if (name == "aspire.mts")
             {
-                projected += "\nexport { createBuilder, DistributedApplicationBuilder, ResourceBuilder, Resource, ContainerResource, ExecutableResource, ParameterResource, ReferenceExpression, EndpointReference, ExecutableCommand, NativeBuildContext, NativeApplication } from './native-builder.mjs';\n";
+                projected += "\nexport { createBuilder, DistributedApplicationBuilder, ResourceBuilder, Resource, ContainerResource, ExecutableResource, ParameterResource, ComputeEnvironmentResource, ReferenceExpression, EndpointReference, ExecutableCommand, NativeBuildContext, NativeApplication } from './native-builder.mjs';\n";
+                projected += "export type { ParameterOptions, ParameterGenerationOptions, PublishExpression, PublishResource, PublishModel, PublishingContext, DeploymentTarget } from './native-builder.mjs';\n";
+                projected += "export { NativePipeline, WellKnownPipelineSteps, WellKnownPipelineTags } from './native-pipeline.mjs';\nexport type { NativePipelineStepContext, NativePipelineConfigurationContext, NativePipelineStepOptions, NativePipelineAction } from './native-pipeline.mjs';\n";
                 foreach (var provider in input.Providers)
                 {
                     foreach (var module in provider.Exports)

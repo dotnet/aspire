@@ -67,7 +67,7 @@ internal sealed class NativeServerHostedService(NativeServerConfiguration settin
         using var shutdown = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
         var dcp = new DcpApiClient(options, loggerFactory.CreateLogger<DcpApiClient>());
         await using var dcpLifetime = dcp.ConfigureAwait(false);
-        var dcpExecutable = settings.DcpPath;
+        var dcpExecutable = settings.IsPublishing ? null : settings.DcpPath;
         var server = new NativeApplicationServer(UnavailableWorkloadExecutor.Instance, options.Runtime);
         using var startup = new TimeProviderCancellation(options.ControllerStartupTimeout, options.TimeProvider, shutdown.Token);
         var dcpReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -84,7 +84,7 @@ internal sealed class NativeServerHostedService(NativeServerConfiguration settin
         NativeDashboardHost? dashboard = null;
         Task? dashboardCleanup = null;
         Task? controllerCleanup = null;
-        var dashboardPath = settings.DashboardPath;
+        var dashboardPath = settings.IsPublishing ? null : settings.DashboardPath;
         var dashboardRequested = dashboardPath is not null;
         var dashboardState = new DcpDashboard(loggerFactory.CreateLogger<DcpDashboard>());
         var dashboardReady = new TaskCompletionSource<NativeCliDashboardUrls>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -113,7 +113,7 @@ internal sealed class NativeServerHostedService(NativeServerConfiguration settin
             loggerFactory.CreateLogger<NativeAuxiliaryBackchannel>());
         try
         {
-            var dashboardPort = settings.DashboardPort;
+            var dashboardPort = settings.IsPublishing ? null : settings.DashboardPort;
             var dashboardApiKey = settings.DashboardCredentials.ResourceServiceApiKey;
             if (dashboardPort is not null || dashboardRequested)
             {

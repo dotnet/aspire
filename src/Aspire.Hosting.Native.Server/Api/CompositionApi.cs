@@ -273,6 +273,10 @@ internal sealed partial class DeclaredResource(Composition composition, Resource
         {
             throw new ArgumentException("Configuration properties cannot contain null.", nameof(configuration));
         }
+        if (properties.Any(property => property.Name == "publish.computeEnvironment"))
+        {
+            throw new ArgumentException("Use WithComputeEnvironment to assign a compute environment.", nameof(configuration));
+        }
         Composition.Model.SetConfiguration(Handle, properties.Select(property =>
             new ResourceConfigurationEntry(property.Name, property.Value)).ToImmutableArray());
     }

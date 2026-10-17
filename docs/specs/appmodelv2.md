@@ -164,8 +164,9 @@ The editor expires when the callback completes, fails, times out, or its
 generation retires. Building while a callback is active is rejected. Callback
 edits are not transactional: successful edits remain if a later edit fails.
 
-The projection does not add publishing, network-address resolution, richer
-callback service contexts, long-running controllers, or kernel dependencies.
+These composition callbacks do not themselves implement a publishing pipeline,
+network-address resolution, richer callback service contexts, long-running
+controllers, or kernel dependencies.
 The sample recorder and the supported managed CLI path remain separate and
 unchanged.
 
@@ -1338,15 +1339,87 @@ artifacts outside the core. Run-only resources must be explicitly excluded.
 The goal is to preserve the original model's run/publish distinction without
 remoting a manifest writer operation by operation.
 
-Native publishing and deployment are not implemented. The model must still
-retain the information needed for them rather than optimize solely for local
-execution.
+The opt-in TypeScript/Node.js CLI path now has a bounded Docker Compose
+publish/deploy slice. Publishing opens a composition-only session, materializes
+the same native declarations and seals the authoritative model. It neither
+starts an application workspace nor allocates DCP endpoints, starts Dashboard
+or executes workload lifecycle hooks.
+
+`ExportPublishModel` exports a versioned deployment view. Resource names,
+workload intent, dependencies, target ports, mounts and integration configuration
+are retained; runtime identities, observations and secret payloads are omitted.
+Parameter references and endpoint/composite/URI-encoded expressions remain
+symbolic. A target resolves container-network references using service DNS and
+target ports, never a development host's allocated endpoint.
+
+Compute environments are native resource identities. `withComputeEnvironment`
+records a relationship to that identity, not an opaque configuration string or
+a readiness dependency. Multiple environments can share the application model;
+each publisher selects its assigned workloads. Declaration validation checks
+workload structure without requiring a deployment host's bind mounts or
+executable paths to exist on the authoring machine. Local execution retains its
+strict path checks.
+
+The TypeScript authoring shape follows the existing builder API:
+`builder.addDockerComposeEnvironment`, `resource.withComputeEnvironment`,
+typed service/document customization callbacks and method-based execution
+context checks. `addParameter(name)` declares a nonsecret configuration-backed
+input. Secrets and generated values require explicit options or generation
+APIs. Publishing preserves unresolved inputs and only explicitly authorized
+nonsecret defaults.
+
+The nonshipping integration in
+[`playground/NativeIntegrations/TypeScript/DockerCompose`](../../playground/NativeIntegrations/TypeScript/DockerCompose/README.md)
+owns Compose generation, target input evaluation and Docker execution. It
+contributes portable authoring SDK files through an ordinary qualified v2 npm
+descriptor with an empty tooling capability list. No provider process is
+activated for an authoring-only integration; runtime provider registrations
+still require actual capabilities.
+
+`aspire publish` writes reviewable `compose.yaml`, `deployment-inputs.json` and
+prerequisites without contacting Docker or reading deployment credentials.
+`aspire deploy` first publishes, obtains required parameters explicitly from
+`ASPIRE_PARAMETER_<NORMALIZED_NAME>`, validates Docker/Compose and the generated
+configuration, then applies with bounded readiness and verifies actual service
+state. URI encoding is evaluated against those target inputs. Neither resolved
+credentials nor rendered environment values are written to deployment artifacts
+or returned in deployment state.
+
+The CLI consumes generic publishing progress and `--list-steps` over its normal
+backchannel. Inspection materializes and seals declarations and resolves
+pipeline configuration without executing step actions or local workloads.
+The guest remains alive until the CLI acknowledges
+completion; retiring its composition does not tear down a deployed application.
+Deployments and named volumes require explicit external cleanup, including
+after a partial failure. This is not transactional deployment or a rollback
+implementation.
+
+`builder.pipeline()` and resource pipeline factories/configuration callbacks
+contribute named steps, dependencies, `requiredBy` edges, descriptions and tags.
+The native server validates the complete DAG, selects a target's prerequisite
+closure and atomically claims ready steps. The guest executes callback bodies,
+but cannot independently decide that a dependency completed or replay a claimed
+step. Reports, tasks and summaries use the existing CLI protocol. Custom targets
+are executable and inspectable; initial local startup also executes the
+`before-start` closure before launching workloads. Model updates do not replay
+startup actions.
+
+The slice covers image containers and executable applications with explicit
+image/build metadata, named volumes, symbolic configuration, dependencies,
+target health checks and opt-in loopback port exposure. Run-only lifecycle
+behavior must be explicitly replaced or excluded; provider lifecycle handlers
+are rejected rather than silently dropped. Local build contexts currently
+resolve to absolute paths, so artifacts are not portable to another machine.
+There is no complete managed integration parity, remote deployment, interactive
+secret prompting or C# publish authoring claim. The pipeline does not introduce
+a remoted service provider or pretend that unsupported target operations exist.
 
 ## Current Scope
 
 The exploration includes a BCL-only kernel, NativeAOT server, generated C# and
 TypeScript clients, generic container/executable execution, provider lifetimes,
-resource-preserving revisions, and CLI/Dashboard integration.
+resource-preserving revisions, CLI/Dashboard integration and composition-only
+deployment export.
 
 Current Redis integrations demonstrate typed fluent authoring, symbolic
 credentials, authenticated readiness, references and retained data. This does
@@ -1359,5 +1432,5 @@ belongs in providers rather than service-specific branches in the executor.
 
 The remaining design work includes general resource schemas, typed portable
 annotation contracts, supported integration packaging, consumer-network resolution,
-automatic guest reload and publishing. These should extend the shared model,
+automatic guest reload and broader publishing integration contracts. These should extend the shared model,
 not introduce service-specific behavior into the core.

@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Native.Api;
 
 /// <summary>Provides application creation and explicitly delegated connection entry points.</summary>
 [AspireExport]
-internal sealed class NativeApplicationServer
+internal sealed partial class NativeApplicationServer
 {
     private readonly RuntimeInvitations _invitations;
 

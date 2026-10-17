@@ -11,6 +11,7 @@
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="Resources/native-builder.mts" />
+    <EmbeddedResource Include="Resources/native-pipeline.mts" />
     <InternalsVisibleTo Include="Aspire.Hosting.Native.Core.Tests" />
     <ProjectReference Include="../Aspire.Hosting.Native.Core/Aspire.Hosting.Native.Core.csproj" />
     <ProjectReference Include="../Aspire.Hosting.Ats.Abstractions/Aspire.Hosting.Ats.Abstractions.csproj" />

@@ -125,6 +125,29 @@ internal sealed partial class DeclaredResource
         return this;
     }
 
+    /// <summary>Marks the workload's HTTP endpoints as externally exposed deployment intent.</summary>
+    [AspireExport]
+    public DeclaredResource WithExternalHttpEndpoints()
+    {
+        Composition.Model.MutateWorkload(Handle, current =>
+        {
+            var ports = current.Plan.Endpoints.Select(endpoint =>
+                endpoint.UriScheme.Equals("http", StringComparison.OrdinalIgnoreCase) ||
+                endpoint.UriScheme.Equals("https", StringComparison.OrdinalIgnoreCase)
+                    ? endpoint with { IsExternal = true } : endpoint).ToImmutableArray();
+            var plan = current.Plan switch
+            {
+                ContainerWorkload container => (WorkloadPlan)(container with { Ports = ports }),
+                ExecutableWorkload executable => executable with { Ports = ports },
+                _ => throw new NotSupportedException("The declared workload primitive is unsupported.")
+            };
+
+            return (current with { Plan = plan }, null);
+        });
+
+        return this;
+    }
+
     /// <summary>Configures the container entrypoint without interpreting shell syntax.</summary>
     [AspireExport]
     public DeclaredResource WithEntrypoint(string entrypoint)
@@ -154,6 +177,25 @@ internal sealed partial class DeclaredResource
             }
             var mounts = container.Mounts.Where(mount => mount.Target != target)
                 .Append(new WorkloadMount(WorkloadMountKind.Volume, name, target, readOnly)).ToImmutableArray();
+
+            return (current with { Plan = container with { Mounts = mounts } }, null);
+        });
+
+        return this;
+    }
+
+    /// <summary>Declares a bind mount; the source is checked on the local machine only when executing locally.</summary>
+    [AspireExport]
+    public DeclaredResource WithBindMount(string source, string target, bool readOnly)
+    {
+        Composition.Model.MutateWorkload(Handle, current =>
+        {
+            if (current.Plan is not ContainerWorkload container)
+            {
+                throw new InvalidOperationException("Bind mounts require a container declaration.");
+            }
+            var mounts = container.Mounts.Where(mount => mount.Target != target)
+                .Append(new WorkloadMount(WorkloadMountKind.Bind, source, target, readOnly)).ToImmutableArray();
 
             return (current with { Plan = container with { Mounts = mounts } }, null);
         });

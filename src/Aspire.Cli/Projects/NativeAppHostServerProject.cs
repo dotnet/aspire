@@ -18,13 +18,14 @@ namespace Aspire.Cli.Projects;
 internal sealed class NativeAppHostServerProject : IAppHostServerProject, IDisposable
 {
     internal const string ExecutableEnvironmentVariable = "ASPIRE_CLI_NATIVE_APPHOST_SERVER";
+    internal const string OperationEnvironmentVariable = "ASPIRE_NATIVE_OPERATION";
     private readonly string _executable;
     private readonly IProcessExecutionFactory _processes;
     private readonly ILogger _logger;
     private DirectoryInfo? _directory;
     private string? _generatedSdkDirectory;
     private int _preparationCount;
-    private int _runCount;
+    private readonly List<string> _socketPaths = [];
 
     public NativeAppHostServerProject(string appPath, string executable, IProcessExecutionFactory processes, ILogger logger)
     {
@@ -190,7 +191,7 @@ internal sealed class NativeAppHostServerProject : IAppHostServerProject, IDispo
     {
         if (additionalArgs is { Length: > 0 })
         {
-            throw new NotSupportedException("AppHost Server v2 supports run, not publishing command-line modes.");
+            throw new NotSupportedException("AppHost Server v2 does not support additional server command-line arguments.");
         }
         if (debug)
         {
@@ -208,27 +209,34 @@ internal sealed class NativeAppHostServerProject : IAppHostServerProject, IDispo
             }
         }
         LayoutLease?.AddEnvironment(startInfo);
+        // Only the current session selects the operation; do not inherit a parent server's mode.
+        var operation = environmentVariables?.GetValueOrDefault(OperationEnvironmentVariable) ?? "run";
+        startInfo.Environment[OperationEnvironmentVariable] = operation;
         var parentStarted = ProcessStartTimeHelper.TryGetProcessStartTimeUnixMilliseconds(hostPid);
         OrphanDetectionEnvironment.Apply(startInfo.Environment, hostPid, parentStarted,
             KnownConfigNames.RemoteAppHostProcessId, KnownConfigNames.RemoteAppHostProcessStarted);
         OrphanDetectionEnvironment.Apply(startInfo.Environment, hostPid, parentStarted,
             KnownConfigNames.CliProcessId, KnownConfigNames.CliProcessStarted);
         var bootstrap = environmentVariables?.GetValueOrDefault(KnownConfigNames.IntegrationHostBootstrap) == "true";
-        if (bootstrap)
+        var suppressRuntimeComponents = bootstrap || operation is "publish" or "inspect";
+        if (suppressRuntimeComponents)
         {
-            // SDK bootstrap has no graph to execute. Controller and Dashboard
-            // lifetimes belong to the final server, not this temporary process.
+            // SDK bootstrap, publishing, and inspection must not start local workloads,
+            // even when the caller or the ambient environment supplies runtime paths.
             startInfo.Environment.Remove("ASPIRE_NATIVE_DCP_PATH");
             startInfo.Environment.Remove("ASPIRE_DASHBOARD_PATH");
             startInfo.Environment.Remove("ASPIRE_NATIVE_DASHBOARD_PORT");
+        }
+        if (bootstrap)
+        {
             startInfo.Environment.Remove("AppHost__FilePath");
             startInfo.Environment.Remove(KnownConfigNames.UnixSocketPath);
         }
-        if (!bootstrap && LayoutLease?.Layout.GetDcpPath() is { } dcpDirectory)
+        if (!suppressRuntimeComponents && LayoutLease?.Layout.GetDcpPath() is { } dcpDirectory)
         {
             startInfo.Environment["ASPIRE_NATIVE_DCP_PATH"] = BundleDiscovery.GetDcpExecutablePath(dcpDirectory);
         }
-        if (!bootstrap && LayoutLease?.Layout.GetDashboardPath() is { } dashboardPath)
+        if (!suppressRuntimeComponents && LayoutLease?.Layout.GetDashboardPath() is { } dashboardPath)
         {
             startInfo.Environment["ASPIRE_DASHBOARD_PATH"] = dashboardPath;
             startInfo.Environment["ASPIRE_NATIVE_DASHBOARD_PORT"] = "0";
@@ -238,16 +246,13 @@ internal sealed class NativeAppHostServerProject : IAppHostServerProject, IDispo
         {
             startInfo.Environment["ASPIRE_APPHOST_SERVER_V2_SDK_DIRECTORY"] = _generatedSdkDirectory;
         }
-        _directory ??= Directory.CreateTempSubdirectory("aspire-native-");
+        // TMPDIR can exceed the Unix socket path limit. Use the CLI's private
+        // socket directory and a fresh name so stale bootstrap sockets are not reused.
+        var socketPath = CliPathHelper.CreateGuestAppHostSocketPath("apphost.sock");
         if (!OperatingSystem.IsWindows())
         {
-            File.SetUnixFileMode(_directory.FullName, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            _socketPaths.Add(socketPath);
         }
-        // A bootstrap process can be killed before unlinking its socket. Never
-        // reuse that pathname for the final execution session.
-        var socketPath = OperatingSystem.IsWindows()
-            ? CliPathHelper.CreateGuestAppHostSocketPath("apphost.sock")
-            : Path.Combine(_directory.FullName, $"apphost-{++_runCount}.sock");
         startInfo.Environment["REMOTE_APP_HOST_SOCKET_PATH"] = socketPath;
         var output = new OutputCollector();
         var execution = _processes.CreateExecution(startInfo, new ProcessInvocationOptions
@@ -278,6 +283,11 @@ internal sealed class NativeAppHostServerProject : IAppHostServerProject, IDispo
     {
         try
         {
+            foreach (var path in _socketPaths)
+            {
+                File.Delete(path);
+            }
+            _socketPaths.Clear();
             _directory?.Delete(recursive: true);
             _directory = null;
         }

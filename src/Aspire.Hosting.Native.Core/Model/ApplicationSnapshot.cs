@@ -9,14 +9,18 @@ namespace Aspire.Hosting.Native.Model;
 internal sealed record ApplicationSnapshot(Guid GenerationId, ImmutableArray<ResourceSnapshot> Resources)
 {
     public ImmutableArray<SymbolicValue> SecretParameters { get; init; } = [];
+    public ImmutableArray<ParameterSnapshot> Parameters { get; init; } = [];
 }
 
+internal sealed record ParameterSnapshot(SymbolicValue Value, bool HasDefault);
 /// <summary>Describes a resource and its readiness dependencies within a declaration graph.</summary>
 internal sealed record ResourceSnapshot(ResourceHandle Handle, string Name, string TypeId,
     ImmutableArray<ResourceHandle> Dependencies, ImmutableArray<ResourceConfigurationEntry> Configuration)
 {
     public ImmutableArray<SymbolicConfigurationEntry> SymbolicConfiguration { get; init; } = [];
     public DeclaredWorkload? Workload { get; init; }
+    public ResourceHandle? ComputeEnvironment { get; init; }
+    public bool IsComputeEnvironment { get; init; }
     public ImmutableArray<Runtime.ProviderLifecycleBinding> ProviderLifecycle { get; init; } = [];
 }
 

@@ -13,7 +13,6 @@ public class NativeProviderContractReaderTests
     [InlineData("""{"protocolVersion":"2","capabilities":[]}""")]
     [InlineData("""{"protocolVersion":null,"capabilities":[]}""")]
     [InlineData("""{"protocolVersion":1,"capabilities":[]}""")]
-    [InlineData("""{"protocolVersion":2,"capabilities":[]}""")]
     [InlineData("""{"protocolVersion":2,"capabilities":[{"method":"greet","parameters":[],"returnType":{"typeId":"void","category":"Primitive"}}]}""")]
     [InlineData("""{"protocolVersion":2,"capabilities":[{"id":"example/greet","method":"greet","parameters":[],"returnType":{"typeId":"void","category":"Primitive"},"lifecyclePhase":42}]}""")]
     [InlineData("""{"protocolVersion":2,"capabilities":[{"id":"example/greet","method":"greet","parameters":[null],"returnType":{"typeId":"void","category":"Primitive"}}]}""")]
@@ -22,6 +21,12 @@ public class NativeProviderContractReaderTests
     public void MalformedToolingMetadataIsReportedAtTheReaderBoundary(string json)
     {
         Assert.Throws<InvalidDataException>(() => NativeProviderContractReader.Read(json));
+    }
+
+    [Fact]
+    public void AuthoringOnlyIntegrationsNeedNoRuntimeCapabilities()
+    {
+        Assert.Empty(NativeProviderContractReader.Read("""{"protocolVersion":2,"capabilities":[]}"""));
     }
 
     [Fact]

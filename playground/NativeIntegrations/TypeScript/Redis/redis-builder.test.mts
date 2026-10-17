@@ -75,7 +75,7 @@ test('familiar awaited fluent composition and build perform no RPC', async () =>
     }
 });
 
-test('cross-plan references and unsupported publishing fail explicitly', async () => {
+test('cross-plan references and the unsupported legacy publishing argument fail explicitly', async () => {
     const first = await createBuilder([]);
     const second = await createBuilder([]);
     const cache = first.addRedis('cache');
@@ -83,6 +83,19 @@ test('cross-plan references and unsupported publishing fail explicitly', async (
     assert.throws(() => consumer.withReference(cache), /another authoring plan/);
     assert.throws(() => consumer.waitFor(cache), /another authoring plan/);
     await assert.rejects(createBuilder(['--publish=true']), /not supported/);
+});
+
+test('CLI publishing arguments select publishing without executing pipeline actions during composition', async () => {
+    const builder = await createBuilder(['--operation', 'publish', '--step', 'deploy', '--output-path', './output']);
+    assert.equal(builder.executionContext().isPublishMode(), true);
+    assert.equal(builder.configuration.step, 'deploy');
+    assert.equal(builder.configuration['output-path'], './output');
+    let executions = 0;
+    builder.pipeline().addStep('custom-publish', async () => { executions++; }, { requiredBy: ['publish'] });
+    builder.build();
+    assert.equal(executions, 0);
+    assert.equal((await createBuilder(['--operation=inspect'])).executionContext().isPublishMode(), true);
+    assert.equal((await createBuilder([])).executionContext().isPublishMode(), false);
 });
 
 test('pre-cancelled run acquires no native authority and disposal joins once', async () => {

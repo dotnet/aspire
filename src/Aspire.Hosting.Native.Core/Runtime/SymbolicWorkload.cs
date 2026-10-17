@@ -25,7 +25,7 @@ internal sealed record SymbolicWorkloadBindings(ImmutableArray<SymbolicEnvironme
             throw new ArgumentException("Invalid symbolic workload bindings.");
         }
         // Validate slot names and collisions without resolving credentials or endpoints.
-        WorkloadDefinition.Validate(Copy(template,
+        WorkloadDefinition.ValidateDeclaration(Copy(template,
             template.Environment.AddRange(Environment.Select(binding => new WorkloadEnvironment(binding.Name, ""))),
             template.Arguments));
     }

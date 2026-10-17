@@ -78,6 +78,22 @@ internal sealed class NativeCliProtocol : IDisposable
 
     private async Task<NativeBackchannelReply> DispatchAsync(NativeCliRequest request, CancellationToken cancellationToken)
     {
+        if (request.Method == "GetPipelineStepsAsync")
+        {
+            // The existing CLI sends [{ "step": "deploy", "traceContext": ... }].
+            // A null step requests the complete topologically ordered pipeline.
+            if (request.Params is not { ValueKind: JsonValueKind.Array } arguments || arguments.GetArrayLength() != 1 ||
+                arguments[0].ValueKind != JsonValueKind.Object)
+            {
+                throw new ArgumentException("Pipeline inspection requires one request object.");
+            }
+            var target = arguments[0].TryGetProperty("step", out var step) && step.ValueKind != JsonValueKind.Null
+                ? step.GetString() : null;
+            var steps = await _server.Publishing.GetStepsAsync(target, cancellationToken).ConfigureAwait(false);
+            return NativeBackchannelReply.Value(new NativePipelineSteps(steps.Select(step =>
+                new NativePipelineStep(step.Name, step.DependsOn, step.Description, step.Tags, step.ResourceName)).ToArray()),
+                NativeCliJsonContext.Default.NativePipelineSteps);
+        }
         if (request.Params is { ValueKind: not JsonValueKind.Null } parameters &&
             (parameters.ValueKind != JsonValueKind.Array || parameters.GetArrayLength() != 0))
         {
@@ -86,12 +102,20 @@ internal sealed class NativeCliProtocol : IDisposable
         switch (request.Method)
         {
             case "GetCapabilitiesAsync":
-                return NativeBackchannelReply.Value(new[] { "baseline.v2" }, NativeCliJsonContext.Default.StringArray);
+                return NativeBackchannelReply.Value(new[] { "baseline.v2", "pipeline-steps.v2" }, NativeCliJsonContext.Default.StringArray);
             case "NotifyAppHostReadyAsync":
                 _ready.TrySetResult();
                 return NativeBackchannelReply.Value((string?)null, NativeCliJsonContext.Default.String);
             case "RequestStopAsync":
-                return NativeBackchannelReply.Value((string?)null, NativeCliJsonContext.Default.String) with { AfterResponse = _stop };
+                return NativeBackchannelReply.Value((string?)null, NativeCliJsonContext.Default.String) with
+                {
+                    // Publishing guests must remain alive until the CLI consumes
+                    // completion. Their exit then owns normal session shutdown.
+                    AfterResponse = _server.Publishing.WaitsForStop ? _server.Publishing.Stop : _stop
+                };
+            case "GetPublishingActivitiesAsync":
+                return NativeBackchannelReply.Streaming(_server.Publishing.ReadAsync(cancellationToken),
+                    NativeCliJsonContext.Default.NativePublishingActivity);
             case "GetDashboardUrlsAsync":
                 return NativeBackchannelReply.Value(await _dashboard(cancellationToken).ConfigureAwait(false),
                     NativeCliJsonContext.Default.NativeCliDashboardUrls);

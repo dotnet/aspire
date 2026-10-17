@@ -12,6 +12,7 @@ on:
       - 'eng/**'
       - 'tests/Aspire.Hosting.Native.Core.Tests/**'
       - 'tests/PolyglotAppHosts/Aspire.Hosting/TypeScript/package.json'
+      - 'tests/PolyglotAppHosts/Aspire.Hosting.Docker/TypeScript/apphost.mts'
       - 'tests/Directory.Build.*'
       - 'tests/Shared/**'
       - 'Directory.*'
@@ -33,6 +34,7 @@ on:
       - 'eng/**'
       - 'tests/Aspire.Hosting.Native.Core.Tests/**'
       - 'tests/PolyglotAppHosts/Aspire.Hosting/TypeScript/package.json'
+      - 'tests/PolyglotAppHosts/Aspire.Hosting.Docker/TypeScript/apphost.mts'
       - 'tests/Directory.Build.*'
       - 'tests/Shared/**'
       - 'Directory.*'
@@ -118,5 +120,8 @@ jobs:
             artifacts/native-hosting/ci/logs/
             artifacts/native-hosting/native-dashboard.png
             artifacts/native-hosting/ci/cli-apphost/*proof.json
+            artifacts/native-hosting/ci/compose-apphosts/**/proof.json
+            artifacts/native-hosting/ci/compose-apphosts/**/*.log
+            artifacts/native-hosting/ci/compose-apphosts/**/published/compose.yaml
           if-no-files-found: warn
           retention-days: 7

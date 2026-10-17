@@ -12,7 +12,7 @@ internal sealed record DeclaredWorkload(WorkloadPlan Plan, SymbolicWorkloadBindi
 {
     public static DeclaredWorkload Create(WorkloadPlan plan)
     {
-        WorkloadDefinition.Validate(plan);
+        WorkloadDefinition.ValidateDeclaration(plan);
 
         return new(plan, new([], []), []);
     }

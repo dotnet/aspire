@@ -123,8 +123,48 @@ surface: `AddContainer`/`AddExecutable`, `WithEnvironment`, `WithArgument`,
 `WithEndpoint`, `WithReference`, entrypoints, and retained named volumes.
 Ordinary AppHosts declare the graph, then `StartApplication` activates native
 workloads. `WaitApplicationReady` observes native dependency and protocol-health
-ordering; no resource-owner invitations are needed. The native static contract
-has 79 exports. Both generated languages project these same contracts.
+ordering; no resource-owner invitations are needed. Both generated languages project these same native contracts.
+
+## Docker Compose publishing and deployment
+
+[`TypeScript/DockerCompose`](TypeScript/DockerCompose/README.md) is a separate
+nonshipping deployment integration for the opt-in TypeScript CLI path. It
+contributes portable authoring APIs with an empty tooling capability list; it
+does not launch a runtime provider or add Compose behavior to the native kernel.
+
+An AppHost uses `builder.addDockerComposeEnvironment('compose')`, assigns
+workloads with `withComputeEnvironment` and customizes typed Compose services
+with `publishAsDockerComposeService` callbacks. The sample
+combines an authenticated, volume-backed Redis image and a buildable Node HTTP
+application using the same native graph, symbolic credential and endpoint
+references.
+
+`aspire publish` composes without local execution and writes secret-free Compose
+artifacts. `aspire deploy` resolves explicit `ASPIRE_PARAMETER_*` target inputs,
+builds and applies through Docker Compose, waits for health and records verified
+service URLs. `--list-steps --format json` inspects the pipeline without running
+target operations. Named volumes and deployed services outlive the guest/server;
+cleanup is external and there is no automatic rollback.
+
+`builder.pipeline()` and resource-scoped pipeline factories/configuration use
+the same named-step, dependency, `requiredBy`, tag and reporting concepts as
+today's TypeScript AppHosts. The native server owns DAG validation, target
+selection and ready-step scheduling; callbacks remain in the authoring guest.
+Inspection does not execute them. Local startup runs the `before-start` closure.
+Parameters are configuration-backed and nonsecret by default; generated
+credentials require an explicit generation API.
+
+The native validation harness prepares an isolated AppHost/package and real
+bundle layout, then exercises the actual CLI and AOT server through publishing,
+missing-input failure, deployment, container replacement with retained Redis
+data, repeated deployment and owned-resource cleanup. It also compiles the
+unchanged existing Compose TypeScript fixture, inspects and executes custom
+targets with concurrent branches, checks failure propagation, isolates multiple
+environments and proves `before-start` actions precede local execution.
+Docker Compose v2 is
+required. See the integration README for commands, artifacts and unsupported
+resource/lifecycle shapes. This does not make the run-only Redis provider below
+publishable or establish managed Compose parity.
 
 ## Real Redis integration
 

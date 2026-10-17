@@ -139,6 +139,10 @@ foreach (var capability in context.Capabilities.OrderBy(capability => capability
             code.AppendLine(CultureInfo.InvariantCulture,
                 $"                return JsonSerializer.SerializeToNode(result, NativeRpcJsonContext.Default.{returnType.Name});");
         }
+        else if (returnType == typeof(string[]))
+        {
+            code.AppendLine("                return new JsonArray(result.Select(value => (JsonNode?)JsonValue.Create(value)).ToArray());");
+        }
         else if (returnType == typeof(string) || returnType == typeof(bool) || returnType == typeof(int) || returnType == typeof(long))
         {
             code.AppendLine("                return JsonValue.Create(result);");
@@ -215,7 +219,7 @@ await File.WriteAllTextAsync(Path.Combine(output, "languages.json"), new JsonArr
 foreach (var (name, content) in sdk)
 {
     var projectedContent = name == "aspire.mts"
-        ? content + "\nexport { createBuilder, DistributedApplicationBuilder, ResourceBuilder, Resource, ContainerResource, ExecutableResource, ParameterResource, ReferenceExpression, EndpointReference, ExecutableCommand, NativeBuildContext, NativeApplication } from './native-builder.mjs';\n"
+        ? content + "\nexport { createBuilder, DistributedApplicationBuilder, ResourceBuilder, Resource, ContainerResource, ExecutableResource, ParameterResource, ComputeEnvironmentResource, ReferenceExpression, EndpointReference, ExecutableCommand, NativeBuildContext, NativeApplication } from './native-builder.mjs';\nexport type { ParameterOptions, ParameterGenerationOptions, PublishExpression, PublishResource, PublishModel, PublishingContext, DeploymentTarget } from './native-builder.mjs';\nexport { NativePipeline, WellKnownPipelineSteps, WellKnownPipelineTags } from './native-pipeline.mjs';\nexport type { NativePipelineStepContext, NativePipelineConfigurationContext, NativePipelineStepOptions, NativePipelineAction } from './native-pipeline.mjs';\n"
         : content;
     await File.WriteAllTextAsync(Path.Combine(output, name), projectedContent).ConfigureAwait(false);
 }
@@ -225,6 +229,13 @@ using (var builderSource = typeof(NativeProviderProjection).Assembly.GetManifest
 using (var reader = new StreamReader(builderSource))
 {
     await File.WriteAllTextAsync(Path.Combine(output, "native-builder.mts"), await reader.ReadToEndAsync().ConfigureAwait(false)).ConfigureAwait(false);
+}
+using (var pipelineSource = typeof(NativeProviderProjection).Assembly.GetManifestResourceStream(
+    "Aspire.Hosting.Native.CodeGeneration.Resources.native-pipeline.mts")
+    ?? throw new InvalidOperationException("The native pipeline authoring projection is missing."))
+using (var reader = new StreamReader(pipelineSource))
+{
+    await File.WriteAllTextAsync(Path.Combine(output, "native-pipeline.mts"), await reader.ReadToEndAsync().ConfigureAwait(false)).ConfigureAwait(false);
 }
 await File.WriteAllTextAsync(Path.Combine(output, "native-types.mts"),
     "export const nativeTypes = " + new JsonObject(context.HandleTypes.Select(handle => KeyValuePair.Create(

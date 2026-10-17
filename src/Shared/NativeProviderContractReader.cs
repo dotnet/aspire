@@ -20,6 +20,8 @@ internal static class NativeProviderContractReader
         // Providers use {"protocolVersion":2,"capabilities":[{"id":"package/greet",
         // "method":"greet","parameters":[],"returnType":{"typeId":"void","category":"Primitive"}}]}.
         // Only the capability identity names differ from the ATS serialization schema.
+        // Authoring-only SDK packages use an empty capabilities array; runtime
+        // provider registration validates its nonempty contract separately.
         try
         {
             using var document = JsonDocument.Parse(json);
@@ -28,7 +30,7 @@ internal static class NativeProviderContractReader
                 !envelope.TryGetProperty("protocolVersion", out var version) || version.ValueKind != JsonValueKind.Number ||
                 !version.TryGetInt32(out var number) || number != 2 ||
                 !envelope.TryGetProperty("capabilities", out var capabilities) || capabilities.ValueKind != JsonValueKind.Array ||
-                capabilities.GetArrayLength() is not (> 0 and <= 128))
+                capabilities.GetArrayLength() > 128)
             {
                 throw new InvalidDataException("Provider metadata requires protocol version 2 and bounded capabilities.");
             }

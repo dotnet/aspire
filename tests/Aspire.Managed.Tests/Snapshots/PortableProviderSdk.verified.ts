@@ -155,5 +155,8 @@ process.on('uncaughtException', (error: Error) => {
 // Register wrapper factories for typed handle wrapping in callbacks
 
 
-export { createBuilder, DistributedApplicationBuilder, ResourceBuilder, Resource, ContainerResource, ExecutableResource, ParameterResource, ReferenceExpression, EndpointReference, ExecutableCommand, NativeBuildContext, NativeApplication } from './native-builder.mjs';
+export { createBuilder, DistributedApplicationBuilder, ResourceBuilder, Resource, ContainerResource, ExecutableResource, ParameterResource, ComputeEnvironmentResource, ReferenceExpression, EndpointReference, ExecutableCommand, NativeBuildContext, NativeApplication } from './native-builder.mjs';
+export type { ParameterOptions, ParameterGenerationOptions, PublishExpression, PublishResource, PublishModel, PublishingContext, DeploymentTarget } from './native-builder.mjs';
+export { NativePipeline, WellKnownPipelineSteps, WellKnownPipelineTags } from './native-pipeline.mjs';
+export type { NativePipelineStepContext, NativePipelineConfigurationContext, NativePipelineStepOptions, NativePipelineAction } from './native-pipeline.mjs';
 export * from "./provider-client.mjs";

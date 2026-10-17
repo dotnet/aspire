@@ -5,7 +5,10 @@ namespace Aspire.Hosting.Native.Runtime;
 
 /// <summary>Declares a named endpoint independently of container or executable implementation.</summary>
 internal sealed record WorkloadPort(string Name, WorkloadProtocol Protocol, string UriScheme, int TargetPort, int HostPort,
-    string EnvironmentVariable);
+    string EnvironmentVariable)
+{
+    public bool IsExternal { get; init; }
+}
 
 /// <summary>Contains a named host-facing allocation, not a container-network address.</summary>
 internal sealed record AllocatedWorkloadPort(string Name, WorkloadProtocol Protocol, string UriScheme, string Host, int Port);
@@ -16,7 +19,12 @@ internal sealed record WorkloadMount(WorkloadMountKind Type, string Source, stri
 /// <summary>Validates launch declarations before granting an executor a cleanup obligation.</summary>
 internal static class WorkloadDefinition
 {
-    public static void Validate(WorkloadPlan plan)
+    public static void Validate(WorkloadPlan plan) => ValidateCore(plan, requireLocalPaths: true);
+
+    /// <summary>Validates desired intent without requiring a deployment host's paths to exist on the authoring machine.</summary>
+    public static void ValidateDeclaration(WorkloadPlan plan) => ValidateCore(plan, requireLocalPaths: false);
+
+    private static void ValidateCore(WorkloadPlan plan, bool requireLocalPaths)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ValidateEnvironmentAndArguments(plan);
@@ -24,10 +32,10 @@ internal static class WorkloadDefinition
         switch (plan)
         {
             case ContainerWorkload container:
-                ValidateContainer(container);
+                ValidateContainer(container, requireLocalPaths);
                 break;
             case ExecutableWorkload executable:
-                ValidateExecutable(executable);
+                ValidateExecutable(executable, requireLocalPaths);
                 break;
             default:
                 throw new NotSupportedException("The workload primitive is not implemented.");
@@ -74,7 +82,7 @@ internal static class WorkloadDefinition
         }
     }
 
-    private static void ValidateContainer(ContainerWorkload plan)
+    private static void ValidateContainer(ContainerWorkload plan, bool requireLocalPaths)
     {
         if (string.IsNullOrWhiteSpace(plan.Image) || plan.Image.Length > 2048 ||
             plan.Image.Any(char.IsWhiteSpace) || plan.Image.Contains('\0') ||
@@ -83,14 +91,14 @@ internal static class WorkloadDefinition
         {
             throw new ArgumentException("Invalid container image, command, or mounts.", nameof(plan));
         }
-        ValidateMounts(plan);
+        ValidateMounts(plan, requireLocalPaths);
         if (plan.Endpoints.Select(endpoint => (endpoint.TargetPort, endpoint.Protocol)).Distinct().Count() != plan.Endpoints.Length)
         {
             throw new ArgumentException("Container target ports must be unique for each protocol.", nameof(plan));
         }
     }
 
-    private static void ValidateMounts(ContainerWorkload plan)
+    private static void ValidateMounts(ContainerWorkload plan, bool requireLocalPaths)
     {
         var targets = new HashSet<string>(StringComparer.Ordinal);
         foreach (var mount in plan.Mounts)
@@ -100,7 +108,7 @@ internal static class WorkloadDefinition
                 !targets.Add(mount.Target) ||
                 mount.Type is not (WorkloadMountKind.Bind or WorkloadMountKind.Volume) ||
                 mount.Type == WorkloadMountKind.Bind && (!Path.IsPathFullyQualified(mount.Source) ||
-                    !(File.Exists(mount.Source) || Directory.Exists(mount.Source))) ||
+                    requireLocalPaths && !(File.Exists(mount.Source) || Directory.Exists(mount.Source))) ||
                 mount.Type == WorkloadMountKind.Volume && (mount.Source.Length is < 1 or > 255 ||
                     !char.IsAsciiLetterOrDigit(mount.Source[0]) ||
                     mount.Source.Any(character => !(char.IsAsciiLetterOrDigit(character) || character is '_' or '.' or '-'))))
@@ -110,10 +118,10 @@ internal static class WorkloadDefinition
         }
     }
 
-    private static void ValidateExecutable(ExecutableWorkload plan)
+    private static void ValidateExecutable(ExecutableWorkload plan, bool requireLocalPaths)
     {
-        if (!Path.IsPathFullyQualified(plan.ExecutablePath) || !File.Exists(plan.ExecutablePath) ||
-            !Path.IsPathFullyQualified(plan.WorkingDirectory) || !Directory.Exists(plan.WorkingDirectory))
+        if (!Path.IsPathFullyQualified(plan.ExecutablePath) || requireLocalPaths && !File.Exists(plan.ExecutablePath) ||
+            !Path.IsPathFullyQualified(plan.WorkingDirectory) || requireLocalPaths && !Directory.Exists(plan.WorkingDirectory))
         {
             throw new ArgumentException("Executables require existing absolute paths.", nameof(plan));
         }

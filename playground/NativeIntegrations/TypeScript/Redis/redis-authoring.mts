@@ -18,7 +18,7 @@ export class RedisResourceBuilder extends ResourceBuilder<RedisContainerResource
 
 /** Integration authoring uses the same generic builder/container primitives as ordinary composition. */
 export function addRedis(builder: DistributedApplicationBuilder, name: string,
-    password = builder.addParameter(`${name}-password`)): RedisResourceBuilder {
+    password = builder.addParameterWithGeneratedValue(`${name}-password`, {}, { secret: true })): RedisResourceBuilder {
     const cache = builder.addContainer(new RedisContainerResource(name))
         .withEntrypoint('/bin/sh')
         .withEnvironment('REDIS_PASSWORD', password)

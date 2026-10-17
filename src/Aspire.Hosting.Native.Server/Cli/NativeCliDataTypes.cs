@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Aspire.Hosting.Native.Api;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Native.Cli;
@@ -41,6 +42,8 @@ internal sealed record NativeCliDashboardUrls
 internal sealed record NativeCliResourceState(string Resource, string Type, string State, string[] Endpoints, string? Health);
 internal sealed record NativeCliLogEntry(long SequenceNumber, Guid GenerationId, EventId EventId,
     LogLevel LogLevel, string Message, DateTimeOffset Timestamp, string CategoryName);
+internal sealed record NativePipelineStep(string Name, string[] DependsOn, string? Description, string[] Tags, string? ResourceName);
+internal sealed record NativePipelineSteps(NativePipelineStep[] Steps);
 
 [JsonSerializable(typeof(NativeCliRequest))]
 [JsonSerializable(typeof(NativeCliResponse))]
@@ -50,6 +53,8 @@ internal sealed record NativeCliLogEntry(long SequenceNumber, Guid GenerationId,
 [JsonSerializable(typeof(NativeCliDashboardUrls))]
 [JsonSerializable(typeof(NativeCliResourceState))]
 [JsonSerializable(typeof(NativeCliLogEntry))]
+[JsonSerializable(typeof(NativePublishingActivity))]
+[JsonSerializable(typeof(NativePipelineSteps))]
 [JsonSerializable(typeof(string[]))]
 [JsonSerializable(typeof(string))]
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,

@@ -97,6 +97,7 @@ public class AppHostServerV2CodeGenerationTests(ITestOutputHelper outputHelper)
     [InlineData("provider-client.mts", true)]
     [InlineData("aspire.mts", false)]
     [InlineData("native-builder.mts", false)]
+    [InlineData("native-pipeline.mts", false)]
     [InlineData("../outside.mts", false)]
     public async Task PortableProviderUsesSharedProjectionWithoutReplacingTheFramework(string sdkFile, bool supported)
     {

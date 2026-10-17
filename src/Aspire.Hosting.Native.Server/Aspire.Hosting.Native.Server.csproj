@@ -46,6 +46,7 @@
     <EmbeddedResource Include="$(NativeGeneratedDirectory)integration-host.mts" LogicalName="NativeSdk.integration-host.mts" />
     <EmbeddedResource Include="$(NativeGeneratedDirectory)native-client.mts" LogicalName="NativeSdk.native-client.mts" />
     <EmbeddedResource Include="$(NativeGeneratedDirectory)native-builder.mts" LogicalName="NativeSdk.native-builder.mts" />
+    <EmbeddedResource Include="$(NativeGeneratedDirectory)native-pipeline.mts" LogicalName="NativeSdk.native-pipeline.mts" />
     <EmbeddedResource Include="$(NativeGeneratedDirectory)native-types.mts" LogicalName="NativeSdk.native-types.mts" />
     <None Include="$(NativeGeneratedDirectory)contract.json" Link="ats-contract.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>

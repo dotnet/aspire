@@ -21,9 +21,10 @@ public class NativeCliControlTests
         Assert.Equal("typescript/nodejs", spec["language"]!.GetValue<string>());
         Assert.Equal("npx", spec["execute"]!["command"]!.GetValue<string>());
         var sdk = Result(client.Call("generateCode", new JsonArray("TypeScript", null))).AsObject();
-        Assert.Equal(["apphost-server.json", "aspire.mts", "base.mts", "integration-host.mts", "native-builder.mts", "native-client.mts", "native-types.mts", "transport.mts"],
+        Assert.Equal(["apphost-server.json", "aspire.mts", "base.mts", "integration-host.mts", "native-builder.mts", "native-client.mts", "native-pipeline.mts", "native-types.mts", "transport.mts"],
             sdk.Select(file => file.Key).Order(StringComparer.Ordinal));
         Assert.All(sdk, file => Assert.False(string.IsNullOrWhiteSpace(file.Value!.GetValue<string>())));
+        Assert.Contains("from './native-pipeline.mjs'", sdk["native-builder.mts"]!.GetValue<string>());
         var identity = JsonNode.Parse(sdk["apphost-server.json"]!.GetValue<string>())!;
         Assert.Equal(2, identity["generation"]!.GetValue<int>());
         Assert.False(string.IsNullOrWhiteSpace(identity["contractId"]!.GetValue<string>()));

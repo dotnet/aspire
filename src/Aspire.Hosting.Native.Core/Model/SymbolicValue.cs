@@ -5,7 +5,7 @@ using System.Collections.Immutable;
 
 namespace Aspire.Hosting.Native.Model;
 
-internal enum SymbolicValueKind { Literal, SecretParameter, Endpoint, Composite, UriEncoded }
+internal enum SymbolicValueKind { Literal, SecretParameter, Endpoint, Composite, UriEncoded, Parameter }
 internal enum EndpointValueProperty { Host, Port, HostAndPort, Scheme, Url }
 internal enum ValueNetworkContext { Host, Container }
 internal enum SymbolicValueFailure { UnsupportedNetworkContext, EndpointUnavailable, StaleRevision, ConfigurationUnavailable, SecretHistoryLimit }
@@ -42,11 +42,12 @@ internal sealed class SymbolicValue
     public string EndpointName { get; }
     public EndpointValueProperty EndpointProperty { get; }
     public bool IsSecret { get; }
+    public bool HasValue { get; }
     private int Depth { get; }
     private int Nodes { get; }
 
     private SymbolicValue(Guid generationId, SymbolicValueKind kind, string text, string parameterName,
-        ResourceHandle? resource, string endpointName, EndpointValueProperty property, ImmutableArray<SymbolicValue> parts)
+        ResourceHandle? resource, string endpointName, EndpointValueProperty property, ImmutableArray<SymbolicValue> parts, bool hasValue)
     {
         if (text.Length > 8192 || text.Contains('\0') || parts.IsDefault ||
             parts.Any(part => part.GenerationId != generationId))
@@ -61,6 +62,7 @@ internal sealed class SymbolicValue
         EndpointName = endpointName;
         EndpointProperty = property;
         _parts = parts;
+        HasValue = hasValue;
         IsSecret = kind == SymbolicValueKind.SecretParameter || parts.Any(part => part.IsSecret);
         Depth = parts.IsEmpty ? 1 : parts.Max(part => part.Depth) + 1;
         Nodes = parts.Sum(part => part.Nodes) + 1;
@@ -74,20 +76,41 @@ internal sealed class SymbolicValue
     {
         ArgumentNullException.ThrowIfNull(text);
 
-        return new(generationId, SymbolicValueKind.Literal, text, "", null, "", default, []);
+        return new(generationId, SymbolicValueKind.Literal, text, "", null, "", default, [], true);
     }
 
     public static SymbolicValue SecretParameter(Guid generationId, string name, string value)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentException.ThrowIfNullOrWhiteSpace(value);
+        ValidateParameterName(name);
+
+        return new(generationId, SymbolicValueKind.SecretParameter, value, name, null, "", default, [], true);
+    }
+
+    public static SymbolicValue Parameter(Guid generationId, string name, string value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        ValidateParameterName(name);
+
+        return new(generationId, SymbolicValueKind.Parameter, value, name, null, "", default, [], true);
+    }
+
+    public static SymbolicValue UnboundParameter(Guid generationId, string name, bool secret)
+    {
+        ValidateParameterName(name);
+
+        return new(generationId, secret ? SymbolicValueKind.SecretParameter : SymbolicValueKind.Parameter,
+            "", name, null, "", default, [], false);
+    }
+
+    private static void ValidateParameterName(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         if (name.Length > 128 || !char.IsAsciiLetter(name[0]) ||
             name.Any(character => !(char.IsAsciiLetterOrDigit(character) || character == '-')))
         {
-            throw new ArgumentException("Invalid secret parameter name.");
+            throw new ArgumentException("Invalid parameter name.");
         }
-
-        return new(generationId, SymbolicValueKind.SecretParameter, value, name, null, "", default, []);
     }
 
     public static SymbolicValue Endpoint(ResourceHandle resource, string name, EndpointValueProperty property)
@@ -98,7 +121,7 @@ internal sealed class SymbolicValue
             throw new ArgumentException("Invalid symbolic endpoint reference.");
         }
 
-        return new(resource.GenerationId, SymbolicValueKind.Endpoint, "", "", resource, name, property, []);
+        return new(resource.GenerationId, SymbolicValueKind.Endpoint, "", "", resource, name, property, [], true);
     }
 
     public SymbolicValue Concat(SymbolicValue suffix)
@@ -107,29 +130,43 @@ internal sealed class SymbolicValue
         var prefixParts = Kind == SymbolicValueKind.Composite ? _parts : [this];
         var suffixParts = suffix.Kind == SymbolicValueKind.Composite ? suffix._parts : [suffix];
 
-        return new(GenerationId, SymbolicValueKind.Composite, "", "", null, "", default, prefixParts.AddRange(suffixParts));
+        return new(GenerationId, SymbolicValueKind.Composite, "", "", null, "", default, prefixParts.AddRange(suffixParts), true);
     }
 
     /// <summary>Escapes one value segment using RFC 3986 URI data escaping without losing its secret/reference identity.</summary>
-    public SymbolicValue UriEncode() => new(GenerationId, SymbolicValueKind.UriEncoded, "", "", null, "", default, [this]);
+    public SymbolicValue UriEncode() => new(GenerationId, SymbolicValueKind.UriEncoded, "", "", null, "", default, [this], true);
 
     public IEnumerable<ResourceHandle> References => Enumerate().Where(value => value.Resource is not null)
         .Select(value => value.Resource!.Value).Distinct();
     internal IEnumerable<SymbolicValue> SecretParameters => Enumerate().Where(value => value.Kind == SymbolicValueKind.SecretParameter);
-    public IEnumerable<string> ParameterReferences => SecretParameters
+    internal IEnumerable<SymbolicValue> Parameters => Enumerate().Where(value => value.Kind is SymbolicValueKind.SecretParameter or SymbolicValueKind.Parameter);
+    public IEnumerable<string> ParameterReferences => Parameters
         .Select(value => value.ParameterName).Distinct(StringComparer.Ordinal);
-    internal IEnumerable<string> SecretRedactions => Enumerate().Where(value => value.Kind == SymbolicValueKind.SecretParameter)
+    internal IEnumerable<string> SecretRedactions => Enumerate().Where(value => value.Kind == SymbolicValueKind.SecretParameter && value.HasValue)
         .SelectMany(value => new[] { value._text, Uri.EscapeDataString(value._text) }).Distinct(StringComparer.Ordinal);
 
     /// <summary>Rebinds a committed workspace expression to stable execution identities.</summary>
     public SymbolicValue Rebind(Guid generationId, Func<ResourceHandle, ResourceHandle> map) =>
         new(generationId, Kind, _text, ParameterName, Resource is { } resource ? map(resource) : null,
-            EndpointName, EndpointProperty, _parts.Select(part => part.Rebind(generationId, map)).ToImmutableArray());
+            EndpointName, EndpointProperty, _parts.Select(part => part.Rebind(generationId, map)).ToImmutableArray(), HasValue);
 
     public bool EquivalentTo(SymbolicValue other) => Kind == other.Kind && _text == other._text &&
-        ParameterName == other.ParameterName && Resource == other.Resource && EndpointName == other.EndpointName &&
+        HasValue == other.HasValue && ParameterName == other.ParameterName && Resource == other.Resource && EndpointName == other.EndpointName &&
         EndpointProperty == other.EndpointProperty && _parts.Length == other._parts.Length &&
         _parts.Zip(other._parts).All(pair => pair.First.EquivalentTo(pair.Second));
+
+    /// <summary>Projects portable expression syntax without exposing secret payloads or resolving runtime addresses.</summary>
+    public T Project<T>(Func<string, T> literal, Func<string, T> parameter,
+        Func<ResourceHandle, string, EndpointValueProperty, T> endpoint,
+        Func<IEnumerable<T>, T> composite, Func<T, T> uriEncoded) => Kind switch
+    {
+        SymbolicValueKind.Literal => literal(_text),
+        SymbolicValueKind.SecretParameter or SymbolicValueKind.Parameter => parameter(ParameterName),
+        SymbolicValueKind.Endpoint => endpoint(Resource!.Value, EndpointName, EndpointProperty),
+        SymbolicValueKind.Composite => composite(_parts.Select(part => part.Project(literal, parameter, endpoint, composite, uriEncoded))),
+        SymbolicValueKind.UriEncoded => uriEncoded(_parts[0].Project(literal, parameter, endpoint, composite, uriEncoded)),
+        _ => throw new InvalidOperationException("Unsupported symbolic value.")
+    };
 
     public string Resolve(ValueNetworkContext context, Func<ResourceHandle, string, EndpointValueProperty, string> endpoint)
     {
@@ -139,7 +176,9 @@ internal sealed class SymbolicValue
         }
         var value = Kind switch
         {
-            SymbolicValueKind.Literal or SymbolicValueKind.SecretParameter => _text,
+            SymbolicValueKind.SecretParameter or SymbolicValueKind.Parameter when !HasValue =>
+                throw new SymbolicValueException(SymbolicValueFailure.ConfigurationUnavailable),
+            SymbolicValueKind.Literal or SymbolicValueKind.SecretParameter or SymbolicValueKind.Parameter => _text,
             SymbolicValueKind.Endpoint when context != ValueNetworkContext.Host =>
                 throw new SymbolicValueException(SymbolicValueFailure.UnsupportedNetworkContext),
             SymbolicValueKind.Endpoint => endpoint(Resource!.Value, EndpointName, EndpointProperty),

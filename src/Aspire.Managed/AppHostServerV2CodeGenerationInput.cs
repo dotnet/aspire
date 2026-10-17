@@ -42,7 +42,7 @@ internal sealed record AppHostServerV2CodeGenerationInput(AtsContext Core, IRead
             foreach (var name in provider.SdkFiles.Keys)
             {
                 if (Path.GetFileName(name) != name || !name.EndsWith(".mts", StringComparison.Ordinal) ||
-                    name is "native-builder.mts" or "native-client.mts" or "native-types.mts")
+                    name is "native-builder.mts" or "native-client.mts" or "native-types.mts" or "native-pipeline.mts")
                 {
                     throw new InvalidDataException($"Provider SDK file '{name}' is invalid.");
                 }

@@ -21,7 +21,7 @@ public class NativeCliProtocolTests
         var options = new NativeServerOptions();
         var rpc = new RecordingBackchannelRpc(new NativeBackchannelRpc(options, NullLogger.Instance));
         await using var host = NativeCliTestHost.Start(new NativeApplicationServer(), options, () => new(), rpc);
-        Assert.Equal(["baseline.v2"], await host.Rpc.InvokeAsync<string[]>("GetCapabilitiesAsync"));
+        Assert.Equal(["baseline.v2", "pipeline-steps.v2"], await host.Rpc.InvokeAsync<string[]>("GetCapabilitiesAsync"));
         await host.Rpc.InvokeAsync("NotifyAppHostReadyAsync");
         Assert.True(host.IsReady);
         Assert.Equal(["GetCapabilitiesAsync", "NotifyAppHostReadyAsync"], rpc.Methods);
@@ -32,7 +32,7 @@ public class NativeCliProtocolTests
     {
         var urls = new NativeCliDashboardUrls { BaseUrlWithLoginToken = "http://localhost:48123/login?t=test" };
         await using var host = NativeCliTestHost.Start(new NativeApplicationServer(), new(), () => urls);
-        Assert.Equal(["baseline.v2"], await host.Rpc.InvokeAsync<string[]>("GetCapabilitiesAsync"));
+        Assert.Equal(["baseline.v2", "pipeline-steps.v2"], await host.Rpc.InvokeAsync<string[]>("GetCapabilitiesAsync"));
         Assert.False(host.IsReady);
         await host.Rpc.InvokeAsync("NotifyAppHostReadyAsync");
         Assert.True(host.IsReady);
@@ -91,7 +91,7 @@ public class NativeCliProtocolTests
         var pending = enumerator.MoveNextAsync().AsTask();
         await timeout.CancelAsync();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pending);
-        Assert.Equal(["baseline.v2"], await host.Rpc.InvokeAsync<string[]>("GetCapabilitiesAsync"));
+        Assert.Equal(["baseline.v2", "pipeline-steps.v2"], await host.Rpc.InvokeAsync<string[]>("GetCapabilitiesAsync"));
     }
 
     [Fact]

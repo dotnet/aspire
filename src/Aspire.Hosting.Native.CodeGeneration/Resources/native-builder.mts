@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 import { connectNativeAppHost } from './native-client.mjs';
+import { NativePipeline } from './native-pipeline.mjs';
 import { basename, parse, resolve } from 'node:path';
 import type { ApplicationExecution, ApplicationWorkspace, Composition, DeclaredResource, DeclaredValue } from './aspire.mjs';
 import type { AspireClientRpc } from './transport.mjs';
@@ -17,6 +18,55 @@ export class ExecutableResource extends Resource {
     constructor(name: string, readonly executablePath: string, readonly workingDirectory: string) { super(name); }
 }
 export class ParameterResource extends Resource {}
+export class ComputeEnvironmentResource extends Resource {
+    constructor(name: string, readonly typeId = 'hosting/compute-environment') { super(name); }
+}
+export interface ParameterOptions { secret?: boolean }
+export interface ParameterGenerationOptions {
+    minLength?: number; lower?: boolean; upper?: boolean; numeric?: boolean; special?: boolean;
+    minLower?: number; minUpper?: number; minNumeric?: number; minSpecial?: number;
+}
+
+/** Deployment syntax exported from the authoritative graph, never resolved workload state. */
+export type PublishExpression =
+    { kind: 'literal'; value: string } | { kind: 'parameter'; name: string } |
+    { kind: 'endpoint'; resource: string; endpoint: string; property: 'Host' | 'Port' | 'HostAndPort' | 'Scheme' | 'Url' } |
+    { kind: 'composite'; parts: PublishExpression[] } | { kind: 'uriEncoded'; value: PublishExpression };
+export interface PublishResource {
+    name: string;
+    type: string;
+    kind: 'container' | 'executable' | 'resource';
+    image: string | null;
+    entrypoint: string | null;
+    executable: string | null;
+    workingDirectory: string | null;
+    computeEnvironment?: string | null;
+    environment: Record<string, PublishExpression>;
+    arguments: PublishExpression[];
+    endpoints: { name: string; protocol: string; scheme: string; targetPort: number; hostPort: number; environmentVariable: string; isExternal?: boolean }[];
+    mounts: { kind: string; source: string; target: string; readOnly: boolean }[];
+    dependencies: string[];
+    lifecycle: string[];
+    configuration: Record<string, string>;
+}
+export interface PublishModel {
+    schemaVersion: 1; parameters: string[]; resources: PublishResource[];
+    secretParameters?: string[];
+    parameterDefaults?: Record<string, string>;
+}
+export interface PublishingContext {
+    model: PublishModel;
+    outputPath: string;
+    applicationDirectory: string;
+    environmentName: string;
+    signal: AbortSignal;
+    executionMode?: 'run' | 'publish';
+}
+/** Target implementation lives in the integration, not the model kernel or its executor. */
+export interface DeploymentTarget {
+    publish(context: PublishingContext): Promise<void>;
+    deploy(context: PublishingContext): Promise<void>;
+}
 
 /** Native symbolic syntax: this recorder never reads a credential or resolves an endpoint. */
 export class ReferenceExpression {
@@ -45,7 +95,7 @@ export class EndpointReference {
     readonly host: ReferenceExpression;
     readonly port: ReferenceExpression;
     readonly hostAndPort: ReferenceExpression;
-    constructor(resource: Resource, name: string) {
+    constructor(readonly resource: Resource, readonly name: string) {
         const property = (key: string): ReferenceExpression => new ReferenceExpression(async context =>
             await context.composition.createEndpointValue(context.declaration(resource), name, key));
         this.host = property('host'); this.port = property('port'); this.hostAndPort = property('hostAndPort');
@@ -126,12 +176,62 @@ export class ResourceBuilder<T extends Resource> {
         return this;
     }
     withEndpoint(name: string, targetPort: number, scheme = 'tcp'): this {
-        if (!(this.resource instanceof ContainerResource)) throw new Error('Container endpoints require a container declaration.');
+        if (!(this.resource instanceof ContainerResource || this.resource instanceof ExecutableResource)) {
+            throw new Error('Endpoints require a container or executable declaration.');
+        }
         this.applicationBuilder.record(async context => {
             await context.declaration(this.resource).withEndpoint({
                 name, protocol: 'TCP', uriScheme: scheme, targetPort, hostPort: 0, environmentVariable: ''
             });
         });
+        return this;
+    }
+    withHttpEndpoint(options: { name?: string; targetPort?: number; port?: number; env?: string } = {}): this {
+        if (!(this.resource instanceof ContainerResource || this.resource instanceof ExecutableResource)) {
+            throw new Error('Endpoints require a container or executable declaration.');
+        }
+        const { name = 'http', targetPort = 0, port = 0, env = '' } = options;
+        this.applicationBuilder.record(async context => {
+            await context.declaration(this.resource).withEndpoint({
+                name, protocol: 'TCP', uriScheme: 'http', targetPort, hostPort: port, environmentVariable: env
+            });
+        });
+        return this;
+    }
+    withBindMount(source: string, target: string, options: { isReadOnly?: boolean } = {}): this {
+        if (!(this.resource instanceof ContainerResource)) throw new Error('Bind mounts require a container.');
+        this.applicationBuilder.record(async context => {
+            await context.declaration(this.resource).withBindMount(
+                resolve(this.applicationBuilder.appHostDirectory(), source), target, options.isReadOnly ?? false);
+        });
+        return this;
+    }
+    withExternalHttpEndpoints(): this {
+        this.applicationBuilder.record(async context => {
+            await context.declaration(this.resource).withExternalHttpEndpoints();
+        });
+        return this;
+    }
+    withComputeEnvironment(environment: ResourceBuilder<ComputeEnvironmentResource>): this {
+        this.sameBuilder(environment);
+        if (!(this.resource instanceof ContainerResource || this.resource instanceof ExecutableResource)) {
+            throw new Error('Compute environments require a container or executable workload.');
+        }
+        if (!(environment.resource instanceof ComputeEnvironmentResource)) throw new Error('The target is not a compute environment.');
+        if (this.applicationBuilder.executionContext().isPublishMode()) {
+            this.applicationBuilder.record(async context => {
+                await context.declaration(this.resource).withComputeEnvironment(context.declaration(environment.resource));
+            });
+        }
+        return this;
+    }
+    withPipelineStepFactory(name: string, action: Parameters<NativePipeline['addStep']>[1],
+        options: Parameters<NativePipeline['addStep']>[2] = {}): this {
+        this.applicationBuilder.pipeline().addStep(name, action, { ...options, resource: this.resource.name });
+        return this;
+    }
+    withPipelineConfiguration(configure: Parameters<NativePipeline['configure']>[0]): this {
+        this.applicationBuilder.pipeline().configure(configure, this.resource.name);
         return this;
     }
     getEndpoint(name: string): EndpointReference { return new EndpointReference(this.resource, name); }
@@ -171,6 +271,17 @@ export class ResourceBuilder<T extends Resource> {
                 await context.declaration(this.resource).setSymbolicConfiguration(`health.env.${name}`, await context.value(value));
             }
             await context.declaration(this.resource).withLifecycleExecutable('health', captured.launch(), captured.bindings());
+        });
+        return this;
+    }
+    withPublishConfiguration(name: string, value: string): this {
+        this.applicationBuilder.record(async context => {
+            const resource = context.declaration(this.resource);
+            const current = await resource.inspectResource();
+            await resource.setResourceConfiguration({ properties: [
+                ...(current.configuration ?? []).filter(property => property.name !== `publish.${name}`),
+                { name: `publish.${name}`, value }
+            ] });
         });
         return this;
     }
@@ -217,13 +328,19 @@ function settingsFromArgs(args: readonly string[], options: NativeBuilderOptions
     const settings: NativeBuilderSettings = { options,
         endpoint: process.env.REMOTE_APP_HOST_SOCKET_PATH ?? process.env.ASPIRE_NATIVE_RPC_ENDPOINT,
         volumePrefix: '', providers: new Map(), configuration: {} };
-    let applicationRoot = options.applicationRoot ?? process.cwd(), applicationName = options.applicationName;
+    let applicationRoot = options.applicationRoot ?? process.env.ASPIRE_PROJECT_DIRECTORY ?? process.cwd(), applicationName = options.applicationName;
     let volumePrefix: string | undefined;
     // --native-provider=package=executable[|arg...] keeps process arguments out
     // of shell interpolation. Only the framework consumes activation coordinates.
-    for (const arg of args) {
+    for (let position = 0; position < args.length; position++) {
+        let arg = args[position]!;
+        if (!arg.startsWith('--')) throw new Error('AppHost configuration requires named arguments.');
+        if (!arg.includes('=')) {
+            const next = args[++position];
+            if (next === undefined || next.startsWith('--')) throw new Error(`AppHost configuration '${arg}' requires a value.`);
+            arg = `${arg}=${next}`;
+        }
         const index = arg.indexOf('=');
-        if (index < 0) throw new Error('AppHost configuration requires --name=value.');
         const name = arg.slice(0, index).replace(/^--/, ''), value = arg.slice(index + 1);
         switch (name) {
             case 'native-endpoint': settings.endpoint = value; break;
@@ -237,11 +354,12 @@ function settingsFromArgs(args: readonly string[], options: NativeBuilderOptions
                 const [executable, ...arguments_] = value.slice(split + 1).split('|');
                 settings.providers.set(value.slice(0, split), { executable: executable!, arguments: arguments_ }); break;
             }
-            case 'publish': throw new Error('Native builder publishing is not supported.');
+            case 'publish': throw new Error('The --publish argument is not supported. Use aspire publish or aspire deploy.');
             default: settings.configuration[name] = value; break;
         }
     }
     settings.volumePrefix = volumePrefix ?? defaultVolumePrefix(applicationRoot, applicationName);
+    settings.options = { ...options, applicationRoot: resolve(applicationRoot), applicationName };
     return settings;
 }
 
@@ -251,10 +369,32 @@ export class DistributedApplicationBuilder {
     private readonly configurationCommands: ((context: NativeBuildContext) => Promise<void>)[] = [];
     readonly resources: Resource[] = [];
     readonly providers = new Set<string>();
+    private readonly applicationPipeline = new NativePipeline();
     private built = false;
     readonly configuration: Readonly<Record<string, string>>;
     constructor(readonly settings: NativeBuilderSettings = settingsFromArgs([])) { this.configuration = settings.configuration; }
-    addContainer<T extends ContainerResource>(resource: T): ResourceBuilder<T> {
+    executionContext(): { isPublishMode(): boolean; isRunMode(): boolean } {
+        const publishing = ['publish', 'inspect'].includes(this.configuration.operation ?? 'run');
+        return { isPublishMode: () => publishing, isRunMode: () => !publishing };
+    }
+    pipeline(): NativePipeline { return this.applicationPipeline; }
+    appHostDirectory(): string { return resolve(this.settings.options.applicationRoot ?? process.env.ASPIRE_PROJECT_DIRECTORY ?? process.cwd()); }
+    addComputeEnvironment<T extends ComputeEnvironmentResource>(resource: T): ResourceBuilder<T> {
+        this.ensureMutable();
+        if (this.executionContext().isPublishMode()) {
+            this.add(resource);
+            this.declarations.push(async context => context.bind(resource,
+                await context.composition.addComputeEnvironment(resource.name, resource.typeId)));
+        }
+        return new ResourceBuilder(this, resource);
+    }
+    addContainer(name: string, image: string | { image: string; tag?: string }): ResourceBuilder<ContainerResource>;
+    addContainer<T extends ContainerResource>(resource: T): ResourceBuilder<T>;
+    addContainer(resourceOrName: ContainerResource | string, image?: string | { image: string; tag?: string }): ResourceBuilder<ContainerResource> {
+        const resource = typeof resourceOrName === 'string'
+            ? new ContainerResource(resourceOrName, typeof image === 'string' ? image
+                : image ? image.image + (image.tag ? `:${image.tag}` : '') : (() => { throw new Error('A container image is required.'); })())
+            : resourceOrName;
         this.add(resource);
         this.declarations.push(async context => context.bind(resource, await context.composition.addContainer(resource.name, resource.image)));
         return new ResourceBuilder(this, resource);
@@ -265,12 +405,27 @@ export class DistributedApplicationBuilder {
         this.declarations.push(async context => context.bind(resource, await context.composition.addExecutable(name, executablePath, workingDirectory)));
         return new ResourceBuilder(this, resource);
     }
-    addParameter(name: string, value?: string, secret = true): ResourceBuilder<ParameterResource> {
+    addParameter(name: string, options: ParameterOptions = {}): ResourceBuilder<ParameterResource> {
+        return this.parameter(name, async context => context.composition.addConfiguredParameter(name, options.secret ?? false,
+            this.executionContext().isPublishMode()));
+    }
+    addParameterFromValue(name: string, value: string, options: ParameterOptions & { publishValueAsDefault?: boolean } = {}): ResourceBuilder<ParameterResource> {
+        return this.parameter(name, async context => context.composition.addParameterValue(name, value,
+            options.secret ?? false, options.publishValueAsDefault ?? false));
+    }
+    addParameterWithGeneratedValue(name: string, generation: ParameterGenerationOptions = {},
+        options: ParameterOptions & { persist?: boolean } = {}): ResourceBuilder<ParameterResource> {
+        if (options.persist) throw new Error('Persisted generated parameters are not supported by the native parameter store.');
+        return this.parameter(name, async context => context.composition.addGeneratedParameter(name,
+            JSON.stringify(generation), options.secret ?? false));
+    }
+    private parameter(name: string, materialize: (context: NativeBuildContext) => Promise<DeclaredValue>): ResourceBuilder<ParameterResource> {
         const resource = new ParameterResource(name);
         this.add(resource);
-        this.declarations.unshift(async context => context.bindParameter(resource, secret
-            ? value === undefined ? await context.composition.addGeneratedSecretParameter(name) : await context.composition.addSecretParameter(name, value)
-            : await context.composition.createLiteralValue(value ?? (() => { throw new Error('Nonsecret parameters require a value.'); })())));
+        this.declarations.unshift(async context => {
+            context.bind(resource, await context.composition.addResource(name, 'hosting/parameter'));
+            context.bindParameter(resource, await materialize(context));
+        });
         return new ResourceBuilder(this, resource);
     }
     importParameter(name: string, value: DeclaredValue): ResourceBuilder<ParameterResource> {
@@ -331,9 +486,9 @@ export class NativeApplication {
         return result;
     }
     start(signal?: AbortSignal): Promise<void> {
-        return this.serialize(() => this.startCore(signal));
+        return this.serialize(() => this.startCore(signal, false));
     }
-    private async startCore(signal?: AbortSignal): Promise<void> {
+    private async startCore(signal: AbortSignal | undefined, publishing: boolean): Promise<void> {
         const operation = signal ? AbortSignal.any([signal, this.lifetime.signal]) : this.lifetime.signal;
         operation.throwIfAborted();
         if (this.closed || this.native) throw new Error('Application is already started or disposed.');
@@ -368,8 +523,10 @@ export class NativeApplication {
                 if (!command) throw new Error(`Framework provider configuration is missing for '${packageName}'.`);
                 this.providers.push(await this.native.activateProvider(packageName, command.executable, command.arguments));
             }
-            this.workspace = await this.native.server.createApplicationWorkspace();
-            await this.apply(this.initial, true, operation);
+            if (!publishing) {
+                this.workspace = await this.native.server.createApplicationWorkspace();
+                await this.apply(this.initial, true, operation);
+            }
         } catch (error) {
             try { await this.disposeCore(); }
             catch (cleanup) { throw new AggregateError([error, cleanup], 'Native application startup and cleanup failed.'); }
@@ -387,7 +544,26 @@ export class NativeApplication {
         signal.throwIfAborted();
         const revision = await this.workspace!.beginRevision();
         let context: NativeBuildContext;
-        try { context = await builder.materialize(revision, this.native!.client, signal); }
+        try {
+            context = await builder.materialize(revision, this.native!.client, signal);
+            if (initial && builder.pipeline().hasCustomizations()) {
+                const pipelineContext: PublishingContext = {
+                    model: JSON.parse(await revision.exportPublishModel()), executionMode: 'run',
+                    applicationDirectory: builder.appHostDirectory(), outputPath: builder.appHostDirectory(),
+                    environmentName: builder.configuration.environment ?? 'Development', signal
+                };
+                const pipeline = builder.pipeline();
+                await pipeline.resolve(pipelineContext);
+                await pipeline.register(this.native!.server);
+                let failed = true;
+                try {
+                    await pipeline.execute(this.native!.server, pipelineContext, 'before-start');
+                    failed = false;
+                } finally {
+                    await this.native!.server.completePublishing(failed);
+                }
+            }
+        }
         catch (error) { await this.workspace!.abortRevision(revision); throw error; }
         try { await this.workspace!.commitRevision(revision); }
         catch (error) {
@@ -428,6 +604,10 @@ export class NativeApplication {
         const operation = signal ? AbortSignal.any([signal, controller.signal, this.lifetime.signal]) :
             AbortSignal.any([controller.signal, this.lifetime.signal]);
         try {
+            if (this.initial.executionContext().isPublishMode()) {
+                await this.publish(operation);
+                return;
+            }
             await this.start(operation);
             const selected = this.initial.settings.exitOnCompletion;
             if (selected) {
@@ -445,6 +625,50 @@ export class NativeApplication {
             this.lifetime.signal.removeEventListener('abort', cancel);
             process.removeListener('SIGINT', cancel); process.removeListener('SIGTERM', cancel);
             await this.dispose();
+        }
+    }
+    private async publish(signal: AbortSignal): Promise<void> {
+        const configuration = this.initial.configuration;
+        const selected = configuration.step ?? 'publish';
+        await this.startCore(signal, true);
+        const server = this.native!.server;
+        const session = await server.openApplication();
+        const composition = await session.startGeneration();
+        let failed = false;
+        let registered = false;
+        try {
+            await this.initial.materialize(composition, this.native!.client, signal);
+            const model: PublishModel = JSON.parse(await composition.exportPublishModel());
+            if (model.schemaVersion !== 1) throw new Error('Unsupported deployment model schema.');
+            const applicationDirectory = this.initial.appHostDirectory();
+            const context: PublishingContext = {
+                model, applicationDirectory, signal, environmentName: configuration.environment ?? 'Production',
+                outputPath: resolve(applicationDirectory, configuration['output-path'] ?? 'aspire-output')
+            };
+            const pipeline = this.initial.pipeline();
+            await pipeline.resolve(context);
+            await pipeline.register(server);
+            registered = true;
+            if (configuration.operation !== 'inspect') {
+                await pipeline.execute(server, context, selected);
+            }
+        } catch (error) {
+            failed = true;
+            // Exceptions from tools/providers can contain credentials. Their
+            // implementations own safe diagnostics; the CLI receives a closed status.
+            throw error;
+        } finally {
+            try {
+                await session.retireGeneration(composition);
+            } catch (error) {
+                failed = true;
+                throw error;
+            } finally {
+                if (registered) {
+                    if (configuration.operation !== 'inspect') await server.completePublishing(failed);
+                    if (!signal.aborted) await this.wait(server.waitForPublishingStop(), signal);
+                }
+            }
         }
     }
     dispose(): Promise<void> {

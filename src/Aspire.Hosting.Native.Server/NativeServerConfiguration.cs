@@ -27,6 +27,7 @@ internal sealed record NativeServerConfiguration(
     NativeCliProcessMetadata CliProcess,
     string? GeneratedSdkDirectory)
 {
+    public bool IsPublishing { get; init; }
     public override string ToString() => nameof(NativeServerConfiguration);
 
     public static NativeServerConfiguration Parse(IConfiguration configuration, bool launchedByCli)
@@ -61,7 +62,10 @@ internal sealed record NativeServerConfiguration(
                 configuration["AppHost:BrowserToken"] ?? NewCredential(),
                 configuration["AppHost:DashboardApiKey"] ?? NewCredential(), NewCredential()),
             NativeCliProcessMetadata.Parse(configuration),
-            configuration["ASPIRE_APPHOST_SERVER_V2_SDK_DIRECTORY"]);
+            configuration["ASPIRE_APPHOST_SERVER_V2_SDK_DIRECTORY"])
+        {
+            IsPublishing = configuration["ASPIRE_NATIVE_OPERATION"] is "publish" or "inspect"
+        };
     }
 
     private static string NewCredential() => Convert.ToHexString(RandomNumberGenerator.GetBytes(32));

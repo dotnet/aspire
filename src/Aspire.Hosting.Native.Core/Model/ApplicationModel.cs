@@ -13,6 +13,7 @@ internal sealed class ApplicationModel : IDisposable
     private readonly Dictionary<Guid, Resource> _resources = [];
     private readonly HashSet<string> _names = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, SymbolicValue> _secretParameters = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, ParameterSnapshot> _parameters = new(StringComparer.Ordinal);
     private ApplicationSnapshot? _snapshot;
     private bool _disposed;
     private readonly TimeProvider _timeProvider;
@@ -33,9 +34,13 @@ internal sealed class ApplicationModel : IDisposable
 
     /// <summary>Adds a named resource with a declared ATS type identity.</summary>
     public ResourceHandle AddResource(string name, string typeId) =>
-        NativeDiagnostics.Execute("model.resource.add", null, GenerationId, operation => AddResourceCore(name, typeId, operation), _timeProvider);
+        NativeDiagnostics.Execute("model.resource.add", null, GenerationId, operation => AddResourceCore(name, typeId, false, operation), _timeProvider);
 
-    private ResourceHandle AddResourceCore(string name, string typeId, NativeDiagnostics.Operation operation)
+    /// <summary>Adds a compute environment independently of the integration's resource type name.</summary>
+    public ResourceHandle AddComputeEnvironment(string name, string typeId) =>
+        NativeDiagnostics.Execute("model.resource.add", null, GenerationId, operation => AddResourceCore(name, typeId, true, operation), _timeProvider);
+
+    private ResourceHandle AddResourceCore(string name, string typeId, bool isComputeEnvironment, NativeDiagnostics.Operation operation)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentException.ThrowIfNullOrWhiteSpace(typeId);
@@ -54,7 +59,7 @@ internal sealed class ApplicationModel : IDisposable
                 throw new InvalidOperationException($"Resource '{name}' is already declared.");
             }
             var handle = new ResourceHandle(GenerationId, Guid.NewGuid());
-            _resources.Add(handle.ResourceId, new Resource(handle, name, declaredType));
+            _resources.Add(handle.ResourceId, new Resource(handle, name, declaredType) { IsComputeEnvironment = isComputeEnvironment });
             operation.SetResource(handle.ResourceId);
 
             return handle;
@@ -124,12 +129,69 @@ internal sealed class ApplicationModel : IDisposable
         lock (_gate)
         {
             EnsureMutable();
-            if (_secretParameters.Count >= 64 || !_secretParameters.TryAdd(name, parameter))
+            if (_secretParameters.Count + _parameters.Count >= 64 || _parameters.ContainsKey(name) || !_secretParameters.TryAdd(name, parameter))
             {
                 throw new ArgumentException("The secret parameter is duplicate or exceeds capacity.");
             }
 
             return parameter;
+        }
+    }
+
+    /// <summary>Declares a configuration parameter and whether its value may be published as a default.</summary>
+    public SymbolicValue AddParameter(string name, string value, bool hasDefault)
+    {
+        var parameter = SymbolicValue.Parameter(GenerationId, name, value);
+        lock (_gate)
+        {
+            EnsureMutable();
+            if (_secretParameters.Count + _parameters.Count >= 64 || _secretParameters.ContainsKey(name) ||
+                !_parameters.TryAdd(name, new(parameter, hasDefault)))
+            {
+                throw new ArgumentException("The parameter is duplicate or exceeds capacity.");
+            }
+
+            return parameter;
+        }
+    }
+
+    /// <summary>Declares a deployment input without reading a value on the authoring machine.</summary>
+    public SymbolicValue AddUnboundParameter(string name, bool secret)
+    {
+        var parameter = SymbolicValue.UnboundParameter(GenerationId, name, secret);
+        lock (_gate)
+        {
+            EnsureMutable();
+            if (_secretParameters.Count + _parameters.Count >= 64 || _secretParameters.ContainsKey(name) || _parameters.ContainsKey(name))
+            {
+                throw new ArgumentException("The parameter is duplicate or exceeds capacity.");
+            }
+            if (secret)
+            {
+                _secretParameters.Add(name, parameter);
+            }
+            else
+            {
+                _parameters.Add(name, new(parameter, false));
+            }
+
+            return parameter;
+        }
+    }
+
+    /// <summary>Assigns compute to an environment without introducing a runtime readiness edge.</summary>
+    public void SetComputeEnvironment(ResourceHandle resource, ResourceHandle environment)
+    {
+        lock (_gate)
+        {
+            EnsureMutable();
+            var compute = GetResource(resource);
+            var target = GetResource(environment);
+            if (resource == environment || compute.Workload is null || !target.IsComputeEnvironment)
+            {
+                throw new ArgumentException("Compute assignment requires a workload and a distinct declared compute environment.");
+            }
+            compute.ComputeEnvironment = environment;
         }
     }
 
@@ -149,6 +211,11 @@ internal sealed class ApplicationModel : IDisposable
             }
             if (value.SecretParameters.Any(parameter => !_secretParameters.TryGetValue(parameter.ParameterName, out var declared) ||
                 !ReferenceEquals(parameter, declared)))
+            {
+                throw new ArgumentException("The symbolic parameter is not declared in this composition.");
+            }
+            if (value.Parameters.Where(parameter => !parameter.IsSecret).Any(parameter =>
+                !_parameters.TryGetValue(parameter.ParameterName, out var declared) || !ReferenceEquals(parameter, declared.Value)))
             {
                 throw new ArgumentException("The symbolic parameter is not declared in this composition.");
             }
@@ -239,6 +306,7 @@ internal sealed class ApplicationModel : IDisposable
             _resources.Clear();
             _names.Clear();
             _secretParameters.Clear();
+            _parameters.Clear();
             _snapshot = null;
         }
     }
@@ -304,7 +372,8 @@ internal sealed class ApplicationModel : IDisposable
     private ApplicationSnapshot CreateSnapshot() => new(GenerationId,
         _resources.Values.OrderBy(resource => resource.Name, StringComparer.Ordinal).Select(Snapshot).ToImmutableArray())
     {
-        SecretParameters = _secretParameters.Values.ToImmutableArray()
+        SecretParameters = _secretParameters.Values.ToImmutableArray(),
+        Parameters = _parameters.Values.ToImmutableArray()
     };
 
     private ResourceSnapshot Snapshot(Resource resource) => new(resource.Handle, resource.Name, resource.TypeId.Value,
@@ -313,6 +382,8 @@ internal sealed class ApplicationModel : IDisposable
             .Select(dependency => dependency.Handle).ToImmutableArray(), resource.Configuration)
     {
         Workload = resource.Workload,
+        ComputeEnvironment = resource.ComputeEnvironment,
+        IsComputeEnvironment = resource.IsComputeEnvironment,
         ProviderLifecycle = resource.ProviderLifecycle,
         SymbolicConfiguration = resource.SymbolicConfiguration.OrderBy(pair => pair.Key, StringComparer.Ordinal)
             .Select(pair => new SymbolicConfigurationEntry(pair.Key, pair.Value)).ToImmutableArray()
@@ -326,7 +397,11 @@ internal sealed class ApplicationModel : IDisposable
         lock (_gate)
         {
             EnsureMutable();
-            Runtime.WorkloadDefinition.Validate(workload.Plan);
+            if (GetResource(handle).IsComputeEnvironment)
+            {
+                throw new ArgumentException("A compute environment cannot declare a local workload.");
+            }
+            Runtime.WorkloadDefinition.ValidateDeclaration(workload.Plan);
             workload.Bindings.Validate(workload.Plan);
             GetResource(handle).Workload = workload;
         }
@@ -342,7 +417,7 @@ internal sealed class ApplicationModel : IDisposable
             var resource = GetResource(handle);
             var current = resource.Workload ?? throw new InvalidOperationException("The resource has no declared workload.");
             var (workload, configuration) = mutation(current);
-            Runtime.WorkloadDefinition.Validate(workload.Plan);
+            Runtime.WorkloadDefinition.ValidateDeclaration(workload.Plan);
             workload.Bindings.Validate(workload.Plan);
             // Validate the complete plan before changing symbolic state so a failed
             // workload or value validation cannot leave a partially applied binding.
@@ -378,6 +453,8 @@ internal sealed class ApplicationModel : IDisposable
         public ImmutableArray<ResourceConfigurationEntry> Configuration { get; set; } = [];
         public Dictionary<string, SymbolicValue> SymbolicConfiguration { get; } = new(StringComparer.Ordinal);
         public DeclaredWorkload? Workload { get; set; }
+        public ResourceHandle? ComputeEnvironment { get; set; }
+        public bool IsComputeEnvironment { get; init; }
         public ImmutableArray<Runtime.ProviderLifecycleBinding> ProviderLifecycle { get; set; } = [];
     }
 }

@@ -15,7 +15,8 @@ declare module './native-builder.mjs' {
 
 // Importing the integration installs its typed authoring contribution. Generated
 // projection calls remain private to this bridge, not ordinary AppHosts.
-DistributedApplicationBuilder.prototype.addRedis = function (this: DistributedApplicationBuilder, name: string, password = this.addParameter(`${name}-password`)) {
+DistributedApplicationBuilder.prototype.addRedis = function (this: DistributedApplicationBuilder, name: string,
+    password = this.addParameterWithGeneratedValue(`${name}-password`, {}, { secret: true })) {
     const credential = password.asReference();
     const cache = this.addIntegrationResource(new RedisContainerResource(name), 'example.ts.redis', async context => {
         const provider = new IntegrationClient(context.client);

@@ -16,18 +16,20 @@ if [[ "$(node -p 'Number(process.versions.node.split(".")[0])')" -lt 24 ]]; then
     exit 1
 fi
 docker info >/dev/null
+docker compose version >/dev/null
 if [[ "$rid" == osx-* && "$(xcode-select -p)" == */CommandLineTools ]]; then
     # NativeAOT otherwise probes xcodebuild to choose a linker. Command Line Tools
     # provide clang and the SDK but not xcodebuild; select their modern linker explicitly.
     export UseLdClassicXCodeLinker=false
 fi
 
-# All preparation is confined to this lane's artifacts. Never borrow an existing
+# Build outputs and evidence are confined to this lane's artifacts. Never borrow an existing
 # published server, SDK or AppHost fixture: stale local artifacts can hide regressions.
 work="$repo_root/artifacts/native-hosting/ci"
 rm -rf "$work"
-mkdir -p "$work/logs" "$work/scratch" "$work/runtime-sdk" "$work/cli-apphost/.aspire/modules"
-export TMPDIR="$work/scratch"
+mkdir -p "$work/logs" "$work/runtime-sdk" "$work/cli-apphost/.aspire/modules"
+# Keep transient IPC in the system temp directory: repository paths can exceed
+# the platform's Unix-domain socket limit.
 export PLAYWRIGHT_BROWSERS_PATH="$work/browser"
 export MSBUILDTERMINALLOGGER=false
 export DOTNET_NOLOGO=1
@@ -46,6 +48,9 @@ run_logged restore ./restore.sh
 # The native core, server, build-time generator and AOT smoke host target net11.
 # Keep the published executable on the same runtime as its regression suite.
 run_logged cli-build dotnet build src/Aspire.Cli/Aspire.Cli.csproj -c Debug
+run_logged managed-publish dotnet publish src/Aspire.Managed/Aspire.Managed.csproj \
+    -c Debug -r "$rid" --self-contained true -o "$work/managed"
+run_logged terminalhost-build dotnet build src/Aspire.TerminalHost/Aspire.TerminalHost.csproj -c Debug
 run_logged dashboard-build dotnet build src/Aspire.Dashboard/Aspire.Dashboard.csproj -c Debug
 run_logged dcp-build dotnet build "eng/dcppack/Aspire.Hosting.Orchestration.$rid.csproj" -c Debug
 run_logged server-publish dotnet publish src/Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Server.csproj \
@@ -69,6 +74,22 @@ test -x "$cli"
 test -x "$ASPIRE_NATIVE_DCP_PATH"
 test -f "$ASPIRE_NATIVE_DASHBOARD_DLL"
 
+# Provider-backed publishing uses the bundle's real offline codegen worker. Keep
+# all layout components genuine even though publishing must not start DCP,
+# Dashboard or terminal host.
+layout="$work/compose-layout"
+mkdir -p "$layout/terminalhost"
+ln -s "$work/managed" "$layout/managed"
+ln -s "$(dirname "$ASPIRE_NATIVE_DASHBOARD_DLL")" "$layout/dashboard"
+ln -s "$(dirname "$ASPIRE_NATIVE_DCP_PATH")" "$layout/dcp"
+ln -s "$work/server" "$layout/apphost-server"
+terminal_dll="$(dotnet msbuild src/Aspire.TerminalHost/Aspire.TerminalHost.csproj -nologo -getProperty:TargetPath)"
+terminal_dir="$(dirname "$terminal_dll")"
+terminal_library=libhex1binterop.so
+if [[ "$rid" == osx-* ]]; then terminal_library=libhex1binterop.dylib; fi
+ln -s "$terminal_dir/Aspire.TerminalHost" "$layout/terminalhost/Aspire.TerminalHost"
+ln -s "$terminal_dir/runtimes/$rid/native/$terminal_library" "$layout/terminalhost/$terminal_library"
+
 run_logged product-cli-tests env ASPIRE_NATIVE_PRODUCT_CLI="$cli" \
     ASPIRE_NATIVE_CSHARP_TEST_SERVER="$work/server/Aspire.Hosting.Native.Server" \
     dotnet test --project tests/Aspire.Hosting.Native.Core.Tests/Aspire.Hosting.Native.Core.Tests.csproj --no-build --no-launch-profile -- \
@@ -81,6 +102,7 @@ generated="$repo_root/artifacts/obj/Aspire.Hosting.Native.Server/Release/native-
 cp "$generated/"*.mts "$sdk/"
 cp "$generated/contract.json" "$sdk/"
 cp "$fixtures/"*.mts "$sdk/"
+cp playground/NativeIntegrations/TypeScript/DockerCompose/docker-compose*.mts "$sdk/"
 # Install only the smoke dependencies before copying the template manifest, so its
 # unrelated development tools are not installed. No repository manifest/lock is edited.
 run_logged npm-install npm install --prefix "$sdk" --no-save --package-lock=false \
@@ -93,6 +115,10 @@ fi
 run_logged browser-install "$sdk/node_modules/.bin/playwright" "${browser_args[@]}"
 run_logged sdk-compile "$sdk/node_modules/.bin/tsc" --module NodeNext --moduleResolution NodeNext \
     --target ES2022 --strict --skipLibCheck --esModuleInterop --outDir "$sdk/out" "$sdk/"*.mts
+run_logged typescript-compose-provider-tests node --test "$sdk/out/docker-compose.test.mjs"
+run_logged typescript-pipeline-tests node --test "$sdk/out/native-pipeline.test.mjs"
+run_logged compose-publish-deploy-smoke env ASPIRE_LAYOUT_PATH="$layout" \
+    node "$sdk/out/NativeComposeSmoke.mjs" "$cli" "$work/server/Aspire.Hosting.Native.Server" "$repo_root" "$work/compose-apphosts"
 run_logged rpc-authoring-projection-tests env ASPIRE_NATIVE_CSHARP_TEST_SERVER="$work/server/Aspire.Hosting.Native.Server" \
     ASPIRE_NATIVE_RPC_AUTHORING_TYPESCRIPT="$sdk/out/NativeRpcAuthoringSmoke.mjs" \
     ASPIRE_NATIVE_SYMBOLIC_TEST_NODE="$(command -v node)" \

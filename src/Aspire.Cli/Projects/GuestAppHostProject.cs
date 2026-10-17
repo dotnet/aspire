@@ -1415,10 +1415,6 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
         {
             // Step 1: Load config - source of truth for SDK version and packages
             var config = LoadConfiguration(directory);
-            if (KnownFeatures.IsAppHostServerV2Enabled(config))
-            {
-                throw new NotSupportedException("AppHost Server v2 supports run, not publishing. Disable features.appHostServerV2 to use the managed server.");
-            }
             var integrations = await GetIntegrationReferencesAsync(config, directory, cancellationToken);
             var sdkVersion = GetPrepareSdkVersion(config);
             var appHostServerProject = await _appHostServerProjectFactory.CreateAsync(directory.FullName, appHostFile, cancellationToken);
@@ -1447,6 +1443,12 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
                 includeLaunchProfileEnvironmentVariables: false,
                 args: context.Arguments);
             launchSettingsEnvVars[KnownConfigNames.AspireHome] = _executionContext.AspireHomeDirectory.FullName;
+            if (KnownFeatures.IsAppHostServerV2Enabled(config))
+            {
+                // The native server has no guest command line. Project the operation into its
+                // session before bootstrap so neither publish nor inspect starts local workloads.
+                launchSettingsEnvVars[NativeAppHostServerProject.OperationEnvironmentVariable] = GetNativePublishOperation(context.Arguments);
+            }
 
             // Generate a backchannel socket path for CLI to connect to AppHost server
             var backchannelSocketPath = GetBackchannelSocketPath();
@@ -1654,6 +1656,25 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
             _interactionService.DisplayError($"Failed to publish {DisplayName} AppHost: {ex.Message}");
             return CliExitCodes.FailedToDotnetRunAppHost;
         }
+    }
+
+    private static string GetNativePublishOperation(string[] arguments)
+    {
+        // Pipeline inspection appends "--operation inspect" after the publish/deploy arguments.
+        // Honor the last operation, including the equivalent "--operation=inspect" spelling.
+        for (var i = arguments.Length - 1; i >= 0; i--)
+        {
+            if (arguments[i].StartsWith("--operation=", StringComparison.Ordinal))
+            {
+                return arguments[i]["--operation=".Length..];
+            }
+            if (arguments[i] == "--operation" && i + 1 < arguments.Length)
+            {
+                return arguments[i + 1];
+            }
+        }
+
+        return "publish";
     }
 
     /// <summary>

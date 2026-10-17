@@ -6,7 +6,7 @@ import { CapabilityError } from './transport.mjs';
 
 async function compose(operation: string, password: string) {
     const builder = await createBuilder();
-    const credential = builder.addParameter('cache-password', password);
+    const credential = builder.addParameterFromValue('cache-password', password, { secret: true });
     const cache = await builder.addRedis('cache', credential).withDataVolume(builder.configuration['data-volume']!);
     const consumer = await builder.addExecutable('consumer', process.execPath, process.cwd())
         .withArgs(builder.configuration['consumer-path']!, '--redis-consume', operation)

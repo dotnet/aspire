@@ -7,6 +7,7 @@ using Aspire.Cli.Layout;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Tests.Mcp;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Tests.Acquisition;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Shared;
@@ -16,6 +17,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Cli.Tests.Projects;
 
+[Collection(EnvVarMutatingTestCollection.Name)]
 public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
 {
     [Fact]
@@ -132,6 +134,7 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
         await File.WriteAllTextAsync(executable, "");
         var factory = new TestProcessExecutionFactory();
         string? directory = null;
+        List<string> socketPaths = [];
         factory.CreateExecutionFromStartInfoCallback = (start, options) =>
         {
             Assert.Equal(executable, start.FileName);
@@ -141,6 +144,7 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
             if (!OperatingSystem.IsWindows())
             {
                 directory = Path.GetDirectoryName(start.Environment["REMOTE_APP_HOST_SOCKET_PATH"])!;
+                socketPaths.Add(start.Environment["REMOTE_APP_HOST_SOCKET_PATH"]!);
                 Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute, File.GetUnixFileMode(directory));
             }
             else
@@ -160,7 +164,7 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
             await result.Execution.DisposeAsync();
             if (!OperatingSystem.IsWindows())
             {
-                Assert.Equal(Path.Combine(directory!, "apphost-1.sock"), result.SocketPath);
+                Assert.InRange(System.Text.Encoding.UTF8.GetByteCount(result.SocketPath), 1, 104);
                 await File.WriteAllTextAsync(result.SocketPath, "stale bootstrap socket");
             }
             var finalSession = await project.RunAsync(42,
@@ -169,12 +173,12 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
             Assert.NotEqual(result.SocketPath, finalSession.SocketPath);
             if (!OperatingSystem.IsWindows())
             {
-                Assert.Equal(Path.Combine(directory!, "apphost-2.sock"), finalSession.SocketPath);
+                Assert.Equal(directory, Path.GetDirectoryName(finalSession.SocketPath));
                 Assert.True(File.Exists(result.SocketPath));
             }
             await finalSession.Execution.DisposeAsync();
         }
-        Assert.False(Directory.Exists(directory));
+        Assert.All(socketPaths, path => Assert.False(File.Exists(path)));
     }
 
     [Fact]
@@ -214,8 +218,11 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
         await result.Execution.DisposeAsync();
     }
 
-    [Fact]
-    public async Task BootstrapDoesNotLaunchBundledRuntimeComponents()
+    [Theory]
+    [InlineData("run")]
+    [InlineData("publish")]
+    [InlineData("inspect")]
+    public async Task BootstrapDoesNotLaunchBundledRuntimeComponents(string operation)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var executable = Path.Combine(workspace.Path, "server");
@@ -226,7 +233,9 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
             Assert.False(start.Environment.ContainsKey("ASPIRE_NATIVE_DCP_PATH"));
             Assert.False(start.Environment.ContainsKey("ASPIRE_DASHBOARD_PATH"));
             Assert.False(start.Environment.ContainsKey("ASPIRE_NATIVE_DASHBOARD_PORT"));
+            Assert.False(start.Environment.ContainsKey("AppHost__FilePath"));
             Assert.False(start.Environment.ContainsKey(KnownConfigNames.UnixSocketPath));
+            Assert.Equal(operation, start.Environment[NativeAppHostServerProject.OperationEnvironmentVariable]);
             return new TestProcessExecution(start.FileName, [], null, options,
                 (_, _, _) => Task.FromResult((0, (string?)null)), () => 1);
         };
@@ -238,11 +247,85 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
         var result = await project.RunAsync(42, new Dictionary<string, string>
         {
             [KnownConfigNames.IntegrationHostBootstrap] = "true",
+            [NativeAppHostServerProject.OperationEnvironmentVariable] = operation,
             ["ASPIRE_NATIVE_DCP_PATH"] = "inherited-dcp",
             ["ASPIRE_DASHBOARD_PATH"] = "inherited-dashboard",
             ["ASPIRE_NATIVE_DASHBOARD_PORT"] = "0",
+            ["AppHost__FilePath"] = "apphost.mts",
             [KnownConfigNames.UnixSocketPath] = "final-backchannel"
         }, [], false, null);
+        await result.Execution.DisposeAsync();
+    }
+
+    [Theory]
+    [InlineData("publish", false, false)]
+    [InlineData("publish", false, true)]
+    [InlineData("publish", true, false)]
+    [InlineData("publish", true, true)]
+    [InlineData("inspect", false, false)]
+    [InlineData("inspect", false, true)]
+    [InlineData("inspect", true, false)]
+    [InlineData("inspect", true, true)]
+    [InlineData("run", false, false)]
+    [InlineData("run", false, true)]
+    [InlineData("run", true, false)]
+    [InlineData("run", true, true)]
+    public async Task SessionOperationControlsRuntimeComponents(string operation, bool useLayout, bool useSessionPaths)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var executable = Path.Combine(workspace.Path, "server");
+        await File.WriteAllTextAsync(executable, "");
+        using var inheritedOperation = new EnvVarOverride(NativeAppHostServerProject.OperationEnvironmentVariable, "inspect");
+        using var inheritedDcp = new EnvVarOverride("ASPIRE_NATIVE_DCP_PATH", "ambient-dcp");
+        using var inheritedDashboard = new EnvVarOverride("ASPIRE_DASHBOARD_PATH", "ambient-dashboard");
+        using var inheritedPort = new EnvVarOverride("ASPIRE_NATIVE_DASHBOARD_PORT", "1234");
+        var layout = new LayoutConfiguration { LayoutPath = workspace.Path };
+        var factory = new TestProcessExecutionFactory();
+        factory.CreateExecutionFromStartInfoCallback = (start, options) =>
+        {
+            Assert.Equal(["server", "--contentRoot", workspace.Path], start.ArgumentList);
+            Assert.Equal(operation, start.Environment[NativeAppHostServerProject.OperationEnvironmentVariable]);
+            Assert.Equal("final-backchannel", start.Environment[KnownConfigNames.UnixSocketPath]);
+            Assert.Equal("apphost.mts", start.Environment["AppHost__FilePath"]);
+            if (operation == "run")
+            {
+                Assert.Equal(useLayout ? BundleDiscovery.GetDcpExecutablePath(layout.GetDcpPath()!)
+                    : useSessionPaths ? "session-dcp" : "ambient-dcp", start.Environment["ASPIRE_NATIVE_DCP_PATH"]);
+                Assert.Equal(useLayout ? layout.GetDashboardPath()
+                    : useSessionPaths ? "session-dashboard" : "ambient-dashboard", start.Environment["ASPIRE_DASHBOARD_PATH"]);
+                Assert.Equal(useLayout ? "0" : useSessionPaths ? "5678" : "1234", start.Environment["ASPIRE_NATIVE_DASHBOARD_PORT"]);
+            }
+            else
+            {
+                Assert.False(start.Environment.ContainsKey("ASPIRE_NATIVE_DCP_PATH"));
+                Assert.False(start.Environment.ContainsKey("ASPIRE_DASHBOARD_PATH"));
+                Assert.False(start.Environment.ContainsKey("ASPIRE_NATIVE_DASHBOARD_PORT"));
+            }
+            return new TestProcessExecution(start.FileName, [], null, options,
+                (_, _, _) => Task.FromResult((0, (string?)null)), () => 1);
+        };
+        using var project = new NativeAppHostServerProject(workspace.Path, executable, factory, NullLogger.Instance)
+        {
+            LayoutLease = useLayout ? new BundleLayoutLease(layout, null) : null
+        };
+        var environment = new Dictionary<string, string>
+        {
+            [KnownConfigNames.UnixSocketPath] = "final-backchannel",
+            ["AppHost__FilePath"] = "apphost.mts"
+        };
+        if (operation != "run")
+        {
+            environment[NativeAppHostServerProject.OperationEnvironmentVariable] = operation;
+        }
+        if (useSessionPaths)
+        {
+            environment["ASPIRE_NATIVE_DCP_PATH"] = "session-dcp";
+            environment["ASPIRE_DASHBOARD_PATH"] = "session-dashboard";
+            environment["ASPIRE_NATIVE_DASHBOARD_PORT"] = "5678";
+        }
+
+        var result = await project.RunAsync(42, environment, [], false, null);
+
         await result.Execution.DisposeAsync();
     }
 
