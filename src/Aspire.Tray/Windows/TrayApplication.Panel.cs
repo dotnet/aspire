@@ -587,16 +587,65 @@ internal sealed unsafe partial class TrayApplication
             }
             else
             {
-                // DT_SINGLELINE | DT_VCENTER, with DT_PATH_ELLIPSIS (0x4000) for middle truncation,
-                // which keeps the last path component, or DT_END_ELLIPSIS (0x8000).
-                format |= 0x20 | 0x4 | (text.Truncation == PanelTruncation.Middle ? 0x4000u : 0x8000u);
+                // DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS (0x8000).
+                format |= 0x20 | 0x4 | 0x8000;
             }
-            NativeMethods.DrawText(dc, text.Text, text.Text.Length, ref rect, format);
+            var value = text.MaxLines <= 1 && text.Truncation == PanelTruncation.Middle
+                ? FitMiddle(dc, text.Text, rect.Right - rect.Left)
+                : text.Text;
+            NativeMethods.DrawText(dc, value, value.Length, ref rect, format);
         }
         finally
         {
             NativeMethods.SelectObject(dc, previous);
         }
+    }
+
+    // Middle truncation that matches AppKit's NSLineBreakByTruncatingMiddle: keep both ends of
+    // "Running · C:\work\shop\AppHost" and replace the middle with an ellipsis. DT_PATH_ELLIPSIS
+    // is not equivalent: it always keeps the text after the last backslash, so on a narrow row
+    // it shrinks the status prefix to "Ru…" while the path tail stays intact.
+    private static string FitMiddle(nint dc, string value, int width)
+    {
+        if (MeasureText(dc, value) <= width)
+        {
+            return value;
+        }
+
+        // Cut on text-element boundaries so a surrogate pair or combining sequence stays whole.
+        var elements = System.Globalization.StringInfo.ParseCombiningCharacters(value);
+        string Build(int keep)
+        {
+            var tail = keep / 2;
+            var head = keep - tail;
+            return value[..(head < elements.Length ? elements[head] : value.Length)] + "\u2026" +
+                (tail == 0 ? string.Empty : value[elements[^tail]..]);
+        }
+
+        // Binary search the largest number of kept text elements that still fits.
+        var low = 0;
+        var high = elements.Length - 1;
+        while (low < high)
+        {
+            var middle = (low + high + 1) / 2;
+            if (MeasureText(dc, Build(middle)) <= width)
+            {
+                low = middle;
+            }
+            else
+            {
+                high = middle - 1;
+            }
+        }
+        return Build(low);
+    }
+
+    private static int MeasureText(nint dc, string value)
+    {
+        var rect = new NativeMethods.Rect();
+        // DT_CALCRECT | DT_SINGLELINE | DT_NOPREFIX measures with the font selected into dc.
+        NativeMethods.DrawText(dc, value, value.Length, ref rect, 0x400 | 0x20 | 0x800);
+        return rect.Right - rect.Left;
     }
 
     private void DrawPanelLogo(nint dc, PanelRect bounds)
