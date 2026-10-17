@@ -28,7 +28,7 @@ internal static class ComposeTestApplication
             });
         cache.WithConnectionString(ReferenceExpression.Create("redis://:", password.AsReference().EncodeUri(), "@",
             cache.GetEndpoint("tcp").HostAndPort));
-        builder.AddExecutable("web", "/deployment-only/node", Path.Combine(root, "web"))
+        builder.AddExecutable("web", Path.Combine(root, "deployment-only", "node"), Path.Combine(root, "web"))
             .WithArgs("server.mts")
             .WithReference(cache)
             .WithEndpoint("http", 8080, "http")
