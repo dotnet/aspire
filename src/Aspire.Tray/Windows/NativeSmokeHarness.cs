@@ -31,12 +31,10 @@ internal sealed class NativeSmokeHarness
     private int _lastLoggedPhase = -1;
     private int _dashboardCalls;
     private int _documentationCalls;
-    private int _confirmations;
     private int _errors;
     private readonly List<string> _copiedPaths = [];
     private bool _accept;
     private bool _finished;
-    private bool _replaceDuringConfirmation;
     private bool _tooltipSelectionRequested;
     private bool _tooltipHideRequested;
     private int _retainedStop;
@@ -102,20 +100,7 @@ internal sealed class NativeSmokeHarness
             {
                 Require(flags == NativeMethods.SafeConfirmation && (flags & 0x100) != 0, "Confirmation must default to Cancel.");
                 Require(!string.IsNullOrWhiteSpace(title) && !string.IsNullOrWhiteSpace(detail), "Confirmation has no context.");
-                if (title == "Stop AppHost")
-                {
-                    Require(!detail.Contains(_directory.FullName, StringComparison.Ordinal)
-                        && detail.Contains("PID", StringComparison.Ordinal)
-                        && detail.Contains("running resources", StringComparison.Ordinal),
-                        "Stop confirmation must explain its consequence without the AppHost path.");
-                }
-                _confirmations++;
-                if (_replaceDuringConfirmation)
-                {
-                    _replaceDuringConfirmation = false;
-                    Publish([Replacement(_hosts[0]), Replacement(_hosts[1]), _hosts[2], _hosts[3]]);
-                    _application.DialogReadyForSmoke = () => _controller.State.AppHosts.Any(host => host.Id == Replacement(_hosts[1]).Id);
-                }
+                Require(title != "Stop AppHost", "Stop must not ask for confirmation.");
                 return _accept;
             },
             ErrorForSmoke = error =>
@@ -200,12 +185,6 @@ internal sealed class NativeSmokeHarness
                 Require(_documentationCalls == 1, "Documentation did not use aspire.dev.");
                 _application.ShowMessageForSmoke();
                 _retainedStop = _application.CaptureActionForSmoke("Stop", _hosts[0].Id);
-                _application.SuppressStopForSmoke = true;
-                _application.InvokeActionForSmoke(_retainedStop);
-                Require(_confirmations == 1, "The stop confirmation was not shown exactly once.");
-                Require(_client.Stops.IsEmpty, "Cancel dispatched a stop operation.");
-                Require(_controller.ConfirmStop && _store.Load().ConfirmStop, "Cancel persisted the suppression checkbox.");
-                _application.SuppressStopForSmoke = false;
                 Invoke("TogglePin", _hosts[0].Id);
                 Require(_controller.State.AppHosts.Single(host => host.Id == _hosts[0].Id).IsPinned, "Pin action did not persist.");
                 _accept = true;
@@ -264,20 +243,16 @@ internal sealed class NativeSmokeHarness
                 }
                 _application.VerifyNoTooltipForSmoke();
                 _application.InvokeActionForSmoke(_retainedStop);
-                Require(_errors == 1 && _confirmations == 2 && _client.Stops.Count == 1, "A stale sender stopped or confirmed a replacement lifetime.");
+                Require(_errors == 1 && _client.Stops.Count == 1, "A stale sender stopped a replacement lifetime.");
                 _application.SelectMenuDetailsForSmoke(_hosts[0].Id, details: true);
                 _phase = 5;
                 _application.EndTrackingForSmoke();
                 break;
             case 5:
                 _application.VerifyNativeStateForSmoke();
-                _replaceDuringConfirmation = true;
-                _application.SuppressStopForSmoke = true;
-                Invoke("Stop", _hosts[1].Id);
-                Require(_errors == 2 && _client.Stops.Count == 1, "A lifetime replaced during a native confirmation was stopped.");
-                Require(_controller.ConfirmStop && _store.Load().ConfirmStop, "A stale confirmation changed the saved preference.");
+                // Stopping isn't confirmed: the request goes out at once.
                 Invoke("Stop", _hosts[2].Id);
-                Require(!_controller.ConfirmStop && !_store.Load().ConfirmStop, "Accepted Stop did not persist the suppression checkbox.");
+                Require(_client.Stops.Count == 2, "Stop did not send its request without a dialog.");
                 var missing = state.RecentAppHosts.Single(host => TrayAppHostPath.Comparer.Equals(host.Id.AppHostPath, _missing));
                 _accept = false;
                 Invoke("Start", missing.Id);
@@ -314,9 +289,6 @@ internal sealed class NativeSmokeHarness
                 }
                 Require(_store.Load().AppHosts.All(host => !TrayAppHostPath.Comparer.Equals(host.AppHostPath, _missingPin)),
                     "Missing offline pin was not persistently pruned.");
-                var confirmations = _confirmations;
-                Invoke("Stop", _hosts[3].Id);
-                Require(_confirmations == confirmations, "Stop prompted despite the saved opt-out.");
                 _application.RestartExplorerForSmoke();
                 _oldIcon = _application.IconForSmoke;
                 _application.InvalidateArtworkForSmoke();
@@ -372,13 +344,12 @@ internal sealed class NativeSmokeHarness
                 Require(state.AppHosts.All(host => !host.CanStop && !host.CanStart), "Disconnected rows allow lifecycle actions.");
                 _finished = true;
                 _phase = 13;
-                Program.Log("Windows native smoke passed: AppHost health icons, Documentation/Settings command icons, running AppHost dashboard actions, divided actions, separate status/path details, full-value details tooltips, live/stale refresh, tooltip focus/dismissal, compact names without status suffixes, menu tracking, immutable actions, native stop checkbox/opt-out, original-case Copy path, pins/history, discovery icons, artwork invalidation, Explorer recovery, activation, terminal arguments, compact modeless Settings with About logo and isolated startup preferences.");
+                Program.Log("Windows native smoke passed: AppHost health icons, Documentation/Settings command icons, running AppHost dashboard actions, divided actions, separate status/path details, full-value details tooltips, live/stale refresh, tooltip focus/dismissal, compact names without status suffixes, menu tracking, immutable actions, unconfirmed native Stop, original-case Copy path, pins/history, discovery icons, artwork invalidation, Explorer recovery, activation, terminal arguments, compact modeless Settings with About logo and isolated startup preferences.");
                 Program.Log("Not covered by synthetic smoke: real per-monitor DPI transitions; verify these on the Windows desktop.");
                 if (_interactiveSmoke)
                 {
                     // Keep the isolated fake client/store; never connect preview gestures
                     // to a real CLI or the account's startup registration.
-                    _controller.SetConfirmStop(true);
                     Publish(_hosts.Select(host => host with
                     {
                         ProcessStartTimeUnixMilliseconds = host.ProcessStartTimeUnixMilliseconds + 1000

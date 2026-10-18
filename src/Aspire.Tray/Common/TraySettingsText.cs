@@ -18,8 +18,6 @@ internal static class TraySettingsText
     internal const string StartupDescription = "Keep Aspire available in the notification area.";
     internal const string PanelTitle = "Settings";
     internal const string PanelStartupOption = "Launch at sign-in";
-    internal const string ConfirmStopOption = "Confirm before stopping";
-    internal const string ConfirmStopDescription = "Ask before stopping an AppHost.";
     internal const string StableNativeInstallationRequired = "Launch at sign-in requires a stable native CLI installation.";
 
     internal static string GetAboutText(bool preview)

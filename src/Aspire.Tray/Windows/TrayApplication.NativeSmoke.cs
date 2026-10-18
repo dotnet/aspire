@@ -19,7 +19,6 @@ internal sealed unsafe partial class TrayApplication
     internal IReadOnlyList<AppHostId> RowIdsForSmoke => _menu!.Rows.Select(row => row.Id).ToArray();
     internal Func<bool>? DialogReadyForSmoke { get; set; }
     internal int IconAddFailuresForSmoke { get; set; }
-    internal bool SuppressStopForSmoke { get; set; }
 
     private void ProbeRegistrationForSmoke()
     {
@@ -79,9 +78,9 @@ internal sealed unsafe partial class TrayApplication
         {
             return;
         }
-        if (_taskDialogRequest is { } request)
+        if (_taskDialogRequest is not null)
         {
-            CompleteTaskDialogForSmoke(dialog, request, pending);
+            CompleteTaskDialogForSmoke(dialog, pending);
             return;
         }
         // DM_GETDEFID returns MAKELONG(default button ID, DC_HASDEFID). Verify the
@@ -101,25 +100,12 @@ internal sealed unsafe partial class TrayApplication
     /// Answers a task dialog by button ID. Its buttons are not child windows that GetDlgItem or
     /// DM_GETDEFID can reach, so the dialog is driven through its own TDM_* messages instead.
     /// </summary>
-    private void CompleteTaskDialogForSmoke(nint dialog, TaskDialogRequest request, SmokeDialog pending)
+    private void CompleteTaskDialogForSmoke(nint dialog, SmokeDialog pending)
     {
         NativeSmokeHarness.Require(dialog == _taskDialog && NativeMethods.IsWindowVisible(dialog) != 0,
             "The owned popup is not the visible task dialog.");
         NativeSmokeHarness.Require(pending.DefaultId == ConfirmCancelId && ReadControlText(dialog) == "Aspire",
             "The task dialog must be titled Aspire and default to Cancel.");
-        if (request.VerificationText is not null)
-        {
-            NativeSmokeHarness.Require(request.VerificationText == DontAskAgainText && !_taskDialogVerificationChecked,
-                "Stop confirmation must have an unchecked suppression checkbox.");
-            NativeSmokeHarness.Require(request.SmokeTitle == StopTitle && request.Instruction.StartsWith("Stop ", StringComparison.Ordinal),
-                "The stop task dialog has incorrect text.");
-            if (SuppressStopForSmoke)
-            {
-                // TDM_CLICK_VERIFICATION(checked, focus) runs the checkbox's own click handling.
-                NativeMethods.SendMessage(dialog, NativeMethods.TdmClickVerification, 1, 0);
-                NativeSmokeHarness.Require(_taskDialogVerificationChecked, "The native suppression checkbox cannot be selected.");
-            }
-        }
         NativeCallException.Require(NativeMethods.PostMessage(dialog, NativeMethods.TdmClickButton, (nuint)pending.Response, 0) != 0,
             "PostMessageW(TDM_CLICK_BUTTON)");
         _smokeDialog = null;

@@ -43,7 +43,6 @@ internal sealed class NativeSmokeHarness
     private int _phase;
     private int _dashboardCalls;
     private int _documentationCalls;
-    private int _confirmations;
     private bool _finished;
     private bool _trackingInProgress;
     private bool _trackingRefreshVerified;
@@ -79,7 +78,7 @@ internal sealed class NativeSmokeHarness
         // The normal tray's single-instance lock is intentionally not acquired: deterministic
         // smoke never uses real AppHost actions and may coexist with the user's running tray.
         using var application = new MacTrayApplication(_controller, "AspireTray.Smoke",
-            _startupSettings, OpenDashboard, ConfirmStop, ConfirmAction, CopyPath);
+            _startupSettings, OpenDashboard, ConfirmAction, CopyPath);
         _application = application;
         try
         {
@@ -210,10 +209,6 @@ internal sealed class NativeSmokeHarness
                 Require(!menu.Rows.Single(row => row.Id == _second.Id).CanOpenDashboard, "Missing dashboard is enabled.");
                 _application.PerformDashboardForSmoke(_first.Id);
                 Require(_dashboardCalls == 1, "Dashboard did not use the real native callback.");
-                _application.PerformStopForSmoke(_first.Id);
-                Require(_confirmations == 1 && _client.StopCount == 0
-                    && _controller.ConfirmStop && _savedStateStore.Load().ConfirmStop,
-                    "Cancel sent a stop request or persisted the selected suppression checkbox.");
                 VerifyCopy(_first.AppHostPath);
                 _application.SetTrackingForSmoke(null, open: true);
                 _application.SetTrackingForSmoke(_first.Id, open: true);
@@ -252,16 +247,19 @@ internal sealed class NativeSmokeHarness
                 Require(menu.Rows.Select(row => row.Id).SequenceEqual(new[] { _first.Id, _second.Id, _third.Id }),
                     "A tracked row was replaced.");
                 Require(!menu.Rows.Single(row => row.Id == _first.Id).Enabled, "The removed lifetime is still enabled.");
+                var stopsBeforeStaleAction = _client.StopCount;
                 _application.PerformStaleStopForSmoke(_first.Id);
-                Require(_confirmations == 3, "A stale action created a confirmation alert.");
+                Require(_client.StopCount == stopsBeforeStaleAction, "A stale action sent a stop request.");
                 _phase++;
-                _application.PerformStopForSmoke(_second.Id);
+                Publish([_third, Replacement(_first), Replacement(_second)]);
                 break;
             case 8:
-                Require(!menu.Rows.Single(row => row.Id == _second.Id).Enabled, "A lifetime replaced during confirmation is still enabled.");
-                Require(_confirmations == 4, "Modal confirmation callback missing.");
-                Require(_controller.ConfirmStop && _savedStateStore.Load().ConfirmStop,
-                    "A lifetime rejected after confirmation must not persist suppression.");
+                // Stopping isn't confirmed, so there is no modal window between the click and the
+                // request. A sender whose lifetime was replaced must still be rejected.
+                Require(!menu.Rows.Single(row => row.Id == _second.Id).Enabled, "A replaced lifetime is still enabled.");
+                var stopsBeforeReplacedAction = _client.StopCount;
+                _application.PerformStaleStopForSmoke(_second.Id);
+                Require(_client.StopCount == stopsBeforeReplacedAction, "A replaced lifetime received a stop request.");
                 _phase++;
                 _client.Complete(_first.Id, new(StopOutcome.Stopped, 0));
                 _client.Complete(_third.Id, new(StopOutcome.Failed, 7));
@@ -324,10 +322,8 @@ internal sealed class NativeSmokeHarness
                     && _application.RetainedStopSenderIsFromPreviousMenuForSmoke(_trackingOther.Id),
                     "The delayed-action test did not replace the closed native menu.");
                 _phase++;
-                var confirmationsBeforeDelayedAction = _confirmations;
                 _application.PerformRetainedStopForSmoke();
-                Require(_confirmations == confirmationsBeforeDelayedAction + 1
-                    && _controller.State.AppHosts.Single(row => row.Id == _trackingOther.Id).IsStopping,
+                Require(_controller.State.AppHosts.Single(row => row.Id == _trackingOther.Id).IsStopping,
                     "A valid delayed action lost or changed its selected identity after menuDidClose.");
                 break;
             case 17:
@@ -336,25 +332,20 @@ internal sealed class NativeSmokeHarness
                     return;
                 }
                 VerifyRows(state, menu);
-                Require(!_controller.ConfirmStop && !_savedStateStore.Load().ConfirmStop,
-                    "An accepted stop did not persist Don't ask again.");
                 Require(menu.Rows.Single(row => row.Id == _trackingFirst.Id).CanStop,
                     "The delayed action stopped or disabled the wrong AppHost.");
                 _phase++;
                 Publish([Replacement(_trackingOther), _trackingFirst]);
                 break;
             case 18:
-                var confirmationsBeforeStaleAction = _confirmations;
                 _application.PerformRetainedStopForSmoke();
-                Require(_confirmations == confirmationsBeforeStaleAction
-                    && !_client.HasStop(Replacement(_trackingOther).Id)
+                Require(!_client.HasStop(Replacement(_trackingOther).Id)
                     && _controller.State.AppHosts.Single(row => row.Id == Replacement(_trackingOther).Id).CanStop,
                     "The old native sender was re-targeted to a replacement process lifetime.");
                 _application.ReleaseRetainedStopSenderForSmoke();
                 _application.PerformStopForSmoke(Replacement(_trackingOther).Id);
-                Require(_confirmations == confirmationsBeforeStaleAction
-                    && _controller.State.AppHosts.Single(row => row.Id == Replacement(_trackingOther).Id).IsStopping,
-                    "A subsequent valid stop must skip only the opted-out warning.");
+                Require(_controller.State.AppHosts.Single(row => row.Id == Replacement(_trackingOther).Id).IsStopping,
+                    "A subsequent valid stop was not sent.");
                 _phase++;
                 _client.Complete(_trackingOther.Id, new(StopOutcome.Failed, 7));
                 Publish([], DiscoveryState.Live);
@@ -534,15 +525,12 @@ internal sealed class NativeSmokeHarness
                 Require(menu.Rows.Count == 4 && state.AppHosts.Single(host => host.Title == "Not started")
                     is { IsRunning: false, CanStart: true, Health: AppHostHealth.Unknown },
                     "The preview must include a stopped pin with a neutral stop-circle symbol.");
-                Require(!_controller.ConfirmStop && !_savedStateStore.Load().ConfirmStop
-                    && _clearConfirmations == 2 && _removeConfirmations == 1,
-                    "Stop-warning opt-out must survive other actions without suppressing Clear or missing-file confirmations.");
-                // Interactive preview should still expose the real alert for manual inspection.
-                _controller.SetConfirmStop(true);
+                Require(_clearConfirmations == 2 && _removeConfirmations == 1,
+                    "Clear and missing-file confirmations must still ask.");
                 Console.WriteLine("Flyout " + _application.VerifyPanelForSmoke(
                     Environment.GetEnvironmentVariable("ASPIRE_TRAY_SMOKE_PANEL_CAPTURE_DIR") is { Length: > 0 } capture ? capture : null) + ".");
                 _finished = true;
-                Console.WriteLine($"Native smoke passed: 36 phases; flyout panel open/size/Escape; monochrome 1x/2x logo template; idle/running/attention/dimmed status dot; semantic health symbols and accessibility; exact Unicode Copy Path in live/pinned/recent menus, retained senders and missing files, clipboard failure reporting (injected, real clipboard untouched); Stop checkbox/default/cancel/stale-lifetime safety, persisted opt-out and repeat skip; context pin/unpin; missing-pin pruning; explicit start; filtered recents; unsuppressed clear/remove dialogs; distinct Documentation/Settings; native startup Settings and callbacks; identity and tracking regressions; CLI discovery: {(_discovery is null ? "not requested" : "live")}.");
+                Console.WriteLine($"Native smoke passed: 36 phases; flyout panel open/size/Escape; monochrome 1x/2x logo template; idle/running/attention/dimmed status dot; semantic health symbols and accessibility; exact Unicode Copy Path in live/pinned/recent menus, retained senders and missing files, clipboard failure reporting (injected, real clipboard untouched); unconfirmed Stop with stale and replaced lifetime safety; context pin/unpin; missing-pin pruning; explicit start; filtered recents; unsuppressed clear/remove dialogs; distinct Documentation/Settings; native startup Settings and callbacks; identity and tracking regressions; CLI discovery: {(_discovery is null ? "not requested" : "live")}.");
                 if (_interactiveSmokeRequested)
                 {
                     _inspectionMode = true;
@@ -592,7 +580,7 @@ internal sealed class NativeSmokeHarness
         _application.FinishSmoke(success: false);
     }
 
-    private void VerifyRows(TrayViewState state, NativeMenuInspection menu)
+    private static void VerifyRows(TrayViewState state, NativeMenuInspection menu)
     {
         foreach (var native in menu.Rows)
         {
@@ -609,8 +597,7 @@ internal sealed class NativeSmokeHarness
             Require(native.AccessibilityLabel == $"{row.DisplayName}, {healthDescription}, {row.Subtitle}, AppHost actions",
                 "Accessibility label mismatch.");
             Require(native.CanOpenDashboard == row.CanOpenDashboard && native.CanStop == row.CanStop
-                && native.StopTitle == (row.IsStopping ? "Stopping AppHost..."
-                    : _controller.ConfirmStop ? "Stop AppHost\u2026" : "Stop AppHost"), "Native action state mismatch.");
+                && native.StopTitle == (row.IsStopping ? "Stopping AppHost..." : "Stop AppHost"), "Native action state mismatch.");
         }
     }
 
@@ -623,32 +610,6 @@ internal sealed class NativeSmokeHarness
         }
         Require(uri == _first.DashboardUri, "Dashboard callback used the wrong identity.");
         _dashboardCalls++;
-    }
-
-    private StopConfirmationResult ConfirmStop(StopConfirmation confirmation)
-    {
-        Require(confirmation.ButtonCount == 2 && confirmation.CancelIsDefault
-            && confirmation.StopRequiresExplicitChoice && confirmation.HasColorIcon && confirmation.HasStandardButtonContrast
-            && confirmation.ShowsSuppressionButton && confirmation.SuppressionTitle == "Don't ask again"
-            && !confirmation.SuppressionIsChecked,
-            "The real NSAlert has an unsafe default or is missing its unchecked suppression control.");
-        var selected = _controller.RequireLiveInstance(confirmation.AppHost);
-        Require(confirmation.Message == $"Stop {AppHostPresentation.GetTitle(selected)}?"
-            && confirmation.Detail == $"Only this AppHost instance (PID {selected.AppHostPid}) will be stopped. Persistent resources are left running.",
-            "Stop must show a friendly title, PID and consequence, not the AppHost path.");
-        _confirmations++;
-        if (_confirmations == 1)
-        {
-            return new(false, true);
-        }
-        if (confirmation.AppHost == _second.Id)
-        {
-            // Acknowledge the replacement on the watcher's thread before returning from the
-            // actual confirmation hook. RequestStop must reject the old lifetime afterwards.
-            Publish([_third, Replacement(_first), Replacement(_second)]);
-            return new(true, true);
-        }
-        return new(true, confirmation.AppHost == _trackingOther.Id);
     }
 
     private void CopyPath(string path)

@@ -277,8 +277,7 @@ internal sealed partial class MacTrayApplication
                 OpenDashboard(action.Host!.Id);
                 break;
             case PanelActionKind.Stop:
-                // The panel confirmed inline (or confirmation is off): no NSAlert here.
-                StopAppHostWithoutConfirmation(action.Host!.Id, action.DontAskAgain);
+                StopAppHost(action.Host!.Id);
                 break;
             case PanelActionKind.Start:
                 RunAction(() => StartFromPanel(action));
@@ -307,9 +306,6 @@ internal sealed partial class MacTrayApplication
                     // Keep an open native Settings window in sync with the panel's toggle.
                     ReloadStartupSettings();
                 }
-                break;
-            case PanelActionKind.SetConfirmStop:
-                RunAction(() => _controller.SetConfirmStop(action.Enabled));
                 break;
             case PanelActionKind.Quit:
                 HidePanel();
@@ -662,25 +658,6 @@ internal sealed partial class MacTrayApplication
                 }
                 AppKit.Set(_panelView, "setAppearance:", 0);
                 _panel.Palette = GetPanelPalette();
-            }
-
-            // Stop asks inline: the row turns into a confirmation strip and no NSAlert opens.
-            // Escape cancels it and keeps the panel open.
-            var modalDepth = _modalDepth;
-            if (_controller.ConfirmStop && _panel.Scene.Targets.FirstOrDefault(target => target is { Kind: PanelTargetKind.Stop, Enabled: true }) is { } stop)
-            {
-                ClickPanelForSmoke(stop);
-                Require(_panel.Confirmation == PanelConfirmKind.Stop && _modalDepth == modalDepth && _panelVisible,
-                    "Stop must ask inline in the panel, without a modal alert.");
-                Require(_panel.FocusedTarget?.Kind == PanelTargetKind.ConfirmCancel, "The inline confirmation must focus Cancel.");
-                RequireWindowMatchesScene();
-                VerifyPanelAccessibilityForSmoke("the Stop confirmation");
-                if (captureDirectory is not null)
-                {
-                    captures.Add(CapturePanel(Path.Combine(captureDirectory, "panel-confirm-stop.png")));
-                }
-                ApplyPanelResponse(_panel.Key(PanelKey.Escape));
-                Require(_panel.Confirmation is null && _panelVisible, "Escape must cancel the inline confirmation and keep the panel open.");
             }
 
             // The gear opens Settings inside the panel; its toggle round-trips through the

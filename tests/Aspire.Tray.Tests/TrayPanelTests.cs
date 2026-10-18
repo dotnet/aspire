@@ -11,7 +11,7 @@ public class TrayPanelTests
     private static readonly string[] s_sampleNames =
     [
         "typical", "empty", "connecting", "errors", "disconnected", "many",
-        "confirm-stop", "confirm-clear", "confirm-missing", "settings", "settings-unavailable"
+        "confirm-clear", "confirm-missing", "settings", "settings-unavailable"
     ];
 
     public static TheoryData<string> SampleNames => new(s_sampleNames);
@@ -34,9 +34,6 @@ public class TrayPanelTests
         var panel = new TrayPanel(state, palette) { MaxHeight = maxHeight };
         switch (name)
         {
-            case "confirm-stop":
-                Click(panel, Target(panel, PanelTargetKind.Stop, state.AppHosts[1]).HitBounds);
-                break;
             case "confirm-clear":
                 Click(panel, panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.ClearRecent).HitBounds);
                 break;
@@ -181,7 +178,7 @@ public class TrayPanelTests
     [Fact]
     public void RowButtonsReturnTheirActions()
     {
-        var state = TrayPanelSamples.Typical() with { ConfirmStop = false };
+        var state = TrayPanelSamples.Typical();
         var panel = new TrayPanel(state, TrayPanelPalette.Light);
 
         Assert.Equal(PanelActionKind.Stop, Click(panel, Target(panel, PanelTargetKind.Stop, state.AppHosts[0]).HitBounds).Action?.Kind);
@@ -222,7 +219,7 @@ public class TrayPanelTests
     [Fact]
     public void StateUpdatesAreDeferredWhileAPressIsInProgress()
     {
-        var state = TrayPanelSamples.Typical() with { ConfirmStop = false };
+        var state = TrayPanelSamples.Typical();
         var panel = new TrayPanel(state, TrayPanelPalette.Light);
         var stop = Target(panel, PanelTargetKind.Stop, state.AppHosts[0]);
 
@@ -342,66 +339,37 @@ public class TrayPanelTests
     }
 
     [Fact]
-    public void StopReplacesTheRowWithAnInlineConfirmationFocusedOnCancel()
+    public void StopIsSentAtOnceWithoutAConfirmation()
     {
+        // Like the dashboard, stopping an AppHost doesn't ask first.
         var state = TrayPanelSamples.Typical();
         var panel = new TrayPanel(state, TrayPanelPalette.Light);
-        var host = state.AppHosts[1];
 
-        var response = Click(panel, Target(panel, PanelTargetKind.Stop, host).HitBounds);
+        var action = Click(panel, Target(panel, PanelTargetKind.Stop, state.AppHosts[1]).HitBounds).Action;
 
-        Assert.True(response.Redraw);
-        Assert.Null(response.Action);
-        Assert.Equal(PanelConfirmKind.Stop, panel.Confirmation);
-        var scene = panel.Scene;
-        Assert.DoesNotContain(scene.Targets, target => target.Kind == PanelTargetKind.Row && target.Host == host);
-        Assert.Equal(
-            [PanelTargetKind.ConfirmDontAsk, PanelTargetKind.ConfirmCancel, PanelTargetKind.ConfirmAccept],
-            scene.Targets.Where(target => target.Host == host).Select(target => target.Kind));
-        Assert.Contains(scene.Commands.OfType<TextCommand>(), text => text.Text == $"Stop {host.DisplayName}?");
-        Assert.Equal(new PanelTargetKey(PanelTargetKind.ConfirmCancel, PanelSection.Running, host.Id), panel.FocusedTarget);
-        Assert.Null(panel.Key(PanelKey.Enter).Action);
+        Assert.Equal(new PanelAction(PanelActionKind.Stop, state.AppHosts[1], Target(panel, PanelTargetKind.Stop, state.AppHosts[1]).Bounds), action);
         Assert.Null(panel.Confirmation);
-        Assert.Equal(new PanelTargetKey(PanelTargetKind.Stop, PanelSection.Running, host.Id), panel.FocusedTarget);
+        Assert.Contains(panel.Scene.Targets, target => target.Kind == PanelTargetKind.Row && target.Host == state.AppHosts[1]);
     }
 
     [Fact]
-    public void ConfirmingStopReturnsStopWithTheDontAskAgainChoice()
+    public void ClickingAStartingOrStoppingRowDoesNothing()
     {
-        var state = TrayPanelSamples.Typical();
-        var panel = new TrayPanel(state, TrayPanelPalette.Dark);
-        var host = state.AppHosts[0];
-        Click(panel, Target(panel, PanelTargetKind.Stop, host).HitBounds);
-
-        Click(panel, Target(panel, PanelTargetKind.ConfirmDontAsk, host).HitBounds);
-        Assert.True(panel.ConfirmationDontAskAgain);
-        var action = Click(panel, Target(panel, PanelTargetKind.ConfirmAccept, host).HitBounds).Action;
-
-        Assert.Equal(PanelActionKind.Stop, action?.Kind);
-        Assert.Equal(host, action?.Host);
-        Assert.True(action?.DontAskAgain);
-        Assert.Null(panel.Confirmation);
-    }
-
-    [Fact]
-    public void StopIsImmediateWhenConfirmationIsOff()
-    {
-        var state = TrayPanelSamples.Typical() with { ConfirmStop = false };
+        var state = TrayPanelSamples.Errors();
         var panel = new TrayPanel(state, TrayPanelPalette.Light);
+        var stopping = state.AppHosts.Single(host => host.IsStopping);
+        var starting = state.AppHosts.Single(host => host.IsStarting);
 
-        var action = Click(panel, Target(panel, PanelTargetKind.Stop, state.AppHosts[0]).HitBounds).Action;
-
-        Assert.Equal(PanelActionKind.Stop, action?.Kind);
-        Assert.False(action?.DontAskAgain);
-        Assert.Null(panel.Confirmation);
+        Assert.False(Target(panel, PanelTargetKind.Dashboard, stopping).Enabled);
+        Assert.Null(Click(panel, Target(panel, PanelTargetKind.Row, stopping).HitBounds, offsetX: 10).Action);
+        Assert.Null(Click(panel, Target(panel, PanelTargetKind.Row, starting).HitBounds, offsetX: 10).Action);
     }
 
     [Fact]
     public void EscapeCancelsAConfirmationBeforeClosingThePanel()
     {
-        var state = TrayPanelSamples.Typical();
-        var panel = new TrayPanel(state, TrayPanelPalette.Light);
-        Click(panel, Target(panel, PanelTargetKind.Stop, state.AppHosts[0]).HitBounds);
+        var panel = new TrayPanel(TrayPanelSamples.Typical(), TrayPanelPalette.Light);
+        Click(panel, panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.ClearRecent).HitBounds);
 
         var first = panel.Key(PanelKey.Escape);
 
@@ -414,23 +382,21 @@ public class TrayPanelTests
     [Fact]
     public void CancelButtonDismissesTheConfirmation()
     {
-        var state = TrayPanelSamples.Typical();
-        var panel = new TrayPanel(state, TrayPanelPalette.Light);
-        Click(panel, Target(panel, PanelTargetKind.Stop, state.AppHosts[0]).HitBounds);
+        var panel = new TrayPanel(TrayPanelSamples.Typical(), TrayPanelPalette.Light);
+        Click(panel, panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.ClearRecent).HitBounds);
 
-        var response = Click(panel, Target(panel, PanelTargetKind.ConfirmCancel, state.AppHosts[0]).HitBounds);
+        var response = Click(panel, panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.ConfirmCancel).HitBounds);
 
         Assert.Null(response.Action);
         Assert.Null(panel.Confirmation);
-        Assert.Contains(panel.Scene.Targets, target => target.Kind == PanelTargetKind.Row && target.Host == state.AppHosts[0]);
+        Assert.Contains(panel.Scene.Targets, target => target.Kind == PanelTargetKind.ToggleRecent);
     }
 
     [Fact]
     public void ActingOnAnotherTargetAbandonsTheConfirmation()
     {
-        var state = TrayPanelSamples.Typical();
-        var panel = new TrayPanel(state, TrayPanelPalette.Light);
-        Click(panel, Target(panel, PanelTargetKind.Stop, state.AppHosts[0]).HitBounds);
+        var panel = new TrayPanel(TrayPanelSamples.Typical(), TrayPanelPalette.Light);
+        Click(panel, panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.ClearRecent).HitBounds);
 
         var action = Click(panel, panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.Documentation).HitBounds).Action;
 
@@ -443,9 +409,9 @@ public class TrayPanelTests
     {
         var state = TrayPanelSamples.Typical();
         var panel = new TrayPanel(state, TrayPanelPalette.Light);
-        Click(panel, Target(panel, PanelTargetKind.Stop, state.AppHosts[0]).HitBounds);
+        panel.ConfirmRemoveMissing(state.RecentAppHosts[1]);
 
-        panel.Update(state with { AppHosts = state.AppHosts.Skip(1).ToArray() });
+        panel.Update(state with { RecentAppHosts = state.RecentAppHosts.Take(1).ToArray() });
         _ = panel.Scene;
 
         Assert.Null(panel.Confirmation);
@@ -463,7 +429,7 @@ public class TrayPanelTests
         var texts = panel.Scene.Commands.OfType<TextCommand>().Select(text => text.Text).ToList();
         Assert.Contains("Clear recent AppHosts?", texts);
         Assert.Contains("Pinned AppHosts are kept.", texts);
-        Assert.DoesNotContain(panel.Scene.Targets, target => target.Kind is PanelTargetKind.ToggleRecent or PanelTargetKind.ConfirmDontAsk);
+        Assert.DoesNotContain(panel.Scene.Targets, target => target.Kind is PanelTargetKind.ToggleRecent);
         Assert.Equal(new PanelTargetKey(PanelTargetKind.ConfirmCancel, PanelSection.Recent, null), panel.FocusedTarget);
         var accept = panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.ConfirmAccept);
         Assert.Equal(PanelActionKind.ClearRecent, Click(panel, accept.HitBounds).Action?.Kind);
@@ -507,9 +473,6 @@ public class TrayPanelTests
         var setLaunch = Click(panel, launch.HitBounds).Action;
         Assert.Equal(PanelActionKind.SetLaunchAtSignIn, setLaunch?.Kind);
         Assert.True(setLaunch?.Enabled);
-        var setConfirm = Click(panel, panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.ConfirmStopSetting).HitBounds).Action;
-        Assert.Equal(PanelActionKind.SetConfirmStop, setConfirm?.Kind);
-        Assert.False(setConfirm?.Enabled);
         var texts = panel.Scene.Commands.OfType<TextCommand>().Select(text => text.Text).ToList();
         Assert.Contains(TraySettingsText.GetAboutDescription(preview: false), texts);
         Assert.Contains(texts, text => text.StartsWith("Version: ", StringComparison.Ordinal));
@@ -878,19 +841,17 @@ public class TrayPanelTests
     [Fact]
     public void ConfirmationStripReadsItsQuestionBeforeItsControls()
     {
-        var state = TrayPanelSamples.Typical();
-        var panel = new TrayPanel(state, TrayPanelPalette.Light);
-        panel.Invoke(Target(panel, PanelTargetKind.Stop, state.AppHosts[0]).Key);
+        var panel = new TrayPanel(TrayPanelSamples.Typical(), TrayPanelPalette.Light);
+        panel.Invoke(panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.ClearRecent).Key);
 
-        var strip = panel.Scene.Accessibility.SkipWhile(element => element.Key.Label != "confirm.question").Take(5).ToList();
+        var strip = panel.Scene.Accessibility.SkipWhile(element => element.Key.Label != "confirm.question").Take(4).ToList();
 
         Assert.Equal(
             [
-                ($"Stop {state.AppHosts[0].DisplayName}?", PanelAccessibleRole.Text, (bool?)null),
-                ("Persistent resources keep running.", PanelAccessibleRole.Text, null),
-                ("Don't ask again", PanelAccessibleRole.Switch, false),
+                ("Clear recent AppHosts?", PanelAccessibleRole.Text, (bool?)null),
+                ("Pinned AppHosts are kept.", PanelAccessibleRole.Text, null),
                 ("Cancel", PanelAccessibleRole.Button, null),
-                ($"Stop {state.AppHosts[0].DisplayName}", PanelAccessibleRole.Button, null)
+                ("Clear recent AppHosts", PanelAccessibleRole.Button, null)
             ],
             strip.Select(element => (element.Name, element.Role, element.Checked)));
     }
@@ -898,23 +859,16 @@ public class TrayPanelTests
     [Fact]
     public void InvokeActivatesLikeAClickAndMovesFocus()
     {
-        var state = TrayPanelSamples.Typical();
-        var panel = new TrayPanel(state, TrayPanelPalette.Light);
-        var host = state.AppHosts[0];
+        var panel = new TrayPanel(TrayPanelSamples.Typical(), TrayPanelPalette.Light);
 
-        Assert.Null(panel.Invoke(Target(panel, PanelTargetKind.Stop, host).Key).Action);
-        Assert.Equal(PanelConfirmKind.Stop, panel.Confirmation);
+        Assert.Null(panel.Invoke(panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.ClearRecent).Key).Action);
+        Assert.Equal(PanelConfirmKind.ClearRecent, panel.Confirmation);
         Assert.Equal(PanelTargetKind.ConfirmCancel, panel.FocusedTarget?.Kind);
 
-        var dontAsk = Target(panel, PanelTargetKind.ConfirmDontAsk, host).Key;
-        panel.Invoke(dontAsk);
-        Assert.True(panel.Scene.Targets.Single(target => target.Key == dontAsk).Checked);
-        Assert.Equal(dontAsk, panel.FocusedTarget);
-
-        var stop = panel.Invoke(Target(panel, PanelTargetKind.ConfirmAccept, host).Key).Action;
-        Assert.Equal(PanelActionKind.Stop, stop?.Kind);
-        Assert.Equal(host, stop?.Host);
-        Assert.True(stop?.DontAskAgain);
+        var accept = panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.ConfirmAccept).Key;
+        var clear = panel.Invoke(accept).Action;
+        Assert.Equal(PanelActionKind.ClearRecent, clear?.Kind);
+        Assert.Null(panel.Confirmation);
     }
 
     [Fact]
@@ -955,12 +909,12 @@ public class TrayPanelTests
         var panel = new TrayPanel(TrayPanelSamples.Typical(), TrayPanelPalette.Light);
         panel.ShowSettings(new(new TrayStartupState(false, true, null), null, Preview: false));
 
-        var confirm = panel.Scene.Accessibility.Single(element => element.Target?.Kind == PanelTargetKind.ConfirmStopSetting);
+        var launch = panel.Scene.Accessibility.Single(element => element.Target?.Kind == PanelTargetKind.LaunchAtSignIn);
 
-        Assert.Equal(PanelAccessibleRole.Switch, confirm.Role);
-        Assert.Equal(TraySettingsText.ConfirmStopOption, confirm.Name);
-        Assert.Equal(TraySettingsText.ConfirmStopDescription, confirm.Description);
-        Assert.True(confirm.Checked);
+        Assert.Equal(PanelAccessibleRole.Switch, launch.Role);
+        Assert.Equal(TraySettingsText.PanelStartupOption, launch.Name);
+        Assert.Equal(TraySettingsText.StartupDescription, launch.Description);
+        Assert.False(launch.Checked);
         Assert.Equal(["Back to AppHosts", TraySettingsText.PanelTitle, "General"],
             panel.Scene.Accessibility.Take(3).Select(element => element.Name));
     }

@@ -17,11 +17,9 @@ internal static unsafe partial class NativeMethods
 
     internal const uint TdnCreated = 0;
     internal const uint TdnDestroyed = 5;
-    internal const uint TdnVerificationClicked = 8;
 
-    // WM_USER + 102 and WM_USER + 113.
+    // WM_USER + 102.
     internal const uint TdmClickButton = 0x0466;
-    internal const uint TdmClickVerification = 0x0471;
 
     // commctrl.h declares TASKDIALOGCONFIG and TASKDIALOG_BUTTON inside pshpack1.h, so both are
     // byte-packed on every architecture, unlike the other Win32 structs here.

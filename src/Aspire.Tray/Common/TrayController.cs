@@ -75,26 +75,6 @@ internal sealed class TrayController : IAsyncDisposable
 
     public TrayViewState State => Volatile.Read(ref _state);
 
-    /// <summary>
-    /// Gets whether the native frontend must confirm an AppHost stop.
-    /// </summary>
-    public bool ConfirmStop
-    {
-        get
-        {
-            lock (_gate)
-            {
-                return _savedState.ConfirmStop;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Persists the stop-confirmation preference before changing its in-memory value.
-    /// </summary>
-    public void SetConfirmStop(bool confirmStop)
-        => UpdateSavedState(state => state with { ConfirmStop = confirmStop });
-
     public void Start()
     {
         lock (_gate)
@@ -560,7 +540,7 @@ internal sealed class TrayController : IAsyncDisposable
 
     private bool TrySaveStateLocked(TraySavedState state)
     {
-        if (!_savedStateDirty && _savedState.ConfirmStop == state.ConfirmStop && _savedState.AppHosts.SequenceEqual(state.AppHosts))
+        if (!_savedStateDirty && _savedState.AppHosts.SequenceEqual(state.AppHosts))
         {
             return true;
         }
@@ -600,7 +580,8 @@ internal sealed class TrayController : IAsyncDisposable
                 : stopped ? "Stopped; waiting for discovery." : AppHostPresentation.GetSubtitle(host));
             return new AppHostMenuItem(host.Id, AppHostPresentation.GetTitle(host), subtitle,
                 AppHostPresentation.GetDisplayName(host),
-                live && !stopped && host.DashboardUri is not null,
+                // A stopping AppHost's dashboard is shutting down with it.
+                live && !stopped && !stopping && host.DashboardUri is not null,
                 live && !stopped && !stopping && host.ProcessStartTimeUnixMilliseconds is > 0,
                 stopping, error)
             {
@@ -642,7 +623,6 @@ internal sealed class TrayController : IAsyncDisposable
         {
             RecentAppHosts = recent,
             CanClearRecent = _savedState.AppHosts.Any(host => host.IsRecent),
-            ConfirmStop = _savedState.ConfirmStop,
             Notice = _savedStateError ?? _pinProbeError ?? _snapshot.Discovery switch
             {
                 DiscoveryState.Disconnected => "Discovery is unavailable. Reconnecting\u2026",

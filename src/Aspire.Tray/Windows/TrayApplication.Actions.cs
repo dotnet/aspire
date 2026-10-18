@@ -21,33 +21,13 @@ internal sealed partial class TrayApplication
                     OpenUrl(controller.GetDashboardUri(target.Id));
                     break;
                 case ActionKind.Stop:
-                    if (!RequireCurrentRow(target.Id).CanStop)
-                    {
-                        throw new InvalidOperationException("Stop is no longer available for the selected AppHost.");
-                    }
-                    var host = controller.RequireLiveInstance(target.Id);
-                    if (ConfirmStop(host))
-                    {
-                        // The controller revalidates the full lifetime after the modal loop.
-                        controller.RequestStop(target.Id);
-                        // Save only after dispatch accepts the exact instance. A canceled or
-                        // stale action must not suppress later warnings.
-                        if (_suppressStopConfirmation)
-                        {
-                            controller.SetConfirmStop(false);
-                        }
-                    }
-                    break;
-                case ActionKind.StopConfirmed:
+                    // Stopping isn't confirmed, as in the dashboard. The controller revalidates the
+                    // exact process lifetime, so a stale sender never stops a replacement.
                     if (!RequireCurrentRow(target.Id).CanStop)
                     {
                         throw new InvalidOperationException("Stop is no longer available for the selected AppHost.");
                     }
                     controller.RequestStop(controller.RequireLiveInstance(target.Id).Id);
-                    if (target.DontAskAgain)
-                    {
-                        controller.SetConfirmStop(false);
-                    }
                     break;
                 case ActionKind.StartFromPanel:
                     // A recent entry whose source file is gone becomes an inline removal prompt
@@ -65,9 +45,6 @@ internal sealed partial class TrayApplication
                     break;
                 case ActionKind.RemoveRecent:
                     controller.RemoveRecent(target.Id.AppHostPath);
-                    break;
-                case ActionKind.SetConfirmStop:
-                    controller.SetConfirmStop(target.Enabled);
                     break;
                 case ActionKind.Start:
                     RequireCurrentRow(target.Id);

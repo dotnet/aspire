@@ -244,8 +244,7 @@ internal sealed unsafe partial class TrayApplication
                 Dispatch(new(ActionKind.Dashboard, id));
                 break;
             case PanelActionKind.Stop:
-                // The panel confirmed inline (or confirmation is off): no dialog here.
-                Dispatch(new(ActionKind.StopConfirmed, id) { DontAskAgain = action.DontAskAgain });
+                Dispatch(new(ActionKind.Stop, id));
                 break;
             case PanelActionKind.Start:
                 Dispatch(new(ActionKind.StartFromPanel, id));
@@ -274,9 +273,6 @@ internal sealed unsafe partial class TrayApplication
                     // Keep an open native Settings window in sync with the panel's toggle.
                     ReadStartupSettings();
                 }
-                break;
-            case PanelActionKind.SetConfirmStop:
-                Dispatch(new(ActionKind.SetConfirmStop) { Enabled = action.Enabled });
                 break;
             case PanelActionKind.Quit:
                 HidePanel();

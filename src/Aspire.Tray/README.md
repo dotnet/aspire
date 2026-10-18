@@ -98,18 +98,18 @@ The keyboard works too: Up/Down and Home/End move between rows, Tab and Shift-Ta
 also reach the row buttons, Enter or Space activates, and Escape closes the panel.
 Clicking elsewhere closes it, like a menu.
 
-The panel asks for confirmation inline instead of opening dialogs. **Stop** (while
-**Confirm before stopping** is on) turns the row into a strip reading "Stop *name*?"
-with **Cancel**, **Stop**, and a **Don't ask again** toggle; **Clear** turns the Recent
-header into "Clear recent AppHosts? Pinned AppHosts are kept."; and **Start** on a
-recent AppHost whose source file is gone offers to remove it. Focus starts on
-**Cancel**, Escape cancels, and clicking anything else abandons the confirmation. The
-strip goes away by itself if its AppHost stops or the recent list is cleared elsewhere.
+**Stop** stops the AppHost right away, without asking, like the dashboard. Clicking a
+row that is starting or stopping does nothing, and its dashboard can't be opened while
+it stops. The panel asks for confirmation inline, instead of opening dialogs, only for
+what can't be undone: **Clear** turns the Recent header into "Clear recent AppHosts?
+Pinned AppHosts are kept.", and **Start** on a recent AppHost whose source file is gone
+offers to remove it. Focus starts on **Cancel**, Escape cancels, and clicking anything
+else abandons the confirmation. The strip goes away by itself if its AppHost goes away
+or the recent list is cleared elsewhere.
 
 The gear opens a **Settings** view inside the panel, with a back arrow: a **Launch at
 sign-in** toggle (backed by the same registration as the native Settings window, and
-disabled with an explanation when unavailable), a **Confirm before stopping** toggle
-(the stored `confirmStop` preference), and the version and About text. Escape or the
+disabled with an explanation when unavailable), and the version and About text. Escape or the
 back arrow returns to the list.
 
 Everything except drawing is shared code in `Common/`: `TrayPanel` turns the view state
@@ -125,9 +125,8 @@ the macOS **Increase contrast** setting, and the Windows high-contrast theme.
 
 Screen readers see the panel as native elements. Along with the display list, `TrayPanel`
 produces an accessibility list in reading order: buttons (rows, row actions, Back, the
-confirmation and footer buttons), switches with an on/off state (Don't ask again,
-Launch at sign-in, Confirm before stopping, with the setting's description as help
-text), and read-only text (the header status, the notice, section titles, the
+confirmation and footer buttons), switches with an on/off state (Launch at sign-in, with the
+setting's description as help text), and read-only text (the header status, the notice, section titles, the
 confirmation question, About). On macOS the panel view is an `AXGroup` whose children
 are `NSAccessibilityElement` objects (`AXButton`, `AXCheckBox` with the `AXSwitch`
 subrole, `AXStaticText`); on Windows the panel window answers `WM_GETOBJECT` with a UI
@@ -146,7 +145,7 @@ window.
 To preview the panel without running the tray, run the panel tests with
 `ASPIRE_TRAY_PANEL_PREVIEW_DIR` set. They write SVG images of the light and dark
 themes for several states (typical, problems, empty, connecting, disconnected, many
-rows, the three inline confirmations, and the Settings view), drawn from the same
+rows, the two inline confirmations, and the Settings view), drawn from the same
 display list:
 
 ```sh
@@ -233,15 +232,11 @@ a right click or Control-click opens the native menu described here. Native two-
 rows show the project/worktree name first and directory context and PID underneath.
 The redundant branded/count header is omitted when AppHosts are listed; an empty
 placeholder or actionable error/disconnection notice is shown when appropriate.
-Each live AppHost has an **Open Dashboard** action and **Stop AppHost...** action.
+Each live AppHost has an **Open Dashboard** action and a **Stop AppHost** action.
 Menu items have no
-hover tooltips, so they cannot cover the action submenu. Stopping opens a native
-confirmation dialog showing the project name and PID, without the full project
-path, with Cancel as the default. **Don't ask again** skips future Stop warnings
-only after confirming Stop. Canceling, or discovering that the selected process
-has been replaced, does not save that preference. Exact process identity is still
-validated when the warning is disabled. Stop uses the system's standard adaptive
-button text rather than low-contrast red text on a gray button.
+hover tooltips, so they cannot cover the action submenu. **Stop AppHost** stops it
+without a confirmation, as in the dashboard; the exact process identity is still
+validated, so a replaced process is never stopped by mistake.
 Long names are shortened in the middle, preserving both ends. Native subtitles
 require macOS 14.4; older systems use a single-line layout with the same details.
 **Quit Aspire** (Command-Q while using the menu) removes the icon and stops its
@@ -345,16 +340,15 @@ limit keeps the most recent entries and preserves pins. Restart Aspire Tray afte
 editing the configuration. An invalid value is reported rather than silently
 replaced by the default.
 
-The **Don't ask again** preference is stored as `confirmStop: false` in the tray's
+History and pins are stored in the tray's
 per-user `~/.aspire/tray/apphosts.json` (`%USERPROFILE%\.aspire\tray\apphosts.json`
 on Windows), separately from sign-in registration. Like the CLI's global
 configuration, this uses the installation's Aspire home when defined, otherwise
 `ASPIRE_HOME` when set, then `~/.aspire`. The filename is `tray/apphosts.json`
-under that home, outside the versioned bundle cache. To restore the
-warning, turn on **Confirm before stopping** in the flyout panel's Settings view, or
-quit the tray, set `confirmStop` to `true` (or remove that property), then
-restart it. History, pins, and Stop-confirmation preferences from the former OS
-application-data location are imported when the new file does not exist. The old
+under that home, outside the versioned bundle cache. Files written by earlier
+builds may also hold a `confirmStop` preference from when stopping asked first; it
+is read, ignored, and dropped the next time the file is saved. History and pins from
+the former OS application-data location are imported when the new file does not exist. The old
 file is left intact; an existing new file always takes precedence. Quit before editing that state
 file: the tray refuses to overwrite changes made by another writer while running.
 
@@ -435,8 +429,8 @@ details entry and its tooltip refresh when status changes, including while the m
 
 The Windows adapter uses native popup menus and confirmation task dialogs
 (`TaskDialogIndirect`): a main instruction, an explanation, the destructive button
-(**Stop AppHost**, **Clear**, or **Remove**) and **Cancel**, which is the default. The
-Stop dialog adds an unchecked **Don't ask again** verification checkbox.
+(**Clear** or **Remove**) and **Cancel**, which is the default. Stopping an AppHost
+doesn't ask.
 Its embedded Common Controls v6 manifest enables Windows visual styles in both
 managed and NativeAOT builds. Settings uses a compact classic dialog with 9-point
 Segoe UI text, same-size bold General and About headings, native section separators,
@@ -492,9 +486,8 @@ The publishing helper also validates the original icon and native PE architectur
 Smoke requires an interactive Windows desktop with Explorer. It exercises real
 menus, the final divided status/path entries (text limits, ordering, and disabled state),
 full-value details tooltips (native hover selection, live/stale refresh, focus, and dismissal),
-safe-default task dialogs (answered by button ID through `TDM_CLICK_BUTTON`) including
-the Stop **Don't ask again** verification checkbox,
-Cancel/stale-instance suppression safeguards, subsequent prompt skipping,
+safe-default task dialogs (answered by button ID through `TDM_CLICK_BUTTON`),
+Stop without a dialog and stale-instance safeguards,
 exact path copying (including missing files and Unicode), immutable actions,
 pin/history operations, color-coded AppHost rows, Documentation/Settings-only command icons,
 bounded original-case paths and compact names, the compact Settings layout and About logo,
@@ -540,7 +533,7 @@ installed.
   While a menu is open, existing action state can update, but structural changes
   wait until it closes so rows cannot move under the pointer.
 - Actions carry path/PID/process-lifetime identity, not indices into a changing
-  list. Discovery revalidates that identity after native confirmation.
+  list. Discovery revalidates that identity before each action runs.
 - An explicit initial snapshot distinguishes an empty list from connecting.
   Complete replacement snapshots prevent incremental reconnect lists.
   Heartbeats maintain liveness without creating presentation updates.
@@ -552,7 +545,7 @@ installed.
   dashboard URLs are not logged.
 - Dashboard actions revalidate the selected instance and open only absolute
   HTTP(S) URLs without URI userinfo. Login query strings are preserved.
-- Stop actions revalidate the selection after confirmation, then invoke
+- Stop actions revalidate the selection, then invoke
   `aspire stop --apphost <absolute path> --pid <pid> --started-at <Unix milliseconds> --format json --protocol-version 1 --non-interactive --nologo`.
   The CLI revalidates the process lifetime before connection-bound shutdown.
   There is no fallback to PID-only or project-wide stop. If process lifetime
@@ -606,14 +599,12 @@ senders after menu closure, updates during genuine native menu tracking, and
 acknowledged hidden-icon restoration deferred until menus close.
 On macOS it also opens the flyout panel through the production path, checks
 that the window matches the shared layout and that Escape closes it, and verifies
-that the status item keeps no permanently attached menu. It also checks that Stop
-asks inline without a modal alert (focus on Cancel, Escape cancels), that the gear
+that the status item keeps no permanently attached menu. It also checks that the gear
 opens the Settings view and its launch-at-sign-in toggle round-trips through the
 in-memory store, and that the window resizes with each view. Set
 `ASPIRE_TRAY_SMOKE_PANEL_CAPTURE_DIR` to an absolute directory to also write PNGs
-of the panel rendered by AppKit (light, dark, dark with hover, the Stop confirmation,
-and the Settings view in light and dark). In the list, the Stop confirmation and the
-Settings view it also reads the panel's accessibility tree back through the
+of the panel rendered by AppKit (light, dark, dark with hover, and the Settings view
+in light and dark). In the list and the Settings view it also reads the panel's accessibility tree back through the
 NSAccessibility getters VoiceOver uses (roles, names, switch values, screen frames and
 the focused element) and presses a Settings switch the way VoiceOver does.
 It never opens a browser or starts/stops real AppHosts and exits automatically.

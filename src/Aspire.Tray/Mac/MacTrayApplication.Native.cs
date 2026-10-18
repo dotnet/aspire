@@ -217,7 +217,7 @@ internal sealed partial class MacTrayApplication
         lock (_dispatchGate)
         {
             // Removing a tracked item's window could close a modal loop or invalidate its
-            // sender. MenuDidClose/ConfirmStop's finally posts another refresh when safe.
+            // sender. MenuDidClose and the confirmation dialogs post another refresh when safe.
             if (_openMenus.Count != 0 || _modalDepth != 0)
             {
                 return;
@@ -452,8 +452,8 @@ internal sealed partial class MacTrayApplication
         return menu;
     }
 
-    private string GetStopTitle(bool isStopping)
-        => isStopping ? "Stopping AppHost..." : _controller.ConfirmStop ? "Stop AppHost\u2026" : "Stop AppHost";
+    private static string GetStopTitle(bool isStopping)
+        => isStopping ? "Stopping AppHost..." : "Stop AppHost";
 
     private nint AddItem(nint menu, string title, string? action, bool enabled)
     {
@@ -551,79 +551,6 @@ internal sealed partial class MacTrayApplication
         if (url == 0 || AppKit.SendReturningBool(workspace, AppKit.Selector("openURL:"), url) == 0)
         {
             throw new InvalidOperationException("macOS could not open the dashboard URL.");
-        }
-    }
-
-    private StopConfirmationResult ConfirmStop(AppHostInfo host)
-    {
-        var alert = AppKit.Get(AppKit.Class("NSAlert"), "new");
-        _modalDepth++;
-        try
-        {
-            AppKit.Set(alert, "setMessageText:", AppKit.String($"Stop {AppHostPresentation.GetTitle(host)}?"));
-            AppKit.Set(alert, "setInformativeText:", AppKit.String(
-                $"Only this AppHost instance (PID {host.AppHostPid}) will be stopped. Persistent resources are left running."));
-            AppKit.Set(alert, "setAlertStyle:", 0);
-            // NSAlert lays out and exposes the suppression checkbox to accessibility itself.
-            // It is strictly a Stop preference, not suppression of unrelated confirmations.
-            // https://developer.apple.com/documentation/appkit/nsalert/showssuppressionbutton
-            AppKit.SendBool(alert, AppKit.Selector("setShowsSuppressionButton:"), 1);
-            var suppression = AppKit.Get(alert, "suppressionButton");
-            AppKit.Set(suppression, "setTitle:", AppKit.String("Don't ask again"));
-            AppKit.Set(suppression, "setState:", 0);
-            var icon = AppKit.Get(_brandImage, "copy");
-            try
-            {
-                AppKit.SendSize(icon, AppKit.Selector("setSize:"), new(64, 64));
-                AppKit.Set(alert, "setIcon:", icon);
-            }
-            finally
-            {
-                AppKit.Release(icon);
-            }
-            var cancel = AppKit.Get(alert, "addButtonWithTitle:", AppKit.String("Cancel"));
-            var stop = AppKit.Get(alert, "addButtonWithTitle:", AppKit.String("Stop AppHost"));
-            AppKit.Set(cancel, "setKeyEquivalent:", AppKit.String("\u001b"));
-            AppKit.Set(stop, "setKeyEquivalent:", AppKit.String(""));
-            // Keep the standard adaptive button text. AppKit's destructive red foreground
-            // has poor contrast on the non-default gray button, especially in dark mode.
-            AppKit.SendVoid(alert, AppKit.Selector("layout"));
-            var window = AppKit.Get(alert, "window");
-            // AppKit assigns Return to the default button. Escape still cancels runModal.
-            AppKit.Set(window, "setDefaultButtonCell:", AppKit.Get(cancel, "cell"));
-            AppKit.Set(stop, "setKeyEquivalent:", AppKit.String(""));
-
-            bool confirmed;
-            if (_confirmStop is not null && !_interactiveSmoke)
-            {
-                var result = _confirmStop(new(host.Id, AppKit.Text(AppKit.Get(alert, "messageText")),
-                    AppKit.Text(AppKit.Get(alert, "informativeText")),
-                    checked((int)AppKit.Get(AppKit.Get(alert, "buttons"), "count")),
-                    AppKit.Get(window, "defaultButtonCell") == AppKit.Get(cancel, "cell")
-                        && AppKit.Text(AppKit.Get(cancel, "keyEquivalent")) == "\r",
-                    AppKit.Text(AppKit.Get(stop, "keyEquivalent")) == "",
-                    AppKit.Get(alert, "icon") != 0 && AppKit.GetBool(AppKit.Get(alert, "icon"), AppKit.Selector("isTemplate")) == 0,
-                    !AppKit.Supports(stop, "hasDestructiveAction")
-                        || AppKit.GetBool(stop, AppKit.Selector("hasDestructiveAction")) == 0,
-                    AppKit.GetBool(alert, AppKit.Selector("showsSuppressionButton")) != 0 && suppression != 0,
-                    AppKit.Text(AppKit.Get(suppression, "title")),
-                    AppKit.Get(suppression, "state") != 0));
-                AppKit.Set(suppression, "setState:", result.DontAskAgain ? 1 : 0);
-                confirmed = result.Confirmed;
-            }
-            else
-            {
-                AppKit.SendBool(_application, AppKit.Selector("activateIgnoringOtherApps:"), 1);
-                confirmed = AppKit.Get(alert, "runModal") == 1001;
-            }
-
-            return new(confirmed, confirmed && AppKit.Get(suppression, "state") == 1);
-        }
-        finally
-        {
-            _modalDepth--;
-            AppKit.Release(alert);
-            RequestRefresh();
         }
     }
 

@@ -123,9 +123,6 @@ internal sealed class TrayPanel
     /// <summary>The inline confirmation being shown, if any.</summary>
     public PanelConfirmKind? Confirmation => _confirm?.Kind;
 
-    /// <summary>Whether the confirmation strip's "Don't ask again" toggle is on.</summary>
-    public bool ConfirmationDontAskAgain => _confirm?.DontAskAgain ?? false;
-
     /// <summary>Whether the panel shows its Settings view instead of the AppHost list.</summary>
     public bool IsSettingsOpen => _settings is not null;
 
@@ -360,10 +357,10 @@ internal sealed class TrayPanel
     private static bool IsPrimary(PanelTargetKind kind)
         => kind is PanelTargetKind.Row or PanelTargetKind.ToggleRecent or PanelTargetKind.Documentation
             or PanelTargetKind.Settings or PanelTargetKind.Quit or PanelTargetKind.ConfirmCancel or PanelTargetKind.Back
-            or PanelTargetKind.LaunchAtSignIn or PanelTargetKind.ConfirmStopSetting;
+            or PanelTargetKind.LaunchAtSignIn;
 
     private static bool IsConfirmTarget(PanelTargetKind kind)
-        => kind is PanelTargetKind.ConfirmCancel or PanelTargetKind.ConfirmAccept or PanelTargetKind.ConfirmDontAsk;
+        => kind is PanelTargetKind.ConfirmCancel or PanelTargetKind.ConfirmAccept;
 
     private void BeginConfirm(PanelConfirm confirm)
     {
@@ -401,7 +398,6 @@ internal sealed class TrayPanel
         // Return focus to the control that opened the confirmation.
         _focus = confirm.Kind switch
         {
-            PanelConfirmKind.Stop => new(PanelTargetKind.Stop, confirm.Section, confirm.Host?.Id),
             PanelConfirmKind.ClearRecent => new(PanelTargetKind.ClearRecent, confirm.Section, null),
             _ => new(PanelTargetKind.Start, confirm.Section, confirm.Host?.Id)
         };
@@ -495,6 +491,10 @@ internal sealed class TrayPanel
         }
         switch (target.Kind)
         {
+            // A starting or stopping AppHost has nothing to open yet (or anymore): its dashboard
+            // isn't reachable, and the More menu would only offer disabled actions. Keep the panel open.
+            case PanelTargetKind.Row when host is { IsStarting: true } or { IsStopping: true }:
+                return null;
             case PanelTargetKind.Row when host is { CanOpenDashboard: true }:
             case PanelTargetKind.Dashboard:
                 return new(PanelActionKind.OpenDashboard, host, target.Bounds) { Recent = recent };
@@ -502,9 +502,6 @@ internal sealed class TrayPanel
                 // Rows without a dashboard open the same menu as their "More" button.
                 var more = Scene.Targets.FirstOrDefault(other => other.Key == target.Key with { Kind = PanelTargetKind.More });
                 return new(PanelActionKind.More, host, more?.Bounds ?? target.Bounds) { Recent = recent };
-            case PanelTargetKind.Stop when _state.ConfirmStop:
-                BeginConfirm(new(PanelConfirmKind.Stop, target.Key.Section, host));
-                return null;
             case PanelTargetKind.Stop:
                 return new(PanelActionKind.Stop, host, target.Bounds) { Recent = recent };
             case PanelTargetKind.Start:
@@ -521,16 +518,11 @@ internal sealed class TrayPanel
             case PanelTargetKind.ConfirmCancel:
                 CancelConfirm();
                 return null;
-            case PanelTargetKind.ConfirmDontAsk when _confirm is { } pending:
-                _confirm = pending with { DontAskAgain = !pending.DontAskAgain };
-                _scene = null;
-                return null;
             case PanelTargetKind.ConfirmAccept when _confirm is { } confirmed:
                 _confirm = null;
                 _scene = null;
                 return confirmed.Kind switch
                 {
-                    PanelConfirmKind.Stop => new(PanelActionKind.Stop, host, target.Bounds) { DontAskAgain = confirmed.DontAskAgain },
                     PanelConfirmKind.ClearRecent => new(PanelActionKind.ClearRecent, Anchor: target.Bounds),
                     _ => new(PanelActionKind.RemoveRecent, host, target.Bounds) { Recent = true }
                 };
@@ -540,8 +532,6 @@ internal sealed class TrayPanel
                 return null;
             case PanelTargetKind.LaunchAtSignIn:
                 return new(PanelActionKind.SetLaunchAtSignIn, Anchor: target.Bounds) { Enabled = _settings?.Startup?.Enabled != true };
-            case PanelTargetKind.ConfirmStopSetting:
-                return new(PanelActionKind.SetConfirmStop, Anchor: target.Bounds) { Enabled = !_state.ConfirmStop };
             case PanelTargetKind.Documentation:
                 return new(PanelActionKind.Documentation, Anchor: target.Bounds);
             case PanelTargetKind.Settings:
@@ -575,7 +565,7 @@ internal sealed class TrayPanel
         }
         else
         {
-            RevalidateConfirm(running);
+            RevalidateConfirm();
             if (state.AppHosts.Count == 0)
             {
                 Add(ListItemKind.Empty, EmptyStateHeight, PanelSection.None, null);
@@ -614,7 +604,7 @@ internal sealed class TrayPanel
             }
             foreach (var host in hosts)
             {
-                var confirming = _confirm is { Kind: PanelConfirmKind.Stop or PanelConfirmKind.RemoveMissing } confirm
+                var confirming = _confirm is { Kind: PanelConfirmKind.RemoveMissing } confirm
                     && confirm.Section == section && confirm.Host?.Id == host.Id;
                 Add(confirming ? ListItemKind.Confirm : ListItemKind.Row, confirming ? ConfirmHeight : RowHeight, section, host);
             }
@@ -624,7 +614,6 @@ internal sealed class TrayPanel
         {
             Add(ListItemKind.SectionHeader, SectionHeaderHeight, PanelSection.None, null, PanelTargetKind.LaunchAtSignIn);
             Add(ListItemKind.SettingsToggle, SettingsRowHeight, PanelSection.None, null, PanelTargetKind.LaunchAtSignIn);
-            Add(ListItemKind.SettingsToggle, SettingsRowHeight, PanelSection.None, null, PanelTargetKind.ConfirmStopSetting);
             Add(ListItemKind.SectionHeader, SectionHeaderHeight, PanelSection.None, null, PanelTargetKind.Documentation);
             Add(ListItemKind.About, AboutHeight, PanelSection.None, null);
         }
@@ -895,7 +884,7 @@ internal sealed class TrayPanel
     /// Drops a confirmation whose subject went away (the AppHost stopped, or the recent list was
     /// cleared elsewhere) and picks up the subject's latest state for the strip's text.
     /// </summary>
-    private void RevalidateConfirm(List<AppHostMenuItem> running)
+    private void RevalidateConfirm()
     {
         if (_confirm is not { } confirm)
         {
@@ -903,7 +892,6 @@ internal sealed class TrayPanel
         }
         var current = confirm.Kind switch
         {
-            PanelConfirmKind.Stop => running.FirstOrDefault(host => host.Id == confirm.Host!.Id && host.CanStop),
             PanelConfirmKind.RemoveMissing => _state.RecentAppHosts.FirstOrDefault(host => host.Id == confirm.Host!.Id),
             _ => null
         };
@@ -920,7 +908,7 @@ internal sealed class TrayPanel
 
     /// <summary>
     /// Draws an inline confirmation strip: a question, one line of detail, and a row of controls
-    /// (an optional "Don't ask again" toggle, then Cancel and the destructive button).
+    /// (Cancel, then the destructive button).
     /// </summary>
     private void AddConfirm(List<PanelCommand> commands, List<PanelHitTarget> targets, PanelConfirm confirm, AppHostMenuItem? host,
         double top, TrayPanelPalette palette)
@@ -932,7 +920,6 @@ internal sealed class TrayPanel
         var name = host?.DisplayName ?? "";
         var (question, detail, accept, acceptName) = confirm.Kind switch
         {
-            PanelConfirmKind.Stop => ($"Stop {name}?", "Persistent resources keep running.", "Stop", $"Stop {name}"),
             PanelConfirmKind.ClearRecent => ("Clear recent AppHosts?", "Pinned AppHosts are kept.", "Clear", "Clear recent AppHosts"),
             _ => ($"{name} was not found", host!.Id.AppHostPath, "Remove", $"Remove {name} from recent AppHosts")
         };
@@ -948,17 +935,6 @@ internal sealed class TrayPanel
         var controlsY = card.Bottom - 10 - ButtonSize;
         var section = confirm.Section;
         var id = host?.Id;
-        if (confirm.Kind == PanelConfirmKind.Stop)
-        {
-            var toggle = new PanelRect(card.X + 4, controlsY, 140, ButtonSize);
-            var toggleKey = new PanelTargetKey(PanelTargetKind.ConfirmDontAsk, section, id);
-            AddInteractionFill(commands, toggleKey, toggle, palette, includeFocus: false);
-            TrayPanelGlyphs.AddToggle(commands, confirm.DontAskAgain, enabled: true, new(toggle.X + 8, toggle.Y + 7, 25, 14), palette);
-            commands.Add(new TextCommand(new(toggle.X + 40, toggle.Y, toggle.Width - 44, toggle.Height), "Don't ask again",
-                PanelFontRole.Body, palette.TextSecondary));
-            AddTarget(targets, toggleKey, toggle, "Don't ask again", true, host, PanelAccessibleRole.Switch, confirm.DontAskAgain);
-        }
-
         const double ButtonWidth = 64;
         var acceptBounds = new PanelRect(card.Right - 10 - ButtonWidth, controlsY, ButtonWidth, ButtonSize);
         var cancelBounds = new PanelRect(acceptBounds.X - 8 - ButtonWidth, controlsY, ButtonWidth, ButtonSize);
@@ -1004,26 +980,14 @@ internal sealed class TrayPanel
     {
         var row = new PanelRect(RowInset, top + 2, Width - 2 * RowInset, SettingsRowHeight - 4);
         var key = new PanelTargetKey(kind, PanelSection.None, null);
-        bool on, enabled, error = false;
-        string title, description;
-        if (kind == PanelTargetKind.LaunchAtSignIn)
-        {
-            var startup = settings.Startup;
-            on = startup?.Enabled == true;
-            // Turning it off always works; turning it on needs a stable native installation.
-            enabled = startup is not null && (on || startup.CanEnable);
-            title = TraySettingsText.PanelStartupOption;
-            var status = startup is null ? settings.StartupError ?? "" : TraySettingsText.GetStartupStatus(startup, settings.StartupError);
-            error = settings.StartupError is not null;
-            description = string.IsNullOrEmpty(status) ? TraySettingsText.StartupDescription : status.Replace(Environment.NewLine, " ");
-        }
-        else
-        {
-            on = _state.ConfirmStop;
-            enabled = true;
-            title = TraySettingsText.ConfirmStopOption;
-            description = TraySettingsText.ConfirmStopDescription;
-        }
+        var startup = settings.Startup;
+        var on = startup?.Enabled == true;
+        // Turning it off always works; turning it on needs a stable native installation.
+        var enabled = startup is not null && (on || startup.CanEnable);
+        var title = TraySettingsText.PanelStartupOption;
+        var status = startup is null ? settings.StartupError ?? "" : TraySettingsText.GetStartupStatus(startup, settings.StartupError);
+        var error = settings.StartupError is not null;
+        var description = string.IsNullOrEmpty(status) ? TraySettingsText.StartupDescription : status.Replace(Environment.NewLine, " ");
         if (enabled)
         {
             AddInteractionFill(commands, key, row, palette, includeFocus: false);
@@ -1216,5 +1180,5 @@ internal sealed class TrayPanel
         PanelTargetKind Target);
 
     /// <summary>A pending inline confirmation. <see cref="Host"/> is null for Clear recent.</summary>
-    private sealed record PanelConfirm(PanelConfirmKind Kind, PanelSection Section, AppHostMenuItem? Host, bool DontAskAgain = false);
+    private sealed record PanelConfirm(PanelConfirmKind Kind, PanelSection Section, AppHostMenuItem? Host);
 }

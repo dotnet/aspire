@@ -8,7 +8,6 @@ internal sealed partial class MacTrayApplication : IDisposable
     private readonly TrayController _controller;
     private readonly ITrayStartupSettings _startupSettings;
     private readonly Action<Uri> _openDashboard;
-    private readonly Func<StopConfirmation, StopConfirmationResult>? _confirmStop;
     private readonly Func<TrayConfirmation, bool>? _confirmAction;
     private readonly Action<string> _copyPath;
     private readonly string _autosaveName;
@@ -20,7 +19,6 @@ internal sealed partial class MacTrayApplication : IDisposable
         string autosaveName,
         ITrayStartupSettings startupSettings,
         Action<Uri>? openDashboard = null,
-        Func<StopConfirmation, StopConfirmationResult>? confirmStop = null,
         Func<TrayConfirmation, bool>? confirmAction = null,
         Action<string>? copyPath = null)
     {
@@ -30,7 +28,6 @@ internal sealed partial class MacTrayApplication : IDisposable
         _controller = controller;
         _startupSettings = startupSettings;
         _openDashboard = openDashboard ?? OpenDashboardInBrowser;
-        _confirmStop = confirmStop;
         _confirmAction = confirmAction;
         _copyPath = copyPath ?? CopyPathToPasteboard;
         InitializeNative();
@@ -69,37 +66,11 @@ internal sealed partial class MacTrayApplication : IDisposable
 
     private void StopAppHost(AppHostId id)
     {
+        // Stopping isn't confirmed, as in the dashboard. RequestStop revalidates the exact
+        // process lifetime, so a stale or replaced AppHost is never stopped by mistake.
         try
         {
-            var selected = _controller.RequireLiveInstance(id);
-            var confirmation = _controller.ConfirmStop ? ConfirmStop(selected) : new StopConfirmationResult(true, false);
-            if (confirmation.Confirmed)
-            {
-                // Dispatch revalidates the exact lifetime after the modal alert. A canceled
-                // or stale action must not suppress later warnings.
-                _controller.RequestStop(selected.Id);
-                if (confirmation.DontAskAgain)
-                {
-                    _controller.SetConfirmStop(false);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            ReportActionFailure(ex, "Unable to request a stop. Try again.");
-        }
-    }
-
-    private void StopAppHostWithoutConfirmation(AppHostId id, bool dontAskAgain)
-    {
-        try
-        {
-            var selected = _controller.RequireLiveInstance(id);
-            _controller.RequestStop(selected.Id);
-            if (dontAskAgain)
-            {
-                _controller.SetConfirmStop(false);
-            }
+            _controller.RequestStop(_controller.RequireLiveInstance(id).Id);
         }
         catch (Exception ex)
         {
@@ -134,21 +105,6 @@ internal sealed partial class MacTrayApplication : IDisposable
         }
     }
 }
-
-internal sealed record StopConfirmation(
-    AppHostId AppHost,
-    string Message,
-    string Detail,
-    int ButtonCount,
-    bool CancelIsDefault,
-    bool StopRequiresExplicitChoice,
-    bool HasColorIcon,
-    bool HasStandardButtonContrast,
-    bool ShowsSuppressionButton,
-    string SuppressionTitle,
-    bool SuppressionIsChecked);
-
-internal readonly record struct StopConfirmationResult(bool Confirmed, bool DontAskAgain);
 
 internal sealed record TrayConfirmation(
     string Message,
