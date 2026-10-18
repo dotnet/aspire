@@ -550,6 +550,14 @@
   <data name="ResourceTagsAppHostDefined" xml:space="preserve">
     <value>Defined by the AppHost. This tag cannot be removed.</value>
   </data>
+  <data name="ResourceTraitDashboardTags" xml:space="preserve">
+    <value>Dashboard tags</value>
+    <comment>Name of the property listing the tags a resource declares in the AppHost.</comment>
+  </data>
+  <data name="ResourceTraitDashboardPosition" xml:space="preserve">
+    <value>Dashboard position</value>
+    <comment>Name of the property holding the default position a resource declares in the AppHost.</comment>
+  </data>
   <data name="ResourceTagsCreate" xml:space="preserve">
     <value>Create tag "{0}"</value>
   </data>

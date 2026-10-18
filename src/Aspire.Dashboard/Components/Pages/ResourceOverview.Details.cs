@@ -139,15 +139,18 @@ public sealed partial class ResourceOverview
         value is { HasNullValue: false } and not { KindCase: ProtobufValue.KindOneofCase.ListValue, ListValue.Values.Count: 0 };
 
     // Unknown properties are custom properties published by integrations. They're hidden by default, like in the
-    // resource details panel, unless the integration marks them as highlighted.
-    private static bool IsCoreProperty(DisplayedResourcePropertyViewModel property) => property.KnownProperty is not null || property.IsHighlighted;
+    // resource details panel, unless the integration marks them as highlighted. AppHost traits are always shown:
+    // the app author declared them to describe the resource, unlike integration implementation details.
+    private static bool IsCoreProperty(DisplayedResourcePropertyViewModel property) => property.KnownProperty is not null || property.IsHighlighted || property.IsTrait;
 
     private bool HasNonCoreProperties => _properties.Any(p => !IsCoreProperty(p));
 
     private List<DisplayedResourcePropertyViewModel> GetVisibleProperties() =>
         _properties
             .Where(p => _showAllProperties || IsCoreProperty(p))
-            .OrderBy(p => p.SortOrder)
+            // Keep traits together after the resource's own properties.
+            .OrderBy(p => p.IsTrait)
+            .ThenBy(p => p.SortOrder)
             .ThenBy(p => p.DisplayName, StringComparer.CurrentCulture)
             .ToList();
 

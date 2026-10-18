@@ -108,7 +108,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
 
         internal IEnumerable<DisplayedResourcePropertyViewModel> FilteredResourceProperties =>
         GetResourceProperties(ordered: true)
-            .Where(vm => (_showAll || vm.KnownProperty != null || vm.IsHighlighted) && vm.MatchesFilter(_filter));
+            .Where(vm => (_showAll || vm.KnownProperty != null || vm.IsHighlighted || vm.IsTrait) && vm.MatchesFilter(_filter));
 
     private bool _isVolumesExpanded;
     private bool _isEnvironmentVariablesExpanded;

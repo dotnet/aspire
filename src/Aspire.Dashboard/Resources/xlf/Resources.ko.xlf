@@ -457,6 +457,16 @@
         <target state="new">Tags</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceTraitDashboardPosition">
+        <source>Dashboard position</source>
+        <target state="new">Dashboard position</target>
+        <note>Name of the property holding the default position a resource declares in the AppHost.</note>
+      </trans-unit>
+      <trans-unit id="ResourceTraitDashboardTags">
+        <source>Dashboard tags</source>
+        <target state="new">Dashboard tags</target>
+        <note>Name of the property listing the tags a resource declares in the AppHost.</note>
+      </trans-unit>
       <trans-unit id="ResourcesActionsColumnHeader">
         <source>Actions</source>
         <target state="translated">작업</target>

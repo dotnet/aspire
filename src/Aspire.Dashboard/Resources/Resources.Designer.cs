@@ -871,6 +871,24 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Dashboard position.
+        /// </summary>
+        public static string ResourceTraitDashboardPosition {
+            get {
+                return ResourceManager.GetString("ResourceTraitDashboardPosition", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dashboard tags.
+        /// </summary>
+        public static string ResourceTraitDashboardTags {
+            get {
+                return ResourceManager.GetString("ResourceTraitDashboardTags", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Tags.
         /// </summary>
         public static string ResourceTagsSuggestions {

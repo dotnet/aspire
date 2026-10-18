@@ -395,7 +395,16 @@ public sealed class DisplayedResourcePropertyViewModel : IPropertyGridItem
     public Value Value => _propertyViewModel.Value;
     public bool IsHighlighted => _propertyViewModel.IsHighlighted;
     public int SortOrder => _propertyViewModel.SortOrder;
-    public string DisplayName => _propertyViewModel.DisplayName ?? _propertyViewModel.KnownProperty?.GetDisplayName(_loc) ?? _propertyViewModel.Name;
+    public bool IsTrait => _propertyViewModel.IsTrait;
+
+    // The AppHost sends the raw trait name as the display name, e.g. "Aspire_Dashboard_Tag". Reserved dashboard
+    // traits get a readable, localized name instead.
+    public string DisplayName => _propertyViewModel.Name switch
+    {
+        KnownProperties.Resource.TraitPrefix + KnownResourceTraits.DashboardTag => _loc[nameof(Resources.Resources.ResourceTraitDashboardTags)],
+        KnownProperties.Resource.TraitPrefix + KnownResourceTraits.DashboardPosition => _loc[nameof(Resources.Resources.ResourceTraitDashboardPosition)],
+        _ => _propertyViewModel.DisplayName ?? _propertyViewModel.KnownProperty?.GetDisplayName(_loc) ?? _propertyViewModel.Name
+    };
 
     string IPropertyGridItem.Name => DisplayName;
     string? IPropertyGridItem.Value => _displayValue.Value;
@@ -413,12 +422,14 @@ public sealed class DisplayedResourcePropertyViewModel : IPropertyGridItem
         // Known and unknown properties are displayed together. Avoid any duplicate keys.
         _key = propertyViewModel.KnownProperty != null ? propertyViewModel.KnownProperty.Key : GetUnknownKey(propertyViewModel.Name);
 
-        _tooltip = new(() => propertyViewModel.Value.HasStringValue ? propertyViewModel.Value.StringValue : propertyViewModel.Value.ToString());
+        _tooltip = new(() => propertyViewModel.Value.HasStringValue ? propertyViewModel.Value.StringValue : GetTraitText(propertyViewModel) ?? propertyViewModel.Value.ToString());
 
         _displayValue = new(() =>
         {
             var value = propertyViewModel.Value is { HasStringValue: true, StringValue: var stringValue }
                 ? stringValue
+                : GetTraitText(propertyViewModel) is { } traitText
+                ? traitText
                 // Complex values such as arrays and objects will be output as JSON.
                 // Consider how complex values are rendered in the future.
                 : propertyViewModel.Value.ToString();
@@ -446,6 +457,13 @@ public sealed class DisplayedResourcePropertyViewModel : IPropertyGridItem
 
     internal static string GetUnknownKey(string propertyName) => $"unknown-{propertyName}";
 
+    // Traits are list values, e.g. resource.trait.Owner = ["Finance", "Platform"]. Show them as "Finance, Platform"
+    // rather than the JSON used for other complex values.
+    private static string? GetTraitText(ResourcePropertyViewModel propertyViewModel) =>
+        propertyViewModel.IsTrait && propertyViewModel.Value.KindCase == Value.KindOneofCase.ListValue
+            ? string.Join(", ", propertyViewModel.Value.ListValue.Values.Where(v => v.HasStringValue).Select(v => v.StringValue))
+            : null;
+
     public bool MatchesFilter(string filter) =>
         _propertyViewModel.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase) ||
         DisplayName.Contains(filter, StringComparison.CurrentCultureIgnoreCase) ||
@@ -463,6 +481,9 @@ public sealed class ResourcePropertyViewModel
     public bool IsValueMasked { get; set; }
     public bool IsHighlighted { get; }
     public int SortOrder { get; }
+
+    /// <summary>Gets whether the property is an AppHost trait, such as one added with <c>WithTrait</c> or <c>WithTags</c>.</summary>
+    public bool IsTrait => Name.StartsWith(KnownProperties.Resource.TraitPrefix, StringComparison.Ordinal);
 
     public ResourcePropertyViewModel(string name, Value value, bool isValueSensitive, KnownProperty? knownProperty, int sortOrder, string? displayName, bool isHighlighted)
     {
