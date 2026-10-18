@@ -70,13 +70,7 @@ it is independent of OSC 9;4 progress and OSC 133 shell integration.
 The `terminal-features` resource in `playground/Terminals` demonstrates reports,
 nested updates, subtree clearing, and complete inventory clearing. It includes
 96 regional tasks with long titles and an eight-level path for testing vertical
-and horizontal scrolling and splitter resizing. Its parameterless `WithTerminal()`
-configuration also exercises automatic fitting when the first viewer opens.
-
-The same playground includes `shell80x24` and `shell90x30`, with explicitly
-configured grids. Open them on the Terminals page to check that their dimensions
-remain unchanged when attaching or resizing the view, until you explicitly use
-Fit or select another grid size.
+and horizontal scrolling and splitter resizing.
 
 ## AppHost-owned terminals
 
@@ -525,14 +519,8 @@ without changing font size, and is disabled while the view is already the
 auto-sized primary. The selector offers predefined terminal dimensions
 and displays the current grid,
 keeping both sizing operations available without opening the page options
-menu. A terminal starts at 132×50 before a viewer attaches. When neither
-`TerminalOptions.Columns` nor `TerminalOptions.Rows` is explicitly set,
-the Terminals page automatically fits the grid to the view at the selected font
-size. Setting either dimension, even to its default value, instead makes the
-page adopt the producer's current dimensions until the viewer requests a resize.
-An empty `WithTerminal` options callback still uses automatic fitting.
-Older AppHosts without the `terminal.autoFit` resource property retain the
-existing adopt-current-grid behavior. Ordinary keyboard and paste input do not take resize control;
+menu. A terminal starts at 132×50. A viewer adopts the producer's current
+dimensions. Ordinary keyboard and paste input do not take resize control;
 explicit footer sizing actions request primary and wait for confirmation before
 changing the grid. The bottom-left footer hint is shown only while the terminal
 has focus. It advertises <kbd>F6</kbd>, which moves keyboard focus from terminal

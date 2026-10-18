@@ -36,24 +36,18 @@ internal static class TerminalSetupHelpers
         int replicaCount = 1,
         string? displayName = null,
         KnownResourceState state = KnownResourceState.Running,
-        bool hidden = false,
-        bool? autoFit = null)
+        bool hidden = false)
     {
         var properties = new Dictionary<string, string>
         {
             [KnownProperties.Terminal.Enabled] = "true",
             [KnownProperties.Terminal.ReplicaIndex] = replicaIndex.ToString(CultureInfo.InvariantCulture),
             [KnownProperties.Terminal.ReplicaCount] = replicaCount.ToString(CultureInfo.InvariantCulture)
-        };
-        if (autoFit is { } fit)
-        {
-            properties[KnownProperties.Terminal.AutoFit] = fit ? "true" : "false";
-        }
-        var resourceProperties = properties.ToDictionary(pair => pair.Key, pair => new ResourcePropertyViewModel(
+        }.ToDictionary(pair => pair.Key, pair => new ResourcePropertyViewModel(
             pair.Key, Value.ForString(pair.Value), isValueSensitive: false, knownProperty: null,
             sortOrder: 0, displayName: null, isHighlighted: false));
 
-        return ModelTestHelpers.CreateResource(resourceName, state, displayName, properties: resourceProperties, hidden: hidden);
+        return ModelTestHelpers.CreateResource(resourceName, state, displayName, properties: properties, hidden: hidden);
     }
 
     public static void SetupTerminalComponents(BunitContext context, TestDashboardClient client, string pathBase = "")

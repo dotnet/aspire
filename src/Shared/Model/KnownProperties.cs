@@ -62,7 +62,6 @@ internal static class KnownProperties
     public static class Terminal
     {
         public const string Enabled = "terminal.enabled";
-        public const string AutoFit = "terminal.autoFit";
         public const string ReplicaIndex = "terminal.replicaIndex";
         public const string ReplicaCount = "terminal.replicaCount";
         public const string ConsumerUdsPath = "terminal.consumerUdsPath";
