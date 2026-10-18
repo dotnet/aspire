@@ -1063,6 +1063,62 @@ public partial class MetricsTests : DashboardTestContext
         });
     }
 
+    [Fact]
+    public async Task MeterSelected_ShowsInstrumentCards()
+    {
+        MetricsSetupHelpers.SetupMetricsPage(this);
+
+        // Read-only telemetry anchors each card to the instrument's latest data, so the
+        // historical test timestamps fall inside the card's time range.
+        await FluentUISetupHelpers.ConfigureTelemetryRepository(this, readOnly: true, telemetryRepository => telemetryRepository.AddMetricsAsync(new AddContext(), new RepeatedField<ResourceMetrics>
+        {
+            new ResourceMetrics
+            {
+                Resource = CreateResource(name: "TestApp"),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "test-instrument-b", startTime: s_testTime.AddMinutes(1), value: 3),
+                            CreateSumMetric(metricName: "test-instrument-b", startTime: s_testTime.AddMinutes(2), value: 7),
+                            CreateSumMetric(metricName: "test-instrument-a", startTime: s_testTime.AddMinutes(1), value: 1),
+                            CreateSumMetric(metricName: "test-instrument-a", startTime: s_testTime.AddMinutes(2), value: 2)
+                        }
+                    }
+                }
+            }
+        }));
+        Services.GetRequiredService<NavigationManager>().NavigateTo(
+            DashboardUrls.MetricsUrl(resource: "TestApp", meter: "test-meter", duration: 5, view: MetricViewKind.Graph.ToString()));
+
+        var cut = Render<Metrics>(builder =>
+        {
+            builder.Add(m => m.ResourceName, "TestApp");
+            builder.AddCascadingValue(new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
+        });
+
+        cut.WaitForAssertion(() =>
+        {
+            var cards = cut.FindAll(".meter-card");
+            Assert.Collection(cards,
+                card => AssertCard(card, "test-instrument-a"),
+                card => AssertCard(card, "test-instrument-b"));
+        });
+
+        static void AssertCard(AngleSharp.Dom.IElement card, string instrumentName)
+        {
+            Assert.Equal(instrumentName, card.QuerySelector(".meter-card-name")!.TextContent);
+            Assert.Equal(
+                DashboardUrls.MetricsUrl(resource: "TestApp", meter: "test-meter", instrument: instrumentName, duration: 5, view: MetricViewKind.Graph.ToString()),
+                card.GetAttribute("href"));
+            Assert.NotNull(card.QuerySelector(".meter-card-value-number"));
+            Assert.False(string.IsNullOrEmpty(card.QuerySelector(".meter-card-sparkline-line")!.GetAttribute("d")));
+        }
+    }
+
     private async Task ChangeResourceAndAssertInstrument(string app1InstrumentName, string app2InstrumentName, string? expectedMeterNameAfterChange, string? expectedInstrumentNameAfterChange)
     {
         // Arrange

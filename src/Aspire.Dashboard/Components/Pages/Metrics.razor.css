@@ -10,16 +10,12 @@
 }
 
 ::deep .meter-name-title {
-    margin-left: 10px;
+    margin: 0 0 var(--spacingVerticalM) 0;
 }
 
 ::deep .main-toolbar.filter-toolbar .toolbar-select,
 ::deep .main-toolbar.filter-toolbar .toolbar-select > fluent-dropdown {
     width: 250px;
-}
-
-::deep .metrics-instrument-link {
-    --aspire-link-button-background: var(--aspire-page-background);
 }
 
 /* Metrics chart SVG */

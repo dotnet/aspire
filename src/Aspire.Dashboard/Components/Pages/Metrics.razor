@@ -92,24 +92,14 @@
                                             OnViewChangedAsync="@OnViewChangedAsync"
                                             Resources="@_resources" />
                                     }
-                                    else if (PageViewModel.SelectedMeter != null)
+                                    else if (PageViewModel is { SelectedMeter: not null, SelectedResource.Id: { } selectedResourceId })
                                     {
                                         <h3 class="meter-name-title">@PageViewModel.SelectedMeter</h3>
-                                        <FluentDataGrid Class="aspire-spaced-grid"
-                                            Style="max-width:1100px;"
-                                            ItemsProvider="@EnumerableGridItemsProvider.Create(() => PageViewModel.Instruments.Where(item => item.Parent.Name == PageViewModel.SelectedMeter).OrderBy(item => item.Name))"
-                                            GridTemplateColumns="3fr 5fr"
-                                            RowSize="DataGridRowSize.Medium"
-                                            TGridItem="OtlpInstrumentSummary">
-                                            <ChildContent>
-                                                <AspireTemplateColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementNameGridNameColumnHeader)]">
-                                                    <a class="aspire-link-button metrics-instrument-link" href="@(ResourcesLayout?.AddPaneToUrl(DashboardUrls.MetricsUrl(resource: PageViewModel.SelectedResource.Name, meter: context.Parent.Name, instrument: context.Name, duration: DurationMinutes, view: ViewKindName)) ?? DashboardUrls.MetricsUrl(resource: PageViewModel.SelectedResource.Name, meter: context.Parent.Name, instrument: context.Name, duration: DurationMinutes, view: ViewKindName))">
-                                                        @context.Name
-                                                    </a>
-                                                </AspireTemplateColumn>
-                                                <AspirePropertyColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementDescriptionGridNameColumnHeader)]" Property="@(c => c.Description)" SortBy="@s_instrumentDescriptionSort" Tooltip="true" TooltipText="@(c => c.Description)" />
-                                            </ChildContent>
-                                        </FluentDataGrid>
+                                        <MeterOverview ResourceKey="@selectedResourceId.GetResourceKey()"
+                                                       MeterName="@PageViewModel.SelectedMeter"
+                                                       Instruments="@GetSelectedMeterInstruments()"
+                                                       Duration="@PageViewModel.SelectedDuration.Id"
+                                                       GetInstrumentUrl="@GetInstrumentUrl" />
                                     }
                                     else
                                     {

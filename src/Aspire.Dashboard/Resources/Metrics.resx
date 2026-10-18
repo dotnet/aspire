@@ -185,4 +185,7 @@
   <data name="MetricsInstrumentTypeHistogram" xml:space="preserve">
     <value>Histogram</value>
   </data>
+  <data name="MetricsOverviewNoData" xml:space="preserve">
+    <value>No data</value>
+  </data>
 </root>

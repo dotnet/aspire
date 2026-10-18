@@ -1,0 +1,139 @@
+.meter-overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: var(--spacingVerticalM);
+    max-width: 1400px;
+    padding-bottom: var(--spacingVerticalL);
+}
+
+.meter-card {
+    /* Same series color as the first line of the full chart, stepped for light and dark surfaces. */
+    --sparkline-color: #2a78d6;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacingVerticalXS);
+    min-width: 0;
+    padding: 12px 14px;
+    border: 1px solid var(--colorNeutralStroke2);
+    border-radius: 8px;
+    background-color: var(--colorNeutralBackground1);
+    color: var(--colorNeutralForeground1);
+    text-decoration: none;
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+[data-theme="dark"] .meter-card {
+    --sparkline-color: #3987e5;
+}
+
+.meter-card:hover {
+    border-color: var(--colorNeutralStroke1Hover);
+    box-shadow: var(--shadow4);
+}
+
+.meter-card:focus-visible {
+    outline: 2px solid var(--colorStrokeFocus2);
+    outline-offset: 1px;
+}
+
+.meter-card-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+::deep .meter-card-icon {
+    flex: none;
+    color: var(--colorNeutralForeground3);
+}
+
+.meter-card-name {
+    overflow: hidden;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.meter-card-description {
+    display: -webkit-box;
+    overflow: hidden;
+    min-height: 2.6em;
+    color: var(--colorNeutralForeground3);
+    font-size: var(--type-ramp-minus-1-font-size);
+    line-height: 1.3em;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.meter-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: auto;
+    padding-top: var(--spacingVerticalXS);
+}
+
+.meter-card-value {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    min-width: 0;
+    white-space: nowrap;
+}
+
+.meter-card-value-label {
+    color: var(--colorNeutralForeground3);
+    font-size: var(--type-ramp-minus-1-font-size);
+}
+
+.meter-card-value-number {
+    font-family: var(--aspire-font-display);
+    font-size: 22px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.meter-card-value-unit {
+    overflow: hidden;
+    color: var(--colorNeutralForeground3);
+    text-overflow: ellipsis;
+}
+
+.meter-card-sparkline {
+    display: block;
+    width: 100%;
+    height: 40px;
+    overflow: visible;
+}
+
+.meter-card-sparkline-line {
+    fill: none;
+    stroke: var(--sparkline-color);
+    stroke-width: 1.75px;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    /* The SVG stretches horizontally; keep the stroke width constant regardless of scaling. */
+    vector-effect: non-scaling-stroke;
+}
+
+.meter-card-sparkline-stop-top {
+    stop-color: var(--sparkline-color);
+    stop-opacity: 0.28;
+}
+
+.meter-card-sparkline-stop-bottom {
+    stop-color: var(--sparkline-color);
+    stop-opacity: 0;
+}
+
+.meter-card-no-data {
+    display: flex;
+    align-items: center;
+    height: 70px;
+    color: var(--colorNeutralForeground4);
+}
+
+.meter-card.no-data .meter-card-name {
+    color: var(--colorNeutralForeground3);
+}

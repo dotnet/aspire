@@ -87,6 +87,11 @@
         <target state="translated">Aucune métrique pour la ressource sélectionnée</target>
         <note />
       </trans-unit>
+      <trans-unit id="MetricsOverviewNoData">
+        <source>No data</source>
+        <target state="new">No data</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MetricsPageTitle">
         <source>{0} metrics</source>
         <target state="translated">Métriques {0}</target>

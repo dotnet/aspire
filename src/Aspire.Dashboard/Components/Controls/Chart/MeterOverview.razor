@@ -1,0 +1,60 @@
+@namespace Aspire.Dashboard.Components
+
+@using System.Globalization
+@using Aspire.Dashboard.Resources
+@using MetricsResources = Aspire.Dashboard.Resources.Metrics
+
+@inject IStringLocalizer<MetricsResources> Loc
+
+<div class="meter-overview">
+    @for (var i = 0; i < Instruments.Count; i++)
+    {
+        var instrument = Instruments[i];
+        var cardData = GetCardData(instrument);
+        var gradientId = $"{_gradientIdPrefix}-{i}";
+        var icon = GetInstrumentIcon(instrument.Type);
+
+        <a @key="instrument" class="meter-card @(cardData.LatestValue is null ? "no-data" : null)" href="@GetInstrumentUrl(instrument)">
+            <div class="meter-card-header">
+                @if (icon is not null)
+                {
+                    <FluentIcon Value="@icon" Class="meter-card-icon" Color="Color.Custom" CustomColor="currentColor" />
+                }
+                <span class="meter-card-name" title="@instrument.Name">@instrument.Name</span>
+            </div>
+
+            @if (!string.IsNullOrEmpty(instrument.Description))
+            {
+                <div class="meter-card-description" title="@instrument.Description">@instrument.Description</div>
+            }
+
+            <div class="meter-card-body">
+                @if (cardData.LatestValue is { } latestValue)
+                {
+                    <div class="meter-card-value">
+                        @if (instrument.Type == OtlpInstrumentType.Histogram)
+                        {
+                            <span class="meter-card-value-label">P50</span>
+                        }
+                        <span class="meter-card-value-number">@FormatCompactValue(latestValue, CultureInfo.CurrentCulture)</span>
+                        <span class="meter-card-value-unit">@FormatUnit(instrument, latestValue)</span>
+                    </div>
+                    <svg class="meter-card-sparkline" viewBox="0 0 @SparklineWidth.ToString(CultureInfo.InvariantCulture) @SparklineHeight.ToString(CultureInfo.InvariantCulture)" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+                        <defs>
+                            <linearGradient id="@gradientId" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" class="meter-card-sparkline-stop-top" />
+                                <stop offset="100%" class="meter-card-sparkline-stop-bottom" />
+                            </linearGradient>
+                        </defs>
+                        <path class="meter-card-sparkline-area" d="@cardData.AreaPath" fill="url(#@gradientId)" />
+                        <path class="meter-card-sparkline-line" d="@cardData.LinePath" />
+                    </svg>
+                }
+                else
+                {
+                    <div class="meter-card-no-data">@Loc[nameof(MetricsResources.MetricsOverviewNoData)]</div>
+                }
+            </div>
+        </a>
+    }
+</div>
