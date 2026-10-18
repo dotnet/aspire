@@ -25,7 +25,13 @@ internal static class DcpDashboardConfiguration
             ExecutablePath = assembly ? "dotnet" : path,
             WorkingDirectory = Path.GetDirectoryName(path)!,
             ExecutionType = DcpExecutionType.Process,
-            Args = assembly ? [path] : bundled ? ["dashboard"] : [],
+            Args = (assembly, bundled) switch
+            {
+                (true, true) => [path, "dashboard"],
+                (true, false) => [path],
+                (false, true) => ["dashboard"],
+                _ => []
+            },
             Env =
             [
                 // DCP substitutes the assigned frontend port before process launch.

@@ -145,14 +145,22 @@ async function localLifecycle(env: NodeJS.ProcessEnv): Promise<void> {
         }
         throw new Error('Local sample did not become responsive.', { cause: lastError });
     }
-    async function stop(): Promise<void> {
-        await run(cliPath!, ['stop', ...arguments_], localEnvironment);
+    async function stop(pid: number | undefined): Promise<void> {
+        await run(cliPath!, ['stop', ...arguments_, ...(pid === undefined ? [] : ['--pid', String(pid)])], localEnvironment);
         active = false;
     }
     let detached = false;
     try {
         const first = await ready();
-        await stop();
+        const listed = await run(cliPath!, ['ps', '--format', 'Json', '--non-interactive', '--nologo'], localEnvironment);
+        const hosts = JSON.parse(listed.stdout) as { appHostPath: string; appHostPid: number; cliPid: number }[];
+        const ownedHosts = hosts.filter(host => resolve(host.appHostPath) === apphost && host.cliPid === child.pid);
+        assert.equal(ownedHosts.length, 1, 'Find only this fixture and its foreground CLI owner.');
+        const pid = ownedHosts[0]!.appHostPid;
+        assert.ok(Number.isSafeInteger(pid) && pid > 0);
+        // Instance-targeted RPC stop lets the foreground CLI exit normally.
+        // Project-wide stop intentionally force-cleans remaining launcher handles.
+        await stop(pid);
         const code = await Promise.race([exited, delay(30_000, undefined, { ref: false }).then(() => {
             throw new Error('Foreground CLI did not exit after stop.');
         })]);
@@ -162,11 +170,11 @@ async function localLifecycle(env: NodeJS.ProcessEnv): Promise<void> {
         detached = true;
         const retained = await ready();
         assert.ok(retained > first, 'Detached start must reuse authenticated Redis data.');
-        await stop();
+        await stop(undefined);
         await writeFile(join(workspace, 'local-proof.json'), JSON.stringify({ run: true, start: true, stop: true, first, retained }));
     } finally {
         try {
-            if (active) await stop();
+            if (active) await stop(undefined);
         } finally {
             if (!launchError && child.exitCode === null) child.kill('SIGTERM');
             await writeFile(join(workspace, 'foreground-run.log'), safe(foreground));

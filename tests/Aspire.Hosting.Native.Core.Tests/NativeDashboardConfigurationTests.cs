@@ -12,6 +12,8 @@ public class NativeDashboardConfigurationTests
     [Theory]
     [InlineData("dashboard.dll")]
     [InlineData("dashboard")]
+    [InlineData("aspire-managed.dll")]
+    [InlineData("aspire-managed")]
     [InlineData("aspire-managed.exe")]
     public async Task DashboardLaunchModesKeepTheirCredentialAndPortProjection(string fileName)
     {
