@@ -116,6 +116,16 @@ be rebound to the replacement process.
 Portable provider metadata is available through `getIntegrationCapabilities`;
 the static `getCapabilities` contract remains separate from integration APIs.
 
+TypeScript provider implementations can obtain host cancellation with
+`getIntegrationInvocationSignal(args)` from `integration-host.mjs`, passing the
+original capability argument bag before destructuring it. This works for managed
+and native hosts without reserving an argument name such as `signal`. Projected
+`cancellationToken` parameters continue to receive SDK cancellation tokens.
+Retiring a provider-owned resource cancels and drains all invocations using it,
+including handles nested inside argument arrays and objects, before disposal.
+On disconnect or SIGINT/SIGTERM, process cleanup has a five-second deadline;
+failed or timed-out cleanup emits a diagnostic and exits with a nonzero code.
+
 ## Deliberate boundaries
 
 This phase supports required primitive arguments/results, typed handles, and

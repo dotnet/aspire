@@ -79,8 +79,9 @@ internal sealed class NativeAppHostServerProject : IAppHostServerProject, IDispo
         _generatedSdkDirectory = null;
         var references = integrations.ToArray();
         if (references.Any(reference => reference.Source is not IntegrationSource.Npm &&
-            (reference.Source != IntegrationSource.Nuget || reference.Name != "Aspire.Hosting" &&
-             reference.Name != "Aspire.Hosting.CodeGeneration.TypeScript")))
+            !(reference.Source is IntegrationSource.Nuget or IntegrationSource.Project &&
+              (string.Equals(reference.Name, "Aspire.Hosting", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(reference.Name, "Aspire.Hosting.CodeGeneration.TypeScript", StringComparison.OrdinalIgnoreCase)))))
         {
             throw new NotSupportedException("AppHost Server v2 requires protocol-v2 provider packages. Managed integration assemblies cannot be loaded into this server.");
         }
@@ -118,10 +119,6 @@ internal sealed class NativeAppHostServerProject : IAppHostServerProject, IDispo
                 throw new InvalidOperationException("AppHost Server v2 provider SDK generation requires the matching Aspire bundle tooling and ATS contract.");
             }
             _directory ??= Directory.CreateTempSubdirectory("aspire-apphost-server-");
-            if (!OperatingSystem.IsWindows())
-            {
-                File.SetUnixFileMode(_directory.FullName, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
-            }
             var generatedSdkDirectory = Path.Combine(_directory.FullName, $"sdk-{++_preparationCount}");
             var requestPath = Path.Combine(_directory.FullName, "codegen-request.json");
             await File.WriteAllTextAsync(requestPath, new JsonObject
@@ -218,7 +215,7 @@ internal sealed class NativeAppHostServerProject : IAppHostServerProject, IDispo
         OrphanDetectionEnvironment.Apply(startInfo.Environment, hostPid, parentStarted,
             KnownConfigNames.CliProcessId, KnownConfigNames.CliProcessStarted);
         var bootstrap = environmentVariables?.GetValueOrDefault(KnownConfigNames.IntegrationHostBootstrap) == "true";
-        var suppressRuntimeComponents = bootstrap || operation is "publish" or "inspect";
+        var suppressRuntimeComponents = bootstrap || operation != "run";
         if (suppressRuntimeComponents)
         {
             // SDK bootstrap, publishing, and inspection must not start local workloads,
@@ -285,15 +282,30 @@ internal sealed class NativeAppHostServerProject : IAppHostServerProject, IDispo
         {
             foreach (var path in _socketPaths)
             {
-                File.Delete(path);
+                Cleanup(() => File.Delete(path), path);
             }
             _socketPaths.Clear();
-            _directory?.Delete(recursive: true);
+            if (_directory is { } directory)
+            {
+                Cleanup(() => directory.Delete(recursive: true), directory.FullName);
+            }
             _directory = null;
         }
         finally
         {
             LayoutLease?.Dispose();
+        }
+    }
+
+    private void Cleanup(Action delete, string path)
+    {
+        try
+        {
+            delete();
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            _logger.LogWarning(exception, "Failed to remove native AppHost server temporary path {Path}", path);
         }
     }
 }

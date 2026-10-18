@@ -1575,8 +1575,8 @@ public class GuestAppHostProjectTests : IDisposable
 
         var factory = new TestAppHostServerProjectFactory
         {
-            CreateAsyncCallback = (appPath, _) =>
-                Task.FromResult<IAppHostServerProject>(new FakeFailingAppHostServerProject(appPath))
+            CreateAsyncCallback = (_, _) =>
+                throw new InvalidOperationException("Instance discovery must not acquire a server or bundle lease.")
         };
 
         var project = CreateGuestAppHostProject(appHostServerProjectFactory: factory);
@@ -1586,6 +1586,28 @@ public class GuestAppHostProjectTests : IDisposable
             new FileInfo(appHostPath),
             _workspace.WorkspaceRoot,
             CancellationToken.None);
+
+        Assert.Equal(RunningInstanceResult.NoRunningInstance, result);
+        Assert.False(File.Exists(socketPath));
+    }
+
+    [Fact]
+    public async Task FindAndStopRunningInstanceAsync_UsesFactoryIdentityWithoutCreatingAServer()
+    {
+        var appHostPath = Path.Combine(_workspace.WorkspaceRoot.FullName, "apphost.mts");
+        await File.WriteAllTextAsync(appHostPath, "// test apphost");
+        var identity = Path.Combine(_workspace.WorkspaceRoot.FullName, "server", "AppHostServer.csproj");
+        var factory = new TestAppHostServerProjectFactory
+        {
+            GetInstanceIdentifierCallback = _ => identity,
+            CreateAsyncCallback = (_, _) =>
+                throw new InvalidOperationException("Instance discovery must not acquire a server or bundle lease.")
+        };
+        var project = CreateGuestAppHostProject(appHostServerProjectFactory: factory);
+        var socketPath = CreateMatchingSocketFile(identity, int.MaxValue - 1);
+
+        var result = await project.FindAndStopRunningInstanceAsync(
+            new FileInfo(appHostPath), _workspace.WorkspaceRoot, TestContext.Current.CancellationToken);
 
         Assert.Equal(RunningInstanceResult.NoRunningInstance, result);
         Assert.False(File.Exists(socketPath));
@@ -2138,6 +2160,10 @@ public class GuestAppHostProjectTests : IDisposable
     [InlineData("publish", "--operation", "inspect")]
     [InlineData("deploy", "--operation", "inspect")]
     [InlineData("publish", "--operation=inspect", "inspect")]
+    [InlineData("publish", "--operation=run", "publish")]
+    [InlineData("publish", "--operation=foo", "publish")]
+    [InlineData("deploy", "--operation=run", "publish")]
+    [InlineData("deploy", "--operation=foo", "publish")]
     [InlineData(null, null, "publish")]
     public async Task PublishAsync_V2ProjectsOperationIntoServerSession(string? step, string? inspectionArgument, string expectedOperation)
     {

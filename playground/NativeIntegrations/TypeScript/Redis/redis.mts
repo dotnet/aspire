@@ -4,7 +4,7 @@
 import { fileURLToPath } from 'node:url';
 import { AspireExport, defineIntegration } from './base.mjs';
 import type { Composition, DeclaredResource, DeclaredValue, ResourceLifecycleScope } from './aspire.mjs';
-import { IntegrationResource } from './integration-host.mjs';
+import { getIntegrationInvocationSignal, IntegrationResource } from './integration-host.mjs';
 import { nativeTypes } from './native-types.mjs';
 import { DistributedApplicationBuilder } from './native-builder.mjs';
 import { addRedis as authorRedis } from './redis-authoring.mjs';
@@ -33,7 +33,9 @@ export const addRedis = AspireExport({
             { name: 'password', type: nativeTypes.DeclaredValue }],
         returnType: resourceType
     }
-}, async ({ composition, name, password, signal }: { composition: Composition; name: string; password: DeclaredValue; signal: AbortSignal }) => {
+}, async (args: { composition: Composition; name: string; password: DeclaredValue }) => {
+    const { composition, name, password } = args;
+    const signal = getIntegrationInvocationSignal(args);
     const builder = new DistributedApplicationBuilder();
     const credential = builder.importParameter(`${name}-password`, password);
     const cache = authorRedis(builder, name, credential);
@@ -82,7 +84,9 @@ const lifecycle = (phase: 'initialize' | 'allocated' | 'ready' | 'retiring', met
             parameters: [{ name: 'context', type: resourceType }, { name: 'scope', type: nativeTypes.ResourceLifecycleScope }],
             returnType: { typeId: 'void', category: 'Primitive' }
         }
-    }, async ({ context, scope, signal }: { context: RedisResource; scope: ResourceLifecycleScope; signal: AbortSignal }) => {
+    }, async (args: { context: RedisResource; scope: ResourceLifecycleScope }) => {
+        const { context, scope } = args;
+        const signal = getIntegrationInvocationSignal(args);
         signal.throwIfAborted();
         await action(context, scope, signal);
     });

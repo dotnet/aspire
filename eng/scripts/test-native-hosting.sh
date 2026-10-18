@@ -154,6 +154,7 @@ run_logged rpc-authoring-projection-tests env ASPIRE_NATIVE_CSHARP_TEST_SERVER="
     dotnet test --project tests/Aspire.Hosting.Native.Core.Tests/Aspire.Hosting.Native.Core.Tests.csproj --no-build --no-launch-profile -- \
     --filter-class '*.NativeRpcAuthoringTests' --filter-not-trait 'quarantined=true' --filter-not-trait 'outerloop=true'
 run_logged provider-shutdown-smoke node "$sdk/out/NativeProviderShutdownSmoke.mjs"
+run_logged integration-host-smoke node "$sdk/out/IntegrationHostSmoke.mjs"
 run_logged milestone-cycle-smoke env ASPIRE_NATIVE_DCP_PATH="$ASPIRE_NATIVE_DCP_PATH" \
     node "$sdk/out/NativeMilestoneSmoke.mjs" "$work/server/Aspire.Hosting.Native.Server"
 

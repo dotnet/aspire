@@ -17,6 +17,7 @@ namespace Aspire.Cli.Projects;
 /// </summary>
 internal interface IAppHostServerProjectFactory
 {
+    string GetInstanceIdentifier(string appPath);
     Task<IAppHostServerProject> CreateAsync(string appPath, CancellationToken cancellationToken = default);
     Task<IAppHostServerProject> CreateAsync(string appPath, FileInfo appHostFile, CancellationToken cancellationToken);
     Task<IAppHostServerProject> CreateAsync(string appPath, string? restoreRootConfigDirectory, CancellationToken cancellationToken);
@@ -37,6 +38,16 @@ internal sealed class AppHostServerProjectFactory(
     IProcessExecutionFactory processExecutionFactory,
     ILoggerFactory loggerFactory) : IAppHostServerProjectFactory
 {
+    public string GetInstanceIdentifier(string appPath)
+    {
+        if (IsNativeServerEnabled(appPath) || AspireRepositoryDetector.DetectRepositoryRoot(appPath) is null)
+        {
+            return appPath;
+        }
+
+        return DotNetBasedAppHostServerProject.GetDefaultInstanceIdentifier(appPath);
+    }
+
     public Task<IAppHostServerProject> CreateAsync(string appPath, CancellationToken cancellationToken = default)
         => CreateAsync(
             appPath,
@@ -71,8 +82,7 @@ internal sealed class AppHostServerProjectFactory(
         string workloadId,
         CancellationToken cancellationToken)
     {
-        var configDirectory = ConfigurationHelper.GetConfigRootDirectory(new DirectoryInfo(appPath));
-        if (KnownFeatures.IsAppHostServerV2Enabled(AspireConfigFile.Load(configDirectory.FullName)))
+        if (IsNativeServerEnabled(appPath))
         {
             return await NativeAppHostServerProject.CreateAsync(appPath, bundleService, environment,
                 processExecutionFactory, loggerFactory.CreateLogger<NativeAppHostServerProject>(), cancellationToken).ConfigureAwait(false);
@@ -142,5 +152,12 @@ internal sealed class AppHostServerProjectFactory(
             layoutLease?.Dispose();
             throw;
         }
+    }
+
+    private static bool IsNativeServerEnabled(string appPath)
+    {
+        var configDirectory = ConfigurationHelper.GetConfigRootDirectory(new DirectoryInfo(appPath));
+
+        return KnownFeatures.IsAppHostServerV2Enabled(AspireConfigFile.Load(configDirectory.FullName));
     }
 }

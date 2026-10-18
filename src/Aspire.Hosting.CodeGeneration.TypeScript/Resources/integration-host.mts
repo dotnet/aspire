@@ -21,6 +21,21 @@ import { AspireClient, CancellationToken, wrapIfHandle, type AspireClientRpc } f
 
 export type JsonObject = Record<string, unknown>;
 
+const invocationSignals = new WeakMap<object, AbortSignal>();
+
+/**
+ * Gets host cancellation for the original capability argument bag, without
+ * reserving an authored parameter name. Available in managed and native hosts.
+ */
+export function getIntegrationInvocationSignal(args: object): AbortSignal
+{
+    const signal = invocationSignals.get(args);
+    if (!signal) {
+        throw new Error('The argument bag does not belong to an active integration invocation.');
+    }
+    return signal;
+}
+
 /**
  * A handle to a server-owned object, as it arrives over the wire from the AppHost server.
  * The host runtime wraps these into the generated Impl classes before dispatching to user code.
@@ -104,14 +119,24 @@ export async function runIntegrationHost(host: IntegrationHostDefinition): Promi
         }
         shuttingDown = true;
         log("Shutting down");
+        // Integration-owned cleanup must not keep an orphan alive after the
+        // engine disconnects or its process supervisor requests shutdown.
+        const deadline = setTimeout(() => {
+            console.error('Integration object cleanup timed out; forcing process exit.');
+            process.exit(1);
+        }, 5000);
+        let exitCode = 0;
         try {
             await releaseAll();
         } catch {
-            console.error('Native integration object cleanup failed.');
+            console.error('Integration object cleanup failed; forcing process exit.');
+            exitCode = 1;
+        } finally {
+            clearTimeout(deadline);
+            connection.dispose();
+            socket.destroy();
+            process.exit(exitCode);
         }
-        connection.dispose();
-        socket.destroy();
-        process.exit(0);
     };
     process.on('SIGINT', shutdown);
     process.on('SIGTERM', shutdown);
@@ -184,7 +209,7 @@ export async function runIntegrationHost(host: IntegrationHostDefinition): Promi
     const resources = new Map<string, IntegrationResource>();
     const identities = new WeakMap<IntegrationResource, string>();
     const released = new WeakSet<IntegrationResource>();
-    const invocations = new Map<string, { controller: AbortController; completion: Promise<void>; resources: IntegrationResource[] }>();
+    const invocations = new Map<string, { controller: AbortController; completion: Promise<void>; resources: Set<IntegrationResource> }>();
     const releaseResource = async (id: string, waitForInvocations = true): Promise<boolean> => {
         const resource = resources.get(id);
         if (!resource) {
@@ -193,7 +218,7 @@ export async function runIntegrationHost(host: IntegrationHostDefinition): Promi
         resources.delete(id);
         identities.delete(resource);
         released.add(resource);
-        const active = [...invocations.values()].filter(invocation => invocation.resources.includes(resource));
+        const active = [...invocations.values()].filter(invocation => invocation.resources.has(resource));
         for (const invocation of active) {
             invocation.controller.abort();
         }
@@ -244,19 +269,20 @@ export async function runIntegrationHost(host: IntegrationHostDefinition): Promi
         }
         return { $handle: id, $type: value.typeId, $lifetime: value.declaration.toJSON() };
     };
-    const decodeArguments = (value: unknown): unknown => {
+    const decodeArguments = (value: unknown, invocationResources: Set<IntegrationResource>): unknown => {
         if (isRemoteHandle(value) && resources.has(value.$handle)) {
             const resource = resources.get(value.$handle)!;
             if (resource.typeId !== value.$type) {
                 throw new Error('Integration resource type mismatch.');
             }
+            invocationResources.add(resource);
             return resource;
         }
         if (Array.isArray(value)) {
-            return value.map(decodeArguments);
+            return value.map(nested => decodeArguments(nested, invocationResources));
         }
         if (value && typeof value === 'object' && !isRemoteHandle(value)) {
-            return Object.fromEntries(Object.entries(value).map(([key, nested]) => [key, decodeArguments(nested)]));
+            return Object.fromEntries(Object.entries(value).map(([key, nested]) => [key, decodeArguments(nested, invocationResources)]));
         }
         return wrapRemoteValue(value, client);
     };
@@ -280,7 +306,8 @@ export async function runIntegrationHost(host: IntegrationHostDefinition): Promi
             }
             const meta = getAspireExport(fn)!;
 
-            const wrappedArgs = decodeArguments({ ...(args ?? {}) }) as JsonObject;
+            const invocationResources = new Set<IntegrationResource>();
+            const wrappedArgs = decodeArguments({ ...(args ?? {}) }, invocationResources) as JsonObject;
 
             // For any parameter the projection marks as `isCallback`, replace
             // the wire-format callback id string with a JS function that routes
@@ -293,11 +320,10 @@ export async function runIntegrationHost(host: IntegrationHostDefinition): Promi
             if (invocations.has(invocationId)) {
                 throw new Error('An integration invocation cannot be replayed.');
             }
-            invocations.set(invocationId, { controller, completion,
-                resources: Object.values(wrappedArgs).filter((value): value is IntegrationResource => value instanceof IntegrationResource) });
-            // The signal is local invocation state, not a secret-bearing RPC
-            // parameter or an author-supplied replacement for native authority.
-            wrappedArgs.signal = controller.signal;
+            invocations.set(invocationId, { controller, completion, resources: invocationResources });
+            // Keep invocation state out of the projected parameter namespace,
+            // including capabilities that legitimately declare a "signal" parameter.
+            invocationSignals.set(wrappedArgs, controller.signal);
             const cancellationRegistration = cancellation?.onCancellationRequested(() => controller.abort());
             if (cancellation?.isCancellationRequested) {
                 controller.abort();
@@ -343,6 +369,7 @@ export async function runIntegrationHost(host: IntegrationHostDefinition): Promi
                 clearInterval(stalled);
                 cancellationRegistration?.dispose();
                 invocations.delete(invocationId);
+                invocationSignals.delete(wrappedArgs);
                 completeInvocation();
             }
         });

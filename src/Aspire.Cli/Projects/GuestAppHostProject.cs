@@ -569,11 +569,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
             {
                 throw new NotSupportedException("AppHost Server v2 does not support server debugging.");
             }
-            List<IntegrationReference>? integrations = null;
-            if (KnownFeatures.IsAppHostServerV2Enabled(config))
-            {
-                integrations = await GetIntegrationReferencesAsync(config, directory, cancellationToken);
-            }
+            var integrations = await GetIntegrationReferencesAsync(config, directory, cancellationToken);
 
             // Step 1: Ensure certificates are trusted
             Dictionary<string, string> certEnvVars;
@@ -590,7 +586,6 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
 
             // Step 2: Build/prepare the AppHost server (dependency install happens after server starts)
             // Load config - source of truth for SDK version and packages
-            integrations ??= await GetIntegrationReferencesAsync(config, directory, cancellationToken);
             var sdkVersion = GetPrepareSdkVersion(config);
             var appHostServerProject = await _appHostServerProjectFactory.CreateAsync(directory.FullName, appHostFile, cancellationToken);
             using var serverProjectLifetime = appHostServerProject as IDisposable;
@@ -1660,17 +1655,17 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
 
     private static string GetNativePublishOperation(string[] arguments)
     {
-        // Pipeline inspection appends "--operation inspect" after the publish/deploy arguments.
-        // Honor the last operation, including the equivalent "--operation=inspect" spelling.
+        // Pipeline inspection appends "--operation inspect" (or "--operation=inspect").
+        // Pass-through arguments must never turn a publish/deploy server into run mode.
         for (var i = arguments.Length - 1; i >= 0; i--)
         {
             if (arguments[i].StartsWith("--operation=", StringComparison.Ordinal))
             {
-                return arguments[i]["--operation=".Length..];
+                return arguments[i]["--operation=".Length..] == "inspect" ? "inspect" : "publish";
             }
             if (arguments[i] == "--operation" && i + 1 < arguments.Length)
             {
-                return arguments[i + 1];
+                return arguments[i + 1] == "inspect" ? "inspect" : "publish";
             }
         }
 
@@ -2057,11 +2052,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
             return RunningInstanceResult.NoRunningInstance; // No directory, nothing to check
         }
 
-        var appHostServerProject = await _appHostServerProjectFactory.CreateAsync(
-            directory.FullName,
-            appHostFile,
-            cancellationToken);
-        var genericAppHostPath = appHostServerProject.GetInstanceIdentifier();
+        var genericAppHostPath = _appHostServerProjectFactory.GetInstanceIdentifier(directory.FullName);
 
         // Find matching sockets for this AppHost
         var matchingSockets = AppHostSocketManager.FindSockets(

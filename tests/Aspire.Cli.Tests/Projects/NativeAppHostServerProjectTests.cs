@@ -50,6 +50,7 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
         new AspireConfigFile { Features = new() { [KnownFeatures.AppHostServerV2] = true } }.Save(workspace.Path);
         var factory = CreateFactory(new TestEnvironment(), new NullBundleService(), new TestProcessExecutionFactory());
 
+        Assert.Equal(workspace.Path, factory.GetInstanceIdentifier(workspace.Path));
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => factory.CreateAsync(workspace.Path));
         Assert.Contains("does not contain AppHost Server v2", exception.Message);
     }
@@ -124,6 +125,26 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
             [IntegrationReference.FromPackage("Aspire.Hosting.Redis", "13.6")]));
         await Assert.ThrowsAsync<NotSupportedException>(() => project.PrepareAsync("13.6",
             [IntegrationReference.FromPackage("Aspire.Hosting.CodeGeneration.Python", "13.6")]));
+        await Assert.ThrowsAsync<NotSupportedException>(() => project.PrepareAsync("13.6",
+            [IntegrationReference.FromProject("Aspire.Hosting.Redis", Path.Combine(workspace.Path, "Redis.csproj"))]));
+    }
+
+    [Theory]
+    [InlineData(false, "aspire.hosting.codegeneration.typescript")]
+    [InlineData(true, "Aspire.Hosting.CodeGeneration.TypeScript")]
+    [InlineData(true, "aspire.hosting.codegeneration.typescript")]
+    [InlineData(true, "Aspire.Hosting")]
+    public async Task ToolingReferencesUseCaseInsensitiveIdentitiesForPackagesAndProjects(bool projectReference, string name)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var executable = Path.Combine(workspace.Path, "server");
+        await File.WriteAllTextAsync(executable, "");
+        using var project = new NativeAppHostServerProject(workspace.Path, executable, new TestProcessExecutionFactory(), NullLogger.Instance);
+        var reference = projectReference
+            ? IntegrationReference.FromProject(name, Path.Combine(workspace.Path, "tooling.csproj"))
+            : IntegrationReference.FromPackage(name, "13.6");
+
+        Assert.True((await project.PrepareAsync("13.6", [reference])).NeedsCodeGeneration);
     }
 
     [Fact]
@@ -270,6 +291,10 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
     [InlineData("run", false, true)]
     [InlineData("run", true, false)]
     [InlineData("run", true, true)]
+    [InlineData("foo", false, false)]
+    [InlineData("foo", false, true)]
+    [InlineData("foo", true, false)]
+    [InlineData("foo", true, true)]
     public async Task SessionOperationControlsRuntimeComponents(string operation, bool useLayout, bool useSessionPaths)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
@@ -327,6 +352,42 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
         var result = await project.RunAsync(42, environment, [], false, null);
 
         await result.Execution.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task SocketCleanupFailuresAreLoggedWithoutReplacingTheProcessExitCode()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            Assert.Skip("Unix socket files are only tracked on Unix.");
+            return;
+        }
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var executable = Path.Combine(workspace.Path, "server");
+        await File.WriteAllTextAsync(executable, "");
+        var logger = new CapturingLogger<NativeAppHostServerProject>();
+        var processes = new TestProcessExecutionFactory
+        {
+            CreateExecutionFromStartInfoCallback = (start, options) => new TestProcessExecution(start.FileName, [], null, options,
+                (_, _, _) => Task.FromResult((7, (string?)null)), () => 1)
+        };
+        using var project = new NativeAppHostServerProject(workspace.Path, executable, processes, logger);
+        var result = await project.RunAsync(42, null, [], false, null);
+        Directory.CreateDirectory(result.SocketPath);
+        try
+        {
+            Assert.Equal(7, await result.Execution.WaitForExitAsync(TestContext.Current.CancellationToken));
+            await result.Execution.DisposeAsync();
+            project.Dispose();
+
+            var entry = Assert.Single(logger.Entries);
+            Assert.Equal(Microsoft.Extensions.Logging.LogLevel.Warning, entry.Level);
+            Assert.Contains(result.SocketPath, entry.Message);
+        }
+        finally
+        {
+            Directory.Delete(result.SocketPath);
+        }
     }
 
     [Theory]
@@ -419,7 +480,8 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
             return new TestProcessExecution(start.FileName, [], null, options,
                 (_, _, _) => Task.FromResult((start.FileName == executable ? 0 : exitCode, (string?)null)), () => 1);
         };
-        using var project = new NativeAppHostServerProject(workspace.Path, executable, processes, NullLogger.Instance)
+        var logger = new CapturingLogger<NativeAppHostServerProject>();
+        using var project = new NativeAppHostServerProject(workspace.Path, executable, processes, logger)
         {
             LayoutLease = new BundleLayoutLease(new LayoutConfiguration { LayoutPath = workspace.Path }, null)
         };
@@ -440,6 +502,22 @@ public class NativeAppHostServerProjectTests(ITestOutputHelper outputHelper)
             new Dictionary<string, string> { ["ASPIRE_APPHOST_SERVER_V2_SDK_DIRECTORY"] = "stale-sdk" },
             [], false, null);
         await finalRun.Execution.DisposeAsync();
+
+        var temporaryDirectory = Path.GetDirectoryName(firstOutput)!;
+        Directory.Delete(temporaryDirectory, recursive: true);
+        await File.WriteAllTextAsync(temporaryDirectory, "Simulate a cleanup path replaced by a file.");
+        try
+        {
+            project.Dispose();
+
+            var entry = Assert.Single(logger.Entries);
+            Assert.Equal(Microsoft.Extensions.Logging.LogLevel.Warning, entry.Level);
+            Assert.Contains(temporaryDirectory, entry.Message);
+        }
+        finally
+        {
+            File.Delete(temporaryDirectory);
+        }
     }
 
     private static AppHostServerProjectFactory CreateFactory(TestEnvironment environment, IBundleService bundle,
