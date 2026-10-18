@@ -20,11 +20,11 @@ public class SparklinePathTests
     }
 
     [Fact]
-    public void Build_FlatValues_DrawsLineThroughMiddle()
+    public void Build_FlatValues_DrawsLineOnBaseline()
     {
         var (line, area) = SparklinePath.Build([5, 5, 5], width: 100, height: 32);
 
-        Assert.Equal("M0,16C16.67,16 33.33,16 50,16C66.67,16 83.33,16 100,16", line);
+        Assert.Equal("M0,30C16.67,30 33.33,30 50,30C66.67,30 83.33,30 100,30", line);
         Assert.Equal(line + "L100,32L0,32Z", area);
     }
 

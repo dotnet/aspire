@@ -41,8 +41,10 @@ public static class SparklinePath
         var range = max.Value - min.Value;
         var step = width / (values.Count - 1);
 
+        // A constant series sits on the baseline. Drawing it mid-height would read as a value
+        // above zero, e.g. a counter that stays at 0 would look like it had a steady non-zero rate.
         double ScaleY(double value) => range == 0
-            ? height / 2
+            ? height - Inset
             : Inset + (height - (2 * Inset)) * (1 - ((value - min.Value) / range));
 
         var line = new StringBuilder();

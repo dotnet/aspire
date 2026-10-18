@@ -93,6 +93,20 @@ public partial class TreeMetricSelector
         return $"metric-instrument-{meterName.Length}-{Uri.EscapeDataString(meterName)}-{Uri.EscapeDataString(instrumentName)}";
     }
 
+    private async Task OnSelectedTreeItemChangedAsync()
+    {
+        // The tree item's click handler toggles expansion before selecting, so clicking an
+        // expanded meter to see its overview would also collapse it and hide the instruments
+        // being summarized. Selecting a meter always leaves it expanded. This only runs when the
+        // selection changes, so clicking the already selected meter still collapses it.
+        if (PageViewModel.SelectedTreeItem?.Data is string meterName)
+        {
+            _meterExpansion[meterName] = true;
+        }
+
+        await HandleSelectedTreeItemChangedAsync();
+    }
+
     private bool IsMeterExpanded(string meterName)
     {
         // Matches are always visible while filtering, otherwise a collapsed meter would hide the

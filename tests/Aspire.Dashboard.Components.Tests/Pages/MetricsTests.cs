@@ -1064,6 +1064,68 @@ public partial class MetricsTests : DashboardTestContext
     }
 
     [Fact]
+    public async Task MetricsTree_SelectCollapsedMeter_MeterExpanded()
+    {
+        MetricsSetupHelpers.SetupMetricsPage(this);
+
+        var telemetryRepository = Services.GetRequiredService<SqliteTelemetryRepository>();
+        await telemetryRepository.AddMetricsAsync(new AddContext(), new RepeatedField<ResourceMetrics>
+        {
+            new ResourceMetrics
+            {
+                Resource = CreateResource(name: "TestApp"),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter1"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "test-instrument1", startTime: s_testTime.AddMinutes(1))
+                        }
+                    },
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter2"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "test-instrument2", startTime: s_testTime.AddMinutes(1))
+                        }
+                    }
+                }
+            }
+        });
+
+        var cut = Render<Metrics>(builder =>
+        {
+            builder.AddCascadingValue(new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
+            builder.Add(m => m.ResourceName, "TestApp");
+        });
+
+        cut.WaitForState(() => cut.Instance.PageViewModel.Instruments?.Count == 2);
+
+        // The tree item's click handler collapses an expanded item before selecting it.
+        // Simulate that sequence for a meter that isn't selected yet.
+        var meterItem = cut.FindComponents<FluentTreeItem>().Single(i => i.Instance.Data as string == "test-meter2");
+        await cut.InvokeAsync(() => meterItem.Instance.ExpandedChanged.InvokeAsync(false));
+        cut.WaitForAssertion(() => Assert.False(GetMeterItem(cut).Find("fluent-tree-item").HasAttribute("expanded")));
+
+        var tree = cut.FindComponent<FluentTreeView>();
+        await cut.InvokeAsync(() => tree.Instance.CurrentSelectedChanged.InvokeAsync(GetMeterItem(cut).Instance));
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal("test-meter2", cut.Instance.PageViewModel.SelectedMeter);
+            Assert.True(GetMeterItem(cut).Find("fluent-tree-item").HasAttribute("expanded"));
+        });
+
+        static IRenderedComponent<FluentTreeItem> GetMeterItem(IRenderedComponent<Metrics> cut)
+        {
+            return cut.FindComponents<FluentTreeItem>().Single(i => i.Instance.Data as string == "test-meter2");
+        }
+    }
+
+    [Fact]
     public async Task MeterSelected_ShowsInstrumentCards()
     {
         MetricsSetupHelpers.SetupMetricsPage(this);

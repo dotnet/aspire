@@ -42,7 +42,7 @@
                 Size="TreeSize.Medium"
                 SelectedId="@GetSelectedTreeItemId()"
                 @bind-CurrentSelected="@PageViewModel.SelectedTreeItem"
-                @bind-CurrentSelected:after="HandleSelectedTreeItemChangedAsync">
+                @bind-CurrentSelected:after="OnSelectedTreeItemChangedAsync">
     <ChildContent>
         @foreach (var meterGroup in meterGroups)
         {
