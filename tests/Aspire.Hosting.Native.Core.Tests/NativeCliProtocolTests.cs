@@ -1,6 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net.Sockets;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Text.Json;
 using Aspire.Hosting.Native.Api;
 using Aspire.Hosting.Native.Cli;
@@ -8,14 +11,118 @@ using Aspire.Hosting.Native.Core.Tests.TestServices;
 using Aspire.Hosting.Native.Diagnostics;
 using Aspire.Hosting.Native.Server;
 using Aspire.Hosting.Native.Rpc;
+using Aspire.Shared;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Time.Testing;
 using StreamJsonRpc;
 
 namespace Aspire.Hosting.Native.Core.Tests;
 
 public class NativeCliProtocolTests
 {
+    [Fact]
+    public void ListenerRejectsInsecureDirectoryWithoutChangingItsPermissions()
+    {
+        using var directory = new NativeSocketTestDirectory();
+        var parent = new DirectoryInfo(Path.GetDirectoryName(directory.SocketPath)!);
+        SocketPermissionHelper.CreateDirectory(parent.FullName, repairExisting: true);
+        if (OperatingSystem.IsWindows())
+        {
+            var security = parent.GetAccessControl();
+            security.AddAccessRule(new FileSystemAccessRule(
+                new SecurityIdentifier(WellKnownSidType.WorldSid, null), FileSystemRights.ReadAndExecute,
+                InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+                PropagationFlags.None, AccessControlType.Allow));
+            parent.SetAccessControl(security);
+            var expected = parent.GetAccessControl().GetSecurityDescriptorSddlForm(AccessControlSections.All);
+            Assert.Throws<IOException>(() => CreateProtocol(directory.SocketPath));
+            Assert.Equal(expected, parent.GetAccessControl().GetSecurityDescriptorSddlForm(AccessControlSections.All));
+        }
+        else
+        {
+            var permissions = File.GetUnixFileMode(parent.FullName) | UnixFileMode.GroupRead | UnixFileMode.OtherRead;
+            File.SetUnixFileMode(parent.FullName, permissions);
+            Assert.Throws<IOException>(() => CreateProtocol(directory.SocketPath));
+            Assert.Equal(permissions, File.GetUnixFileMode(parent.FullName));
+        }
+        Assert.False(File.Exists(directory.SocketPath));
+    }
+
+    [Fact]
+    public void ListenerRejectsSymbolicDirectoryWithoutChangingTargetPermissions()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            // Creating symlinks requires developer mode or elevation on Windows.
+            return;
+        }
+        using var directory = new NativeSocketTestDirectory();
+        var parent = Path.GetDirectoryName(directory.SocketPath)!;
+        var target = Directory.CreateDirectory(Path.Combine(parent, "target"));
+        var original = File.GetUnixFileMode(target.FullName);
+        var link = Path.Combine(parent, "link");
+        Directory.CreateSymbolicLink(link, target.FullName);
+        Assert.Throws<IOException>(() => CreateProtocol(Path.Combine(link, "cli.sock")));
+        Assert.Equal(original, File.GetUnixFileMode(target.FullName));
+        Assert.False(File.Exists(Path.Combine(target.FullName, "cli.sock")));
+    }
+
+    [Fact]
+    public void ExistingEndpointCannotBeReplacedAndRepeatedDisposalPreservesTheNextListener()
+    {
+        using var directory = new NativeSocketTestDirectory();
+        SocketPermissionHelper.CreateDirectory(Path.GetDirectoryName(directory.SocketPath)!, repairExisting: true);
+        var first = CreateProtocol(directory.SocketPath);
+        try
+        {
+            Assert.Throws<ArgumentException>(() => CreateProtocol(directory.SocketPath));
+            if (!OperatingSystem.IsWindows())
+            {
+                Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(directory.SocketPath));
+            }
+        }
+        finally
+        {
+            first.Dispose();
+        }
+        using var replacement = CreateProtocol(directory.SocketPath);
+        first.Dispose();
+        using var client = new NativeSocketTestClient(new UnixDomainSocketEndPoint(directory.SocketPath));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("Content-Length: 100\r\n\r\n{")]
+    public async Task SilentAndPartialFramesExpireWithoutBlockingOtherCliClients(string frame)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        var clock = new FakeTimeProvider();
+        var options = new NativeServerOptions { TimeProvider = clock, MaximumConnections = 2 };
+        var rpc = new RecordingBackchannelRpc(new NativeBackchannelRpc(options, NullLogger.Instance));
+        await using var host = NativeCliTestHost.Start(new NativeApplicationServer(), options, () => new(), rpc);
+        await rpc.WaitForConnectionAsync(timeout.Token);
+        Assert.Equal(["baseline.v2", "pipeline-steps.v2"], await host.Rpc.InvokeAsync<string[]>("GetCapabilitiesAsync"));
+        using var stalled = new NativeSocketTestClient(new UnixDomainSocketEndPoint(host.SocketPath));
+        await stalled.SendRawAsync(frame, timeout.Token);
+        await rpc.WaitForConnectionAsync(timeout.Token);
+        var disconnected = stalled.ReadAsync(timeout.Token);
+        Assert.Equal(["baseline.v2", "pipeline-steps.v2"], await host.Rpc.InvokeAsync<string[]>("GetCapabilitiesAsync"));
+        using (var excess = new NativeSocketTestClient(new UnixDomainSocketEndPoint(host.SocketPath)))
+        {
+            Assert.Null(await excess.ReadAsync(timeout.Token));
+        }
+        clock.Advance(options.BackchannelFirstRequestTimeout - TimeSpan.FromTicks(1));
+        Assert.False(disconnected.IsCompleted);
+        clock.Advance(TimeSpan.FromTicks(1));
+        Assert.Null(await disconnected);
+        using var replacement = new NativeSocketTestClient(new UnixDomainSocketEndPoint(host.SocketPath));
+        await rpc.WaitForConnectionAsync(timeout.Token);
+        Assert.Equal(["baseline.v2", "pipeline-steps.v2"],
+            (await replacement.CallAsync("GetCapabilitiesAsync", null, timeout.Token))["result"]!
+                .AsArray().Select(value => value!.GetValue<string>()));
+    }
+
     [Theory]
     [InlineData("{}")]
     [InlineData("""{"id":null}""")]
@@ -139,5 +246,13 @@ public class NativeCliProtocolTests
         }
         var logs = await host.Rpc.InvokeAsync<IAsyncEnumerable<NativeCliLogEntry>>("GetAppHostLogEntriesAsync");
         await using var logEnumerator = logs.GetAsyncEnumerator();
+    }
+
+    private static NativeCliProtocol CreateProtocol(string path)
+    {
+        var options = new NativeServerOptions();
+
+        return new(path, new NativeApplicationServer(), () => { }, _ => Task.FromResult(new NativeCliDashboardUrls()),
+            new NativeCliLogBuffer(options.RetainedAppHostLogEntries), options, new NativeBackchannelRpc(options, NullLogger.Instance));
     }
 }

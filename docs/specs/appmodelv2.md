@@ -1414,6 +1414,47 @@ There is no complete managed integration parity, remote deployment, interactive
 secret prompting or C# publish authoring claim. The pipeline does not introduce
 a remoted service provider or pretend that unsupported target operations exist.
 
+## Local IPC Security
+
+The native server uses the same OS-user trust boundary as `Aspire.Hosting`, not
+a sandbox for AppHosts, providers or host executables. Code running under the same OS account
+can access private control sockets and account-owned files. Containers receive
+only their declared environment, subject to their image's own defaults.
+
+ATS RPC requires a per-session bearer token. The CLI uses a private Unix socket
+or a current-user-only Windows named pipe; standalone TCP listeners are restricted
+to loopback and still require authentication. Unix socket parent directories must
+be dedicated and owner-only, and Windows filesystem-backed sockets inherit
+protected owner-only ACLs. Configured insecure directories and symbolic directory
+redirects are rejected rather than silently repaired. Named-pipe listeners refuse
+to replace an existing first instance.
+
+The CLI and auxiliary backchannels use OS filesystem permissions, not bearer
+authentication. Access grants meaningful authority, including shutdown, resource
+commands and Dashboard login information. Both backchannels bound concurrent
+connections and require a complete first request within
+`backchannelFirstRequestTimeout` (10 seconds by default). Established resource
+and log watches have no idle timeout.
+
+DCP uses the shared `Aspire.Hosting` environment inheritance policy. It excludes
+the host's `ASPNETCORE_URLS`, `DOTNET_LAUNCH_PROFILE`, `ASPNETCORE_ENVIRONMENT`,
+`DOTNET_ENVIRONMENT` and `ASPIRE_LOGLEVEL` settings, using case-insensitive exact
+name matching, while preserving the rest of the ambient application environment.
+Explicit workload settings override inherited values. Environment inheritance
+does not establish credential isolation between same-user processes; applications
+and integrations must treat inherited settings accordingly.
+
+The backchannels' socket ownership, connection capacity and shutdown draining are
+handled by a protocol-independent transport component. JSON-RPC framing, first-request
+deadlines, request limits and cursor lifetimes remain in the protocol component.
+
+Native validation probes real executable and container environments without
+printing credential values. It also covers rejected socket directories,
+endpoint replacement, silent/partial frames and authentication deadlines.
+Linux validation additionally connects as another OS user, with a public
+canary proving the test is checking permissions rather than a broken transport.
+Windows validation covers named-pipe ownership and filesystem ACL enforcement.
+
 ## Current Scope
 
 The exploration includes a BCL-only kernel, NativeAOT server, generated C# and

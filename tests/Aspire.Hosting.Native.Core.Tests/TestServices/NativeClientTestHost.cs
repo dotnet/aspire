@@ -24,17 +24,21 @@ internal sealed class NativeClientTestHost(TimeProvider timeProvider) : IAsyncDi
     public EndPoint Endpoint { get; private set; } = null!;
 
     public static Task<NativeClientTestHost> StartAsync() =>
-        StartCoreAsync(Environment.GetEnvironmentVariable("ASPIRE_NATIVE_CSHARP_TEST_SERVER"), null, TimeProvider.System);
+        StartCoreAsync(Environment.GetEnvironmentVariable("ASPIRE_NATIVE_CSHARP_TEST_SERVER"), null, TimeProvider.System, null);
 
     public static Task<NativeClientTestHost> StartWithWorkloadsAsync(string executable, string dcpPath) =>
-        StartCoreAsync(executable, dcpPath, TimeProvider.System);
+        StartCoreAsync(executable, dcpPath, TimeProvider.System, null);
+    public static Task<NativeClientTestHost> StartWithWorkloadsAsync(string executable, string dcpPath,
+        IReadOnlyDictionary<string, string> environment) =>
+        StartCoreAsync(executable, dcpPath, TimeProvider.System, environment);
     public static Task<NativeClientTestHost> StartWithOptionsAsync(Aspire.Hosting.Native.Server.NativeServerOptions options) =>
-        StartCoreAsync(null, null, TimeProvider.System, options);
+        StartCoreAsync(null, null, TimeProvider.System, null, options);
     public static Task<NativeClientTestHost> StartWithExecutorAsync(IWorkloadExecutor executor,
         Aspire.Hosting.Native.Server.NativeServerOptions options) =>
-        StartCoreAsync(null, null, TimeProvider.System, options, executor);
+        StartCoreAsync(null, null, TimeProvider.System, null, options, executor);
 
     private static async Task<NativeClientTestHost> StartCoreAsync(string? executablePath, string? dcpPath, TimeProvider timeProvider,
+        IReadOnlyDictionary<string, string>? environment,
         Aspire.Hosting.Native.Server.NativeServerOptions? options = null, IWorkloadExecutor? executor = null)
     {
         var host = new NativeClientTestHost(timeProvider);
@@ -64,6 +68,13 @@ internal sealed class NativeClientTestHost(TimeProvider timeProvider) : IAsyncDi
                 if (dcpPath is not null)
                 {
                     start.Environment["ASPIRE_NATIVE_DCP_PATH"] = dcpPath;
+                }
+                if (environment is not null)
+                {
+                    foreach (var variable in environment)
+                    {
+                        start.Environment[variable.Key] = variable.Value;
+                    }
                 }
                 host._process = Process.Start(start) ?? throw new InvalidOperationException("The native test server did not start.");
                 host._stderr = host._process.StandardError.ReadToEndAsync();

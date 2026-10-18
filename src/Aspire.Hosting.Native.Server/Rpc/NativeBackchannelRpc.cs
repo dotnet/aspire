@@ -6,6 +6,7 @@ using System.Text.Json;
 using Aspire.Hosting.Native.Diagnostics;
 using Aspire.Hosting.Native.Cli;
 using Aspire.Hosting.Native.Server;
+using Aspire.Hosting.Native.Runtime;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Native.Rpc;
@@ -21,7 +22,8 @@ internal sealed class NativeBackchannelRpc(NativeServerOptions options, ILogger 
     public async Task ServeAsync(Stream stream,
         Func<NativeCliRequest, CancellationToken, Task<NativeBackchannelReply>> dispatch, CancellationToken cancellationToken)
     {
-        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        using var firstRequest = new TimeProviderCancellation(options.BackchannelFirstRequestTimeout, options.TimeProvider, cancellationToken);
+        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(firstRequest.Token);
         using var peer = peers.Create(stream);
         using var disconnected = peer.Closed.Register(lifetime.Cancel);
         var requests = new Dictionary<string, CancellationTokenSource>(StringComparer.Ordinal);
@@ -33,6 +35,9 @@ internal sealed class NativeBackchannelRpc(NativeServerOptions options, ILogger 
             await peer.RunAsync(async envelope =>
             {
                 var request = NativeBackchannelProtocol.ParseRequest(envelope);
+                // Bound silent and partial-frame clients without imposing an idle
+                // deadline on legitimate long-lived log/resource watches.
+                firstRequest.StopTimeout();
                 if (request.Method == "$/cancelRequest")
                 {
                     var id = NativeBackchannelProtocol.ReadCancellationId(request);

@@ -1,21 +1,59 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net.Sockets;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Native.Api;
 using Aspire.Hosting.Native.Auxiliary;
 using Aspire.Hosting.Native.Cli;
 using Aspire.Hosting.Native.Core.Tests.TestServices;
+using Aspire.Hosting.Native.Diagnostics;
 using Aspire.Hosting.Native.Server;
 using Aspire.Hosting.Native.Rpc;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Time.Testing;
 using StreamJsonRpc;
 
 namespace Aspire.Hosting.Native.Core.Tests;
 
 public class NativeAuxiliaryBackchannelTests
 {
+    [Fact]
+    public async Task FirstRequestDeadlineReleasesSilentClientsButNotEstablishedWatches()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        var clock = new FakeTimeProvider();
+        var options = new NativeServerOptions { TimeProvider = clock, MaximumConnections = 2 };
+        var rpc = new RecordingBackchannelRpc(new NativeBackchannelRpc(options, NullLogger.Instance));
+        await using var host = new NativeAuxiliaryTestHost(new NativeApplicationServer(), options, rpc);
+        var established = host.Connect();
+        await rpc.WaitForConnectionAsync(timeout.Token);
+        Assert.Equal(["aux.v1", "aux.v2", "aux.v3", "resource-snapshot-versions.v1"],
+            (await established.InvokeAsync<GetCapabilitiesResponse>("GetCapabilitiesAsync")).Capabilities);
+        host.Logs.Append(new(Guid.NewGuid(), "ipc.watch", OperationOutcome.Ok, null, null, null, null, null,
+            clock.GetUtcNow(), 0, null));
+        await using var updates = (await established.InvokeAsync<IAsyncEnumerable<NativeCliLogEntry>>("GetAppHostLogEntriesAsync"))
+            .GetAsyncEnumerator(timeout.Token);
+        Assert.True(await updates.MoveNextAsync());
+        Assert.Equal(1, updates.Current.SequenceNumber);
+        using var silent = new NativeSocketTestClient(new UnixDomainSocketEndPoint(host.SocketPath));
+        await rpc.WaitForConnectionAsync(timeout.Token);
+        var disconnected = silent.ReadAsync(timeout.Token);
+        clock.Advance(options.BackchannelFirstRequestTimeout);
+        Assert.Null(await disconnected);
+        var nextLog = updates.MoveNextAsync().AsTask();
+        clock.Advance(TimeSpan.FromHours(1));
+        host.Logs.Append(new(Guid.NewGuid(), "ipc.watch", OperationOutcome.Ok, null, null, null, null, null,
+            clock.GetUtcNow(), 0, null));
+        Assert.True(await nextLog);
+        Assert.Equal(2, updates.Current.SequenceNumber);
+        Assert.Empty((await established.InvokeAsync<GetResourcesResponse>("GetResourcesAsync")).Resources);
+        var replacement = host.Connect();
+        await rpc.WaitForConnectionAsync(timeout.Token);
+        Assert.Empty((await replacement.InvokeAsync<GetResourcesResponse>("GetResourcesAsync")).Resources);
+    }
+
     [Fact]
     public async Task RpcImplementationCanBeReplacedWithoutChangingAuxiliaryDependencies()
     {

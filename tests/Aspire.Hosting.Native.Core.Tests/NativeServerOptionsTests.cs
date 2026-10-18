@@ -13,7 +13,7 @@ public class NativeServerOptionsTests
     {
         var options = JsonSerializer.Deserialize("""
             {"controllerStartupTimeout":"00:03:00","cleanupTimeout":"00:01:30",
-             "maximumConcurrentRequests":7,"retainedAppHostLogEntries":13,
+             "maximumConcurrentRequests":7,"retainedAppHostLogEntries":13,"backchannelFirstRequestTimeout":"00:00:03",
              "runtime":{"workloadStartupTimeout":"00:05:00","observationInterval":"00:00:01",
                         "retainedResourceLogEntries":5,"maximumPendingRequestsPerResource":3}}
             """, NativeServerJsonContext.Default.NativeServerOptions)!;
@@ -22,6 +22,7 @@ public class NativeServerOptionsTests
         Assert.Equal(TimeSpan.FromSeconds(90), options.CleanupTimeout);
         Assert.Equal(7, options.MaximumConcurrentRequests);
         Assert.Equal(13, options.RetainedAppHostLogEntries);
+        Assert.Equal(TimeSpan.FromSeconds(3), options.BackchannelFirstRequestTimeout);
         Assert.Equal(TimeSpan.FromMinutes(5), options.Runtime.WorkloadStartupTimeout);
         Assert.Equal(TimeSpan.FromSeconds(1), options.Runtime.ObservationInterval);
         Assert.Equal(5, options.Runtime.RetainedResourceLogEntries);
@@ -31,6 +32,7 @@ public class NativeServerOptionsTests
     [Theory]
     [InlineData("""{"maximumConcurrentRequests":0}""")]
     [InlineData("""{"cleanupTimeout":"00:00:00"}""")]
+    [InlineData("""{"backchannelFirstRequestTimeout":"00:00:00"}""")]
     [InlineData("""{"runtime":{"observationInterval":"00:05:00"}}""")]
     [InlineData("""{"runtime":{"retainedResourceLogEntries":0}}""")]
     [InlineData("""{"runtime":{"maximumPendingRequestsPerResource":0}}""")]

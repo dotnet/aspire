@@ -74,6 +74,22 @@ test -x "$cli"
 test -x "$ASPIRE_NATIVE_DCP_PATH"
 test -f "$ASPIRE_NATIVE_DASHBOARD_DLL"
 
+ipc_environment=(
+    "ASPIRE_NATIVE_SYMBOLIC_TEST_SERVER=$work/server/Aspire.Hosting.Native.Server"
+    "ASPIRE_NATIVE_SYMBOLIC_TEST_DCP=$ASPIRE_NATIVE_DCP_PATH"
+    "ASPIRE_NATIVE_SYMBOLIC_TEST_NODE=$(command -v node)"
+)
+if [[ "$rid" == linux-* ]]; then
+    ipc_environment+=("ASPIRE_NATIVE_CROSS_USER_TEST_PYTHON=$(command -v python3)")
+fi
+run_logged ipc-security-tests env "${ipc_environment[@]}" \
+    dotnet test --project tests/Aspire.Hosting.Native.Core.Tests/Aspire.Hosting.Native.Core.Tests.csproj --no-launch-profile -- \
+    --filter-class '*.NativeIpcSecurityTests' --filter-class '*.NativeCliProtocolTests' \
+    --filter-class '*.NativeAuxiliaryBackchannelTests' --filter-class '*.NativeSocketIsolationTests' \
+    --filter-class '*.SocketConnectionListenerTests' \
+    --filter-class '*.DcpEnvironmentTests' --filter-class '*.NativeServerOptionsTests' \
+    --filter-not-trait 'quarantined=true' --filter-not-trait 'outerloop=true'
+
 # Provider-backed publishing uses the bundle's real offline codegen worker. Keep
 # all layout components genuine even though publishing must not start DCP,
 # Dashboard or terminal host.

@@ -8,6 +8,8 @@ using Aspire.Hosting.Native.Api;
 using Aspire.Hosting.Native.Server;
 using Aspire.Hosting.Native.Runtime;
 using Aspire.Hosting.Native.Rpc;
+using Aspire.Hosting.Native.Transport;
+using Aspire.Shared;
 
 namespace Aspire.Hosting.Native.Cli;
 
@@ -23,6 +25,7 @@ internal sealed class NativeCliProtocol : IDisposable
     private readonly NativeServerOptions _options;
     private readonly INativeBackchannelRpc _rpc;
     private readonly TaskCompletionSource _ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private int _disposed;
 
     public NativeCliProtocol(string path, NativeApplicationServer server, Action stop,
         Func<CancellationToken, Task<NativeCliDashboardUrls>> dashboard, NativeCliLogBuffer logs, NativeServerOptions options,
@@ -43,16 +46,18 @@ internal sealed class NativeCliProtocol : IDisposable
         _listener = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
         try
         {
-            _listener.Bind(new UnixDomainSocketEndPoint(path));
-            if (!OperatingSystem.IsWindows())
-            {
-                File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite);
-            }
-            _listener.Listen(1);
+            SocketPermissionHelper.Bind(_listener, path);
+            _listener.Listen(options.MaximumConnections);
         }
         catch
         {
+            // Bind can succeed before the helper fails to set socket permissions.
+            var bound = _listener.IsBound;
             _listener.Dispose();
+            if (bound)
+            {
+                File.Delete(path);
+            }
             throw;
         }
     }
@@ -60,21 +65,9 @@ internal sealed class NativeCliProtocol : IDisposable
     internal bool IsAppHostReady => _ready.Task.IsCompletedSuccessfully;
     internal Task WaitForAppHostReadyAsync(CancellationToken cancellationToken) => _ready.Task.WaitAsync(cancellationToken);
 
-    public async Task RunAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                using var socket = await _listener.AcceptAsync(cancellationToken).ConfigureAwait(false);
-                using var stream = new NetworkStream(socket, ownsSocket: false);
-                await _rpc.ServeAsync(stream, DispatchAsync, cancellationToken).ConfigureAwait(false);
-            }
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-        }
-    }
+    public Task RunAsync(CancellationToken cancellationToken) =>
+        SocketConnectionListener.RunAsync(_listener, _options.MaximumConnections,
+            (stream, token) => _rpc.ServeAsync(stream, DispatchAsync, token), cancellationToken);
 
     private async Task<NativeBackchannelReply> DispatchAsync(NativeCliRequest request, CancellationToken cancellationToken)
     {
@@ -170,6 +163,10 @@ internal sealed class NativeCliProtocol : IDisposable
 
     public void Dispose()
     {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
         _listener.Dispose();
         File.Delete(_path);
     }

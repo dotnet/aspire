@@ -77,6 +77,10 @@ internal sealed class DcpApiClient : IAsyncDisposable
         {
             start.ArgumentList.Add(argument);
         }
+        foreach (var name in start.Environment.Keys.Where(DcpEnvironmentVariables.IsExcluded).ToArray())
+        {
+            start.Environment.Remove(name);
+        }
         start.Environment["DCP_SESSION_FOLDER"] = _directory.FullName;
         _process = Process.Start(start) ?? throw new InvalidOperationException("DCP did not start.");
         _output = DrainOutputAsync(_process);

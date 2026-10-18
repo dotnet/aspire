@@ -25,6 +25,8 @@ public sealed class NativeHostingWorkflowTests
     [InlineData("src/Aspire.Dashboard/Components/Pages/Resources.razor")]
     [InlineData("src/Aspire.Hosting/Dashboard/proto/dashboard_service.proto")]
     [InlineData("src/Shared/SocketPermissionHelper.cs")]
+    [InlineData("src/Shared/DcpEnvironmentVariables.cs")]
+    [InlineData("src/Aspire.Hosting.Native.Server/Transport/SocketConnectionListener.cs")]
     [InlineData("playground/NativeIntegrations/CSharp/Provider/NativeIntegrations.Provider.csproj")]
     [InlineData("playground/NativeIntegrations/CSharp/DockerCompose/DockerComposeEnvironment.cs")]
     [InlineData("playground/NativeIntegrations/CSharp/DockerComposeAppHost/Program.cs")]
@@ -45,6 +47,9 @@ public sealed class NativeHostingWorkflowTests
     [InlineData("tests/Aspire.Hosting.Native.Core.Tests/TestServices/DiagnosticCapture.cs")]
     [InlineData("tests/Aspire.Hosting.Native.Core.Tests/NativeCSharpClientTests.cs")]
     [InlineData("tests/Aspire.Hosting.Native.Core.Tests/NativeSymbolicWorkloadSocketTests.cs")]
+    [InlineData("tests/Aspire.Hosting.Native.Core.Tests/NativeIpcSecurityTests.cs")]
+    [InlineData("tests/Aspire.Hosting.Native.Core.Tests/DcpEnvironmentTests.cs")]
+    [InlineData("tests/Aspire.Hosting.Native.Core.Tests/SocketConnectionListenerTests.cs")]
     [InlineData("tests/Aspire.Hosting.Native.Core.Tests/AotSmoke/SymbolicRedisConsumer.mts")]
     [InlineData("tests/PolyglotAppHosts/Aspire.Hosting/TypeScript/package.json")]
     [InlineData("tests/PolyglotAppHosts/Aspire.Hosting.Docker/TypeScript/apphost.mts")]
@@ -159,6 +164,11 @@ public sealed class NativeHostingWorkflowTests
         Assert.Contains("ASPIRE_NATIVE_PRODUCT_CLI", script);
         Assert.Contains("ASPIRE_NATIVE_CSHARP_TEST_SERVER", script);
         Assert.Contains("*.NativeProductCliTests", script);
+        Assert.Contains("*.NativeCliProtocolTests", script);
+        Assert.Contains("*.NativeAuxiliaryBackchannelTests", script);
+        Assert.Contains("*.NativeSocketIsolationTests", script);
+        Assert.Contains("*.DcpEnvironmentTests", script);
+        Assert.Contains("*.SocketConnectionListenerTests", script);
         Assert.False(validation.Children.ContainsKey(new YamlScalarNode("continue-on-error")));
     }
 

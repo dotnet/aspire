@@ -86,7 +86,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $env:ASPIRE_NATIVE_PRODUCT_CLI = Join-Path (Split-Path $cli) 'aspire.exe'
           $env:ASPIRE_NATIVE_CSHARP_TEST_SERVER = "$env:GITHUB_WORKSPACE/artifacts/native-hosting/windows/server/Aspire.Hosting.Native.Server.exe"
-          dotnet test --project tests/Aspire.Hosting.Native.Core.Tests/Aspire.Hosting.Native.Core.Tests.csproj --no-launch-profile -- --filter-class '*.NativeNamedPipeTests' --filter-class '*.NativeProductCliTests' --filter-not-trait 'quarantined=true' --filter-not-trait 'outerloop=true' --report-trx --report-trx-filename native-windows.trx --results-directory artifacts/TestResults/native-windows
+          dotnet test --project tests/Aspire.Hosting.Native.Core.Tests/Aspire.Hosting.Native.Core.Tests.csproj --no-launch-profile -- --filter-class '*.NativeNamedPipeTests' --filter-class '*.NativeProductCliTests' --filter-class '*.NativeCliProtocolTests' --filter-class '*.NativeAuxiliaryBackchannelTests' --filter-class '*.NativeSocketIsolationTests' --filter-class '*.SocketConnectionListenerTests' --filter-class '*.DcpEnvironmentTests' --filter-class '*.NativeServerOptionsTests' --filter-not-trait 'quarantined=true' --filter-not-trait 'outerloop=true' --report-trx --report-trx-filename native-windows.trx --results-directory artifacts/TestResults/native-windows
           exit $LASTEXITCODE
       - name: Upload Windows test evidence
         if: always()

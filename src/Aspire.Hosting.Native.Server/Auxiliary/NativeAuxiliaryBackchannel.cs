@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using System.Globalization;
-using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Aspire.Hosting.Backchannel;
@@ -12,6 +11,7 @@ using Aspire.Hosting.Native.Cli;
 using Aspire.Hosting.Native.Server;
 using Aspire.Hosting.Native.Runtime;
 using Aspire.Hosting.Native.Rpc;
+using Aspire.Hosting.Native.Transport;
 using Microsoft.Extensions.Logging;
 using static Aspire.Hosting.Native.Auxiliary.NativeAuxiliaryProtocol;
 
@@ -63,39 +63,9 @@ internal sealed class NativeAuxiliaryBackchannel : IDisposable
         _listener = AppHostSocketManager.CreateSocket(appHostPath, homeDirectory, Environment.ProcessId, logger);
     }
 
-    public async Task RunAsync(CancellationToken cancellationToken)
-    {
-        var clients = new List<Task>();
-        try
-        {
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                await Task.WhenAll(clients.Where(client => client.IsCompleted)).ConfigureAwait(false);
-                clients.RemoveAll(client => client.IsCompletedSuccessfully);
-                var socket = await _listener.Socket.AcceptAsync(cancellationToken).ConfigureAwait(false);
-                if (clients.Count >= _options.MaximumConnections)
-                {
-                    socket.Dispose();
-                    continue;
-                }
-                clients.Add(ServeAsync(socket));
-            }
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-        }
-        finally
-        {
-            await Task.WhenAll(clients).ConfigureAwait(false);
-        }
-
-        async Task ServeAsync(Socket socket)
-        {
-            using var owned = socket;
-            using var stream = new NetworkStream(socket, ownsSocket: false);
-            await _rpc.ServeAsync(stream, DispatchAsync, cancellationToken).ConfigureAwait(false);
-        }
-    }
+    public Task RunAsync(CancellationToken cancellationToken) =>
+        SocketConnectionListener.RunAsync(_listener.Socket, _options.MaximumConnections,
+            (stream, token) => _rpc.ServeAsync(stream, DispatchAsync, token), cancellationToken);
 
     private async Task<NativeBackchannelReply> DispatchAsync(NativeCliRequest request, CancellationToken cancellationToken)
     {

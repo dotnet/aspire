@@ -8,15 +8,46 @@ using Aspire.Hosting.Native.Cli;
 using Aspire.Hosting.Native.Core.Tests.TestServices;
 using Aspire.Hosting.Native.Diagnostics;
 using Aspire.Hosting.Native.Rpc;
+using Aspire.Hosting.Native.Server;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
+using Microsoft.Extensions.Time.Testing;
 using static Aspire.Hosting.Native.Core.Tests.TestServices.RpcTestClient;
 
 namespace Aspire.Hosting.Native.Core.Tests;
 
 public class NativeSocketIsolationTests
 {
+    [Fact]
+    public async Task UnauthenticatedPeerDeadlineDoesNotDisconnectAuthenticatedClients()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        var clock = new FakeTimeProvider();
+        var options = new NativeServerOptions { TimeProvider = clock };
+        using var listener = new NativeRpcListener(new IPEndPoint(IPAddress.Loopback, 0), Token, NullLogger.Instance,
+            new Aspire.Hosting.Native.Api.NativeApplicationServer(), null, options);
+        var run = listener.RunAsync(timeout.Token);
+        try
+        {
+            using var unauthenticated = new NativeSocketTestClient(listener.EndPoint);
+            var error = (await unauthenticated.CallAsync("getApplicationServer", null, timeout.Token))["error"]!;
+            Assert.Equal(-32000, error["code"]!.GetValue<int>());
+            Assert.Equal("Authenticate before using capabilities.", error["message"]!.GetValue<string>());
+            using var authenticated = new NativeSocketTestClient(listener.EndPoint);
+            Assert.True((await authenticated.CallAsync("authenticate", new JsonArray(Token), timeout.Token))["result"]!.GetValue<bool>());
+            var disconnected = unauthenticated.ReadAsync(timeout.Token);
+            clock.Advance(options.AuthenticationTimeout);
+            Assert.Null(await disconnected);
+            Assert.NotNull((await authenticated.CallAsync("getCapabilities", null, timeout.Token))["result"]);
+        }
+        finally
+        {
+            await timeout.CancelAsync();
+            await run.WaitAsync(TimeSpan.FromSeconds(10));
+        }
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]

@@ -7,6 +7,7 @@ using Aspire.Hosting.Native.Api;
 using Aspire.Hosting.Native.Cli;
 using Aspire.Hosting.Native.Server;
 using Aspire.Hosting.Native.Rpc;
+using Aspire.Shared;
 using Microsoft.Extensions.Logging.Abstractions;
 using StreamJsonRpc;
 
@@ -21,13 +22,15 @@ internal sealed class NativeCliTestHost : IAsyncDisposable
     private readonly Task _run;
     public NativeCliLogBuffer Logs { get; }
     public bool IsReady => _protocol.IsAppHostReady;
+    public string SocketPath => Path.Combine(_directory.FullName, "cli.sock");
     public JsonRpc Rpc { get; }
 
     private NativeCliTestHost(NativeApplicationServer server, NativeServerOptions options,
         Func<NativeCliDashboardUrls> dashboard, INativeBackchannelRpc rpc)
     {
         Logs = new NativeCliLogBuffer(options.RetainedAppHostLogEntries);
-        var path = Path.Combine(_directory.FullName, "cli.sock");
+        SocketPermissionHelper.CreateDirectory(_directory.FullName, repairExisting: true);
+        var path = SocketPath;
         _protocol = new(path, server, _lifetime.Cancel, _ => Task.FromResult(dashboard()), Logs, options, rpc);
         _run = _protocol.RunAsync(_lifetime.Token);
         var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
