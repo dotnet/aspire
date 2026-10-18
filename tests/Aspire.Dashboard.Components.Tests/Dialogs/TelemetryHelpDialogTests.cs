@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net;
-using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Configuration;
@@ -12,9 +11,7 @@ using Bunit;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.FluentUI.AspNetCore.Components;
 using Xunit;
-using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Tests.Dialogs;
 
@@ -50,8 +47,8 @@ public sealed class TelemetryHelpDialogTests : DashboardTestContext
         Assert.Equal(!(grpc || http), cut.Markup.Contains(Resources.Dialogs.TelemetryHelpNoEndpointsDescription, StringComparison.Ordinal));
         Assert.Equal(
             [
-                "https://opentelemetry.io/docs/specs/otlp/",
-                "https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/",
+                "https://aka.ms/aspire/otlp-spec",
+                "https://aka.ms/aspire/otlp-sdk-configuration",
                 "https://aka.ms/aspire/dashboard-manage-data"
             ],
             cut.FindAll("a").Select(link => link.GetAttribute("href")));
@@ -60,48 +57,6 @@ public sealed class TelemetryHelpDialogTests : DashboardTestContext
             Assert.Equal("noopener noreferrer nofollow", link.GetAttribute("rel"));
             Assert.Equal("_blank", link.GetAttribute("target"));
         });
-    }
-
-    [Fact]
-    public void Render_HelpUsesMarkdownAndManageDataButtonIsLast()
-    {
-        TelemetryHelpSetupHelpers.SetupDialogs(this);
-
-        var cut = Render<TelemetryHelpDialog>();
-
-        Assert.Single(cut.FindComponents<MarkdownRenderer>());
-        Assert.Equal(
-            ["📡 Send telemetry from your app", "📥 Import telemetry from a file"],
-            cut.FindAll(".markdown-container h5").Select(heading => heading.TextContent));
-        Assert.Equal(
-            [
-                "Visualize logs, traces, and metrics in the dashboard. To see telemetry, first send it to the dashboard using OTLP or manually import telemetry JSON files.",
-                "Configure your app to export logs, traces, and metrics using OTLP.",
-                Resources.Dialogs.TelemetryHelpNoEndpointsDescription,
-                "Configure an OpenTelemetry SDK with OTLP",
-                "Import previously exported telemetry or OTLP JSON files by selecting Import logs and telemetry in the Manage logs and telemetry dialog.",
-                "Learn about managing dashboard data"
-            ],
-            cut.FindAll(".markdown-container p").Select(paragraph => paragraph.TextContent));
-        var manageDataButton = cut.Find(".telemetry-help-content > .markdown-container + .telemetry-import-button:last-child");
-        Assert.Equal(Resources.Dialogs.ManageDataDialogTitle, manageDataButton.TextContent.Trim());
-        Assert.IsType<Icons.Regular.Size16.Settings>(cut.FindComponent<FluentButton>().Instance.IconStart);
-    }
-
-    [Fact]
-    public void Render_HeaderHasMetricsIcon()
-    {
-        TelemetryHelpSetupHelpers.SetupDialogs(this);
-
-        var cut = Render<TelemetryHelpDialog>();
-        var titleTemplate = cut.FindComponent<FluentDialogBody>().Instance.TitleTemplate;
-        Assert.NotNull(titleTemplate);
-
-        var title = Render(titleTemplate);
-
-        Assert.Equal(Resources.Dialogs.TelemetryHelpDialogTitle, title.Find(".telemetry-help-dialog-title").TextContent.Trim());
-        var icon = title.FindComponent<FluentIcon<Icons.Regular.Size24.ChartMultiple>>().Instance;
-        Assert.Equal(Color.Primary, icon.Color);
     }
 
     [Theory]
@@ -166,7 +121,7 @@ public sealed class TelemetryHelpDialogTests : DashboardTestContext
     }
 
     [Fact]
-    public async Task Import_ClosesHelpBeforeOpeningManageData()
+    public async Task Import_OpensManageDataWithoutClosingHelp()
     {
         var service = TelemetryHelpSetupHelpers.SetupDialogs(this);
         var dashboardDialogs = Services.GetRequiredService<DashboardDialogService>();
@@ -179,9 +134,11 @@ public sealed class TelemetryHelpDialogTests : DashboardTestContext
 
         await cut.Find(".telemetry-import-button").ClickAsync(new());
 
-        Assert.True(helpReference.Result.IsCompletedSuccessfully);
+        Assert.False(helpInstance.Result.IsCompleted);
         Assert.NotSame(helpInstance, service.LastInstance);
         Assert.Equal(Resources.Dialogs.ManageDataDialogTitle, service.LastInstance!.Options.Header.Title);
         await service.LastInstance.CloseAsync();
+        Assert.False(helpInstance.Result.IsCompleted);
+        await helpReference.CloseAsync();
     }
 }

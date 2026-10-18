@@ -1411,12 +1411,20 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to | Protocol | Dashboard endpoint |
-        ///| --- | --- |.
+        ///   Looks up a localized string similar to Protocol.
         /// </summary>
-        public static string TelemetryHelpEndpointsTableHeader {
+        public static string TelemetryHelpProtocolHeader {
             get {
-                return ResourceManager.GetString("TelemetryHelpEndpointsTableHeader", resourceCulture);
+                return ResourceManager.GetString("TelemetryHelpProtocolHeader", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dashboard endpoint.
+        /// </summary>
+        public static string TelemetryHelpEndpointHeader {
+            get {
+                return ResourceManager.GetString("TelemetryHelpEndpointHeader", resourceCulture);
             }
         }
 
@@ -1457,7 +1465,7 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to [Configure an OpenTelemetry SDK with OTLP]({0}).
+        ///   Looks up a localized string similar to Configure an OpenTelemetry SDK with OTLP.
         /// </summary>
         public static string TelemetryHelpSdkLink {
             get {
@@ -1477,7 +1485,7 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to [Learn about managing dashboard data]({0}).
+        ///   Looks up a localized string similar to Learn about managing dashboard data.
         /// </summary>
         public static string TelemetryHelpManageDataLink {
             get {

@@ -10,16 +10,19 @@ using Aspire.Hosting;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
-using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Dialogs;
 
 public partial class TelemetryHelpDialog
 {
-    private MarkdownProcessor? _markdownProcessor;
+    // Intended redirect: https://opentelemetry.io/docs/specs/otlp/
+    private const string OtlpSpecificationUrl = "https://aka.ms/aspire/otlp-spec";
+    // Intended redirect: https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/
+    private const string OtlpSdkConfigurationUrl = "https://aka.ms/aspire/otlp-sdk-configuration";
+    // Intended redirect: https://aspire.dev/dashboard/explore/#manage-data
+    private const string ManageDataUrl = "https://aka.ms/aspire/dashboard-manage-data";
 
-    [CascadingParameter]
-    public required IDialogInstance Dialog { get; set; }
+    private MarkdownProcessor? _markdownProcessor;
 
     [Inject]
     public required IStringLocalizer<Resources.Dialogs> Loc { get; init; }
@@ -52,13 +55,17 @@ public partial class TelemetryHelpDialog
         var sections = new List<string>
         {
             string.Format(CultureInfo.CurrentCulture, Loc[nameof(Resources.Dialogs.TelemetryHelpIntroduction)],
-                "https://opentelemetry.io/docs/specs/otlp/")
+                OtlpSpecificationUrl)
         };
         var grpcAddress = Endpoints.GrpcAddress;
         var httpAddress = Endpoints.HttpAddress;
         if (grpcAddress is not null || httpAddress is not null)
         {
-            var rows = new List<string> { Loc[nameof(Resources.Dialogs.TelemetryHelpEndpointsTableHeader)] };
+            var rows = new List<string>
+            {
+                $"| {Loc[nameof(Resources.Dialogs.TelemetryHelpProtocolHeader)]} | {Loc[nameof(Resources.Dialogs.TelemetryHelpEndpointHeader)]} |",
+                "| --- | --- |"
+            };
             if (grpcAddress is not null)
             {
                 rows.Add($"| OTLP/gRPC | `{grpcAddress}` |");
@@ -87,15 +94,15 @@ public partial class TelemetryHelpDialog
         {
             sections.Add(Loc[nameof(Resources.Dialogs.TelemetryHelpContainerDescription)]);
         }
-        sections.Add(string.Format(CultureInfo.CurrentCulture, Loc[nameof(Resources.Dialogs.TelemetryHelpSdkLink)],
-            "https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/"));
+        sections.Add(string.Format(CultureInfo.CurrentCulture, "[{0}]({1})",
+            Loc[nameof(Resources.Dialogs.TelemetryHelpSdkLink)], OtlpSdkConfigurationUrl));
         if (CanImport)
         {
             sections.Add(string.Format(CultureInfo.CurrentCulture, Loc[nameof(Resources.Dialogs.TelemetryHelpImportDescription)],
                 Loc[nameof(Resources.Dialogs.SettingsImportButtonText)], Loc[nameof(Resources.Dialogs.ManageDataDialogTitle)]));
         }
-        sections.Add(string.Format(CultureInfo.CurrentCulture, Loc[nameof(Resources.Dialogs.TelemetryHelpManageDataLink)],
-            "https://aka.ms/aspire/dashboard-manage-data"));
+        sections.Add(string.Format(CultureInfo.CurrentCulture, "[{0}]({1})",
+            Loc[nameof(Resources.Dialogs.TelemetryHelpManageDataLink)], ManageDataUrl));
 
         return string.Join(Environment.NewLine + Environment.NewLine, sections);
     }
@@ -105,9 +112,5 @@ public partial class TelemetryHelpDialog
         return _markdownProcessor ??= new MarkdownProcessor(ControlsLoc, safeUrlSchemes: MarkdownHelpers.SafeUrlSchemes, extensions: []);
     }
 
-    private async Task OpenImportAsync()
-    {
-        await Dialog.CloseAsync();
-        await DialogService.ShowManageDataAsync();
-    }
+    private Task OpenImportAsync() => DialogService.ShowManageDataAsync();
 }

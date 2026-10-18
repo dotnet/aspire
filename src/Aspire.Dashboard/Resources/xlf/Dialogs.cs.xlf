@@ -773,12 +773,10 @@ For more information about using AI agents with the dashboard, including setting
         <target state="new">Add telemetry</target>
         <note />
       </trans-unit>
-      <trans-unit id="TelemetryHelpEndpointsTableHeader">
-        <source>| Protocol | Dashboard endpoint |
-| --- | --- |</source>
-        <target state="new">| Protocol | Dashboard endpoint |
-| --- | --- |</target>
-        <note>Markdown table header. Keep the two columns and separator row. Endpoint rows are added after this header.</note>
+      <trans-unit id="TelemetryHelpEndpointHeader">
+        <source>Dashboard endpoint</source>
+        <target state="new">Dashboard endpoint</target>
+        <note />
       </trans-unit>
       <trans-unit id="TelemetryHelpImportDescription">
         <source>### 📥 Import telemetry from a file
@@ -803,9 +801,9 @@ Configure your app to export logs, traces, and metrics using [OTLP]({0}).</targe
         <note>Markdown. {0} is the OTLP specification URL.</note>
       </trans-unit>
       <trans-unit id="TelemetryHelpManageDataLink">
-        <source>[Learn about managing dashboard data]({0})</source>
-        <target state="new">[Learn about managing dashboard data]({0})</target>
-        <note>Markdown. {0} is the Manage Data documentation URL.</note>
+        <source>Learn about managing dashboard data</source>
+        <target state="new">Learn about managing dashboard data</target>
+        <note />
       </trans-unit>
       <trans-unit id="TelemetryHelpMessage">
         <source>Configure your app to send telemetry to the dashboard.</source>
@@ -822,10 +820,15 @@ Configure your app to export logs, traces, and metrics using [OTLP]({0}).</targe
         <target state="new">No OTLP endpoints are configured. To receive live telemetry, configure an OTLP endpoint when starting the dashboard.</target>
         <note />
       </trans-unit>
+      <trans-unit id="TelemetryHelpProtocolHeader">
+        <source>Protocol</source>
+        <target state="new">Protocol</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TelemetryHelpSdkLink">
-        <source>[Configure an OpenTelemetry SDK with OTLP]({0})</source>
-        <target state="new">[Configure an OpenTelemetry SDK with OTLP]({0})</target>
-        <note>Markdown. {0} is the OpenTelemetry SDK configuration URL.</note>
+        <source>Configure an OpenTelemetry SDK with OTLP</source>
+        <target state="new">Configure an OpenTelemetry SDK with OTLP</target>
+        <note />
       </trans-unit>
       <trans-unit id="TextVisualizerDialogJsonFormat">
         <source>JSON</source>
