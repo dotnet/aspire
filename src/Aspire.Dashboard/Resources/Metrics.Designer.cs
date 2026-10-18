@@ -66,6 +66,30 @@ namespace Aspire.Dashboard.Resources {
             }
         }
 
+        public static string MetricsInstrumentTypeCounter {
+            get {
+                return ResourceManager.GetString("MetricsInstrumentTypeCounter", resourceCulture);
+            }
+        }
+
+        public static string MetricsInstrumentTypeGauge {
+            get {
+                return ResourceManager.GetString("MetricsInstrumentTypeGauge", resourceCulture);
+            }
+        }
+
+        public static string MetricsInstrumentTypeHistogram {
+            get {
+                return ResourceManager.GetString("MetricsInstrumentTypeHistogram", resourceCulture);
+            }
+        }
+
+        public static string MetricsNoMatchingInstruments {
+            get {
+                return ResourceManager.GetString("MetricsNoMatchingInstruments", resourceCulture);
+            }
+        }
+
         public static string MetricsInstrumentNoDataTooltip {
             get {
                 return ResourceManager.GetString("MetricsInstrumentNoDataTooltip", resourceCulture);

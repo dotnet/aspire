@@ -947,6 +947,78 @@ public partial class MetricsTests : DashboardTestContext
     }
 
     [Fact]
+    public async Task MetricsTree_TextFilter_ShowsMatchingInstruments()
+    {
+        MetricsSetupHelpers.SetupMetricsPage(this);
+
+        var telemetryRepository = Services.GetRequiredService<SqliteTelemetryRepository>();
+        await telemetryRepository.AddMetricsAsync(new AddContext(), new RepeatedField<ResourceMetrics>
+        {
+            new ResourceMetrics
+            {
+                Resource = CreateResource(name: "TestApp"),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter1"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "http.request.count", startTime: s_testTime.AddMinutes(1)),
+                            CreateSumMetric(metricName: "memory.usage", startTime: s_testTime.AddMinutes(1))
+                        }
+                    },
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter2"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "queue.length", startTime: s_testTime.AddMinutes(1))
+                        }
+                    }
+                }
+            }
+        });
+
+        var cut = Render<Metrics>(builder =>
+        {
+            builder.AddCascadingValue(new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
+            builder.Add(m => m.ResourceName, "TestApp");
+        });
+
+        cut.WaitForState(() => cut.Instance.PageViewModel.Instruments?.Count == 3);
+
+        var filterInput = cut.FindComponents<FluentTextInput>().Single(c => c.Instance.Class == "metrics-tree-search");
+
+        // An instrument name match only shows that instrument under its meter.
+        await cut.InvokeAsync(() => filterInput.Instance.ValueChanged.InvokeAsync("MEMORY"));
+        cut.WaitForAssertion(() => Assert.Equal(["test-meter1", "memory.usage"], GetTreeItemNames(cut)));
+
+        // A meter name match shows all of that meter's instruments.
+        await cut.InvokeAsync(() => filterInput.Instance.ValueChanged.InvokeAsync("meter1"));
+        cut.WaitForAssertion(() => Assert.Equal(["test-meter1", "http.request.count", "memory.usage"], GetTreeItemNames(cut)));
+
+        await cut.InvokeAsync(() => filterInput.Instance.ValueChanged.InvokeAsync("does-not-exist"));
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Empty(GetTreeItemNames(cut));
+            Assert.Equal("No metrics match the filter", cut.Find(".metrics-tree-empty").TextContent.Trim());
+        });
+
+        static List<string> GetTreeItemNames(IRenderedComponent<Metrics> cut)
+        {
+            return cut.FindComponent<FluentTreeView>().FindComponents<FluentTreeItem>()
+                .Select(i => i.Instance.Data switch
+                {
+                    OtlpInstrumentSummary instrument => instrument.Name,
+                    string meterName => meterName,
+                    _ => throw new InvalidOperationException("Unexpected tree item data.")
+                })
+                .ToList();
+        }
+    }
+
+    [Fact]
     public async Task ReadOnly_ChartEndsAtLatestMetricTime()
     {
         MetricsSetupHelpers.SetupMetricsPage(this);

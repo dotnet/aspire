@@ -12,6 +12,21 @@
         <target state="new">No data has been recorded for this instrument yet</target>
         <note />
       </trans-unit>
+      <trans-unit id="MetricsInstrumentTypeCounter">
+        <source>Counter</source>
+        <target state="new">Counter</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsInstrumentTypeGauge">
+        <source>Gauge</source>
+        <target state="new">Gauge</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsInstrumentTypeHistogram">
+        <source>Histogram</source>
+        <target state="new">Histogram</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MetricsInsturementDescriptionGridNameColumnHeader">
         <source>Description</source>
         <target state="translated">Descrizione</target>
@@ -60,6 +75,11 @@
       <trans-unit id="MetricsLastTwelveHours">
         <source>Last 12 hours</source>
         <target state="translated">Ultime 12 ore</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsNoMatchingInstruments">
+        <source>No metrics match the filter</source>
+        <target state="new">No metrics match the filter</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsNoMetricsForResource">

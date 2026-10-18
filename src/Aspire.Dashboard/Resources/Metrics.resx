@@ -173,4 +173,16 @@
     <value>Metrics capture paused at {0}</value>
     <comment>{0} is a time</comment>
   </data>
+  <data name="MetricsNoMatchingInstruments" xml:space="preserve">
+    <value>No metrics match the filter</value>
+  </data>
+  <data name="MetricsInstrumentTypeCounter" xml:space="preserve">
+    <value>Counter</value>
+  </data>
+  <data name="MetricsInstrumentTypeGauge" xml:space="preserve">
+    <value>Gauge</value>
+  </data>
+  <data name="MetricsInstrumentTypeHistogram" xml:space="preserve">
+    <value>Histogram</value>
+  </data>
 </root>

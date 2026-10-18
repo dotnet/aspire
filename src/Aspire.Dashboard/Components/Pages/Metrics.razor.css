@@ -102,11 +102,30 @@
     line-height: 22px;
 }
 
+::deep .metrics-tree-search {
+    display: block;
+    width: 100%;
+    margin-top: var(--layout-top-padding);
+}
+
+::deep .metrics-tree-search > fluent-text-input,
+::deep fluent-text-input.metrics-tree-search {
+    width: 100%;
+}
+
+::deep .metrics-tree-empty {
+    padding: var(--spacingVerticalM) var(--spacingHorizontalS);
+    color: var(--colorNeutralForeground3);
+}
+
+::deep .metrics-tree fluent-tree-item.nested svg {
+    color: var(--colorNeutralForeground3);
+}
+
 ::deep .metrics-tree {
     min-width: auto;
-    /* The tabs row above provides no bottom border, so without this the first tree item's
-       text sits flush against it instead of reading as page content. */
-    padding-top: var(--layout-top-padding);
+    /* The filter box above carries the top padding; this just separates it from the first item. */
+    padding-top: var(--spacingVerticalS);
 }
 
 ::deep .metrics-tree fluent-tree-item::part(positioning-region) {

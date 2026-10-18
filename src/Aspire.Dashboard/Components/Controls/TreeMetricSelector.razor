@@ -1,6 +1,8 @@
-﻿@using Metrics = Aspire.Dashboard.Resources.Metrics
+﻿@using Aspire.Dashboard.Resources
+@using Metrics = Aspire.Dashboard.Resources.Metrics
 
 @inject IStringLocalizer<Metrics> Loc
+@inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
 @if (PageViewModel.Instruments is null)
 {
@@ -12,6 +14,28 @@
     <label for="metric-selector">@Loc[nameof(Metrics.MetricsInsturementNameGridNameColumnHeader)]</label>
 }
 
+<FluentTextInput TextInputType="TextInputType.Search"
+                 Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
+                 aria-label="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
+                 Class="metrics-tree-search"
+                 Immediate="true"
+                 ImmediateDelay="@FluentUIExtensions.InputDelay"
+                 AutoComplete="off"
+                 @bind-Value="_textFilter">
+    <StartTemplate>
+        <FluentIcon Value="@(new Icons.Regular.Size16.Search())" Color="Color.Primary" />
+    </StartTemplate>
+</FluentTextInput>
+
+@{
+    var meterGroups = GetFilteredMeterGroups();
+}
+
+@if (meterGroups.Count == 0)
+{
+    <div class="metrics-tree-empty">@Loc[nameof(Metrics.MetricsNoMatchingInstruments)]</div>
+}
+
 <FluentTreeView Id="metric-selector"
                 Class="metrics-tree"
                 aria-label="@Loc[nameof(Metrics.MetricsInsturementNameGridNameColumnHeader)]"
@@ -20,24 +44,25 @@
                 @bind-CurrentSelected="@PageViewModel.SelectedTreeItem"
                 @bind-CurrentSelected:after="HandleSelectedTreeItemChangedAsync">
     <ChildContent>
-        @foreach (var meterGroup in PageViewModel.Instruments.GroupBy(i => i.Parent.Name).OrderBy(g => g.Key))
+        @foreach (var meterGroup in meterGroups)
         {
-            <FluentTreeItem @key="meterGroup.Key"
-                            Id="@GetMeterTreeItemId(meterGroup.Key)"
-                            Text="@meterGroup.Key"
-                            Data="@meterGroup.Key"
-                            data-tooltip="@meterGroup.Key"
-                            Expanded="@IsMeterExpanded(meterGroup.Key)"
-                            ExpandedChanged="@(expanded => SetMeterExpanded(meterGroup.Key, expanded))">
-                @foreach (var instrument in meterGroup.OrderBy(i => i.Name))
+            <FluentTreeItem @key="meterGroup.MeterName"
+                            Id="@GetMeterTreeItemId(meterGroup.MeterName)"
+                            Text="@meterGroup.MeterName"
+                            Data="@meterGroup.MeterName"
+                            data-tooltip="@meterGroup.MeterName"
+                            Expanded="@IsMeterExpanded(meterGroup.MeterName)"
+                            ExpandedChanged="@(expanded => SetMeterExpanded(meterGroup.MeterName, expanded))">
+                @foreach (var instrument in meterGroup.Instruments)
                 {
                     var hasData = HasInstrumentData(instrument);
                     <FluentTreeItem @key="instrument"
                                     Id="@GetInstrumentTreeItemId(instrument.Parent.Name, instrument.Name)"
                                     Class="@(hasData ? "nested" : "nested no-data")"
                                     Text="@instrument.Name"
+                                    IconStart="@GetInstrumentIcon(instrument.Type)"
                                     Data="@instrument"
-                                    data-tooltip="@(hasData ? instrument.Name : $"{instrument.Name} \u2014 {Loc[nameof(Metrics.MetricsInstrumentNoDataTooltip)]}")" />
+                                    data-tooltip="@GetInstrumentTooltip(instrument, hasData)" />
                 }
             </FluentTreeItem>
         }
