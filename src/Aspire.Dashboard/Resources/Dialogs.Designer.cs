@@ -1400,7 +1400,7 @@ namespace Aspire.Dashboard.Resources {
         /// <summary>
         ///   Looks up a localized string similar to Visualize logs, traces, and metrics in the dashboard. To see telemetry, first send it to the dashboard using OTLP or manually import telemetry JSON files.
         ///
-        ///## 📡 Send telemetry from your app
+        ///### 📡 Send telemetry from your app
         ///
         ///Configure your app to export logs, traces, and metrics using [OTLP]({0})..
         /// </summary>
@@ -1466,7 +1466,7 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to ## 📥 Import telemetry from a file
+        ///   Looks up a localized string similar to ### 📥 Import telemetry from a file
         ///
         ///Import previously exported telemetry or OTLP JSON files by selecting **{0}** in the **{1}** dialog..
         /// </summary>

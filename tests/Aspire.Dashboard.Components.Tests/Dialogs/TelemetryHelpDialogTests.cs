@@ -72,7 +72,7 @@ public sealed class TelemetryHelpDialogTests : DashboardTestContext
         Assert.Single(cut.FindComponents<MarkdownRenderer>());
         Assert.Equal(
             ["📡 Send telemetry from your app", "📥 Import telemetry from a file"],
-            cut.FindAll(".markdown-container h4").Select(heading => heading.TextContent));
+            cut.FindAll(".markdown-container h5").Select(heading => heading.TextContent));
         Assert.Equal(
             [
                 "Visualize logs, traces, and metrics in the dashboard. To see telemetry, first send it to the dashboard using OTLP or manually import telemetry JSON files.",
@@ -162,7 +162,7 @@ public sealed class TelemetryHelpDialogTests : DashboardTestContext
         Assert.Equal(expectedButton ? 1 : 0, cut.FindAll(".telemetry-import-button").Count);
         Assert.Equal(
             expectedButton ? ["📡 Send telemetry from your app", "📥 Import telemetry from a file"] : ["📡 Send telemetry from your app"],
-            cut.FindAll(".markdown-container h4").Select(heading => heading.TextContent));
+            cut.FindAll(".markdown-container h5").Select(heading => heading.TextContent));
     }
 
     [Fact]

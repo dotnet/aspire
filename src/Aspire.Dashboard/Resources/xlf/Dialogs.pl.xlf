@@ -781,10 +781,10 @@ For more information about using AI agents with the dashboard, including setting
         <note>Markdown table header. Keep the two columns and separator row. Endpoint rows are added after this header.</note>
       </trans-unit>
       <trans-unit id="TelemetryHelpImportDescription">
-        <source>## 📥 Import telemetry from a file
+        <source>### 📥 Import telemetry from a file
 
 Import previously exported telemetry or OTLP JSON files by selecting **{0}** in the **{1}** dialog.</source>
-        <target state="new">## 📥 Import telemetry from a file
+        <target state="new">### 📥 Import telemetry from a file
 
 Import previously exported telemetry or OTLP JSON files by selecting **{0}** in the **{1}** dialog.</target>
         <note>Markdown. {0} is the localized import button text, {1} is the localized data management dialog title.</note>
@@ -792,12 +792,12 @@ Import previously exported telemetry or OTLP JSON files by selecting **{0}** in 
       <trans-unit id="TelemetryHelpIntroduction">
         <source>Visualize logs, traces, and metrics in the dashboard. To see telemetry, first send it to the dashboard using OTLP or manually import telemetry JSON files.
 
-## 📡 Send telemetry from your app
+### 📡 Send telemetry from your app
 
 Configure your app to export logs, traces, and metrics using [OTLP]({0}).</source>
         <target state="new">Visualize logs, traces, and metrics in the dashboard. To see telemetry, first send it to the dashboard using OTLP or manually import telemetry JSON files.
 
-## 📡 Send telemetry from your app
+### 📡 Send telemetry from your app
 
 Configure your app to export logs, traces, and metrics using [OTLP]({0}).</target>
         <note>Markdown. {0} is the OTLP specification URL.</note>
