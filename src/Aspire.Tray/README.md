@@ -123,11 +123,25 @@ macOS, Segoe UI Variable Text or Segoe UI on Windows); layout never measures tex
 each renderer truncates it to its box. The panel follows the light or dark appearance,
 the macOS **Increase contrast** setting, and the Windows high-contrast theme.
 
-The custom-drawn panel is not exposed to VoiceOver or UI Automation. The native menu
-remains the accessible and complete path: a right click, Control-click on macOS,
-keyboard activation of the icon, or VoiceOver's press action opens it. That path keeps
-native confirmations (`NSAlert` on macOS, task dialogs on Windows) and the native
-Settings window.
+Screen readers see the panel as native elements. Along with the display list, `TrayPanel`
+produces an accessibility list in reading order: buttons (rows, row actions, Back, the
+confirmation and footer buttons), switches with an on/off state (Don't ask again,
+Launch at sign-in, Confirm before stopping, with the setting's description as help
+text), and read-only text (the header status, the notice, section titles, the
+confirmation question, About). On macOS the panel view is an `AXGroup` whose children
+are `NSAccessibilityElement` objects (`AXButton`, `AXCheckBox` with the `AXSwitch`
+subrole, `AXStaticText`); on Windows the panel window answers `WM_GETOBJECT` with a UI
+Automation fragment root whose children are Button (Invoke pattern), CheckBox (Toggle
+pattern) and Text elements, implemented with source-generated COM so NativeAOT needs no
+built-in COM interop. A press, invoke or toggle runs through `TrayPanel` exactly like a
+click, and setting focus on an element moves the panel's keyboard focus (scrolling it
+into view). Each host reports keyboard focus changes, elements appearing or going away
+(a confirmation strip, the Settings view) and toggled values.
+
+The native menu remains: a right click, Control-click on macOS, keyboard activation of
+the icon, or VoiceOver's press action on the icon opens it. It keeps native
+confirmations (`NSAlert` on macOS, task dialogs on Windows) and the native Settings
+window.
 
 To preview the panel without running the tray, run the panel tests with
 `ASPIRE_TRAY_PANEL_PREVIEW_DIR` set. They write SVG images of the light and dark
@@ -598,7 +612,10 @@ opens the Settings view and its launch-at-sign-in toggle round-trips through the
 in-memory store, and that the window resizes with each view. Set
 `ASPIRE_TRAY_SMOKE_PANEL_CAPTURE_DIR` to an absolute directory to also write PNGs
 of the panel rendered by AppKit (light, dark, dark with hover, the Stop confirmation,
-and the Settings view in light and dark).
+and the Settings view in light and dark). In the list, the Stop confirmation and the
+Settings view it also reads the panel's accessibility tree back through the
+NSAccessibility getters VoiceOver uses (roles, names, switch values, screen frames and
+the focused element) and presses a Settings switch the way VoiceOver does.
 It never opens a browser or starts/stops real AppHosts and exits automatically.
 Smoke bypasses the normal singleton lock, so it can run alongside the tray.
 

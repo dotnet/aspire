@@ -52,6 +52,7 @@ internal sealed class TrayPanel
     private PanelTargetKey? _hover;
     private PanelTargetKey? _pressed;
     private PanelTargetKey? _focus;
+    private List<PanelAccessibleElement> _accessible = [];
     private bool _focusVisible;
     private bool? _recentExpanded;
     private PanelConfirm? _confirm;
@@ -205,6 +206,39 @@ internal sealed class TrayPanel
         _confirm = null;
         _settings = null;
         _scene = null;
+    }
+
+    /// <summary>
+    /// Activates a target the way a click would, for a screen reader's press (AXPress, UIA Invoke
+    /// or Toggle). The target also takes keyboard focus, so a follow-up key press continues from it.
+    /// </summary>
+    public PanelResponse Invoke(PanelTargetKey key)
+    {
+        var target = Scene.Targets.FirstOrDefault(target => target.Key == key);
+        if (target is not { Enabled: true })
+        {
+            return PanelResponse.None;
+        }
+        _focus = key;
+        var action = Activate(target);
+        if (_pendingState is not null)
+        {
+            _state = _pendingState;
+            _pendingState = null;
+        }
+        _scene = null;
+        return new(true, action);
+    }
+
+    /// <summary>
+    /// Moves keyboard focus to a target when a screen reader sets focus on its element, and
+    /// scrolls it into view like arrow keys do.
+    /// </summary>
+    public PanelResponse Focus(PanelTargetKey key)
+    {
+        var targets = Scene.Targets.Where(target => target.Enabled).ToList();
+        var index = targets.FindIndex(target => target.Key == key);
+        return index < 0 || _focus == key ? PanelResponse.None : FocusAt(targets, index);
     }
 
     public PanelHitTarget? HitTest(double x, double y)
@@ -526,6 +560,9 @@ internal sealed class TrayPanel
         var live = state.Discovery == DiscoveryState.Live;
         var commands = new List<PanelCommand>();
         var targets = new List<PanelHitTarget>();
+        // AddTarget and AddLabel append here in drawing order, which is also reading order.
+        var accessible = new List<PanelAccessibleElement>();
+        _accessible = accessible;
 
         // Lay out the list first: its height decides the panel height and the scroll range.
         var items = new List<ListItem>();
@@ -643,8 +680,11 @@ internal sealed class TrayPanel
                     AddEmptyState(sink, state.Discovery, top, palette);
                     break;
                 case ListItemKind.SectionHeader when _settings is not null:
-                    sink.Add(new TextCommand(new(20, top + 4, 200, 24),
-                        item.Target == PanelTargetKind.LaunchAtSignIn ? "GENERAL" : "ABOUT", PanelFontRole.Section, palette.TextTertiary));
+                    var general = item.Target == PanelTargetKind.LaunchAtSignIn;
+                    var headerBounds = new PanelRect(20, top + 4, 200, 24);
+                    sink.Add(new TextCommand(headerBounds, general ? "GENERAL" : "ABOUT", PanelFontRole.Section, palette.TextTertiary));
+                    // Screen readers get the title case: some spell out all-caps words letter by letter.
+                    AddLabel(general ? "settings.general" : "settings.about", general ? "General" : "About", headerBounds, chrome: false);
                     break;
                 case ListItemKind.SectionHeader:
                     AddSectionHeader(sink, targets, item.Section, top, state, palette);
@@ -695,23 +735,28 @@ internal sealed class TrayPanel
             commands.Add(new PopClipCommand());
         }
 
-        return new(Width, height, commands, targets);
+        return new(Width, height, commands, targets, accessible);
     }
 
     private const double NoticeTextWidth = Width - 46 - 22;
 
-    private static void AddHeader(List<PanelCommand> commands, TrayViewState state, TrayPanelPalette palette)
+    private void AddHeader(List<PanelCommand> commands, TrayViewState state, TrayPanelPalette palette)
     {
         commands.Add(new LogoCommand(new(16, 16, 28, 28)));
-        commands.Add(new TextCommand(new(54, 12, Width - 54 - 16, 20), "Aspire", PanelFontRole.Title, palette.TextPrimary));
+        var title = new PanelRect(54, 12, Width - 54 - 16, 20);
+        commands.Add(new TextCommand(title, "Aspire", PanelFontRole.Title, palette.TextPrimary));
+        AddLabel("header.title", "Aspire", title, chrome: true);
         var (status, dot) = GetHeaderStatus(state, palette);
         commands.Add(new FillPathCommand(PanelPath.Circle(58, 40, 4), dot));
-        commands.Add(new TextCommand(new(68, 32, Width - 68 - 16, 16), status, PanelFontRole.Body, palette.TextSecondary));
+        var statusBounds = new PanelRect(68, 32, Width - 68 - 16, 16);
+        commands.Add(new TextCommand(statusBounds, status, PanelFontRole.Body, palette.TextSecondary));
+        AddLabel("header.status", status, statusBounds, chrome: true);
     }
 
-    private static void AddNotice(List<PanelCommand> commands, string notice, bool singleLine, double height, TrayPanelPalette palette)
+    private void AddNotice(List<PanelCommand> commands, string notice, bool singleLine, double height, TrayPanelPalette palette)
     {
         var banner = new PanelRect(12, HeaderHeight, Width - 24, height);
+        AddLabel("notice", notice, banner, chrome: true);
         commands.Add(new FillPathCommand(PanelPath.RoundedRect(banner, 6), palette.Banner));
         if (palette.IsHighContrast)
         {
@@ -724,7 +769,7 @@ internal sealed class TrayPanel
             : new TextCommand(text, notice, PanelFontRole.Body, palette.BannerText, MaxLines: 2));
     }
 
-    private static void AddEmptyState(List<PanelCommand> commands, DiscoveryState discovery, double top, TrayPanelPalette palette)
+    private void AddEmptyState(List<PanelCommand> commands, DiscoveryState discovery, double top, TrayPanelPalette palette)
     {
         var (title, hint) = discovery switch
         {
@@ -741,9 +786,13 @@ internal sealed class TrayPanel
         {
             TrayPanelGlyphs.AddIcon(commands, PanelIcon.Layers, art, palette.TextTertiary);
         }
-        commands.Add(new TextCommand(new(20, top + 62, Width - 40, 20), title, PanelFontRole.Name, palette.TextPrimary, PanelTextAlignment.Center));
-        commands.Add(new TextCommand(new(44, top + 84, Width - 88, 34), hint, PanelFontRole.Body, palette.TextSecondary,
+        var titleBounds = new PanelRect(20, top + 62, Width - 40, 20);
+        var hintBounds = new PanelRect(44, top + 84, Width - 88, 34);
+        commands.Add(new TextCommand(titleBounds, title, PanelFontRole.Name, palette.TextPrimary, PanelTextAlignment.Center));
+        commands.Add(new TextCommand(hintBounds, hint, PanelFontRole.Body, palette.TextSecondary,
             PanelTextAlignment.Center, MaxLines: 2));
+        AddLabel("empty.title", title, titleBounds, chrome: false);
+        AddLabel("empty.hint", hint, hintBounds, chrome: false);
     }
 
     private void AddSectionHeader(List<PanelCommand> commands, List<PanelHitTarget> targets, PanelSection section, double top,
@@ -759,6 +808,8 @@ internal sealed class TrayPanel
         if (section != PanelSection.Recent)
         {
             commands.Add(new TextCommand(labelBounds, label, PanelFontRole.Section, palette.TextTertiary));
+            AddLabel(section == PanelSection.Running ? "section.running" : "section.pinned",
+                section == PanelSection.Running ? "Running" : "Pinned", labelBounds, chrome: false);
             return;
         }
 
@@ -769,7 +820,8 @@ internal sealed class TrayPanel
         commands.Add(new TextCommand(labelBounds, label, PanelFontRole.Section, palette.TextTertiary));
         TrayPanelGlyphs.AddIcon(commands, expanded ? PanelIcon.ChevronDown : PanelIcon.ChevronRight,
             new(RowContentRight - 22, top + 8, 16, 16), palette.TextTertiary);
-        AddTarget(targets, toggleKey, toggle, expanded ? "Hide recent AppHosts" : "Show recent AppHosts", true, null);
+        var count = state.RecentAppHosts.Count;
+        AddTarget(targets, toggleKey, toggle, expanded ? $"Hide {count} recent AppHosts" : $"Show {count} recent AppHosts", true, null);
 
         if (state.CanClearRecent)
         {
@@ -885,9 +937,13 @@ internal sealed class TrayPanel
             _ => ($"{name} was not found", host!.Id.AppHostPath, "Remove", $"Remove {name} from recent AppHosts")
         };
         var textWidth = card.Width - 24;
-        commands.Add(new TextCommand(new(card.X + 12, card.Y + 9, textWidth, 18), question, PanelFontRole.Name, palette.TextPrimary));
-        commands.Add(new TextCommand(new(card.X + 12, card.Y + 28, textWidth, 16), detail, PanelFontRole.Body, palette.TextSecondary,
+        var questionBounds = new PanelRect(card.X + 12, card.Y + 9, textWidth, 18);
+        var detailBounds = new PanelRect(card.X + 12, card.Y + 28, textWidth, 16);
+        commands.Add(new TextCommand(questionBounds, question, PanelFontRole.Name, palette.TextPrimary));
+        commands.Add(new TextCommand(detailBounds, detail, PanelFontRole.Body, palette.TextSecondary,
             Truncation: confirm.Kind == PanelConfirmKind.RemoveMissing ? PanelTruncation.Middle : PanelTruncation.End));
+        AddLabel("confirm.question", question, questionBounds, chrome: false);
+        AddLabel("confirm.detail", detail, detailBounds, chrome: false);
 
         var controlsY = card.Bottom - 10 - ButtonSize;
         var section = confirm.Section;
@@ -900,7 +956,7 @@ internal sealed class TrayPanel
             TrayPanelGlyphs.AddToggle(commands, confirm.DontAskAgain, enabled: true, new(toggle.X + 8, toggle.Y + 7, 25, 14), palette);
             commands.Add(new TextCommand(new(toggle.X + 40, toggle.Y, toggle.Width - 44, toggle.Height), "Don't ask again",
                 PanelFontRole.Body, palette.TextSecondary));
-            AddTarget(targets, toggleKey, toggle, confirm.DontAskAgain ? "Don't ask again, on" : "Don't ask again, off", true, host);
+            AddTarget(targets, toggleKey, toggle, "Don't ask again", true, host, PanelAccessibleRole.Switch, confirm.DontAskAgain);
         }
 
         const double ButtonWidth = 64;
@@ -938,8 +994,9 @@ internal sealed class TrayPanel
         AddInteractionFill(commands, backKey, back, palette, includeFocus: false);
         TrayPanelGlyphs.AddIcon(commands, PanelIcon.ChevronLeft, back.Inset(6, 6), _hover == backKey ? palette.TextPrimary : palette.TextSecondary);
         AddTarget(targets, backKey, back, "Back to AppHosts", true, null);
-        commands.Add(new TextCommand(new(back.Right + 8, 20, Width - back.Right - 24, 20), TraySettingsText.PanelTitle,
-            PanelFontRole.Title, palette.TextPrimary));
+        var title = new PanelRect(back.Right + 8, 20, Width - back.Right - 24, 20);
+        commands.Add(new TextCommand(title, TraySettingsText.PanelTitle, PanelFontRole.Title, palette.TextPrimary));
+        AddLabel("settings.title", TraySettingsText.PanelTitle, title, chrome: true);
     }
 
     private void AddSettingsToggle(List<PanelCommand> commands, List<PanelHitTarget> targets, PanelTargetKind kind, PanelSettings settings,
@@ -978,20 +1035,24 @@ internal sealed class TrayPanel
         commands.Add(new TextCommand(new(20, top + 28, textWidth, 30), description, PanelFontRole.Body,
             error ? palette.Danger : palette.TextSecondary, MaxLines: 2));
         TrayPanelGlyphs.AddToggle(commands, on, enabled, toggle, palette);
-        AddTarget(targets, key, row, $"{title}, {(on ? "on" : "off")}", enabled, null);
+        AddTarget(targets, key, row, title, enabled, null, PanelAccessibleRole.Switch, on, description);
     }
 
-    private static void AddAbout(List<PanelCommand> commands, PanelSettings settings, double top, TrayPanelPalette palette)
+    private void AddAbout(List<PanelCommand> commands, PanelSettings settings, double top, TrayPanelPalette palette)
     {
-        commands.Add(new TextCommand(new(20, top + 4, Width - 40, 20), "Aspire Tray", PanelFontRole.Name, palette.TextPrimary));
+        var name = new PanelRect(20, top + 4, Width - 40, 20);
+        commands.Add(new TextCommand(name, "Aspire Tray", PanelFontRole.Name, palette.TextPrimary));
+        AddLabel("about.name", "Aspire Tray", name, chrome: false);
         var lines = TraySettingsText.GetVersionText().Split(Environment.NewLine)
             .Append(TraySettingsText.GetAboutDescription(settings.Preview));
         var y = top + 24;
+        var index = 0;
         foreach (var line in lines)
         {
             // Informational versions carry a long commit hash at the end; keep both ends visible.
-            commands.Add(new TextCommand(new(20, y, Width - 40, 16), line, PanelFontRole.Body, palette.TextSecondary,
-                Truncation: PanelTruncation.Middle));
+            var bounds = new PanelRect(20, y, Width - 40, 16);
+            commands.Add(new TextCommand(bounds, line, PanelFontRole.Body, palette.TextSecondary, Truncation: PanelTruncation.Middle));
+            AddLabel($"about.line{index++}", line, bounds, chrome: false);
             y += 18;
         }
     }
@@ -1035,10 +1096,26 @@ internal sealed class TrayPanel
         }
     }
 
-    private void AddTarget(List<PanelHitTarget> targets, PanelTargetKey key, PanelRect bounds, string name, bool enabled, AppHostMenuItem? host)
+    private void AddTarget(List<PanelHitTarget> targets, PanelTargetKey key, PanelRect bounds, string name, bool enabled, AppHostMenuItem? host,
+        PanelAccessibleRole role = PanelAccessibleRole.Button, bool? isChecked = null, string? description = null)
     {
         var hit = IsChrome(key.Kind) ? bounds : bounds.Intersect(_viewport);
-        targets.Add(new(key, bounds, hit, name, enabled, host));
+        var target = new PanelHitTarget(key, bounds, hit, name, enabled, host, role, isChecked);
+        targets.Add(target);
+        _accessible.Add(new(PanelAccessibleKey.For(key), role, name, bounds, hit, target, description));
+    }
+
+    /// <summary>
+    /// Adds read-only text to the accessibility tree. Text in the scrolled list reports only the part
+    /// visible through the list clip, like hit targets; <paramref name="chrome"/> text never scrolls.
+    /// </summary>
+    private void AddLabel(string label, string text, PanelRect bounds, bool chrome)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return;
+        }
+        _accessible.Add(new(PanelAccessibleKey.For(label), PanelAccessibleRole.Text, text, bounds, chrome ? bounds : bounds.Intersect(_viewport)));
     }
 
     /// <summary>Targets in the fixed header or footer, outside the scrolled list.</summary>

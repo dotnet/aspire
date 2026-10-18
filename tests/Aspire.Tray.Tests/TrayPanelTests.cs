@@ -501,7 +501,9 @@ public class TrayPanelTests
         Assert.DoesNotContain(panel.Scene.Targets, target => target.Kind == PanelTargetKind.Row);
         Assert.Equal(new PanelTargetKey(PanelTargetKind.Back, PanelSection.None, null), panel.FocusedTarget);
         var launch = panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.LaunchAtSignIn);
-        Assert.Equal("Launch at sign-in, off", launch.AccessibleName);
+        Assert.Equal(TraySettingsText.PanelStartupOption, launch.AccessibleName);
+        Assert.Equal(PanelAccessibleRole.Switch, launch.Role);
+        Assert.False(launch.Checked);
         var setLaunch = Click(panel, launch.HitBounds).Action;
         Assert.Equal(PanelActionKind.SetLaunchAtSignIn, setLaunch?.Kind);
         Assert.True(setLaunch?.Enabled);
@@ -513,7 +515,7 @@ public class TrayPanelTests
         Assert.Contains(texts, text => text.StartsWith("Version: ", StringComparison.Ordinal));
 
         panel.UpdateSettings(new(new TrayStartupState(true, true, null), null, Preview: false));
-        Assert.Equal("Launch at sign-in, on", panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.LaunchAtSignIn).AccessibleName);
+        Assert.True(panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.LaunchAtSignIn).Checked);
     }
 
     [Fact]
@@ -840,6 +842,127 @@ public class TrayPanelTests
         }
 
         Assert.All(written, path => Assert.True(new FileInfo(path).Length > 0));
+    }
+
+    [Theory]
+    [MemberData(nameof(SampleNames))]
+    public void AccessibilityListsEveryTargetOnceInReadingOrder(string name)
+    {
+        var scene = CreatePanel(name, TrayPanelPalette.Light).Scene;
+
+        Assert.Equal(scene.Targets, scene.Accessibility.Where(element => element.Target is not null).Select(element => element.Target));
+        Assert.Equal(scene.Accessibility.Count, scene.Accessibility.Select(element => element.Key).Distinct().Count());
+        Assert.Equal([PanelTargetKind.Documentation, PanelTargetKind.Settings, PanelTargetKind.Quit],
+            scene.Accessibility.TakeLast(3).Select(element => element.Target!.Kind));
+        Assert.All(scene.Accessibility, element => Assert.False(string.IsNullOrWhiteSpace(element.Name)));
+    }
+
+    [Fact]
+    public void AccessibilityReadsTheHeaderAndSectionTitlesAsText()
+    {
+        var state = TrayPanelSamples.Typical();
+        var scene = new TrayPanel(state, TrayPanelPalette.Light).Scene;
+        var (status, _) = TrayPanel.GetHeaderStatus(state, TrayPanelPalette.Light);
+
+        Assert.Equal(
+            [("Aspire", PanelAccessibleRole.Text), (status, PanelAccessibleRole.Text), ("Running", PanelAccessibleRole.Text)],
+            scene.Accessibility.Take(3).Select(element => (element.Name, element.Role)));
+        var firstRow = scene.Accessibility[3];
+        Assert.Equal(PanelTargetKind.Row, firstRow.Target?.Kind);
+        Assert.Equal(state.AppHosts[0], firstRow.Target?.Host);
+        Assert.Equal(PanelAccessibleRole.Button, firstRow.Role);
+        var recent = scene.Accessibility.Single(element => element.Target?.Kind == PanelTargetKind.ToggleRecent);
+        Assert.Equal("Show 2 recent AppHosts", recent.Name);
+    }
+
+    [Fact]
+    public void ConfirmationStripReadsItsQuestionBeforeItsControls()
+    {
+        var state = TrayPanelSamples.Typical();
+        var panel = new TrayPanel(state, TrayPanelPalette.Light);
+        panel.Invoke(Target(panel, PanelTargetKind.Stop, state.AppHosts[0]).Key);
+
+        var strip = panel.Scene.Accessibility.SkipWhile(element => element.Key.Label != "confirm.question").Take(5).ToList();
+
+        Assert.Equal(
+            [
+                ($"Stop {state.AppHosts[0].DisplayName}?", PanelAccessibleRole.Text, (bool?)null),
+                ("Persistent resources keep running.", PanelAccessibleRole.Text, null),
+                ("Don't ask again", PanelAccessibleRole.Switch, false),
+                ("Cancel", PanelAccessibleRole.Button, null),
+                ($"Stop {state.AppHosts[0].DisplayName}", PanelAccessibleRole.Button, null)
+            ],
+            strip.Select(element => (element.Name, element.Role, element.Checked)));
+    }
+
+    [Fact]
+    public void InvokeActivatesLikeAClickAndMovesFocus()
+    {
+        var state = TrayPanelSamples.Typical();
+        var panel = new TrayPanel(state, TrayPanelPalette.Light);
+        var host = state.AppHosts[0];
+
+        Assert.Null(panel.Invoke(Target(panel, PanelTargetKind.Stop, host).Key).Action);
+        Assert.Equal(PanelConfirmKind.Stop, panel.Confirmation);
+        Assert.Equal(PanelTargetKind.ConfirmCancel, panel.FocusedTarget?.Kind);
+
+        var dontAsk = Target(panel, PanelTargetKind.ConfirmDontAsk, host).Key;
+        panel.Invoke(dontAsk);
+        Assert.True(panel.Scene.Targets.Single(target => target.Key == dontAsk).Checked);
+        Assert.Equal(dontAsk, panel.FocusedTarget);
+
+        var stop = panel.Invoke(Target(panel, PanelTargetKind.ConfirmAccept, host).Key).Action;
+        Assert.Equal(PanelActionKind.Stop, stop?.Kind);
+        Assert.Equal(host, stop?.Host);
+        Assert.True(stop?.DontAskAgain);
+    }
+
+    [Fact]
+    public void InvokeIgnoresDisabledAndMissingTargets()
+    {
+        var state = TrayPanelSamples.Typical();
+        var panel = new TrayPanel(state, TrayPanelPalette.Light);
+        var disabled = Target(panel, PanelTargetKind.Dashboard, state.AppHosts[2]);
+        Assert.False(disabled.Enabled);
+
+        Assert.Equal(PanelResponse.None, panel.Invoke(disabled.Key));
+        Assert.Equal(PanelResponse.None, panel.Invoke(new(PanelTargetKind.Back, PanelSection.None, null)));
+        Assert.Null(panel.FocusedTarget);
+    }
+
+    [Fact]
+    public void FocusScrollsAnOffscreenElementIntoView()
+    {
+        var panel = new TrayPanel(TrayPanelSamples.Many(), TrayPanelPalette.Light) { MaxHeight = 400 };
+        var last = panel.Scene.Accessibility.Last(element => element.Target?.Kind == PanelTargetKind.Row);
+        Assert.True(last.IsOffscreen);
+        var status = panel.Scene.Accessibility.Single(element => element.Key.Label == "header.status");
+        Assert.Equal(status.Bounds, status.VisibleBounds);
+
+        Assert.True(panel.Focus(last.Target!.Key).Redraw);
+
+        Assert.Equal(last.Target.Key, panel.FocusedTarget);
+        Assert.True(panel.ScrollOffset > 0);
+        var visible = panel.Scene.Accessibility.Single(element => element.Key == last.Key);
+        Assert.False(visible.IsOffscreen);
+        Assert.Equal(visible.Bounds, visible.VisibleBounds);
+        Assert.True(panel.Scene.Accessibility.Single(element => element.Key.Label == "section.running").IsOffscreen);
+    }
+
+    [Fact]
+    public void SettingsSwitchesCarryTheirDescription()
+    {
+        var panel = new TrayPanel(TrayPanelSamples.Typical(), TrayPanelPalette.Light);
+        panel.ShowSettings(new(new TrayStartupState(false, true, null), null, Preview: false));
+
+        var confirm = panel.Scene.Accessibility.Single(element => element.Target?.Kind == PanelTargetKind.ConfirmStopSetting);
+
+        Assert.Equal(PanelAccessibleRole.Switch, confirm.Role);
+        Assert.Equal(TraySettingsText.ConfirmStopOption, confirm.Name);
+        Assert.Equal(TraySettingsText.ConfirmStopDescription, confirm.Description);
+        Assert.True(confirm.Checked);
+        Assert.Equal(["Back to AppHosts", TraySettingsText.PanelTitle, "General"],
+            panel.Scene.Accessibility.Take(3).Select(element => element.Name));
     }
 
     private static PanelHitTarget Target(TrayPanel panel, PanelTargetKind kind, AppHostMenuItem host)

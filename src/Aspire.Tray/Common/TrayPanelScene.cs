@@ -129,6 +129,20 @@ internal enum PanelSection
 internal readonly record struct PanelTargetKey(PanelTargetKind Kind, PanelSection Section, AppHostId? Host);
 
 /// <summary>
+/// How a screen reader presents an element. Hosts map it to the platform role: an AXButton or
+/// UIA Button, an AXCheckBox with the AXSwitch subrole or a UIA CheckBox with the Toggle pattern,
+/// and AXStaticText or a UIA Text element.
+/// </summary>
+internal enum PanelAccessibleRole
+{
+    Button,
+    /// <summary>An on/off control. Its state is <see cref="PanelHitTarget.Checked"/>, not part of its name.</summary>
+    Switch,
+    /// <summary>Read-only text: the header status, a notice, a section title or a description.</summary>
+    Text
+}
+
+/// <summary>
 /// An interactive region. <see cref="Bounds"/> is where it is drawn and <see cref="HitBounds"/>
 /// is the part that is visible through the list clip, which is what pointer input tests.
 /// </summary>
@@ -138,17 +152,53 @@ internal sealed record PanelHitTarget(
     PanelRect HitBounds,
     string AccessibleName,
     bool Enabled,
-    AppHostMenuItem? Host)
+    AppHostMenuItem? Host,
+    PanelAccessibleRole Role = PanelAccessibleRole.Button,
+    bool? Checked = null)
 {
     public PanelTargetKind Kind => Key.Kind;
 }
 
-/// <summary>The output of one layout pass: the panel size, what to draw, and where to click.</summary>
+/// <summary>
+/// Identifies an accessible element across scene rebuilds, so a host can keep the same native
+/// element (and a screen reader its cursor on it) while the panel redraws. Targets use their
+/// <see cref="PanelTargetKey"/>; text uses a stable label such as "header.status".
+/// </summary>
+internal readonly record struct PanelAccessibleKey(PanelTargetKey? Target, string? Label)
+{
+    public static PanelAccessibleKey For(PanelTargetKey target) => new(target, null);
+    public static PanelAccessibleKey For(string label) => new(null, label);
+}
+
+/// <summary>
+/// One element of the panel's accessibility tree, in reading order. Interactive elements carry
+/// their <see cref="Target"/>; text has none. <see cref="VisibleBounds"/> is empty when the
+/// element is scrolled out of the list, which hosts report as offscreen.
+/// </summary>
+internal sealed record PanelAccessibleElement(
+    PanelAccessibleKey Key,
+    PanelAccessibleRole Role,
+    string Name,
+    PanelRect Bounds,
+    PanelRect VisibleBounds,
+    PanelHitTarget? Target = null,
+    string? Description = null)
+{
+    public bool Enabled => Target?.Enabled ?? true;
+    public bool? Checked => Target?.Checked;
+    public bool IsOffscreen => VisibleBounds.IsEmpty;
+}
+
+/// <summary>
+/// The output of one layout pass: the panel size, what to draw, where to click, and what a
+/// screen reader reads, in reading order (header, list, footer).
+/// </summary>
 internal sealed record TrayPanelScene(
     double Width,
     double Height,
     IReadOnlyList<PanelCommand> Commands,
-    IReadOnlyList<PanelHitTarget> Targets);
+    IReadOnlyList<PanelHitTarget> Targets,
+    IReadOnlyList<PanelAccessibleElement> Accessibility);
 
 internal enum PanelActionKind
 {

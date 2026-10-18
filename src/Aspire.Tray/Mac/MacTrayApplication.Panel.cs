@@ -10,8 +10,9 @@ namespace Aspire.Tray;
 /// The flyout panel shown by a left click on the status item. Layout, glyphs and interaction
 /// live in the shared <see cref="TrayPanel"/>; this part only hosts it in a borderless NSPanel,
 /// forwards input, and draws the display list with NSBezierPath and NSAttributedString.
-/// A right click, Control-click, keyboard or VoiceOver activation still opens the native
-/// menu, which remains the accessible and feature-complete path.
+/// VoiceOver sees the panel through MacTrayApplication.PanelAccessibility.cs. A right click,
+/// Control-click, or keyboard or VoiceOver activation of the status item still opens the
+/// native menu.
 /// </summary>
 internal sealed partial class MacTrayApplication
 {
@@ -60,6 +61,7 @@ internal sealed partial class MacTrayApplication
         {
             AddMethod(viewClass, name, callback, "v@:@");
         }
+        RegisterPanelAccessibilityClasses(viewClass);
         AppKit.RegisterClass(windowClass);
         AppKit.RegisterClass(viewClass);
 
@@ -193,6 +195,7 @@ internal sealed partial class MacTrayApplication
         AppKit.Set(_panelView, "addTrackingArea:", tracking);
         AppKit.Release(tracking);
         AppKit.Set(_panelWindow, "setContentView:", _panelView);
+        ConfigurePanelViewAccessibility();
     }
 
     private void LayoutPanel()
@@ -242,6 +245,7 @@ internal sealed partial class MacTrayApplication
         // after the content changes shape.
         AppKit.SendVoid(_panelView, AppKit.Selector("displayIfNeeded"));
         AppKit.SendVoid(_panelWindow, AppKit.Selector("invalidateShadow"));
+        SyncPanelAccessibility();
     }
 
     private void ApplyPanelResponse(PanelResponse response)
@@ -638,6 +642,7 @@ internal sealed partial class MacTrayApplication
             Require(AppKit.GetBool(_panelWindow, AppKit.Selector("canBecomeKeyWindow")) != 0, "The borderless panel must accept key status.");
             Require(scene.Targets.Count(target => target.Kind == PanelTargetKind.Row) == _controller.State.AppHosts.Count
                 + (_panel.IsRecentExpanded ? _controller.State.RecentAppHosts.Count : 0), "The panel must list every AppHost.");
+            VerifyPanelAccessibilityForSmoke("the list");
             var captures = new List<string>();
             if (captureDirectory is not null)
             {
@@ -669,6 +674,7 @@ internal sealed partial class MacTrayApplication
                     "Stop must ask inline in the panel, without a modal alert.");
                 Require(_panel.FocusedTarget?.Kind == PanelTargetKind.ConfirmCancel, "The inline confirmation must focus Cancel.");
                 RequireWindowMatchesScene();
+                VerifyPanelAccessibilityForSmoke("the Stop confirmation");
                 if (captureDirectory is not null)
                 {
                     captures.Add(CapturePanel(Path.Combine(captureDirectory, "panel-confirm-stop.png")));
@@ -684,12 +690,15 @@ internal sealed partial class MacTrayApplication
                 && (_settingsWindow == 0 || AppKit.GetBool(_settingsWindow, AppKit.Selector("isVisible")) == 0),
                 "The gear must open the Settings view inside the panel, not the Settings window.");
             RequireWindowMatchesScene();
+            VerifyPanelAccessibilityForSmoke("the Settings view");
             var launch = _panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.LaunchAtSignIn);
             if (launch.Enabled)
             {
                 var before = _startupSettings.Read().Enabled;
-                ClickPanelForSmoke(launch);
-                Require(_startupSettings.Read().Enabled != before, "The Settings view toggle must change launch at sign-in.");
+                // Press the switch the way VoiceOver does (AXPress), then check its new value.
+                OnPanelElementPressed(PanelAccessibleKey.For(launch.Key));
+                Require(_startupSettings.Read().Enabled != before, "Pressing the Settings switch must change launch at sign-in.");
+                VerifyPanelAccessibilityForSmoke("the Settings view after a press");
                 ClickPanelForSmoke(_panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.LaunchAtSignIn));
                 Require(_startupSettings.Read().Enabled == before, "The Settings view toggle must change launch at sign-in back.");
             }
@@ -754,6 +763,7 @@ internal sealed partial class MacTrayApplication
         {
             AppKit.Set(_panelWindow, "setDelegate:", 0);
             AppKit.Set(_panelWindow, "orderOut:", 0);
+            DisposePanelAccessibility();
             AppKit.Release(_panelView);
             AppKit.Release(_panelWindow);
             _panelWindow = 0;
@@ -787,6 +797,7 @@ internal sealed partial class MacTrayApplication
     {
         AddCallback(callbackClass, "statusItemClicked:", &OnStatusItemClicked);
         AddCallback(callbackClass, "windowDidResignKey:", &OnPanelResignKey);
+        AddCallback(callbackClass, "panelAccessibilityPress:", &OnPanelAccessibilityPress);
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]

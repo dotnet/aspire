@@ -12,8 +12,8 @@ namespace Aspire.Tray;
 /// interaction live in the shared <see cref="TrayPanel"/>; this part hosts it in a WS_POPUP
 /// window, forwards input, and draws the display list: shapes with the GDI+ flat API
 /// (anti-aliased) and text with GDI DrawTextW (ClearType on an opaque background).
-/// A right click or keyboard selection of the icon still opens the native menu, which
-/// remains the accessible and feature-complete path.
+/// UI Automation sees the panel through TrayApplication.PanelAutomation.cs. A right click or
+/// keyboard selection of the icon still opens the native menu.
 /// </summary>
 internal sealed unsafe partial class TrayApplication
 {
@@ -182,6 +182,7 @@ internal sealed unsafe partial class TrayApplication
             }
         }
         NativeMethods.InvalidateRect(_panelWindow, 0, 0);
+        SyncPanelAutomation();
     }
 
     private NativeMethods.Rect GetNotifyIconRect()
@@ -224,6 +225,7 @@ internal sealed unsafe partial class TrayApplication
             else
             {
                 NativeMethods.InvalidateRect(_panelWindow, 0, 0);
+                SyncPanelAutomation();
             }
         }
         if (response.Action is { } action)
@@ -810,6 +812,11 @@ internal sealed unsafe partial class TrayApplication
             case NativeMethods.WmDpiChanged when _panelVisible:
                 LayoutPanel(show: false);
                 return 0;
+            case NativeMethods.WmGetObject when unchecked((int)lParam) == NativeMethods.UiaRootObjectId:
+                return HandlePanelGetObject(window, wParam, lParam);
+            case WmPanelAutomationInvoke:
+                InvokeFromAutomation((int)wParam);
+                return 0;
         }
         return NativeMethods.DefWindowProc(window, message, wParam, lParam);
     }
@@ -818,6 +825,7 @@ internal sealed unsafe partial class TrayApplication
     {
         if (_panelWindow != 0)
         {
+            DisposePanelAutomation();
             Cleanup(NativeMethods.DestroyWindow(_panelWindow) != 0, "DestroyWindow(flyout)");
             _panelWindow = 0;
         }

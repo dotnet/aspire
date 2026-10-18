@@ -225,6 +225,15 @@ internal static partial class AppKit
     public static partial NativePoint ConvertPoint(nint receiver, nint selector, NativePoint point, nint view);
 
     [LibraryImport(ObjC, EntryPoint = "objc_msgSend")]
+    public static partial NativePoint ConvertPointFromScreen(nint receiver, nint selector, NativePoint point);
+
+    [LibraryImport(ObjC, EntryPoint = "objc_msgSend")]
+    public static partial void PerformSelectorAfterDelay(nint receiver, nint selector, nint action, nint argument, double delay);
+
+    [LibraryImport("/System/Library/Frameworks/AppKit.framework/AppKit", EntryPoint = "NSAccessibilityPostNotification")]
+    public static partial void PostAccessibilityNotification(nint element, nint notification);
+
+    [LibraryImport(ObjC, EntryPoint = "objc_msgSend")]
     public static partial void SetFrame(nint receiver, nint selector, NativeRect frame, byte display);
 
     [LibraryImport(ObjC, EntryPoint = "objc_msgSend")]
