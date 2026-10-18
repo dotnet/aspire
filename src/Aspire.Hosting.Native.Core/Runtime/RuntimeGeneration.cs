@@ -36,7 +36,11 @@ internal sealed partial class RuntimeGeneration(ApplicationSnapshot declarations
         {
             lock (_gate)
             {
-                return Task.WhenAll(_workloads.Values.Concat(_retiredWorkloads).Select(workload => workload.Completion)
+                // Ordered retirement reaches producers only after their consumers stop.
+                // Observing a producer's original completion here could replay its startup
+                // failure even though StopAsync subsequently confirms successful cleanup.
+                return Task.WhenAll(_workloads.Where(pair => _declaredRetirement is null || !_declaredOwners.Contains(pair.Key))
+                    .Select(pair => pair.Value).Concat(_retiredWorkloads).Select(workload => workload.Completion)
                     .Concat(_declaredRetirement is null ? [] : [_declaredRetirement]));
             }
         }

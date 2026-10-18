@@ -290,13 +290,16 @@ public class DeclarativeApplicationTests
     public async Task FailedProtocolHealthUsesInjectedClockAndCleansContainerWithoutStartingDependents()
     {
         var probeWaiting = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseRetirement = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var delayedCleanupResource = Guid.Empty;
         var clock = new AdjustableFakeTimeProvider
         {
             TimerCreated = due => { if (due == TimeSpan.FromSeconds(1)) { probeWaiting.TrySetResult(); } }
         };
         var executor = new WorkloadTestExecutor
         {
-            StatusForPlan = plan => new(plan is ContainerWorkload ? WorkloadPhase.Running : WorkloadPhase.Exited, 1)
+            StatusForPlan = plan => new(plan is ContainerWorkload ? WorkloadPhase.Running : WorkloadPhase.Exited, 1),
+            BeforeCleanup = identity => identity.ResourceId == delayedCleanupResource ? releaseRetirement.Task : Task.CompletedTask
         };
         executor.ReleaseCleanup();
         var options = new NativeRuntimeOptions
@@ -318,13 +321,26 @@ public class DeclarativeApplicationTests
         }, new() { Arguments = [], Environment = [] });
         var consumer = composition.AddExecutable("consumer", Environment.ProcessPath!, AppContext.BaseDirectory);
         consumer.WaitFor(service);
+        // Hold an independent leaf so retirement is observed before it reaches
+        // the failed producer, rather than depending on continuation scheduling.
+        delayedCleanupResource = composition.AddContainer("independent", "generic/service:1").Handle.ResourceId;
         var application = composition.StartApplication();
-        var readiness = application.WaitApplicationReady(15000);
-        await probeWaiting.Task.WaitAsync(TimeSpan.FromSeconds(15), TimeProvider.System);
-        clock.Advance(TimeSpan.FromSeconds(10));
-        var failure = await Record.ExceptionAsync(() => readiness);
-        Assert.True(failure is OperationCanceledException or InvalidOperationException);
-        await session.RetireGeneration(composition);
+        Task retirement;
+        try
+        {
+            var readiness = application.WaitApplicationReady(15000);
+            await probeWaiting.Task.WaitAsync(TimeSpan.FromSeconds(15), TimeProvider.System);
+            clock.Advance(TimeSpan.FromSeconds(10));
+            var failure = await Record.ExceptionAsync(() => readiness);
+            Assert.True(failure is OperationCanceledException or InvalidOperationException);
+            retirement = session.RetireGeneration(composition);
+            Assert.False(retirement.IsCompleted);
+        }
+        finally
+        {
+            releaseRetirement.TrySetResult();
+        }
+        await retirement.WaitAsync(TimeSpan.FromSeconds(15), TimeProvider.System);
         Assert.All(executor.Plans.OfType<ExecutableWorkload>(), plan => Assert.Equal(["reject-authentication"], plan.Arguments));
         Assert.Equal(executor.Started.Count, executor.Removed.Count);
     }
