@@ -127,8 +127,9 @@ document.addEventListener("cancel", function (event) {
 // Register a global click event listener to handle copy/open button clicks.
 // Required because an "onclick" attribute is denied by CSP.
 document.addEventListener("click", function (e) {
-    // The copy 'button' could either be a button or a menu item.
-    const targetElement = isElementTagName(e.target, "fluent-button") ? e.target : getFluentMenuItemForTarget(e.target);
+    // Fluent buttons project icons and labels into slots, so the click target can be a descendant.
+    // The copy 'button' could also be a menu item.
+    const targetElement = e.target.closest("fluent-button") ?? getFluentMenuItemForTarget(e.target);
     if (targetElement) {
         if (targetElement.getAttribute("data-copybutton")) {
             buttonCopyTextToClipboard(targetElement);

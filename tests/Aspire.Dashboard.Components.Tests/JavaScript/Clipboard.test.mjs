@@ -10,6 +10,8 @@ const source = await readFile(new URL("../../../src/Aspire.Dashboard/wwwroot/js/
 
 function createClipboard() {
     const requests = [];
+    const clickedButtons = [];
+    let clickHandler;
     const timers = new Map();
     let nextTimer = 1;
     const copyIcon = { style: { display: "" } };
@@ -20,16 +22,21 @@ function createClipboard() {
         dataset: {},
         nextElementSibling: status,
         querySelector: selector => selector === ".copy-icon" ? copyIcon : checkmarkIcon,
-        getAttribute: name => name === "data-copyfailed" ? "Copy failed" : null,
+        getAttribute: name => name === "data-copyfailed" ? "Copy failed" : name === "data-copybutton" ? "true" : null,
     };
     const document = {
         getElementById: () => button,
         querySelector: () => ({ children: [tooltip] }),
-        addEventListener() {},
+        addEventListener(name, callback) {
+            if (name === "click") {
+                clickHandler = callback;
+            }
+        },
     };
     const window = { document };
     runInNewContext(source, {
         window, document,
+        buttonCopyTextToClipboard: target => clickedButtons.push(target),
         navigator: {
             clipboard: {
                 writeText(text) {
@@ -48,7 +55,8 @@ function createClipboard() {
         clearTimeout: id => timers.delete(Number(id)),
     });
     return {
-        requests, timers, status, tooltip, copyIcon, checkmarkIcon, button,
+        requests, timers, status, tooltip, copyIcon, checkmarkIcon, button, clickedButtons,
+        click: target => clickHandler({ target, stopPropagation() {} }),
         copy: text => window.copyTextToClipboard("copy-button", text, "Copy", "Copied"),
         reset() {
             assert.equal(timers.size, 1);
@@ -60,6 +68,38 @@ function createClipboard() {
 }
 
 const flush = () => new Promise(resolve => setImmediate(resolve));
+
+test("copy clicks on Fluent button icons and labels resolve to the button", () => {
+    const clipboard = createClipboard();
+    for (const tagName of ["FLUENT-BUTTON", "svg", "path", "SPAN"]) {
+        clipboard.click({
+            tagName,
+            closest(selector) {
+                assert.equal(selector, "fluent-button");
+                return clipboard.button;
+            },
+        });
+    }
+    assert.deepEqual(clipboard.clickedButtons, Array(4).fill(clipboard.button));
+});
+
+test("copy clicks still resolve menu item icons", () => {
+    const clipboard = createClipboard();
+    const menuItem = { tagName: "FLUENT-MENU-ITEM", getAttribute: clipboard.button.getAttribute };
+    const icon = {
+        tagName: "svg",
+        closest: () => null,
+        parentElement: { parentElement: menuItem },
+    };
+    clipboard.click(icon);
+    assert.deepEqual(clipboard.clickedButtons, [menuItem]);
+});
+
+test("unrelated clicks do not invoke copy", () => {
+    const clipboard = createClipboard();
+    clipboard.click({ tagName: "DIV", closest: () => null });
+    assert.deepEqual(clipboard.clickedButtons, []);
+});
 
 test("clipboard success receives a full feedback interval after the write finishes", async () => {
     const clipboard = createClipboard();

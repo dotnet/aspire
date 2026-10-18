@@ -327,7 +327,10 @@
                                         </AspireTemplateColumn>
                                     </ChildContent>
                                     <EmptyContent>
-                                        <FluentIcon Icon="Icons.Regular.Size24.GanttChart" Color="Color.Primary" />&nbsp;@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailNoSpans)]
+                                        <div class="aspire-empty-message">
+                                            <FluentIcon Icon="Icons.Regular.Size24.GanttChart" Color="Color.Primary" />
+                                            @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailNoSpans)]
+                                        </div>
                                     </EmptyContent>
                                     </AspireFluentDataGrid>
                                 </GridColumnManager>
@@ -350,8 +353,9 @@
     }
     else
     {
-        <div class="aspire-empty-content">
-            <FluentIcon Icon="Icons.Regular.Size24.GanttChart" Color="Color.Primary" /> &nbsp; @string.Format(Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceNotFound)], TraceId)
+        <div class="aspire-empty-content aspire-empty-message">
+            <FluentIcon Icon="Icons.Regular.Size24.GanttChart" Color="Color.Primary" />
+            @string.Format(Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceNotFound)], TraceId)
         </div>
     }
 </div>

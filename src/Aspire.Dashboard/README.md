@@ -39,6 +39,16 @@ The dashboard can display sensitive information, including resource configuratio
 
 For deployment scenarios and hardening guidance, see [Aspire dashboard security considerations](https://aspire.dev/dashboard/security-considerations/).
 
+## Sending or importing telemetry
+
+Before the dashboard receives telemetry, the empty Structured Logs, Traces, and Metrics pages display a first-time setup message below the existing message. An inline link opens Markdown setup guidance with an OTLP/gRPC and OTLP/HTTP endpoint table, authentication instructions that do not reveal API keys, and a link to OpenTelemetry SDK configuration.
+
+The dialog includes a **Manage logs and telemetry** button with a cog icon, which opens the data management dialog when importing is enabled. See [Manage Data](https://aka.ms/aspire/dashboard-manage-data) for supported workflows.
+
+Endpoint URLs use the actual listening ports and replace wildcard hosts with `localhost`. Applications running in containers or on another machine may need a reachable hostname and published port instead. When `DOTNET_RUNNING_IN_CONTAINER` is `true`, the dialog explains how to access the dashboard using port forwarding.
+
+The setup message is hidden on historical runs and after any structured log, span, or metric data point is accepted for the running dashboard process, including through import. Clearing telemetry does not restore the message. A resumed dashboard initializes this state from its stored telemetry; the state is not retained across restarts of an already-cleared database.
+
 ## Configuration
 
 The dashboard is configured when it starts up. Configuration includes frontend and OpenTelemetry Protocol (OTLP) addresses, the resource service endpoint, authentication, telemetry limits, and more.

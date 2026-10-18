@@ -1362,6 +1362,130 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Configure your app to send telemetry to the dashboard..
+        /// </summary>
+        public static string TelemetryHelpMessage {
+            get {
+                return ResourceManager.GetString("TelemetryHelpMessage", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to For setup instructions, click.
+        /// </summary>
+        public static string TelemetryHelpMoreInformation {
+            get {
+                return ResourceManager.GetString("TelemetryHelpMoreInformation", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to here.
+        /// </summary>
+        public static string TelemetryHelpButtonText {
+            get {
+                return ResourceManager.GetString("TelemetryHelpButtonText", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Add telemetry.
+        /// </summary>
+        public static string TelemetryHelpDialogTitle {
+            get {
+                return ResourceManager.GetString("TelemetryHelpDialogTitle", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Visualize logs, traces, and metrics in the dashboard. To see telemetry, first send it to the dashboard using OTLP or manually import telemetry JSON files.
+        ///
+        ///## 📡 Send telemetry from your app
+        ///
+        ///Configure your app to export logs, traces, and metrics using [OTLP]({0})..
+        /// </summary>
+        public static string TelemetryHelpIntroduction {
+            get {
+                return ResourceManager.GetString("TelemetryHelpIntroduction", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to | Protocol | Dashboard endpoint |
+        ///| --- | --- |.
+        /// </summary>
+        public static string TelemetryHelpEndpointsTableHeader {
+            get {
+                return ResourceManager.GetString("TelemetryHelpEndpointsTableHeader", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The dashboard is running in a container. Access it from the host using port forwarding..
+        /// </summary>
+        public static string TelemetryHelpContainerDescription {
+            get {
+                return ResourceManager.GetString("TelemetryHelpContainerDescription", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Set OTEL_EXPORTER_OTLP_HEADERS to x-otlp-api-key=&lt;your-api-key&gt;, replacing &lt;your-api-key&gt; with the dashboard's configured OTLP API key.
+        /// </summary>
+        public static string TelemetryHelpApiKeyDescription {
+            get {
+                return ResourceManager.GetString("TelemetryHelpApiKeyDescription", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Configure your OTLP exporter to present a client certificate trusted by the dashboard. Use your SDK's OTLP exporter settings to specify the certificate and private key.
+        /// </summary>
+        public static string TelemetryHelpCertificateDescription {
+            get {
+                return ResourceManager.GetString("TelemetryHelpCertificateDescription", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No OTLP endpoints are configured. To receive live telemetry, configure an OTLP endpoint when starting the dashboard.
+        /// </summary>
+        public static string TelemetryHelpNoEndpointsDescription {
+            get {
+                return ResourceManager.GetString("TelemetryHelpNoEndpointsDescription", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to [Configure an OpenTelemetry SDK with OTLP]({0}).
+        /// </summary>
+        public static string TelemetryHelpSdkLink {
+            get {
+                return ResourceManager.GetString("TelemetryHelpSdkLink", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ## 📥 Import telemetry from a file
+        ///
+        ///Import previously exported telemetry or OTLP JSON files by selecting **{0}** in the **{1}** dialog..
+        /// </summary>
+        public static string TelemetryHelpImportDescription {
+            get {
+                return ResourceManager.GetString("TelemetryHelpImportDescription", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to [Learn about managing dashboard data]({0}).
+        /// </summary>
+        public static string TelemetryHelpManageDataLink {
+            get {
+                return ResourceManager.GetString("TelemetryHelpManageDataLink", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Select format.
         /// </summary>
         public static string TextVisualizerSelectFormatType {
