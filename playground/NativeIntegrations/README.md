@@ -177,6 +177,9 @@ data, repeated deployment and owned-resource cleanup. It also compiles the
 unchanged existing Compose TypeScript fixture, inspects and executes custom
 targets with concurrent branches, checks failure propagation, isolates multiple
 environments and proves `before-start` actions precede local execution.
+The same sample also runs through foreground `aspire run`, targeted stop and
+detached `aspire start`, proving HTTP readiness, clean guest exit and authenticated
+Redis persistence across restart with isolated ports and an owned data volume.
 Docker Compose v2 is
 required. See the integration README for commands, artifacts and unsupported
 resource/lifecycle shapes. This does not make the run-only Redis provider below

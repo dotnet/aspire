@@ -13,6 +13,7 @@ namespace Aspire.Hosting.Native.Api;
 internal sealed partial class NativeApplicationServer
 {
     private readonly RuntimeInvitations _invitations;
+    internal NativeApplicationLifetime ApplicationLifetime { get; } = new();
 
     public NativeApplicationServer() : this(UnavailableWorkloadExecutor.Instance)
     {
@@ -35,6 +36,10 @@ internal sealed partial class NativeApplicationServer
     /// <summary>Opens a directly RPC-backed run-mode authoring builder.</summary>
     [AspireExport]
     public RpcBuilder CreateRpcBuilder() => new(OpenApplication());
+
+    /// <summary>Owns a connection-scoped run lifetime that drains before host shutdown.</summary>
+    [AspireExport]
+    public ApplicationRunLifetime CreateApplicationLifetime() => ApplicationLifetime.CreateRun();
 
     /// <summary>Creates a server-owned workspace whose runtime survives AppHost disconnection.</summary>
     [AspireExport]

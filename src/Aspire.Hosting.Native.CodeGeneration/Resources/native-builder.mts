@@ -616,7 +616,8 @@ export class NativeApplication {
                     throw new Error('Selected executable failed.');
                 }
             } else if (!signal?.aborted && !controller.signal.aborted) {
-                await new Promise<void>(resolve => controller.signal.addEventListener('abort', () => resolve(), { once: true }));
+                const lifetime = await this.native!.server.createApplicationLifetime();
+                await this.wait(lifetime.waitForStop(), operation);
             }
         } catch (error) {
             if (!operation.aborted) throw error;

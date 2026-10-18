@@ -17,6 +17,28 @@ namespace Aspire.Hosting.Native.Server;
 internal sealed class NativeServerHostedService(NativeServerConfiguration settings, string[] args,
     ILoggerFactory loggerFactory, IHostApplicationLifetime applicationLifetime) : BackgroundService
 {
+    private NativeApplicationLifetime? _applicationStop;
+
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (_applicationStop is { } lifetime)
+            {
+                // CLI shutdown can arrive as an OS signal rather than an RPC. Drain the
+                // guest's connection-owned lifetime before cancelling its transport.
+                await lifetime.RequestStopAsync(settings.Options.CleanupTimeout, settings.Options.TimeProvider,
+                    () => loggerFactory.CreateLogger<NativeServerHostedService>().LogWarning(
+                        "The application guest did not finish shutdown before the cleanup deadline; stopping the native server."),
+                    cancellationToken).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            await base.StopAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         // Unix helpers cannot rely on an OS kill-on-parent-exit job. Keep the
@@ -79,6 +101,8 @@ internal sealed class NativeServerHostedService(NativeServerConfiguration settin
             server = new NativeApplicationServer(new DcpWorkloadExecutor(dcp, dcpReady.Task, options,
                 loggerFactory.CreateLogger<DcpWorkloadExecutor>()), options.Runtime);
         }
+        using var applicationStopLifetime = server.ApplicationLifetime;
+        _applicationStop = applicationStopLifetime;
         using var listener = new NativeRpcListener(endPoint, token, loggerFactory.CreateLogger<NativeRpcListener>(), server,
             NativeLanguageCatalog.LoadEmbedded(settings.GeneratedSdkDirectory), options);
         NativeDashboardHost? dashboard = null;
@@ -97,7 +121,7 @@ internal sealed class NativeServerHostedService(NativeServerConfiguration settin
         INativeBackchannelRpc backchannelRpc = new NativeBackchannelRpc(options,
             loggerFactory.CreateLogger<NativeBackchannelRpc>());
         using var backchannel = settings.BackchannelPath is { } backchannelPath
-            ? new NativeCliProtocol(backchannelPath, server, shutdown.Cancel,
+            ? new NativeCliProtocol(backchannelPath, server, applicationLifetime.StopApplication,
                 dashboardReady.Task.WaitAsync, logs, options, backchannelRpc)
             : null;
         var appHostPath = settings.AppHostPath;
@@ -106,7 +130,7 @@ internal sealed class NativeServerHostedService(NativeServerConfiguration settin
             exitCode =>
             {
                 Environment.ExitCode = exitCode ?? 0;
-                shutdown.Cancel();
+                applicationLifetime.StopApplication();
             },
             backchannel is not null ? backchannel.WaitForAppHostReadyAsync : WaitForNativeAppHostReadyAsync,
             dashboardReady.Task.WaitAsync, () => dashboardState.ApiToken, logs, settings.CliProcess, backchannelRpc,

@@ -2,10 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 import assert from 'node:assert/strict';
-import { execFile } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { cp, mkdir, mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
+import { createServer } from 'node:net';
 import { setTimeout as delay } from 'node:timers/promises';
 import { promisify } from 'node:util';
 
@@ -90,6 +91,90 @@ async function deployedUrl(): Promise<string> {
     assert.equal(new URL(url).hostname, '127.0.0.1');
     return url;
 }
+async function localLifecycle(env: NodeJS.ProcessEnv): Promise<void> {
+    const volume = `aspire-native-lifecycle-${randomBytes(8).toString('hex')}`;
+    const reservation = createServer();
+    await new Promise<void>((accept, reject) => {
+        reservation.once('error', reject);
+        reservation.listen(0, '127.0.0.1', accept);
+    });
+    const address = reservation.address();
+    assert.ok(address && typeof address !== 'string');
+    const port = address.port;
+    await new Promise<void>((accept, reject) => reservation.close(error => error ? reject(error) : accept()));
+    // The sample uses a fixed container target port. Local executable runs need
+    // an isolated host port, while their named Redis volume must survive restart.
+    const apphost = join(workspace, 'apphost.mts');
+    const webSource = join(workspace, 'web/server.mts');
+    await writeFile(apphost, (await readFile(apphost, 'utf8'))
+        .replace('builder.getDefaultDataVolumeName(cache.resource)', JSON.stringify(volume))
+        .replace('targetPort: 8080', `targetPort: ${port}`));
+    await writeFile(webSource, (await readFile(webSource, 'utf8')).replace('.listen(8080', `.listen(${port}`));
+    const localEnvironment = { ...env, ASPIRE_HOME: join(workspace, 'local-home') };
+    const arguments_ = ['--apphost', 'apphost.mts', '--non-interactive', '--nologo'];
+    const child = spawn(cliPath!, ['run', ...arguments_], { cwd: workspace, env: localEnvironment });
+    child.stdin.end();
+    let foreground = '';
+    let launchError: Error | undefined;
+    child.stdout.on('data', data => { foreground += data; });
+    child.stderr.on('data', data => { foreground += data; });
+    child.once('error', error => { launchError = error; });
+    const exited = new Promise<number | null>(accept => child.once('close', code => accept(code)));
+    let active = true;
+    async function ready(): Promise<number> {
+        const deadline = Date.now() + 120_000;
+        let lastError: unknown;
+        while (Date.now() < deadline) {
+            if (launchError) throw launchError;
+            if (child.exitCode !== null && !detached) throw new Error(`Foreground CLI exited ${child.exitCode}: ${safe(foreground)}`);
+            try {
+                const result = await run(cliPath!, ['describe', ...arguments_, '--format', 'Json'], localEnvironment);
+                const snapshot = JSON.parse(result.stdout) as {
+                    resources: { name: string; state: string; urls: { url: string }[] }[];
+                };
+                assert.equal(snapshot.resources.find(resource => resource.name === 'cache')?.state, 'Running');
+                const web = snapshot.resources.find(resource => resource.name === 'web');
+                assert.equal(web?.state, 'Running');
+                const url = web?.urls.find(endpoint => endpoint.url.startsWith('http://'))?.url;
+                assert.ok(url);
+                return await visits(url);
+            } catch (error) {
+                lastError = error;
+                await delay(250);
+            }
+        }
+        throw new Error('Local sample did not become responsive.', { cause: lastError });
+    }
+    async function stop(): Promise<void> {
+        await run(cliPath!, ['stop', ...arguments_], localEnvironment);
+        active = false;
+    }
+    let detached = false;
+    try {
+        const first = await ready();
+        await stop();
+        const code = await Promise.race([exited, delay(30_000, undefined, { ref: false }).then(() => {
+            throw new Error('Foreground CLI did not exit after stop.');
+        })]);
+        assert.equal(code, 0, safe(foreground));
+        await run(cliPath!, ['start', ...arguments_, '--format', 'Json'], localEnvironment);
+        active = true;
+        detached = true;
+        const retained = await ready();
+        assert.ok(retained > first, 'Detached start must reuse authenticated Redis data.');
+        await stop();
+        await writeFile(join(workspace, 'local-proof.json'), JSON.stringify({ run: true, start: true, stop: true, first, retained }));
+    } finally {
+        try {
+            if (active) await stop();
+        } finally {
+            if (!launchError && child.exitCode === null) child.kill('SIGTERM');
+            await writeFile(join(workspace, 'foreground-run.log'), safe(foreground));
+            const listed = await run('docker', ['volume', 'ls', '--filter', `name=${volume}`, '--format', '{{.Name}}']);
+            if (listed.stdout.trim().split(/\r?\n/).includes(volume)) await run('docker', ['volume', 'rm', volume]);
+        }
+    }
+}
 try {
     const { stdout: listed } = await cli('do', ['verify-publish', '--list-steps', '--format', 'json']);
     const steps = JSON.parse(listed.trim()) as { name: string; dependsOn: string[]; tags: string[] }[];
@@ -153,6 +238,7 @@ try {
         assert.equal(content.includes(password), false, file);
         assert.equal(content.includes(encodeURIComponent(password)), false, file);
     }
+    await localLifecycle(deployEnvironment);
     await writeFile(join(workspace, 'apphost.mts'), `
         import { createBuilder } from './.aspire/modules/aspire.mjs';
         const builder = await createBuilder();
@@ -225,7 +311,7 @@ try {
     assert.equal(await readFile(join(workspace, 'run-pipeline-proof'), 'utf8'), 'passed');
     await writeFile(join(workspace, 'proof.json'), JSON.stringify({
         project, first, retained, workspace, customTargets: true, parallelSteps: true, failureStopsDependents: true,
-        multipleEnvironments: true, unchangedTypeScriptFixture: true, beforeStart: true
+        multipleEnvironments: true, unchangedTypeScriptFixture: true, beforeStart: true, runStartStop: true
     }, null, 2));
 } finally {
     if (project && ownsProject) {

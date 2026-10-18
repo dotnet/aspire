@@ -2910,6 +2910,102 @@
       "RunSyncOnBackgroundThread": false
     },
     {
+      "CapabilityId": "Aspire.Hosting.Native.Api/createApplicationLifetime",
+      "MethodName": "createApplicationLifetime",
+      "OwningTypeName": "NativeApplicationServer",
+      "QualifiedMethodName": "NativeApplicationServer.createApplicationLifetime",
+      "Description": "Owns a connection-scoped run lifetime that drains before host shutdown.",
+      "Documentation": {
+        "Summary": "Owns a connection-scoped run lifetime that drains before host shutdown.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.NativeApplicationServer",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ApplicationRunLifetime",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.NativeApplicationServer",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.NativeApplicationServer",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.NativeApplicationServer",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.NativeApplicationServer.CreateApplicationLifetime",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
       "CapabilityId": "Aspire.Hosting.Native.Api/createApplicationWorkspace",
       "MethodName": "createApplicationWorkspace",
       "OwningTypeName": "NativeApplicationServer",
@@ -10259,6 +10355,102 @@
       "RunSyncOnBackgroundThread": false
     },
     {
+      "CapabilityId": "Aspire.Hosting.Native.Api/waitForStop",
+      "MethodName": "waitForStop",
+      "OwningTypeName": "ApplicationRunLifetime",
+      "QualifiedMethodName": "ApplicationRunLifetime.waitForStop",
+      "Description": "Waits for the host to request ordered application shutdown.",
+      "Documentation": {
+        "Summary": "Waits for the host to request ordered application shutdown.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      },
+      "IsExperimental": false,
+      "IsObsolete": false,
+      "ObsoleteMessage": null,
+      "Parameters": [
+        {
+          "Name": "context",
+          "Type": {
+            "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ApplicationRunLifetime",
+            "Category": 2,
+            "IsInterface": false,
+            "ElementType": null,
+            "KeyType": null,
+            "ValueType": null,
+            "IsReadOnly": false,
+            "IsResourceBuilder": false,
+            "IsDistributedApplicationBuilder": false,
+            "IsDistributedApplication": false,
+            "UnionTypes": null,
+            "ImplementedInterfaces": [],
+            "BaseType": null
+          },
+          "IsOptional": false,
+          "IsNullable": false,
+          "IsCallback": false,
+          "CallbackParameters": null,
+          "CallbackReturnType": null,
+          "DefaultValue": null,
+          "Documentation": null
+        }
+      ],
+      "ReturnType": {
+        "TypeId": "void",
+        "Category": 0,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ApplicationRunLifetime",
+      "TargetType": {
+        "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ApplicationRunLifetime",
+        "Category": 2,
+        "IsInterface": false,
+        "ElementType": null,
+        "KeyType": null,
+        "ValueType": null,
+        "IsReadOnly": false,
+        "IsResourceBuilder": false,
+        "IsDistributedApplicationBuilder": false,
+        "IsDistributedApplication": false,
+        "UnionTypes": null,
+        "ImplementedInterfaces": [],
+        "BaseType": null
+      },
+      "TargetParameterName": "context",
+      "ExpandedTargetTypes": [
+        {
+          "TypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ApplicationRunLifetime",
+          "Category": 2,
+          "IsInterface": false,
+          "ElementType": null,
+          "KeyType": null,
+          "ValueType": null,
+          "IsReadOnly": false,
+          "IsResourceBuilder": false,
+          "IsDistributedApplicationBuilder": false,
+          "IsDistributedApplication": false,
+          "UnionTypes": null,
+          "ImplementedInterfaces": [],
+          "BaseType": null
+        }
+      ],
+      "ReturnsBuilder": false,
+      "CapabilityKind": 3,
+      "SourceLocation": "Aspire.Hosting.Native.Api.ApplicationRunLifetime.WaitForStop",
+      "RunSyncOnBackgroundThread": false
+    },
+    {
       "CapabilityId": "Aspire.Hosting.Native.Api/waitResourceCommands",
       "MethodName": "waitResourceCommands",
       "OwningTypeName": "ResourceExecution",
@@ -15467,6 +15659,21 @@
       "IsResourceBuilder": false,
       "Documentation": {
         "Summary": "Projects execution observations and routes user actions without granting integration writer authority.",
+        "Remarks": null,
+        "Returns": null,
+        "Parameters": []
+      }
+    },
+    {
+      "AtsTypeId": "Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Api.ApplicationRunLifetime",
+      "IsInterface": false,
+      "ImplementedInterfaces": [],
+      "BaseTypeHierarchy": [],
+      "HasExposeProperties": false,
+      "HasExposeMethods": false,
+      "IsResourceBuilder": false,
+      "Documentation": {
+        "Summary": "Keeps application transport alive until the owning guest finishes cleanup and disconnects.",
         "Remarks": null,
         "Returns": null,
         "Parameters": []

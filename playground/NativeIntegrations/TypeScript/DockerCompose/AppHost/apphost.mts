@@ -41,52 +41,56 @@ await web.publishAsDockerComposeService(async (_target, service) => {
         interval: '1s', timeout: '3s', retries: 30 });
 });
 
-const pipeline = await builder.pipeline();
-const invocation = randomUUID();
-for (const branch of ['left', 'right']) {
-    await pipeline.addStep(`policy-${branch}`, async context => {
+// These policies consume Compose publishing steps and artifacts, which do not
+// exist during local execution.
+if (builder.executionContext().isPublishMode()) {
+    const pipeline = await builder.pipeline();
+    const invocation = randomUUID();
+    for (const branch of ['left', 'right']) {
+        await pipeline.addStep(`policy-${branch}`, async context => {
+            const directory = join(context.publishingContext.outputPath, 'pipeline');
+            await mkdir(directory, { recursive: true });
+            await writeFile(join(directory, `${branch}.started`), invocation);
+            const other = branch === 'left' ? 'right' : 'left';
+            const deadline = Date.now() + 10_000;
+            for (;;) {
+                try {
+                    if (await readFile(join(directory, `${other}.started`), 'utf8') === invocation) break;
+                    if (Date.now() >= deadline) throw new Error('Ready pipeline branches must execute concurrently.');
+                    await delay(25, undefined, { signal: context.signal });
+                }
+                catch (error) {
+                    if (!(error instanceof Error && 'code' in error && error.code === 'ENOENT')) throw error;
+                    if (Date.now() >= deadline) throw new Error('Ready pipeline branches must execute concurrently.');
+                    await delay(25, undefined, { signal: context.signal });
+                }
+            }
+            const reporting = await context.reportingStep();
+            const task = await reporting.createTask(`Validate ${branch} deployment policy`);
+            await task.updateTask('Both independent branches started.');
+            await task.completeTask({ completionMessage: 'Policy validated.' });
+            await (await context.summary()).add(`Policy ${branch}`, 'Validated');
+            await writeFile(join(directory, `${branch}.complete`), invocation);
+        }, { dependsOn: ['validate-compose'], requiredBy: ['publish-compose'], tags: [WellKnownPipelineTags.BuildCompute] });
+    }
+    await cache.withPipelineStepFactory('cache-policy', async context => {
+        const model = await context.model();
+        assert.ok(await model.findResourceByName('cache'));
+        await (await context.summary()).add('Cache policy', 'Native model inspected');
+    }, { dependsOn: [WellKnownPipelineSteps.Build], requiredBy: [WellKnownPipelineSteps.Publish], tags: ['sample-policy'] });
+    await cache.withPipelineConfiguration(async context => {
+        const steps = await context.getSteps('sample-policy');
+        assert.equal(steps.length, 1);
+        for (const step of steps) await step.addTag('validated');
+    });
+    await pipeline.addStep('verify-publish', async context => {
         const directory = join(context.publishingContext.outputPath, 'pipeline');
-        await mkdir(directory, { recursive: true });
-        await writeFile(join(directory, `${branch}.started`), invocation);
-        const other = branch === 'left' ? 'right' : 'left';
-        const deadline = Date.now() + 10_000;
-        for (;;) {
-            try {
-                if (await readFile(join(directory, `${other}.started`), 'utf8') === invocation) break;
-                if (Date.now() >= deadline) throw new Error('Ready pipeline branches must execute concurrently.');
-                await delay(25, undefined, { signal: context.signal });
-            }
-            catch (error) {
-                if (!(error instanceof Error && 'code' in error && error.code === 'ENOENT')) throw error;
-                if (Date.now() >= deadline) throw new Error('Ready pipeline branches must execute concurrently.');
-                await delay(25, undefined, { signal: context.signal });
-            }
-        }
-        const reporting = await context.reportingStep();
-        const task = await reporting.createTask(`Validate ${branch} deployment policy`);
-        await task.updateTask('Both independent branches started.');
-        await task.completeTask({ completionMessage: 'Policy validated.' });
-        await (await context.summary()).add(`Policy ${branch}`, 'Validated');
-        await writeFile(join(directory, `${branch}.complete`), invocation);
-    }, { dependsOn: ['validate-compose'], requiredBy: ['publish-compose'], tags: [WellKnownPipelineTags.BuildCompute] });
+        for (const branch of ['left', 'right']) assert.equal(await readFile(join(directory, `${branch}.complete`), 'utf8'), invocation);
+        const document = JSON.parse(await readFile(join(context.publishingContext.outputPath, 'compose.yaml'), 'utf8')) as {
+            services: Record<string, { image: string }>;
+        };
+        assert.equal(document.services.cache!.image, 'redis:7.4-alpine');
+        await writeFile(join(directory, 'custom-target.complete'), '');
+    }, { dependsOn: [WellKnownPipelineSteps.Publish], description: 'Verify generated artifacts after publishing.' });
 }
-await cache.withPipelineStepFactory('cache-policy', async context => {
-    const model = await context.model();
-    assert.ok(await model.findResourceByName('cache'));
-    await (await context.summary()).add('Cache policy', 'Native model inspected');
-}, { dependsOn: [WellKnownPipelineSteps.Build], requiredBy: [WellKnownPipelineSteps.Publish], tags: ['sample-policy'] });
-await cache.withPipelineConfiguration(async context => {
-    const steps = await context.getSteps('sample-policy');
-    assert.equal(steps.length, 1);
-    for (const step of steps) await step.addTag('validated');
-});
-await pipeline.addStep('verify-publish', async context => {
-    const directory = join(context.publishingContext.outputPath, 'pipeline');
-    for (const branch of ['left', 'right']) assert.equal(await readFile(join(directory, `${branch}.complete`), 'utf8'), invocation);
-    const document = JSON.parse(await readFile(join(context.publishingContext.outputPath, 'compose.yaml'), 'utf8')) as {
-        services: Record<string, { image: string }>;
-    };
-    assert.equal(document.services.cache!.image, 'redis:7.4-alpine');
-    await writeFile(join(directory, 'custom-target.complete'), '');
-}, { dependsOn: [WellKnownPipelineSteps.Publish], description: 'Verify generated artifacts after publishing.' });
 await builder.build().run();

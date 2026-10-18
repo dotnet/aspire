@@ -293,7 +293,7 @@ public sealed class NativeApplication : IAsyncDisposable
             _operations.Release();
         }
     }
-    /// <summary>Runs until cancellation; finite executable scenarios may select framework exit-on-completion configuration.</summary>
+    /// <summary>Runs until cancellation or a host stop request; finite executables may select exit-on-completion configuration.</summary>
     /// <param name="cancellationToken">Requests ordered application shutdown.</param>
     /// <returns>A task completing after native retirement and provider shutdown.</returns>
     public async Task RunAsync(CancellationToken cancellationToken = default)
@@ -314,7 +314,8 @@ public sealed class NativeApplication : IAsyncDisposable
             }
             else
             {
-                await Task.Delay(Timeout.InfiniteTimeSpan, _clock, lifetime.Token).ConfigureAwait(false);
+                var run = await _client!.Server.CreateApplicationLifetimeAsync(lifetime.Token).ConfigureAwait(false);
+                await run.WaitForStopAsync(lifetime.Token).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested)

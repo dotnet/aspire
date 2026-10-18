@@ -70,12 +70,22 @@ rejected when it is outside the `./web` context.
 Once the sample workspace is prepared, from its AppHost directory:
 
 ```bash
+# Set ASPIRE_PARAMETER_CACHE_PASSWORD explicitly for local run/start or deploy.
+aspire run
+# From another terminal, stop the same sample before restarting it detached.
+aspire stop --apphost ./apphost.mts
+aspire start --format Json
+aspire stop --apphost ./apphost.mts
 aspire publish --environment ComposeSmoke --output-path ./aspire-output
-# Set ASPIRE_PARAMETER_CACHE_PASSWORD explicitly in this process before deploy.
 aspire deploy --environment ComposeSmoke --output-path ./aspire-output
 node --input-type=module -e \
   'import { readFile } from "node:fs/promises"; const s = JSON.parse(await readFile("aspire-output/deployment-state.json", "utf8")); console.log(s.services.flatMap(x => x.endpoints.map(e => e.url)).join("\n"));'
 ```
+
+Local `run` and detached `start` use native DCP orchestration, not Docker Compose.
+The sample registers deployment-policy pipeline steps only in publish mode, where
+their Compose dependencies exist. A host stop request gives a running guest a
+bounded interval to retire workloads and providers before its transport closes.
 
 ## Programmatic smoke-test contract
 
