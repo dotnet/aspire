@@ -642,6 +642,7 @@ internal sealed class TrayController : IAsyncDisposable
         {
             RecentAppHosts = recent,
             CanClearRecent = _savedState.AppHosts.Any(host => host.IsRecent),
+            ConfirmStop = _savedState.ConfirmStop,
             Notice = _savedStateError ?? _pinProbeError ?? _snapshot.Discovery switch
             {
                 DiscoveryState.Disconnected => "Discovery is unavailable. Reconnecting\u2026",

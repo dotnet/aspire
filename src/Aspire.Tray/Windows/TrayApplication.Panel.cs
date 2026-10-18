@@ -242,30 +242,39 @@ internal sealed unsafe partial class TrayApplication
                 Dispatch(new(ActionKind.Dashboard, id));
                 break;
             case PanelActionKind.Stop:
-                if (controller.ConfirmStop)
-                {
-                    // The confirmation is modal and owned by the message window.
-                    HidePanel();
-                }
-                Dispatch(new(ActionKind.Stop, id));
+                // The panel confirmed inline (or confirmation is off): no dialog here.
+                Dispatch(new(ActionKind.StopConfirmed, id) { DontAskAgain = action.DontAskAgain });
                 break;
             case PanelActionKind.Start:
-                Dispatch(new(ActionKind.Start, id));
+                Dispatch(new(ActionKind.StartFromPanel, id));
                 break;
             case PanelActionKind.More:
                 ShowPanelRowMenu(action);
                 break;
             case PanelActionKind.ClearRecent:
-                HidePanel();
-                Dispatch(new(ActionKind.ClearRecent));
+                Dispatch(new(ActionKind.ClearRecentConfirmed));
+                break;
+            case PanelActionKind.RemoveRecent:
+                Dispatch(new(ActionKind.RemoveRecent, id));
                 break;
             case PanelActionKind.Documentation:
                 HidePanel();
                 Dispatch(new(ActionKind.Documentation));
                 break;
             case PanelActionKind.Settings:
-                HidePanel();
-                Dispatch(new(ActionKind.Settings));
+                ApplyPanelResponse(_panel!.ShowSettings(PanelSettings.Read(startupSettings, _interactiveSmoke, LogStartupFailure)));
+                break;
+            case PanelActionKind.SetLaunchAtSignIn:
+                ApplyPanelResponse(_panel!.UpdateSettings(
+                    PanelSettings.SetLaunchAtSignIn(startupSettings, action.Enabled, _interactiveSmoke, LogStartupFailure)));
+                if (_settingsWindow != 0)
+                {
+                    // Keep an open native Settings window in sync with the panel's toggle.
+                    ReadStartupSettings();
+                }
+                break;
+            case PanelActionKind.SetConfirmStop:
+                Dispatch(new(ActionKind.SetConfirmStop) { Enabled = action.Enabled });
                 break;
             case PanelActionKind.Quit:
                 HidePanel();
@@ -276,6 +285,9 @@ internal sealed unsafe partial class TrayApplication
                 break;
         }
     }
+
+    private static void LogStartupFailure(Exception exception)
+        => Program.Log($"Tray startup settings failed in the panel ({exception.GetType().Name}): {exception.Message}");
 
     private void ShowPanelRowMenu(PanelAction action)
     {

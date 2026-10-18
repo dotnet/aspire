@@ -26,6 +26,9 @@ internal sealed class TrayPanel
     public const double ListBottomPadding = 8;
     public const double ButtonSize = 28;
     public const double DefaultMaxHeight = 600;
+    public const double ConfirmHeight = 92;
+    public const double SettingsRowHeight = 62;
+    public const double AboutHeight = 84;
 
     // Trailing row buttons are laid out from the right edge of the row's content area.
     private const double RowInset = 8;
@@ -51,6 +54,9 @@ internal sealed class TrayPanel
     private PanelTargetKey? _focus;
     private bool _focusVisible;
     private bool? _recentExpanded;
+    private PanelConfirm? _confirm;
+    private PanelSettings? _settings;
+    private double _listScroll;
 
     public TrayPanel(TrayViewState state, TrayPanelPalette palette)
     {
@@ -113,6 +119,58 @@ internal sealed class TrayPanel
 
     public bool IsRecentExpanded => _recentExpanded ?? _state.AppHosts.Count == 0;
 
+    /// <summary>The inline confirmation being shown, if any.</summary>
+    public PanelConfirmKind? Confirmation => _confirm?.Kind;
+
+    /// <summary>Whether the confirmation strip's "Don't ask again" toggle is on.</summary>
+    public bool ConfirmationDontAskAgain => _confirm?.DontAskAgain ?? false;
+
+    /// <summary>Whether the panel shows its Settings view instead of the AppHost list.</summary>
+    public bool IsSettingsOpen => _settings is not null;
+
+    /// <summary>
+    /// Switches to the Settings view, or refreshes it when it is already open. Focus starts on
+    /// the back arrow so Enter or Escape returns to the list.
+    /// </summary>
+    public PanelResponse ShowSettings(PanelSettings settings)
+    {
+        if (_settings is null)
+        {
+            _confirm = null;
+            _listScroll = _scroll;
+            _scroll = 0;
+            _focus = new(PanelTargetKind.Back, PanelSection.None, null);
+        }
+        _settings = settings;
+        RefreshHover();
+        return PanelResponse.Changed;
+    }
+
+    /// <summary>Refreshes the Settings view after a toggle was applied; ignored when it is closed.</summary>
+    public PanelResponse UpdateSettings(PanelSettings settings)
+    {
+        if (_settings is null)
+        {
+            return PanelResponse.None;
+        }
+        _settings = settings;
+        _scene = null;
+        return PanelResponse.Changed;
+    }
+
+    /// <summary>
+    /// Replaces a recent row with a prompt to remove it, after the host found its source file
+    /// missing on Start. Confirming returns <see cref="PanelActionKind.RemoveRecent"/>.
+    /// </summary>
+    public PanelResponse ConfirmRemoveMissing(AppHostMenuItem host)
+    {
+        _settings = null;
+        _recentExpanded = true;
+        BeginConfirm(new(PanelConfirmKind.RemoveMissing, PanelSection.Recent, host));
+        RefreshHover();
+        return PanelResponse.Changed;
+    }
+
     /// <summary>
     /// Replaces the state. While a press is in progress the update is deferred until release,
     /// so the row under the pointer cannot move between press and release.
@@ -143,6 +201,9 @@ internal sealed class TrayPanel
         _focus = null;
         _focusVisible = false;
         _scroll = 0;
+        _listScroll = 0;
+        _confirm = null;
+        _settings = null;
         _scene = null;
     }
 
@@ -227,6 +288,18 @@ internal sealed class TrayPanel
         switch (key)
         {
             case PanelKey.Escape:
+                // Escape steps back one level: out of a confirmation, then out of Settings,
+                // and only then closes the panel.
+                if (_confirm is not null)
+                {
+                    CancelConfirm();
+                    return PanelResponse.Changed;
+                }
+                if (_settings is not null)
+                {
+                    CloseSettings();
+                    return PanelResponse.Changed;
+                }
                 return new(false, new PanelAction(PanelActionKind.Close));
             case PanelKey.Enter or PanelKey.Space:
                 var focused = Scene.Targets.FirstOrDefault(target => target.Key == _focus);
@@ -252,7 +325,73 @@ internal sealed class TrayPanel
 
     private static bool IsPrimary(PanelTargetKind kind)
         => kind is PanelTargetKind.Row or PanelTargetKind.ToggleRecent or PanelTargetKind.Documentation
-            or PanelTargetKind.Settings or PanelTargetKind.Quit;
+            or PanelTargetKind.Settings or PanelTargetKind.Quit or PanelTargetKind.ConfirmCancel or PanelTargetKind.Back
+            or PanelTargetKind.LaunchAtSignIn or PanelTargetKind.ConfirmStopSetting;
+
+    private static bool IsConfirmTarget(PanelTargetKind kind)
+        => kind is PanelTargetKind.ConfirmCancel or PanelTargetKind.ConfirmAccept or PanelTargetKind.ConfirmDontAsk;
+
+    private void BeginConfirm(PanelConfirm confirm)
+    {
+        _confirm = confirm;
+        // Focus starts on Cancel, so Enter or Space right after the click never confirms.
+        _focus = new(PanelTargetKind.ConfirmCancel, confirm.Section, confirm.Host?.Id);
+        _scene = null;
+
+        // The strip is taller than the row it replaces and may be below the fold (a recent row
+        // reached by scrolling), so scroll the whole strip into view.
+        var buttons = Scene.Targets.Where(target => IsConfirmTarget(target.Kind)).ToList();
+        if (buttons.Count > 0)
+        {
+            var bottom = buttons.Max(target => target.Bounds.Bottom) + 14;
+            var top = bottom - ConfirmHeight;
+            if (bottom > _viewport.Bottom)
+            {
+                _scroll += bottom - _viewport.Bottom;
+            }
+            if (top < _viewport.Y)
+            {
+                _scroll -= _viewport.Y - top;
+            }
+            _scene = null;
+        }
+    }
+
+    private void CancelConfirm()
+    {
+        if (_confirm is not { } confirm)
+        {
+            return;
+        }
+        _confirm = null;
+        // Return focus to the control that opened the confirmation.
+        _focus = confirm.Kind switch
+        {
+            PanelConfirmKind.Stop => new(PanelTargetKind.Stop, confirm.Section, confirm.Host?.Id),
+            PanelConfirmKind.ClearRecent => new(PanelTargetKind.ClearRecent, confirm.Section, null),
+            _ => new(PanelTargetKind.Start, confirm.Section, confirm.Host?.Id)
+        };
+        _scene = null;
+    }
+
+    private void CloseSettings()
+    {
+        _settings = null;
+        _scroll = _listScroll;
+        _focus = new(PanelTargetKind.Settings, PanelSection.None, null);
+        RefreshHover();
+    }
+
+    /// <summary>Hit tests the pointer again after the layout changed under it.</summary>
+    private void RefreshHover()
+    {
+        _scene = null;
+        if (_pointer is { } pointer)
+        {
+            _hover = HitTest(pointer.X, pointer.Y)?.Key;
+            _scene = null;
+        }
+    }
 
     private PanelResponse MoveFocus(List<PanelHitTarget> order, int step, bool wrap)
     {
@@ -282,9 +421,9 @@ internal sealed class TrayPanel
         var target = order[index];
         _focus = target.Key;
         _focusVisible = true;
-        if (IsFooter(target.Kind))
+        if (IsChrome(target.Kind))
         {
-            // Footer buttons never scroll.
+            // Header and footer buttons never scroll.
         }
         else if (target.Bounds.Y < _viewport.Y)
         {
@@ -314,6 +453,12 @@ internal sealed class TrayPanel
     {
         var host = target.Host;
         var recent = target.Key.Section == PanelSection.Recent;
+        if (_confirm is not null && !IsConfirmTarget(target.Kind))
+        {
+            // Acting on anything else abandons the pending confirmation.
+            _confirm = null;
+            _scene = null;
+        }
         switch (target.Kind)
         {
             case PanelTargetKind.Row when host is { CanOpenDashboard: true }:
@@ -323,6 +468,9 @@ internal sealed class TrayPanel
                 // Rows without a dashboard open the same menu as their "More" button.
                 var more = Scene.Targets.FirstOrDefault(other => other.Key == target.Key with { Kind = PanelTargetKind.More });
                 return new(PanelActionKind.More, host, more?.Bounds ?? target.Bounds) { Recent = recent };
+            case PanelTargetKind.Stop when _state.ConfirmStop:
+                BeginConfirm(new(PanelConfirmKind.Stop, target.Key.Section, host));
+                return null;
             case PanelTargetKind.Stop:
                 return new(PanelActionKind.Stop, host, target.Bounds) { Recent = recent };
             case PanelTargetKind.Start:
@@ -334,7 +482,32 @@ internal sealed class TrayPanel
                 _scene = null;
                 return new(PanelActionKind.ToggleRecent, Anchor: target.Bounds);
             case PanelTargetKind.ClearRecent:
-                return new(PanelActionKind.ClearRecent, Anchor: target.Bounds);
+                BeginConfirm(new(PanelConfirmKind.ClearRecent, PanelSection.Recent, null));
+                return null;
+            case PanelTargetKind.ConfirmCancel:
+                CancelConfirm();
+                return null;
+            case PanelTargetKind.ConfirmDontAsk when _confirm is { } pending:
+                _confirm = pending with { DontAskAgain = !pending.DontAskAgain };
+                _scene = null;
+                return null;
+            case PanelTargetKind.ConfirmAccept when _confirm is { } confirmed:
+                _confirm = null;
+                _scene = null;
+                return confirmed.Kind switch
+                {
+                    PanelConfirmKind.Stop => new(PanelActionKind.Stop, host, target.Bounds) { DontAskAgain = confirmed.DontAskAgain },
+                    PanelConfirmKind.ClearRecent => new(PanelActionKind.ClearRecent, Anchor: target.Bounds),
+                    _ => new(PanelActionKind.RemoveRecent, host, target.Bounds) { Recent = true }
+                };
+            case PanelTargetKind.Back:
+            case PanelTargetKind.Settings when _settings is not null:
+                CloseSettings();
+                return null;
+            case PanelTargetKind.LaunchAtSignIn:
+                return new(PanelActionKind.SetLaunchAtSignIn, Anchor: target.Bounds) { Enabled = _settings?.Startup?.Enabled != true };
+            case PanelTargetKind.ConfirmStopSetting:
+                return new(PanelActionKind.SetConfirmStop, Anchor: target.Bounds) { Enabled = !_state.ConfirmStop };
             case PanelTargetKind.Documentation:
                 return new(PanelActionKind.Documentation, Anchor: target.Bounds);
             case PanelTargetKind.Settings:
@@ -359,15 +532,28 @@ internal sealed class TrayPanel
         var y = ListTopPadding;
         var running = state.AppHosts.Where(host => host.Id.AppHostPid != 0).ToList();
         var pinned = state.AppHosts.Where(host => host.Id.AppHostPid == 0).ToList();
-        if (state.AppHosts.Count == 0)
+        if (_settings is { } settings)
         {
-            items.Add(new(ListItemKind.Empty, y, EmptyStateHeight, PanelSection.None, null));
-            y += EmptyStateHeight;
+            AddSettingsItems(settings);
         }
-        AddSection(PanelSection.Running, running, expanded: true);
-        AddSection(PanelSection.Pinned, pinned, expanded: true);
-        AddSection(PanelSection.Recent, state.RecentAppHosts, IsRecentExpanded);
+        else
+        {
+            RevalidateConfirm(running);
+            if (state.AppHosts.Count == 0)
+            {
+                Add(ListItemKind.Empty, EmptyStateHeight, PanelSection.None, null);
+            }
+            AddSection(PanelSection.Running, running, expanded: true);
+            AddSection(PanelSection.Pinned, pinned, expanded: true);
+            AddSection(PanelSection.Recent, state.RecentAppHosts, IsRecentExpanded);
+        }
         _contentHeight = y + ListBottomPadding;
+
+        void Add(ListItemKind kind, double height, PanelSection section, AppHostMenuItem? host, PanelTargetKind target = default)
+        {
+            items.Add(new(kind, y, height, section, host, target));
+            y += height;
+        }
 
         void AddSection(PanelSection section, IReadOnlyList<AppHostMenuItem> hosts, bool expanded)
         {
@@ -375,17 +561,35 @@ internal sealed class TrayPanel
             {
                 return;
             }
-            items.Add(new(ListItemKind.SectionHeader, y, SectionHeaderHeight, section, null));
-            y += SectionHeaderHeight;
+            // An inline confirmation takes the place of the item it is about, so the list
+            // keeps its order and the strip sits exactly where the user clicked.
+            if (section == PanelSection.Recent && _confirm is { Kind: PanelConfirmKind.ClearRecent })
+            {
+                Add(ListItemKind.Confirm, ConfirmHeight, section, null);
+            }
+            else
+            {
+                Add(ListItemKind.SectionHeader, SectionHeaderHeight, section, null);
+            }
             if (!expanded)
             {
                 return;
             }
             foreach (var host in hosts)
             {
-                items.Add(new(ListItemKind.Row, y, RowHeight, section, host));
-                y += RowHeight;
+                var confirming = _confirm is { Kind: PanelConfirmKind.Stop or PanelConfirmKind.RemoveMissing } confirm
+                    && confirm.Section == section && confirm.Host?.Id == host.Id;
+                Add(confirming ? ListItemKind.Confirm : ListItemKind.Row, confirming ? ConfirmHeight : RowHeight, section, host);
             }
+        }
+
+        void AddSettingsItems(PanelSettings settings)
+        {
+            Add(ListItemKind.SectionHeader, SectionHeaderHeight, PanelSection.None, null, PanelTargetKind.LaunchAtSignIn);
+            Add(ListItemKind.SettingsToggle, SettingsRowHeight, PanelSection.None, null, PanelTargetKind.LaunchAtSignIn);
+            Add(ListItemKind.SettingsToggle, SettingsRowHeight, PanelSection.None, null, PanelTargetKind.ConfirmStopSetting);
+            Add(ListItemKind.SectionHeader, SectionHeaderHeight, PanelSection.None, null, PanelTargetKind.Documentation);
+            Add(ListItemKind.About, AboutHeight, PanelSection.None, null);
         }
 
         var notice = string.IsNullOrWhiteSpace(state.Notice) ? null : state.Notice.Trim();
@@ -405,7 +609,14 @@ internal sealed class TrayPanel
         commands.Add(new FillPathCommand(PanelPath.RoundedRect(footer, 0, 0, CornerRadius, CornerRadius), palette.Gutter));
         commands.Add(new FillPathCommand(PanelPath.Rectangle(new(0, footer.Y, Width, 1)), palette.Separator));
 
-        AddHeader(commands, state, palette);
+        if (_settings is null)
+        {
+            AddHeader(commands, state, palette);
+        }
+        else
+        {
+            AddSettingsHeader(commands, targets, palette);
+        }
         if (notice is not null)
         {
             AddNotice(commands, notice, noticeSingleLine, noticeHeight - 8, palette);
@@ -431,12 +642,25 @@ internal sealed class TrayPanel
                 case ListItemKind.Empty:
                     AddEmptyState(sink, state.Discovery, top, palette);
                     break;
+                case ListItemKind.SectionHeader when _settings is not null:
+                    sink.Add(new TextCommand(new(20, top + 4, 200, 24),
+                        item.Target == PanelTargetKind.LaunchAtSignIn ? "GENERAL" : "ABOUT", PanelFontRole.Section, palette.TextTertiary));
+                    break;
                 case ListItemKind.SectionHeader:
                     AddSectionHeader(sink, targets, item.Section, top, state, palette);
                     break;
                 case ListItemKind.Row:
                     AddRow(sink, targets, item.Host!, item.Section, top, live,
                         item.Section == PanelSection.Running && duplicateNames.Contains(item.Host!.DisplayName), palette);
+                    break;
+                case ListItemKind.Confirm:
+                    AddConfirm(sink, targets, _confirm!, item.Host, top, palette);
+                    break;
+                case ListItemKind.SettingsToggle:
+                    AddSettingsToggle(sink, targets, item.Target, _settings!, top, palette);
+                    break;
+                case ListItemKind.About:
+                    AddAbout(sink, _settings!, top, palette);
                     break;
             }
         }
@@ -465,7 +689,7 @@ internal sealed class TrayPanel
         }
         if (_focusVisible && targets.FirstOrDefault(target => target.Key == _focus) is { } focused)
         {
-            var clip = IsFooter(focused.Kind) ? panel : _viewport;
+            var clip = IsChrome(focused.Kind) ? panel : _viewport;
             commands.Add(new PushClipCommand(clip));
             commands.Add(new StrokePathCommand(PanelPath.RoundedRect(focused.Bounds.Inset(-1, -1), 7), palette.Focus, 2));
             commands.Add(new PopClipCommand());
@@ -615,6 +839,163 @@ internal sealed class TrayPanel
         }
     }
 
+    /// <summary>
+    /// Drops a confirmation whose subject went away (the AppHost stopped, or the recent list was
+    /// cleared elsewhere) and picks up the subject's latest state for the strip's text.
+    /// </summary>
+    private void RevalidateConfirm(List<AppHostMenuItem> running)
+    {
+        if (_confirm is not { } confirm)
+        {
+            return;
+        }
+        var current = confirm.Kind switch
+        {
+            PanelConfirmKind.Stop => running.FirstOrDefault(host => host.Id == confirm.Host!.Id && host.CanStop),
+            PanelConfirmKind.RemoveMissing => _state.RecentAppHosts.FirstOrDefault(host => host.Id == confirm.Host!.Id),
+            _ => null
+        };
+        var valid = confirm.Kind == PanelConfirmKind.ClearRecent ? _state.CanClearRecent : current is not null;
+        if (!valid)
+        {
+            CancelConfirm();
+        }
+        else if (current is not null)
+        {
+            _confirm = confirm with { Host = current };
+        }
+    }
+
+    /// <summary>
+    /// Draws an inline confirmation strip: a question, one line of detail, and a row of controls
+    /// (an optional "Don't ask again" toggle, then Cancel and the destructive button).
+    /// </summary>
+    private void AddConfirm(List<PanelCommand> commands, List<PanelHitTarget> targets, PanelConfirm confirm, AppHostMenuItem? host,
+        double top, TrayPanelPalette palette)
+    {
+        var card = new PanelRect(RowInset, top + 4, Width - 2 * RowInset, ConfirmHeight - 8);
+        commands.Add(new FillPathCommand(PanelPath.RoundedRect(card, 8), palette.Gutter));
+        commands.Add(new StrokePathCommand(PanelPath.RoundedRect(card.Inset(0.5, 0.5), 7.5), palette.Border, 1));
+
+        var name = host?.DisplayName ?? "";
+        var (question, detail, accept, acceptName) = confirm.Kind switch
+        {
+            PanelConfirmKind.Stop => ($"Stop {name}?", "Persistent resources keep running.", "Stop", $"Stop {name}"),
+            PanelConfirmKind.ClearRecent => ("Clear recent AppHosts?", "Pinned AppHosts are kept.", "Clear", "Clear recent AppHosts"),
+            _ => ($"{name} was not found", host!.Id.AppHostPath, "Remove", $"Remove {name} from recent AppHosts")
+        };
+        var textWidth = card.Width - 24;
+        commands.Add(new TextCommand(new(card.X + 12, card.Y + 9, textWidth, 18), question, PanelFontRole.Name, palette.TextPrimary));
+        commands.Add(new TextCommand(new(card.X + 12, card.Y + 28, textWidth, 16), detail, PanelFontRole.Body, palette.TextSecondary,
+            Truncation: confirm.Kind == PanelConfirmKind.RemoveMissing ? PanelTruncation.Middle : PanelTruncation.End));
+
+        var controlsY = card.Bottom - 10 - ButtonSize;
+        var section = confirm.Section;
+        var id = host?.Id;
+        if (confirm.Kind == PanelConfirmKind.Stop)
+        {
+            var toggle = new PanelRect(card.X + 4, controlsY, 140, ButtonSize);
+            var toggleKey = new PanelTargetKey(PanelTargetKind.ConfirmDontAsk, section, id);
+            AddInteractionFill(commands, toggleKey, toggle, palette, includeFocus: false);
+            TrayPanelGlyphs.AddToggle(commands, confirm.DontAskAgain, enabled: true, new(toggle.X + 8, toggle.Y + 7, 25, 14), palette);
+            commands.Add(new TextCommand(new(toggle.X + 40, toggle.Y, toggle.Width - 44, toggle.Height), "Don't ask again",
+                PanelFontRole.Body, palette.TextSecondary));
+            AddTarget(targets, toggleKey, toggle, confirm.DontAskAgain ? "Don't ask again, on" : "Don't ask again, off", true, host);
+        }
+
+        const double ButtonWidth = 64;
+        var acceptBounds = new PanelRect(card.Right - 10 - ButtonWidth, controlsY, ButtonWidth, ButtonSize);
+        var cancelBounds = new PanelRect(acceptBounds.X - 8 - ButtonWidth, controlsY, ButtonWidth, ButtonSize);
+        var cancelKey = new PanelTargetKey(PanelTargetKind.ConfirmCancel, section, id);
+        var acceptKey = new PanelTargetKey(PanelTargetKind.ConfirmAccept, section, id);
+
+        // Cancel is a neutral outlined button; the destructive one is filled with the danger color.
+        commands.Add(new FillPathCommand(PanelPath.RoundedRect(cancelBounds, 6), palette.Background));
+        AddInteractionFill(commands, cancelKey, cancelBounds, palette, includeFocus: false);
+        commands.Add(new StrokePathCommand(PanelPath.RoundedRect(cancelBounds.Inset(0.5, 0.5), 5.5), palette.Border, 1));
+        commands.Add(new TextCommand(cancelBounds, "Cancel", PanelFontRole.Button, palette.TextPrimary, PanelTextAlignment.Center));
+        AddTarget(targets, cancelKey, cancelBounds, "Cancel", true, host);
+
+        commands.Add(new FillPathCommand(PanelPath.RoundedRect(acceptBounds, 6), palette.Danger));
+        if (_pressed == acceptKey || _hover == acceptKey)
+        {
+            // Darken the filled button: the shared hover tints are tuned for the panel background.
+            commands.Add(new FillPathCommand(PanelPath.RoundedRect(acceptBounds, 6),
+                PanelColor.FromRgba(0, 0, 0, _pressed == acceptKey ? 0.22 : 0.12)));
+        }
+        if (palette.IsHighContrast)
+        {
+            commands.Add(new StrokePathCommand(PanelPath.RoundedRect(acceptBounds.Inset(0.5, 0.5), 5.5), palette.Border, 1));
+        }
+        commands.Add(new TextCommand(acceptBounds, accept, PanelFontRole.Button, palette.OnColor, PanelTextAlignment.Center));
+        AddTarget(targets, acceptKey, acceptBounds, acceptName, true, host);
+    }
+
+    private void AddSettingsHeader(List<PanelCommand> commands, List<PanelHitTarget> targets, TrayPanelPalette palette)
+    {
+        var back = new PanelRect(12, (HeaderHeight - ButtonSize) / 2, ButtonSize, ButtonSize);
+        var backKey = new PanelTargetKey(PanelTargetKind.Back, PanelSection.None, null);
+        AddInteractionFill(commands, backKey, back, palette, includeFocus: false);
+        TrayPanelGlyphs.AddIcon(commands, PanelIcon.ChevronLeft, back.Inset(6, 6), _hover == backKey ? palette.TextPrimary : palette.TextSecondary);
+        AddTarget(targets, backKey, back, "Back to AppHosts", true, null);
+        commands.Add(new TextCommand(new(back.Right + 8, 20, Width - back.Right - 24, 20), TraySettingsText.PanelTitle,
+            PanelFontRole.Title, palette.TextPrimary));
+    }
+
+    private void AddSettingsToggle(List<PanelCommand> commands, List<PanelHitTarget> targets, PanelTargetKind kind, PanelSettings settings,
+        double top, TrayPanelPalette palette)
+    {
+        var row = new PanelRect(RowInset, top + 2, Width - 2 * RowInset, SettingsRowHeight - 4);
+        var key = new PanelTargetKey(kind, PanelSection.None, null);
+        bool on, enabled, error = false;
+        string title, description;
+        if (kind == PanelTargetKind.LaunchAtSignIn)
+        {
+            var startup = settings.Startup;
+            on = startup?.Enabled == true;
+            // Turning it off always works; turning it on needs a stable native installation.
+            enabled = startup is not null && (on || startup.CanEnable);
+            title = TraySettingsText.PanelStartupOption;
+            var status = startup is null ? settings.StartupError ?? "" : TraySettingsText.GetStartupStatus(startup, settings.StartupError);
+            error = settings.StartupError is not null;
+            description = string.IsNullOrEmpty(status) ? TraySettingsText.StartupDescription : status.Replace(Environment.NewLine, " ");
+        }
+        else
+        {
+            on = _state.ConfirmStop;
+            enabled = true;
+            title = TraySettingsText.ConfirmStopOption;
+            description = TraySettingsText.ConfirmStopDescription;
+        }
+        if (enabled)
+        {
+            AddInteractionFill(commands, key, row, palette, includeFocus: false);
+        }
+        var toggle = new PanelRect(RowContentRight - 36, top + 9, 32, 18);
+        var textWidth = toggle.X - 12 - 20;
+        commands.Add(new TextCommand(new(20, top + 8, textWidth, 20), title, PanelFontRole.Name,
+            enabled ? palette.TextPrimary : palette.TextTertiary));
+        commands.Add(new TextCommand(new(20, top + 28, textWidth, 30), description, PanelFontRole.Body,
+            error ? palette.Danger : palette.TextSecondary, MaxLines: 2));
+        TrayPanelGlyphs.AddToggle(commands, on, enabled, toggle, palette);
+        AddTarget(targets, key, row, $"{title}, {(on ? "on" : "off")}", enabled, null);
+    }
+
+    private static void AddAbout(List<PanelCommand> commands, PanelSettings settings, double top, TrayPanelPalette palette)
+    {
+        commands.Add(new TextCommand(new(20, top + 4, Width - 40, 20), "Aspire Tray", PanelFontRole.Name, palette.TextPrimary));
+        var lines = TraySettingsText.GetVersionText().Split(Environment.NewLine)
+            .Append(TraySettingsText.GetAboutDescription(settings.Preview));
+        var y = top + 24;
+        foreach (var line in lines)
+        {
+            // Informational versions carry a long commit hash at the end; keep both ends visible.
+            commands.Add(new TextCommand(new(20, y, Width - 40, 16), line, PanelFontRole.Body, palette.TextSecondary,
+                Truncation: PanelTruncation.Middle));
+            y += 18;
+        }
+    }
+
     private void AddFooter(List<PanelCommand> commands, List<PanelHitTarget> targets, PanelRect footer, TrayPanelPalette palette)
     {
         var docs = new PanelRect(8, footer.Y + 8, 140, ButtonSize);
@@ -626,12 +1007,17 @@ internal sealed class TrayPanel
 
         foreach (var (kind, icon, name, x) in new[]
         {
-            (PanelTargetKind.Settings, PanelIcon.Gear, "Settings", RowContentRight + 4 - 2 * ButtonSize - ButtonGap),
+            (PanelTargetKind.Settings, PanelIcon.Gear, _settings is null ? "Settings" : "Close settings", RowContentRight + 4 - 2 * ButtonSize - ButtonGap),
             (PanelTargetKind.Quit, PanelIcon.Power, "Quit Aspire", RowContentRight + 4 - ButtonSize)
         })
         {
             var bounds = new PanelRect(x, footer.Y + 8, ButtonSize, ButtonSize);
             var key = new PanelTargetKey(kind, PanelSection.None, null);
+            if (kind == PanelTargetKind.Settings && _settings is not null && _hover != key && _pressed != key)
+            {
+                // Mark the gear as selected while its view is open; clicking it again goes back.
+                commands.Add(new FillPathCommand(PanelPath.RoundedRect(bounds, 6), palette.Pressed));
+            }
             AddInteractionFill(commands, key, bounds, palette, includeFocus: false);
             TrayPanelGlyphs.AddIcon(commands, icon, bounds.Inset(6, 6), _hover == key ? palette.TextPrimary : palette.TextSecondary);
             AddTarget(targets, key, bounds, name, true, null);
@@ -651,12 +1037,13 @@ internal sealed class TrayPanel
 
     private void AddTarget(List<PanelHitTarget> targets, PanelTargetKey key, PanelRect bounds, string name, bool enabled, AppHostMenuItem? host)
     {
-        var hit = IsFooter(key.Kind) ? bounds : bounds.Intersect(_viewport);
+        var hit = IsChrome(key.Kind) ? bounds : bounds.Intersect(_viewport);
         targets.Add(new(key, bounds, hit, name, enabled, host));
     }
 
-    private static bool IsFooter(PanelTargetKind kind)
-        => kind is PanelTargetKind.Documentation or PanelTargetKind.Settings or PanelTargetKind.Quit;
+    /// <summary>Targets in the fixed header or footer, outside the scrolled list.</summary>
+    private static bool IsChrome(PanelTargetKind kind)
+        => kind is PanelTargetKind.Documentation or PanelTargetKind.Settings or PanelTargetKind.Quit or PanelTargetKind.Back;
 
     private static bool IsWithinRow(PanelTargetKey? key, PanelTargetKey row)
         => key is { } value && value.Host == row.Host && value.Section == row.Section
@@ -741,8 +1128,16 @@ internal sealed class TrayPanel
     {
         Empty,
         SectionHeader,
-        Row
+        Row,
+        Confirm,
+        SettingsToggle,
+        About
     }
 
-    private readonly record struct ListItem(ListItemKind Kind, double Y, double Height, PanelSection Section, AppHostMenuItem? Host);
+    /// <summary>One item of the scrolled list. <see cref="Target"/> tells Settings items apart.</summary>
+    private readonly record struct ListItem(ListItemKind Kind, double Y, double Height, PanelSection Section, AppHostMenuItem? Host,
+        PanelTargetKind Target);
+
+    /// <summary>A pending inline confirmation. <see cref="Host"/> is null for Clear recent.</summary>
+    private sealed record PanelConfirm(PanelConfirmKind Kind, PanelSection Section, AppHostMenuItem? Host, bool DontAskAgain = false);
 }

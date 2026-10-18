@@ -404,9 +404,21 @@ internal sealed unsafe partial class TrayApplication
         }
     }
 
-    private enum ActionKind { Dashboard, Stop, Start, TogglePin, Explorer, CopyPath, OpenIn, ClearRecent, Documentation, Settings, Quit }
+    private enum ActionKind
+    {
+        Dashboard, Stop, Start, TogglePin, Explorer, CopyPath, OpenIn, ClearRecent, Documentation, Settings, Quit,
+        // Flyout panel actions. The panel confirms inline, so these never open a dialog.
+        StopConfirmed, StartFromPanel, ClearRecentConfirmed, RemoveRecent, SetConfirmStop
+    }
 
-    private sealed record ActionTarget(ActionKind Kind, AppHostId Id = default, FolderApplication? Application = null);
+    private sealed record ActionTarget(ActionKind Kind, AppHostId Id = default, FolderApplication? Application = null)
+    {
+        /// <summary>For <see cref="ActionKind.StopConfirmed"/>: also turn the stop confirmation off.</summary>
+        public bool DontAskAgain { get; init; }
+
+        /// <summary>For <see cref="ActionKind.SetConfirmStop"/>: the requested value.</summary>
+        public bool Enabled { get; init; }
+    }
 
     private sealed class HostRow(nint parent, uint position, nint submenu, AppHostId id, bool recent, string title)
     {

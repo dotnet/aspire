@@ -16,7 +16,9 @@ internal enum PanelFontRole
     /// <summary>12 regular: status lines, subtitles, banner and button labels.</summary>
     Body,
     /// <summary>11 semibold: uppercase section headers.</summary>
-    Section
+    Section,
+    /// <summary>12 semibold: the labels of text buttons in confirmation strips.</summary>
+    Button
 }
 
 internal static class PanelFonts
@@ -86,7 +88,30 @@ internal enum PanelTargetKind
     ClearRecent,
     Documentation,
     Settings,
-    Quit
+    Quit,
+    /// <summary>The Cancel button of an inline confirmation strip.</summary>
+    ConfirmCancel,
+    /// <summary>The destructive button of an inline confirmation strip (Stop, Clear, Remove).</summary>
+    ConfirmAccept,
+    /// <summary>The "Don't ask again" toggle of the stop confirmation strip.</summary>
+    ConfirmDontAsk,
+    /// <summary>The back arrow in the header of the Settings view.</summary>
+    Back,
+    /// <summary>The "Launch at sign-in" toggle row of the Settings view.</summary>
+    LaunchAtSignIn,
+    /// <summary>The "Confirm before stopping" toggle row of the Settings view.</summary>
+    ConfirmStopSetting
+}
+
+/// <summary>The inline confirmation a panel is showing in place of a row or section header.</summary>
+internal enum PanelConfirmKind
+{
+    /// <summary>Stop a running AppHost; replaces its row.</summary>
+    Stop,
+    /// <summary>Clear the recent list; replaces the Recent section header.</summary>
+    ClearRecent,
+    /// <summary>Remove a recent AppHost whose source file is gone; replaces its row.</summary>
+    RemoveMissing
 }
 
 internal enum PanelSection
@@ -128,13 +153,32 @@ internal sealed record TrayPanelScene(
 internal enum PanelActionKind
 {
     OpenDashboard,
+    /// <summary>
+    /// Stop the AppHost now, without a dialog: the panel has already confirmed it inline, or
+    /// <see cref="TrayViewState.ConfirmStop"/> is off.
+    /// </summary>
     Stop,
+    /// <summary>
+    /// Start a pinned or recent AppHost. When its source file is gone, the host calls
+    /// <see cref="TrayPanel.ConfirmRemoveMissing"/> instead of showing a dialog.
+    /// </summary>
     Start,
     More,
+    /// <summary>Clear the recent list. The panel has already confirmed it inline.</summary>
     ClearRecent,
+    /// <summary>Remove one recent AppHost whose source file is missing. Already confirmed inline.</summary>
+    RemoveRecent,
     ToggleRecent,
     Documentation,
+    /// <summary>
+    /// The gear was clicked. The host reads the startup settings and calls
+    /// <see cref="TrayPanel.ShowSettings"/> to switch the panel to its Settings view.
+    /// </summary>
     Settings,
+    /// <summary>Turn launch at sign-in on or off, per <see cref="PanelAction.Enabled"/>.</summary>
+    SetLaunchAtSignIn,
+    /// <summary>Turn the stop confirmation on or off, per <see cref="PanelAction.Enabled"/>.</summary>
+    SetConfirmStop,
     Quit,
     Close
 }
@@ -147,6 +191,15 @@ internal sealed record PanelAction(PanelActionKind Kind, AppHostMenuItem? Host =
 {
     /// <summary>True when the action is for an entry of the recent list rather than a current AppHost.</summary>
     public bool Recent { get; init; }
+
+    /// <summary>
+    /// For <see cref="PanelActionKind.Stop"/>: the user checked "Don't ask again" in the inline
+    /// confirmation, so the host should also turn the stop confirmation off.
+    /// </summary>
+    public bool DontAskAgain { get; init; }
+
+    /// <summary>For the Settings toggles: the value the user asked for.</summary>
+    public bool Enabled { get; init; }
 }
 
 /// <summary>The result of an input event: whether the panel must be redrawn, and an action to run.</summary>

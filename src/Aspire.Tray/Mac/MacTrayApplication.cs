@@ -90,6 +90,23 @@ internal sealed partial class MacTrayApplication : IDisposable
         }
     }
 
+    private void StopAppHostWithoutConfirmation(AppHostId id, bool dontAskAgain)
+    {
+        try
+        {
+            var selected = _controller.RequireLiveInstance(id);
+            _controller.RequestStop(selected.Id);
+            if (dontAskAgain)
+            {
+                _controller.SetConfirmStop(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            ReportActionFailure(ex, "Unable to request a stop. Try again.");
+        }
+    }
+
     private void ReportActionFailure(Exception exception, string fallback)
     {
         LogFailure("Tray action rejected", exception);

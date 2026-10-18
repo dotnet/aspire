@@ -8,7 +8,11 @@ namespace Aspire.Tray.Tests;
 
 public class TrayPanelTests
 {
-    private static readonly string[] s_sampleNames = ["typical", "empty", "connecting", "errors", "disconnected", "many"];
+    private static readonly string[] s_sampleNames =
+    [
+        "typical", "empty", "connecting", "errors", "disconnected", "many",
+        "confirm-stop", "confirm-clear", "confirm-missing", "settings", "settings-unavailable"
+    ];
 
     public static TheoryData<string> SampleNames => new(s_sampleNames);
 
@@ -20,14 +24,40 @@ public class TrayPanelTests
         "errors" => TrayPanelSamples.Errors(),
         "disconnected" => TrayPanelSamples.Disconnected(),
         "many" => TrayPanelSamples.Many(),
-        _ => throw new ArgumentOutOfRangeException(nameof(name))
+        _ => TrayPanelSamples.Typical()
     };
+
+    /// <summary>Creates a panel for a sample, driving it into the sample's interactive state.</summary>
+    private static TrayPanel CreatePanel(string name, TrayPanelPalette palette, double maxHeight = TrayPanel.DefaultMaxHeight)
+    {
+        var state = Sample(name);
+        var panel = new TrayPanel(state, palette) { MaxHeight = maxHeight };
+        switch (name)
+        {
+            case "confirm-stop":
+                Click(panel, Target(panel, PanelTargetKind.Stop, state.AppHosts[1]).HitBounds);
+                break;
+            case "confirm-clear":
+                Click(panel, panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.ClearRecent).HitBounds);
+                break;
+            case "confirm-missing":
+                panel.ConfirmRemoveMissing(state.RecentAppHosts[1]);
+                break;
+            case "settings":
+                panel.ShowSettings(new(new TrayStartupState(true, true, null), null, Preview: false));
+                break;
+            case "settings-unavailable":
+                panel.ShowSettings(new(new TrayStartupState(false, false, null), null, Preview: false));
+                break;
+        }
+        return panel;
+    }
 
     [Theory]
     [MemberData(nameof(SampleNames))]
     public void LayoutKeepsEveryTargetInsideThePanelAndFooterAtTheBottom(string name)
     {
-        var panel = new TrayPanel(Sample(name), TrayPanelPalette.Light) { MaxHeight = 600 };
+        var panel = CreatePanel(name, TrayPanelPalette.Light, maxHeight: 600);
         var scene = panel.Scene;
         var bounds = new PanelRect(0, 0, scene.Width, scene.Height);
 
@@ -41,7 +71,8 @@ public class TrayPanelTests
         var footer = scene.Targets.Where(target => target.Kind is PanelTargetKind.Documentation or PanelTargetKind.Settings or PanelTargetKind.Quit).ToList();
         Assert.Equal(3, footer.Count);
         Assert.All(footer, target => Assert.InRange(target.Bounds.Y, scene.Height - TrayPanel.FooterHeight, scene.Height - target.Bounds.Height));
-        Assert.All(scene.Targets.Where(target => target.Kind is not (PanelTargetKind.Documentation or PanelTargetKind.Settings or PanelTargetKind.Quit)),
+        Assert.All(scene.Targets.Where(target => target.Kind is not (PanelTargetKind.Documentation or PanelTargetKind.Settings
+                or PanelTargetKind.Quit or PanelTargetKind.Back)),
             target => Assert.True(target.HitBounds.IsEmpty || panel.Viewport.Contains(target.HitBounds)));
     }
 
@@ -49,7 +80,7 @@ public class TrayPanelTests
     [MemberData(nameof(SampleNames))]
     public void SiblingTargetsDoNotOverlapAndButtonsSitInsideTheirRow(string name)
     {
-        var scene = new TrayPanel(Sample(name), TrayPanelPalette.Dark).Scene;
+        var scene = CreatePanel(name, TrayPanelPalette.Dark).Scene;
         var rows = scene.Targets.Where(target => target.Kind is PanelTargetKind.Row).ToList();
         var buttons = scene.Targets.Where(target => target.Kind is PanelTargetKind.Dashboard or PanelTargetKind.Stop
             or PanelTargetKind.Start or PanelTargetKind.More).ToList();
@@ -67,7 +98,7 @@ public class TrayPanelTests
     [MemberData(nameof(SampleNames))]
     public void RowTextNeverRunsUnderTheReservedButtons(string name)
     {
-        var scene = new TrayPanel(Sample(name), TrayPanelPalette.Light).Scene;
+        var scene = CreatePanel(name, TrayPanelPalette.Light).Scene;
         var buttons = scene.Targets.Where(target => target.Kind is PanelTargetKind.Dashboard or PanelTargetKind.Stop
             or PanelTargetKind.Start or PanelTargetKind.More).Select(target => target.Bounds).ToList();
         var texts = scene.Commands.OfType<TextCommand>().ToList();
@@ -79,7 +110,7 @@ public class TrayPanelTests
     [MemberData(nameof(SampleNames))]
     public void ClipsAreBalanced(string name)
     {
-        var commands = new TrayPanel(Sample(name), TrayPanelPalette.Light).Scene.Commands;
+        var commands = CreatePanel(name, TrayPanelPalette.Light).Scene.Commands;
 
         Assert.Equal(commands.Count(command => command is PushClipCommand), commands.Count(command => command is PopClipCommand));
     }
@@ -150,7 +181,7 @@ public class TrayPanelTests
     [Fact]
     public void RowButtonsReturnTheirActions()
     {
-        var state = TrayPanelSamples.Typical();
+        var state = TrayPanelSamples.Typical() with { ConfirmStop = false };
         var panel = new TrayPanel(state, TrayPanelPalette.Light);
 
         Assert.Equal(PanelActionKind.Stop, Click(panel, Target(panel, PanelTargetKind.Stop, state.AppHosts[0]).HitBounds).Action?.Kind);
@@ -191,7 +222,7 @@ public class TrayPanelTests
     [Fact]
     public void StateUpdatesAreDeferredWhileAPressIsInProgress()
     {
-        var state = TrayPanelSamples.Typical();
+        var state = TrayPanelSamples.Typical() with { ConfirmStop = false };
         var panel = new TrayPanel(state, TrayPanelPalette.Light);
         var stop = Target(panel, PanelTargetKind.Stop, state.AppHosts[0]);
 
@@ -308,6 +339,255 @@ public class TrayPanelTests
         var panel = new TrayPanel(TrayPanelSamples.Typical(), TrayPanelPalette.Light);
 
         Assert.Equal(PanelActionKind.Close, panel.Key(PanelKey.Escape).Action?.Kind);
+    }
+
+    [Fact]
+    public void StopReplacesTheRowWithAnInlineConfirmationFocusedOnCancel()
+    {
+        var state = TrayPanelSamples.Typical();
+        var panel = new TrayPanel(state, TrayPanelPalette.Light);
+        var host = state.AppHosts[1];
+
+        var response = Click(panel, Target(panel, PanelTargetKind.Stop, host).HitBounds);
+
+        Assert.True(response.Redraw);
+        Assert.Null(response.Action);
+        Assert.Equal(PanelConfirmKind.Stop, panel.Confirmation);
+        var scene = panel.Scene;
+        Assert.DoesNotContain(scene.Targets, target => target.Kind == PanelTargetKind.Row && target.Host == host);
+        Assert.Equal(
+            [PanelTargetKind.ConfirmDontAsk, PanelTargetKind.ConfirmCancel, PanelTargetKind.ConfirmAccept],
+            scene.Targets.Where(target => target.Host == host).Select(target => target.Kind));
+        Assert.Contains(scene.Commands.OfType<TextCommand>(), text => text.Text == $"Stop {host.DisplayName}?");
+        Assert.Equal(new PanelTargetKey(PanelTargetKind.ConfirmCancel, PanelSection.Running, host.Id), panel.FocusedTarget);
+        Assert.Null(panel.Key(PanelKey.Enter).Action);
+        Assert.Null(panel.Confirmation);
+        Assert.Equal(new PanelTargetKey(PanelTargetKind.Stop, PanelSection.Running, host.Id), panel.FocusedTarget);
+    }
+
+    [Fact]
+    public void ConfirmingStopReturnsStopWithTheDontAskAgainChoice()
+    {
+        var state = TrayPanelSamples.Typical();
+        var panel = new TrayPanel(state, TrayPanelPalette.Dark);
+        var host = state.AppHosts[0];
+        Click(panel, Target(panel, PanelTargetKind.Stop, host).HitBounds);
+
+        Click(panel, Target(panel, PanelTargetKind.ConfirmDontAsk, host).HitBounds);
+        Assert.True(panel.ConfirmationDontAskAgain);
+        var action = Click(panel, Target(panel, PanelTargetKind.ConfirmAccept, host).HitBounds).Action;
+
+        Assert.Equal(PanelActionKind.Stop, action?.Kind);
+        Assert.Equal(host, action?.Host);
+        Assert.True(action?.DontAskAgain);
+        Assert.Null(panel.Confirmation);
+    }
+
+    [Fact]
+    public void StopIsImmediateWhenConfirmationIsOff()
+    {
+        var state = TrayPanelSamples.Typical() with { ConfirmStop = false };
+        var panel = new TrayPanel(state, TrayPanelPalette.Light);
+
+        var action = Click(panel, Target(panel, PanelTargetKind.Stop, state.AppHosts[0]).HitBounds).Action;
+
+        Assert.Equal(PanelActionKind.Stop, action?.Kind);
+        Assert.False(action?.DontAskAgain);
+        Assert.Null(panel.Confirmation);
+    }
+
+    [Fact]
+    public void EscapeCancelsAConfirmationBeforeClosingThePanel()
+    {
+        var state = TrayPanelSamples.Typical();
+        var panel = new TrayPanel(state, TrayPanelPalette.Light);
+        Click(panel, Target(panel, PanelTargetKind.Stop, state.AppHosts[0]).HitBounds);
+
+        var first = panel.Key(PanelKey.Escape);
+
+        Assert.True(first.Redraw);
+        Assert.Null(first.Action);
+        Assert.Null(panel.Confirmation);
+        Assert.Equal(PanelActionKind.Close, panel.Key(PanelKey.Escape).Action?.Kind);
+    }
+
+    [Fact]
+    public void CancelButtonDismissesTheConfirmation()
+    {
+        var state = TrayPanelSamples.Typical();
+        var panel = new TrayPanel(state, TrayPanelPalette.Light);
+        Click(panel, Target(panel, PanelTargetKind.Stop, state.AppHosts[0]).HitBounds);
+
+        var response = Click(panel, Target(panel, PanelTargetKind.ConfirmCancel, state.AppHosts[0]).HitBounds);
+
+        Assert.Null(response.Action);
+        Assert.Null(panel.Confirmation);
+        Assert.Contains(panel.Scene.Targets, target => target.Kind == PanelTargetKind.Row && target.Host == state.AppHosts[0]);
+    }
+
+    [Fact]
+    public void ActingOnAnotherTargetAbandonsTheConfirmation()
+    {
+        var state = TrayPanelSamples.Typical();
+        var panel = new TrayPanel(state, TrayPanelPalette.Light);
+        Click(panel, Target(panel, PanelTargetKind.Stop, state.AppHosts[0]).HitBounds);
+
+        var action = Click(panel, panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.Documentation).HitBounds).Action;
+
+        Assert.Equal(PanelActionKind.Documentation, action?.Kind);
+        Assert.Null(panel.Confirmation);
+    }
+
+    [Fact]
+    public void ConfirmationIsDroppedWhenItsAppHostGoesAway()
+    {
+        var state = TrayPanelSamples.Typical();
+        var panel = new TrayPanel(state, TrayPanelPalette.Light);
+        Click(panel, Target(panel, PanelTargetKind.Stop, state.AppHosts[0]).HitBounds);
+
+        panel.Update(state with { AppHosts = state.AppHosts.Skip(1).ToArray() });
+        _ = panel.Scene;
+
+        Assert.Null(panel.Confirmation);
+    }
+
+    [Fact]
+    public void ClearRecentAsksInlineAndReturnsClearRecentWhenConfirmed()
+    {
+        var panel = new TrayPanel(TrayPanelSamples.Typical(), TrayPanelPalette.Light);
+
+        var response = Click(panel, panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.ClearRecent).HitBounds);
+
+        Assert.Null(response.Action);
+        Assert.Equal(PanelConfirmKind.ClearRecent, panel.Confirmation);
+        var texts = panel.Scene.Commands.OfType<TextCommand>().Select(text => text.Text).ToList();
+        Assert.Contains("Clear recent AppHosts?", texts);
+        Assert.Contains("Pinned AppHosts are kept.", texts);
+        Assert.DoesNotContain(panel.Scene.Targets, target => target.Kind is PanelTargetKind.ToggleRecent or PanelTargetKind.ConfirmDontAsk);
+        Assert.Equal(new PanelTargetKey(PanelTargetKind.ConfirmCancel, PanelSection.Recent, null), panel.FocusedTarget);
+        var accept = panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.ConfirmAccept);
+        Assert.Equal(PanelActionKind.ClearRecent, Click(panel, accept.HitBounds).Action?.Kind);
+        Assert.Null(panel.Confirmation);
+    }
+
+    [Fact]
+    public void MissingRecentAppHostIsOfferedForRemovalInline()
+    {
+        var state = TrayPanelSamples.Typical();
+        var panel = new TrayPanel(state, TrayPanelPalette.Light);
+        var missing = state.RecentAppHosts[1];
+
+        panel.ConfirmRemoveMissing(missing);
+
+        Assert.True(panel.IsRecentExpanded);
+        Assert.Equal(PanelConfirmKind.RemoveMissing, panel.Confirmation);
+        Assert.Contains(panel.Scene.Commands.OfType<TextCommand>(), text => text.Text == missing.Id.AppHostPath);
+        var action = Click(panel, Target(panel, PanelTargetKind.ConfirmAccept, missing).HitBounds).Action;
+        Assert.Equal(PanelActionKind.RemoveRecent, action?.Kind);
+        Assert.Equal(missing, action?.Host);
+        Assert.True(action?.Recent);
+    }
+
+    [Fact]
+    public void SettingsViewShowsTogglesAndReturnsTheirNewValues()
+    {
+        var panel = new TrayPanel(TrayPanelSamples.Typical(), TrayPanelPalette.Light);
+        Assert.Equal(PanelActionKind.Settings, Click(panel, panel.Scene.Targets.Single(t => t.Kind == PanelTargetKind.Settings).HitBounds).Action?.Kind);
+        Assert.False(panel.IsSettingsOpen);
+
+        panel.ShowSettings(new(new TrayStartupState(false, true, null), null, Preview: false));
+
+        Assert.True(panel.IsSettingsOpen);
+        Assert.DoesNotContain(panel.Scene.Targets, target => target.Kind == PanelTargetKind.Row);
+        Assert.Equal(new PanelTargetKey(PanelTargetKind.Back, PanelSection.None, null), panel.FocusedTarget);
+        var launch = panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.LaunchAtSignIn);
+        Assert.Equal("Launch at sign-in, off", launch.AccessibleName);
+        var setLaunch = Click(panel, launch.HitBounds).Action;
+        Assert.Equal(PanelActionKind.SetLaunchAtSignIn, setLaunch?.Kind);
+        Assert.True(setLaunch?.Enabled);
+        var setConfirm = Click(panel, panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.ConfirmStopSetting).HitBounds).Action;
+        Assert.Equal(PanelActionKind.SetConfirmStop, setConfirm?.Kind);
+        Assert.False(setConfirm?.Enabled);
+        var texts = panel.Scene.Commands.OfType<TextCommand>().Select(text => text.Text).ToList();
+        Assert.Contains(TraySettingsText.GetAboutDescription(preview: false), texts);
+        Assert.Contains(texts, text => text.StartsWith("Version: ", StringComparison.Ordinal));
+
+        panel.UpdateSettings(new(new TrayStartupState(true, true, null), null, Preview: false));
+        Assert.Equal("Launch at sign-in, on", panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.LaunchAtSignIn).AccessibleName);
+    }
+
+    [Fact]
+    public void LaunchAtSignInCannotBeTurnedOnWithoutAStableInstallation()
+    {
+        var panel = new TrayPanel(TrayPanelSamples.Typical(), TrayPanelPalette.Light);
+        panel.ShowSettings(new(new TrayStartupState(false, false, null), null, Preview: false));
+
+        var launch = panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.LaunchAtSignIn);
+
+        Assert.False(launch.Enabled);
+        Assert.Null(Click(panel, launch.HitBounds).Action);
+        Assert.Contains(panel.Scene.Commands.OfType<TextCommand>(), text => text.Text == TraySettingsText.StableNativeInstallationRequired);
+    }
+
+    [Fact]
+    public void SettingsErrorsAreShownUnderTheToggle()
+    {
+        var panel = new TrayPanel(TrayPanelSamples.Typical(), TrayPanelPalette.Light);
+        panel.ShowSettings(new(null, "Could not read launch at sign-in: denied", Preview: false));
+
+        var launch = panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.LaunchAtSignIn);
+
+        Assert.False(launch.Enabled);
+        Assert.Contains(panel.Scene.Commands.OfType<TextCommand>(),
+            text => text.Text == "Could not read launch at sign-in: denied" && text.Color == TrayPanelPalette.Light.Danger);
+    }
+
+    [Fact]
+    public void BackAndEscapeLeaveSettingsAndRestoreTheList()
+    {
+        var panel = new TrayPanel(TrayPanelSamples.Many(), TrayPanelPalette.Light) { MaxHeight = 400 };
+        panel.Scroll(-120);
+        var scroll = panel.ScrollOffset;
+        panel.ShowSettings(new(new TrayStartupState(false, true, null), null, Preview: false));
+        Assert.Equal(0, panel.ScrollOffset);
+
+        var escape = panel.Key(PanelKey.Escape);
+
+        Assert.Null(escape.Action);
+        Assert.False(panel.IsSettingsOpen);
+        Assert.Equal(scroll, panel.ScrollOffset);
+        Assert.Equal(new PanelTargetKey(PanelTargetKind.Settings, PanelSection.None, null), panel.FocusedTarget);
+
+        panel.ShowSettings(new(new TrayStartupState(false, true, null), null, Preview: false));
+        Assert.Null(Click(panel, panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.Back).HitBounds).Action);
+        Assert.False(panel.IsSettingsOpen);
+    }
+
+    [Fact]
+    public void ResetLeavesConfirmationsAndSettings()
+    {
+        var state = TrayPanelSamples.Typical();
+        var panel = new TrayPanel(state, TrayPanelPalette.Light);
+        Click(panel, Target(panel, PanelTargetKind.Stop, state.AppHosts[0]).HitBounds);
+        panel.Reset();
+        Assert.Null(panel.Confirmation);
+
+        panel.ShowSettings(new(null, null, Preview: false));
+        panel.Reset();
+        Assert.False(panel.IsSettingsOpen);
+    }
+
+    [Fact]
+    public void ToggleGlyphStaysInsideItsBox()
+    {
+        foreach (var on in new[] { true, false })
+        {
+            var commands = new List<PanelCommand>();
+            var box = new PanelRect(10, 20, 32, 18);
+            TrayPanelGlyphs.AddToggle(commands, on, enabled: true, box, TrayPanelPalette.Light);
+
+            Assert.All(commands, command => Assert.True(box.Inset(-0.5, -0.5).Contains(GetBounds(command)), $"{command}"));
+        }
     }
 
     [Fact]
@@ -516,7 +796,7 @@ public class TrayPanelTests
     [MemberData(nameof(SampleNames))]
     public void SvgRendererProducesWellFormedDocuments(string name)
     {
-        var svg = TrayPanelSvgRenderer.Render(new TrayPanel(Sample(name), TrayPanelPalette.Dark).Scene);
+        var svg = TrayPanelSvgRenderer.Render(CreatePanel(name, TrayPanelPalette.Dark).Scene);
         var document = XDocument.Parse(svg);
 
         Assert.Equal("svg", document.Root!.Name.LocalName);
@@ -540,7 +820,7 @@ public class TrayPanelTests
         {
             foreach (var name in s_sampleNames)
             {
-                var panel = new TrayPanel(Sample(name), palette) { MaxHeight = 520 };
+                var panel = CreatePanel(name, palette, maxHeight: 520);
                 switch (name)
                 {
                     case "typical":

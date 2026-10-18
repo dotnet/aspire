@@ -89,6 +89,9 @@ internal sealed record TrayViewState(
     public IReadOnlyList<AppHostMenuItem> RecentAppHosts { get; init; } = [];
     public bool CanClearRecent { get; init; }
 
+    /// <summary>Whether a stop must be confirmed first, the persisted "Confirm before stopping" preference.</summary>
+    public bool ConfirmStop { get; init; } = true;
+
     /// <summary>
     /// A problem worth a banner in the panel: a storage or pin-probe failure, a failed action,
     /// or discovery being unavailable. Null when everything works, unlike <see cref="Status"/>.

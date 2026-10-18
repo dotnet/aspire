@@ -38,6 +38,37 @@ internal sealed partial class TrayApplication
                         }
                     }
                     break;
+                case ActionKind.StopConfirmed:
+                    if (!RequireCurrentRow(target.Id).CanStop)
+                    {
+                        throw new InvalidOperationException("Stop is no longer available for the selected AppHost.");
+                    }
+                    controller.RequestStop(controller.RequireLiveInstance(target.Id).Id);
+                    if (target.DontAskAgain)
+                    {
+                        controller.SetConfirmStop(false);
+                    }
+                    break;
+                case ActionKind.StartFromPanel:
+                    // A recent entry whose source file is gone becomes an inline removal prompt
+                    // in the panel instead of the dialog the native menu shows.
+                    if (_panel is not null && _panelVisible
+                        && controller.State.RecentAppHosts.FirstOrDefault(host => host.Id == target.Id) is { } recent
+                        && TrayAppHostPath.IsMissing(recent.Id.AppHostPath))
+                    {
+                        ApplyPanelResponse(_panel.ConfirmRemoveMissing(recent));
+                        break;
+                    }
+                    goto case ActionKind.Start;
+                case ActionKind.ClearRecentConfirmed:
+                    controller.ClearRecent();
+                    break;
+                case ActionKind.RemoveRecent:
+                    controller.RemoveRecent(target.Id.AppHostPath);
+                    break;
+                case ActionKind.SetConfirmStop:
+                    controller.SetConfirmStop(target.Enabled);
+                    break;
                 case ActionKind.Start:
                     RequireCurrentRow(target.Id);
                     if (RequireProjectFile(target.Id.AppHostPath))
@@ -73,7 +104,7 @@ internal sealed partial class TrayApplication
                     }
                     break;
                 case ActionKind.ClearRecent:
-                    if (Confirm("Clear Recently Opened", "Clear all recently opened AppHosts?\n\nThis action is irreversible. Pinned AppHosts will be kept."))
+                    if (Confirm("Clear recently opened AppHosts?", "Pinned AppHosts are kept. This can't be undone.", "Clear"))
                     {
                         controller.ClearRecent();
                     }
@@ -134,7 +165,7 @@ internal sealed partial class TrayApplication
         }
         else if (controller.State.RecentAppHosts.Any(host => TrayAppHostPath.Comparer.Equals(host.Id.AppHostPath, path)))
         {
-            if (Confirm("AppHost not found", $"This AppHost no longer exists:\n\n{path}\n\nRemove it from Recently Opened?"))
+            if (Confirm("AppHost not found", $"This AppHost no longer exists:\n{path}\n\nRemove it from recently opened AppHosts?", "Remove"))
             {
                 controller.RemoveRecent(path);
             }
@@ -144,33 +175,6 @@ internal sealed partial class TrayApplication
             throw new FileNotFoundException("The selected AppHost source file no longer exists.", path);
         }
         return false;
-    }
-
-    private bool Confirm(string title, string detail)
-    {
-        var previousOwner = _modalOwner;
-        _modalOwner = _settingsWindow != 0 ? _settingsWindow : _window;
-        _modalDepth++;
-        try
-        {
-            if (smokeSeconds is not null && !_interactiveSmoke)
-            {
-                var accept = ConfirmForSmoke?.Invoke(title, detail, NativeMethods.SafeConfirmation)
-                    ?? throw new InvalidOperationException("Smoke confirmation handler is missing.");
-                _smokeDialog = new(2, accept ? 1 : 2);
-            }
-            var result = NativeMethods.MessageBox(_modalOwner, detail, title, NativeMethods.SafeConfirmation);
-            NativeCallException.Require(result != 0, "MessageBoxW(confirm)");
-            return result == 1 && !_quitRequested;
-        }
-        finally
-        {
-            _smokeDialog = null;
-            DialogReadyForSmoke = null;
-            _modalDepth--;
-            _modalOwner = previousOwner;
-            RequestRefresh();
-        }
     }
 
     private void ShowMessage(string title, string detail, uint flags)

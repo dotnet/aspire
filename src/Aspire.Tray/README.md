@@ -98,6 +98,20 @@ The keyboard works too: Up/Down and Home/End move between rows, Tab and Shift-Ta
 also reach the row buttons, Enter or Space activates, and Escape closes the panel.
 Clicking elsewhere closes it, like a menu.
 
+The panel asks for confirmation inline instead of opening dialogs. **Stop** (while
+**Confirm before stopping** is on) turns the row into a strip reading "Stop *name*?"
+with **Cancel**, **Stop**, and a **Don't ask again** toggle; **Clear** turns the Recent
+header into "Clear recent AppHosts? Pinned AppHosts are kept."; and **Start** on a
+recent AppHost whose source file is gone offers to remove it. Focus starts on
+**Cancel**, Escape cancels, and clicking anything else abandons the confirmation. The
+strip goes away by itself if its AppHost stops or the recent list is cleared elsewhere.
+
+The gear opens a **Settings** view inside the panel, with a back arrow: a **Launch at
+sign-in** toggle (backed by the same registration as the native Settings window, and
+disabled with an explanation when unavailable), a **Confirm before stopping** toggle
+(the stored `confirmStop` preference), and the version and About text. Escape or the
+back arrow returns to the list.
+
 Everything except drawing is shared code in `Common/`: `TrayPanel` turns the view state
 and interaction state into a display list (paths, text boxes, the logo, clips) and hit
 targets in device-independent pixels. All glyphs are vector paths defined there. The
@@ -111,12 +125,15 @@ the macOS **Increase contrast** setting, and the Windows high-contrast theme.
 
 The custom-drawn panel is not exposed to VoiceOver or UI Automation. The native menu
 remains the accessible and complete path: a right click, Control-click on macOS,
-keyboard activation of the icon, or VoiceOver's press action opens it.
+keyboard activation of the icon, or VoiceOver's press action opens it. That path keeps
+native confirmations (`NSAlert` on macOS, task dialogs on Windows) and the native
+Settings window.
 
 To preview the panel without running the tray, run the panel tests with
 `ASPIRE_TRAY_PANEL_PREVIEW_DIR` set. They write SVG images of the light and dark
 themes for several states (typical, problems, empty, connecting, disconnected, many
-rows), drawn from the same display list:
+rows, the three inline confirmations, and the Settings view), drawn from the same
+display list:
 
 ```sh
 ASPIRE_TRAY_PANEL_PREVIEW_DIR="$PWD/artifacts/tray-panel" \
@@ -320,7 +337,8 @@ on Windows), separately from sign-in registration. Like the CLI's global
 configuration, this uses the installation's Aspire home when defined, otherwise
 `ASPIRE_HOME` when set, then `~/.aspire`. The filename is `tray/apphosts.json`
 under that home, outside the versioned bundle cache. To restore the
-warning, quit the tray, set `confirmStop` to `true` (or remove that property), then
+warning, turn on **Confirm before stopping** in the flyout panel's Settings view, or
+quit the tray, set `confirmStop` to `true` (or remove that property), then
 restart it. History, pins, and Stop-confirmation preferences from the former OS
 application-data location are imported when the new file does not exist. The old
 file is left intact; an existing new file always takes precedence. Quit before editing that state
@@ -401,7 +419,10 @@ Windows identity matching remains case-insensitive and still requires the exact 
 and process start time. **Copy path** copies the complete original containing folder path. The final
 details entry and its tooltip refresh when status changes, including while the menu is open.
 
-The Windows adapter uses native popup menus and confirmation dialogs.
+The Windows adapter uses native popup menus and confirmation task dialogs
+(`TaskDialogIndirect`): a main instruction, an explanation, the destructive button
+(**Stop AppHost**, **Clear**, or **Remove**) and **Cancel**, which is the default. The
+Stop dialog adds an unchecked **Don't ask again** verification checkbox.
 Its embedded Common Controls v6 manifest enables Windows visual styles in both
 managed and NativeAOT builds. Settings uses a compact classic dialog with 9-point
 Segoe UI text, same-size bold General and About headings, native section separators,
@@ -457,7 +478,8 @@ The publishing helper also validates the original icon and native PE architectur
 Smoke requires an interactive Windows desktop with Explorer. It exercises real
 menus, the final divided status/path entries (text limits, ordering, and disabled state),
 full-value details tooltips (native hover selection, live/stale refresh, focus, and dismissal),
-safe-default dialogs including the native Stop suppression checkbox,
+safe-default task dialogs (answered by button ID through `TDM_CLICK_BUTTON`) including
+the Stop **Don't ask again** verification checkbox,
 Cancel/stale-instance suppression safeguards, subsequent prompt skipping,
 exact path copying (including missing files and Unicode), immutable actions,
 pin/history operations, color-coded AppHost rows, Documentation/Settings-only command icons,
@@ -570,9 +592,13 @@ senders after menu closure, updates during genuine native menu tracking, and
 acknowledged hidden-icon restoration deferred until menus close.
 On macOS it also opens the flyout panel through the production path, checks
 that the window matches the shared layout and that Escape closes it, and verifies
-that the status item keeps no permanently attached menu. Set
+that the status item keeps no permanently attached menu. It also checks that Stop
+asks inline without a modal alert (focus on Cancel, Escape cancels), that the gear
+opens the Settings view and its launch-at-sign-in toggle round-trips through the
+in-memory store, and that the window resizes with each view. Set
 `ASPIRE_TRAY_SMOKE_PANEL_CAPTURE_DIR` to an absolute directory to also write PNGs
-of the panel rendered by AppKit (light, dark, and dark with hover).
+of the panel rendered by AppKit (light, dark, dark with hover, the Stop confirmation,
+and the Settings view in light and dark).
 It never opens a browser or starts/stops real AppHosts and exits automatically.
 Smoke bypasses the normal singleton lock, so it can run alongside the tray.
 

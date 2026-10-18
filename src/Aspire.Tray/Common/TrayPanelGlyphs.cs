@@ -25,6 +25,7 @@ internal enum PanelIcon
     Book,
     ChevronDown,
     ChevronRight,
+    ChevronLeft,
     Alert,
     Layers
 }
@@ -39,6 +40,8 @@ internal static class TrayPanelGlyphs
     public const double StatusDesignSize = 20;
     public const double IconDesignSize = 16;
     public const double ArtDesignSize = 32;
+    public const double ToggleDesignWidth = 32;
+    public const double ToggleDesignHeight = 18;
 
     public static void AddStatus(List<PanelCommand> commands, PanelStatusGlyph glyph, PanelRect bounds, TrayPanelPalette palette)
     {
@@ -136,6 +139,9 @@ internal static class TrayPanelGlyphs
             case PanelIcon.ChevronRight:
                 Stroke(new PanelPath().MoveTo(6.25, 4.5).LineTo(9.75, 8).LineTo(6.25, 11.5), 1.5);
                 break;
+            case PanelIcon.ChevronLeft:
+                Stroke(new PanelPath().MoveTo(9.75, 4.5).LineTo(6.25, 8).LineTo(9.75, 11.5), 1.5);
+                break;
             case PanelIcon.Alert:
                 Stroke(new PanelPath().MoveTo(8, 2.5).LineTo(14.25, 13.25).LineTo(1.75, 13.25).Close(), 1.4);
                 Stroke(new PanelPath().MoveTo(8, 6.6).LineTo(8, 9.4), 1.5);
@@ -151,6 +157,34 @@ internal static class TrayPanelGlyphs
         void Fill(PanelPath path) => commands.Add(new FillPathCommand(path.Transform(scale, bounds.X, bounds.Y), color));
         void Stroke(PanelPath path, double width)
             => commands.Add(new StrokePathCommand(path.Transform(scale, bounds.X, bounds.Y), color, width * scale));
+    }
+
+    /// <summary>
+    /// Draws a toggle switch in a 32 × 18 design box: a pill track, accent when on and a faint
+    /// neutral when off, with a knob on the matching side. The knob position, not only the
+    /// color, tells on from off. A disabled switch is drawn at reduced opacity.
+    /// </summary>
+    public static void AddToggle(List<PanelCommand> commands, bool on, bool enabled, PanelRect bounds, TrayPanelPalette palette)
+    {
+        var scale = bounds.Width / ToggleDesignWidth;
+        var opacity = enabled ? 1 : 0.45;
+        var track = new PanelRect(0, 0, ToggleDesignWidth, ToggleDesignHeight);
+        var trackColor = on ? palette.Accent : palette.Neutral.WithAlpha(0.35);
+        commands.Add(new FillPathCommand(PanelPath.RoundedRect(track, 9).Transform(scale, bounds.X, bounds.Y),
+            trackColor.WithAlpha(trackColor.Alpha * opacity)));
+        if (!on || palette.IsHighContrast)
+        {
+            // Outline the track so the off state stays visible on any background.
+            commands.Add(new StrokePathCommand(PanelPath.RoundedRect(track.Inset(0.5, 0.5), 8.5).Transform(scale, bounds.X, bounds.Y),
+                palette.Neutral.WithAlpha(0.6 * opacity), scale));
+        }
+        commands.Add(new FillPathCommand(PanelPath.Circle(on ? 23 : 9, 9, 6.5).Transform(scale, bounds.X, bounds.Y),
+            palette.OnColor.WithAlpha(enabled ? 1 : 0.7)));
+        if (!on)
+        {
+            commands.Add(new StrokePathCommand(PanelPath.Circle(9, 9, 6.5).Transform(scale, bounds.X, bounds.Y),
+                palette.Neutral.WithAlpha(0.5 * opacity), 0.75 * scale));
+        }
     }
 
     /// <summary>

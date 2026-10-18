@@ -273,24 +273,39 @@ internal sealed partial class MacTrayApplication
                 OpenDashboard(action.Host!.Id);
                 break;
             case PanelActionKind.Stop:
-                StopAppHost(action.Host!.Id);
+                // The panel confirmed inline (or confirmation is off): no NSAlert here.
+                StopAppHostWithoutConfirmation(action.Host!.Id, action.DontAskAgain);
                 break;
             case PanelActionKind.Start:
-                RunAction(() => StartAppHost(action.Host!.Id.AppHostPath));
+                RunAction(() => StartFromPanel(action));
                 break;
             case PanelActionKind.More:
                 ShowRowMenu(action);
                 break;
             case PanelActionKind.ClearRecent:
-                RunAction(ClearRecent);
+                RunAction(_controller.ClearRecent);
+                break;
+            case PanelActionKind.RemoveRecent:
+                RunAction(() => _controller.RemoveRecent(action.Host!.Id.AppHostPath));
                 break;
             case PanelActionKind.Documentation:
                 HidePanel();
                 RunAction(() => _openDashboard(new Uri("https://aspire.dev")));
                 break;
             case PanelActionKind.Settings:
-                HidePanel();
-                RunAction(ShowSettings);
+                ApplyPanelResponse(_panel!.ShowSettings(PanelSettings.Read(_startupSettings, _interactiveSmoke, LogStartupReadFailure)));
+                break;
+            case PanelActionKind.SetLaunchAtSignIn:
+                ApplyPanelResponse(_panel!.UpdateSettings(PanelSettings.SetLaunchAtSignIn(_startupSettings, action.Enabled, _interactiveSmoke,
+                    static ex => LogFailure("Unable to change launch-at-sign-in settings", ex))));
+                if (_settingsWindow != 0)
+                {
+                    // Keep an open native Settings window in sync with the panel's toggle.
+                    ReloadStartupSettings();
+                }
+                break;
+            case PanelActionKind.SetConfirmStop:
+                RunAction(() => _controller.SetConfirmStop(action.Enabled));
                 break;
             case PanelActionKind.Quit:
                 HidePanel();
@@ -300,6 +315,24 @@ internal sealed partial class MacTrayApplication
                 HidePanel();
                 break;
         }
+    }
+
+    private static void LogStartupReadFailure(Exception exception) => LogFailure("Unable to read launch-at-sign-in settings", exception);
+
+    /// <summary>
+    /// Starts a pinned or recent AppHost from the panel. A recent entry whose source file is gone
+    /// turns into an inline removal prompt instead of the NSAlert the native menu shows.
+    /// </summary>
+    private void StartFromPanel(PanelAction action)
+    {
+        var path = action.Host!.Id.AppHostPath;
+        if (action.Recent && TrayAppHostPath.IsMissing(path)
+            && _controller.State.RecentAppHosts.FirstOrDefault(host => host.Id.AppHostPath == path) is { } recent)
+        {
+            ApplyPanelResponse(_panel!.ConfirmRemoveMissing(recent));
+            return;
+        }
+        StartAppHost(path);
     }
 
     private void ShowRowMenu(PanelAction action)
@@ -625,6 +658,56 @@ internal sealed partial class MacTrayApplication
                 AppKit.Set(_panelView, "setAppearance:", 0);
                 _panel.Palette = GetPanelPalette();
             }
+
+            // Stop asks inline: the row turns into a confirmation strip and no NSAlert opens.
+            // Escape cancels it and keeps the panel open.
+            var modalDepth = _modalDepth;
+            if (_controller.ConfirmStop && _panel.Scene.Targets.FirstOrDefault(target => target is { Kind: PanelTargetKind.Stop, Enabled: true }) is { } stop)
+            {
+                ClickPanelForSmoke(stop);
+                Require(_panel.Confirmation == PanelConfirmKind.Stop && _modalDepth == modalDepth && _panelVisible,
+                    "Stop must ask inline in the panel, without a modal alert.");
+                Require(_panel.FocusedTarget?.Kind == PanelTargetKind.ConfirmCancel, "The inline confirmation must focus Cancel.");
+                RequireWindowMatchesScene();
+                if (captureDirectory is not null)
+                {
+                    captures.Add(CapturePanel(Path.Combine(captureDirectory, "panel-confirm-stop.png")));
+                }
+                ApplyPanelResponse(_panel.Key(PanelKey.Escape));
+                Require(_panel.Confirmation is null && _panelVisible, "Escape must cancel the inline confirmation and keep the panel open.");
+            }
+
+            // The gear opens Settings inside the panel; its toggle round-trips through the
+            // startup settings (an isolated in-memory store during smoke).
+            ClickPanelForSmoke(_panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.Settings));
+            Require(_panel.IsSettingsOpen && _panelVisible
+                && (_settingsWindow == 0 || AppKit.GetBool(_settingsWindow, AppKit.Selector("isVisible")) == 0),
+                "The gear must open the Settings view inside the panel, not the Settings window.");
+            RequireWindowMatchesScene();
+            var launch = _panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.LaunchAtSignIn);
+            if (launch.Enabled)
+            {
+                var before = _startupSettings.Read().Enabled;
+                ClickPanelForSmoke(launch);
+                Require(_startupSettings.Read().Enabled != before, "The Settings view toggle must change launch at sign-in.");
+                ClickPanelForSmoke(_panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.LaunchAtSignIn));
+                Require(_startupSettings.Read().Enabled == before, "The Settings view toggle must change launch at sign-in back.");
+            }
+            if (captureDirectory is not null)
+            {
+                foreach (var (name, appearance) in new[] { ("light", "NSAppearanceNameAqua"), ("dark", "NSAppearanceNameDarkAqua") })
+                {
+                    AppKit.Set(_panelView, "setAppearance:", AppKit.Get(AppKit.Class("NSAppearance"), "appearanceNamed:", AppKit.Constant(appearance)));
+                    _panel.Palette = GetPanelPalette();
+                    captures.Add(CapturePanel(Path.Combine(captureDirectory, $"panel-settings-{name}.png")));
+                }
+                AppKit.Set(_panelView, "setAppearance:", 0);
+                _panel.Palette = GetPanelPalette();
+            }
+            ApplyPanelResponse(_panel.Key(PanelKey.Escape));
+            Require(!_panel.IsSettingsOpen && _panelVisible, "Escape must leave the Settings view and keep the panel open.");
+            RequireWindowMatchesScene();
+
             var escape = _panel.Key(PanelKey.Escape);
             ApplyPanelResponse(escape);
             Require(!_panelVisible && AppKit.GetBool(_panelWindow, AppKit.Selector("isVisible")) == 0, "Escape must close the panel.");
@@ -635,6 +718,12 @@ internal sealed partial class MacTrayApplication
             HidePanel();
         }
 
+        void RequireWindowMatchesScene()
+        {
+            var height = AppKit.GetRect(_panelWindow, "frame").Size.Height;
+            Require(Math.Abs(height - _panel!.Scene.Height) < 0.5, $"The panel window ({height}) must resize to the scene ({_panel.Scene.Height}).");
+        }
+
         static void Require(bool condition, string message)
         {
             if (!condition)
@@ -642,6 +731,14 @@ internal sealed partial class MacTrayApplication
                 throw new InvalidOperationException(message);
             }
         }
+    }
+
+    private void ClickPanelForSmoke(PanelHitTarget target)
+    {
+        var (x, y) = (target.HitBounds.CenterX, target.HitBounds.CenterY);
+        ApplyPanelResponse(_panel!.PointerMoved(x, y));
+        ApplyPanelResponse(_panel.PointerDown(x, y));
+        ApplyPanelResponse(_panel.PointerUp(x, y));
     }
 
     private string CapturePanel(string path)
