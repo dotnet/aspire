@@ -18,6 +18,7 @@ internal sealed class TerminalResourceResolver(IInteractionService interactionSe
     public async Task<(string ResourceName, TerminalReplicaInfo? Replica)> ResolveAsync(
         IAppHostAuxiliaryBackchannel connection,
         string resourceName,
+        int? requestedReplica,
         CancellationToken cancellationToken)
     {
         var snapshots = await interactionService.ShowStatusAsync(
@@ -32,7 +33,7 @@ internal sealed class TerminalResourceResolver(IInteractionService interactionSe
             return (resourceName, null);
         }
 
-        if (matches.Count > 1)
+        if (matches.Count > 1 && requestedReplica is null)
         {
             interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture,
                 TerminalCommandStrings.ResourceAmbiguous, resourceName,
@@ -55,6 +56,20 @@ internal sealed class TerminalResourceResolver(IInteractionService interactionSe
             interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture,
                 TerminalCommandStrings.TerminalUnavailable, canonicalName));
             return (canonicalName, null);
+        }
+
+        // Preserve explicit numeric selection for callers using the hidden legacy option.
+        if (requestedReplica is { } requestedIndex)
+        {
+            var match = Array.Find(replicas, r => r.ReplicaIndex == requestedIndex);
+            if (match is null)
+            {
+                interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture,
+                    TerminalCommandStrings.ReplicaNotFound, requestedIndex, canonicalName,
+                    string.Join(", ", replicas.Select(r => r.ReplicaIndex.ToString(CultureInfo.InvariantCulture)))));
+            }
+
+            return (canonicalName, match);
         }
 
         if (replicas.Length > 1 && string.Equals(resourceName, canonicalName, StringComparisons.ResourceName))

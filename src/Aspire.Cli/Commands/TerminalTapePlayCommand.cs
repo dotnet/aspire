@@ -39,6 +39,11 @@ internal sealed class TerminalTapePlayCommand : BaseCommand
     };
     private readonly OptionWithLegacy<FileInfo?> _appHostOption =
         new("--apphost", "--project", SharedCommandStrings.AppHostOptionDescription);
+    // Keep legacy numeric selection consistent with terminal attach.
+    private readonly Option<int?> _replicaOption = new("--replica", "-r")
+    {
+        Hidden = true
+    };
     private readonly Option<int> _timeoutOption = new("--timeout")
     {
         Description = TerminalCommandStrings.TapeTimeoutDescription,
@@ -59,6 +64,7 @@ internal sealed class TerminalTapePlayCommand : BaseCommand
         Arguments.Add(_resourceArgument);
         Options.Add(_tapeFileOption);
         Options.Add(_appHostOption);
+        Options.Add(_replicaOption);
         Options.Add(_timeoutOption);
     }
 
@@ -115,7 +121,7 @@ internal sealed class TerminalTapePlayCommand : BaseCommand
         }
 
         var (canonicalName, replica) = await _terminalResolver.ResolveAsync(
-            connectionResult.Connection, resourceName, cancellationToken).ConfigureAwait(false);
+            connectionResult.Connection, resourceName, parseResult.GetValue(_replicaOption), cancellationToken).ConfigureAwait(false);
         if (replica is null)
         {
             return CommandResult.Failure(CliExitCodes.InvalidCommand);

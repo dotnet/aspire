@@ -23,7 +23,7 @@ namespace Aspire.Cli.Commands;
 /// <item>Verifies the AppHost advertises the <c>terminals.v1</c> capability.</item>
 /// <item>Looks up the resource (by Name or DisplayName) and asks the AppHost for the
 ///   list of terminal replicas via <see cref="IAppHostAuxiliaryBackchannel.GetTerminalInfoAsync"/>.</item>
-/// <item>Resolves exactly one resource instance, rejecting ambiguous display names.</item>
+/// <item>Resolves a resource instance, retaining hidden numeric replica selection for older callers.</item>
 /// <item>Hands the local console off to <see cref="TerminalViewerApp"/>, which owns the
 ///   embedded HMP v1 wire-up and the role-aware InfoBar TUI.</item>
 /// </list>
@@ -45,6 +45,12 @@ internal sealed class TerminalAttachCommand : BaseCommand
     private static readonly OptionWithLegacy<FileInfo?> s_appHostOption =
         new("--apphost", "--project", SharedCommandStrings.AppHostOptionDescription);
 
+    // Older VS Code extensions still pass a numeric replica index.
+    private static readonly Option<int?> s_replicaOption = new("--replica", "-r")
+    {
+        Hidden = true
+    };
+
     private static readonly Option<bool> s_viewerOption = new("--viewer")
     {
         Description = "Connect as a viewer (secondary) instead of taking primary control. Viewers see the terminal output but do not drive its dimensions. Useful when another peer (e.g., the dashboard) is currently driving the session."
@@ -64,6 +70,7 @@ internal sealed class TerminalAttachCommand : BaseCommand
 
         Arguments.Add(s_resourceArgument);
         Options.Add(s_appHostOption);
+        Options.Add(s_replicaOption);
         Options.Add(s_viewerOption);
     }
 
@@ -103,7 +110,7 @@ internal sealed class TerminalAttachCommand : BaseCommand
         }
 
         var (canonicalName, replica) = await _terminalResolver.ResolveAsync(
-            connection, resourceName, cancellationToken).ConfigureAwait(false);
+            connection, resourceName, parseResult.GetValue(s_replicaOption), cancellationToken).ConfigureAwait(false);
         if (replica is null)
         {
             return CommandResult.Failure(CliExitCodes.InvalidCommand);

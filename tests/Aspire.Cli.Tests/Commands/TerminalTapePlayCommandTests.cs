@@ -185,10 +185,14 @@ public class TerminalTapePlayCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Theory]
-    [InlineData(null)]
-    [InlineData(0)]
-    [InlineData(1)]
-    public async Task WaitsForProducerAndRefreshesSelectedReplicaBeforePlayback(int? exitCode)
+    [InlineData(null, "shell-def456")]
+    [InlineData(0, "shell-def456")]
+    [InlineData(1, "shell-def456")]
+    [InlineData(null, "shell --replica 1")]
+    [InlineData(null, "shell -r 1")]
+    [InlineData(null, "shell-def456 --replica 1")]
+    [InlineData(null, "shell-def456 -r 1")]
+    public async Task WaitsForProducerAndRefreshesSelectedReplicaBeforePlayback(int? exitCode, string resourceArguments)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         await using var host = await TerminalTapeTestHost.StartAsync(101, 37);
@@ -238,7 +242,7 @@ public class TerminalTapePlayCommandTests(ITestOutputHelper outputHelper)
         await File.WriteAllTextAsync(Path.Combine(workspace.WorkspaceRoot.FullName, "probe.tape"),
             "Set TypingSpeed 0\nType \"ready\"");
         var result = provider.GetRequiredService<RootCommand>().Parse(
-            "terminal tape play shell-def456 --tape-file probe.tape");
+            $"terminal tape play {resourceArguments} --tape-file probe.tape");
 
         var play = result.InvokeAsync();
         await time.TimerCreated.Task.DefaultTimeout();

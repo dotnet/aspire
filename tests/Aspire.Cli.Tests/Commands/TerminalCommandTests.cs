@@ -166,10 +166,10 @@ public class TerminalCommandTests(ITestOutputHelper outputHelper)
 
     [Theory]
     [InlineData("terminal attach myresource --replica 0")]
-    [InlineData("terminal attach myresource -r 0")]
+    [InlineData("terminal attach myresource -r 1")]
     [InlineData("terminal tape play myresource --tape-file probe.tape --replica 0")]
-    [InlineData("terminal tape play myresource --tape-file probe.tape -r 0")]
-    public void TerminalCommand_ReplicaOptionsFailParsing(string arguments)
+    [InlineData("terminal tape play myresource --tape-file probe.tape -r 1")]
+    public void TerminalCommand_LegacyReplicaOptionsAreAcceptedButHidden(string arguments)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
@@ -177,7 +177,50 @@ public class TerminalCommandTests(ITestOutputHelper outputHelper)
 
         var result = provider.GetRequiredService<RootCommand>().Parse(arguments);
 
-        Assert.NotEmpty(result.Errors);
+        Assert.Empty(result.Errors);
+        var replicaOption = Assert.Single(result.CommandResult.Command.Options, option => option.Name == "--replica");
+        Assert.True(replicaOption.Hidden);
+        Assert.Contains("-r", replicaOption.Aliases);
+    }
+
+    [Theory]
+    [InlineData("--replica")]
+    [InlineData("-r")]
+    public async Task TerminalAttachCommand_UnavailableLegacyReplica_ReturnsInvalidCommand(string option)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var interaction = new TestInteractionService();
+        var (provider, _) = CreateProviderWithBackchannel(
+            workspace,
+            backchannel =>
+            {
+                backchannel.ResourceSnapshots =
+                [
+                    CreateSnapshot("myresource-abc123", "myresource"),
+                    CreateSnapshot("myresource-def456", "myresource")
+                ];
+                backchannel.TerminalInfoResponse = new()
+                {
+                    IsAvailable = true,
+                    Replicas =
+                    [
+                        new() { ReplicaIndex = 0, Label = "myresource-0", ConsumerUdsPath = "unused", IsAlive = true },
+                        new() { ReplicaIndex = 1, Label = "myresource-1", ConsumerUdsPath = "unused", IsAlive = true }
+                    ]
+                };
+            },
+            options => options.InteractionServiceFactory = _ => interaction);
+        using (provider)
+        {
+            var result = provider.GetRequiredService<RootCommand>().Parse(
+                $"terminal attach myresource {option} 7");
+
+            Assert.Empty(result.Errors);
+            Assert.Equal(CliExitCodes.InvalidCommand, await result.InvokeAsync().DefaultTimeout());
+            Assert.Equal(
+                [string.Format(TerminalCommandStrings.ReplicaNotFound, 7, "myresource", "0, 1")],
+                interaction.DisplayedErrors);
+        }
     }
 
     [Fact]

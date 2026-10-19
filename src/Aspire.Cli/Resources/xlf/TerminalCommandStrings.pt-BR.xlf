@@ -17,6 +17,11 @@
         <target state="new">Looking up resource...</target>
         <note />
       </trans-unit>
+      <trans-unit id="ReplicaNotFound">
+        <source>Replica index {0} is not available for resource '{1}'. Available indices: {2}.</source>
+        <target state="new">Replica index {0} is not available for resource '{1}'. Available indices: {2}.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceAmbiguous">
         <source>Resource '{0}' matches multiple instances. Specify an exact instance ID. Available instance IDs: {1}.</source>
         <target state="new">Resource '{0}' matches multiple instances. Specify an exact instance ID. Available instance IDs: {1}.</target>

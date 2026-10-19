@@ -88,6 +88,15 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Replica index {0} is not available for resource &apos;{1}&apos;. Available indices: {2}..
+        /// </summary>
+        internal static string ReplicaNotFound {
+            get {
+                return ResourceManager.GetString("ReplicaNotFound", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Resource &apos;{0}&apos; matches multiple instances. Specify an exact instance ID. Available instance IDs: {1}..
         /// </summary>
         internal static string ResourceAmbiguous {

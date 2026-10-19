@@ -31,7 +31,7 @@ public class TerminalResourceResolverTests
         };
 
         var (_, replica) = await new TerminalResourceResolver(interaction)
-            .ResolveAsync(backchannel, "shell", CancellationToken.None).DefaultTimeout();
+            .ResolveAsync(backchannel, "shell", null, CancellationToken.None).DefaultTimeout();
 
         Assert.Null(replica);
         Assert.Equal(
@@ -61,7 +61,7 @@ public class TerminalResourceResolverTests
         };
 
         var (name, replica) = await new TerminalResourceResolver(interaction)
-            .ResolveAsync(backchannel, resourceName, CancellationToken.None).DefaultTimeout();
+            .ResolveAsync(backchannel, resourceName, null, CancellationToken.None).DefaultTimeout();
 
         Assert.Equal("shell", name);
         Assert.Same(endpoint, replica);
@@ -87,10 +87,84 @@ public class TerminalResourceResolverTests
         };
 
         var (_, replica) = await new TerminalResourceResolver(interaction)
-            .ResolveAsync(backchannel, "shell-def456", CancellationToken.None).DefaultTimeout();
+            .ResolveAsync(backchannel, "shell-def456", null, CancellationToken.None).DefaultTimeout();
 
         Assert.Same(selected, replica);
         Assert.Empty(interaction.DisplayedErrors);
+    }
+
+    [Theory]
+    [InlineData("shell", 0, false)]
+    [InlineData("shell", 1, true)]
+    [InlineData("shell-def456", 1, false)]
+    [InlineData("SHELL-DEF456", 1, true)]
+    [InlineData("shell-def456", 0, true)]
+    public async Task LegacyReplicaIndexSelectsEndpointWithoutInstanceMetadata(string resourceName, int requestedReplica, bool reverse)
+    {
+        var interaction = new TestInteractionService
+        {
+            PromptForSelectionCallback = (_, _, _, _) => throw new InvalidOperationException("Unexpected replica prompt.")
+        };
+        var first = new TerminalReplicaInfo { ReplicaIndex = 0, Label = "shell-0", ConsumerUdsPath = "first.sock", IsAlive = true };
+        var second = new TerminalReplicaInfo { ReplicaIndex = 1, Label = "shell-1", ConsumerUdsPath = "second.sock", IsAlive = true };
+        var backchannel = new TestAppHostAuxiliaryBackchannel
+        {
+            ResourceSnapshots =
+            [
+                new() { Name = "shell-abc123", DisplayName = "shell" },
+                new() { Name = "shell-def456", DisplayName = "shell" }
+            ],
+            GetTerminalInfoHandler = (name, _) =>
+            {
+                Assert.Equal("shell", name);
+                return Task.FromResult(new GetTerminalInfoResponse
+                {
+                    IsAvailable = true,
+                    Replicas = reverse ? [second, first] : [first, second]
+                });
+            }
+        };
+
+        var (name, replica) = await new TerminalResourceResolver(interaction)
+            .ResolveAsync(backchannel, resourceName, requestedReplica, CancellationToken.None).DefaultTimeout();
+
+        Assert.Equal("shell", name);
+        Assert.Same(requestedReplica == 0 ? first : second, replica);
+        Assert.Empty(interaction.DisplayedErrors);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(2)]
+    [InlineData(int.MaxValue)]
+    public async Task UnavailableLegacyReplicaIndexFailsExplicitly(int requestedReplica)
+    {
+        var interaction = new TestInteractionService();
+        var backchannel = new TestAppHostAuxiliaryBackchannel
+        {
+            ResourceSnapshots =
+            [
+                new() { Name = "shell-abc123", DisplayName = "shell" },
+                new() { Name = "shell-def456", DisplayName = "shell" }
+            ],
+            TerminalInfoResponse = new()
+            {
+                IsAvailable = true,
+                Replicas =
+                [
+                    new() { ReplicaIndex = 0, Label = "shell-0", ConsumerUdsPath = "unused", IsAlive = true },
+                    new() { ReplicaIndex = 1, Label = "shell-1", ConsumerUdsPath = "unused", IsAlive = true }
+                ]
+            }
+        };
+
+        var (_, replica) = await new TerminalResourceResolver(interaction)
+            .ResolveAsync(backchannel, "shell", requestedReplica, CancellationToken.None).DefaultTimeout();
+
+        Assert.Null(replica);
+        Assert.Equal(
+            [string.Format(TerminalCommandStrings.ReplicaNotFound, requestedReplica, "shell", "0, 1")],
+            interaction.DisplayedErrors);
     }
 
     [Theory]
@@ -121,7 +195,7 @@ public class TerminalResourceResolverTests
         };
 
         var (_, replica) = await new TerminalResourceResolver(interaction)
-            .ResolveAsync(backchannel, "shell-def456", CancellationToken.None).DefaultTimeout();
+            .ResolveAsync(backchannel, "shell-def456", null, CancellationToken.None).DefaultTimeout();
 
         Assert.Null(replica);
         Assert.Equal(
@@ -156,7 +230,7 @@ public class TerminalResourceResolverTests
         };
 
         var (_, replica) = await new TerminalResourceResolver(interaction)
-            .ResolveAsync(backchannel, "shell-def456", CancellationToken.None).DefaultTimeout();
+            .ResolveAsync(backchannel, "shell-def456", null, CancellationToken.None).DefaultTimeout();
 
         Assert.Null(replica);
         Assert.Equal(
@@ -183,7 +257,7 @@ public class TerminalResourceResolverTests
         };
 
         var (_, replica) = await new TerminalResourceResolver(interaction)
-            .ResolveAsync(backchannel, "shell-def456", CancellationToken.None).DefaultTimeout();
+            .ResolveAsync(backchannel, "shell-def456", null, CancellationToken.None).DefaultTimeout();
 
         Assert.Null(replica);
         Assert.Equal(
@@ -213,7 +287,7 @@ public class TerminalResourceResolverTests
         };
 
         var (_, replica) = await new TerminalResourceResolver(interaction)
-            .ResolveAsync(backchannel, "shell", CancellationToken.None).DefaultTimeout();
+            .ResolveAsync(backchannel, "shell", null, CancellationToken.None).DefaultTimeout();
 
         Assert.Null(replica);
         Assert.Equal(
@@ -234,7 +308,7 @@ public class TerminalResourceResolverTests
         };
 
         var (_, replica) = await new TerminalResourceResolver(interaction)
-            .ResolveAsync(backchannel, "shell-unknown", CancellationToken.None).DefaultTimeout();
+            .ResolveAsync(backchannel, "shell-unknown", null, CancellationToken.None).DefaultTimeout();
 
         Assert.Null(replica);
         Assert.Equal(

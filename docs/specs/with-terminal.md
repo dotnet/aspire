@@ -640,13 +640,18 @@ opens its own `Hmp1WorkloadAdapter` against the consumer UDS path
 returned by terminal discovery and renders frames into the host terminal via
 Hex1b's `Hex1bTerminal`. A singleton accepts its display name or exact instance
 ID. For a replicated resource, pass the exact instance ID, as shown by
-`aspire ps` or `aspire describe`. An ambiguous display name fails with a non-zero
-exit code and lists the available instance IDs in both interactive and
-non-interactive execution; it never prompts for a replica or picks a default.
-The `--replica` option and its `-r` alias are not supported.
+`aspire ps` or `aspire describe`. Without a legacy numeric option, an ambiguous
+display name fails with a non-zero exit code and lists the available instance IDs
+in both interactive and non-interactive execution; it never prompts for a replica
+or picks a default.
+The legacy `--replica` option and its `-r` alias are hidden from help but retain
+numeric replica selection for compatibility with older callers, including VS Code
+extensions. When supplied, the index explicitly selects the endpoint, including
+when the resource argument is an ambiguous display name. New callers should use
+exact instance IDs instead.
 
-The CLI retains the selected resource snapshot and uses its
-`terminal.replicaIndex` metadata to select the corresponding discovered endpoint.
+Without a legacy numeric option, the CLI retains the selected resource snapshot
+and uses its `terminal.replicaIndex` metadata to select the corresponding discovered endpoint.
 Missing or invalid metadata fails explicitly when the instance cannot otherwise
 be mapped unambiguously. Internal replica indices and the discovery protocol
 are unchanged.
