@@ -71,7 +71,7 @@ user-only permissions and no raw discovery payloads or dashboard URLs.
 The launcher opens the log relative to no-follow directory handles and passes
 the open descriptor to the GUI, rather than asking another process to reopen a
 log pathname. Symlinked log files or parent directories are rejected.
-Quit the tray using its original CLI or the panel's **Quit** before upgrading from an
+Quit the tray using its original CLI or the panel's **Quit** (**Exit** on Windows) before upgrading from an
 earlier preview. The state directory has been renamed; a still-running older
 preview uses a separate control endpoint and must be stopped before starting this build.
 
@@ -84,7 +84,11 @@ keyboard focus on its first control. There are no native menus. The panel is the
 same on macOS and Windows: a header with the Aspire logo and a one-line status
 ("3 running · 1 needs attention", "Connecting…") behind a colored connection dot, an
 optional banner for real problems (storage, discovery, or a failed action), the AppHost
-list, and a footer with **Documentation**, **Settings**, and **Quit**.
+list, and a footer with three icon buttons on the right: **Settings** (a gear),
+**Documentation** (a globe) and **Quit** (**Exit** on Windows, following each platform's
+convention). Quit closes only the tray: its tooltip and accessibility description say
+"Quit the tray. AppHosts keep running." Every icon-only button, in the footer and on the
+rows, shows a native tooltip naming its action.
 
 The list has **Running**, **Pinned**, and **Recent** sections. Recent is collapsed while
 other AppHosts are listed, and its header has a **Clear** button. Each row shows a
@@ -101,8 +105,8 @@ Windows Terminal or PowerShell on Windows), **Show in Finder** or **Show in File
 from recent** for a recent AppHost. It is drawn by the shared scene like the rest of the
 panel, so it looks the same on both platforms and screen readers see its items as buttons.
 Clicking **More** again, picking an item, or acting on anything else closes it.
-Clicking a row opens its dashboard, or its action list when it has none. The list scrolls
-when it is taller than the screen allows; the header and footer stay in place.
+Clicking a row itself does nothing, whether the AppHost runs or not; only its buttons act.
+The list scrolls when it is taller than the screen allows; the header and footer stay in place.
 The keyboard works too: Up/Down and Home/End move between rows and action list items, Tab
 and Shift-Tab also reach the row buttons, Enter or Space activates, and Escape closes the
 action list, then the panel. Command-comma on macOS or Ctrl+comma on Windows opens Settings,
@@ -353,7 +357,7 @@ platform. Availability depends on a supported, verified native CLI installation,
 executable signing. It is off by default. Opening Settings, reading the preference, and
 leaving it never register startup or launch anything. Enabling it starts only the
 companion at the next sign-in; it does not start pinned or recent AppHosts.
-**Quit** keeps the companion closed until the next sign-in or an explicit
+**Quit** (**Exit** on Windows) keeps the companion closed until the next sign-in or an explicit
 manual start.
 
 Startup invokes the selected CLI installation's stable entry point, which then
@@ -591,7 +595,7 @@ For a manual inspection, use `--smoke-seconds 120 --smoke-interactive`
 (or set `ASPIRE_TRAY_SMOKE_INTERACTIVE=1` with `--smoke-seconds 120`).
 After the automated checks pass, the harness leaves
 fake running AppHosts with healthy/waiting/failed states and a stopped, pinned
-example, and opens the panel; use its **Quit** button to close the preview. The watchdog
+example, and opens the panel; use its **Quit** (**Exit** on Windows) button to close the preview. The watchdog
 still bounds the automated checks but is removed when the interactive preview is ready.
 The Settings view's About text identifies the preview. History remains isolated from
 the normal tray. Copy Path uses the real clipboard in the interactive preview;

@@ -199,7 +199,7 @@ bundle or tray payload fails explicitly; install a platform-matching bundle cont
 companion rather than using a standalone CLI binary.
 
 Before upgrading from an older preview, quit its running companion using its
-**Quit** menu action. Preview single-instance identifiers have changed, so
+**Quit** action. Preview single-instance identifiers have changed, so
 `aspire tray stop` in this version does not manage an older preview's instance.
 
 ### AppHost snapshot output

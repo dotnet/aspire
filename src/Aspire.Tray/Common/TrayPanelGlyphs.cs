@@ -22,7 +22,6 @@ internal enum PanelIcon
     More,
     Gear,
     Power,
-    Book,
     ChevronDown,
     ChevronRight,
     ChevronLeft,
@@ -33,7 +32,8 @@ internal enum PanelIcon
     Copy,
     Pin,
     Unpin,
-    Remove
+    Remove,
+    Globe
 }
 
 /// <summary>
@@ -132,13 +132,6 @@ internal static class TrayPanelGlyphs
                 Stroke(new PanelPath().Arc(8, 8.5, 5.5, -60, 300), 1.5);
                 Stroke(new PanelPath().MoveTo(8, 2).LineTo(8, 7.5), 1.5);
                 break;
-            case PanelIcon.Book:
-                Stroke(new PanelPath().MoveTo(8, 4.6).CubicTo(6.6, 3.5, 4.4, 3.1, 2, 3.4).LineTo(2, 12)
-                    .CubicTo(4.4, 11.8, 6.6, 12.2, 8, 13.2)
-                    .MoveTo(8, 4.6).CubicTo(9.4, 3.5, 11.6, 3.1, 14, 3.4).LineTo(14, 12)
-                    .CubicTo(11.6, 11.8, 9.4, 12.2, 8, 13.2)
-                    .MoveTo(8, 4.6).LineTo(8, 13.2), 1.4);
-                break;
             case PanelIcon.ChevronDown:
                 Stroke(new PanelPath().MoveTo(4.5, 6.25).LineTo(8, 9.75).LineTo(11.5, 6.25), 1.5);
                 break;
@@ -185,6 +178,13 @@ internal static class TrayPanelGlyphs
                 {
                     Stroke(new PanelPath().MoveTo(2.75, 2.75).LineTo(13.25, 13.25), 1.4);
                 }
+                break;
+            case PanelIcon.Globe:
+                // A globe for the web documentation: the outline, a meridian, and the equator.
+                Stroke(PanelPath.Circle(8, 8, 5.75), 1.3);
+                Stroke(new PanelPath().MoveTo(8, 2.25).CubicTo(5.1, 4.2, 5.1, 11.8, 8, 13.75)
+                    .CubicTo(10.9, 11.8, 10.9, 4.2, 8, 2.25), 1.3);
+                Stroke(new PanelPath().MoveTo(2.25, 8).LineTo(13.75, 8), 1.3);
                 break;
             case PanelIcon.Remove:
                 Stroke(new PanelPath().MoveTo(4.5, 4.5).LineTo(11.5, 11.5).MoveTo(11.5, 4.5).LineTo(4.5, 11.5), 1.5);

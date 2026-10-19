@@ -201,6 +201,9 @@ internal static partial class AppKit
     public static partial void SendRectAndPointer(nint receiver, nint selector, NativeRect rect, nint argument);
 
     [LibraryImport(ObjC, EntryPoint = "objc_msgSend")]
+    public static partial nint SendRectAndTwoPointers(nint receiver, nint selector, NativeRect rect, nint first, nint second);
+
+    [LibraryImport(ObjC, EntryPoint = "objc_msgSend")]
     public static partial double GetDouble(nint receiver, nint selector);
 
     [LibraryImport(ObjC, EntryPoint = "objc_msgSend")]

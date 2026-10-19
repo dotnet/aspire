@@ -33,6 +33,8 @@ internal sealed unsafe partial class TrayApplication
     private uint _panelDpi = 96;
     private nuint _gdiplusToken;
     private nint _panelLogo;
+    private nint _panelTooltip;
+    private List<(NativeMethods.Rect Bounds, string Text)> _panelTooltips = [];
     private uint _panelLogoDpi;
     private string _panelFontFace = "Segoe UI Variable Text";
 
@@ -118,7 +120,7 @@ internal sealed unsafe partial class TrayApplication
             NativeCallException.Require(NativeMethods.RegisterClass(ref windowClass) != 0, "RegisterClassW(flyout)");
         }
         _panelClassRegistered = true;
-        _panel = new TrayPanel(controller.State, GetPanelPalette()) { FileManagerName = "File Explorer" };
+        _panel = new TrayPanel(controller.State, GetPanelPalette()) { FileManagerName = "File Explorer", QuitVerb = "Exit" };
         // A tool window keeps the flyout off the taskbar and Alt+Tab; owning it by the
         // message window keeps it above that window's dialogs' z-order rules.
         _panelWindow = NativeMethods.CreateWindowEx(NativeMethods.WsExToolWindow | NativeMethods.WsExTopmost, PanelClassName, "Aspire",
@@ -195,6 +197,59 @@ internal sealed unsafe partial class TrayApplication
         }
         NativeMethods.InvalidateRect(_panelWindow, 0, 0);
         SyncPanelAutomation();
+        SyncPanelTooltips();
+    }
+
+    /// <summary>
+    /// Keeps one tooltip tool per visible icon button. TTF_SUBCLASS lets the tooltip control watch
+    /// the panel's mouse messages itself. Tools are replaced only when a tooltip or its rectangle
+    /// changes (scrolling, DPI, a new view), so hovering doesn't restart the tooltip's delay.
+    /// </summary>
+    private void SyncPanelTooltips()
+    {
+        if (_panelTooltip == 0)
+        {
+            // The Common Controls v6 manifest selects the themed tooltip; this registers its class.
+            var controls = new NativeMethods.CommonControls
+            {
+                Size = (uint)sizeof(NativeMethods.CommonControls), Classes = NativeMethods.IccBarClasses
+            };
+            NativeCallException.Require(NativeMethods.InitCommonControlsEx(in controls) != 0, "InitCommonControlsEx");
+            // Owned by the panel so it stays above it and hides with it.
+            _panelTooltip = NativeMethods.CreateWindowEx(NativeMethods.WsExTopmost, "tooltips_class32", "",
+                NativeMethods.WsPopup | NativeMethods.TtsAlwaysTip | NativeMethods.TtsNoPrefix, 0, 0, 0, 0, _panelWindow, 0, _module, 0);
+            NativeCallException.Require(_panelTooltip != 0, "CreateWindowExW(flyout tooltip)");
+        }
+        var tooltips = _panel!.Scene.Targets.Where(target => target.Tooltip is not null && !target.HitBounds.IsEmpty)
+            .Select(target => (Bounds: ToDevice(target.HitBounds), Text: target.Tooltip!)).ToList();
+        if (tooltips.SequenceEqual(_panelTooltips))
+        {
+            return;
+        }
+        for (var i = 0; i < _panelTooltips.Count; i++)
+        {
+            var tool = new NativeMethods.ToolInfo { Size = (uint)sizeof(NativeMethods.ToolInfo), Window = _panelWindow, Id = (nuint)i };
+            NativeMethods.SendMessage(_panelTooltip, NativeMethods.TtmDelTool, 0, (nint)(&tool));
+        }
+        _panelTooltips = tooltips;
+        for (var i = 0; i < tooltips.Count; i++)
+        {
+            // The control copies the text, so the pinned buffer only has to outlive the call.
+            fixed (char* text = tooltips[i].Text)
+            {
+                var tool = new NativeMethods.ToolInfo
+                {
+                    Size = (uint)sizeof(NativeMethods.ToolInfo),
+                    Flags = NativeMethods.TtfSubclass,
+                    Window = _panelWindow,
+                    Id = (nuint)i,
+                    Rect = tooltips[i].Bounds,
+                    Text = text
+                };
+                NativeCallException.Require(NativeMethods.SendMessage(_panelTooltip, NativeMethods.TtmAddTool, 0, (nint)(&tool)) != 0,
+                    "TTM_ADDTOOLW(flyout)");
+            }
+        }
     }
 
     private NativeMethods.Rect GetNotifyIconRect()
@@ -238,6 +293,7 @@ internal sealed unsafe partial class TrayApplication
             {
                 NativeMethods.InvalidateRect(_panelWindow, 0, 0);
                 SyncPanelAutomation();
+                SyncPanelTooltips();
             }
         }
         if (response.Action is { } action)
@@ -796,6 +852,12 @@ internal sealed unsafe partial class TrayApplication
 
     private void DisposePanel()
     {
+        if (_panelTooltip != 0)
+        {
+            Cleanup(NativeMethods.DestroyWindow(_panelTooltip) != 0, "DestroyWindow(flyout tooltip)");
+            _panelTooltip = 0;
+            _panelTooltips = [];
+        }
         if (_panelWindow != 0)
         {
             DisposePanelAutomation();

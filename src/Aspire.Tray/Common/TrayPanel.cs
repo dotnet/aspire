@@ -66,6 +66,7 @@ internal sealed class TrayPanel
     private (PanelSection Section, AppHostId Host)? _actions;
     private IReadOnlyList<string> _openInApplications = [];
     private string _fileManagerName = "Finder";
+    private string _quitVerb = "Quit";
     private double _listScroll;
 
     public TrayPanel(TrayViewState state, TrayPanelPalette palette)
@@ -164,6 +165,23 @@ internal sealed class TrayPanel
             if (_fileManagerName != value)
             {
                 _fileManagerName = value;
+                _scene = null;
+            }
+        }
+    }
+
+    /// <summary>
+    /// The platform's verb for leaving an app: "Quit" on macOS, "Exit" on Windows, as tray apps
+    /// there say. The button only closes the tray, so its tooltip says the AppHosts keep running.
+    /// </summary>
+    public string QuitVerb
+    {
+        get => _quitVerb;
+        set
+        {
+            if (_quitVerb != value)
+            {
+                _quitVerb = value;
                 _scene = null;
             }
         }
@@ -599,25 +617,21 @@ internal sealed class TrayPanel
             _confirm = null;
             _scene = null;
         }
-        var togglesActions = target.Kind is PanelTargetKind.More
-            || (target.Kind == PanelTargetKind.Row && host is { CanOpenDashboard: false, IsStarting: false, IsStopping: false });
-        if (_actions is not null && !togglesActions && !IsActionItem(target.Kind))
+        if (_actions is not null && target.Kind is not (PanelTargetKind.More or PanelTargetKind.Row) && !IsActionItem(target.Kind))
         {
             // Likewise, acting on anything but the list (or the button that toggles it) closes it.
             CloseActions(returnFocus: false);
         }
         switch (target.Kind)
         {
-            // A starting or stopping AppHost has nothing to open yet (or anymore): its dashboard
-            // isn't reachable. Keep the panel open and ignore the click.
-            case PanelTargetKind.Row when host is { IsStarting: true } or { IsStopping: true }:
+            // Clicking the row itself does nothing, whatever the AppHost's state, so it behaves
+            // the same for running and stopped AppHosts; its buttons carry the actions. The row
+            // stays a target so hover and keyboard focus reveal those buttons.
+            case PanelTargetKind.Row:
                 return null;
-            case PanelTargetKind.Row when host is { CanOpenDashboard: true }:
             case PanelTargetKind.Dashboard:
                 return new(PanelActionKind.OpenDashboard, host, target.Bounds) { Recent = recent };
-            case PanelTargetKind.Row:
             case PanelTargetKind.More:
-                // Rows without a dashboard open the same action list as their "More" button.
                 ToggleActions(target.Key);
                 return null;
             case PanelTargetKind.Stop:
@@ -975,11 +989,8 @@ internal sealed class TrayPanel
         // seen as the list's owner and clicked again to close it.
         var expanded = _actions == (section, host.Id);
         var active = expanded || IsWithinRow(_hover, rowKey) || IsWithinRow(_pressed, rowKey) || (_focusVisible && IsWithinRow(_focus, rowKey));
-        if (_pressed == rowKey)
-        {
-            commands.Add(new FillPathCommand(PanelPath.RoundedRect(row, 6), palette.Pressed));
-        }
-        else if (active)
+        // No pressed shade for the row itself: clicking it does nothing.
+        if (active)
         {
             commands.Add(new FillPathCommand(PanelPath.RoundedRect(row, 6), palette.Hover));
         }
@@ -1002,16 +1013,17 @@ internal sealed class TrayPanel
             var bounds = new PanelRect(x, top + (RowHeight - ButtonSize) / 2, ButtonSize, ButtonSize);
             x += ButtonSize + ButtonGap;
             var key = rowKey with { Kind = kind };
-            var (icon, name, enabled) = kind switch
+            var (icon, name, tooltip, enabled) = kind switch
             {
-                PanelTargetKind.Dashboard => (PanelIcon.ExternalLink, $"Open dashboard for {host.DisplayName}", host.CanOpenDashboard),
-                PanelTargetKind.Stop => (PanelIcon.Stop, $"Stop {host.DisplayName}", host.CanStop),
-                PanelTargetKind.Start => (PanelIcon.Play, $"Start {host.DisplayName}", host.CanStart),
-                _ => (PanelIcon.More, expanded ? $"Hide actions for {host.DisplayName}" : $"More actions for {host.DisplayName}", true)
+                PanelTargetKind.Dashboard => (PanelIcon.ExternalLink, $"Open dashboard for {host.DisplayName}", "Open dashboard", host.CanOpenDashboard),
+                PanelTargetKind.Stop => (PanelIcon.Stop, $"Stop {host.DisplayName}", "Stop", host.CanStop),
+                PanelTargetKind.Start => (PanelIcon.Play, $"Start {host.DisplayName}", "Start", host.CanStart),
+                _ => (PanelIcon.More, expanded ? $"Hide actions for {host.DisplayName}" : $"More actions for {host.DisplayName}",
+                    expanded ? "Hide actions" : "More actions", true)
             };
             // Buttons always keep their space so the text never reflows on hover, and they
             // stay hit-testable: the pointer is inside the row, so they are visible, before any click.
-            AddTarget(targets, key, bounds, name, enabled, host);
+            AddTarget(targets, key, bounds, name, enabled, host, tooltip: tooltip);
             if (!active)
             {
                 continue;
@@ -1187,7 +1199,7 @@ internal sealed class TrayPanel
         var backKey = new PanelTargetKey(PanelTargetKind.Back, PanelSection.None, null);
         AddInteractionFill(commands, backKey, back, palette, includeFocus: false);
         TrayPanelGlyphs.AddIcon(commands, PanelIcon.ChevronLeft, back.Inset(6, 6), _hover == backKey ? palette.TextPrimary : palette.TextSecondary);
-        AddTarget(targets, backKey, back, "Back to AppHosts", true, null);
+        AddTarget(targets, backKey, back, "Back to AppHosts", true, null, tooltip: "Back");
         var title = new PanelRect(back.Right + 8, 20, Width - back.Right - 24, 20);
         commands.Add(new TextCommand(title, TraySettingsText.PanelTitle, PanelFontRole.Title, palette.TextPrimary));
         AddLabel("settings.title", TraySettingsText.PanelTitle, title, chrome: true);
@@ -1241,17 +1253,17 @@ internal sealed class TrayPanel
 
     private void AddFooter(List<PanelCommand> commands, List<PanelHitTarget> targets, PanelRect footer, TrayPanelPalette palette)
     {
-        var docs = new PanelRect(8, footer.Y + 8, 140, ButtonSize);
-        var docsKey = new PanelTargetKey(PanelTargetKind.Documentation, PanelSection.None, null);
-        AddInteractionFill(commands, docsKey, docs, palette, includeFocus: false);
-        TrayPanelGlyphs.AddIcon(commands, PanelIcon.Book, new(docs.X + 8, docs.Y + 6, 16, 16), palette.TextSecondary);
-        commands.Add(new TextCommand(new(docs.X + 32, docs.Y, docs.Width - 40, docs.Height), "Documentation", PanelFontRole.Body, palette.TextSecondary));
-        AddTarget(targets, docsKey, docs, "Open Aspire documentation", true, null);
-
-        foreach (var (kind, icon, name, x) in new[]
+        // Three icon buttons on the right, each with a tooltip: Settings, Documentation, Quit.
+        // Quit closes only the tray, never the AppHosts, so it isn't called "Quit Aspire" and its
+        // tooltip and accessibility description say so.
+        var right = RowContentRight + 4;
+        var quitDescription = $"{_quitVerb} the tray. AppHosts keep running.";
+        foreach (var (kind, icon, name, tooltip, description, x) in new[]
         {
-            (PanelTargetKind.Settings, PanelIcon.Gear, _settings is null ? "Settings" : "Close settings", RowContentRight + 4 - 2 * ButtonSize - ButtonGap),
-            (PanelTargetKind.Quit, PanelIcon.Power, "Quit Aspire", RowContentRight + 4 - ButtonSize)
+            (PanelTargetKind.Settings, PanelIcon.Gear, _settings is null ? "Settings" : "Close settings",
+                _settings is null ? "Settings" : "Close settings", (string?)null, right - 3 * ButtonSize - 2 * ButtonGap),
+            (PanelTargetKind.Documentation, PanelIcon.Globe, "Open Aspire documentation", "Documentation", null, right - 2 * ButtonSize - ButtonGap),
+            (PanelTargetKind.Quit, PanelIcon.Power, _quitVerb, quitDescription, quitDescription, right - ButtonSize)
         })
         {
             var bounds = new PanelRect(x, footer.Y + 8, ButtonSize, ButtonSize);
@@ -1263,7 +1275,7 @@ internal sealed class TrayPanel
             }
             AddInteractionFill(commands, key, bounds, palette, includeFocus: false);
             TrayPanelGlyphs.AddIcon(commands, icon, bounds.Inset(6, 6), _hover == key ? palette.TextPrimary : palette.TextSecondary);
-            AddTarget(targets, key, bounds, name, true, null);
+            AddTarget(targets, key, bounds, name, true, null, description: description, tooltip: tooltip);
         }
     }
 
@@ -1279,10 +1291,10 @@ internal sealed class TrayPanel
     }
 
     private void AddTarget(List<PanelHitTarget> targets, PanelTargetKey key, PanelRect bounds, string name, bool enabled, AppHostMenuItem? host,
-        PanelAccessibleRole role = PanelAccessibleRole.Button, bool? isChecked = null, string? description = null)
+        PanelAccessibleRole role = PanelAccessibleRole.Button, bool? isChecked = null, string? description = null, string? tooltip = null)
     {
         var hit = IsChrome(key.Kind) ? bounds : bounds.Intersect(_viewport);
-        var target = new PanelHitTarget(key, bounds, hit, name, enabled, host, role, isChecked);
+        var target = new PanelHitTarget(key, bounds, hit, name, enabled, host, role, isChecked, tooltip);
         targets.Add(target);
         _accessible.Add(new(PanelAccessibleKey.For(key), role, name, bounds, hit, target, description));
     }

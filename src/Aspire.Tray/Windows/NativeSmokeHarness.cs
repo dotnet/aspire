@@ -305,7 +305,7 @@ internal sealed class NativeSmokeHarness
                         ProcessStartTimeUnixMilliseconds = host.ProcessStartTimeUnixMilliseconds + 1000
                     }).ToArray());
                     _application.BeginInteractivePreviewForSmoke();
-                    Program.Log("Windows native preview ready: fake AppHosts and in-memory preferences only. Quit in the panel to exit.");
+                    Program.Log("Windows native preview ready: fake AppHosts and in-memory preferences only. Exit in the panel to close it.");
                 }
                 else
                 {

@@ -23,6 +23,8 @@ internal sealed partial class MacTrayApplication
     private const double PanelScreenMargin = 8;
 
     private readonly Dictionary<PanelFontRole, nint> _panelFonts = [];
+    private readonly List<nint> _panelTooltipOwners = [];
+    private List<(PanelRect Bounds, string Text)> _panelTooltips = [];
     private TrayPanel? _panel;
     private nint _panelWindow;
     private nint _panelView;
@@ -153,7 +155,7 @@ internal sealed partial class MacTrayApplication
         {
             return;
         }
-        _panel = new TrayPanel(_controller.State, GetPanelPalette()) { FileManagerName = "Finder" };
+        _panel = new TrayPanel(_controller.State, GetPanelPalette()) { FileManagerName = "Finder", QuitVerb = "Quit" };
         var frame = new AppKit.NativeRect(new(0, 0), new(TrayPanel.Width, 200));
         // Borderless (0), buffered backing (2).
         _panelWindow = AppKit.CreateWindow(AppKit.Get(AppKit.Class("AspireTrayFlyoutPanel"), "alloc"),
@@ -239,6 +241,44 @@ internal sealed partial class MacTrayApplication
         AppKit.SendVoid(_panelView, AppKit.Selector("displayIfNeeded"));
         AppKit.SendVoid(_panelWindow, AppKit.Selector("invalidateShadow"));
         SyncPanelAccessibility();
+        SyncPanelTooltips();
+    }
+
+    /// <summary>
+    /// Registers a native tooltip over each visible icon button. Rebuilt only when a tooltip or
+    /// its rectangle changes (scrolling, a new view), so hovering doesn't restart AppKit's delay.
+    /// </summary>
+    private void SyncPanelTooltips()
+    {
+        var tooltips = _panel!.Scene.Targets.Where(target => target.Tooltip is not null && !target.HitBounds.IsEmpty)
+            .Select(target => (target.HitBounds, target.Tooltip!)).ToList();
+        if (tooltips.SequenceEqual(_panelTooltips))
+        {
+            return;
+        }
+        _panelTooltips = tooltips;
+        AppKit.SendVoid(_panelView, AppKit.Selector("removeAllToolTips"));
+        ReleasePanelTooltipOwners();
+        foreach (var (bounds, text) in tooltips)
+        {
+            // A tooltip rectangle asks its owner for the text, and an owner without
+            // view:stringForToolTip:point:userData: answers with its description, which for an
+            // NSString is the string itself. AppKit doesn't retain the owner, so we do.
+            // https://developer.apple.com/documentation/appkit/nsview/addtooltip(_:owner:userdata:)
+            var owner = AppKit.Get(AppKit.String(text), "retain");
+            _panelTooltipOwners.Add(owner);
+            // The view is flipped, so panel coordinates are view coordinates.
+            AppKit.SendRectAndTwoPointers(_panelView, AppKit.Selector("addToolTipRect:owner:userData:"), ToNative(bounds), owner, 0);
+        }
+    }
+
+    private void ReleasePanelTooltipOwners()
+    {
+        foreach (var owner in _panelTooltipOwners)
+        {
+            AppKit.Release(owner);
+        }
+        _panelTooltipOwners.Clear();
     }
 
     private void ApplyPanelResponse(PanelResponse response)
@@ -598,6 +638,12 @@ internal sealed partial class MacTrayApplication
             Require(scene.Targets.Count(target => target.Kind == PanelTargetKind.Row) == _controller.State.AppHosts.Count
                 + (_panel.IsRecentExpanded ? _controller.State.RecentAppHosts.Count : 0), "The panel must list every AppHost.");
             VerifyPanelAccessibilityForSmoke("the list");
+            Require(_panelTooltips.Select(tooltip => tooltip.Text).SequenceEqual(
+                    scene.Targets.Where(target => target.Tooltip is not null && !target.HitBounds.IsEmpty).Select(target => target.Tooltip!))
+                && _panelTooltipOwners.Count == _panelTooltips.Count && _panelTooltips.Any(tooltip => tooltip.Text == "Documentation")
+                && scene.Accessibility.Single(element => element.Target?.Kind == PanelTargetKind.Quit) is
+                    { Name: "Quit", Description: "Quit the tray. AppHosts keep running.", Target.Tooltip: "Quit the tray. AppHosts keep running." },
+                "Every visible icon button must have exactly one native tooltip.");
             var captures = new List<string>();
             if (captureDirectory is not null)
             {
@@ -711,6 +757,9 @@ internal sealed partial class MacTrayApplication
             AppKit.Set(_panelWindow, "setDelegate:", 0);
             AppKit.Set(_panelWindow, "orderOut:", 0);
             DisposePanelAccessibility();
+            AppKit.SendVoid(_panelView, AppKit.Selector("removeAllToolTips"));
+            ReleasePanelTooltipOwners();
+            _panelTooltips = [];
             AppKit.Release(_panelView);
             AppKit.Release(_panelWindow);
             _panelWindow = 0;

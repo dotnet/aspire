@@ -321,6 +321,13 @@ internal sealed unsafe partial class TrayApplication
                 && Enabled(PanelTargetKind.Start) == host.CanStart, "A panel row misrepresents its AppHost's actions.");
         }
         NativeSmokeHarness.Require(_iconData.CallbackMessage == NativeMethods.TrayCallback, "The icon must report activations to the panel.");
+        NativeSmokeHarness.Require(_panelTooltip != 0 && _panelTooltips.Select(tooltip => tooltip.Text).SequenceEqual(
+                panel.Scene.Targets.Where(target => target.Tooltip is not null && !target.HitBounds.IsEmpty).Select(target => target.Tooltip!))
+            && NativeMethods.SendMessage(_panelTooltip, 0x040D, 0, 0) == _panelTooltips.Count, // TTM_GETTOOLCOUNT
+            "Every visible icon button must have exactly one native tooltip.");
+        NativeSmokeHarness.Require(panel.Scene.Accessibility.Single(element => element.Target?.Kind == PanelTargetKind.Quit) is
+            { Name: "Exit", Description: "Exit the tray. AppHosts keep running.", Target.Tooltip: "Exit the tray. AppHosts keep running." },
+            "The Exit button must say it closes only the tray.");
     }
 
     private void RequireSmoke()

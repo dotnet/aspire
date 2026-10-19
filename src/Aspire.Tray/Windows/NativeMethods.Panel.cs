@@ -209,4 +209,38 @@ internal static unsafe partial class NativeMethods
 
     [LibraryImport("user32.dll")]
     internal static partial int SetKeyboardState(byte* state);
+
+    // Tooltip control messages and flags (commctrl.h), for the panel's icon buttons.
+    // https://learn.microsoft.com/windows/win32/controls/tooltip-control-reference
+    internal const uint TtmAddTool = 0x0432; // TTM_ADDTOOLW
+    internal const uint TtmDelTool = 0x0433; // TTM_DELTOOLW
+    internal const uint TtfSubclass = 0x10;
+    internal const uint TtsAlwaysTip = 0x1;
+    internal const uint TtsNoPrefix = 0x2;
+    internal const uint IccBarClasses = 0x4; // Registers TOOLTIPS_CLASS.
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct CommonControls
+    {
+        public uint Size;
+        public uint Classes;
+    }
+
+    // TTTOOLINFOW with the Windows XP+ lpReserved field.
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct ToolInfo
+    {
+        public uint Size;
+        public uint Flags;
+        public nint Window;
+        public nuint Id;
+        public Rect Rect;
+        public nint Instance;
+        public char* Text;
+        public nint Parameter;
+        public nint Reserved;
+    }
+
+    [LibraryImport("comctl32.dll", SetLastError = true)]
+    internal static partial int InitCommonControlsEx(in CommonControls controls);
 }

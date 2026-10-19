@@ -158,27 +158,32 @@ public class TrayPanelTests
     }
 
     [Fact]
-    public void ClickingARowOpensItsDashboard()
+    public void ClickingARowDoesNothingWhateverItsState()
     {
         var state = TrayPanelSamples.Typical();
         var panel = new TrayPanel(state, TrayPanelPalette.Light);
-        var row = panel.Scene.Targets.First(target => target.Kind == PanelTargetKind.Row);
 
-        var response = Click(panel, row.HitBounds, offsetX: 10);
+        foreach (var host in state.AppHosts)
+        {
+            var response = Click(panel, Target(panel, PanelTargetKind.Row, host).HitBounds, offsetX: 10);
 
-        Assert.Equal(PanelActionKind.OpenDashboard, response.Action?.Kind);
-        Assert.Equal(state.AppHosts[0], response.Action?.Host);
+            Assert.Null(response.Action);
+            Assert.Null(panel.ActionsRow);
+        }
+        var focused = Target(panel, PanelTargetKind.Row, state.AppHosts[0]).Key;
+        panel.Focus(focused);
+        Assert.Null(panel.Key(PanelKey.Enter).Action);
     }
 
     [Fact]
-    public void ClickingARowWithoutDashboardOpensItsActionListUnderIt()
+    public void MoreOpensTheRowsActionListUnderIt()
     {
         var state = TrayPanelSamples.Typical();
         var panel = new TrayPanel(state, TrayPanelPalette.Light) { OpenInApplications = s_applications };
         var host = state.AppHosts[2];
         var row = Target(panel, PanelTargetKind.Row, host);
 
-        var response = Click(panel, row.HitBounds, offsetX: 10);
+        var response = Click(panel, Target(panel, PanelTargetKind.More, host).HitBounds);
 
         Assert.Null(response.Action);
         Assert.Equal((PanelSection.Running, host.Id), panel.ActionsRow);
@@ -458,8 +463,6 @@ public class TrayPanelTests
         Assert.True(panel.ScrollOffset > 0);
         Assert.Contains(panel.Scene.Commands.OfType<StrokePathCommand>(), stroke => stroke.Color == TrayPanelPalette.Light.Focus);
 
-        var response = panel.Key(PanelKey.Enter);
-        Assert.Equal(new PanelAction(PanelActionKind.OpenDashboard, state.AppHosts[^1], focused.Bounds), response.Action);
     }
 
     [Fact]
@@ -874,7 +877,7 @@ public class TrayPanelTests
     [InlineData((int)PanelIcon.More)]
     [InlineData((int)PanelIcon.Gear)]
     [InlineData((int)PanelIcon.Power)]
-    [InlineData((int)PanelIcon.Book)]
+    [InlineData((int)PanelIcon.Globe)]
     [InlineData((int)PanelIcon.ChevronDown)]
     [InlineData((int)PanelIcon.ChevronRight)]
     [InlineData((int)PanelIcon.Alert)]
@@ -978,7 +981,7 @@ public class TrayPanelTests
 
         Assert.Equal(scene.Targets, scene.Accessibility.Where(element => element.Target is not null).Select(element => element.Target));
         Assert.Equal(scene.Accessibility.Count, scene.Accessibility.Select(element => element.Key).Distinct().Count());
-        Assert.Equal([PanelTargetKind.Documentation, PanelTargetKind.Settings, PanelTargetKind.Quit],
+        Assert.Equal([PanelTargetKind.Settings, PanelTargetKind.Documentation, PanelTargetKind.Quit],
             scene.Accessibility.TakeLast(3).Select(element => element.Target!.Kind));
         Assert.All(scene.Accessibility, element => Assert.False(string.IsNullOrWhiteSpace(element.Name)));
     }
@@ -1080,6 +1083,56 @@ public class TrayPanelTests
         Assert.False(launch.Checked);
         Assert.Equal(["Back to AppHosts", TraySettingsText.PanelTitle, "General"],
             panel.Scene.Accessibility.Take(3).Select(element => element.Name));
+    }
+
+    [Fact]
+    public void IconButtonsHaveTooltipsAndLabeledControlsDoNot()
+    {
+        var state = TrayPanelSamples.Typical();
+        var panel = new TrayPanel(state, TrayPanelPalette.Light);
+        var running = state.AppHosts[0];
+        var stopped = state.AppHosts[3];
+
+        Assert.Equal("Open dashboard", Target(panel, PanelTargetKind.Dashboard, running).Tooltip);
+        Assert.Equal("Stop", Target(panel, PanelTargetKind.Stop, running).Tooltip);
+        Assert.Equal("Start", Target(panel, PanelTargetKind.Start, stopped).Tooltip);
+        Assert.Equal("More actions", Target(panel, PanelTargetKind.More, running).Tooltip);
+        Assert.Equal(["Settings", "Documentation", "Quit the tray. AppHosts keep running."],
+            panel.Scene.Targets.TakeLast(3).Select(target => target.Tooltip));
+        Assert.All(panel.Scene.Targets.Where(target => target.Kind is PanelTargetKind.Row or PanelTargetKind.ToggleRecent or PanelTargetKind.ClearRecent),
+            target => Assert.Null(target.Tooltip));
+
+        Click(panel, Target(panel, PanelTargetKind.More, running).HitBounds);
+        Assert.Equal("Hide actions", Target(panel, PanelTargetKind.More, running).Tooltip);
+        panel.ShowSettings(new(null, null, Preview: false));
+        Assert.Equal("Back", panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.Back).Tooltip);
+        Assert.Equal("Close settings", panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.Settings).Tooltip);
+    }
+
+    [Theory]
+    [InlineData("Quit")]
+    [InlineData("Exit")]
+    public void QuitSaysItClosesOnlyTheTray(string verb)
+    {
+        var panel = new TrayPanel(TrayPanelSamples.Typical(), TrayPanelPalette.Light) { QuitVerb = verb };
+        var quit = panel.Scene.Accessibility.Single(element => element.Target?.Kind == PanelTargetKind.Quit);
+
+        Assert.Equal(verb, quit.Name);
+        Assert.Equal($"{verb} the tray. AppHosts keep running.", quit.Description);
+        Assert.Equal($"{verb} the tray. AppHosts keep running.", quit.Target!.Tooltip);
+        Assert.Equal(PanelActionKind.Quit, panel.Invoke(quit.Target.Key).Action?.Kind);
+    }
+
+    [Fact]
+    public void FooterButtonsAreIconsOnTheRightInSettingsDocumentationQuitOrder()
+    {
+        var scene = new TrayPanel(TrayPanelSamples.Typical(), TrayPanelPalette.Light).Scene;
+        var footer = scene.Targets.TakeLast(3).ToList();
+
+        Assert.Equal([PanelTargetKind.Settings, PanelTargetKind.Documentation, PanelTargetKind.Quit], footer.Select(target => target.Kind));
+        Assert.All(footer, target => Assert.Equal(TrayPanel.ButtonSize, target.Bounds.Width));
+        Assert.True(footer[0].Bounds.Right <= footer[1].Bounds.X && footer[1].Bounds.Right <= footer[2].Bounds.X);
+        Assert.DoesNotContain(scene.Commands.OfType<TextCommand>(), text => text.Text == "Documentation");
     }
 
     private static PanelHitTarget Target(TrayPanel panel, PanelTargetKind kind, AppHostMenuItem host)

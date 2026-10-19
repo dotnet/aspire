@@ -88,7 +88,8 @@ internal sealed unsafe partial class TrayApplication(TrayController controller, 
         if (RuntimeInformation.ProcessArchitecture is not (Architecture.X64 or Architecture.Arm64)
             || sizeof(NativeMethods.WindowClass) != 72 || sizeof(NativeMethods.Message) != 48
             || sizeof(NativeMethods.NotifyIconData) != 976
-            || sizeof(NativeMethods.IconInfo) != 32 || sizeof(NativeMethods.BitmapInfo) != 44)
+            || sizeof(NativeMethods.IconInfo) != 32 || sizeof(NativeMethods.BitmapInfo) != 44
+            || sizeof(NativeMethods.ToolInfo) != 72)
         {
             throw new PlatformNotSupportedException("This frontend requires the Windows x64 or ARM64 native layouts.");
         }

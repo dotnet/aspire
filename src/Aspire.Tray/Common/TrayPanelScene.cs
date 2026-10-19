@@ -154,6 +154,8 @@ internal enum PanelAccessibleRole
 /// <summary>
 /// An interactive region. <see cref="Bounds"/> is where it is drawn and <see cref="HitBounds"/>
 /// is the part that is visible through the list clip, which is what pointer input tests.
+/// Icon-only buttons carry a <see cref="Tooltip"/>, which hosts show as a native tooltip over
+/// <see cref="HitBounds"/>; buttons with a visible label have none.
 /// </summary>
 internal sealed record PanelHitTarget(
     PanelTargetKey Key,
@@ -163,7 +165,8 @@ internal sealed record PanelHitTarget(
     bool Enabled,
     AppHostMenuItem? Host,
     PanelAccessibleRole Role = PanelAccessibleRole.Button,
-    bool? Checked = null)
+    bool? Checked = null,
+    string? Tooltip = null)
 {
     public PanelTargetKind Kind => Key.Kind;
 }
