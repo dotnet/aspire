@@ -94,8 +94,9 @@ internal sealed class DashboardRunStore : IDashboardRunStore, IDisposable
     private Lazy<IReadOnlyList<DashboardRunDescriptor>> _runs;
     private string? _appHostRunId;
     private readonly object _runStateLock = new();
-    // Descriptor snapshots are rebuilt on rollover; ownership must survive those snapshots.
-    private readonly HashSet<string> _leasedRunIds = new(StringComparer.Ordinal);
+    // Retired current readers and read-only history share directory ownership, even though
+    // their SQLite connections differ. Descriptor snapshots are rebuilt on every rollover.
+    private readonly Dictionary<string, OwnedRunLock> _leasedRuns = new(StringComparer.Ordinal);
     private int _references = 1;
     private bool _disposeRequested;
     private bool _metadataPublished;
@@ -486,16 +487,23 @@ internal sealed class DashboardRunStore : IDashboardRunStore, IDisposable
                 return null;
             }
 
-            var runDirectory = Path.GetDirectoryName(storedRun.DatabasePath)!;
-            var runLock = TryOpenRunLock(runDirectory);
-            if (runLock is null)
+            if (!_leasedRuns.TryGetValue(storedRun.RunId, out var ownedLock))
             {
-                return null;
+                var runDirectory = Path.GetDirectoryName(storedRun.DatabasePath)!;
+                var runLock = TryOpenRunLock(runDirectory);
+                if (runLock is null)
+                {
+                    return null;
+                }
+
+                ownedLock = new OwnedRunLock(runLock);
+                _leasedRuns.Add(storedRun.RunId, ownedLock);
             }
 
+            ownedLock.ReferenceCount++;
+            ownedLock.Descriptors.Add(storedRun);
             storedRun.IsLeased = true;
-            _leasedRunIds.Add(storedRun.RunId);
-            return new RunLease(this, storedRun, runLock);
+            return new RunLease(this, storedRun.RunId, ownedLock);
         }
     }
 
@@ -765,7 +773,7 @@ internal sealed class DashboardRunStore : IDashboardRunStore, IDisposable
 
     private DashboardRunDescriptor CreateDescriptor(DashboardRunMetadata metadata, string runDirectory, bool isCurrent)
     {
-        return new DashboardRunDescriptor(
+        var descriptor = new DashboardRunDescriptor(
             metadata.RunId,
             metadata.SchemaVersion,
             metadata.StartedAtUtc,
@@ -776,9 +784,15 @@ internal sealed class DashboardRunStore : IDashboardRunStore, IDisposable
             Path.Combine(runDirectory, metadata.DatabaseFileName),
             isCurrent)
         {
-            IsPinned = metadata.IsPinned,
-            IsLeased = _leasedRunIds.Contains(metadata.RunId)
+            IsPinned = metadata.IsPinned
         };
+        if (_leasedRuns.TryGetValue(metadata.RunId, out var ownedLock))
+        {
+            descriptor.IsLeased = true;
+            ownedLock.Descriptors.Add(descriptor);
+        }
+
+        return descriptor;
     }
 
     internal static string GetApplicationDirectory(string? dataRoot, string applicationName)
@@ -834,28 +848,34 @@ internal sealed class DashboardRunStore : IDashboardRunStore, IDisposable
         return $"{prefix}-{hash}";
     }
 
-    private sealed class RunLease(DashboardRunStore owner, DashboardRunDescriptor run, FileLock runLock) : IDisposable
+    private sealed class OwnedRunLock(FileLock runLock)
     {
-        private FileLock? _runLock = runLock;
+        public FileLock RunLock { get; } = runLock;
+        public int ReferenceCount { get; set; }
+        public HashSet<DashboardRunDescriptor> Descriptors { get; } = new(ReferenceEqualityComparer.Instance);
+    }
+
+    private sealed class RunLease(DashboardRunStore owner, string runId, OwnedRunLock ownedLock) : IDisposable
+    {
+        private OwnedRunLock? _ownedLock = ownedLock;
 
         public void Dispose()
         {
             lock (owner._runStateLock)
             {
-                var runLock = Interlocked.Exchange(ref _runLock, null);
-                if (runLock is not null)
+                var ownedLock = Interlocked.Exchange(ref _ownedLock, null);
+                if (ownedLock is not null && --ownedLock.ReferenceCount == 0)
                 {
                     try
                     {
-                        runLock.Dispose();
+                        ownedLock.RunLock.Dispose();
                     }
                     finally
                     {
-                        owner._leasedRunIds.Remove(run.RunId);
-                        run.IsLeased = false;
-                        if (owner.GetRunById(run.RunId, onlyCompatible: false) is { } currentDescriptor)
+                        owner._leasedRuns.Remove(runId);
+                        foreach (var descriptor in ownedLock.Descriptors)
                         {
-                            currentDescriptor.IsLeased = false;
+                            descriptor.IsLeased = false;
                         }
                     }
                 }

@@ -144,6 +144,52 @@ public sealed class DashboardDataSourceTests(ITestOutputHelper testOutputHelper)
         await pool.PruningTask;
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AppHostRunChange_HistorySharesDirectoryLockWithRetiredCurrentReader(bool closeHistoryFirst)
+    {
+        using var workspace = TemporaryWorkspace.Create(testOutputHelper);
+        var options = CreateOptions(workspace);
+        using var store = CreateRunStore(options);
+        using var pool = new DashboardDataSourcePool(store, CreateRepositoryFactory(options));
+        await pool.InitializeAsync(CancellationToken.None);
+        pool.PublishRun();
+        await pool.StartAppHostRunAsync("first", CancellationToken.None);
+        using var retainedReader = pool.RetainCurrent(out var current);
+        var runId = store.RunId;
+        await pool.StartAppHostRunAsync("second", CancellationToken.None);
+        var history = store.GetRunById(runId, onlyCompatible: true)!;
+
+        using var historicalReader = pool.TryAcquire(history);
+        Assert.NotNull(historicalReader);
+        Assert.True(historicalReader.Database.IsReadOnly);
+        Assert.NotSame(current.Database, historicalReader.Database);
+        Assert.Equal(current.Database.DatabasePath, historicalReader.Database.DatabasePath);
+        Assert.Empty(historicalReader.ResourceRepository.GetResources());
+        Assert.Null(TryOpenTestRunLease(history));
+
+        if (closeHistoryFirst)
+        {
+            historicalReader.Dispose();
+            Assert.Empty(current.ResourceRepository.GetResources());
+        }
+        else
+        {
+            retainedReader.Dispose();
+            Assert.Empty(historicalReader.ResourceRepository.GetResources());
+        }
+        Assert.True(history.IsLeased);
+        Assert.Null(TryOpenTestRunLease(history));
+
+        retainedReader.Dispose();
+        historicalReader.Dispose();
+        Assert.False(history.IsLeased);
+        using var releasedLock = TryOpenTestRunLease(history);
+        Assert.NotNull(releasedLock);
+        await pool.PruningTask;
+    }
+
     [Fact]
     public async Task AppHostRunChange_BackgroundPruningDoesNotBlockAttachmentAndContainsFailures()
     {
@@ -1340,13 +1386,13 @@ public sealed class DashboardDataSourceTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(4, historicalDatabases.Count);
         Assert.All(historicalDatabases, database => Assert.Same(sharedDatabase, database));
         Assert.All(historicalDatabases, database => Assert.Same(sharedDatabase.WriteLock, database.WriteLock));
-        Assert.Null(currentRunStore.TryAcquireRunLease(historicalRun));
+        Assert.Null(TryOpenTestRunLease(historicalRun));
 
         firstDataSource.SelectRun(runId: null);
 
         Assert.True(historicalRun.IsLeased);
         Assert.Empty(secondDataSource.TelemetryRepository.GetResources());
-        Assert.Null(currentRunStore.TryAcquireRunLease(historicalRun));
+        Assert.Null(TryOpenTestRunLease(historicalRun));
 
         secondDataSource.SelectRun(runId: null);
 
