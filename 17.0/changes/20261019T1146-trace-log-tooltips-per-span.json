@@ -1,0 +1,19 @@
+{
+  "area": "Dashboard",
+  "areaEmoji": "📊",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Improvements",
+  "communityContributors": [],
+  "description": "The trace detail page now allows up to 500 rich log tooltips per span instead of sharing a single 500-tooltip budget across the whole trace, so logs on later spans keep rich tooltips even after earlier spans exhaust the old trace-wide limit.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "💬",
+  "firstMergedAt": "2026-10-19T11:46:51Z",
+  "lastMergedAt": "2026-10-19T11:46:51Z",
+  "name": "Allow 500 trace log tooltips per span",
+  "owner": "JamesNK",
+  "prs": [
+    20989
+  ]
+}

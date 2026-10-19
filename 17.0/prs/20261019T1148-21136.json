@@ -1,0 +1,9 @@
+{
+  "author": "JamesNK",
+  "comment": "Test-only fix for a flaky child-process exit race in shared test helpers; no production or public API changes",
+  "mergedAt": "2026-10-19T11:48:31Z",
+  "number": 21136,
+  "runDate": "2026-10-19T12:06:02Z",
+  "status": "excluded",
+  "title": "Fix child-process exit observation race in shared tests"
+}

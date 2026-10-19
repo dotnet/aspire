@@ -1,0 +1,9 @@
+{
+  "author": "mitchdenny",
+  "comment": "User-facing dashboard terminal auto-fit sizing behavior change",
+  "mergedAt": "2026-10-19T07:26:41Z",
+  "number": 21105,
+  "runDate": "2026-10-19T12:06:02Z",
+  "status": "included",
+  "title": "Auto-fit resource terminals without explicit dimensions"
+}

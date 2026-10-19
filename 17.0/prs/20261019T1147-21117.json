@@ -1,0 +1,9 @@
+{
+  "author": "JamesNK",
+  "comment": "Test-only fix for a flaky telemetry shutdown test; no production behavior change",
+  "mergedAt": "2026-10-19T11:47:43Z",
+  "number": 21117,
+  "runDate": "2026-10-19T12:06:02Z",
+  "status": "excluded",
+  "title": "Fix telemetry shutdown test persistence race"
+}

@@ -1,0 +1,9 @@
+{
+  "author": "austinaviv",
+  "comment": "Implements missing connection properties for Azure Web PubSub hub resources",
+  "mergedAt": "2026-10-19T06:49:18Z",
+  "number": 21098,
+  "runDate": "2026-10-19T12:06:02Z",
+  "status": "included",
+  "title": "Add connection properties support for Azure Web PubSub hubs"
+}

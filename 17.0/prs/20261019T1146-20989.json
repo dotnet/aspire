@@ -1,0 +1,9 @@
+{
+  "author": "JamesNK",
+  "comment": "Raises per-span tooltip limit in trace detail page, user-visible dashboard improvement",
+  "mergedAt": "2026-10-19T11:46:51Z",
+  "number": 20989,
+  "runDate": "2026-10-19T12:06:02Z",
+  "status": "included",
+  "title": "Allow 500 trace log tooltips per span"
+}

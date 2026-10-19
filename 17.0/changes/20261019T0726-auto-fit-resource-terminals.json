@@ -1,0 +1,19 @@
+{
+  "area": "Dashboard",
+  "areaEmoji": "📊",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Improvements",
+  "communityContributors": [],
+  "description": "Resource terminals configured without explicit Columns/Rows now automatically fit to the dashboard viewer's available space on open, instead of retaining a startup grid that required clicking Fit. Terminals with explicit dimensions still preserve their fixed grid until the user requests a resize.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "📐",
+  "firstMergedAt": "2026-10-19T07:26:41Z",
+  "lastMergedAt": "2026-10-19T07:26:41Z",
+  "name": "Auto-fit resource terminals without explicit dimensions",
+  "owner": "mitchdenny",
+  "prs": [
+    21105
+  ]
+}
