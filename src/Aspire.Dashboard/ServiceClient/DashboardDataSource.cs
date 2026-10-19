@@ -74,6 +74,24 @@ public sealed class DashboardDataSource : IDashboardRunSelection, IDisposable
         }
     }
 
+    internal async Task MutateCurrentRunAsync(string originatingRunId, Func<ITelemetryRepositoryWriter, IResourceRepository, Task> mutation)
+    {
+        // Validate and select the writer under the rollover lock. A dialog callback queued before
+        // dismissal must never apply its old selections to the replacement run.
+        using (await _dataSourcePool.RunWriteLock.LockAsync().ConfigureAwait(false))
+        {
+            EnsureWritable();
+            if (SelectedRun.RunId != originatingRunId || _runStore.GetCurrentRun().RunId != originatingRunId ||
+                !_dataSourcePool.IsCurrentDatabase(SelectedRun.DatabasePath))
+            {
+                throw new InvalidOperationException("The dashboard run changed. Reopen the dialog before changing data.");
+            }
+
+            var current = _dataSourcePool.Current;
+            await mutation((ITelemetryRepositoryWriter)current.TelemetryRepository, current.ResourceRepository).ConfigureAwait(false);
+        }
+    }
+
     DashboardRunDescriptor IDashboardRunSelection.SelectedRun => SelectedRun;
 
     void IDashboardRunSelection.SelectRun(string? runId) => SelectRun(runId);
