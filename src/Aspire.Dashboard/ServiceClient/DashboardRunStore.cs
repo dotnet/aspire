@@ -402,13 +402,18 @@ internal sealed class DashboardRunStore : IDashboardRunStore, IDisposable
 
     public void PublishRun()
     {
-        if (_metadataPath is null || _metadataPublished)
+        // Publication shares both the metadata snapshot and its temporary file with pinning
+        // and rollover. Keep the snapshot, destination, and published flag in one generation.
+        lock (_runStateLock)
         {
-            return;
-        }
+            if (_metadataPath is null || _metadataPublished)
+            {
+                return;
+            }
 
-        WriteMetadata(_metadata);
-        _metadataPublished = true;
+            WriteMetadata(_metadata);
+            _metadataPublished = true;
+        }
     }
 
     /// <summary>
@@ -471,15 +476,17 @@ internal sealed class DashboardRunStore : IDashboardRunStore, IDisposable
 
     public IDisposable? TryAcquireRunLease(DashboardRunDescriptor run)
     {
-        var storedRun = GetRunById(run.RunId, onlyCompatible: true);
-        if (storedRun is null)
-        {
-            return null;
-        }
-
-        var runDirectory = Path.GetDirectoryName(storedRun.DatabasePath)!;
         lock (_runStateLock)
         {
+            // Rollover replaces cached descriptors. Resolve and mark the lease in the same
+            // generation so a concurrent selector refresh observes this dashboard's ownership.
+            var storedRun = GetRunById(run.RunId, onlyCompatible: true);
+            if (storedRun is null)
+            {
+                return null;
+            }
+
+            var runDirectory = Path.GetDirectoryName(storedRun.DatabasePath)!;
             var runLock = TryOpenRunLock(runDirectory);
             if (runLock is null)
             {
