@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.IO.Hashing;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -31,8 +32,15 @@ public class NativeCliControlTests
             Assert.Equal(await reader.ReadToEndAsync(TestContext.Current.CancellationToken), file.Value!.GetValue<string>());
         }
         var identity = JsonNode.Parse(sdk["apphost-server.json"]!.GetValue<string>())!;
+        using var contract = assembly.GetManifestResourceStream("Aspire.Hosting.Native.Rpc.contract.json");
+        Assert.NotNull(contract);
+        var contractHash = new XxHash3();
+        await contractHash.AppendAsync(contract, TestContext.Current.CancellationToken);
+        Assert.Equal(Convert.ToHexString(contractHash.GetCurrentHash()), identity["contractId"]!.GetValue<string>());
         Assert.Equal(assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion,
             identity["version"]!.GetValue<string>());
+        // The fingerprint identifies this build's embedded bytes, not a platform-independent API shape.
+        identity["contractId"] = "contract-id";
         identity["version"] = "server-version";
         // Normalize embedded file line endings before JSON escapes them for the snapshot.
         foreach (var (name, content) in spec["migrationFiles"]!.AsObject().ToArray())

@@ -62,7 +62,7 @@
   ],
   "identity": {
     "generation": 2,
-    "contractId": "878EE49CAC77E8D8",
+    "contractId": "contract-id",
     "version": "server-version"
   }
 }
