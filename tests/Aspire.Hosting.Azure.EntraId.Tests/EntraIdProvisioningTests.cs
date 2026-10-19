@@ -415,6 +415,38 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task WithRedirectUris_Endpoint_RunMode_UsesPrimaryUrlWhenItIsADevLocalhostName()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var web = builder.AddContainer("web", "image")
+            .WithHttpsEndpoint(targetPort: 8080, name: "https")
+            .WithEndpoint("https", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 7081));
+        var entra = builder.AddEntraIdApplication("entra-web")
+            .WithRedirectUris(web.GetEndpoint("https"), "/signin-oidc");
+
+        _ = entra.Resource.GetBicepTemplateString();
+        var expression = Assert.IsType<ReferenceExpression>(entra.Resource.Parameters["redirectUri0"]);
+        var resolveTask = expression.GetValueAsync(new ValueProviderContext(), CancellationToken.None).AsTask();
+        Assert.False(resolveTask.IsCompleted);
+
+        // Mimics the orchestrator: when the dashboard uses a *.dev.localhost name the friendly URL is primary and
+        // the plain localhost URL is only shown in the details.
+        var endpoint = web.GetEndpoint("https");
+        var urls = new List<ResourceUrlAnnotation>
+        {
+            new() { Url = "https://web-hashr.dev.localhost:7081", Endpoint = endpoint, DisplayLocation = UrlDisplayLocation.SummaryAndDetails },
+            new() { Url = "https://localhost:7081", Endpoint = endpoint, DisplayLocation = UrlDisplayLocation.DetailsOnly }
+        };
+        var context = new ResourceUrlsCallbackContext(builder.ExecutionContext, web.Resource, urls);
+        foreach (var callback in web.Resource.Annotations.OfType<ResourceUrlsCallbackAnnotation>())
+        {
+            await callback.Callback(context);
+        }
+
+        Assert.Equal("https://web-hashr.dev.localhost:7081/signin-oidc", await resolveTask.WaitAsync(TimeSpan.FromSeconds(10)));
+    }
+
+    [Fact]
     public void WithRedirectUris_Endpoint_RequiresPathStartingWithSlash()
     {
         using var builder = TestDistributedApplicationBuilder.Create();

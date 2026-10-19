@@ -10,21 +10,35 @@ namespace Aspire.Hosting.Azure;
 /// <summary>
 /// A redirect URI built from a resource endpoint and a caller-supplied callback path.
 /// </summary>
-internal sealed class EntraIdEndpointRedirectUri(EndpointReference endpoint, string path, bool isPublishMode)
+internal sealed class EntraIdEndpointRedirectUri
 {
-    public EndpointReference Endpoint { get; } = endpoint;
+    private readonly bool _isPublishMode;
+    private readonly RunModeOrigin? _runModeOrigin;
 
-    public string Path { get; } = path;
+    public EntraIdEndpointRedirectUri(EndpointReference endpoint, string path, bool isPublishMode)
+    {
+        Endpoint = endpoint;
+        Path = path;
+        _isPublishMode = isPublishMode;
+
+        if (!isPublishMode)
+        {
+            _runModeOrigin = new RunModeOrigin(endpoint);
+            endpoint.Resource.Annotations.Add(new ResourceUrlsCallbackAnnotation(_runModeOrigin.CaptureUrl));
+        }
+    }
+
+    public EndpointReference Endpoint { get; }
+
+    public string Path { get; }
 
     public ReferenceExpression CreateExpression()
     {
         // The callback path is configured by the consuming application (for example, Microsoft.Identity.Web's
         // CallbackPath), so it can't be discovered from the endpoint and is supplied by the AppHost.
-        if (!isPublishMode)
+        if (!_isPublishMode)
         {
-            // Run mode: the allocated URL (for example https://localhost:7123) is available once endpoints are
-            // allocated, which happens before any workload starts, so provisioning can wait on it without a deadlock.
-            return ReferenceExpression.Create($"{Endpoint.Property(EndpointProperty.Url)}{Path}");
+            return ReferenceExpression.Create($"{_runModeOrigin!}{Path}");
         }
 
         // Publish/deploy: ask the compute environment that hosts the resource for its public host name, the same way
@@ -39,5 +53,53 @@ internal sealed class EntraIdEndpointRedirectUri(EndpointReference endpoint, str
 
         var host = computeEnvironment.GetHostAddressExpression(Endpoint);
         return ReferenceExpression.Create($"https://{host}{Path}");
+    }
+
+    /// <summary>
+    /// Resolves the scheme, host, and port that users browse to when running locally.
+    /// </summary>
+    /// <remarks>
+    /// The allocated endpoint is always <c>localhost</c>, but when the endpoint targets a <c>*.localhost</c> host or the
+    /// dashboard uses a <c>*.dev.localhost</c> name, the orchestrator makes a friendly URL such as
+    /// <c>https://web-myapp.dev.localhost:7081</c> the resource's primary URL. Microsoft Entra ID matches the host
+    /// exactly for such names (only plain <c>localhost</c> ignores the port), so the redirect URI must use the same URL
+    /// the user navigates to. The orchestrator computes that URL when it runs the resource's URL callbacks, which
+    /// happens after the endpoint is allocated, so this waits for the callback.
+    /// </remarks>
+    private sealed class RunModeOrigin(EndpointReference endpoint) : IValueProvider, IManifestExpressionProvider
+    {
+        private readonly TaskCompletionSource<string> _origin = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public string ValueExpression => endpoint.Property(EndpointProperty.Url).ValueExpression;
+
+        public void CaptureUrl(ResourceUrlsCallbackContext context)
+        {
+            // The primary URL is the one shown in the summary; a *.localhost URL replaces the plain localhost one there.
+            var urls = context.Urls
+                .Where(u => u.Endpoint is { } e && string.Equals(e.EndpointName, endpoint.EndpointName, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            var primary = urls.FirstOrDefault(u => u.DisplayLocation != UrlDisplayLocation.DetailsOnly) ?? urls.FirstOrDefault();
+
+            if (primary is not null && Uri.TryCreate(primary.Url, UriKind.Absolute, out var uri))
+            {
+                _origin.TrySetResult(uri.GetLeftPart(UriPartial.Authority));
+            }
+        }
+
+        public async ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default)
+        {
+            // Resolving the endpoint waits for allocation. Use it as the fallback when no URL callback runs for the
+            // endpoint (for example, a non-HTTP endpoint), so provisioning never waits indefinitely.
+            var allocated = await endpoint.Property(EndpointProperty.Url).GetValueAsync(cancellationToken).ConfigureAwait(false);
+
+            var completed = await Task.WhenAny(_origin.Task, Task.Delay(TimeSpan.FromSeconds(30), cancellationToken)).ConfigureAwait(false);
+            if (completed == _origin.Task)
+            {
+                return await _origin.Task.ConfigureAwait(false);
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            return allocated;
+        }
     }
 }
