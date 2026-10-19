@@ -361,7 +361,9 @@ For the complete tool contract, see [CreateLayout](../../tools/CreateLayout/READ
 
 ### Experimental Native Tray Companion
 
-`aspire tray start` starts or restores the native companion from the invoking CLI's leased bundle; `aspire tray stop` shuts down the companion without stopping AppHosts. The companion uses the CLI's versioned discovery and exact-instance stop contracts. Linux and standalone CLI binaries without a bundled payload are unsupported.
+`aspire tray start` starts or restores the native companion from the invoking CLI's resolved bundle; `aspire tray stop` shuts down the companion without stopping AppHosts. The companion uses the CLI's bundle discovery and exact-instance stop contracts. Linux and layouts without a native tray payload are unsupported.
+
+The tray launcher and GUI use the shared `BundleVersionLease.TryAcquireFromEnvironment` flow. The CLI passes `ASPIRE_BUNDLE_VERSION_DIR` for mutable versioned bundles, and each process retains its own lease through the readiness handoff. Package-owned immutable layouts do not pass a lease. `--bundle-root` identifies the tray payload location independently of cleanup protection.
 
 macOS bundles contain the complete `Aspire Tray.app`, including its executable, plist, artwork, and signature. Windows x64 and ARM64 bundles contain `tray/aspire-tray.exe` and the shared `tray/Aspire.ico`. `CreateLayout` copies the already-published payload and rejects missing or incompatible files. The native archive verification targets check the actual packaged payload before it is embedded in the CLI.
 
