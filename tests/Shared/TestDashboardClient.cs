@@ -114,7 +114,7 @@ public class TestDashboardClient : IDashboardClient
         return _resourceCommandsChannel.Reader.ReadAsync(cancellationToken).AsTask();
     }
 
-    public Task<string> UploadFileAsync(Stream fileStream, string fileName, long expectedSize, int interactionId, string inputName, CancellationToken cancellationToken)
+    public Task<string> UploadFileAsync(Stream fileStream, string fileName, long expectedSize, int interactionId, string inputName, string appHostRunId, CancellationToken cancellationToken)
     {
         return Task.FromResult(Guid.NewGuid().ToString("N"));
     }

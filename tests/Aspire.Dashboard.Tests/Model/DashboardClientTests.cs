@@ -843,6 +843,50 @@ public sealed class DashboardClientTests(ITestOutputHelper testOutputHelper) : I
     }
 
     [Fact]
+    public async Task UploadFile_RunChanges_RejectsDelayedSelectionForReusedInteractionId()
+    {
+        var first = Channel.CreateUnbounded<WatchResourcesUpdate>();
+        var second = Channel.CreateUnbounded<WatchResourcesUpdate>();
+        var reattached = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var calls = 0;
+        var service = new MockDashboardServiceClient
+        {
+            RunId = "first",
+            ResourceUpdatesProvider = () =>
+            {
+                if (Interlocked.Increment(ref calls) == 1)
+                {
+                    return first.Reader;
+                }
+                reattached.TrySetResult();
+                return second.Reader;
+            }
+        };
+        await using var client = CreateResourceServiceClient();
+        client.SetDashboardServiceClient(service);
+        await client.WhenConnected.DefaultTimeout();
+        var origin = client.AppHostRunId;
+        service.RunId = "second";
+        first.Writer.Complete(new RpcException(new Status(StatusCode.Unavailable, "AppHost restarted during file selection")));
+        await reattached.Task.DefaultTimeout();
+        using var file = new MemoryStream("selected file"u8.ToArray());
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            client.UploadFileAsync(file, "selected.txt", file.Length, 1, "file", origin, CancellationToken.None));
+        Assert.Empty(service.UploadCalls);
+        Assert.Equal(0, file.Position);
+
+        var fileId = await client.UploadFileAsync(file, "selected.txt", file.Length, 1, "file", client.AppHostRunId, CancellationToken.None);
+        Assert.Equal("uploaded-file", fileId);
+        Assert.Equal("second", Assert.Single(service.UploadCalls));
+        var chunk = Assert.Single(service.UploadChunks);
+        Assert.Equal(1, chunk.InteractionId);
+        Assert.Equal("file", chunk.InputName);
+        Assert.Equal("selected.txt", chunk.FileName);
+        Assert.Equal("selected file", chunk.Data.ToStringUtf8());
+    }
+
+    [Fact]
     public async Task Interactions_RunChanges_RejectsDelayedRepliesForReusedInteractionId()
     {
         var firstResources = Channel.CreateUnbounded<WatchResourcesUpdate>();
@@ -1612,6 +1656,8 @@ public sealed class DashboardClientTests(ITestOutputHelper testOutputHelper) : I
         public string CorsAllowedOrigins { get; init; } = "";
         public ConcurrentQueue<(string? RunId, bool Cancelled)> ConsoleCalls { get; } = new();
         public ConcurrentQueue<string?> CommandCalls { get; } = new();
+        public ConcurrentQueue<string?> UploadCalls { get; } = new();
+        public ConcurrentQueue<UploadFileChunk> UploadChunks { get; } = new();
         public IReadOnlyList<WatchResourceConsoleLogsUpdate> ConsoleLogUpdates { get; init; } = [];
         public ChannelReader<WatchResourceConsoleLogsUpdate>? ConsoleUpdatesChannel { get; init; }
         public Action? OnConsoleWatchStarted { get; init; }
@@ -1687,6 +1733,26 @@ public sealed class DashboardClientTests(ITestOutputHelper testOutputHelper) : I
                     RunId = RunId,
                     CorsAllowedOrigins = CorsAllowedOrigins
                 }),
+                Task.FromResult(new Metadata()),
+                () => Status.DefaultSuccess,
+                () => new Metadata(),
+                () => { });
+        }
+
+        public override AsyncClientStreamingCall<UploadFileChunk, UploadFileResponse> UploadFile(CallOptions options)
+        {
+            UploadCalls.Enqueue(options.Headers?.GetValue("x-aspire-apphost-run-id"));
+            return new AsyncClientStreamingCall<UploadFileChunk, UploadFileResponse>(
+                new ClientStreamWriter<UploadFileChunk>
+                {
+                    OnComplete = () => Task.CompletedTask,
+                    OnWrite = chunk =>
+                    {
+                        UploadChunks.Enqueue(chunk);
+                        return Task.CompletedTask;
+                    }
+                },
+                Task.FromResult(new UploadFileResponse { FileId = "uploaded-file" }),
                 Task.FromResult(new Metadata()),
                 () => Status.DefaultSuccess,
                 () => new Metadata(),
@@ -1840,10 +1906,11 @@ public sealed class DashboardClientTests(ITestOutputHelper testOutputHelper) : I
     {
         public WriteOptions? WriteOptions { get; set; }
         public Func<T, Task>? OnWrite { get; init; }
+        public Func<Task>? OnComplete { get; init; }
 
         public Task CompleteAsync()
         {
-            throw new NotImplementedException();
+            return OnComplete?.Invoke() ?? throw new NotImplementedException();
         }
 
         public Task WriteAsync(T message)

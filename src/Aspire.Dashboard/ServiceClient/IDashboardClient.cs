@@ -77,7 +77,7 @@ public interface IDashboardClient : IResourceRepository, IAsyncDisposable
 
     Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, ExecuteResourceCommandOptions options, CancellationToken cancellationToken);
 
-    Task<string> UploadFileAsync(Stream fileStream, string fileName, long expectedSize, int interactionId, string inputName, CancellationToken cancellationToken);
+    Task<string> UploadFileAsync(Stream fileStream, string fileName, long expectedSize, int interactionId, string inputName, string appHostRunId, CancellationToken cancellationToken);
 
     /// <summary>
     /// Opens a duplex byte stream to an AppHost-owned terminal.

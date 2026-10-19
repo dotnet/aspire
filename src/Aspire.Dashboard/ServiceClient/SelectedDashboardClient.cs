@@ -107,10 +107,10 @@ internal sealed class SelectedDashboardClient(DashboardClient currentClient, Das
         return currentClient.ExecuteResourceCommandAsync(resourceName, resourceType, command, options, cancellationToken);
     }
 
-    public Task<string> UploadFileAsync(Stream fileStream, string fileName, long expectedSize, int interactionId, string inputName, CancellationToken cancellationToken)
+    public Task<string> UploadFileAsync(Stream fileStream, string fileName, long expectedSize, int interactionId, string inputName, string appHostRunId, CancellationToken cancellationToken)
     {
         EnsureLiveConnection();
-        return currentClient.UploadFileAsync(fileStream, fileName, expectedSize, interactionId, inputName, cancellationToken);
+        return currentClient.UploadFileAsync(fileStream, fileName, expectedSize, interactionId, inputName, appHostRunId, cancellationToken);
     }
 
     public Task<Stream> AttachTerminalAsync(string terminalId, CancellationToken cancellationToken)

@@ -1378,12 +1378,24 @@ internal sealed class DashboardClient : IDashboardClient
         }
     }
 
-    public async Task<string> UploadFileAsync(Stream fileStream, string fileName, long expectedSize, int interactionId, string inputName, CancellationToken cancellationToken)
+    public async Task<string> UploadFileAsync(Stream fileStream, string fileName, long expectedSize, int interactionId, string inputName, string appHostRunId, CancellationToken cancellationToken)
     {
         EnsureInitialized();
 
-        using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken, _appHostToken);
-        using var call = _client!.UploadFile(headers: GetSessionHeaders(), cancellationToken: combinedTokens.Token);
+        CancellationToken attachmentToken;
+        using (await _attachmentLock.LockAsync(cancellationToken).ConfigureAwait(false))
+        {
+            if (appHostRunId != _appHostRunId)
+            {
+                throw new OperationCanceledException("The interaction's AppHost run is no longer attached.");
+            }
+            attachmentToken = _appHostToken;
+        }
+
+        // A delayed file selection belongs to the dialog's originating run, even when interaction IDs
+        // are reused after a restart. Keep that run's header and cancellation lifetime together.
+        using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken, attachmentToken);
+        using var call = _client!.UploadFile(headers: GetSessionHeaders(appHostRunId), cancellationToken: combinedTokens.Token);
 
         const int chunkSize = 64 * 1024; // 64 KB chunks
         var buffer = new byte[chunkSize];
