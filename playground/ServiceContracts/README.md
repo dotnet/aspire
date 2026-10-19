@@ -208,8 +208,9 @@ should use normal AppHost configuration providers, not shell history or images.
 
 ## Verification and failure UX
 
-The recorded run is in [verification.txt](verification.txt): 104 hosting tests
-(including 29 contract cases) passed on .NET 10, and all 14 runtime probes passed.
+The recorded run is in [verification.txt](verification.txt): 167 hosting tests
+(including 34 contract cases and the existing image parser/archive suites) passed
+on .NET 10, and all 14 runtime probes passed.
 This is local runtime evidence, not a claim about CI or production deployment.
 
 The runner requires exact response JSON in source mode, after the producer-only

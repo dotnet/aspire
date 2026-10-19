@@ -165,6 +165,7 @@ public static class ServiceContractResourceBuilderExtensions
             throw new DistributedApplicationException($"Service contract mismatch in '{path}': expected '{expectedId}' major {expectedMajor}, found '{contract.Id}' version '{contract.Version}'.");
         }
         if (string.IsNullOrWhiteSpace(contract.Image) || string.IsNullOrWhiteSpace(contract.ImageTag) ||
+            !ContainerReferenceParser.IsValidTag(contract.ImageTag) ||
             contract.ImageTag.Equals("latest", StringComparison.OrdinalIgnoreCase) ||
             string.IsNullOrWhiteSpace(contract.Project) || Path.IsPathRooted(contract.Project) ||
             contract.Http is null || contract.Http.TargetPort is < 1 or > 65535 ||

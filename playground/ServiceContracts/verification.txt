@@ -19,15 +19,17 @@ Builds:
 
 Tests:
   Built tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj, then ran its
-  net10.0 test assembly using /usr/bin/dotnet with four --filter-class options:
-    Aspire.Hosting.Tests.ServiceContractTests (29 cases)
+  net10.0 test assembly using /usr/bin/dotnet with six --filter-class options:
+    Aspire.Hosting.Tests.ServiceContractTests (34 cases)
     Aspire.Hosting.Tests.ProjectResourceTests
     Aspire.Hosting.Tests.WithEnvironmentTests
     Aspire.Hosting.Tests.KestrelConfigTests
+    Aspire.Hosting.Tests.Utils.ContainerReferenceParserTests
+    Aspire.Hosting.Tests.Publishing.ContainerImageArchiveRewriterTests
   Test run summary: Passed! (net10.0|x64)
-    total: 104
+    total: 167
     failed: 0
-    succeeded: 104
+    succeeded: 167
     skipped: 0
 
 Runtime assertions (actual consumer HTTP /shop -> producer HTTP /products):
@@ -66,9 +68,9 @@ Readiness evidence (timestamps extracted from normal resource logs):
 
 Artifacts retained by the recorded run:
   Local image: aspire-contract-catalog:1.0.0
-  Image ID: sha256:e00d7d470a62dcee0f0ec90b5355e3b1c4b7a7c125e2fe659a25a970702d63f5
-  Producer fixture commit: a8a16d3910b7231032c7065f47fdc136f63c005f
-  Consumer fixture commit: a1bd5e85df178cf1baacf5f7f31150d6762584c6
+  Image ID: sha256:e17a8f2b0b284858c628586cd332714a53ce5f17eaac55998525cdb46193881e
+  Producer fixture commit: 45ac5fdf0d71372cbfdad4932c40ef6cbb9790e5
+  Consumer fixture commit: 84d8fe65bbd108caafd0c792218fbe44f4d2c740
   Both fixture working trees were clean after the runner restored its probes.
   AppHosts stopped and no experiment containers remained running.
   Fixture commits/image IDs are per-run artifacts, not remotely published releases.
@@ -86,6 +88,10 @@ Post-publication regression:
   from the default build glob. All 104 tests and all 14 runtime probes passed
   after these changes. Evaluating eng/Build.props retained 184 regular playground
   projects and selected no ServiceContracts fixtures.
+  Image tags now use the existing archive rewriter's tag grammar, shared through
+  ContainerReferenceParser. Invalid separators, whitespace, leading punctuation,
+  and tags longer than 128 characters fail before model registration. All 167
+  targeted tests and all 14 runtime probes passed after this additional fix.
   The readiness timestamps above are from the earlier Kestrel-fix run; the latest
   run also returned the same exact HTTP payload in all successful modes.
 
