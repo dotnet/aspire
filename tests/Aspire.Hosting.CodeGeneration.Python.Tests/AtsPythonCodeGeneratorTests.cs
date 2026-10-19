@@ -373,7 +373,7 @@ public class AtsPythonCodeGeneratorTests
         [
             typeof(DistributedApplication).Assembly,
             typeof(global::Aspire.Hosting.Kubernetes.KubernetesNodePoolResource).Assembly,
-            typeof(global::Aspire.Hosting.Azure.Kubernetes.AksNodePoolOptions).Assembly
+            typeof(global::Aspire.Hosting.Azure.Kubernetes.AksNodePoolConfig).Assembly
         ]).ToAtsContext();
         var files = _generator.GenerateDistributedApplication(context);
         return ExecuteGeneratedPythonAsync(pythonExecutable, files["aspire_app.py"],
@@ -382,15 +382,20 @@ public class AtsPythonCodeGeneratorTests
             import typing
             import aspire_app
 
-            assert typing.get_type_hints(aspire_app.AksNodePoolOptions) == {
-                "vmSize": str, "minCount": int, "maxCount": int, "osSku": str | None
+            assert typing.get_type_hints(aspire_app.AksNodePoolConfig) == {
+                "name": str, "vmSize": str, "minCount": int, "maxCount": int,
+                "mode": aspire_app.AksNodePoolMode, "osSku": str | None
             }
             client = aspire_app.AspireClient("unused")
             handle = aspire_app.Handle({"$handle": "aks", "$type": "Aspire.Hosting.Azure.Kubernetes/Aspire.Hosting.Azure.Kubernetes.AzureKubernetesEnvironmentResource"})
             results = []
 
             def configure(options):
-                assert options == {"vmSize": "Standard_D2s_v5", "minCount": 1, "maxCount": 3, "osSku": None}
+                assert options["name"] in ("system", "workers")
+                assert options["mode"] == ("System" if options["name"] == "system" else "User")
+                assert options["vmSize"] == "Standard_D2s_v5"
+                assert options["minCount"] == 1 and options["maxCount"] == 3
+                assert options["osSku"] is None
                 options["minCount"] = 2
                 options["maxCount"] = 5
                 options["osSku"] = "AzureLinux"
@@ -401,10 +406,16 @@ public class AtsPythonCodeGeneratorTests
                     "Aspire.Hosting.Azure.Kubernetes/addNodePool",
                 )
                 callback = client._callback_registry[args["configure"]]
-                payload = json.loads('{"p0":{"vmSize":"Standard_D2s_v5","minCount":1,"maxCount":3,"osSku":null}}')
+                name = args.get("name", "system")
+                mode = "System" if name == "system" else "User"
+                payload = json.loads(json.dumps({"p0": {
+                    "name": name, "vmSize": "Standard_D2s_v5", "minCount": 1,
+                    "maxCount": 3, "mode": mode, "osSku": None
+                }}))
                 result = callback(payload, client)
                 assert json.loads(json.dumps(result)) == {"p0": {
-                    "vmSize": "Standard_D2s_v5", "minCount": 2, "maxCount": 5, "osSku": "AzureLinux"
+                    "name": name, "vmSize": "Standard_D2s_v5", "minCount": 2,
+                    "maxCount": 5, "mode": mode, "osSku": "AzureLinux"
                 }}
                 results.append(result)
                 return args["builder"]

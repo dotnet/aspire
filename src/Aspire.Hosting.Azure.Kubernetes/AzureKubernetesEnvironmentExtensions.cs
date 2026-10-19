@@ -259,12 +259,13 @@ public static class AzureKubernetesEnvironmentExtensions
     /// <param name="configure">A callback to configure VM size, autoscaling, and OS SKU.</param>
     /// <returns>The resource builder for the new node pool.</returns>
     /// <remarks>
-    /// The callback starts with default options. Omitting the OS SKU leaves AKS to choose its default.
+    /// The callback receives the node pool configuration with default VM size and node counts.
+    /// Configuration remains mutable and is validated during infrastructure generation.
+    /// Omitting the OS SKU leaves AKS to choose its default.
     /// The returned resource can be used to schedule workloads on this pool.
     /// </remarks>
     /// <exception cref="ArgumentNullException">The builder or callback is null.</exception>
-    /// <exception cref="ArgumentException">The name, VM size, or supplied OS SKU is empty or whitespace.</exception>
-    /// <exception cref="ArgumentOutOfRangeException">The node counts are negative or the minimum exceeds the maximum.</exception>
+    /// <exception cref="ArgumentException">The name is empty or whitespace.</exception>
     /// <example>
     /// <code>
     /// var workers = aks.AddNodePool("workers", pool =>
@@ -279,13 +280,14 @@ public static class AzureKubernetesEnvironmentExtensions
     public static IResourceBuilder<AksNodePoolResource> AddNodePool(
         this IResourceBuilder<AzureKubernetesEnvironmentResource> builder,
         [ResourceName] string name,
-        Action<AksNodePoolOptions> configure)
+        Action<AksNodePoolConfig> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentNullException.ThrowIfNull(configure);
 
-        var config = CreateNodePoolConfig(name, AksNodePoolMode.User, configure);
+        var config = new AksNodePoolConfig(name, "Standard_D2s_v5", 1, 3, AksNodePoolMode.User);
+        configure(config);
         builder.Resource.NodePools.Add(config);
 
         var nodePool = new AksNodePoolResource(name, config, builder.Resource);
@@ -353,12 +355,11 @@ public static class AzureKubernetesEnvironmentExtensions
     /// <param name="configure">A callback to configure VM size, autoscaling, and OS SKU.</param>
     /// <returns>The AKS environment resource builder for chaining.</returns>
     /// <remarks>
-    /// Each call replaces the previous system pool configuration, starting with default options.
+    /// Each call replaces the previous system pool configuration, starting with default VM size and node counts.
+    /// Configuration remains mutable and is validated during infrastructure generation.
     /// Omitting the OS SKU leaves AKS to choose its default.
     /// </remarks>
     /// <exception cref="ArgumentNullException">The builder or callback is null.</exception>
-    /// <exception cref="ArgumentException">The VM size or supplied OS SKU is empty or whitespace.</exception>
-    /// <exception cref="ArgumentOutOfRangeException">A node count is less than 1 or the minimum exceeds the maximum.</exception>
     /// <example>
     /// <code>
     /// var aks = builder.AddAzureKubernetesEnvironment("aks")
@@ -372,37 +373,30 @@ public static class AzureKubernetesEnvironmentExtensions
     [AspireExport(RunSyncOnBackgroundThread = true)]
     public static IResourceBuilder<AzureKubernetesEnvironmentResource> WithSystemNodePool(
         this IResourceBuilder<AzureKubernetesEnvironmentResource> builder,
-        Action<AksNodePoolOptions> configure)
+        Action<AksNodePoolConfig> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(configure);
 
-        var config = CreateNodePoolConfig("system", AksNodePoolMode.System, configure);
+        var config = new AksNodePoolConfig("system", "Standard_D2s_v5", 1, 3, AksNodePoolMode.System);
+        configure(config);
         builder.Resource.NodePools.RemoveAll(p => p.Mode is AksNodePoolMode.System);
         builder.Resource.NodePools.Insert(0, config);
 
         return builder;
     }
 
-    private static AksNodePoolConfig CreateNodePoolConfig(string name, AksNodePoolMode mode, Action<AksNodePoolOptions> configure)
+    private static void ValidateNodePoolConfig(AksNodePoolConfig config)
     {
-        var options = new AksNodePoolOptions();
-        configure(options);
-
-        ArgumentException.ThrowIfNullOrWhiteSpace(options.VmSize, nameof(options.VmSize));
-        var minimumCount = mode is AksNodePoolMode.System ? 1 : 0;
-        ArgumentOutOfRangeException.ThrowIfLessThan(options.MinCount, minimumCount, nameof(options.MinCount));
-        ArgumentOutOfRangeException.ThrowIfLessThan(options.MaxCount, minimumCount, nameof(options.MaxCount));
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(options.MinCount, options.MaxCount, nameof(options.MinCount));
-        if (options.OsSku is not null)
+        ArgumentException.ThrowIfNullOrWhiteSpace(config.VmSize, nameof(config.VmSize));
+        var minimumCount = config.Mode is AksNodePoolMode.System ? 1 : 0;
+        ArgumentOutOfRangeException.ThrowIfLessThan(config.MinCount, minimumCount, nameof(config.MinCount));
+        ArgumentOutOfRangeException.ThrowIfLessThan(config.MaxCount, minimumCount, nameof(config.MaxCount));
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(config.MinCount, config.MaxCount, nameof(config.MinCount));
+        if (config.OsSku is not null)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(options.OsSku, nameof(options.OsSku));
+            ArgumentException.ThrowIfNullOrWhiteSpace(config.OsSku, nameof(config.OsSku));
         }
-
-        return new AksNodePoolConfig(name, options.VmSize, options.MinCount, options.MaxCount, mode)
-        {
-            OsSku = options.OsSku
-        };
     }
 
     /// <summary>
@@ -743,6 +737,8 @@ public static class AzureKubernetesEnvironmentExtensions
 
         foreach (var pool in aksResource.NodePools)
         {
+            ValidateNodePoolConfig(pool);
+
             var mode = pool.Mode switch
             {
                 AksNodePoolMode.System => AgentPoolMode.System,
