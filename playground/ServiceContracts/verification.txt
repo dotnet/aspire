@@ -1,0 +1,74 @@
+Producer/consumer service-contract proof of concept
+Recorded: 2026-10-19 UTC
+Aspire base: 5bcd4dfc95d5000b36a14c5680c4ec73c63e9986
+Environment: Linux x64; SDK 11.0.100-rc.1.26425.128; runtime .NET 10.0.13
+Native orchestrator: Microsoft.DeveloperControlPlane.linux-amd64 0.27.0
+Docker daemon: 29.1.3 (existing daemon reused)
+
+Reproduction:
+  python3 playground/ServiceContracts/verify.py --workspace <new-directory>
+  See README.md for dependencies, manual switching, and exact test commands.
+
+Builds:
+  Aspire.Hosting and AppHost support: succeeded
+  Aspire.Dashboard: succeeded
+  Consumer.AppHost and Storefront: succeeded
+  Producer source, including producer-only path refactor: succeeded
+  Every final build: 0 warnings, 0 errors
+  Producer's standalone multistage Dockerfile: succeeded
+
+Tests:
+  Built tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj, then ran its
+  net10.0 test assembly using /usr/bin/dotnet with three --filter-class options:
+    Aspire.Hosting.Tests.ServiceContractTests (23 cases)
+    Aspire.Hosting.Tests.ProjectResourceTests
+    Aspire.Hosting.Tests.WithEnvironmentTests
+  Test run summary: Passed! (net10.0|x64)
+    total: 89
+    failed: 0
+    succeeded: 89
+    skipped: 0
+
+Runtime assertions (actual consumer HTTP /shop -> producer HTTP /products):
+  PASS source:
+    {"service":"catalog","contractVersion":1,"region":"north","products":["tea","coffee"]}
+  PASS source-missing-parameter: explicit catalog-api-key error, no successful /shop
+  PASS source-evolved: same response after producer-only path move and version 1.1.0
+  PASS source-major-mismatch: expected 'contoso.catalog' major 1, got 2.0.0
+  PASS artifact-identity-mismatch: expected 'contoso.catalog', got 'contoso.other'
+  PASS artifact-schema-mismatch: schemaVersion must be 1
+  PASS missing-binding: Missing: [tenant]
+  PASS unexpected-binding: Unexpected: [api-key]
+  PASS invalid-json: Invalid service contract
+  PASS missing-contract: obtain producer contract artifact
+  PASS missing-checkout: select checkout containing aspire-service.json
+  PASS container-without-source:
+    {"service":"catalog","contractVersion":1,"region":"north","products":["tea","coffee"]}
+    Producer directory was renamed away during the entire container-mode run.
+  PASS container-missing-parameter: explicit catalog-api-key error, no successful /shop
+
+Readiness evidence (timestamps extracted from normal resource logs):
+  Source:
+    08:14:22.7794963Z storefront waiting for catalog to become healthy
+    08:14:27.5880000Z catalog /health completed HTTP 200
+    08:14:27.6330000Z storefront process launched
+  Container:
+    08:14:51.7951451Z storefront waiting for catalog to become healthy
+    08:14:51.9202744Z catalog /health completed HTTP 200
+    08:14:51.9920000Z storefront process launched
+
+Artifacts retained by the recorded run:
+  Local image: aspire-contract-catalog:1.0.0
+  Image ID: sha256:ace8b2500a861a8efb97a3f953a87e77c0d96c23f1a0fc4c9f603604965d78b0
+  Producer fixture commit: 6ecda07053461961b03412d3388e58219d2f5518
+  Consumer fixture commit: 5b12c3dd3bae16031d668ac04d4203941f60e5cf
+  Both fixture working trees were clean after the runner restored its probes.
+  AppHosts stopped and no experiment containers remained running.
+  Fixture commits/image IDs are per-run artifacts, not remotely published releases.
+  The PR publishes the implementation, fixture sources, and reproduction runner.
+
+Limits:
+  Local evidence only; not a CI run, package audit, security review, image registry
+  publication, deployment test, IDE test, or proof of HTTP semantic compatibility.
+  Audit endpoint unavailable: experiment restores explicitly disabled NuGet audit.
+  One HTTP service; trusted data artifact; source checkout is supplied explicitly.
