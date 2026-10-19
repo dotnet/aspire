@@ -11,6 +11,89 @@ namespace Aspire.Hosting.RemoteHost.Tests;
 
 public class CapabilityDispatcherTests
 {
+    [Theory]
+    [InlineData(null, 132, 50)]
+    [InlineData("{}", 132, 50)]
+    [InlineData("""{"columns":200}""", 200, 50)]
+    [InlineData("""{"rows":60}""", 132, 60)]
+    [InlineData("""{"columns":200,"rows":60}""", 200, 60)]
+    [InlineData("""{"columns":1,"rows":1}""", 1, 1)]
+    public async Task Invoke_WithTerminal_ConfiguresDimensions(string? optionsJson, int columns, int rows)
+    {
+        var export = typeof(TerminalResourceBuilderExtensions).GetMethod(nameof(TerminalResourceBuilderExtensions.WithTerminal))!
+            .GetCustomAttributes(typeof(AspireExportAttribute), inherit: false).Cast<AspireExportAttribute>().Single();
+        Assert.True(export.RunSyncOnBackgroundThread);
+
+        var builder = DistributedApplication.CreateBuilder();
+        var resource = builder.AddExecutable("terminal", "myapp", ".");
+        await using var handles = new HandleRegistry();
+        var invoker = new TestCallbackInvoker
+        {
+            ResultToReturn = optionsJson is null ? null : new JsonObject { ["p0"] = JsonNode.Parse(optionsJson) }
+        };
+        var (marshaller, callbackFactory) = CreateTestMarshallerWithCallbacks(handles, invoker, typeof(TerminalResourceBuilderExtensions).Assembly);
+        using var callbackFactoryLifetime = callbackFactory;
+        var dispatcher = new CapabilityDispatcher(handles, marshaller, [typeof(TerminalResourceBuilderExtensions).Assembly]);
+        var handleId = handles.Register(resource, "Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceBuilder");
+        var args = new JsonObject { ["builder"] = new JsonObject { ["$handle"] = handleId } };
+        if (optionsJson is not null)
+        {
+            args["configure"] = "configure-terminal";
+        }
+
+        var result = dispatcher.Invoke("Aspire.Hosting/withTerminal", args);
+
+        Assert.NotNull(result);
+        var resultHandle = result["$handle"]!.GetValue<string>();
+        Assert.True(handles.TryGet(resultHandle, out var returnedBuilder, out _));
+        Assert.Same(resource, returnedBuilder);
+        if (optionsJson is null)
+        {
+            Assert.Empty(invoker.Invocations);
+        }
+        else
+        {
+            var invocation = Assert.Single(invoker.Invocations);
+            Assert.Equal("configure-terminal", invocation.CallbackId);
+            Assert.Equal(132, invocation.Args!["p0"]!["columns"]!.GetValue<int>());
+            Assert.Equal(50, invocation.Args!["p0"]!["rows"]!.GetValue<int>());
+        }
+
+        var annotation = Assert.Single(resource.Resource.Annotations.OfType<TerminalAnnotation>());
+        Assert.Equal(columns, annotation.Options.Columns);
+        Assert.Equal(rows, annotation.Options.Rows);
+    }
+
+    [Theory]
+    [InlineData("""{"columns":0}""")]
+    [InlineData("""{"columns":-1}""")]
+    [InlineData("""{"rows":0}""")]
+    [InlineData("""{"rows":-1}""")]
+    public async Task Invoke_WithTerminal_RejectsNonPositiveDimensions(string optionsJson)
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var resource = builder.AddExecutable("terminal", "myapp", ".");
+        await using var handles = new HandleRegistry();
+        var invoker = new TestCallbackInvoker
+        {
+            ResultToReturn = new JsonObject { ["p0"] = JsonNode.Parse(optionsJson) }
+        };
+        var (marshaller, callbackFactory) = CreateTestMarshallerWithCallbacks(handles, invoker, typeof(TerminalResourceBuilderExtensions).Assembly);
+        using var callbackFactoryLifetime = callbackFactory;
+        var dispatcher = new CapabilityDispatcher(handles, marshaller, [typeof(TerminalResourceBuilderExtensions).Assembly]);
+        var handleId = handles.Register(resource, "Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceBuilder");
+        var args = new JsonObject
+        {
+            ["builder"] = new JsonObject { ["$handle"] = handleId },
+            ["configure"] = "configure-terminal"
+        };
+
+        var exception = Assert.Throws<CapabilityException>(() => dispatcher.Invoke("Aspire.Hosting/withTerminal", args));
+
+        Assert.Equal(AtsErrorCodes.InvalidArgument, exception.Error.Code);
+        Assert.Empty(resource.Resource.Annotations.OfType<TerminalAnnotation>());
+    }
+
     [Fact]
     public void Register_AddsCapabilityThatCanBeInvoked()
     {
@@ -2117,10 +2200,11 @@ public class CapabilityDispatcherTests
 
     private static (AtsMarshaller Marshaller, AtsCallbackProxyFactory CallbackFactory) CreateTestMarshallerWithCallbacks(
         HandleRegistry handles,
-        ICallbackInvoker invoker)
+        ICallbackInvoker invoker,
+        params System.Reflection.Assembly[] assemblies)
     {
         var ctRegistry = new CancellationTokenRegistry();
-        var context = new AtsContext { Capabilities = [], HandleTypes = [], DtoTypes = [], EnumTypes = [] };
+        var context = AtsCapabilityScanner.ScanAssemblies(assemblies).ToAtsContext();
         AtsCallbackProxyFactory? callbackFactory = null;
         var marshaller = new AtsMarshaller(handles, context, ctRegistry, new Lazy<AtsCallbackProxyFactory>(() => callbackFactory!));
         callbackFactory = new AtsCallbackProxyFactory(invoker, handles, ctRegistry, marshaller);
