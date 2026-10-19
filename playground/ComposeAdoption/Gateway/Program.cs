@@ -5,11 +5,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddHttpClient();
 var app = builder.Build();
 
-app.MapGet("/", async (IConfiguration configuration, IHttpClientFactory clients, CancellationToken cancellationToken) =>
+app.MapGet("/{**path}", async (string? path, IConfiguration configuration, IHttpClientFactory clients, CancellationToken cancellationToken) =>
 {
     var api = configuration["API_URL"] ?? throw new InvalidOperationException("API_URL is required.");
     using var client = clients.CreateClient();
-    using var response = await client.GetAsync($"{api}/", cancellationToken);
+    using var response = await client.GetAsync($"{api}/{path}", cancellationToken);
     return Results.Content(await response.Content.ReadAsStringAsync(cancellationToken),
         response.Content.Headers.ContentType?.ToString(), statusCode: (int)response.StatusCode);
 });

@@ -77,14 +77,26 @@ check_response() {
     return 1
 }
 
+check_health() {
+    local response
+    response="$(curl -fsS --max-time 5 http://localhost:18080/health)"
+    if [[ "$response" != '{"redis":"ready"}' ]]; then
+        echo "Unexpected gateway -> API -> Redis health response: $response" >&2
+        return 1
+    fi
+    echo "Redis-backed health: $response"
+}
+
 echo "Original Compose stack:"
 check_response compose-dotnet
+check_health
 docker compose -f "$sample/compose.yaml" down
 
 echo "Imported Aspire containers:"
 bash "$sample/run.sh" --no-build > "$sample/imported.log" 2>&1 &
 apphost_pid=$!
 check_response compose-dotnet
+check_health
 curl -fsS http://localhost:18888/ > /dev/null
 stop_apphost
 
@@ -93,6 +105,7 @@ COMPOSE_REPLACE_API=true bash "$sample/run.sh" --no-build > "$sample/replacement
 apphost_pid=$!
 check_response local-dotnet
 check_response local-dotnet 2
+check_health
 curl -fsS http://localhost:18888/ > /dev/null
 if docker ps --format '{{.Names}}' | grep -q '^legacy-api-'; then
     echo "An API container is running despite replacement" >&2

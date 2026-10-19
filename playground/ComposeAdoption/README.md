@@ -38,6 +38,11 @@ workaround, not a change to repository feed or security settings. `run.sh` disab
 the network-dependent audit for its local sample build; it does not disable analyzers.
 
 The script checks a real Redis-backed request through all three configurations,
+including gateway `/health` forwarding an API Redis `PING` probe without
+incrementing the counter; a successful response must be `{"redis":"ready"}`.
+This is an application-level acceptance probe, not yet DCP Compose healthcheck
+or `service_healthy` integration.
+It also checks
 dashboard HTTP availability, absence of the replaced API container, and cleanup.
 It publishes the .NET API and gateway into ignored
 `artifacts/compose-adoption/{api,gateway}` directories, then builds the AppHost
