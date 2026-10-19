@@ -79,7 +79,15 @@ Changing the name or suffix targets another registration and leaves the previous
 Existing registrations with different `uniqueName` values are not automatically adopted: reference their IDs with
 `AddExistingEntraApplication` or explicitly clean them up when migrating.
 
-Configure callback URIs with `WithRedirectUris`; Aspire does not discover them automatically. To supply the externally visible
+Configure callback URIs with `WithRedirectUris`. To derive the scheme, host, and port from a resource's endpoint, pass the endpoint and the
+callback paths. When running locally the allocated endpoint URL is used; when publishing or deploying, the host comes from the resource's
+compute environment. The callback path can't be discovered, so it must match the path configured in the consuming app:
+
+```csharp
+entraWeb.WithRedirectUris(web.GetEndpoint("https"), "/signin-oidc", "/signout-callback-oidc");
+```
+
+To supply the externally visible
 URIs per environment at deployment time (for example, behind a gateway or custom domain), pass parameters instead of literals.
 Each parameter value may contain several URIs separated by commas (split in the generated Bicep, so URIs can't contain commas
 and entries must not have surrounding whitespace). Literal and parameter-backed URIs can be mixed and are registered in call order:

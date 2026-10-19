@@ -1024,6 +1024,66 @@ public static class EntraIdResourceExtensions
     }
 
     /// <summary>
+    /// Adds redirect URIs for a resource's endpoint to a registration created by Aspire.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="endpoint">The endpoint that serves the callbacks.</param>
+    /// <param name="callbackPaths">The callback paths on that endpoint, such as <c>/signin-oidc</c>.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when an argument is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when no path is provided or a path doesn't start with <c>/</c>.</exception>
+    /// <remarks>
+    /// <para>
+    /// The scheme, host, and port come from the endpoint so they follow local endpoint allocation. When running locally the
+    /// allocated URL is used. When publishing or deploying, the host name comes from the resource's compute environment and
+    /// the scheme is <c>https</c>.
+    /// </para>
+    /// <para>
+    /// The callback path can't be discovered from the endpoint: it's configured by the consuming application, so it is
+    /// supplied here and must match that configuration. When the externally visible URL differs from the endpoint
+    /// (gateway, reverse proxy, or custom domain), supply the full URL with <c>WithRedirectUris</c> instead.
+    /// Existing registrations are not modified.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code lang="csharp">
+    /// var web = builder.AddProject&lt;Projects.Web&gt;("web").WithExternalHttpEndpoints();
+    /// var entraWeb = builder.AddEntraIdApplication("entra-web")
+    ///     .WithRedirectUris(web.GetEndpoint("https"), "/signin-oidc", "/signout-callback-oidc");
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<EntraIdApplicationResource> WithRedirectUris(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        EndpointReference endpoint,
+        params string[] callbackPaths)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(endpoint);
+        ArgumentNullException.ThrowIfNull(callbackPaths);
+
+        if (callbackPaths.Length == 0)
+        {
+            throw new ArgumentException("At least one callback path is required.", nameof(callbackPaths));
+        }
+
+        foreach (var path in callbackPaths)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(path, nameof(callbackPaths));
+            if (!path.StartsWith('/'))
+            {
+                throw new ArgumentException($"The callback path '{path}' must start with '/'.", nameof(callbackPaths));
+            }
+        }
+
+        foreach (var path in callbackPaths)
+        {
+            builder.Resource.AddRedirectUri(new EntraIdEndpointRedirectUri(endpoint, path, builder.ApplicationBuilder.ExecutionContext.IsPublishMode));
+        }
+
+        return builder;
+    }
+
+    /// <summary>
     /// Enables ID-token issuance through implicit and hybrid flows for a registration created by Aspire.
     /// </summary>
     /// <param name="builder">The resource builder.</param>

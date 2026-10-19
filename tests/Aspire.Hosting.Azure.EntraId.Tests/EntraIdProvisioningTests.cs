@@ -386,6 +386,54 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task WithRedirectUris_Endpoint_RunMode_UsesAllocatedEndpointUrl()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var web = builder.AddContainer("web", "image").WithHttpsEndpoint(targetPort: 8080, name: "https");
+        var entra = builder.AddEntraIdApplication("entra-web")
+            .WithRedirectUris(web.GetEndpoint("https"), "/signin-oidc", "/signout-callback-oidc");
+
+        await Verify(entra.Resource.GetBicepTemplateString(), "bicep");
+        Assert.Equal(new[] { "tenantResourceSuffix", "redirectUri0", "redirectUri1" }, entra.Resource.Parameters.Keys);
+        Assert.All(
+            entra.Resource.Parameters.Where(p => p.Key.StartsWith("redirectUri", StringComparison.Ordinal)),
+            p => Assert.IsType<ReferenceExpression>(p.Value));
+    }
+
+    [Fact]
+    public async Task WithRedirectUris_Endpoint_PublishMode_UsesComputeEnvironmentHost()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var environment = builder.AddResource(new TestComputeEnvironment("env"));
+        var web = builder.AddContainer("web", "image")
+            .WithHttpsEndpoint(targetPort: 8080, name: "https")
+            .WithComputeEnvironment(environment);
+        var entra = builder.AddEntraIdApplication("entra-web")
+            .WithRedirectUris(web.GetEndpoint("https"), "/signin-oidc");
+
+        await Verify(entra.Resource.GetBicepTemplateString(), "bicep");
+    }
+
+    [Fact]
+    public void WithRedirectUris_Endpoint_RequiresPathStartingWithSlash()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var web = builder.AddContainer("web", "image").WithHttpsEndpoint(targetPort: 8080, name: "https");
+        var entra = builder.AddEntraIdApplication("entra-web");
+
+        Assert.Throws<ArgumentException>("callbackPaths", () => entra.WithRedirectUris(web.GetEndpoint("https")));
+        Assert.Throws<ArgumentException>("callbackPaths", () => entra.WithRedirectUris(web.GetEndpoint("https"), "signin-oidc"));
+    }
+
+#pragma warning disable ASPIRECOMPUTE002 // Test compute environment implements the experimental host address member.
+    private sealed class TestComputeEnvironment(string name) : Resource(name), IComputeEnvironmentResource
+    {
+        public ReferenceExpression GetHostAddressExpression(EndpointReference endpointReference) =>
+            ReferenceExpression.Create($"{endpointReference.Resource.Name}.contoso.example");
+    }
+#pragma warning restore ASPIRECOMPUTE002
+
+    [Fact]
     public async Task ConfigureInfrastructure_WritesDirectResourcePropertyValues()
     {
         using var builder = TestDistributedApplicationBuilder.Create();

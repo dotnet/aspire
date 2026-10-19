@@ -147,21 +147,33 @@ public class EntraIdApplicationResource : AzureProvisioningResource
     private static BicepList<string> CreateRedirectUris(EntraIdApplicationResource resource, AzureResourceInfrastructure infrastructure)
     {
         var values = resource._redirectUriValues;
-        if (!values.OfType<ParameterResource>().Any())
+        if (values.All(static v => v is string))
         {
             return [.. values.OfType<string>()];
         }
 
         // Parameter values are only known at deployment time, so each is split on commas in Bicep. Consecutive
-        // literals are grouped into one array to keep the call order:
-        //   concat(['https://literal'], split(redirectUris, ','), split(otherRedirectUris, ','))
+        // literals and endpoint-derived URIs are grouped into one array to keep the call order:
+        //   concat(['https://literal', endpointRedirectUri0], split(redirectUris, ','), split(otherRedirectUris, ','))
         var arguments = new List<BicepExpression>();
         var literals = new List<BicepExpression>();
+        var endpointIndex = 0;
         foreach (var value in values)
         {
             if (value is string literal)
             {
                 literals.Add(new StringLiteralExpression(literal));
+                continue;
+            }
+
+            if (value is EntraIdEndpointRedirectUri endpointRedirectUri)
+            {
+                // The endpoint's address is only known when the parameter is resolved: after endpoint allocation when
+                // running locally, or from the compute environment when deploying.
+                var uriParameter = endpointRedirectUri
+                    .CreateExpression()
+                    .AsProvisioningParameter(infrastructure, $"redirectUri{endpointIndex++}");
+                literals.Add(uriParameter.Value.Compile());
                 continue;
             }
 
@@ -321,6 +333,8 @@ public class EntraIdApplicationResource : AzureProvisioningResource
     internal void AddRedirectUri(string redirectUri) => _redirectUriValues.Add(redirectUri);
 
     internal void AddRedirectUri(ParameterResource redirectUri) => _redirectUriValues.Add(redirectUri);
+
+    internal void AddRedirectUri(EntraIdEndpointRedirectUri redirectUri) => _redirectUriValues.Add(redirectUri);
 
     // Each entry is either a literal directory object ID (string) or a ParameterResource holding one.
     internal List<object> ApplicationOwners { get; } = [];
