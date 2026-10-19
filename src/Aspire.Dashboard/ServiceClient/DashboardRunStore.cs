@@ -94,6 +94,8 @@ internal sealed class DashboardRunStore : IDashboardRunStore, IDisposable
     private Lazy<IReadOnlyList<DashboardRunDescriptor>> _runs;
     private string? _appHostRunId;
     private readonly object _runStateLock = new();
+    private int _references = 1;
+    private bool _disposeRequested;
     private bool _metadataPublished;
 
     public DashboardRunStore(IOptions<DashboardOptions> options, ILogger<DashboardRunStore> logger, TimeProvider timeProvider)
@@ -518,7 +520,42 @@ internal sealed class DashboardRunStore : IDashboardRunStore, IDisposable
         return orderedRuns;
     }
 
+    internal IDisposable Retain()
+    {
+        lock (_runStateLock)
+        {
+            ObjectDisposedException.ThrowIf(_disposeRequested, this);
+            _references++;
+            return new Reference(this);
+        }
+    }
+
     public void Dispose()
+    {
+        lock (_runStateLock)
+        {
+            if (_disposeRequested)
+            {
+                return;
+            }
+            _disposeRequested = true;
+        }
+        Release();
+    }
+
+    private void Release()
+    {
+        lock (_runStateLock)
+        {
+            if (--_references != 0)
+            {
+                return;
+            }
+            DisposeCore();
+        }
+    }
+
+    private void DisposeCore()
     {
         try
         {
@@ -762,6 +799,12 @@ internal sealed class DashboardRunStore : IDashboardRunStore, IDisposable
         public bool IsPinned { get; init; }
         [JsonExtensionData]
         public Dictionary<string, JsonElement>? ExtensionData { get; init; }
+    }
+
+    private sealed class Reference(DashboardRunStore owner) : IDisposable
+    {
+        private DashboardRunStore? _owner = owner;
+        public void Dispose() => Interlocked.Exchange(ref _owner, null)?.Release();
     }
 }
 

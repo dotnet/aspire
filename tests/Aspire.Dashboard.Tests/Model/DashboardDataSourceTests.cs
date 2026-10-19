@@ -29,6 +29,33 @@ namespace Aspire.Dashboard.Tests.Model;
 public sealed class DashboardDataSourceTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
+    public async Task TemporaryRun_ShutdownWaitsForLastRequestBeforeDeletingDatabase()
+    {
+        using var workspace = TemporaryWorkspace.Create(testOutputHelper);
+        var options = CreateOptions(workspace, persistenceMode: DashboardPersistenceMode.None);
+        using var store = CreateRunStore(options);
+        using var pool = new DashboardDataSourcePool(store, CreateRepositoryFactory(options));
+        await pool.InitializeAsync(CancellationToken.None);
+        var retention = pool.RetainCurrent(out var current);
+        var directory = store.CurrentWorkingDirectory;
+        _ = current.ResourceRepository;
+        try
+        {
+            pool.Dispose();
+            store.Dispose();
+
+            Assert.True(Directory.Exists(directory));
+            Assert.Empty(current.ResourceRepository.GetResources());
+        }
+        finally
+        {
+            retention.Dispose();
+        }
+
+        Assert.False(Directory.Exists(directory));
+    }
+
+    [Fact]
     public async Task AppHostRunChange_RollsStorageAndPreservesHistory()
     {
         using var workspace = TemporaryWorkspace.Create(testOutputHelper);

@@ -542,8 +542,12 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             await next(context).ConfigureAwait(false);
         });
 
-        // The attached AppHost can update allowed OTLP origins after dashboard startup.
-        _app.UseCors();
+        if (dashboardOptions.Otlp.Cors.IsCorsEnabled || dashboardOptions.ResourceServiceClient.GetUri() is not null)
+        {
+            // The attached AppHost can update allowed OTLP origins after dashboard startup.
+            // Standalone dashboards without CORS configuration retain their existing preflight behavior.
+            _app.UseCors();
+        }
 
         // Use Forwarded Headers middleware if configured. This must run before token validation because sign-in cookie
         // behavior depends on the normalized request scheme.
@@ -621,7 +625,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         _app.MapTerminalWebSocket();
 
         // OTLP HTTP services.
-        _app.MapHttpOtlpApi(dashboardOptions.Otlp);
+        _app.MapHttpOtlpApi(dashboardOptions);
 
         // OTLP gRPC services.
         _app.MapGrpcService<OtlpGrpcMetricsService>();

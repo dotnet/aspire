@@ -91,14 +91,24 @@ public sealed class DashboardDataSourcePool : IDisposable
                 if (_current is null)
                 {
                     var database = new DashboardSqliteDatabase(currentRun.DatabasePath);
+                    // A streaming request can release its scope after the host's root services are disposed.
+                    // Keep temporary run files and their lock until that request closes its database lease.
+                    var runStoreRetention = (_runStore as DashboardRunStore)?.Retain();
                     _current = new Lease(
                         database,
                         () => _repositoryFactory.CreateTelemetryRepository(database),
                         () => _repositoryFactory.CreateResourceRepository(database),
                         () =>
                         {
-                            database.ClearPool();
-                            database.Dispose();
+                            try
+                            {
+                                database.ClearPool();
+                                database.Dispose();
+                            }
+                            finally
+                            {
+                                runStoreRetention?.Dispose();
+                            }
                         });
                 }
 
