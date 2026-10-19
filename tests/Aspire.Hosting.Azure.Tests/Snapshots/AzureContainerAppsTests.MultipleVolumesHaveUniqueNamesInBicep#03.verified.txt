@@ -87,7 +87,7 @@ resource storageVolumeFileService 'Microsoft.Storage/storageAccounts/fileService
 }
 
 resource shares_volumes_druid_0 'Microsoft.Storage/storageAccounts/fileServices/shares@2026-06-01' = {
-  name: take('shares_volumes_druid_0-${uniqueString(resourceGroup().id)}', 63)
+  name: take('sharesvolumesdruid0-${uniqueString(resourceGroup().id)}', 63)
   properties: {
     shareQuota: 1024
     enabledProtocols: 'SMB'
@@ -109,7 +109,7 @@ resource managedStorage_volumes_druid_0 'Microsoft.App/managedEnvironments/stora
 }
 
 resource shares_volumes_druid_1 'Microsoft.Storage/storageAccounts/fileServices/shares@2026-06-01' = {
-  name: take('shares_volumes_druid_1-${uniqueString(resourceGroup().id)}', 63)
+  name: take('sharesvolumesdruid1-${uniqueString(resourceGroup().id)}', 63)
   properties: {
     shareQuota: 1024
     enabledProtocols: 'SMB'
@@ -131,7 +131,7 @@ resource managedStorage_volumes_druid_1 'Microsoft.App/managedEnvironments/stora
 }
 
 resource shares_bindmounts_druid_0 'Microsoft.Storage/storageAccounts/fileServices/shares@2026-06-01' = {
-  name: take('shares_bindmounts_druid_0-${uniqueString(resourceGroup().id)}', 63)
+  name: take('sharesbindmountsdruid0-${uniqueString(resourceGroup().id)}', 63)
   properties: {
     shareQuota: 1024
     enabledProtocols: 'SMB'

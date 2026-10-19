@@ -42,6 +42,8 @@
     <Compile Include="$(SharedDir)KnownContainerRuntimes.cs" Link="Utils\KnownContainerRuntimes.cs" />
     <Compile Include="$(SharedDir)DebugSessionInfoParser.cs" Link="Utils\DebugSessionInfoParser.cs" />
     <Compile Include="$(SharedDir)ContainerRuntimeDetector.cs" Link="Publishing\ContainerRuntimeDetector.cs" />
+    <Compile Include="$(SharedDir)ContainerRuntimeProbe.cs" Link="Publishing\ContainerRuntimeProbe.cs" />
+    <Compile Include="$(SharedDir)WslcContainerRuntimeProbe.cs" Link="Publishing\WslcContainerRuntimeProbe.cs" />
     <Compile Include="$(SharedDir)KnownOtelConfigNames.cs" Link="Utils\KnownOtelConfigNames.cs" />
     <Compile Include="$(SharedDir)OtlpEndpointResolver.cs" Link="Utils\OtlpEndpointResolver.cs" />
     <Compile Include="$(SharedDir)PathNormalizer.cs" Link="Utils\PathNormalizer.cs" />
@@ -89,6 +91,9 @@
          The public AspireTerminal handle keeps these implementation types out of the API surface. -->
     <PackageReference Include="Hex1b" />
     <PackageReference Include="KubernetesClient" />
+    <!-- Central transitive pins do not flow to out-of-tree ProjectReference consumers.
+         Keep this explicit security pin until https://github.com/microsoft/aspire/issues/21050 is resolved. -->
+    <PackageReference Include="MessagePack" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="ModelContextProtocol" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />

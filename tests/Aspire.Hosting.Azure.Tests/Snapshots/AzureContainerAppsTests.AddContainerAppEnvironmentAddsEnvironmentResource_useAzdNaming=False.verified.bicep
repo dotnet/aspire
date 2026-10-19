@@ -87,7 +87,7 @@ resource storageVolumeFileService 'Microsoft.Storage/storageAccounts/fileService
 }
 
 resource shares_volumes_cache_0 'Microsoft.Storage/storageAccounts/fileServices/shares@2026-06-01' = {
-  name: take('shares_volumes_cache_0-${uniqueString(resourceGroup().id)}', 63)
+  name: take('sharesvolumescache0-${uniqueString(resourceGroup().id)}', 63)
   properties: {
     shareQuota: 1024
     enabledProtocols: 'SMB'

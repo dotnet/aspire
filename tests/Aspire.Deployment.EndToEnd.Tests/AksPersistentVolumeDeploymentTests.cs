@@ -303,9 +303,9 @@ public sealed class AksPersistentVolumeDeploymentTests(ITestOutputHelper output)
 
         content = ReplaceRequired(
             content,
-            """builder.AddProject<Projects.AksPersistentVolume_ApiService>("apiservice")""",
+            """builder.AddDotnetProject("apiservice", "../AksPersistentVolume.ApiService/AksPersistentVolume.ApiService.csproj")""",
             """
-            builder.AddProject<Projects.AksPersistentVolume_ApiService>("apiservice")
+            builder.AddDotnetProject("apiservice", "../AksPersistentVolume.ApiService/AksPersistentVolume.ApiService.csproj")
                 .WithPersistentVolume(data, "/srv/data", env: "DATA_PATH")
                 .WithPersistentVolume(sharedData, "/srv/shared")
                 .WithEnvironment("DEPLOYMENT_REVISION", "first")

@@ -9,6 +9,7 @@ using Aspire.Cli.DotNet;
 using Aspire.Cli.Processes;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Logging.Abstractions;
 using static Aspire.Cli.Tests.TestServices.ProcessTestHelpers;
 
@@ -29,7 +30,9 @@ public sealed class ProcessExecutionTests(ITestOutputHelper outputHelper)
             TryKillProcess(pid);
             return Task.FromResult(true);
         });
-        await using var execution = CreateExecution(scriptFile, isolateConsole: false, signaler, shutdownService);
+        await using var lifetime = AsyncTestHelpers.WithDisposeTimeout(
+            () => CreateExecution(scriptFile, isolateConsole: false, signaler, shutdownService));
+        var execution = lifetime.Instance;
         await execution.StartAsync(TestContext.Current.CancellationToken);
         shutdownService.IsEnabled = enabled;
         using var cancellation = new CancellationTokenSource();
@@ -57,7 +60,9 @@ public sealed class ProcessExecutionTests(ITestOutputHelper outputHelper)
             return Task.FromResult(true);
         });
 
-        await using var execution = CreateExecution(scriptFile, isolateConsole, signaler, shutdownService);
+        await using var lifetime = AsyncTestHelpers.WithDisposeTimeout(
+            () => CreateExecution(scriptFile, isolateConsole, signaler, shutdownService));
+        var execution = lifetime.Instance;
 
         Assert.True(await execution.StartAsync(CancellationToken.None));
 
@@ -88,7 +93,9 @@ public sealed class ProcessExecutionTests(ITestOutputHelper outputHelper)
             return Task.FromResult(true);
         });
 
-        await using var execution = CreateExecution(scriptFile, isolateConsole, signaler, shutdownService);
+        await using var lifetime = AsyncTestHelpers.WithDisposeTimeout(
+            () => CreateExecution(scriptFile, isolateConsole, signaler, shutdownService));
+        var execution = lifetime.Instance;
 
         Assert.True(await execution.StartAsync(CancellationToken.None));
 
@@ -118,7 +125,9 @@ public sealed class ProcessExecutionTests(ITestOutputHelper outputHelper)
         var signaler = new RecordingGracefulSignaler(onSignal: _ =>
             throw new InvalidOperationException("simulated DCP failure"));
 
-        await using var execution = CreateExecution(scriptFile, isolateConsole, signaler, shutdownService);
+        await using var lifetime = AsyncTestHelpers.WithDisposeTimeout(
+            () => CreateExecution(scriptFile, isolateConsole, signaler, shutdownService));
+        var execution = lifetime.Instance;
 
         Assert.True(await execution.StartAsync(CancellationToken.None));
 

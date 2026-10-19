@@ -53,9 +53,9 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         # This job runs PR-authored code; don't leave the checkout's GITHUB_TOKEN persisted in
-        # .git/config where that code could read it. The select-tests base-commit fetch is
-        # unauthenticated (public repo) and nothing here pushes, so dropping the credential is safe.
+        # .git/config where that code could read it.
         with:
+          fetch-depth: 0
           persist-credentials: false
 
       # Compute the selected test subset + non-.NET job booleans. The action reuses this job's checkout
