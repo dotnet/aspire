@@ -1,0 +1,16 @@
+{
+  "id": "aspire-hosting-tests-signalingfaketimeprovidertests-pollytimeout-flaky",
+  "type": "flaky-test",
+  "title": "Flaky: SignalingFakeTimeProviderTests.TimerCreatedOnlySignalsRetryDelayAfterPollyTimeoutIsArmed expects a Polly timeout exception that is not always thrown",
+  "test_name": "Aspire.Hosting.Tests.Utils.SignalingFakeTimeProviderTests.TimerCreatedOnlySignalsRetryDelayAfterPollyTimeoutIsArmed(reuseTimeoutTimer: True)",
+  "error_pattern": "Assert.Throws() Failure: No exception was thrown\nExpected: typeof(Polly.Timeout.TimeoutRejectedException)\n   at Aspire.Hosting.Tests.Utils.SignalingFakeTimeProviderTests.TimerCreatedOnlySignalsRetryDelayAfterPollyTimeoutIsArmed(Boolean reuseTimeoutTimer) in SignalingFakeTimeProviderTests.cs:line 51",
+  "occurrences": [
+    {
+      "run_id": 39247121741,
+      "run_url": "https://github.com/microsoft/aspire/actions/runs/39247121741",
+      "job": "Tests / No-package tests (collection, Aspire.Hosting.Tests, Hosting-4, Hosting-4, tests/Aspire.Hosting.Te... / Hosting-4 (windows-latest)",
+      "pr_number": 0,
+      "observed_at": "2026-10-19T13:07:39Z"
+    }
+  ]
+}

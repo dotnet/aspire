@@ -1,0 +1,111 @@
+{
+  "run_id": 39247121741,
+  "run_attempt": 1,
+  "run_url": "https://github.com/microsoft/aspire/actions/runs/39247121741",
+  "run_scope": "main",
+  "analyzed_at": "2026-10-19T13:07:39Z",
+  "verdict": "mixed",
+  "pr": null,
+  "triggering_merge_pr": null,
+  "main_context": {
+    "last_successful_main_sha": "88ff9ba57c2841cce759adffa849373f9406b0f5",
+    "failed_sha": "125cdfb798c29bb6c686fa80186c60e70f959dfb",
+    "candidate_merge_history_state": "incomplete",
+    "candidate_merges": null
+  },
+  "failed_jobs": [
+    {
+      "name": "Tests / No-package tests (collection, Aspire.Hosting.Tests, Hosting-4, Hosting-4, tests/Aspire.Hosting.Te... / Hosting-4 (windows-latest)",
+      "id": 118042421113,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39247121741/job/118042421113",
+      "classification": "flaky-test",
+      "reason": "SignalingFakeTimeProviderTests.TimerCreatedOnlySignalsRetryDelayAfterPollyTimeoutIsArmed(reuseTimeoutTimer: True) expected a Polly TimeoutRejectedException that was never thrown; a timing-sensitive assertion on fake timer signaling, consistent with a scheduling race rather than a code defect.",
+      "failed_steps": [
+        "Run tests (Windows)"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (ubuntu-latest)",
+      "id": 118042439407,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39247121741/job/118042439407",
+      "classification": "flaky-test",
+      "reason": "TrayWatchStreamTests.StalledResourceWatchDoesNotBlockReconciliationOrQuit(removeFirst: True, brokenPipe: False) failed with Expected: 0, Actual: 7, matching a previously tracked recurring flaky reconciliation-count race (issue #20707, 11 prior occurrences).",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x)",
+      "id": 118046235189,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39247121741/job/118046235189",
+      "classification": "main-repository-breakage",
+      "reason": "All 59 TypeScript validation AppHosts passed; failure occurs afterward in the Nuxt integration test's generated 'web' Docker image build, matching the recurring deterministic 'RUN npm ci' Docker build failure (issue #20866, 40 prior occurrences).",
+      "failed_steps": [
+        "Run TypeScript SDK validation"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, azure-functions-node)",
+      "id": 118049495041,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39247121741/job/118049495041",
+      "classification": "flaky-test",
+      "reason": "E2E test 'Aspire Node Functions debugger E2E starts Core Tools, attaches pwa-node, hits an HTTP breakpoint and cleans up the worker' timed out after 300000ms waiting for a breakpoint, matching a previously tracked recurring timeout (issue #20998, 3 prior occurrences).",
+      "failed_steps": [
+        "Run extension E2E tests"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / Polyglot Validation Results",
+      "id": 118049607301,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39247121741/job/118049607301",
+      "classification": "main-repository-breakage",
+      "reason": "Downstream aggregation step reports 'TypeScript: failure' and exits 1 solely because the TypeScript SDK Validation job failed due to the known Nuxt Docker build breakage; no independent failure in this job.",
+      "failed_steps": [
+        "Check validation results"
+      ]
+    }
+  ],
+  "failed_tests": [
+    {
+      "name": "Aspire.Hosting.Tests.Utils.SignalingFakeTimeProviderTests.TimerCreatedOnlySignalsRetryDelayAfterPollyTimeoutIsArmed(reuseTimeoutTimer: True)",
+      "job": "Tests / No-package tests (collection, Aspire.Hosting.Tests, Hosting-4, Hosting-4, tests/Aspire.Hosting.Te... / Hosting-4 (windows-latest)",
+      "error": "Assert.Throws() Failure: No exception was thrown\nExpected: typeof(Polly.Timeout.TimeoutRejectedException)",
+      "stack_trace": "at Microsoft.AspNetCore.InternalTesting.AsyncTestHelpers.TimeoutAfter[T](Task`1 task, TimeSpan timeout, String filePath, Int32 lineNumber) in D:\\a\\aspire\\aspire\\tests\\Shared\\AsyncTestHelpers.cs:line 176\n   at Aspire.Hosting.Tests.Utils.SignalingFakeTimeProviderTests.TimerCreatedOnlySignalsRetryDelayAfterPollyTimeoutIsArmed(Boolean reuseTimeoutTimer) in D:\\a\\aspire\\aspire\\tests\\Aspire.Hosting.Tests\\Utils\\SignalingFakeTimeProviderTests.cs:line 51\n--- End of stack trace from previous location ---",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Timing-dependent assertion on a fake timer / Polly timeout signaling path; no exception was thrown when one was expected, indicating a scheduling race rather than a deterministic code defect."
+    },
+    {
+      "name": "Aspire.Cli.Tests.Backchannel.TrayWatchStreamTests.StalledResourceWatchDoesNotBlockReconciliationOrQuit(removeFirst: True, brokenPipe: False)",
+      "job": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (ubuntu-latest)",
+      "error": "Assert.Equal() Failure: Values differ\nExpected: 0\nActual:   7",
+      "stack_trace": "at Aspire.Cli.Tests.Backchannel.TrayWatchStreamTests.StalledResourceWatchDoesNotBlockReconciliationOrQuit(Boolean removeFirst, Boolean brokenPipe) in /home/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/Backchannel/TrayWatchStreamTests.cs:line 925\n   at Aspire.Cli.Tests.Backchannel.TrayWatchStreamTests.StalledResourceWatchDoesNotBlockReconciliationOrQuit(Boolean removeFirst, Boolean brokenPipe) in /home/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/Backchannel/TrayWatchStreamTests.cs:line 940\n--- End of stack trace from previous location ---",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Matches a previously tracked recurring flaky reconciliation-count race in TrayWatchStreamTests (issue #20707), seen 11 times before with the identical error pattern and test identity."
+    },
+    {
+      "name": "Aspire Node Functions debugger E2E starts Core Tools, attaches pwa-node, hits an HTTP breakpoint and cleans up the worker",
+      "job": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, azure-functions-node)",
+      "error": "Failed to apply E2E control revision 1792411771828: Error: Timed out after 300000ms waiting for breakpoint in /tmp/aev-l7uR39/workspace/AspireE2E.NodeFunctionsDebugger/Program.cs:4. Last error: <none>.\nDiagnostics:\n{\n  \"supportedCapabilities\": [\n    \"prompting\",\n    \"baseline.v1\",\n    \"secret-prompts.v1\",\n    \"file-pickers.v1\",\n    \"message-actions.v1\",\n    \"build-dotnet-using-cli\",\n    \"apphost-log-output.v1\",\n    \"project\",\n    \"project-with-external-build.v1\",\n    \"ms-dotnettools.csharp\",\n    \"node\",\n    \"deno.v1\",\n    \"browser\",\n    \"azure-functions-node\",\n    \"deno\"\n  ],\n  \"debugSessions\": [\n    {\n      \"id\": \"d6e3c027-c93f-4ef3-a9b6-580bd0b956ab\",\n      \"type\": \"aspire\",\n      \"name\": \"Aspire run: AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n      \"configuration\": {\n        \"type\": \"aspire\",\n        \"name\": \"Aspire run: AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n        \"request\": \"launch\",\n        \"program\": \"/tmp/aev-l7u",
+      "stack_trace": "Error: Failed to apply E2E control revision 1792411771828: Error: Timed out after 300000ms waiting for breakpoint in /tmp/aev-l7uR39/workspace/AspireE2E.NodeFunctionsDebugger/Program.cs:4. Last error: <none>.\nDiagnostics:\n{\n  \"supportedCapabilities\": [\n    \"prompting\",\n    \"baseline.v1\",\n    \"secret-prompts.v1\",\n    \"file-pickers.v1\",\n    \"message-actions.v1\",\n    \"build-dotnet-using-cli\",\n    \"apphost-log-output.v1\",\n    \"project\",\n    \"project-with-external-build.v1\",\n    \"ms-dotnettools.csharp\",\n    \"node\",\n    \"deno.v1\",\n    \"browser\",\n    \"azure-functions-node\",\n    \"deno\"\n  ],\n  \"debugSessions\": [\n    {\n      \"id\": \"d6e3c027-c93f-4ef3-a9b6-580bd0b956ab\",\n      \"type\": \"aspire\",\n      \"name\": \"Aspire run: AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n      \"configuration\": {\n        \"type\": \"aspire\",\n        \"name\": \"Aspire run: AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n        \"request\": \"launch\",\n        \"program\": \"/tmp/aev-l7uR39/workspace/AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n        \"command\": \"run\",\n        \"noDebug\": false,\n        \"__aspireAppHostSelectionOrigin\": \"user-selection\",\n        \"__aspireAppHostLaunchToken\": 1,\n        \"__aspireAppHostLaunchReservationId\": \"1\",\n        \"resolvedCliPath\": \"/tmp/aev-l7uR39/cli/aspire\"\n      }\n    }\n  ],\n  \"launchRequests\": [\n    {\n      \"sessionId\": \"d6e3c027-c93f-4ef3-a9b6-580bd0b956ab\",\n      \"sessionType\": \"aspire\",\n      \"sessionName\": \"Aspire run: AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n      \"arguments\": {\n        \"type\": \"aspire\",\n        \"name\": \"Aspire run: AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n        \"request\": \"launch\",\n        \"program\": \"/tmp/aev-l7uR39/workspace/AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n        \"command\": \"run\",\n        \"noDebug\": false,\n        \"__aspireAppHostSelectionOrigin\": \"user-selec",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Matches a previously tracked recurring breakpoint-wait timeout in the Azure Functions Node debugger E2E test (issue #20998), seen 3 times before with the same 300000ms timeout pattern."
+    }
+  ],
+  "causes": [
+    "aspire-hosting-tests-signalingfaketimeprovidertests-pollytimeout-flaky",
+    "aspire-cli-tests-backchannel-traywatchstream-stalled-flaky",
+    "typescript-sdk-nuxt-integration-npm-ci-docker-build-failure",
+    "vscode-e2e-linux-azure-functions-node-breakpoint-timeout"
+  ]
+}
