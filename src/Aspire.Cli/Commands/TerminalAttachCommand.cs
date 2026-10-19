@@ -23,8 +23,7 @@ namespace Aspire.Cli.Commands;
 /// <item>Verifies the AppHost advertises the <c>terminals.v1</c> capability.</item>
 /// <item>Looks up the resource (by Name or DisplayName) and asks the AppHost for the
 ///   list of terminal replicas via <see cref="IAppHostAuxiliaryBackchannel.GetTerminalInfoAsync"/>.</item>
-/// <item>Picks a replica (auto if 1; <c>--replica N</c> if specified; interactive prompt
-///   otherwise; errors in non-interactive contexts when no <c>--replica</c> is given).</item>
+/// <item>Resolves exactly one resource instance, rejecting ambiguous display names.</item>
 /// <item>Hands the local console off to <see cref="TerminalViewerApp"/>, which owns the
 ///   embedded HMP v1 wire-up and the role-aware InfoBar TUI.</item>
 /// </list>
@@ -40,16 +39,11 @@ internal sealed class TerminalAttachCommand : BaseCommand
 
     private static readonly Argument<string> s_resourceArgument = new("resource")
     {
-        Description = "The name of the resource to attach a terminal to."
+        Description = TerminalCommandStrings.ResourceArgumentDescription
     };
 
     private static readonly OptionWithLegacy<FileInfo?> s_appHostOption =
         new("--apphost", "--project", SharedCommandStrings.AppHostOptionDescription);
-
-    private static readonly Option<int?> s_replicaOption = new("--replica", "-r")
-    {
-        Description = "The 0-based replica index to attach to. Required when the resource has more than one replica and the CLI is not running interactively."
-    };
 
     private static readonly Option<bool> s_viewerOption = new("--viewer")
     {
@@ -70,7 +64,6 @@ internal sealed class TerminalAttachCommand : BaseCommand
 
         Arguments.Add(s_resourceArgument);
         Options.Add(s_appHostOption);
-        Options.Add(s_replicaOption);
         Options.Add(s_viewerOption);
     }
 
@@ -80,12 +73,11 @@ internal sealed class TerminalAttachCommand : BaseCommand
 
         var resourceName = parseResult.GetValue(s_resourceArgument)!;
         var passedAppHostProjectFile = parseResult.GetValue(s_appHostOption);
-        var requestedReplica = parseResult.GetValue(s_replicaOption);
         var viewerOnly = parseResult.GetValue(s_viewerOption);
 
         if (string.IsNullOrWhiteSpace(resourceName))
         {
-            _interactionService.DisplayError("A resource name is required.");
+            _interactionService.DisplayError(TerminalCommandStrings.ResourceRequired);
             return CommandResult.Failure(CliExitCodes.InvalidCommand);
         }
 
@@ -111,7 +103,7 @@ internal sealed class TerminalAttachCommand : BaseCommand
         }
 
         var (canonicalName, replica) = await _terminalResolver.ResolveAsync(
-            connection, resourceName, requestedReplica, cancellationToken).ConfigureAwait(false);
+            connection, resourceName, cancellationToken).ConfigureAwait(false);
         if (replica is null)
         {
             return CommandResult.Failure(CliExitCodes.InvalidCommand);

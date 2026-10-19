@@ -37,10 +37,6 @@ internal sealed class TerminalTapePlayCommand : BaseCommand
         Description = TerminalCommandStrings.TapeFileDescription,
         Required = true
     };
-    private readonly Option<int?> _replicaOption = new("--replica", "-r")
-    {
-        Description = TerminalCommandStrings.ReplicaOptionDescription
-    };
     private readonly OptionWithLegacy<FileInfo?> _appHostOption =
         new("--apphost", "--project", SharedCommandStrings.AppHostOptionDescription);
     private readonly Option<int> _timeoutOption = new("--timeout")
@@ -62,7 +58,6 @@ internal sealed class TerminalTapePlayCommand : BaseCommand
         _timeProvider = timeProvider;
         Arguments.Add(_resourceArgument);
         Options.Add(_tapeFileOption);
-        Options.Add(_replicaOption);
         Options.Add(_appHostOption);
         Options.Add(_timeoutOption);
     }
@@ -120,7 +115,7 @@ internal sealed class TerminalTapePlayCommand : BaseCommand
         }
 
         var (canonicalName, replica) = await _terminalResolver.ResolveAsync(
-            connectionResult.Connection, resourceName, parseResult.GetValue(_replicaOption), cancellationToken).ConfigureAwait(false);
+            connectionResult.Connection, resourceName, cancellationToken).ConfigureAwait(false);
         if (replica is null)
         {
             return CommandResult.Failure(CliExitCodes.InvalidCommand);
@@ -133,7 +128,7 @@ internal sealed class TerminalTapePlayCommand : BaseCommand
         {
             // A false IsAlive only means no producer is currently attached, not permanent exit.
             // DCP can attach after startup or a recycle, even when ExitCode describes a previous cycle.
-            // Refresh the selected replica's endpoint without reprompting or resetting the playback budget.
+            // Refresh only the selected replica's endpoint without resetting the playback budget.
             while (!replica.IsAlive)
             {
                 await Task.Delay(TimeSpan.FromMilliseconds(100), _timeProvider, playback.Token).ConfigureAwait(false);
