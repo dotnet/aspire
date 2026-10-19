@@ -278,7 +278,7 @@ public class AtsPythonCodeGeneratorTests
         var aspirePy = files["aspire_app.py"];
 
         Assert.Contains("app_host_file_path: str | None = None", aspirePy);
-        Assert.Contains("effective_options['AppHostFilePath'] = app_host_file_path", aspirePy);
+        Assert.Contains("effective_options['appHostFilePath'] = app_host_file_path", aspirePy);
         Assert.Contains("app_host_file_path = os.environ.get('ASPIRE_APPHOST_FILEPATH')", aspirePy);
     }
 
@@ -353,6 +353,84 @@ public class AtsPythonCodeGeneratorTests
                     rpc_args['nullableUnion'] = nullable_union
             """,
             aspirePy);
+    }
+
+    [Fact]
+    [RequiresTools(["python3"])]
+    [SkipOnPlatform(TestPlatforms.Windows, "Uses the Unix Python executable.")]
+    public Task GeneratedTerminalCallback_ReturnsMutatedDtoOnUnix()
+        => GeneratedTerminalCallback_ReturnsMutatedDto("python3");
+
+    [Fact]
+    [RequiresTools(["python"])]
+    [SkipOnPlatform(TestPlatforms.Linux | TestPlatforms.OSX | TestPlatforms.FreeBSD, "Uses the Windows Python executable.")]
+    public Task GeneratedTerminalCallback_ReturnsMutatedDtoOnWindows()
+        => GeneratedTerminalCallback_ReturnsMutatedDto("python");
+
+    private Task GeneratedTerminalCallback_ReturnsMutatedDto(string pythonExecutable)
+    {
+        var files = _generator.GenerateDistributedApplication(CreateContextFromBothAssemblies());
+        return ExecuteGeneratedPythonAsync(pythonExecutable, files["aspire_app.py"],
+            """
+            import json
+            import typing
+            import aspire_app
+
+            assert typing.get_type_hints(aspire_app.TerminalOptions) == {"columns": int, "rows": int}
+            client = aspire_app.AspireClient("unused")
+            handle = aspire_app.Handle({"$handle": "resource", "$type": "Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecutableResource"})
+            results = []
+
+            def configure(options):
+                assert options == {"columns": 132, "rows": 50}
+                options["columns"] = 200
+
+            def invoke_capability(capability_id, args, kwargs=None):
+                assert capability_id == "Aspire.Hosting/withTerminal"
+                if "configure" in args:
+                    callback = client._callback_registry[args["configure"]]
+                    payload = json.loads('{"p0":{"columns":132,"rows":50}}')
+                    result = callback(payload, client)
+                    assert json.loads(json.dumps(result)) == {"p0": {"columns": 200, "rows": 50}}
+                    results.append(result)
+                return args["builder"]
+
+            client.invoke_capability = invoke_capability
+            resource = aspire_app.ExecutableResource(handle, client)
+            assert resource.with_terminal() is resource
+            assert resource.with_terminal(configure=configure) is resource
+            aspire_app.ExecutableResource(handle, client, terminal=configure)
+            assert len(results) == 2
+
+            # A nullable value-returning callback must still return null, not its arguments.
+            callback_id = client.register_callback(lambda value: None)
+            assert client._callback_registry[callback_id]({"p0": {"value": 1}}, client) is None
+
+            # Builder defaults must use the same wire names as the generated options DTO.
+            aspire_app._get_client = lambda **kwargs: client
+            aspire_app.DistributedApplicationBuilder = lambda client, options: options
+            options = {
+                "args": ["explicit"],
+                "projectDirectory": "/explicit",
+                "appHostFilePath": "/explicit/apphost.py",
+            }
+            actual = aspire_app.create_builder(
+                options=options.copy(),
+                container_registry_override="registry",
+                disable_dashboard=True,
+                dashboard_application_name="terminal",
+                allow_unsecured_transport=True,
+                enable_resource_logging=True,
+            )
+            assert actual == {
+                **options,
+                "containerRegistryOverride": "registry",
+                "disableDashboard": True,
+                "dashboardApplicationName": "terminal",
+                "allowUnsecuredTransport": True,
+                "enableResourceLogging": True,
+            }, actual
+            """);
     }
 
     [Fact]

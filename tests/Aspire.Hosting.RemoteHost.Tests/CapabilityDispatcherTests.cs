@@ -17,6 +17,7 @@ public class CapabilityDispatcherTests
     [InlineData("""{"columns":200}""", 200, 50)]
     [InlineData("""{"rows":60}""", 132, 60)]
     [InlineData("""{"columns":200,"rows":60}""", 200, 60)]
+    [InlineData("""{"columns":200.0,"rows":60.0}""", 200, 60)]
     [InlineData("""{"columns":1,"rows":1}""", 1, 1)]
     public async Task Invoke_WithTerminal_ConfiguresDimensions(string? optionsJson, int columns, int rows)
     {
@@ -65,11 +66,15 @@ public class CapabilityDispatcherTests
     }
 
     [Theory]
-    [InlineData("""{"columns":0}""")]
-    [InlineData("""{"columns":-1}""")]
-    [InlineData("""{"rows":0}""")]
-    [InlineData("""{"rows":-1}""")]
-    public async Task Invoke_WithTerminal_RejectsNonPositiveDimensions(string optionsJson)
+    [InlineData("""{"columns":0}""", AtsErrorCodes.InvalidArgument)]
+    [InlineData("""{"columns":-1}""", AtsErrorCodes.InvalidArgument)]
+    [InlineData("""{"rows":0}""", AtsErrorCodes.InvalidArgument)]
+    [InlineData("""{"rows":-1}""", AtsErrorCodes.InvalidArgument)]
+    [InlineData("""{"columns":0.0}""", AtsErrorCodes.InvalidArgument)]
+    [InlineData("""{"rows":-1.0}""", AtsErrorCodes.InvalidArgument)]
+    [InlineData("""{"columns":1.5}""", AtsErrorCodes.TypeMismatch)]
+    [InlineData("""{"rows":2147483648.0}""", AtsErrorCodes.TypeMismatch)]
+    public async Task Invoke_WithTerminal_RejectsInvalidDimensions(string optionsJson, string errorCode)
     {
         var builder = DistributedApplication.CreateBuilder();
         var resource = builder.AddExecutable("terminal", "myapp", ".");
@@ -90,7 +95,7 @@ public class CapabilityDispatcherTests
 
         var exception = Assert.Throws<CapabilityException>(() => dispatcher.Invoke("Aspire.Hosting/withTerminal", args));
 
-        Assert.Equal(AtsErrorCodes.InvalidArgument, exception.Error.Code);
+        Assert.Equal(errorCode, exception.Error.Code);
         Assert.Empty(resource.Resource.Annotations.OfType<TerminalAnnotation>());
     }
 

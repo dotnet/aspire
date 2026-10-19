@@ -39,6 +39,12 @@ completes. The same options are available through the other polyglot SDKs.
 The TypeScript SDK groups the optional `configure` callback into its generated
 options argument.
 
+Python callbacks mutate the `columns` and `rows` dictionary keys. Go and Java
+callbacks use their generated `TerminalOptions` fields and setters. Rust keeps
+`with_terminal()` for defaults and accepts a callback through
+`with_terminal_with_callback(...)`; the callback returns the mutated DTO under
+the positional `p0` key.
+
 `WithTerminal()` and `TerminalOptions` are not experimental. AppHost-owned
 terminal APIs, including `TerminalService`, and terminal interactions retain the
 experimental diagnostic `ASPIRETERMINAL001`.
