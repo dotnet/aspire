@@ -361,12 +361,14 @@ internal sealed unsafe partial class TrayApplication(TrayController controller, 
                 // NIM_SETVERSION(4): LOWORD(lParam)=event; wParam holds signed screen coordinates.
                 // Every activation of the icon toggles the flyout panel: a left click (NIN_SELECT),
                 // a right click or the context menu key (WM_CONTEXTMENU), and Enter or Space on the
-                // focused icon (NIN_KEYSELECT), which also shows the keyboard focus in the panel.
+                // focused icon (NIN_KEYSELECT). Keyboard activations also show the keyboard focus
+                // in the panel; WM_CONTEXTMENU doesn't tell, so the panel host works it out.
                 // https://learn.microsoft.com/windows/win32/api/shellapi/nf-shellapi-shell_notifyiconw
                 var notification = (uint)((nuint)lParam & 0xFFFF);
                 if (notification is NativeMethods.NinSelect or NativeMethods.WmContextMenu or NativeMethods.NinKeySelect)
                 {
-                    TogglePanel(keyboard: notification == NativeMethods.NinKeySelect);
+                    TogglePanel(keyboard: notification == NativeMethods.NinKeySelect
+                        || (notification == NativeMethods.WmContextMenu && IsKeyboardContextMenu()));
                 }
                 return 0;
             case NativeMethods.WmClose:

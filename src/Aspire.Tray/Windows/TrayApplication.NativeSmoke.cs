@@ -204,19 +204,22 @@ internal sealed unsafe partial class TrayApplication
 
     /// <summary>
     /// Checks that every notification the icon sends opens the panel: a left click (NIN_SELECT), a
-    /// right click (WM_CONTEXTMENU) and keyboard selection (NIN_KEYSELECT), which also shows the
-    /// keyboard focus. Also checks Ctrl+comma and the Settings view with isolated startup settings.
+    /// right click or the context-menu key (WM_CONTEXTMENU) and keyboard selection (NIN_KEYSELECT).
+    /// Keyboard activations also show the keyboard focus; for WM_CONTEXTMENU that is decided from
+    /// the pointer position, so a synthetic one counts as keyboard unless the pointer happens to
+    /// rest on the icon. Also checks Ctrl+comma and the Settings view with isolated startup settings.
     /// </summary>
     internal void VerifyActivationForSmoke()
     {
         RequireSmoke();
-        foreach (var (notification, keyboard) in new[]
+        foreach (var (notification, expected) in new (uint, bool?)[]
         {
-            (NativeMethods.NinSelect, false), (NativeMethods.WmContextMenu, false), (NativeMethods.NinKeySelect, true)
+            (NativeMethods.NinSelect, false), (NativeMethods.WmContextMenu, null), (NativeMethods.NinKeySelect, true)
         })
         {
             HidePanel();
             _panelHiddenAt = 0;
+            var keyboard = expected ?? IsKeyboardContextMenu();
             NativeMethods.SendMessage(_window, NativeMethods.TrayCallback, 0, (nint)notification);
             NativeSmokeHarness.Require(_panelVisible && (_panel!.FocusedTarget is not null) == keyboard,
                 $"Notification 0x{notification:x} must open the panel{(keyboard ? " with keyboard focus" : "")}.");

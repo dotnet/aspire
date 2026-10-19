@@ -78,12 +78,38 @@ internal sealed unsafe partial class TrayApplication
         _panelPaletteDirty = true;
         _panelVisible = true;
         LayoutPanel(show: true);
-        // Foreground activation is a request; keyboard input needs it, mouse input does not.
+        // Foreground activation is a request. Without it the panel never gets the
+        // WM_ACTIVATE(WA_INACTIVE) that closes it when the user clicks elsewhere, so a refused
+        // request would leave a topmost popup behind; close it, as a menu that cannot take the
+        // foreground does, rather than keep it.
         if (NativeMethods.SetForegroundWindow(_panelWindow) == 0)
         {
-            Program.Log("Windows kept the Aspire flyout in the background.");
+            Program.Log("Windows kept the Aspire flyout in the background; it was closed again.");
+            HidePanel();
+            return;
         }
         NativeMethods.SetFocus(_panelWindow);
+    }
+
+    /// <summary>
+    /// Whether a WM_CONTEXTMENU activation of the icon came from the keyboard (Shift+F10 or the
+    /// context-menu key on the focused icon) rather than a right click, so the panel can show
+    /// its keyboard focus. The notification doesn't say; a right click always has the pointer
+    /// over the icon, and the keys are usually still down.
+    /// </summary>
+    private bool IsKeyboardContextMenu()
+    {
+        if (NativeMethods.GetKeyState(0x5D) < 0 || NativeMethods.GetKeyState(0x79) < 0) // VK_APPS, VK_F10
+        {
+            return true;
+        }
+        var identifier = new NativeMethods.NotifyIconIdentifier
+        {
+            Size = (uint)sizeof(NativeMethods.NotifyIconIdentifier), Window = _window, Id = 1
+        };
+        return NativeMethods.ShellNotifyIconGetRect(in identifier, out var icon) >= 0
+            && NativeMethods.GetCursorPos(out var point) != 0
+            && (point.X < icon.Left || point.X >= icon.Right || point.Y < icon.Top || point.Y >= icon.Bottom);
     }
 
     private void HidePanel()

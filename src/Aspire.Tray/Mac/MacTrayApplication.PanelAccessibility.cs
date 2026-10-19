@@ -19,6 +19,7 @@ internal sealed partial class MacTrayApplication
 {
     private readonly Dictionary<PanelAccessibleKey, PanelAccessibleNode> _panelNodes = [];
     private readonly Dictionary<nint, PanelAccessibleKey> _panelNodeKeys = [];
+    private List<nint> _panelNodeOrder = [];
     private TrayPanelScene? _accessibleScene;
     private PanelTargetKey? _accessibleFocus;
 
@@ -77,8 +78,12 @@ internal sealed partial class MacTrayApplication
         }
         _accessibleScene = scene;
 
+        // The children array must also be rebuilt when the same elements come in a new order
+        // (a remembered AppHost moving to the top of the recent list), or VoiceOver keeps
+        // reading them in the old one.
         var structureChanged = scene.Accessibility.Count != _panelNodes.Count;
         var seen = new HashSet<PanelAccessibleKey>();
+        var order = new List<nint>(scene.Accessibility.Count);
         var valueChanged = new List<nint>();
         foreach (var element in scene.Accessibility)
         {
@@ -98,8 +103,11 @@ internal sealed partial class MacTrayApplication
             {
                 valueChanged.Add(node.Handle);
             }
+            structureChanged |= order.Count >= _panelNodeOrder.Count || _panelNodeOrder[order.Count] != node.Handle;
+            order.Add(node.Handle);
             UpdatePanelNode(node, element, scene.Height);
         }
+        _panelNodeOrder = order;
         foreach (var (key, node) in _panelNodes.Where(pair => !seen.Contains(pair.Key)).ToList())
         {
             _panelNodes.Remove(key);
@@ -112,7 +120,7 @@ internal sealed partial class MacTrayApplication
         {
             unsafe
             {
-                var handles = scene.Accessibility.Select(element => _panelNodes[element.Key].Handle).ToArray();
+                var handles = order.ToArray();
                 fixed (nint* items = handles)
                 {
                     AppKit.Set(_panelView, "setAccessibilityChildren:",
@@ -236,6 +244,7 @@ internal sealed partial class MacTrayApplication
         }
         _panelNodes.Clear();
         _panelNodeKeys.Clear();
+        _panelNodeOrder = [];
         _accessibleScene = null;
         _accessibleFocus = null;
     }

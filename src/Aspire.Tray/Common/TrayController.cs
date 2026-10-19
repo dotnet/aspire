@@ -605,34 +605,30 @@ internal sealed class TrayController : IAsyncDisposable
         var starting = _starts.Values.Count(operation => operation.IsPending);
         var failures = rows.Concat(recent).Count(row => row.Error is not null);
         var running = rows.Count(row => row.IsRunning);
-        var status = _snapshot.Discovery switch
+        // The discovery problems are worded once: the panel's banner shows them as the notice,
+        // and the status line (the tray icon's accessibility description) says the same, then
+        // adds the connecting state and the activity summary the banner leaves out.
+        var discoveryNotice = _snapshot.Discovery switch
         {
-            _ when _savedStateError is not null => _savedStateError,
-            _ when _pinProbeError is not null => _pinProbeError,
-            DiscoveryState.Connecting => "Connecting to Aspire...",
-            DiscoveryState.Disconnected => "Discovery unavailable. Reconnecting...",
-            DiscoveryState.Incompatible => "Incompatible CLI. Use the matching Aspire build.",
-            DiscoveryState.LimitExceeded => "Discovery limit exceeded. Too many AppHosts or too much metadata.",
-            _ when _actionError is not null => _actionError,
-            _ when failures > 0 => $"{failures} AppHost{(failures == 1 ? "" : "s")} need{(failures == 1 ? "s" : "")} attention",
-            _ when pending > 0 => $"Stopping {pending} AppHost{(pending == 1 ? "" : "s")}...",
-            _ when starting > 0 => $"Starting {starting} AppHost{(starting == 1 ? "" : "s")}...",
-            _ => running switch { 0 => "No AppHosts running", 1 => "1 AppHost", _ => $"{running} AppHosts" }
+            DiscoveryState.Disconnected => "Discovery is unavailable. Reconnecting\u2026",
+            DiscoveryState.Incompatible => "This tray does not match the installed Aspire CLI. Use the matching Aspire build.",
+            DiscoveryState.LimitExceeded => "Discovery limit exceeded: too many AppHosts or too much metadata.",
+            _ => null
         };
+        var notice = _savedStateError ?? _pinProbeError ?? discoveryNotice ?? _actionError;
+        var status = _savedStateError ?? _pinProbeError
+            ?? (_snapshot.Discovery == DiscoveryState.Connecting ? "Connecting to Aspire..." : null)
+            ?? discoveryNotice ?? _actionError
+            ?? (failures > 0 ? $"{failures} AppHost{(failures == 1 ? "" : "s")} need{(failures == 1 ? "s" : "")} attention"
+                : pending > 0 ? $"Stopping {pending} AppHost{(pending == 1 ? "" : "s")}..."
+                : starting > 0 ? $"Starting {starting} AppHost{(starting == 1 ? "" : "s")}..."
+                : running switch { 0 => "No AppHosts running", 1 => "1 AppHost", _ => $"{running} AppHosts" });
         Volatile.Write(ref _state, new(_snapshot.Discovery, rows.ToArray(), status)
         {
             RecentAppHosts = recent,
             CanClearRecent = _savedState.AppHosts.Any(host => host.IsRecent),
-            Notice = _savedStateError ?? _pinProbeError ?? _snapshot.Discovery switch
-            {
-                DiscoveryState.Disconnected => "Discovery is unavailable. Reconnecting\u2026",
-                DiscoveryState.Incompatible => "This tray does not match the installed Aspire CLI. Use the matching Aspire build.",
-                DiscoveryState.LimitExceeded => "Discovery limit exceeded: too many AppHosts or too much metadata.",
-                _ => _actionError
-            },
-            HasActiveAppHosts = running > 0 || starting > 0,
-            ShowStatus = rows.Count == 0 || !live || _actionError is not null || _savedStateError is not null
-                || _pinProbeError is not null || failures > 0
+            Notice = notice,
+            HasActiveAppHosts = running > 0 || starting > 0
         });
     }
 

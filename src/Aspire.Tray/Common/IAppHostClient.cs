@@ -95,6 +95,4 @@ internal sealed record TrayViewState(
     /// </summary>
     public string? Notice { get; init; }
     public bool HasActiveAppHosts { get; init; } = AppHosts.Any(host => host.IsRunning || host.IsStarting);
-    public bool ShowStatus { get; init; } = AppHosts.Count == 0 || Discovery != DiscoveryState.Live
-        || AppHosts.Any(host => host.Error is not null);
 }

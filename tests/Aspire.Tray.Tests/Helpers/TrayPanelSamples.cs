@@ -75,7 +75,7 @@ internal static class TrayPanelSamples
 
     public static TrayViewState Disconnected() => new(DiscoveryState.Disconnected,
         [Running("/Users/dev/src/eShop/src/eShop.AppHost/eShop.AppHost.csproj", 48213)],
-        "Discovery unavailable. Reconnecting...")
+        "Discovery is unavailable. Reconnecting\u2026")
     {
         Notice = "Discovery is unavailable. Reconnecting…"
     };

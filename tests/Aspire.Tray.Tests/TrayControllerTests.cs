@@ -25,7 +25,7 @@ public class TrayControllerTests
         Assert.Null(controller.State.Notice);
         client.Publish(new([], DiscoveryState.Disconnected));
         await WaitForStateAsync(controller, state => state.Discovery == DiscoveryState.Disconnected);
-        Assert.Equal("Discovery unavailable. Reconnecting...", controller.State.Status);
+        Assert.Equal("Discovery is unavailable. Reconnecting\u2026", controller.State.Status);
         Assert.Equal("Discovery is unavailable. Reconnecting\u2026", controller.State.Notice);
     }
 

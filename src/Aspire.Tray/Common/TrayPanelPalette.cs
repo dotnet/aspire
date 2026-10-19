@@ -62,6 +62,7 @@ internal sealed record TrayPanelPalette(
     PanelColor Success,
     PanelColor Warning,
     PanelColor Danger,
+    PanelColor DangerFill,
     PanelColor Neutral,
     PanelColor Banner,
     PanelColor BannerText,
@@ -69,6 +70,26 @@ internal sealed record TrayPanelPalette(
 {
     /// <summary>The color of the keyboard focus ring.</summary>
     public PanelColor Focus => Accent;
+
+    /// <summary>
+    /// The WCAG contrast ratio between two opaque colors, from their relative luminance. Small
+    /// text needs at least 4.5:1.
+    /// https://www.w3.org/TR/WCAG21/#dfn-contrast-ratio
+    /// </summary>
+    public static double ContrastRatio(PanelColor first, PanelColor second)
+    {
+        var lighter = Math.Max(Luminance(first), Luminance(second));
+        var darker = Math.Min(Luminance(first), Luminance(second));
+        return (lighter + 0.05) / (darker + 0.05);
+
+        static double Luminance(PanelColor color) => 0.2126 * Channel(color.R) + 0.7152 * Channel(color.G) + 0.0722 * Channel(color.B);
+
+        static double Channel(byte value)
+        {
+            var c = value / 255.0;
+            return c <= 0.03928 ? c / 12.92 : Math.Pow((c + 0.055) / 1.055, 2.4);
+        }
+    }
 
     public static TrayPanelPalette Light { get; } = new(
         "light",
@@ -85,6 +106,7 @@ internal sealed record TrayPanelPalette(
         Success: PanelColor.FromHex("#1E9E57"),
         Warning: PanelColor.FromHex("#D98A00"),
         Danger: PanelColor.FromHex("#D93A3A"),
+        DangerFill: PanelColor.FromHex("#D93A3A"),
         Neutral: PanelColor.FromHex("#8E8E96"),
         Banner: PanelColor.FromHex("#FFF4DB"),
         BannerText: PanelColor.FromHex("#6B4500"),
@@ -104,7 +126,10 @@ internal sealed record TrayPanelPalette(
         Accent: PanelColor.FromHex("#9C85F2"),
         Success: PanelColor.FromHex("#34C46E"),
         Warning: PanelColor.FromHex("#F2A93B"),
+        // Danger text and glyphs are lightened for the dark background; a filled button keeps a
+        // deeper red so its white label stays above 4.5:1.
         Danger: PanelColor.FromHex("#F2645F"),
+        DangerFill: PanelColor.FromHex("#C8403C"),
         Neutral: PanelColor.FromHex("#8E8E96"),
         Banner: PanelColor.FromHex("#3A2F17"),
         BannerText: PanelColor.FromHex("#F7D9A0"),
@@ -147,6 +172,7 @@ internal sealed record TrayPanelPalette(
         Success: windowText,
         Warning: windowText,
         Danger: windowText,
+        DangerFill: windowText,
         Neutral: grayText,
         Banner: window,
         BannerText: windowText,

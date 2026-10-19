@@ -144,6 +144,11 @@ internal sealed partial class MacTrayApplication
         _panelVisible = false;
         _panelHiddenAt = Environment.TickCount64;
         AppKit.Set(_panelWindow, "orderOut:", 0);
+        // ShowPanel activated this agent app so the borderless panel could take key status.
+        // Hiding the app hands activation back to the app the user was in, as a closing menu
+        // does; otherwise their editor keeps no keyboard focus until they click it again.
+        // https://developer.apple.com/documentation/appkit/nsapplication/hide(_:)
+        AppKit.Set(_application, "hide:", 0);
         if (_statusItem != 0)
         {
             AppKit.SendBool(AppKit.Get(_statusItem, "button"), AppKit.Selector("highlight:"), 0);
@@ -393,38 +398,83 @@ internal sealed partial class MacTrayApplication
         }
     }
 
+    /// <summary>
+    /// The selectors, classes and attribute names the draw path uses, looked up once. A scene has
+    /// a few hundred commands and is redrawn on every hover change, so per-command
+    /// sel_registerName and objc_getClass calls (each marshalling a string) would dominate a
+    /// repaint. The explicit constructor keeps the lookups on first use, after AppKit is loaded.
+    /// </summary>
+    private static class Draw
+    {
+        static Draw()
+        {
+        }
+
+        public static readonly nint GraphicsContextClass = AppKit.Class("NSGraphicsContext");
+        public static readonly nint BezierPathClass = AppKit.Class("NSBezierPath");
+        public static readonly nint ColorClass = AppKit.Class("NSColor");
+        public static readonly nint ParagraphStyleClass = AppKit.Class("NSMutableParagraphStyle");
+        public static readonly nint DictionaryClass = AppKit.Class("NSDictionary");
+        public static readonly nint AttributedStringClass = AppKit.Class("NSAttributedString");
+        public static readonly nint Fill = AppKit.Selector("fill");
+        public static readonly nint Stroke = AppKit.Selector("stroke");
+        public static readonly nint SetLineWidth = AppKit.Selector("setLineWidth:");
+        public static readonly nint SetLineCapStyle = AppKit.Selector("setLineCapStyle:");
+        public static readonly nint SetLineJoinStyle = AppKit.Selector("setLineJoinStyle:");
+        public static readonly nint SaveGraphicsState = AppKit.Selector("saveGraphicsState");
+        public static readonly nint RestoreGraphicsState = AppKit.Selector("restoreGraphicsState");
+        public static readonly nint ClipRect = AppKit.Selector("clipRect:");
+        public static readonly nint DrawInRect = AppKit.Selector("drawInRect:fromRect:operation:fraction:respectFlipped:hints:");
+        public static readonly nint BezierPath = AppKit.Selector("bezierPath");
+        public static readonly nint MoveToPoint = AppKit.Selector("moveToPoint:");
+        public static readonly nint LineToPoint = AppKit.Selector("lineToPoint:");
+        public static readonly nint CurveToPoint = AppKit.Selector("curveToPoint:controlPoint1:controlPoint2:");
+        public static readonly nint ClosePath = AppKit.Selector("closePath");
+        public static readonly nint Set = AppKit.Selector("set");
+        public static readonly nint ColorWithSrgb = AppKit.Selector("colorWithSRGBRed:green:blue:alpha:");
+        public static readonly nint New = AppKit.Selector("new");
+        public static readonly nint Alloc = AppKit.Selector("alloc");
+        public static readonly nint SetLineBreakMode = AppKit.Selector("setLineBreakMode:");
+        public static readonly nint SetAlignment = AppKit.Selector("setAlignment:");
+        public static readonly nint DictionaryWithObjects = AppKit.Selector("dictionaryWithObjects:forKeys:count:");
+        public static readonly nint InitWithStringAttributes = AppKit.Selector("initWithString:attributes:");
+        public static readonly nint Ascender = AppKit.Selector("ascender");
+        public static readonly nint Descender = AppKit.Selector("descender");
+        public static readonly nint Leading = AppKit.Selector("leading");
+        public static readonly nint DrawWithRect = AppKit.Selector("drawWithRect:options:context:");
+        public static readonly nint Release = AppKit.Selector("release");
+        public static readonly nint FontAttributeName = AppKit.Constant("NSFontAttributeName");
+        public static readonly nint ForegroundColorAttributeName = AppKit.Constant("NSForegroundColorAttributeName");
+        public static readonly nint ParagraphStyleAttributeName = AppKit.Constant("NSParagraphStyleAttributeName");
+    }
+
     private void DrawPanelCommand(PanelCommand command)
     {
-        var context = AppKit.Class("NSGraphicsContext");
         switch (command)
         {
             case FillPathCommand fill:
                 SetColor(fill.Color);
-                AppKit.SendVoid(CreateBezierPath(fill.Path), AppKit.Selector("fill"));
+                AppKit.SendVoid(CreateBezierPath(fill.Path), Draw.Fill);
                 break;
             case StrokePathCommand stroke:
                 SetColor(stroke.Color);
                 var path = CreateBezierPath(stroke.Path);
-                AppKit.SetDouble(path, AppKit.Selector("setLineWidth:"), stroke.Width);
-                AppKit.SendInt64(path, AppKit.Selector("setLineCapStyle:"), 1);
-                AppKit.SendInt64(path, AppKit.Selector("setLineJoinStyle:"), 1);
-                AppKit.SendVoid(path, AppKit.Selector("stroke"));
+                AppKit.SetDouble(path, Draw.SetLineWidth, stroke.Width);
+                AppKit.SendInt64(path, Draw.SetLineCapStyle, 1);
+                AppKit.SendInt64(path, Draw.SetLineJoinStyle, 1);
+                AppKit.SendVoid(path, Draw.Stroke);
                 break;
             case TextCommand text:
                 DrawPanelText(text);
                 break;
             case LogoCommand logo:
                 // NSCompositingOperationSourceOver (2), drawn upright in the flipped view.
-                AppKit.DrawImageRespectingFlipped(_brandImage,
-                    AppKit.Selector("drawInRect:fromRect:operation:fraction:respectFlipped:hints:"),
-                    ToNative(logo.Bounds), default, 2, 1, 1, 0);
+                AppKit.DrawImageRespectingFlipped(_brandImage, Draw.DrawInRect, ToNative(logo.Bounds), default, 2, 1, 1, 0);
                 break;
             case AppIconCommand appIcon:
                 if (GetAppIcon(appIcon.Application) is not 0 and var icon)
                 {
-                    AppKit.DrawImageRespectingFlipped(icon,
-                        AppKit.Selector("drawInRect:fromRect:operation:fraction:respectFlipped:hints:"),
-                        ToNative(appIcon.Bounds), default, 2, 1, 1, 0);
+                    AppKit.DrawImageRespectingFlipped(icon, Draw.DrawInRect, ToNative(appIcon.Bounds), default, 2, 1, 1, 0);
                 }
                 else
                 {
@@ -435,11 +485,11 @@ internal sealed partial class MacTrayApplication
                 }
                 break;
             case PushClipCommand clip:
-                AppKit.SendVoid(context, AppKit.Selector("saveGraphicsState"));
-                AppKit.SetRect(AppKit.Class("NSBezierPath"), AppKit.Selector("clipRect:"), ToNative(clip.Bounds));
+                AppKit.SendVoid(Draw.GraphicsContextClass, Draw.SaveGraphicsState);
+                AppKit.SetRect(Draw.BezierPathClass, Draw.ClipRect, ToNative(clip.Bounds));
                 break;
             case PopClipCommand:
-                AppKit.SendVoid(context, AppKit.Selector("restoreGraphicsState"));
+                AppKit.SendVoid(Draw.GraphicsContextClass, Draw.RestoreGraphicsState);
                 break;
         }
     }
@@ -462,33 +512,29 @@ internal sealed partial class MacTrayApplication
     }
 
     private static void SetColor(PanelColor color)
-        => AppKit.SendVoid(CreateColor(color), AppKit.Selector("set"));
+        => AppKit.SendVoid(CreateColor(color), Draw.Set);
 
     private static nint CreateColor(PanelColor color)
-        => AppKit.SendFourDoubles(AppKit.Class("NSColor"), AppKit.Selector("colorWithSRGBRed:green:blue:alpha:"),
-            color.R / 255.0, color.G / 255.0, color.B / 255.0, color.Alpha);
+        => AppKit.SendFourDoubles(Draw.ColorClass, Draw.ColorWithSrgb, color.R / 255.0, color.G / 255.0, color.B / 255.0, color.Alpha);
 
     private static nint CreateBezierPath(PanelPath source)
     {
-        var path = AppKit.Get(AppKit.Class("NSBezierPath"), "bezierPath");
-        var moveTo = AppKit.Selector("moveToPoint:");
-        var lineTo = AppKit.Selector("lineToPoint:");
-        var curveTo = AppKit.Selector("curveToPoint:controlPoint1:controlPoint2:");
+        var path = AppKit.Send(Draw.BezierPathClass, Draw.BezierPath);
         foreach (var segment in source.Segments)
         {
             switch (segment.Verb)
             {
                 case PanelPathVerb.MoveTo:
-                    AppKit.SendPoint(path, moveTo, new(segment.X3, segment.Y3));
+                    AppKit.SendPoint(path, Draw.MoveToPoint, new(segment.X3, segment.Y3));
                     break;
                 case PanelPathVerb.LineTo:
-                    AppKit.SendPoint(path, lineTo, new(segment.X3, segment.Y3));
+                    AppKit.SendPoint(path, Draw.LineToPoint, new(segment.X3, segment.Y3));
                     break;
                 case PanelPathVerb.CubicTo:
-                    AppKit.SendThreePoints(path, curveTo, new(segment.X3, segment.Y3), new(segment.X1, segment.Y1), new(segment.X2, segment.Y2));
+                    AppKit.SendThreePoints(path, Draw.CurveToPoint, new(segment.X3, segment.Y3), new(segment.X1, segment.Y1), new(segment.X2, segment.Y2));
                     break;
                 default:
-                    AppKit.SendVoid(path, AppKit.Selector("closePath"));
+                    AppKit.SendVoid(path, Draw.ClosePath);
                     break;
             }
         }
@@ -498,45 +544,38 @@ internal sealed partial class MacTrayApplication
     private unsafe void DrawPanelText(TextCommand text)
     {
         var font = GetPanelFont(text.Font);
-        var style = AppKit.Get(AppKit.Class("NSMutableParagraphStyle"), "new");
+        var style = AppKit.Send(Draw.ParagraphStyleClass, Draw.New);
         try
         {
             // NSLineBreakMode: byWordWrapping (0), byTruncatingTail (4), byTruncatingMiddle (5).
-            AppKit.SendInt64(style, AppKit.Selector("setLineBreakMode:"),
-                text.MaxLines > 1 ? 0 : text.Truncation == PanelTruncation.Middle ? 5 : 4);
-            AppKit.SendInt64(style, AppKit.Selector("setAlignment:"), GetTextAlignment(text.Alignment));
-            nint* keys = stackalloc nint[3]
-            {
-                AppKit.Constant("NSFontAttributeName"),
-                AppKit.Constant("NSForegroundColorAttributeName"),
-                AppKit.Constant("NSParagraphStyleAttributeName")
-            };
+            AppKit.SendInt64(style, Draw.SetLineBreakMode, text.MaxLines > 1 ? 0 : text.Truncation == PanelTruncation.Middle ? 5 : 4);
+            AppKit.SendInt64(style, Draw.SetAlignment, GetTextAlignment(text.Alignment));
+            nint* keys = stackalloc nint[3] { Draw.FontAttributeName, Draw.ForegroundColorAttributeName, Draw.ParagraphStyleAttributeName };
             nint* values = stackalloc nint[3] { font, CreateColor(text.Color), style };
-            var attributes = AppKit.CreateDictionary(AppKit.Class("NSDictionary"),
-                AppKit.Selector("dictionaryWithObjects:forKeys:count:"), values, keys, 3);
-            var value = AppKit.SendTwoPointers(AppKit.Get(AppKit.Class("NSAttributedString"), "alloc"),
-                AppKit.Selector("initWithString:attributes:"), AppKit.String(text.Text), attributes);
+            var attributes = AppKit.CreateDictionary(Draw.DictionaryClass, Draw.DictionaryWithObjects, values, keys, 3);
+            var value = AppKit.SendTwoPointers(AppKit.Send(Draw.AttributedStringClass, Draw.Alloc), Draw.InitWithStringAttributes,
+                AppKit.String(text.Text), attributes);
             try
             {
                 // Size the box from the font's line metrics: a single line is centered between
                 // ascent and descent, multi-line text starts at the top of its bounds.
-                var lineHeight = AppKit.GetDouble(font, AppKit.Selector("ascender")) - AppKit.GetDouble(font, AppKit.Selector("descender"))
-                    + AppKit.GetDouble(font, AppKit.Selector("leading"));
+                var lineHeight = AppKit.GetDouble(font, Draw.Ascender) - AppKit.GetDouble(font, Draw.Descender)
+                    + AppKit.GetDouble(font, Draw.Leading);
                 var bounds = text.MaxLines > 1
                     ? new AppKit.NativeRect(new(text.Bounds.X, text.Bounds.Y), new(text.Bounds.Width, Math.Min(text.Bounds.Height, lineHeight * text.MaxLines)))
                     : new AppKit.NativeRect(new(text.Bounds.X, text.Bounds.CenterY - lineHeight / 2), new(text.Bounds.Width, lineHeight));
                 // NSStringDrawingUsesLineFragmentOrigin (1) | NSStringDrawingTruncatesLastVisibleLine (32).
                 // https://developer.apple.com/documentation/foundation/nsstring/drawingoptions
-                AppKit.DrawWithRect(value, AppKit.Selector("drawWithRect:options:context:"), bounds, 1 | 32, 0);
+                AppKit.DrawWithRect(value, Draw.DrawWithRect, bounds, 1 | 32, 0);
             }
             finally
             {
-                AppKit.Release(value);
+                AppKit.SendVoid(value, Draw.Release);
             }
         }
         finally
         {
-            AppKit.Release(style);
+            AppKit.SendVoid(style, Draw.Release);
         }
     }
 
@@ -798,6 +837,22 @@ internal sealed partial class MacTrayApplication
         return path;
     }
 
+    /// <summary>
+    /// Forgets the cached application icons, so a rediscovery (every time the panel opens) picks
+    /// up an application installed, moved or updated since; a miss is otherwise cached for good.
+    /// </summary>
+    private void ReleaseAppIcons()
+    {
+        foreach (var icon in _appIcons.Values)
+        {
+            if (icon != 0)
+            {
+                AppKit.Release(icon);
+            }
+        }
+        _appIcons.Clear();
+    }
+
     private void DisposePanel()
     {
         if (_panelWindow != 0)
@@ -818,11 +873,7 @@ internal sealed partial class MacTrayApplication
             AppKit.Release(font);
         }
         _panelFonts.Clear();
-        foreach (var icon in _appIcons.Values)
-        {
-            AppKit.Release(icon);
-        }
-        _appIcons.Clear();
+        ReleaseAppIcons();
         _panelVisible = false;
     }
 

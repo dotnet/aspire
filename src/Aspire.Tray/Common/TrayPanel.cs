@@ -1240,14 +1240,15 @@ internal sealed class TrayPanel
         var cancelKey = new PanelTargetKey(PanelTargetKind.ConfirmCancel, section, id);
         var acceptKey = new PanelTargetKey(PanelTargetKind.ConfirmAccept, section, id);
 
-        // Cancel is a neutral outlined button; the destructive one is filled with the danger color.
+        // Cancel is a neutral outlined button; the destructive one is filled with the danger
+        // fill, which keeps its label readable where the danger text color would not.
         commands.Add(new FillPathCommand(PanelPath.RoundedRect(cancelBounds, 6), palette.Background));
         AddInteractionFill(commands, cancelKey, cancelBounds, palette, includeFocus: false);
         commands.Add(new StrokePathCommand(PanelPath.RoundedRect(cancelBounds.Inset(0.5, 0.5), 5.5), palette.Border, 1));
         commands.Add(new TextCommand(cancelBounds, "Cancel", PanelFontRole.Button, palette.TextPrimary, PanelTextAlignment.Center));
         AddTarget(targets, cancelKey, cancelBounds, "Cancel", true, host);
 
-        commands.Add(new FillPathCommand(PanelPath.RoundedRect(acceptBounds, 6), palette.Danger));
+        commands.Add(new FillPathCommand(PanelPath.RoundedRect(acceptBounds, 6), palette.DangerFill));
         if (_pressed == acceptKey || _hover == acceptKey)
         {
             // Darken the filled button: the shared hover tints are tuned for the panel background.

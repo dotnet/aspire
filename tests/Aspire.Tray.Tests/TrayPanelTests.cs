@@ -1011,6 +1011,26 @@ public class TrayPanelTests
         Assert.Equal(new PanelColor(128, 128, 128), new PanelColor(255, 255, 255, 128).Over(new(0, 0, 0)));
     }
 
+    [Theory]
+    [InlineData("light")]
+    [InlineData("dark")]
+    public void ConfirmationButtonLabelsKeepReadableContrast(string name)
+    {
+        var palette = name == "dark" ? TrayPanelPalette.Dark : TrayPanelPalette.Light;
+        var state = TrayPanelSamples.Typical();
+        var panel = new TrayPanel(state, palette);
+        Click(panel, panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.ClearRecent).HitBounds);
+        var accept = panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.ConfirmAccept);
+        var label = Assert.Single(panel.Scene.Commands.OfType<TextCommand>(), text => text.Bounds == accept.Bounds);
+        var fill = panel.Scene.Commands.OfType<FillPathCommand>().Last(fill => fill.Path.GetControlBounds().Contains(accept.Bounds.CenterX, accept.Bounds.CenterY)
+            && fill.Path.GetControlBounds().Width <= accept.Bounds.Width + 1);
+
+        // 12 px labels need 4.5:1 (WCAG AA), also against the darkened hover and pressed fills.
+        Assert.Equal(palette.DangerFill, fill.Color);
+        Assert.True(TrayPanelPalette.ContrastRatio(label.Color, fill.Color) >= 4.5, $"{name}: {TrayPanelPalette.ContrastRatio(label.Color, fill.Color):F2}:1");
+        Assert.True(TrayPanelPalette.ContrastRatio(palette.OnColor, PanelColor.FromRgba(0, 0, 0, 0.22).Over(palette.DangerFill)) >= 4.5);
+    }
+
     [Fact]
     public void HighContrastPaletteUsesSystemColors()
     {

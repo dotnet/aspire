@@ -14,6 +14,7 @@ internal sealed partial class MacTrayApplication
     private void DiscoverFolderApplications()
     {
         _installedFolderApplications.Clear();
+        ReleaseAppIcons();
         // Services requires a responder/selection/pasteboard contract that a panel row does not
         // have. Resolve a small list of folder-capable apps through Launch Services instead,
         // including installations outside /Applications.
