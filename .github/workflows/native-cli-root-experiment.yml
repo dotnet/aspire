@@ -18,13 +18,31 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  measure:
-    name: macOS ARM64 root-only=${{ matrix.rootOnly }} repeat=${{ matrix.repeat }}
+  prepare:
+    name: Prepare experiment version
+    runs-on: ubuntu-latest
     if: >-
       github.repository == 'microsoft/aspire' &&
       github.event.pull_request.draft &&
       (github.event.action != 'edited' || github.event.changes.title != null) &&
       contains(github.event.pull_request.title, '[ci-native-root-experiment]')
+    outputs:
+      versionOverrideArg: ${{ steps.version.outputs.versionOverrideArg }}
+    steps:
+      - name: Compute production-length PR version
+        id: version
+        shell: pwsh
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          $shortSha = $env:PR_HEAD_SHA.Substring(0, 8)
+          # Match normal PR CI: a full SHA exceeds NuGet's installed-path limit.
+          "versionOverrideArg=/p:VersionSuffix=pr.$($env:PR_NUMBER).g$shortSha /p:DotNetFinalVersionKind=prerelease" >> $env:GITHUB_OUTPUT
+
+  measure:
+    name: macOS ARM64 root-only=${{ matrix.rootOnly }} repeat=${{ matrix.repeat }}
+    needs: prepare
     strategy:
       fail-fast: false
       max-parallel: 2
@@ -37,6 +55,4 @@ jobs:
       nativeCliRootOnly: ${{ matrix.rootOnly }}
       artifactNamePrefix: native-root-${{ matrix.rootOnly && 'candidate' || 'control' }}-${{ matrix.repeat }}-
       targets: '[{"os":"macos-latest","runner":"macos-latest","rids":"osx-arm64"}]'
-      versionOverrideArg: >-
-        /p:VersionSuffix=pr.${{ github.event.pull_request.number }}.g${{ github.event.pull_request.head.sha }}
-        /p:DotNetFinalVersionKind=prerelease
+      versionOverrideArg: ${{ needs.prepare.outputs.versionOverrideArg }}
