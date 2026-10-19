@@ -144,7 +144,7 @@ public sealed class KubernetesDeployWithCertManagerTests(ITestOutputHelper outpu
                 await File.WriteAllTextAsync(
                     appHostPath,
                     content.Replace(buildRun,
-                        "certManager.Resource.HelmChart.Values[\"clusterResourceNamespace\"] = \"eab-accounts\";" +
+                        "builder.CreateResourceBuilder(certManager.Resource.HelmChart).WithHelmValue(\"clusterResourceNamespace\", \"eab-accounts\");" +
                         Environment.NewLine + buildRun),
                     TestContext.Current.CancellationToken);
                 await auto.RunCommandAsync("aspire deploy --non-interactive", counter, TimeSpan.FromMinutes(10));
