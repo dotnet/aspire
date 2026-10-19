@@ -132,11 +132,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
         {
             layout.ResourcesChanged += OnLayoutResourcesChanged;
         }
-        _resourcesSubscription = TelemetryRepository.OnNewResources(() => InvokeAsync(() =>
-        {
-            UpdateResources();
-            StateHasChanged();
-        }));
+        _resourcesSubscription = TelemetryRepository.OnNewResources(() => InvokeAsync(OnResourcesUpdatedAsync));
     }
 
     protected override async Task OnParametersSetAsync()
@@ -303,7 +299,27 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
 
     private void OnLayoutResourcesChanged()
     {
+        _ = InvokeAsync(OnResourcesUpdatedAsync);
+    }
+
+    private async Task OnResourcesUpdatedAsync()
+    {
         UpdateResources();
+
+        // The route's resource can be unknown when the page first resolves it. With the resource pane, the pane's
+        // resources arrive asynchronously from the resource service after a direct page load, and without it a
+        // resource's telemetry can arrive after the page opened. The route then resolved to "None" and, because
+        // nothing resolved it again, the page kept showing "Select a resource" for a valid deep link. Resolve the
+        // route again once its resource is known, which also restores the meter and instrument it names.
+        if (ResourceName is not null &&
+            PageViewModel.SelectedResource == _selectResource &&
+            _resourceViewModels.GetResource(Logger, ResourceName, canSelectGrouping: true, _selectResource) != _selectResource)
+        {
+            await UpdateViewModelFromQueryAsync(PageViewModel);
+            UpdateSubscription();
+            UpdateTelemetryProperties();
+        }
+
         StateHasChanged();
     }
 

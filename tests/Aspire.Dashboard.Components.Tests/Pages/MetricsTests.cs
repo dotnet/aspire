@@ -1211,6 +1211,68 @@ public partial class MetricsTests : DashboardTestContext
     }
 
     [Fact]
+    public async Task InitialLoad_RouteResourceArrivesLater_ResolvesRoute()
+    {
+        MetricsSetupHelpers.SetupMetricsPage(this);
+
+        var telemetryRepository = Services.GetRequiredService<SqliteTelemetryRepository>();
+
+        // Another resource exists up front so the page doesn't auto-select the only resource,
+        // which would hide whether the route itself is resolved.
+        await telemetryRepository.AddMetricsAsync(new AddContext(), new RepeatedField<ResourceMetrics>
+        {
+            new ResourceMetrics
+            {
+                Resource = CreateResource(name: "OtherApp"),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "other-meter"),
+                        Metrics = { CreateSumMetric(metricName: "other-instrument", startTime: s_testTime.AddMinutes(1)) }
+                    }
+                }
+            }
+        });
+
+        Services.GetRequiredService<NavigationManager>().NavigateTo(
+            DashboardUrls.MetricsUrl(resource: "TestApp", meter: "test-meter", instrument: "test-instrument", duration: 5, view: MetricViewKind.Graph.ToString()));
+
+        var cut = Render<Metrics>(builder =>
+        {
+            builder.Add(m => m.ResourceName, "TestApp");
+            builder.AddCascadingValue(new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
+        });
+
+        // The route's resource has no telemetry yet, so it can't be resolved.
+        cut.WaitForAssertion(() => Assert.Null(cut.Instance.PageViewModel.SelectedResource.Id));
+
+        await telemetryRepository.AddMetricsAsync(new AddContext(), new RepeatedField<ResourceMetrics>
+        {
+            new ResourceMetrics
+            {
+                Resource = CreateResource(name: "TestApp"),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter"),
+                        Metrics = { CreateSumMetric(metricName: "test-instrument", startTime: s_testTime.AddMinutes(1)) }
+                    }
+                }
+            }
+        });
+
+        cut.WaitForAssertion(() =>
+        {
+            var viewModel = cut.Instance.PageViewModel;
+            Assert.Equal("TestApp", viewModel.SelectedResource.Name);
+            Assert.Equal("test-meter", viewModel.SelectedMeter);
+            Assert.Equal("test-instrument", viewModel.SelectedInstrument?.Name);
+        });
+    }
+
+    [Fact]
     public async Task MeterCard_PinInstrument_ShowsInPinnedSection()
     {
         MetricsSetupHelpers.SetupMetricsPage(this);
