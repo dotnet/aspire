@@ -6,6 +6,7 @@ using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Process;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Go;
 
@@ -36,18 +37,25 @@ internal static class GoRunDebugging
         }
 
         var overrides = new StringBuilder();
-        foreach (var flag in SplitFlags(goFlags))
+        // Validate the complete input before a fallback can leave it unchanged.
+        foreach (var flag in SplitFlags(goFlags).ToArray())
         {
             if (flag.StartsWith("-ldflags=", StringComparison.Ordinal) ||
                 flag.StartsWith("--ldflags=", StringComparison.Ordinal))
             {
                 // GOFLAGS may contain e.g. "-ldflags=-X main.version=1.2.3" or a
                 // package-qualified -ldflags=all=-s. Preserve each pattern and its order.
-                // Go's quoted fields have no escape syntax; use the other quote type
-                // when a field already contains quotes.
+                // Go's quoted fields have no escape syntax. A valid unquoted field such as
+                // -ldflags=-X=main.version=a'"b cannot be quoted to append linker flags.
                 // https://go.dev/src/cmd/internal/quoted/quoted.go
-                var quote = !flag.Contains('"') ? '"' : !flag.Contains('\'') ? '\'' :
-                    throw new FormatException("Cannot retain Go debug information for a GOFLAGS linker flag containing both quote types. Set ldFlags explicitly with -s=false -w=false.");
+                if (flag.Contains('"') && flag.Contains('\''))
+                {
+                    context.EnvironmentVariables["GOFLAGS"] = original ?? goFlags;
+                    context.Logger.LogWarning("Cannot automatically retain Go debug information for a GOFLAGS linker flag containing both quote types. Preserving GOFLAGS unchanged.");
+                    return;
+                }
+
+                var quote = flag.Contains('"') ? '\'' : '"';
                 overrides.Append(' ').Append(quote).Append(flag).Append(" -s=false -w=false").Append(quote);
             }
         }

@@ -87,6 +87,9 @@ To attach later, use **Attach debugger** on a running Go resource in the Aspire 
 resources tree. Local `AddGoApp` launches retain symbol tables and DWARF debug information by default.
 Existing linker options in ambient, resource-provided, or persisted `GOFLAGS` are preserved
 and extended with `-s=false -w=false` for local runs.
+If a valid linker flag contains both single and double quotes, `GOFLAGS` is left unchanged and a
+warning is logged rather than preventing startup. Automatic debug-information retention is skipped
+for that resource.
 `GOFLAGS` supplied through a secret parameter retains its sensitivity when merged, including
 when assigned as a parameter builder in an environment callback, and is redacted from `aspire describe` output.
 When supplying custom `ldFlags`, include `-s=false -w=false` and avoid `-s` or `-w` if you need
