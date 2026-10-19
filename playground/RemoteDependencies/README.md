@@ -19,7 +19,8 @@ disposable development machine for the privileged fixture.
 From the repository root:
 
 ```sh
-./restore.sh
+./restore.sh --projects "$PWD/playground/RemoteDependencies/RemoteDependencies.AppHost/RemoteDependencies.AppHost.csproj" \
+    /p:SkipDashboardProjectReference=true
 ./.dotnet/dotnet build playground/RemoteDependencies/RemoteDependencies.AppHost \
     -p:SkipDashboardProjectReference=true
 docker info
@@ -35,10 +36,16 @@ engine with **only a Unix socket inside its container**, not a public TCP engine
 listener, and does not mount the workstation Docker socket.
 
 Direct DLL execution avoids the source-tree AppHost package's CLI-bundle run
-hook. Build first. For this sandbox, `./restore.sh` installed the SDK but the full
-solution restore hit unrelated feed download errors; targeted builds succeeded
-with `-p:NuGetAudit=false` because the configured audit endpoint was unavailable.
-That command-line workaround is not a repository feed/configuration change.
+hook. Build first. The targeted restore above installs the repository's pinned
+SDK/runtime toolset and restores this prototype's project graph, without pulling
+unrelated integrations into the experiment. The absolute `--projects` path is
+required by the repository's restore wrapper.
+
+In this sandbox the configured audit endpoint was unavailable, so the verified
+restore/build/test commands additionally used `-p:NuGetAudit=false`. Add that
+command-line property if you encounter the same endpoint error; do not edit
+repository feeds or disable auditing globally. A full-solution restore is not
+required here and encountered unrelated feed download failures.
 
 In another terminal:
 
@@ -170,6 +177,14 @@ value directly inside Redis, native state transitions, log delivery, inactive
 URLs, actual HTTP 503s, scoped cleanup and explicit restart recovery. It stops
 the entire fixture for the remote-outage case, restores its engine, then
 reconciles only the exact intentionally orphaned owned container.
+
+A second, clean checkout of the published commit was also tested without
+preexisting `.dotnet`, `artifacts` or `.fixture` directories. The targeted restore
+downloaded the pinned SDK/runtime toolset; a fresh build, all 19 tests and the
+complete six-scenario run passed. Its fixture generated new identities and was
+removed afterward. No files, keys or build outputs were copied from the original
+checkout. This proves the committed-source journey on this Linux environment,
+not a second physical host or an independent WAN topology.
 
 This builds on the discussion's CLI-based runtime abstraction guidance rather
 than introducing another engine API client. The existing `SshRemoteOptions`
