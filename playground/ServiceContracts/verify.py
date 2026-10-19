@@ -173,6 +173,17 @@ def main():
         build(project, env)
         request_through_consumer(workspace, runtime, dcp, dashboard, "source", producer)
         request_through_consumer(workspace, runtime, dcp, dashboard, "source-missing-parameter", producer, missing_key=True)
+        settings = project.parent / "appsettings.json"
+        settings.write_text(json.dumps({
+            "Kestrel": {"Endpoints": {"http": {"Url": f"http://127.0.0.1:{free_port()}"}}}
+        }) + "\n")
+        try:
+            build(project, env)
+            request_through_consumer(workspace, runtime, dcp, dashboard, "source-kestrel", producer)
+        finally:
+            settings.unlink()
+            # The Web SDK does not prune removed content from an existing build output.
+            (project.parent / "bin/Debug/net10.0/appsettings.json").unlink(missing_ok=True)
         # Producer-only internal refactor plus a compatible minor contract release.
         relocated = producer / "src/Catalog.Renamed"
         project.parent.rename(relocated)

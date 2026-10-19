@@ -112,7 +112,10 @@ public static class ServiceContractResourceBuilderExtensions
         IResourceBuilder<T> Configure<T>(IResourceBuilder<T> resource, int? targetPort)
             where T : IResourceWithEnvironment, IResourceWithEndpoints
         {
-            resource.WithHttpEndpoint(targetPort: targetPort, name: "http", env: contract.Http.PortEnvironmentVariable)
+            // An endpoint's env shortcut suppresses .NET URL/Kestrel overrides. Bind the
+            // port separately so a source project's configured listener follows DCP's allocation.
+            resource.WithHttpEndpoint(targetPort: targetPort, name: "http")
+                .WithEnvironment(contract.Http.PortEnvironmentVariable, resource.GetEndpoint("http").Property(EndpointProperty.TargetPort))
                 .WithHttpHealthCheck(contract.Http.ReadinessPath, endpointName: "http");
             foreach (var input in contract.Inputs)
             {

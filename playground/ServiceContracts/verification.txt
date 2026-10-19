@@ -19,20 +19,23 @@ Builds:
 
 Tests:
   Built tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj, then ran its
-  net10.0 test assembly using /usr/bin/dotnet with three --filter-class options:
-    Aspire.Hosting.Tests.ServiceContractTests (23 cases)
+  net10.0 test assembly using /usr/bin/dotnet with four --filter-class options:
+    Aspire.Hosting.Tests.ServiceContractTests (24 cases)
     Aspire.Hosting.Tests.ProjectResourceTests
     Aspire.Hosting.Tests.WithEnvironmentTests
+    Aspire.Hosting.Tests.KestrelConfigTests
   Test run summary: Passed! (net10.0|x64)
-    total: 89
+    total: 99
     failed: 0
-    succeeded: 89
+    succeeded: 99
     skipped: 0
 
 Runtime assertions (actual consumer HTTP /shop -> producer HTTP /products):
   PASS source:
     {"service":"catalog","contractVersion":1,"region":"north","products":["tea","coffee"]}
   PASS source-missing-parameter: explicit catalog-api-key error, no successful /shop
+  PASS source-kestrel: same response with explicit Kestrel endpoint configuration;
+    both native allocated Kestrel URL and contract port-variable binding retained.
   PASS source-evolved: same response after producer-only path move and version 1.1.0
   PASS source-major-mismatch: expected 'contoso.catalog' major 1, got 2.0.0
   PASS artifact-identity-mismatch: expected 'contoso.catalog', got 'contoso.other'
@@ -49,23 +52,44 @@ Runtime assertions (actual consumer HTTP /shop -> producer HTTP /products):
 
 Readiness evidence (timestamps extracted from normal resource logs):
   Source:
-    08:14:22.7794963Z storefront waiting for catalog to become healthy
-    08:14:27.5880000Z catalog /health completed HTTP 200
-    08:14:27.6330000Z storefront process launched
+    08:34:17.5839185Z storefront waiting for catalog to become healthy
+    08:34:21.9190000Z catalog /health completed HTTP 200
+    08:34:21.9600000Z storefront process launched
+  Source with explicit Kestrel endpoint:
+    08:34:30.8496772Z storefront waiting for catalog to become healthy
+    08:34:38.4030000Z catalog /health completed HTTP 200
+    08:34:38.5290000Z storefront process launched
   Container:
-    08:14:51.7951451Z storefront waiting for catalog to become healthy
-    08:14:51.9202744Z catalog /health completed HTTP 200
-    08:14:51.9920000Z storefront process launched
+    08:35:01.5951558Z storefront waiting for catalog to become healthy
+    08:35:01.7371779Z catalog /health completed HTTP 200
+    08:35:01.8020000Z storefront process launched
 
 Artifacts retained by the recorded run:
   Local image: aspire-contract-catalog:1.0.0
-  Image ID: sha256:ace8b2500a861a8efb97a3f953a87e77c0d96c23f1a0fc4c9f603604965d78b0
-  Producer fixture commit: 6ecda07053461961b03412d3388e58219d2f5518
-  Consumer fixture commit: 5b12c3dd3bae16031d668ac04d4203941f60e5cf
+  Image ID: sha256:f117a169f1b48a13f10a60afe1326a5e0f03fd7c2656df2890191a68a1cd8636
+  Producer fixture commit: fc3a7a4b7693e6103a695b07110ae2397c48a583
+  Consumer fixture commit: 0d3e01085f1c460c98ba8f29f2005324899fb5ef
   Both fixture working trees were clean after the runner restored its probes.
   AppHosts stopped and no experiment containers remained running.
   Fixture commits/image IDs are per-run artifacts, not remotely published releases.
   The PR publishes the implementation, fixture sources, and reproduction runner.
+
+Post-publication regression:
+  A focused Kestrel source-mode test reproduced a missing
+  Kestrel__Endpoints__http__Url allocation override on the original implementation.
+  Binding the port variable separately preserves native project URL/Kestrel
+  injection. The same test now passes, alongside the existing Kestrel suite and
+  a real HTTP source-mode Kestrel runtime probe.
+
+Clean-checkout prerequisite validation:
+  Original PR head 649a296c11a61ac5bea1e4f63c96ee8405f64f53 was cloned separately
+  with no source build outputs or local SDK and a new NUGET_PACKAGES directory.
+  The committed runner downloaded the pinned public SDK and public feed packages,
+  built all dependencies, and passed all 13 original runtime probes.
+  The producer Dockerfile also rebuilt with --no-cache from clean sources.
+  Initial SDK bootstrap emitted warnings for the unavailable audit service;
+  experiment application builds completed without warnings or errors.
+  Final-head clean-checkout and GitHub CI results are tracked in the PR.
 
 Limits:
   Local evidence only; not a CI run, package audit, security review, image registry

@@ -205,8 +205,8 @@ should use normal AppHost configuration providers, not shell history or images.
 
 ## Verification and failure UX
 
-The recorded run is in [verification.txt](verification.txt): 89 hosting tests
-(including 23 contract cases) passed on .NET 10, and all 13 runtime probes passed.
+The recorded run is in [verification.txt](verification.txt): 99 hosting tests
+(including 24 contract cases) passed on .NET 10, and all 14 runtime probes passed.
 This is local runtime evidence, not a claim about CI or production deployment.
 
 The runner requires exact response JSON in source mode, after the producer-only
@@ -218,7 +218,10 @@ refactor, and in container mode **while the producer checkout is renamed away**:
 
 It also checks incompatible source major, wrong artifact identity/schema,
 missing/unexpected input bindings, malformed JSON, missing artifact/checkout,
-and missing runtime parameter values in both implementations. Contract errors
+missing runtime parameter values in both implementations, and a source service
+with explicit Kestrel listeners in `appsettings.json`. The contract's port
+variable is bound separately from endpoint environment shortcuts so native
+allocated Kestrel URL overrides remain intact. Contract errors
 are raised before adding service resources to the model. Missing runtime values
 use Aspire's existing parameter error state and log forwarding; they do not
 silently run with empty defaults. Authentication of the producer request uses
@@ -228,7 +231,9 @@ Normal resource logs show the consumer waiting for catalog health, catalog
 `/health` returning HTTP 200, then the storefront process launching. The targeted
 hosting tests additionally check endpoint/port equivalence, health and wait
 annotations, preserved parameter object references, malformed contract shapes,
-source path errors, relative path resolution, and foreign-model bindings:
+source path errors, relative path resolution, foreign-model bindings, and
+Kestrel URL allocation. The recorded neighboring suites also include
+`ProjectResourceTests`, `WithEnvironmentTests`, and `KestrelConfigTests`:
 
 ```bash
 ./dotnet.sh restore tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj --disable-parallel

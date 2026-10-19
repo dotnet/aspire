@@ -50,7 +50,7 @@ public class ServiceContractTests(ITestOutputHelper outputHelper)
         var endpoint = Assert.Single(resource.Resource.Annotations.OfType<EndpointAnnotation>());
         Assert.Equal("http", endpoint.Name);
         Assert.Equal(source ? null : (int?)8080, endpoint.TargetPort);
-        Assert.Equal("HTTP_PORT", endpoint.TargetPortEnvironmentVariable);
+        Assert.Null(endpoint.TargetPortEnvironmentVariable);
         Assert.NotEmpty(resource.Resource.Annotations.OfType<HealthCheckAnnotation>());
 
         var environment = new Dictionary<string, object>();
@@ -60,11 +60,44 @@ public class ServiceContractTests(ITestOutputHelper outputHelper)
             await callback.Callback(context);
         }
         Assert.Same(token.Resource, environment["CATALOG_TOKEN"]);
+        var port = Assert.IsType<EndpointReferenceExpression>(environment["HTTP_PORT"]);
+        Assert.Equal(EndpointProperty.TargetPort, port.Property);
+        Assert.Same(resource.Resource, port.Endpoint.Resource);
 
         var consumer = builder.AddExecutable("consumer", "test", root)
             .WithReference(resource.GetEndpoint("http")).WaitFor(resource);
         Assert.Contains(consumer.Resource.Annotations.OfType<WaitAnnotation>(),
             annotation => ReferenceEquals(annotation.Resource, resource.Resource));
+    }
+
+    [Fact]
+    public async Task SourceKestrelEndpointRetainsAllocatedUrlOverrideAndContractPort()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var root = workspace.WorkspaceRoot.FullName;
+        var path = Path.Combine(root, "aspire-service.json");
+        await File.WriteAllTextAsync(path, Contract);
+        await File.WriteAllTextAsync(Path.Combine(root, "Catalog.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk.Web\" />");
+        await File.WriteAllTextAsync(Path.Combine(root, "appsettings.json"), """
+            { "Kestrel": { "Endpoints": { "http": { "Url": "http://localhost:54321" } } } }
+            """);
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var resource = builder.AddServiceContract("catalog", path, "contoso.catalog", 1,
+            new Dictionary<string, IResourceBuilder<ParameterResource>> { ["token"] = builder.AddParameter("token") }, root);
+        var endpoint = Assert.Single(resource.Resource.Annotations.OfType<EndpointAnnotation>());
+        endpoint.AllocatedEndpoint = new AllocatedEndpoint(endpoint, "localhost", 54321, targetPortExpression: "45678");
+
+        var environment = new Dictionary<string, object>();
+        var context = new EnvironmentCallbackContext(builder.ExecutionContext, resource.Resource, environment);
+        foreach (var callback in resource.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>())
+        {
+            await callback.Callback(context);
+        }
+
+        var kestrelUrl = Assert.IsType<ReferenceExpression>(environment["Kestrel__Endpoints__http__Url"]);
+        Assert.Equal("http://localhost:45678", await kestrelUrl.GetValueAsync(default));
+        var port = Assert.IsType<EndpointReferenceExpression>(environment["HTTP_PORT"]);
+        Assert.Equal("45678", await port.GetValueAsync(default));
     }
 
     [Theory]
