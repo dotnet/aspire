@@ -137,13 +137,15 @@ dotnet test tests/Aspire.Cli.EndToEnd.Tests/Aspire.Cli.EndToEnd.Tests.csproj -- 
 
 `KubernetesDeployWithCertManagerTests` runs the same scenario with C# and TypeScript
 AppHosts. Each test creates an isolated KinD cluster, uses `aspire deploy` to install
-cert-manager and configure two issuers, and starts a private Pebble ACME server that
+cert-manager and configure three issuers, and starts a private Pebble ACME server that
 requires EAB. It checks successful registration, rejection of an incorrect HMAC,
 account-key preservation on redeployment, and issuer/EAB Secret cleanup through
 `aspire destroy`. A test-only admission policy rejects deletion of one issuer,
 verifying that both managed EAB Secrets are still removed while the ACME account
 key is retained. The other issuer has EAB removed before redeployment and is deleted
 normally. A foreign Secret for an issuer without EAB is retained.
+The C# case also changes the cluster resource namespace and verifies cleanup in
+both the original and new namespaces.
 The fixture uses synthetic credentials and test-only TLS trust;
 no Azure subscription or commercial ACME account is needed. This verifies account
 registration, not public certificate issuance.

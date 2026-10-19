@@ -4,6 +4,7 @@
 using System.Text;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Tests;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -214,9 +215,9 @@ public class CertManagerTests
             .WithExternalAccountBinding("fixture-key-id", hmacKey);
 
         var spec = await CertManagerExtensions.BuildExternalAccountBindingSecretApplySpecAsync(
-            issuer.Resource, TestContext.Current.CancellationToken);
+            issuer.Resource, resourceVersion: null, TestContext.Current.CancellationToken);
 
-        Assert.Equal(["apply", "--server-side", "--field-manager=aspire-cert-manager", "-f", "-"], spec.ArgumentList);
+        Assert.Equal(["create", "-f", "-"], spec.ArgumentList);
         Assert.Null(spec.Arguments);
         Assert.Null(spec.OnOutputData);
         Assert.Null(spec.OnErrorData);
@@ -226,6 +227,73 @@ public class CertManagerTests
         var encodedKey = document.RootElement.GetProperty("data").GetProperty("hmac-key").GetString()!;
         Assert.Equal(TestHmacKey, Encoding.UTF8.GetString(Convert.FromBase64String(encodedKey)));
         await Verify(spec.StandardInputContent!, "json");
+    }
+
+    [Fact]
+    public async Task ExternalAccountBinding_UsesConditionalReplacementForOwnedSecret()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.Configuration["Parameters:eab-hmac"] = TestHmacKey;
+        var hmacKey = builder.AddParameter("eab-hmac", secret: true);
+        var issuer = builder.AddKubernetesEnvironment("env").AddCertManager("cert-manager").AddIssuer("eab")
+            .WithExternalAccountBinding("fixture-key-id", hmacKey);
+        var resourceVersion = CertManagerExtensions.ParseExternalAccountBindingSecretResourceVersion(
+            "eab-eab", "eab-eab:aspire-cert-manager:12345");
+
+        var spec = await CertManagerExtensions.BuildExternalAccountBindingSecretApplySpecAsync(
+            issuer.Resource, resourceVersion, TestContext.Current.CancellationToken);
+
+        Assert.Equal(["replace", "-f", "-"], spec.ArgumentList);
+        Assert.Null(spec.OnOutputData);
+        Assert.Null(spec.OnErrorData);
+        Assert.Equal(0, spec.RetainedOutputLineCount);
+        await Verify(spec.StandardInputContent!, "json");
+    }
+
+    [Theory]
+    [InlineData("eab-eab::12345")]
+    [InlineData("eab-eab:another-manager:12345")]
+    [InlineData("eab-eab:aspire-cert-manager:")]
+    [InlineData("malformed")]
+    public void ExternalAccountBinding_RejectsUnownedOrUnversionedSecret(string output)
+    {
+        Assert.Throws<InvalidOperationException>(() =>
+            CertManagerExtensions.ParseExternalAccountBindingSecretResourceVersion("eab-eab", output));
+    }
+
+    [Fact]
+    public async Task ExternalAccountBinding_CleanupRemembersAllNamespacesWithoutCurrentBinding()
+    {
+        var builder = TestDistributedApplicationBuilder.Create();
+        var issuer = builder.AddKubernetesEnvironment("env").AddCertManager("cert-manager").AddIssuer("eab");
+        var stateManager = new InMemoryDeploymentStateManager();
+
+        await CertManagerExtensions.RecordExternalAccountBindingNamespaceAsync(
+            stateManager, issuer.Resource, "accounts-a", TestContext.Current.CancellationToken);
+        await CertManagerExtensions.RecordExternalAccountBindingNamespaceAsync(
+            stateManager, issuer.Resource, "accounts-b", TestContext.Current.CancellationToken);
+        await CertManagerExtensions.RecordExternalAccountBindingNamespaceAsync(
+            stateManager, issuer.Resource, "accounts-b", TestContext.Current.CancellationToken);
+        issuer.Resource.Parent.HelmChart.Values["extraArgs[0]"] = "--cluster-resource-namespace=accounts-c";
+
+        var namespaces = await CertManagerExtensions.GetExternalAccountBindingCleanupNamespacesAsync(
+            stateManager, issuer.Resource, TestContext.Current.CancellationToken);
+
+        Assert.Equal(["accounts-a", "accounts-b"], namespaces);
+    }
+
+    [Fact]
+    public async Task ExternalAccountBinding_NonEabCleanupDoesNotValidateNamespaceOverrides()
+    {
+        var builder = TestDistributedApplicationBuilder.Create();
+        var certManager = builder.AddKubernetesEnvironment("env").AddCertManager("cert-manager");
+        certManager.Resource.HelmChart.Values["extraArgs[0]"] = "--cluster-resource-namespace=accounts";
+        var issuer = certManager.AddIssuer("non-eab");
+
+        var namespaces = await CertManagerExtensions.GetExternalAccountBindingCleanupNamespacesAsync(
+            new InMemoryDeploymentStateManager(), issuer.Resource, TestContext.Current.CancellationToken);
+
+        Assert.Empty(namespaces);
     }
 
     [Theory]

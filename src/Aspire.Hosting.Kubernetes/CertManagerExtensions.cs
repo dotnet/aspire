@@ -4,11 +4,13 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Kubernetes;
 using Aspire.Hosting.Kubernetes.Extensions;
 using Aspire.Hosting.Pipelines;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
@@ -127,8 +129,8 @@ public static class CertManagerExtensions
         // via AddIssuer(...) after this call are still picked up.
         // Apply steps depend on helm-install-{chartName} so cert-manager (and its admission
         // webhook) is up before we apply CRD instances. Delete steps run before
-        // helm-uninstall-{chartName} so we delete the ClusterIssuers (and let cert-manager
-        // clean up its account secrets) while the controller is still alive.
+        // helm-uninstall-{chartName} so issuer and managed EAB Secret cleanup runs while
+        // the controller is still alive. ACME account keys are retained.
         resourceBuilder.WithAnnotation(new PipelineStepAnnotation(_ =>
             BuildIssuerApplySteps(resource, chartName)));
         resourceBuilder.WithAnnotation(new PipelineStepAnnotation(_ =>
@@ -494,8 +496,12 @@ public static class CertManagerExtensions
 
         if (issuer.ExternalAccountBinding is not null)
         {
-            var secretSpec = await BuildExternalAccountBindingSecretApplySpecAsync(issuer, context.CancellationToken).ConfigureAwait(false);
-            await CheckExternalAccountBindingSecretOwnershipAsync(issuer, context.CancellationToken).ConfigureAwait(false);
+            var resourceVersion = await GetExternalAccountBindingSecretResourceVersionAsync(issuer, context.CancellationToken).ConfigureAwait(false);
+            var secretSpec = await BuildExternalAccountBindingSecretApplySpecAsync(issuer, resourceVersion, context.CancellationToken).ConfigureAwait(false);
+            // Record the location before writing, so a partial deploy can still be cleaned up.
+            await RecordExternalAccountBindingNamespaceAsync(
+                context.Services.GetRequiredService<IDeploymentStateManager>(), issuer,
+                GetClusterResourceNamespace(certManager), context.CancellationToken).ConfigureAwait(false);
             var (secretResult, secretDisposable) = ProcessUtil.Run(secretSpec);
             await using (secretDisposable.ConfigureAwait(false))
             {
@@ -608,34 +614,70 @@ public static class CertManagerExtensions
             }
         }
 
-        // Clean up even after a failed issuer deletion or removal of EAB from the model.
-        // Both selectors are evaluated by Kubernetes, so foreign Secrets cannot be deleted.
-        var arguments = new List<string>
+        var stateManager = context.Services.GetRequiredService<IDeploymentStateManager>();
+        var namespaces = await GetExternalAccountBindingCleanupNamespacesAsync(
+            stateManager, issuer, context.CancellationToken).ConfigureAwait(false);
+        foreach (var @namespace in namespaces)
         {
-            "delete", "secrets",
-            "--field-selector", $"metadata.name={GetExternalAccountBindingSecretName(issuer)}",
-            "--selector", "app.kubernetes.io/managed-by=aspire-cert-manager",
-            "--namespace", GetClusterResourceNamespace(certManager), "--ignore-not-found"
-        };
-        AddKubeConfigArgument(arguments, environment);
-        var (deleteResult, deleteDisposable) = ProcessUtil.Run(new ProcessSpec("kubectl")
-        {
-            ArgumentList = arguments,
-            ThrowOnNonZeroReturnCode = false
-        });
-        await using (deleteDisposable.ConfigureAwait(false))
-        {
-            var result = await deleteResult.WaitAsync(context.CancellationToken).ConfigureAwait(false);
-            if (result.ExitCode != 0)
+            // Both selectors are evaluated by Kubernetes, so foreign Secrets cannot be deleted.
+            var arguments = new List<string>
             {
-                throw new InvalidOperationException(
-                    $"Deleting the EAB Secret for ClusterIssuer '{issuer.Name}' failed with exit code {result.ExitCode}.");
+                "delete", "secrets",
+                "--field-selector", $"metadata.name={GetExternalAccountBindingSecretName(issuer)}",
+                "--selector", "app.kubernetes.io/managed-by=aspire-cert-manager",
+                "--namespace", @namespace, "--ignore-not-found"
+            };
+            AddKubeConfigArgument(arguments, environment);
+            var (deleteResult, deleteDisposable) = ProcessUtil.Run(new ProcessSpec("kubectl")
+            {
+                ArgumentList = arguments,
+                ThrowOnNonZeroReturnCode = false
+            });
+            await using (deleteDisposable.ConfigureAwait(false))
+            {
+                var result = await deleteResult.WaitAsync(context.CancellationToken).ConfigureAwait(false);
+                if (result.ExitCode != 0)
+                {
+                    throw new InvalidOperationException(
+                        $"Deleting the EAB Secret for ClusterIssuer '{issuer.Name}' in namespace '{@namespace}' failed with exit code {result.ExitCode}.");
+                }
             }
         }
     }
 
+    internal static async Task RecordExternalAccountBindingNamespaceAsync(
+        IDeploymentStateManager stateManager, CertManagerIssuerResource issuer, string @namespace, CancellationToken cancellationToken)
+    {
+        var section = await stateManager.AcquireSectionAsync(GetExternalAccountBindingStateSectionName(issuer), cancellationToken).ConfigureAwait(false);
+        var namespaces = section.Data["Namespaces"]?.AsArray() ?? [];
+        if (!namespaces.Any(value => value?.GetValue<string>() == @namespace))
+        {
+            namespaces.Add(@namespace);
+        }
+        section.Data["Namespaces"] = namespaces;
+        await stateManager.SaveSectionAsync(section, cancellationToken).ConfigureAwait(false);
+    }
+
+    internal static async Task<IReadOnlyList<string>> GetExternalAccountBindingCleanupNamespacesAsync(
+        IDeploymentStateManager stateManager, CertManagerIssuerResource issuer, CancellationToken cancellationToken)
+    {
+        var section = await stateManager.AcquireSectionAsync(GetExternalAccountBindingStateSectionName(issuer), cancellationToken).ConfigureAwait(false);
+        if (section.Data["Namespaces"] is JsonArray namespaces)
+        {
+            return namespaces.Select(value => value!.GetValue<string>()).ToArray();
+        }
+
+        // Older deployments may have no saved EAB state. Only consult current namespace
+        // configuration when EAB is actually enabled; non-EAB charts may use extraArgs.
+        return issuer.ExternalAccountBinding is not null ? [GetClusterResourceNamespace(issuer.Parent)] : [];
+    }
+
+    private static string GetExternalAccountBindingStateSectionName(CertManagerIssuerResource issuer)
+        => $"CertManagerEab:{issuer.Parent.Parent.Name}:{issuer.Name}";
+
     internal static async Task<ProcessSpec> BuildExternalAccountBindingSecretApplySpecAsync(
         CertManagerIssuerResource issuer,
+        string? resourceVersion,
         CancellationToken cancellationToken)
     {
         var binding = issuer.ExternalAccountBinding
@@ -648,26 +690,33 @@ public static class CertManagerExtensions
 
         // Secret.data is base64 of the provider's base64url text, not of the decoded MAC key.
         // See https://cert-manager.io/docs/configuration/acme/#external-account-bindings.
+        var metadata = new Dictionary<string, object>
+        {
+            ["name"] = GetExternalAccountBindingSecretName(issuer),
+            ["namespace"] = GetClusterResourceNamespace(issuer.Parent),
+            ["labels"] = new Dictionary<string, string>
+            {
+                ["app.kubernetes.io/managed-by"] = "aspire-cert-manager"
+            }
+        };
+        if (resourceVersion is not null)
+        {
+            metadata["resourceVersion"] = resourceVersion;
+        }
         var manifest = JsonSerializer.Serialize(new
         {
             apiVersion = "v1",
             kind = "Secret",
-            metadata = new
-            {
-                name = GetExternalAccountBindingSecretName(issuer),
-                @namespace = GetClusterResourceNamespace(issuer.Parent),
-                labels = new Dictionary<string, string>
-                {
-                    ["app.kubernetes.io/managed-by"] = "aspire-cert-manager"
-                }
-            },
+            metadata,
             type = "Opaque",
             data = new Dictionary<string, string>
             {
                 ["hmac-key"] = Convert.ToBase64String(Encoding.UTF8.GetBytes(hmacKey))
             }
         });
-        var arguments = new List<string> { "apply", "--server-side", "--field-manager=aspire-cert-manager", "-f", "-" };
+        // Create cannot adopt an object that appeared after our read. Replace checks the
+        // resourceVersion, rejecting an object changed or recreated since ownership was checked.
+        var arguments = new List<string> { resourceVersion is null ? "create" : "replace", "-f", "-" };
         AddKubeConfigArgument(arguments, issuer.Parent.Parent);
 
         return new ProcessSpec("kubectl")
@@ -679,7 +728,7 @@ public static class CertManagerExtensions
         };
     }
 
-    private static async Task CheckExternalAccountBindingSecretOwnershipAsync(
+    private static async Task<string?> GetExternalAccountBindingSecretResourceVersionAsync(
         CertManagerIssuerResource issuer,
         CancellationToken cancellationToken)
     {
@@ -687,7 +736,7 @@ public static class CertManagerExtensions
         var arguments = new List<string>
         {
             "get", "secret", secretName, "--namespace", GetClusterResourceNamespace(issuer.Parent),
-            "--ignore-not-found", "-o", @"jsonpath={.metadata.name}:{.metadata.labels.app\.kubernetes\.io/managed-by}"
+            "--ignore-not-found", "-o", @"jsonpath={.metadata.name}:{.metadata.labels.app\.kubernetes\.io/managed-by}:{.metadata.resourceVersion}"
         };
         AddKubeConfigArgument(arguments, issuer.Parent.Parent);
         var output = new StringBuilder();
@@ -707,7 +756,23 @@ public static class CertManagerExtensions
             }
         }
 
-        ValidateExternalAccountBindingSecretOwnership(secretName, output.ToString());
+        return ParseExternalAccountBindingSecretResourceVersion(secretName, output.ToString());
+    }
+
+    internal static string? ParseExternalAccountBindingSecretResourceVersion(string secretName, string output)
+    {
+        // jsonpath returns "issuer-eab:aspire-cert-manager:12345", or no output if absent.
+        if (output.Length == 0)
+        {
+            return null;
+        }
+        var separator = output.LastIndexOf(':');
+        if (separator < 0 || separator == output.Length - 1)
+        {
+            throw new InvalidOperationException($"EAB Secret '{secretName}' has no resource version.");
+        }
+        ValidateExternalAccountBindingSecretOwnership(secretName, output[..separator]);
+        return output[(separator + 1)..];
     }
 
     internal static void ValidateExternalAccountBindingSecretOwnership(string secretName, string output)
