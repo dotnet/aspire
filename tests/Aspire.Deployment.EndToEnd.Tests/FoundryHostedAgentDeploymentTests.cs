@@ -41,7 +41,6 @@ public sealed class FoundryHostedAgentDeploymentTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/microsoft/aspire/issues/20778")]
     public async Task DeployFoundryToolboxToAzure()
     {
         using var cts = new CancellationTokenSource(s_toolboxTestTimeout);
