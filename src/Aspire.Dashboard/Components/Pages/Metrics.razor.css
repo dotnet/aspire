@@ -9,10 +9,16 @@
     line-height: 32px;
 }
 
+/* The title takes the row so the pin button sits at the top-right, like other header icon buttons. */
 ::deep .metrics-chart-title {
     display: flex;
     align-items: center;
-    gap: var(--spacingHorizontalXS);
+    gap: var(--spacingHorizontalS);
+    min-width: 0;
+}
+
+::deep .metrics-chart-title h3 {
+    flex: 1;
     min-width: 0;
 }
 
