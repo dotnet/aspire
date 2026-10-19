@@ -12,7 +12,17 @@ fi
 export DOTNET_ROOT="$(dirname "$dotnet")"
 export PATH="$DOTNET_ROOT:$PATH"
 
-"$dotnet" build "$sample/AppHost/ComposeAdoption.AppHost.csproj" -p:NuGetAudit=false
+mode="${1:-}"
+if [[ $# -gt 1 || ( -n "$mode" && "$mode" != "--build-only" && "$mode" != "--no-build" ) ]]; then
+    echo "Usage: bash run.sh [--build-only|--no-build]" >&2
+    exit 2
+fi
+if [[ "$mode" != "--no-build" ]]; then
+    "$dotnet" build "$sample/AppHost/ComposeAdoption.AppHost.csproj" -p:NuGetAudit=false
+fi
+if [[ "$mode" == "--build-only" ]]; then
+    exit 0
+fi
 
 # This local-only demonstration deliberately uses HTTP. Never expose these
 # anonymous dashboard/resource-service endpoints on a public interface.

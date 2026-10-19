@@ -34,6 +34,10 @@ trap cleanup EXIT
 
 docker info > /dev/null
 docker compose version
+# A cold dashboard/AppHost build can take longer than application readiness.
+# Finish it synchronously so its failure is visible and it cannot be orphaned
+# when the readiness timeout expires.
+bash "$sample/run.sh" --build-only
 docker compose -f "$sample/compose.yaml" up -d --wait
 
 check_response() {
@@ -66,14 +70,14 @@ check_response compose-python
 docker compose -f "$sample/compose.yaml" down
 
 echo "Imported Aspire containers:"
-bash "$sample/run.sh" > "$sample/imported.log" 2>&1 &
+bash "$sample/run.sh" --no-build > "$sample/imported.log" 2>&1 &
 apphost_pid=$!
 check_response compose-python
 curl -fsS http://localhost:18888/ > /dev/null
 stop_apphost
 
 echo "Gateway container -> local .NET source -> Redis container:"
-COMPOSE_REPLACE_API=true bash "$sample/run.sh" > "$sample/replacement.log" 2>&1 &
+COMPOSE_REPLACE_API=true bash "$sample/run.sh" --no-build > "$sample/replacement.log" 2>&1 &
 apphost_pid=$!
 check_response local-dotnet
 check_response local-dotnet 2

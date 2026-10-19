@@ -13,6 +13,14 @@ Docker engine, Docker Compose v2 or later, and the repository's .NET SDK.
 The verified environment used Linux x64, Docker 29.1.3, Compose 5.6.0, DCP 0.27.0,
 and the SDK pinned by `global.json`. Images are pulled from Docker Hub.
 
+Start from a fresh clone using GitHub CLI (or fetch the PR branch with git):
+
+```bash
+gh repo clone microsoft/aspire
+cd aspire
+gh pr checkout 21128
+```
+
 From the repository root:
 
 ```bash
@@ -30,6 +38,11 @@ the network-dependent audit for its local sample build; it does not disable anal
 
 The script checks a real Redis-backed request through all three configurations,
 dashboard HTTP availability, absence of the replaced API container, and cleanup.
+It builds the sample and dashboard synchronously before starting its readiness
+timer, so a cold compilation is not mistaken for an unresponsive application.
+`run.sh --build-only` builds without launching; `run.sh --no-build` runs the
+previously built assembly. Both derive paths from the checkout, not a developer's
+machine-specific output directory.
 It stops its own AppHosts and Compose project on exit. Keep ports **18080** (gateway),
 **18888** (dashboard) and **18889** (resource service) free. Do not run another copy
 of this sample concurrently. Logs are written to ignored `imported.log` and
