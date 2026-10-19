@@ -16,8 +16,9 @@ GitHub requires a `workflow_dispatch` workflow to exist on the default branch
 before it can be dispatched. Before that registration, an upstream **draft PR**
 whose title contains **`[ci-shadow]`** opts in through `pull_request`, but only
 when it changes the shadow workflows, scripts, tests, or this document.
-Opening, reopening, synchronizing, editing, or converting that PR to draft
-can start a trial. An ordinary PR does not schedule the experiment.
+Opening, reopening, synchronizing, changing the title, or converting that PR
+to draft can start a trial. Body-only edits do not schedule the experiment.
+An ordinary PR does not schedule the experiment.
 
 The workflow never uses `pull_request_target`, writes to the repository,
 publishes packages, posts comments, or uses an environment or repository secret.

@@ -38,6 +38,10 @@ printf '<TestRun />' > "$2/tests.trx"
 @'
 #!/usr/bin/env bash
 set -euo pipefail
+if [ "$#" -ne 4 ] || [ "$1" != -runtime ] || [ "$2" != dotnet ] || [ "$3" != -version ] || [ "$4" != 10.0.8 ]; then
+  echo invalid-arcade-installer-arguments
+  exit 1
+fi
 echo runtime-install >> calls.txt
 '@ | Set-Content (Join-Path $source 'eng/common/dotnet-install.sh')
 & chmod +x (Join-Path $source 'build.sh') (Join-Path $source 'dotnet.sh')

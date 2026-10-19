@@ -39,7 +39,8 @@ jobs:
       ${{ github.repository == 'microsoft/aspire' &&
           (github.event_name == 'workflow_dispatch' ||
            (github.event.pull_request.draft == true &&
-            contains(github.event.pull_request.title, '[ci-shadow]'))) }}
+            contains(github.event.pull_request.title, '[ci-shadow]') &&
+            (github.event.action != 'edited' || github.event.changes.title != null))) }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

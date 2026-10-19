@@ -103,9 +103,10 @@ try {
             if ($runtime.name -notin @('dotnet', 'aspnetcore') -or $runtime.version -notmatch '^\d+\.\d+\.\d+(-[A-Za-z0-9.-]+)?$') {
                 throw 'Invalid payload runtime manifest.'
             }
+            # This is Arcade's wrapper, not the upstream installer: it accepts
+            # single-dash arguments and always installs into the source .dotnet.
             Invoke-MeasuredCommand "install-$($runtime.name)" 'bash' @(
-                'eng/common/dotnet-install.sh', '--runtime', $runtime.name, '--version', $runtime.version,
-                '--install-dir', (Join-Path $SourceRoot '.dotnet'), '--no-path'
+                'eng/common/dotnet-install.sh', '-runtime', $runtime.name, '-version', $runtime.version
             )
         }
         $archive = Join-Path (Resolve-Path $PayloadDirectory).Path 'tests.tar.gz'
