@@ -535,6 +535,58 @@ suite('AspireGutterDecorationProvider resource decoration filtering', () => {
         ].join('\n')],
     ];
     for (const view of ['global', 'workspace']) {
+        test(`matches all resources once per CodeLens and gutter refresh in ${view} view`, async () => {
+            const count = 400;
+            const hostPath = p('repo', 'AppHost', 'AppHost.csproj');
+            const host = makeAppHost(hostPath);
+            const text = [
+                'var builder = DistributedApplication.CreateBuilder(args);',
+                ...Array.from({ length: count }, (_, index) => `builder.AddContainer("resource-${index}", "nginx");`),
+            ].join('\n');
+            const document = createMockDocument(text, p('repo', 'AppHost', 'AppHost.cs'));
+            const documentHash = getResourceSourceDocumentHash(text);
+            let sourceReads = 0;
+            host.resources = Array.from({ length: count }, (_, index) => {
+                const resource = makeResource(`resource-${index}`);
+                const sourceLocation = {
+                    filePath: document.uri.fsPath,
+                    documentHash,
+                    lineNumber: index + 2,
+                    columnNumber: 9,
+                    methodName: 'AddContainer',
+                };
+                Object.defineProperty(resource, 'sourceLocation', {
+                    get: () => {
+                        sourceReads++;
+                        return sourceLocation;
+                    },
+                });
+                return resource;
+            });
+            const harness = createHarness(view === 'global'
+                ? { appHosts: [host] }
+                : { workspaceAppHostPath: hostPath, workspaceResources: host.resources });
+            const provider = new AspireGutterDecorationProvider(harness.treeProvider);
+            const editor = createMockEditor(document);
+            const expectedLines = Array.from({ length: count }, (_, index) => index + 1);
+
+            try {
+                const lenses = await harness.provider.provideCodeLenses(document, cancellationToken) as vscode.CodeLens[];
+                assert.deepStrictEqual(lenses
+                    .filter(lens => lens.command?.command === 'aspire-vscode.codeLensRevealResource')
+                    .map(lens => lens.range.start.line), expectedLines);
+                assert.ok(sourceReads <= count, `CodeLens read source metadata ${sourceReads} times for ${count} resources.`);
+
+                sourceReads = 0;
+                await applyGutterDecorations(provider, editor.editor);
+                assert.deepStrictEqual(getCurrentDecoratedLines(editor.decorationState), expectedLines);
+                assert.ok(sourceReads <= count, `Gutters read source metadata ${sourceReads} times for ${count} resources.`);
+            } finally {
+                provider.dispose();
+                harness.dispose();
+            }
+        });
+
         for (const [extension, text] of programs) {
             for (const activeIndex of [0, 1, undefined]) {
                 test(`${extension}: ${activeIndex === undefined ? 'hides ambiguous legacy state' : `matches executed declaration ${activeIndex + 1}`} in ${view} view`, async () => {

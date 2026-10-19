@@ -396,6 +396,10 @@ when present, otherwise source-file freshness checks. Java and Rust also check s
 freshness against the running class or executable. Capture can be unavailable, for
 example when source maps or source files are missing.
 
+Java resolves the caller's package-relative source path in the project root or
+`src/main/java`. If both locations exist or neither exists, it omits the location
+rather than treating a same-basename entry file as the caller.
+
 Editors must reject locations whose fingerprint does not match the current document.
 Without a usable location, duplicate names do not prove which declaration ran; the
 VS Code extension hides ambiguous inline state/actions while retaining tree controls.

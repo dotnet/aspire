@@ -570,28 +570,24 @@ public class AspireClient {
                 continue;
             }
             String projectDirectory = System.getenv("ASPIRE_PROJECT_DIRECTORY");
-            String appHostFile = System.getenv("ASPIRE_APPHOST_FILEPATH");
             if (projectDirectory == null) {
                 debug("Cannot capture resource source without ASPIRE_PROJECT_DIRECTORY.");
                 return null;
             }
-            Path filePath;
-            if (appHostFile != null && Path.of(appHostFile).getFileName().toString().equals(frame.getFileName())) {
-                filePath = Path.of(appHostFile);
-            } else {
-                String className = frame.getClassName();
-                int packageEnd = className.lastIndexOf('.');
-                Path relative = Path.of(packageEnd < 0 ? "" : className.substring(0, packageEnd).replace('.', '/'))
-                    .resolve(frame.getFileName());
-                Path projectPath = Path.of(projectDirectory);
-                Path rootSource = projectPath.resolve(relative);
-                Path mavenSource = projectPath.resolve("src").resolve("main").resolve("java").resolve(relative);
-                if (Files.isRegularFile(rootSource) == Files.isRegularFile(mavenSource)) {
-                    debug("Cannot uniquely resolve resource source file " + frame.getFileName());
-                    return null;
-                }
-                filePath = Files.isRegularFile(rootSource) ? rootSource : mavenSource;
+            // Stack frames report "AppHost.java" for both AppHost and other.AppHost.
+            // Resolve within the declaring package, not against the entry file's basename.
+            String className = frame.getClassName();
+            int packageEnd = className.lastIndexOf('.');
+            Path relative = Path.of(packageEnd < 0 ? "" : className.substring(0, packageEnd).replace('.', '/'))
+                .resolve(frame.getFileName());
+            Path projectPath = Path.of(projectDirectory);
+            Path rootSource = projectPath.resolve(relative);
+            Path mavenSource = projectPath.resolve("src").resolve("main").resolve("java").resolve(relative);
+            if (Files.isRegularFile(rootSource) == Files.isRegularFile(mavenSource)) {
+                debug("Cannot uniquely resolve resource source file " + frame.getFileName());
+                return null;
             }
+            Path filePath = Files.isRegularFile(rootSource) ? rootSource : mavenSource;
             try {
                 // Class files do not contain a source checksum. Reject source edited after
                 // compilation rather than associating old bytecode with a newer declaration.

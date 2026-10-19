@@ -7,7 +7,7 @@ import './parsers/jsTsAppHostParser';
 import './parsers/rustAppHostParser';
 import { AspireAppHostTreeProvider } from '../views/AspireAppHostTreeProvider';
 import { AppHostDisplayInfo } from '../data/AppHostDataRepository';
-import { createWorkspaceResourceAppHost, findResourceDeclarationState, matchesAppHostPathOrDirectory } from './resourceStateUtils';
+import { createWorkspaceResourceAppHost, matchResourceDeclarations, matchesAppHostPathOrDirectory } from './resourceStateUtils';
 import { ResourceState, StateStyle, HealthStatus } from './resourceConstants';
 
 type GutterCategory = 'running' | 'warning' | 'error' | 'starting' | 'stopped' | 'completed';
@@ -199,11 +199,12 @@ export class AspireGutterDecorationProvider implements vscode.Disposable {
         // declared on the same line keep distinct icons rather than silently overwriting
         // each other.
         const seenLineCategories = new Set<string>();
+        const resourceMatches = matchResourceDeclarations(resourceAppHosts, resources, editor.document);
         for (const parsed of resources) {
             if (parsed.kind !== 'resource') {
                 continue;
             }
-            const match = findResourceDeclarationState(resourceAppHosts, parsed, resources, editor.document);
+            const match = resourceMatches.get(parsed);
             if (!match) {
                 continue;
             }

@@ -23,13 +23,13 @@ export function getResourceSourceDocumentHash(text: string): string {
     return `fnv1a64:${hash.toString(16).padStart(16, '0')}`;
 }
 
-export function findResourceDeclarationState(
+export function matchResourceDeclarations(
     appHosts: readonly AppHostDisplayInfo[],
-    declaration: ParsedResource,
     declarations: readonly ParsedResource[],
     document: vscode.TextDocument,
-): ResourceMatch | undefined {
+): ReadonlyMap<ParsedResource, ResourceMatch> {
     const candidates = declarations.filter(parsed => parsed.kind === 'resource');
+    const matches = new Map<ParsedResource, ResourceMatch>();
     for (const appHost of appHosts) {
         for (const resource of appHost.resources ?? []) {
             const source = resource.sourceLocation;
@@ -73,26 +73,36 @@ export function findResourceDeclarationState(
                     sourceCandidates = named;
                 }
             }
-            if (sourceCandidates.includes(declaration)
-                && (sourceCandidates.length === 1 || sourceCandidates.every(parsed => parsed.range.start.line === line))) {
-                return { resource, appHost, sourceLine: !point && sourceCandidates.length > 1 ? line : undefined };
+            if (sourceCandidates.length === 1 || sourceCandidates.every(parsed => parsed.range.start.line === line)) {
+                for (const declaration of sourceCandidates) {
+                    if (!matches.has(declaration)) {
+                        matches.set(declaration, { resource, appHost, sourceLine: !point && sourceCandidates.length > 1 ? line : undefined });
+                    }
+                }
             }
         }
     }
 
     // Older AppHosts do not supply provenance. Keep their single-declaration behavior,
     // but never guess which of several same-name declarations ran.
-    if (candidates.filter(parsed => parsed.name === declaration.name).length !== 1) {
-        return undefined;
+    const declarationCounts = new Map<string, number>();
+    for (const declaration of candidates) {
+        declarationCounts.set(declaration.name, (declarationCounts.get(declaration.name) ?? 0) + 1);
     }
-    for (const appHost of appHosts) {
-        const resource = appHost.resources?.find(candidate => !candidate.sourceLocation && candidate.displayName === declaration.name)
-            ?? appHost.resources?.find(candidate => !candidate.sourceLocation && candidate.name === declaration.name);
-        if (resource) {
-            return { resource, appHost };
+    for (const declaration of candidates) {
+        if (matches.has(declaration) || declarationCounts.get(declaration.name) !== 1) {
+            continue;
+        }
+        for (const appHost of appHosts) {
+            const resource = appHost.resources?.find(candidate => !candidate.sourceLocation && candidate.displayName === declaration.name)
+                ?? appHost.resources?.find(candidate => !candidate.sourceLocation && candidate.name === declaration.name);
+            if (resource) {
+                matches.set(declaration, { resource, appHost });
+                break;
+            }
         }
     }
-    return undefined;
+    return matches;
 }
 
 function getDocumentHash(document: vscode.TextDocument): string {

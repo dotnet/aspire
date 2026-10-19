@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import { createWorkspaceResourceAppHost, findResourceDeclarationState, getResourceSourceDocumentHash, matchesAppHostPathOrDirectory } from '../editor/resourceStateUtils';
+import { createWorkspaceResourceAppHost, matchResourceDeclarations, getResourceSourceDocumentHash, matchesAppHostPathOrDirectory } from '../editor/resourceStateUtils';
 import type { ResourceJson, AppHostDisplayInfo } from '../data/AppHostDataRepository';
 import type { ParsedResource } from '../editor/parsers/AppHostResourceParser';
 
@@ -57,7 +57,7 @@ function createSymlinkedWorkspace(): {
 }
 
 suite('resource state matching', () => {
-    suite('findResourceDeclarationState', () => {
+    suite('matchResourceDeclarations', () => {
         const text = 'builder.AddRedis("cache");\nbuilder.AddRedis("cache");';
         const filePath = path.join(path.sep, 'repo', 'AppHost.cs');
         const declarations: ParsedResource[] = [0, 1].map(line => ({
@@ -86,23 +86,36 @@ suite('resource state matching', () => {
             const resource = locatedResource();
             const hosts = [makeAppHost({ resources: [resource] })];
             const document = createMockDocument(text, filePath);
-            assert.strictEqual(findResourceDeclarationState(hosts, declarations[0], declarations, document), undefined);
-            assert.strictEqual(findResourceDeclarationState(hosts, declarations[1], declarations, document)?.resource, resource);
+            const matches = matchResourceDeclarations(hosts, declarations, document);
+            assert.strictEqual(matches.size, 1);
+            assert.strictEqual(matches.get(declarations[1])?.resource, resource);
+        });
+
+        test('preserves the first source match ahead of earlier legacy and later source matches', () => {
+            const first = locatedResource({ name: 'first-runtime-id' });
+            const second = locatedResource({ name: 'second-runtime-id' });
+            const hosts = [
+                makeAppHost({ resources: [makeResource({ displayName: 'cache' })] }),
+                makeAppHost({ resources: [first, second] }),
+            ];
+            const matches = matchResourceDeclarations(hosts, [declarations[1]], createMockDocument(text, filePath));
+            assert.strictEqual(matches.size, 1);
+            assert.strictEqual(matches.get(declarations[1])?.resource, first);
         });
 
         test('does not use a location for another file in the same directory', () => {
             const resource = locatedResource();
             resource.sourceLocation!.filePath = path.join(path.dirname(filePath), 'Other.cs');
-            assert.strictEqual(findResourceDeclarationState(
-                [makeAppHost({ resources: [resource] })], declarations[1], declarations,
-                createMockDocument(text, filePath)), undefined);
+            assert.strictEqual(matchResourceDeclarations(
+                [makeAppHost({ resources: [resource] })], declarations,
+                createMockDocument(text, filePath)).size, 0);
         });
 
         test('does not guess by name when the source fingerprint is stale', () => {
             const resource = locatedResource({ displayName: 'cache' });
-            assert.strictEqual(findResourceDeclarationState(
-                [makeAppHost({ resources: [resource] })], declarations[1], [declarations[1]],
-                createMockDocument('\n' + text, filePath)), undefined);
+            assert.strictEqual(matchResourceDeclarations(
+                [makeAppHost({ resources: [resource] })], [declarations[1]],
+                createMockDocument('\n' + text, filePath)).size, 0);
         });
 
         test('rejects out-of-bounds coordinates even when they fall inside a multiline invocation range', () => {
@@ -112,8 +125,8 @@ suite('resource state matching', () => {
                 const resource = locatedResource({ displayName: 'cache' });
                 resource.sourceLocation!.lineNumber = lineNumber;
                 resource.sourceLocation!.columnNumber = columnNumber;
-                assert.strictEqual(findResourceDeclarationState(
-                    [makeAppHost({ resources: [resource] })], declaration, [declaration], document), undefined);
+                assert.strictEqual(matchResourceDeclarations(
+                    [makeAppHost({ resources: [resource] })], [declaration], document).size, 0);
             }
         });
 
@@ -121,25 +134,24 @@ suite('resource state matching', () => {
             const resource = locatedResource();
             const document = createMockDocument(text, filePath);
             const hosts = [makeAppHost({ resources: [resource] })];
-            assert.ok(findResourceDeclarationState(hosts, declarations[1], declarations, document));
+            assert.ok(matchResourceDeclarations(hosts, declarations, document).has(declarations[1]));
             Object.defineProperty(document, 'version', { value: 2 });
             document.getText = () => '\n' + text;
-            assert.strictEqual(findResourceDeclarationState(hosts, declarations[1], declarations, document), undefined);
+            assert.strictEqual(matchResourceDeclarations(hosts, declarations, document).size, 0);
         });
 
         test('retains unique-name fallback for older AppHosts', () => {
             const resource = makeResource({ displayName: 'cache' });
-            const match = findResourceDeclarationState(
-                [makeAppHost({ resources: [resource] })], declarations[0], [declarations[0]],
-                createMockDocument(text, filePath));
+            const match = matchResourceDeclarations(
+                [makeAppHost({ resources: [resource] })], [declarations[0]],
+                createMockDocument(text, filePath)).get(declarations[0]);
             assert.strictEqual(match?.resource, resource);
         });
 
         test('never selects the first same-name declaration for an older AppHost', () => {
             const hosts = [makeAppHost({ resources: [makeResource({ displayName: 'cache' })] })];
             const document = createMockDocument(text, filePath);
-            assert.deepStrictEqual(declarations.map(parsed => findResourceDeclarationState(hosts, parsed, declarations, document)),
-                [undefined, undefined]);
+            assert.strictEqual(matchResourceDeclarations(hosts, declarations, document).size, 0);
         });
 
         test('matches canonical source paths when the editor opened a symlink', () => {
@@ -149,9 +161,9 @@ suite('resource state matching', () => {
                 fs.writeFileSync(canonicalPath, text);
                 const resource = locatedResource();
                 resource.sourceLocation!.filePath = canonicalPath;
-                const match = findResourceDeclarationState(
-                    [makeAppHost({ resources: [resource] })], declarations[1], declarations,
-                    createMockDocument(text, path.join(workspace.linkedDirectory, 'AppHost.cs')));
+                const match = matchResourceDeclarations(
+                    [makeAppHost({ resources: [resource] })], declarations,
+                    createMockDocument(text, path.join(workspace.linkedDirectory, 'AppHost.cs'))).get(declarations[1]);
                 assert.strictEqual(match?.resource, resource);
             } finally {
                 workspace.dispose();

@@ -11,7 +11,7 @@
         },
         name: same,
         $source: {
-          documentHash: fnv1a64:e639ce5c24c4550b,
+          documentHash: fnv1a64:5eb3f0175223488d,
           columnNumber: null,
           filePath: AppHost.java,
           methodName: addTestRedis,
@@ -33,7 +33,7 @@
         },
         name: same,
         $source: {
-          documentHash: fnv1a64:e639ce5c24c4550b,
+          documentHash: fnv1a64:5eb3f0175223488d,
           columnNumber: null,
           filePath: AppHost.java,
           methodName: addTestRedis,
@@ -55,6 +55,65 @@
         }
       },
       capabilityId: Tests/addNonResource
+    }
+  },
+  {
+    method: invokeCapability,
+    id: 1,
+    jsonrpc: 2.0,
+    params: {
+      args: {
+        builder: {
+          $handle: builder,
+          $type: IDistributedApplicationBuilder
+        },
+        name: from-helper,
+        $source: {
+          documentHash: fnv1a64:83439a38ab4a5c0b,
+          columnNumber: null,
+          filePath: other/AppHost.java,
+          methodName: addTestRedis,
+          lineNumber: 8
+        }
+      },
+      capabilityId: Aspire.Hosting.CodeGeneration.Java.Tests/addTestRedis
+    }
+  },
+  {
+    method: invokeCapability,
+    id: 1,
+    jsonrpc: 2.0,
+    params: {
+      args: {
+        builder: {
+          $handle: builder,
+          $type: IDistributedApplicationBuilder
+        },
+        name: from-helper
+      },
+      capabilityId: Aspire.Hosting.CodeGeneration.Java.Tests/addTestRedis
+    }
+  },
+  {
+    method: invokeCapability,
+    id: 1,
+    jsonrpc: 2.0,
+    params: {
+      args: {
+        builder: {
+          $handle: builder,
+          $type: IDistributedApplicationBuilder
+        },
+        name: from-helper,
+        $source: {
+          documentHash: fnv1a64:83439a38ab4a5c0b,
+          columnNumber: null,
+          filePath: src/main/java/other/AppHost.java,
+          methodName: addTestRedis,
+          lineNumber: 8
+        }
+      },
+      capabilityId: Aspire.Hosting.CodeGeneration.Java.Tests/addTestRedis
     }
   },
   {

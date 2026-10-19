@@ -10,7 +10,7 @@ import { AspireAppHostTreeProvider } from '../views/AspireAppHostTreeProvider';
 import { isCommandVisibleToUi, isEnabledCommand } from '../views/treePresentation';
 import { compareResourceCommands, getParameterValueDescription, getResourceStateDescription } from '../utils/resourceDisplay';
 import { AppHostDataRepository, ResourceJson, AppHostDisplayInfo, ResourceCommandJson } from '../data/AppHostDataRepository';
-import { createWorkspaceResourceAppHost, findResourceDeclarationState, matchesAppHostPathOrDirectory } from './resourceStateUtils';
+import { createWorkspaceResourceAppHost, matchResourceDeclarations, matchesAppHostPathOrDirectory } from './resourceStateUtils';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { ResourceState, HealthStatus, StateStyle, ResourceType } from './resourceConstants';
 import {
@@ -228,6 +228,7 @@ export class AspireCodeLensProvider implements vscode.CodeLensProvider {
             return lenses;
         }
 
+        const resourceMatches = hasRunningData ? matchResourceDeclarations(resourceAppHosts, resources, document) : undefined;
         for (const resource of resources) {
             // For pipeline steps the whole statement maps to a single Add*(...) call, so
             // anchoring at the top of the chain reads naturally.
@@ -260,7 +261,7 @@ export class AspireCodeLensProvider implements vscode.CodeLensProvider {
             } else if (resource.kind === 'resource') {
                 // Resources get state lenses when live data is available
                 if (hasRunningData) {
-                    const match = findResourceDeclarationState(resourceAppHosts, resource, resources, document);
+                    const match = resourceMatches?.get(resource);
                     if (match) {
                         const matchedRange = match.sourceLine === undefined ? lineRange
                             : new vscode.Range(match.sourceLine, 0, match.sourceLine, 0);

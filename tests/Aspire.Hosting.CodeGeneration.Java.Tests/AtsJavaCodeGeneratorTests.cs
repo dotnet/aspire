@@ -570,6 +570,7 @@ public class AtsJavaCodeGeneratorTests
             "aspire/IDistributedApplicationBuilder.java",
             "aspire/ResourceBuilderBase.java",
             "aspire/TestRedisResource.java");
+        workspace.EnvironmentVariables["ASPIRE_APPHOST_FILEPATH"] = Path.Combine(workspace.RootPath, "AppHost.java");
         workspace.WriteSource("aspire/SourceFactory.java", """
             package aspire;
             import java.io.*;
@@ -603,6 +604,18 @@ public class AtsJavaCodeGeneratorTests
                 }
             }
             """);
+        workspace.WriteSource("other/AppHost.java", """
+            package other;
+
+            import aspire.SourceFactory;
+
+            public class AppHost {
+                public static String add() throws Exception {
+                    return SourceFactory.invoke(builder ->
+                        builder.addTestRedis("from-helper"));
+                }
+            }
+            """.ReplaceLineEndings("\n"));
         workspace.WriteSource("AppHost.java", """
             import aspire.*;
             import java.nio.file.*;
@@ -618,6 +631,14 @@ public class AtsJavaCodeGeneratorTests
                         System.out.println(request);
                     }
                     System.out.println(SourceFactory.invoke(builder -> builder.addNonResource()));
+                    System.out.println(other.AppHost.add());
+                    Path rootHelper = Path.of("other", "AppHost.java");
+                    Path mavenHelper = Path.of("src", "main", "java", "other", "AppHost.java");
+                    Files.createDirectories(mavenHelper.getParent());
+                    Files.copy(rootHelper, mavenHelper, StandardCopyOption.COPY_ATTRIBUTES);
+                    System.out.println(other.AppHost.add());
+                    Files.delete(rootHelper);
+                    System.out.println(other.AppHost.add());
                     Files.writeString(Path.of("AppHost.java"), "\n// Edited after compilation.", StandardOpenOption.APPEND);
                     Files.setLastModifiedTime(Path.of("AppHost.java"),
                         java.nio.file.attribute.FileTime.fromMillis(System.currentTimeMillis() + 60000));
@@ -633,17 +654,26 @@ public class AtsJavaCodeGeneratorTests
         Assert.True(result.ExitCode == 0, result.StdErr);
         var requests = result.StdOut.Split('\n', StringSplitOptions.RemoveEmptyEntries)
             .Select(line => JsonNode.Parse(line)!).ToArray();
-        Assert.Equal(4, requests.Length);
-        foreach (var request in requests.Take(2))
+        Assert.Equal(7, requests.Length);
+        foreach (var (index, relativePath) in new[]
         {
-            var source = Assert.IsType<JsonObject>(request["params"]?["args"]?["$source"]);
-            Assert.Equal(Path.Combine(workspace.RootPath, "AppHost.java"), source["filePath"]!.GetValue<string>());
-            source["filePath"] = "AppHost.java";
+            (0, "AppHost.java"),
+            (1, "AppHost.java"),
+            (3, "other/AppHost.java"),
+            (5, "src/main/java/other/AppHost.java")
+        })
+        {
+            var source = Assert.IsType<JsonObject>(requests[index]["params"]?["args"]?["$source"]);
+            Assert.Equal(Path.Combine(workspace.RootPath, relativePath.Replace('/', Path.DirectorySeparatorChar)), source["filePath"]!.GetValue<string>());
+            source["filePath"] = relativePath;
         }
         var nonResourceArguments = Assert.IsType<JsonObject>(requests[2]["params"]?["args"]);
         Assert.Equal(["resource"], nonResourceArguments.Select(argument => argument.Key));
-        var staleArguments = Assert.IsType<JsonObject>(requests[3]["params"]?["args"]);
-        Assert.Equal(["builder", "name"], staleArguments.Select(argument => argument.Key).Order(StringComparer.Ordinal));
+        foreach (var request in new[] { requests[4], requests[6] })
+        {
+            var arguments = Assert.IsType<JsonObject>(request["params"]?["args"]);
+            Assert.Equal(["builder", "name"], arguments.Select(argument => argument.Key).Order(StringComparer.Ordinal));
+        }
         await VerifyJson(new JsonArray(requests).ToJsonString());
     }
 
@@ -3877,6 +3907,8 @@ public class AtsJavaCodeGeneratorTests
 
         public string RootPath => _root.FullName;
 
+        public Dictionary<string, string> EnvironmentVariables { get; } = [];
+
         public void WriteSource(string relativePath, string content)
         {
             var path = Path.Combine(_root.FullName, relativePath.Replace('/', Path.DirectorySeparatorChar));
@@ -3933,6 +3965,10 @@ public class AtsJavaCodeGeneratorTests
                 UseShellExecute = false,
             };
             startInfo.Environment["ASPIRE_PROJECT_DIRECTORY"] = _root.FullName;
+            foreach (var (name, value) in EnvironmentVariables)
+            {
+                startInfo.Environment[name] = value;
+            }
 
             foreach (var arg in arguments)
             {
