@@ -338,7 +338,7 @@ public sealed class FoundryHostedAgentDeploymentTests(ITestOutputHelper output)
 
         var mcp = snapshot.Tools.Single(tool =>
             tool.GetProperty("type").GetString() == "mcp");
-        Assert.Equal("microsoft-learn", mcp.GetProperty("name").GetString());
+        // MCP tools use server_label for identity, not the name field used by other toolbox tools.
         Assert.Equal("microsoft-learn", mcp.GetProperty("server_label").GetString());
         Assert.Equal(
             "https://learn.microsoft.com/api/mcp",
