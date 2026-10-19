@@ -558,12 +558,6 @@ namespace Aspire.Dashboard.Resources {
             }
         }
 
-        public static string ResourceOverviewPinnedMetrics {
-            get {
-                return ResourceManager.GetString("ResourceOverviewPinnedMetrics", resourceCulture);
-            }
-        }
-
         /// <summary>
         ///   Looks up a localized string similar to Metrics.
         /// </summary>

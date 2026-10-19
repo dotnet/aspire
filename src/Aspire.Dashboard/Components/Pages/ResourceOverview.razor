@@ -473,21 +473,10 @@
                     }
                     else
                     {
-                    <div class="overview-metrics-pinned-label">
-                        <FluentIcon Value="@(new Icons.Filled.Size16.Pin())" Width="12px" Color="Color.Custom" CustomColor="currentColor" />
-                        <span>@Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewPinnedMetrics)]</span>
-                    </div>
-                    <ul class="overview-metric-tiles">
-                        @foreach (var instrument in pinnedInstruments.Take(MetricsPreviewCount))
-                        {
-                            <li @key="@($"{instrument.Parent.Name}/{instrument.Name}")">
-                                <a class="overview-metric-tile" href="@DashboardUrls.MetricsUrl(resourceName, instrument.Parent.Name, instrument.Name)" data-tooltip="@instrument.Description">
-                                    <span class="overview-metric-name">@instrument.Name</span>
-                                    <span class="overview-metric-meter">@instrument.Parent.Name</span>
-                                </a>
-                            </li>
-                        }
-                    </ul>
+                    <LiveMetricTiles ResourceKey="@_telemetryKey!.Value"
+                                     Instruments="@pinnedInstruments.Take(MetricsPreviewCount).ToList()"
+                                     Duration="@s_metricsPreviewDuration"
+                                     GetInstrumentUrl="@(instrument => DashboardUrls.MetricsUrl(resourceName, instrument.Parent.Name, instrument.Name))" />
                     }
                 }
             </section>
@@ -774,7 +763,7 @@
                 <li>
                     <div class="overview-metric-tile">
                         <span class="overview-metric-name"><FluentSkeleton Width="70%" Height="12px" Shimmer="true" /></span>
-                        <span class="overview-metric-meter"><FluentSkeleton Width="50%" Height="12px" Shimmer="true" /></span>
+                        <span><FluentSkeleton Width="40%" Height="16px" Shimmer="true" /></span>
                     </div>
                 </li>
             }

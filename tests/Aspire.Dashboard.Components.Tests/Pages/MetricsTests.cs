@@ -1094,9 +1094,9 @@ public partial class MetricsTests : DashboardTestContext
         {
             var cards = cut.FindAll(".meter-card");
             Assert.Collection(cards,
-                card => AssertCard(card, "test-instrument-a", sparklineClass: "meter-card-sparkline-bars"),
-                card => AssertCard(card, "test-instrument-b", sparklineClass: "meter-card-sparkline-bars"),
-                card => AssertCard(card, "test-instrument-c", sparklineClass: "meter-card-sparkline-line"));
+                card => AssertCard(card, "test-instrument-a", sparklineClass: "metric-sparkline-bars"),
+                card => AssertCard(card, "test-instrument-b", sparklineClass: "metric-sparkline-bars"),
+                card => AssertCard(card, "test-instrument-c", sparklineClass: "metric-sparkline-line"));
         });
 
         // Counters (monotonic sums) show bars of the increase per interval; up-down counters show a line.
@@ -1305,6 +1305,57 @@ public partial class MetricsTests : DashboardTestContext
             Assert.True(cut.Instance.PageViewModel.ShowPinned);
             Assert.Equal("Pinned", cut.Find(".metric-group.selected .metric-group-name").TextContent);
             Assert.Equal(["test-instrument-b"], GetCardNames(cut));
+        });
+    }
+
+    [Fact]
+    public async Task LiveMetricTiles_ShowsLatestValueAndSparkline()
+    {
+        MetricsSetupHelpers.SetupMetricsPage(this);
+
+        // Read-only telemetry anchors each sparkline to the instrument's latest data, so the
+        // historical test timestamps fall inside the sparkline's time range.
+        await FluentUISetupHelpers.ConfigureTelemetryRepository(this, readOnly: true, telemetryRepository => telemetryRepository.AddMetricsAsync(new AddContext(), new RepeatedField<ResourceMetrics>
+        {
+            new ResourceMetrics
+            {
+                Resource = CreateResource(name: "TestApp"),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "test-instrument", startTime: s_testTime.AddMinutes(1), value: 12345)
+                        }
+                    }
+                }
+            }
+        }));
+
+        var repository = Services.GetRequiredService<DashboardDataSource>().TelemetryRepository;
+        var resource = Assert.Single(repository.GetResources());
+        var instruments = repository.GetInstrumentSummaries(resource.ResourceKey);
+
+        var cut = Render<LiveMetricTiles>(builder =>
+        {
+            builder.Add(c => c.ResourceKey, resource.ResourceKey);
+            builder.Add(c => c.Instruments, instruments);
+            builder.Add(c => c.Duration, TimeSpan.FromMinutes(5));
+            builder.Add(c => c.GetInstrumentUrl, instrument => $"/metrics/{instrument.Name}");
+        });
+
+        cut.WaitForAssertion(() =>
+        {
+            var tile = Assert.Single(cut.FindAll(".overview-metric-tile"));
+            Assert.Equal("/metrics/test-instrument", tile.GetAttribute("href"));
+            Assert.Equal("test-instrument", tile.QuerySelector(".overview-metric-name")!.TextContent);
+            // The tile doesn't show the meter, to stay compact; its tooltip names it.
+            Assert.Equal("test-meter \u203A test-instrument \u2014 Test metric description", tile.GetAttribute("data-tooltip"));
+            Assert.Equal("12.3K", tile.QuerySelector(".live-metric-tile-number")!.TextContent);
+            // A counter's sparkline shows bars of the increase per interval.
+            Assert.NotNull(tile.QuerySelector(".metric-sparkline-bars"));
         });
     }
 

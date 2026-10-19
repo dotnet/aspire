@@ -357,11 +357,6 @@
         <target state="new">Resource overview</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourceOverviewPinnedMetrics">
-        <source>Pinned</source>
-        <target state="new">Pinned</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceOverviewPropertiesTitle">
         <source>Properties</source>
         <target state="new">Properties</target>

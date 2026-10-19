@@ -570,7 +570,4 @@
   <data name="ResourceOverviewBrowseMeters" xml:space="preserve">
     <value>Browse meters</value>
   </data>
-  <data name="ResourceOverviewPinnedMetrics" xml:space="preserve">
-    <value>Pinned</value>
-  </data>
 </root>

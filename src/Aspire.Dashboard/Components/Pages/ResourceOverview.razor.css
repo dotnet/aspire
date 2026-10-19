@@ -454,15 +454,8 @@ a.overview-stat:hover .overview-stat-label {
     gap: 4px 8px;
 }
 
-.overview-metrics-pinned-label {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    color: var(--colorNeutralForeground2);
-    font-size: 12px;
-}
-
-.overview-metric-tiles {
+/* ::deep so these also style the live tiles rendered by the LiveMetricTiles component. */
+::deep .overview-metric-tiles {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 8px;
@@ -471,7 +464,7 @@ a.overview-stat:hover .overview-stat-label {
     list-style: none;
 }
 
-.overview-metric-tile {
+::deep .overview-metric-tile {
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -483,26 +476,20 @@ a.overview-stat:hover .overview-stat-label {
     text-decoration: none;
 }
 
-.overview-metric-tile:hover {
+::deep .overview-metric-tile:hover {
     border-color: var(--colorBrandStroke1);
     background: var(--colorNeutralBackground1Hover);
 }
 
-.overview-metric-name,
-.overview-metric-meter {
+::deep .overview-metric-name {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.overview-metric-name {
+::deep .overview-metric-name {
     color: var(--colorBrandForegroundLink);
     font-size: 12.5px;
-}
-
-.overview-metric-meter {
-    color: var(--colorNeutralForeground2);
-    font-size: 11.5px;
 }
 
 .overview-selection-groups {

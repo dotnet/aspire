@@ -1,4 +1,5 @@
 @namespace Aspire.Dashboard.Components
+@inherits LiveSparklinesBase
 
 @using System.Globalization
 @using Aspire.Dashboard.Resources
@@ -7,11 +8,9 @@
 @inject IStringLocalizer<MetricsResources> Loc
 
 <div class="meter-overview">
-    @for (var i = 0; i < Instruments.Count; i++)
+    @foreach (var instrument in Instruments)
     {
-        var instrument = Instruments[i];
-        var cardData = GetCardData(instrument);
-        var gradientId = $"{_gradientIdPrefix}-{i}";
+        var cardData = GetSparkline(instrument);
         var icon = GetInstrumentIcon(instrument.Type);
 
         @* The pin button sits beside the link rather than inside it: interactive content isn't allowed
@@ -48,26 +47,7 @@
                         <span class="meter-card-value-number">@FormatCompactValue(latestValue, CultureInfo.CurrentCulture)</span>
                         <span class="meter-card-value-unit">@FormatUnit(instrument, latestValue)</span>
                     </div>
-                    <svg class="meter-card-sparkline" viewBox="0 0 @SparklineWidth.ToString(CultureInfo.InvariantCulture) @SparklineHeight.ToString(CultureInfo.InvariantCulture)" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-                        <defs>
-                            <linearGradient id="@gradientId" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" class="meter-card-sparkline-stop-top" />
-                                <stop offset="100%" class="meter-card-sparkline-stop-bottom" />
-                            </linearGradient>
-                        </defs>
-                        @if (cardData.Kind == SparklineKind.Bars)
-                        {
-                            @* Bars rise from zero at the bottom edge (bar data is never negative). The baseline
-                               keeps an interval range with no increases reading as zero instead of a missing chart. *@
-                            <line class="meter-card-sparkline-baseline" x1="0" x2="@SparklineWidth.ToString(CultureInfo.InvariantCulture)" y1="@s_sparklineBaselineY" y2="@s_sparklineBaselineY" />
-                            <path class="meter-card-sparkline-bars" d="@cardData.Path" />
-                        }
-                        else
-                        {
-                            <path class="meter-card-sparkline-area" d="@cardData.AreaPath" fill="url(#@gradientId)" />
-                            <path class="meter-card-sparkline-line" d="@cardData.Path" />
-                        }
-                    </svg>
+                    <MetricSparkline Data="@cardData" />
                 }
                 else
                 {

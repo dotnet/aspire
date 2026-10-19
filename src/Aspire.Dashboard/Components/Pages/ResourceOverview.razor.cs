@@ -25,6 +25,8 @@ public sealed partial class ResourceOverview : ComponentBase, IAsyncDisposable
     private const int ConsolePreviewLineCount = 10;
     private const int RecentItemCount = 5;
     private const int MetricsPreviewCount = 8;
+    // Matches the metrics page's default duration, so a tile's sparkline looks like the card it opens.
+    private static readonly TimeSpan s_metricsPreviewDuration = TimeSpan.FromMinutes(5);
 
     // Telemetry can arrive many times per second. Coalesce updates so the overview queries the repository at most
     // a couple of times per second.

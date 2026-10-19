@@ -99,7 +99,7 @@ public class SparklinePathTests
     {
         // 15 -> 3 is a reset (process restart): the total restarted from zero, so the increase is 3.
         // The last total is carried across the empty interval, so 3 -> 8 lands on the point after it.
-        var increases = MeterOverview.CalculateCounterIncreases([null, 10, 15, 15, 3, null, 8, 9], OtlpAggregationTemporality.Cumulative);
+        var increases = LiveSparklinesBase.CalculateCounterIncreases([null, 10, 15, 15, 3, null, 8, 9], OtlpAggregationTemporality.Cumulative);
 
         Assert.Equal([null, null, 5, 0, 3, null, 5, 1], increases);
     }
@@ -107,7 +107,7 @@ public class SparklinePathTests
     [Fact]
     public void CalculateCounterIncreases_Delta_ReturnsValues()
     {
-        var increases = MeterOverview.CalculateCounterIncreases([1, null, 2], OtlpAggregationTemporality.Delta);
+        var increases = LiveSparklinesBase.CalculateCounterIncreases([1, null, 2], OtlpAggregationTemporality.Delta);
 
         Assert.Equal([1, null, 2], increases);
     }
@@ -139,6 +139,6 @@ public class SparklinePathTests
     [InlineData(3e12, "3T")]
     public void FormatCompactValue_FormatsWithSuffix(double value, string expected)
     {
-        Assert.Equal(expected, MeterOverview.FormatCompactValue(value, CultureInfo.InvariantCulture));
+        Assert.Equal(expected, LiveSparklinesBase.FormatCompactValue(value, CultureInfo.InvariantCulture));
     }
 }
