@@ -63,6 +63,7 @@ groups:
     - job:polyglot
     - job:cli-starter-validation
     - job:native-dashboard-validation
+    - job:nix-package
     - job:extension-e2e
     - job:winget-installer
     - job:homebrew-installer
@@ -446,8 +447,8 @@ path_rules:
   - paths:
       - eng/clipack/Common.projitems
       - eng/clipack/Aspire.Cli.linux-x64.csproj
-    targets: [test:Aspire.Cli.EndToEnd.Tests]
-    reason: CLI e2e consumes the Linux x64 CLI archive
+    targets: [test:Aspire.Cli.EndToEnd.Tests, job:nix-package]
+    reason: CLI E2E and the Nix smoke consume the Linux x64 CLI archive
   - paths:
       - eng/clipack/Common.projitems
       - eng/clipack/Aspire.Cli.linux-x64.csproj
@@ -582,7 +583,7 @@ path_rules:
   - paths:
       - eng/Bundle.proj
       - tools/CreateLayout/**
-    targets: [CLI_BUNDLE, test:Infrastructure.Tests]
+    targets: [CLI_BUNDLE, job:nix-package, test:Infrastructure.Tests]
     reason: assembles and validates native CLI bundle payloads
   - paths:
       - src/Aspire.Cli/Aspire.Cli.csproj
@@ -608,6 +609,9 @@ path_rules:
 # triggers.
 # Project Name == the .csproj base name (what Layer 1 emits).
 affected_project_rules:
+  - projects: [Aspire.Cli, Aspire.Managed, Aspire.Dashboard, Aspire.TerminalHost, CreateLayout]
+    targets: [job:nix-package]
+    reason: the Nix smoke packages the current native CLI archive and runs its bundle components
   - projects: [Aspire.Tray.Mac, Aspire.Tray.Windows]
     targets: [test:Aspire.Tray.Tests, test:Infrastructure.Tests]
     reason: native platform changes must retain shared tray contracts and the packaging/signing invariants; tests source-link common code rather than referencing the platform executables

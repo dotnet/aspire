@@ -627,6 +627,7 @@ public sealed class TestTriggerMapTests
                 "job:cli-starter-validation",
                 "job:extension-e2e",
                 "job:homebrew-installer",
+                "job:nix-package",
                 "job:winget-installer"
             ]
         },
@@ -743,23 +744,23 @@ public sealed class TestTriggerMapTests
         },
         {
             "eng/clipack/Aspire.Cli.linux-x64.csproj",
-            ["test:Aspire.Cli.Tests", "test:Aspire.Cli.EndToEnd.Tests", "test:Infrastructure.Tests", "job:cli-starter-validation", "job:extension-e2e", "job:winget-installer", "job:homebrew-installer"]
+            ["test:Aspire.Cli.Tests", "test:Aspire.Cli.EndToEnd.Tests", "test:Infrastructure.Tests", "job:cli-starter-validation", "job:extension-e2e", "job:winget-installer", "job:homebrew-installer", "job:nix-package"]
         },
         {
             "tools/CreateLayout/Program.cs",
-            ["test:Aspire.Cli.EndToEnd.Tests", "test:Infrastructure.Tests", "job:cli-starter-validation", "job:extension-e2e", "job:winget-installer", "job:homebrew-installer"]
+            ["test:Aspire.Cli.EndToEnd.Tests", "test:Infrastructure.Tests", "job:cli-starter-validation", "job:extension-e2e", "job:winget-installer", "job:homebrew-installer", "job:nix-package"]
         },
         {
             "eng/Bundle.proj",
-            ["test:Aspire.Cli.EndToEnd.Tests", "test:Infrastructure.Tests", "job:cli-starter-validation", "job:extension-e2e", "job:winget-installer", "job:homebrew-installer"]
+            ["test:Aspire.Cli.EndToEnd.Tests", "test:Infrastructure.Tests", "job:cli-starter-validation", "job:extension-e2e", "job:winget-installer", "job:homebrew-installer", "job:nix-package"]
         },
         {
             "tools/CreateLayout/verify-tray-payload.sh",
-            ["test:Aspire.Cli.EndToEnd.Tests", "test:Infrastructure.Tests", "job:cli-starter-validation", "job:extension-e2e", "job:winget-installer", "job:homebrew-installer"]
+            ["test:Aspire.Cli.EndToEnd.Tests", "test:Infrastructure.Tests", "job:cli-starter-validation", "job:extension-e2e", "job:winget-installer", "job:homebrew-installer", "job:nix-package"]
         },
         {
             "tools/CreateLayout/verify-windows-tray-payload.ps1",
-            ["test:Aspire.Cli.EndToEnd.Tests", "test:Infrastructure.Tests", "job:cli-starter-validation", "job:extension-e2e", "job:winget-installer", "job:homebrew-installer"]
+            ["test:Aspire.Cli.EndToEnd.Tests", "test:Infrastructure.Tests", "job:cli-starter-validation", "job:extension-e2e", "job:winget-installer", "job:homebrew-installer", "job:nix-package"]
         },
         {
             "src/Aspire.Tray/Windows/publish.ps1",
@@ -1056,6 +1057,48 @@ public sealed class TestTriggerMapTests
     }
 
     [Fact]
+    public void NixPackageDoesNotRunForCliTestOnlyChange()
+    {
+        var result = SelectWithRealMap(
+            "tests/Aspire.Cli.Tests/BundleServiceIntegrationTests.cs",
+            "Aspire.Cli.Tests");
+
+        Assert.False(result.SelectsAll);
+        Assert.Empty(result.Jobs);
+    }
+
+    [Theory]
+    [InlineData("Aspire.Cli")]
+    [InlineData("Aspire.Managed")]
+    [InlineData("Aspire.Dashboard")]
+    [InlineData("Aspire.TerminalHost")]
+    [InlineData("CreateLayout")]
+    public void NixPackageRunsWhenBundleRuntimeProjectIsAffected(string project)
+    {
+        var result = SelectWithRealMap(
+            project == "CreateLayout" ? "tools/CreateLayout/Program.cs" : $"src/{project}/Program.cs",
+            project);
+
+        Assert.False(result.SelectsAll);
+        Assert.Contains("job:nix-package", result.Jobs);
+        Assert.Contains(result.JobCauses["job:nix-package"], cause => cause.Kind == CauseKind.AffectedProject);
+    }
+
+    [Theory]
+    [InlineData("flake.nix")]
+    [InlineData("flake.lock")]
+    [InlineData("eng/nix/package.nix")]
+    [InlineData("eng/nix/versions.json")]
+    public void NixPackageInputsSelectTheirConsumers(string path)
+    {
+        var result = SelectWithRealMap(path);
+
+        Assert.False(result.SelectsAll);
+        Assert.Equal(["Infrastructure.Tests"], result.TestProjects);
+        Assert.Equal(["job:nix-package"], result.Jobs);
+    }
+
+    [Fact]
     public void CliBundleConsumersRunWhenCreateLayoutIsAffected()
     {
         var result = SelectWithRealMap("tools/CreateLayout/Program.cs", "CreateLayout");
@@ -1066,7 +1109,7 @@ public sealed class TestTriggerMapTests
             result.TestCauses["Aspire.Cli.EndToEnd.Tests"],
             cause => cause.Kind == CauseKind.AffectedProject);
         Assert.Equal(
-            ["job:cli-starter-validation", "job:extension-e2e", "job:homebrew-installer", "job:winget-installer"],
+            ["job:cli-starter-validation", "job:extension-e2e", "job:homebrew-installer", "job:nix-package", "job:winget-installer"],
             result.Jobs.Order(StringComparer.Ordinal));
     }
 
@@ -1078,7 +1121,7 @@ public sealed class TestTriggerMapTests
         Assert.False(result.SelectsAll);
         Assert.Contains("Aspire.Cli.EndToEnd.Tests", result.TestProjects);
         Assert.Equal(
-            ["job:cli-starter-validation", "job:extension-e2e", "job:homebrew-installer", "job:winget-installer"],
+            ["job:cli-starter-validation", "job:extension-e2e", "job:homebrew-installer", "job:nix-package", "job:winget-installer"],
             result.Jobs.Order(StringComparer.Ordinal));
         Assert.Contains(s_map.Ignore, pattern => TestTriggerMap.GlobMatches(pattern, "eng/scripts/test-native-terminalhost.ps1"));
     }
@@ -1245,7 +1288,7 @@ public sealed class TestTriggerMapTests
             ["Aspire.Cli.EndToEnd.Tests", "Aspire.Templates.Tests", "Infrastructure.Tests"],
             result.TestProjects.Order(StringComparer.Ordinal));
         Assert.Equal(
-            ["job:cli-starter-validation", "job:extension-e2e", "job:homebrew-installer", "job:native-dashboard-validation", "job:polyglot", "job:winget-installer"],
+            ["job:cli-starter-validation", "job:extension-e2e", "job:homebrew-installer", "job:native-dashboard-validation", "job:nix-package", "job:polyglot", "job:winget-installer"],
             result.Jobs.Order(StringComparer.Ordinal));
     }
 
@@ -1534,6 +1577,7 @@ public sealed class TestTriggerMapTests
     [Theory]
     [InlineData("tests_requires_cli_archive", "test:Aspire.Cli.EndToEnd.Tests")]
     [InlineData("extension_e2e_tests", "job:extension-e2e")]
+    [InlineData("nix_package", "job:nix-package")]
     public void CliArchivePathsMatchWorkflowDependencies(string workflowJobId, string target)
     {
         var expectedArchivePaths = ArchiveRidsRequiredByJob(workflowJobId)

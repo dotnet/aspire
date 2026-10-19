@@ -351,13 +351,19 @@ jobs:
   nix_package:
     name: Nix package smoke
     runs-on: ubuntu-latest
-    needs: setup_for_tests
+    needs: [setup_for_tests, build_cli_archive_linux]
     if: ${{ needs.setup_for_tests.outputs.run_nix_package == 'true' }}
     env:
       NIX_CONFIG: experimental-features = nix-command flakes
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Download current CLI archive
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: cli-native-archives-linux-x64
+          path: artifacts/nix-cli
 
       - name: Install Nix
         run: |
@@ -376,6 +382,52 @@ jobs:
         run: |
           test "$(cat result/lib/aspire-cli/.aspire-install.json)" = '{"source":"nix"}'
           ./result/bin/aspire --version
+
+      # The release manifest can lag CLI changes needed by the derivation.
+      # Exercise the branch's actual bundle before advancing the stable pin.
+      - name: Build current CLI package
+        run: |
+          export CLI_ARCHIVE_PATH="$(find "$GITHUB_WORKSPACE/artifacts/nix-cli" -type f -name 'aspire-cli-linux-x64-*.tar.gz')"
+          test -f "$CLI_ARCHIVE_PATH"
+          sudo --preserve-env=NIX_CONFIG,CLI_ARCHIVE_PATH nix build --impure --print-build-logs --out-link result-current --expr '
+            let flake = builtins.getFlake (toString ./.);
+            in flake.packages.x86_64-linux.aspire-cli.overrideAttrs {
+              src = builtins.path {
+                path = builtins.getEnv "CLI_ARCHIVE_PATH";
+                name = "aspire-cli.tar.gz";
+              };
+            }'
+
+      - name: Smoke test container tunnel client
+        run: |
+          for package in result result-current; do
+            tunnel_client="$(realpath "$package/lib/aspire-cli/bundle/dcp/dcptun_c")"
+            docker run --rm --network none \
+              --mount "type=bind,source=$tunnel_client,target=/usr/local/bin/dcptun_c,readonly" \
+              --entrypoint /usr/local/bin/dcptun_c \
+              mcr.microsoft.com/azurelinux/base/core:3.0 --help
+          done
+
+      - name: Smoke test immutable bundle
+        env:
+          ASPIRE_CLI_TELEMETRY_OPTOUT: 'true'
+        run: |
+          export ASPIRE_HOME="$(mktemp -d)"
+          frontend_port="$(python3 -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')"
+          ./result-current/bin/aspire dashboard run --allow-anonymous \
+            --frontend-url "http://127.0.0.1:$frontend_port" \
+            --otlp-grpc-url http://127.0.0.1:0 --otlp-http-url http://127.0.0.1:0 \
+            > dashboard-smoke.log 2>&1 &
+          dashboard_pid=$!
+          trap 'kill -TERM "$dashboard_pid" 2>/dev/null || true; wait "$dashboard_pid" || true' EXIT
+          curl --fail --silent --show-error --connect-timeout 2 --max-time 5 \
+            --retry 30 --retry-connrefused --retry-delay 1 \
+            --retry-max-time 60 "http://127.0.0.1:$frontend_port/" > /dev/null || {
+              cat dashboard-smoke.log
+              exit 1
+            }
+          test ! -e "$ASPIRE_HOME/versions"
+          test ! -e result-current/lib/aspire-cli/bundle/.leases
 
   build_cli_e2e_image:
     name: Build CLI E2E Docker image

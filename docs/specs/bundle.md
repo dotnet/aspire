@@ -286,10 +286,10 @@ The [installation-route specification](install-routes.md) documents script, PR, 
 |---------------|-----------------|
 | Script, PR, or localhive sidecar | Parent of the CLI binary's directory, normally the install prefix above `bin/` |
 | Package-manager sidecar (`winget`, `brew`, `dotnet-tool`) | Directory containing the resolved CLI binary |
-| Nix sidecar | `ASPIRE_HOME`, or `~/.aspire` by default, outside the read-only Nix store |
+| Nix sidecar | No runtime extraction; the package expands and patches the bundle beside the CLI during installation |
 | No recognized install-route sidecar | `ASPIRE_HOME`, or `~/.aspire` by default |
 
-Installers can explicitly prepare the payload using `aspire setup`; otherwise, the CLI extracts it lazily when needed. Setup's route-independent default is distinct from the automatic extraction roots above. Self-update behavior depends on the installation route; package-manager ownership must be respected. See `aspire update --help` and the installation-route specification rather than assuming every installation is replaced in place by the CLI.
+Installers can explicitly prepare the payload using `aspire setup`; otherwise, the CLI extracts it lazily when needed, except for Nix. Nix uses the same flat installation root as the other package-manager routes, but its store-owned bundle is immutable and needs no runtime extraction locks or cleanup leases. Setup's route-independent default is distinct from the automatic extraction roots above. Self-update behavior depends on the installation route; package-manager ownership must be respected. See `aspire update --help` and the installation-route specification rather than assuming every installation is replaced in place by the CLI.
 
 PR acquisition scripts also populate channel-specific NuGet hives. Hives, integration caches, and user settings are distinct from the versioned runtime payload and are not replaced when the active `bundle/` link changes.
 
