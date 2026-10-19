@@ -201,6 +201,26 @@ public class DashboardEventHandlersTests(ITestOutputHelper testOutputHelper)
         Assert.Empty(dashboardResource.Annotations.OfType<ResourceCommandAnnotation>());
     }
 
+    [Theory]
+    [InlineData("aspire-dashboard")]
+    [InlineData("Aspire-Dashboard")]
+    public async Task BeforeStartAsync_PersistentDashboardDoesNotWaitForItsOwnAttachment(string name)
+    {
+        var eventing = new Hosting.Eventing.DistributedApplicationEventing();
+        var dashboard = new ProjectResource(name);
+        var model = new DistributedApplicationModel(new ResourceCollection([dashboard]));
+        await using var hook = CreateHook(new ResourceLoggerService(), ResourceNotificationServiceTestHelpers.Create(),
+            new ConfigurationBuilder().Build(),
+            dashboardOptions: Options.Create(new DashboardOptions { Persistent = true }), eventing: eventing);
+        var services = new TestServiceProvider().AddService<IOptions<DcpOptions>>(Options.Create(new DcpOptions()));
+
+        await hook.OnBeforeStartAsync(new BeforeStartEvent(services, model), CancellationToken.None).DefaultTimeout();
+        // No DashboardServiceHost exists yet. Starting the dashboard must not resolve or await it,
+        // because the process being started is what will acknowledge the attachment.
+        await eventing.PublishAsync(new BeforeResourceStartedEvent(dashboard, services)).DefaultTimeout();
+        Assert.Same(dashboard, Assert.Single(model.Resources));
+    }
+
     [Fact]
     public async Task BeforeStartAsync_ProjectDashboard_IncludesProjectLifecycleCommands()
     {

@@ -70,7 +70,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
 
         if (dashboardOptions.Value.Persistent)
         {
-            foreach (var resource in @event.Model.Resources.Where(r => r.Name != KnownResourceNames.AspireDashboard))
+            foreach (var resource in @event.Model.Resources.Where(r => !string.Equals(r.Name, KnownResourceNames.AspireDashboard, StringComparisons.ResourceName)))
             {
                 eventing.Subscribe<BeforeResourceStartedEvent>(resource, async (evt, ct) =>
                 {
