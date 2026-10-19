@@ -53,6 +53,19 @@ function synchronizeCompiler(content, version, sha) {
     return result;
 }
 
+// Dependabot rewrites a pinned action's SHA and release comment but never the `version` input that
+// selects the installed compiler, so a pin-only bump leaves the two out of step:
+//   uses: github/gh-aw-actions/setup-cli@<40-character SHA> # v0.91.7
+//   with:
+//     version: v0.89.17
+// The older compiler regenerates the lock files with its own action pins, so validation cannot pass
+// until the recompile PR aligns them. A missing release comment, a pin that is not ahead of its
+// input, or any other shape is not pending, which keeps validation strict.
+function compilerUpdatePending(content) {
+    return [...content.matchAll(/^[ \t]*uses: github\/gh-aw-actions\/setup-cli@[a-f0-9]{40}[ \t]+#[ \t]*(v\d+\.\d+\.\d+)[ \t]*\r?\n[ \t]*with:\r?\n[ \t]*version: (v\d+\.\d+\.\d+)[ \t]*$/gm)]
+        .some(([, pinned, installed]) => compareVersions(pinned, installed) > 0);
+}
+
 async function detect({ github, context, core }, io = fs) {
     if (context.eventName === 'workflow_dispatch') {
         if (context.repo.owner !== 'microsoft' || context.repo.repo !== 'aspire' ||
@@ -189,11 +202,28 @@ function checkChanges(run = execFileSync, io = fs) {
     io.appendFileSync(process.env.GITHUB_OUTPUT, `changed=${paths.length > 0}\n`);
 }
 
-module.exports = { actionReferences, resolveVersion, synchronizeCompiler, detect, allowedChange, checkChanges };
+function checkCompilerUpdatePending(io = fs, log = console.log) {
+    const pending = compilerFiles.some(file => compilerUpdatePending(io.readFileSync(file, 'utf8')));
+    io.appendFileSync(process.env.GITHUB_OUTPUT, `pending=${pending}\n`);
+    if (pending) {
+        log('::notice::A gh-aw update is pending: generated workflows are not regenerated or compared until the recompile PR aligns the compiler pins.');
+    }
+}
+
+module.exports = {
+    actionReferences, resolveVersion, synchronizeCompiler, compilerUpdatePending, detect, allowedChange,
+    checkChanges, checkCompilerUpdatePending,
+};
 
 if (require.main === module) {
-    if (process.argv[2] !== 'changes') {
-        throw new Error('Expected the changes command.');
+    switch (process.argv[2]) {
+        case 'changes':
+            checkChanges();
+            break;
+        case 'compiler-update-pending':
+            checkCompilerUpdatePending();
+            break;
+        default:
+            throw new Error('Expected the changes or compiler-update-pending command.');
     }
-    checkChanges();
 }

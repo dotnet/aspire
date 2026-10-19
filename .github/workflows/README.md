@@ -91,6 +91,18 @@ Main CI covers selector routing when the trigger map or lint policy changes.
 README-only changes do not trigger dedicated agentic validation; new Markdown
 workflow sources still trigger it even before their generated locks exist.
 
+Dependabot bumps the pinned `github/gh-aw-actions` SHAs but not the `version` input
+that selects the installed compiler, so recompiling with that older compiler would
+revert the new action pins and report drift. For a same-repo Dependabot PR whose
+`setup-cli` pin is ahead of its `version` input, validation therefore skips
+regenerating and comparing the generated files; lint and the contract tests still
+run against the committed files. The `recompile-agentic-workflows.yml` run after the
+merge aligns both compiler inputs and opens the follow-up PR that regenerates the
+lock files, and that PR is validated strictly. Until it merges, the default branch
+carries the new pins with the old compiler, so other PRs that touch agentic inputs
+report drift: merge the follow-up PR promptly. Pull requests from anyone else are
+always validated strictly.
+
 Compile-time lint diagnostics alone are not a blocking gate. The lint command
 owns the actionlint image and compatibility exceptions; `.github/actionlint.yaml`
 is shared by both lint paths: it configures the runner label for handwritten

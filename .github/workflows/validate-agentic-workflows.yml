@@ -33,6 +33,19 @@ jobs:
         with:
           persist-credentials: false
 
+      # Dependabot bumps the pinned gh-aw-actions SHAs but not the `version` input that selects the
+      # installed compiler. Recompiling with that older compiler would revert the new action pins and
+      # report drift, so the compile and drift steps below are skipped for those PRs; lint and the
+      # contract tests still check the committed files. After the merge, recompile-agentic-workflows.yml
+      # opens the follow-up PR that aligns the compiler and regenerates the lock files, and that PR is
+      # validated strictly. See .github/workflows/README.md.
+      - name: Detect a pending Dependabot gh-aw update
+        id: compiler-update
+        if: >-
+          github.event.pull_request.user.login == 'dependabot[bot]' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        run: node .github/workflows/recompile-agentic-workflows.js compiler-update-pending
+
       # Keep this pinned to the same gh-aw release as copilot-setup-steps.yml so the recompiled
       # workflows are byte-for-byte comparable with what a contributor generates locally; see
       # .github/workflows/README.md.
@@ -42,6 +55,7 @@ jobs:
           version: v0.89.17
 
       - name: Compile agentic workflows (schema and action-pin validation)
+        if: steps.compiler-update.outputs.pending != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -52,6 +66,7 @@ jobs:
             --validate --no-check-update --schedule-seed microsoft/aspire
 
       - name: Verify generated files are up to date
+        if: steps.compiler-update.outputs.pending != 'true'
         run: |
           set -euo pipefail
           changes=$(git status --porcelain --untracked-files=all -- \

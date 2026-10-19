@@ -1,16 +1,26 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const { execFileSync } = require('node:child_process');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 const { test } = require('node:test');
-const { actionReferences, resolveVersion, synchronizeCompiler, detect, allowedChange, checkChanges } =
-    require('../../../.github/workflows/recompile-agentic-workflows.js');
+const {
+    actionReferences, resolveVersion, synchronizeCompiler, compilerUpdatePending, detect, allowedChange,
+    checkChanges, checkCompilerUpdatePending,
+} = require('../../../.github/workflows/recompile-agentic-workflows.js');
 
+const repoRoot = path.resolve(__dirname, '../../..');
 const oldSha = 'a'.repeat(40);
 const newSha = 'b'.repeat(40);
 const compilerFiles = ['.github/workflows/copilot-setup-steps.yml', '.github/workflows/validate-agentic-workflows.yml'];
 const pin = (sha, version) => `        uses: github/gh-aw-actions/setup-cli@${sha} # ${version}`;
 const compiler = (sha = oldSha, version = 'v0.89.17') =>
     `${pin(sha, version)}\n        with:\n          version: ${version}\n`;
+// Dependabot moves the pinned SHA and its release comment but leaves the version input behind.
+const dependabotBump = (release = 'v0.90.0', version = 'v0.89.17') =>
+    `${pin(newSha, release)}\n        with:\n          version: ${version}\n`;
 
 function fixture() {
     const contents = new Map(compilerFiles.map(file => [file, compiler()]));
@@ -253,5 +263,90 @@ test('empty compilations do not publish and unexpected tracked or untracked file
     assert.deepEqual(output, ['changed=true\n']);
     for (const command of ['diff', 'ls-files']) {
         assert.throws(() => checkChanges((_, args) => args[0] === command ? 'unexpected.txt\0' : '', io), /unexpected files/);
+    }
+});
+
+test('a compiler pin ahead of its version input is a pending Dependabot update', () => {
+    assert.equal(compilerUpdatePending(dependabotBump()), true);
+    assert.equal(compilerUpdatePending(dependabotBump().replaceAll('\n', '\r\n')), true);
+    assert.equal(compilerUpdatePending(`${compiler()}${dependabotBump()}`), true);
+    assert.equal(compilerUpdatePending(dependabotBump('v0.100.0', 'v0.99.0')), true);
+});
+
+test('synchronized, behind and unrecognized compiler pins are not pending', () => {
+    assert.equal(compilerUpdatePending(compiler()), false);
+    assert.equal(compilerUpdatePending(compiler(newSha, 'v0.90.0')), false);
+    assert.equal(compilerUpdatePending(dependabotBump('v0.9.0', 'v0.10.0')), false);
+    assert.equal(compilerUpdatePending(dependabotBump('v0.89.0')), false);
+    for (const unrecognized of [
+        `        uses: github/gh-aw-actions/setup-cli@${newSha}\n        with:\n          version: v0.89.17\n`,
+        dependabotBump().replace('setup-cli', 'setup'),
+        dependabotBump().replace('github/gh-aw-actions/setup-cli', 'actions/checkout'),
+        'no compiler pin',
+    ]) {
+        assert.equal(compilerUpdatePending(unrecognized), false, unrecognized);
+    }
+});
+
+test('synchronizing the compiler clears a pending update', () => {
+    assert.equal(compilerUpdatePending(synchronizeCompiler(dependabotBump(), 'v0.90.0', newSha)), false);
+});
+
+test('the committed compiler files keep the shape that synchronization edits and detection recognizes', () => {
+    for (const file of compilerFiles) {
+        const content = fs.readFileSync(path.join(repoRoot, file), 'utf8');
+        assert.equal(compilerUpdatePending(synchronizeCompiler(content, 'v0.89.17', newSha)), false, file);
+        // Moving the version input behind the pinned release reproduces a pin-only bump of the committed shape.
+        const pinOnly = content.replace(/(setup-cli@[^\r\n]+\r?\n[ \t]*with:\r?\n[ \t]*version: )v\d+\.\d+\.\d+/, '$1v0.0.1');
+        assert.notEqual(pinOnly, content, file);
+        assert.equal(compilerUpdatePending(pinOnly), true, file);
+    }
+});
+
+function checkPending(contents) {
+    const output = [];
+    const messages = [];
+    const io = {
+        readFileSync: file => contents.get(file),
+        appendFileSync: (_, value) => output.push(value),
+    };
+    checkCompilerUpdatePending(io, message => messages.push(message));
+    return { output, messages };
+}
+
+test('a pending pin in either compiler file reports a pending update', () => {
+    assert.deepEqual(checkPending(new Map(compilerFiles.map(file => [file, compiler()]))),
+        { output: ['pending=false\n'], messages: [] });
+    for (const pendingFile of compilerFiles) {
+        const { output, messages } = checkPending(new Map(
+            compilerFiles.map(file => [file, file === pendingFile ? dependabotBump() : compiler()])));
+        assert.deepEqual(output, ['pending=true\n']);
+        assert.equal(messages.length, 1);
+        assert.match(messages[0], /^::notice::/);
+    }
+});
+
+test('the compiler-update-pending command writes the step output and rejects unknown commands', () => {
+    const script = path.join(repoRoot, '.github', 'workflows', 'recompile-agentic-workflows.js');
+    const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'compiler-update-pending-'));
+    try {
+        const output = path.join(workspace, 'github-output');
+        const run = command => execFileSync(process.execPath, [script, command], {
+            cwd: workspace, encoding: 'utf8', stdio: 'pipe', env: { ...process.env, GITHUB_OUTPUT: output },
+        });
+        fs.mkdirSync(path.join(workspace, '.github', 'workflows'), { recursive: true });
+        for (const [contents, expected] of [[compiler(), 'pending=false\n'], [dependabotBump(), 'pending=true\n']]) {
+            for (const file of compilerFiles) {
+                fs.writeFileSync(path.join(workspace, file), contents);
+            }
+            fs.rmSync(output, { force: true });
+            const log = run('compiler-update-pending');
+            assert.equal(fs.readFileSync(output, 'utf8'), expected);
+            assert.equal(log.startsWith('::notice::'), expected === 'pending=true\n');
+        }
+        assert.throws(() => run('unknown'),
+            error => /Expected the changes or compiler-update-pending command/.test(error.stderr));
+    } finally {
+        fs.rmSync(workspace, { recursive: true, force: true });
     }
 });

@@ -100,6 +100,34 @@ public sealed class ValidateAgenticWorkflowsTests(ITestOutputHelper output)
         Assert.Equal(expected, matcher.Match(changedPaths).HasMatches);
     }
 
+    [Fact]
+    public void PendingDependabotCompilerUpdatesSkipOnlyRegenerationAndDriftChecks()
+    {
+        var steps = Steps(LoadWorkflow());
+        var names = steps.Select(step => Scalar(step, "name")).ToList();
+        const string DetectName = "Detect a pending Dependabot gh-aw update";
+
+        var detect = Step(steps, DetectName);
+        Assert.Equal("compiler-update", Scalar(detect, "id"));
+        Assert.Equal(
+            "github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository",
+            Scalar(detect, "if"));
+        Assert.Equal("node .github/workflows/recompile-agentic-workflows.js compiler-update-pending", Scalar(detect, "run"));
+
+        foreach (var name in new[]
+        {
+            "Compile agentic workflows (schema and action-pin validation)",
+            "Verify generated files are up to date",
+        })
+        {
+            Assert.Equal("steps.compiler-update.outputs.pending != 'true'", Scalar(Step(steps, name), "if"));
+            Assert.True(names.IndexOf(DetectName) < names.IndexOf(name), name);
+        }
+
+        Assert.Empty(Scalar(Step(steps, "Lint generated agentic workflows"), "if"));
+        Assert.Empty(Scalar(Step(steps, "Run Infrastructure.Tests agentic workflow contracts"), "if"));
+    }
+
     [Theory]
     [InlineData(LockPath, "?? .github/workflows/test-agent.lock.yml")]
     [InlineData(ActionsLockPath, " M .github/aw/actions-lock.json")]
