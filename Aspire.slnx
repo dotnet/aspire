@@ -398,6 +398,7 @@
   <Folder Name="/playground/RemoteDependencies/">
     <Project Path="playground/RemoteDependencies/RemoteDependencies.Api/RemoteDependencies.Api.csproj" />
     <Project Path="playground/RemoteDependencies/RemoteDependencies.AppHost/RemoteDependencies.AppHost.csproj" />
+    <Project Path="playground/RemoteDependencies/RemoteDependencies.Tools/RemoteDependencies.Tools.csproj" />
   </Folder>
   <Folder Name="/playground/JavaSpringBoot/">
     <Project Path="playground/JavaSpringBoot/JavaSpringBoot.AppHost/JavaSpringBoot.AppHost.csproj" />

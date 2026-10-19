@@ -12,7 +12,7 @@ project** through `WithReference` and `WaitFor`. This deliberately does not clai
 
 ## Reproduce
 
-Prerequisites: Linux, OpenSSH client/keygen, Python 3, Docker supporting privileged
+Prerequisites: Linux, OpenSSH client/keygen, `ps`/`kill`, Docker supporting privileged
 Linux containers, the repository's pinned SDK and .NET 10 runtime. Use only a
 disposable development machine for the privileged fixture.
 
@@ -23,8 +23,10 @@ From the repository root:
     /p:SkipDashboardProjectReference=true
 ./.dotnet/dotnet build playground/RemoteDependencies/RemoteDependencies.AppHost \
     -p:SkipDashboardProjectReference=true
+./.dotnet/dotnet build playground/RemoteDependencies/RemoteDependencies.Tools
+tools=artifacts/bin/RemoteDependencies.Tools/Debug/net10.0/RemoteDependencies.Tools.dll
 docker info
-python3 playground/RemoteDependencies/fixture.py up
+./.dotnet/dotnet "$tools" up
 . playground/RemoteDependencies/.fixture/env.sh
 REMOTE_HEADLESS=1 ./.dotnet/dotnet \
     artifacts/bin/RemoteDependencies.AppHost/Debug/net10.0/RemoteDependencies.AppHost.dll
@@ -60,9 +62,14 @@ the API. Ctrl+C the AppHost to cancel its sessions and await owned-container
 cleanup. To run the automated manual scenario matrix instead, stop that AppHost:
 
 ```sh
-python3 playground/RemoteDependencies/verify.py
+./.dotnet/dotnet "$tools" verify
 ```
 
+`RemoteDependencies.Tools` is a dependency-free .NET console project using the
+same SDK/runtime as the playground. Its `up`, `verify` and `down` commands replace
+separate scripting-runtime requirements. Run it from inside the repository.
+Ctrl+C during verification cancels polling, stops the owned AppHost and still
+runs fixture restoration/reconciliation before returning a nonzero exit.
 The verifier uses the built AppHost, real SSH, real Docker and real Redis; it
 does not substitute a fake transport or fake dependency. It reserves local ports
 18080 and 16379 for the duration of the run. Do not run parallel copies.
@@ -77,7 +84,7 @@ Run proportional unit/model/protocol coverage:
 ```
 
 Add `-p:NuGetAudit=false` before `--` only if the audit endpoint is inaccessible.
-These tests are normal PR-CI tests; the privileged fixture and `verify.py` are
+These tests are normal PR-CI tests; the privileged fixture and tools' `verify` are
 explicitly manual, not an implicit Docker requirement for unit CI.
 
 ## Topology and access
@@ -103,7 +110,7 @@ server `authorized_keys`, so a non-root developer's bind-mount UID does not fail
 OpenSSH `StrictModes`. Known-hosts paths are quoted for OpenSSH's own option
 parser, including paths with spaces.
 
-`fixture.py up` sets `REMOTE_HOST_NETWORK_PORT=26379`. This is an explicit
+The tools' `up` command sets `REMOTE_HOST_NETWORK_PORT=26379`. This is an explicit
 **Linux host-network fallback inside the isolated remote fixture**, not host
 networking with the developer workstation. Nested bridge traffic was unavailable
 in this sandbox: Docker published a port and Redis started, but the nested
@@ -168,7 +175,7 @@ After the checks, remove the fixture and its nested workloads, anonymous Docker
 data volume, generated image and ephemeral key files:
 
 ```sh
-python3 playground/RemoteDependencies/fixture.py down
+./.dotnet/dotnet "$tools" down
 ```
 
 Only the container ID recorded in `.fixture/state.json` is eligible for fixture
@@ -196,10 +203,20 @@ checkout. This proves the committed-source journey on this Linux environment,
 not a second physical host or an independent WAN topology.
 
 Additional review regression checks used a public-key bind mount owned by UID
-1000 and a real `known_hosts` path containing spaces; the complete SSH matrix
+1000 and a real known-hosts path containing spaces; the complete SSH matrix
 passed with `StrictModes` enabled and zero anonymous-volume leaks. An injected
 AppHost shutdown reporting failure also confirmed the verifier's nested teardown
 still restores the fixture and removes its sentinel/volumes.
+
+The .NET fixture always uses the spaced filename `.fixture/known hosts`. To
+repeat the non-root bind-mount check when running the tools as root, use
+`up --uid1000` instead of `up` (it changes only the generated public key's UID/GID).
+Ordinary non-root developers use `up` without this flag. To test teardown after a
+shutdown reporting error, run `verify --inject-shutdown-failure`: it deliberately
+exits nonzero after stopping the first AppHost, but its nested `finally` must
+still print that the fixture was restored, exact IDs reconciled and volume
+inventory unchanged. Run ordinary `verify` afterward for the complete matrix,
+then `down`. Failed runs never overwrite successful `evidence.json`.
 
 This builds on the discussion's CLI-based runtime abstraction guidance rather
 than introducing another engine API client. The existing `SshRemoteOptions`

@@ -167,7 +167,6 @@ tests/PolyglotAppHosts/**/Java/**/*.class
 
 # Disposable SSH development fixture: generated identities and runtime artifacts.
 /playground/RemoteDependencies/.fixture/
-/playground/RemoteDependencies/__pycache__/
 
 # IntelliJ
 .idea/
