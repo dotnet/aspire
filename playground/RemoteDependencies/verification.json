@@ -1,0 +1,42 @@
+{
+  "topology": "local AppHost/API -> loopback SSH -> isolated SSH fixture -> host-network nested Redis",
+  "wan_tested": false,
+  "scenarios": [
+    {
+      "scenario": "local HTTP -> SSH -> real Redis; logs/status/cleanup/ownership",
+      "passed": true,
+      "responses": [
+        {
+          "requests": 1,
+          "cache": "127.0.0.1:16379",
+          "application": "local"
+        },
+        {
+          "requests": 2,
+          "cache": "127.0.0.1:16379",
+          "application": "local"
+        }
+      ]
+    },
+    {
+      "scenario": "SSH tunnel disconnect -> Unavailable + HTTP 503 + scoped cleanup",
+      "passed": true
+    },
+    {
+      "scenario": "explicit AppHost restart restores remote development",
+      "passed": true
+    },
+    {
+      "scenario": "occupied local tunnel port -> FailedToStart, no false readiness",
+      "passed": true
+    },
+    {
+      "scenario": "remote image startup failure -> FailedToStart + cleanup",
+      "passed": true
+    },
+    {
+      "scenario": "remote machine outage -> Unavailable + 503 + explicit cleanup command",
+      "passed": true
+    }
+  ]
+}
