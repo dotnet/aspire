@@ -94,7 +94,14 @@ internal sealed class ContainerRuntimeResolver : IContainerRuntimeResolver
         }
         else
         {
-            _logger.LogWarning("No container runtime detected, defaulting to '{DefaultRuntime}'. Install Docker, Podman, or WSLc (Windows only) to use container features.", KnownContainerRuntimes.Docker);
+            if (OperatingSystem.IsWindows())
+            {
+                _logger.LogWarning("No container runtime detected, defaulting to '{DefaultRuntime}'. Install Docker, Podman, or WSLc to use container features.", KnownContainerRuntimes.Docker);
+            }
+            else
+            {
+                _logger.LogWarning("No container runtime detected, defaulting to '{DefaultRuntime}'. Install Docker or Podman to use container features.", KnownContainerRuntimes.Docker);
+            }
         }
 
         return _serviceProvider.GetRequiredKeyedService<IContainerRuntime>(runtimeKey);
