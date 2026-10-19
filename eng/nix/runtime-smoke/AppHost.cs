@@ -4,7 +4,8 @@
 var builder = DistributedApplication.CreateBuilder(args);
 builder.Configuration["ASPIRE_ENABLE_CONTAINER_TUNNEL"] = "true";
 
-var service = builder.AddProject<Projects.NixSmoke_Service>("service", launchProfileName: null)
+var service = builder.AddDotnetProject("service", "../NixSmoke.Service/NixSmoke.Service.csproj",
+        options => options.ExcludeLaunchProfile = true)
     .WithHttpEndpoint()
     .WithHttpHealthCheck("/");
 

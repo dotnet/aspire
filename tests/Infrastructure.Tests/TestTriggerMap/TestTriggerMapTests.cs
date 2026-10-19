@@ -1073,7 +1073,6 @@ public sealed class TestTriggerMapTests
     [InlineData("Aspire.Dashboard")]
     [InlineData("Aspire.TerminalHost")]
     [InlineData("CreateLayout")]
-    [InlineData("Aspire.AppHost.Sdk")]
     [InlineData("Aspire.Hosting.AppHost")]
     [InlineData("Aspire.Hosting.Dotnet")]
     [InlineData("Aspire.ProjectTemplates")]
@@ -1112,6 +1111,17 @@ public sealed class TestTriggerMapTests
 
         Assert.False(result.SelectsAll);
         Assert.Contains("job:nix-package", result.Jobs);
+    }
+
+    [Fact]
+    public void NixRuntimeSmokeDoesNotRequireTheLegacyAppHostSdk()
+    {
+        var result = SelectWithRealMap(
+            "src/Aspire.AppHost.Sdk/SDK/Sdk.in.targets",
+            "Aspire.AppHost.Sdk");
+
+        Assert.Contains("job:cli-starter-validation", result.Jobs);
+        Assert.All(result.Jobs, job => Assert.NotEqual("job:nix-package", job));
     }
 
     [Fact]

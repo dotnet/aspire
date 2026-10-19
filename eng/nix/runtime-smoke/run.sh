@@ -61,15 +61,13 @@ if [[ "$control_status" != 127 ]]; then
 fi
 
 template_version="${cli_version%%+*}"
-# Use the project-mode empty template from the PR's template package, rather
-# than the CLI's file-based empty AppHost, so this fixture has a project reference.
+# Use the project-mode empty template from the PR's template package so both
+# the AppHost and its service build with the Nix-provided SDK.
 features__showAllTemplates=true aspire new aspire --name NixSmoke --output "$app_root" \
     --source "$packages" --version "$template_version" --localhost-tld false \
     --suppress-agent-init --non-interactive --nologo > "$diagnostics/new.log" 2>&1
 dotnet new web --framework net10.0 --name NixSmoke.Service --output "$app_root/NixSmoke.Service" \
     --no-restore > "$diagnostics/service-new.log" 2>&1
-dotnet add "$app_host" reference "$app_root/NixSmoke.Service/NixSmoke.Service.csproj" \
-    > "$diagnostics/add-reference.log" 2>&1
 cp "$fixture_dir/AppHost.cs" "$app_root/NixSmoke.AppHost/AppHost.cs"
 cp "$fixture_dir/Service.cs" "$app_root/NixSmoke.Service/Program.cs"
 
@@ -87,13 +85,16 @@ for iteration in 1 2; do
         --non-interactive --nologo > "$run_dir/probe-wait.log" 2>&1
     aspire describe --apphost "$app_host" --format json --include-hidden \
         --non-interactive --nologo > "$run_dir/resources.json"
+    aspire describe service --apphost "$app_host" --format json \
+        --non-interactive --nologo > "$run_dir/service.json"
 
     dashboard_url="$(jq -er '.dashboardUrl' "$run_dir/start.json")"
     # The startup response is { "appHostPid": 123, "cliPid": 122, "dashboardUrl": "..." }.
     # Do not retain the ephemeral dashboard login token in uploaded diagnostics.
     jq '.dashboardUrl |= split("?")[0]' "$run_dir/start.json" > "$run_dir/start-sanitized.json"
     mv "$run_dir/start-sanitized.json" "$run_dir/start.json"
-    service_url="$(jq -er '.resources[] | select(.name == "service") | .urls[] | select(.name == "http") | .url' "$run_dir/resources.json")"
+    jq -e '.resources | length == 1' "$run_dir/service.json" >/dev/null
+    service_url="$(jq -er '.resources[0].urls[] | select(.name == "http") | .url' "$run_dir/service.json")"
     test "$(curl --fail --silent --show-error --max-time 10 "$service_url")" = "aspire-nix-runtime-ok"
     curl --fail --silent --show-error --max-time 10 "$dashboard_url" > /dev/null
 

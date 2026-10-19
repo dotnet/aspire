@@ -621,12 +621,11 @@ affected_project_rules:
       - Aspire.Dashboard
       - Aspire.TerminalHost
       - CreateLayout
-      - Aspire.AppHost.Sdk
       - Aspire.Hosting.AppHost
       - Aspire.Hosting.Dotnet
       - Aspire.ProjectTemplates
     targets: [job:nix-package]
-    reason: native bundle, SDK, template, and hosting packages used by the Nix runtime smoke
+    reason: native bundle, template, and hosting packages used by the Nix runtime smoke
   - projects: [Aspire.Tray.Mac, Aspire.Tray.Windows]
     targets: [test:Aspire.Tray.Tests, test:Infrastructure.Tests]
     reason: native platform changes must retain shared tray contracts and the packaging/signing invariants; tests source-link common code rather than referencing the platform executables
