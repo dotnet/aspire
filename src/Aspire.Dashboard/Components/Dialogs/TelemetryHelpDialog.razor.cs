@@ -17,8 +17,8 @@ public partial class TelemetryHelpDialog
 {
     // Intended redirect: https://opentelemetry.io/docs/specs/otlp/
     private const string OtlpSpecificationUrl = "https://aka.ms/aspire/otlp-spec";
-    // Intended redirect: https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/
-    private const string OtlpSdkConfigurationUrl = "https://aka.ms/aspire/otlp-sdk-configuration";
+    // Intended redirect: https://aspire.dev/dashboard/standalone/#send-telemetry-to-the-dashboard
+    private const string SendTelemetryUrl = "https://aka.ms/aspire/dashboard-send-telemetry";
     // Intended redirect: https://aspire.dev/dashboard/explore/#manage-data
     private const string ManageDataUrl = "https://aka.ms/aspire/dashboard-manage-data";
 
@@ -95,7 +95,7 @@ public partial class TelemetryHelpDialog
             sections.Add(Loc[nameof(Resources.Dialogs.TelemetryHelpContainerDescription)]);
         }
         sections.Add(string.Format(CultureInfo.CurrentCulture, "[{0}]({1})",
-            Loc[nameof(Resources.Dialogs.TelemetryHelpSdkLink)], OtlpSdkConfigurationUrl));
+            Loc[nameof(Resources.Dialogs.TelemetryHelpSendTelemetryLink)], SendTelemetryUrl));
         if (CanImport)
         {
             sections.Add(string.Format(CultureInfo.CurrentCulture, Loc[nameof(Resources.Dialogs.TelemetryHelpImportDescription)],

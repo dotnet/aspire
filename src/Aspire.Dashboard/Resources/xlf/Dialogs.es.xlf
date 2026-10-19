@@ -825,9 +825,9 @@ Configure your app to export logs, traces, and metrics using [OTLP]({0}).</targe
         <target state="new">Protocol</target>
         <note />
       </trans-unit>
-      <trans-unit id="TelemetryHelpSdkLink">
-        <source>Configure an OpenTelemetry SDK with OTLP</source>
-        <target state="new">Configure an OpenTelemetry SDK with OTLP</target>
+      <trans-unit id="TelemetryHelpSendTelemetryLink">
+        <source>Connect your app to the dashboard</source>
+        <target state="new">Connect your app to the dashboard</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerDialogJsonFormat">

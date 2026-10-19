@@ -48,10 +48,11 @@ public sealed class TelemetryHelpDialogTests : DashboardTestContext
         Assert.Equal(
             [
                 "https://aka.ms/aspire/otlp-spec",
-                "https://aka.ms/aspire/otlp-sdk-configuration",
+                "https://aka.ms/aspire/dashboard-send-telemetry",
                 "https://aka.ms/aspire/dashboard-manage-data"
             ],
             cut.FindAll("a").Select(link => link.GetAttribute("href")));
+        Assert.Equal("Connect your app to the dashboard", cut.Find("a[href='https://aka.ms/aspire/dashboard-send-telemetry']").TextContent);
         Assert.All(cut.FindAll("a"), link =>
         {
             Assert.Equal("noopener noreferrer nofollow", link.GetAttribute("rel"));

@@ -636,8 +636,8 @@ Configure your app to export logs, traces, and metrics using [OTLP]({0}).</value
   <data name="TelemetryHelpNoEndpointsDescription" xml:space="preserve">
     <value>No OTLP endpoints are configured. To receive live telemetry, configure an OTLP endpoint when starting the dashboard.</value>
   </data>
-  <data name="TelemetryHelpSdkLink" xml:space="preserve">
-    <value>Configure an OpenTelemetry SDK with OTLP</value>
+  <data name="TelemetryHelpSendTelemetryLink" xml:space="preserve">
+    <value>Connect your app to the dashboard</value>
   </data>
   <data name="TelemetryHelpImportDescription" xml:space="preserve">
     <value>### 📥 Import telemetry from a file

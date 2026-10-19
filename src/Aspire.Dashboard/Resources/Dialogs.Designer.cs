@@ -1465,11 +1465,11 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Configure an OpenTelemetry SDK with OTLP.
+        ///   Looks up a localized string similar to Connect your app to the dashboard.
         /// </summary>
-        public static string TelemetryHelpSdkLink {
+        public static string TelemetryHelpSendTelemetryLink {
             get {
-                return ResourceManager.GetString("TelemetryHelpSdkLink", resourceCulture);
+                return ResourceManager.GetString("TelemetryHelpSendTelemetryLink", resourceCulture);
             }
         }
 
