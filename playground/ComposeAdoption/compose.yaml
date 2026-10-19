@@ -1,0 +1,24 @@
+name: compose-adoption
+services:
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    expose: ["6379"]
+  api:
+    image: python:3.12-alpine
+    command: ["python", "-u", "/app/api.py"]
+    environment:
+      REDIS_URL: redis://redis:6379
+    expose: ["8080"]
+    volumes:
+      - ./api.py:/app/api.py:ro
+    depends_on: [redis]
+  gateway:
+    image: python:3.12-alpine
+    command: ["python", "-u", "/app/gateway.py"]
+    environment:
+      API_URL: http://api:8080
+    ports: ["18080:8080"]
+    volumes:
+      - ./gateway.py:/app/gateway.py:ro
+    depends_on: [api]
