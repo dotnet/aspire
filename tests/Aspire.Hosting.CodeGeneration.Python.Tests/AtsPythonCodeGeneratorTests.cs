@@ -369,7 +369,34 @@ public class AtsPythonCodeGeneratorTests
 
     private Task GeneratedTerminalCallback_ReturnsMutatedDto(string pythonExecutable)
     {
-        var files = _generator.GenerateDistributedApplication(CreateContextFromBothAssemblies());
+        var context = CreateContextFromBothAssemblies();
+        var files = _generator.GenerateDistributedApplication(new AtsContext
+        {
+            Capabilities = context.Capabilities,
+            HandleTypes = context.HandleTypes,
+            EnumTypes = context.EnumTypes,
+            DtoTypes =
+            [
+                .. context.DtoTypes,
+                new AtsDtoTypeInfo
+                {
+                    Name = "ATerminalKeywordOptions",
+                    TypeId = "Tests/ATerminalKeywordOptions",
+                    Properties =
+                    [
+                        new AtsDtoPropertyInfo
+                        {
+                            Name = "Global",
+                            Type = new AtsTypeRef
+                            {
+                                TypeId = context.DtoTypes.Single(t => t.Name == "TerminalOptions").TypeId,
+                                Category = AtsTypeCategory.Dto
+                            }
+                        }
+                    ]
+                }
+            ]
+        });
         return ExecuteGeneratedPythonAsync(pythonExecutable, files["aspire_app.py"],
             """
             import json
@@ -377,6 +404,8 @@ public class AtsPythonCodeGeneratorTests
             import aspire_app
 
             assert typing.get_type_hints(aspire_app.TerminalOptions) == {"columns": int, "rows": int}
+            assert typing.get_type_hints(aspire_app.ATerminalKeywordOptions) == {"global": aspire_app.TerminalOptions}
+            assert aspire_app.ATerminalKeywordOptions.__optional_keys__ == {"global"}
             client = aspire_app.AspireClient("unused")
             handle = aspire_app.Handle({"$handle": "resource", "$type": "Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecutableResource"})
             results = []

@@ -921,9 +921,14 @@ internal sealed class AtsPythonCodeGenerator : ICodeGenerator
         foreach (var dtoType in dtoTypes.OrderBy(d => d.Name))
         {
             var className = GetDtoClassName(dtoType.TypeId);
+            var requiresFunctionalSyntax = dtoType.Properties.Any(prop =>
+                s_pythonKeywords.Contains(JsonNamingPolicy.CamelCase.ConvertName(prop.Name)));
 
-            // All DTO properties are optional in Python to allow partial objects
-            sb.AppendLine(CultureInfo.InvariantCulture, $"class {className}(typing.TypedDict, total=False):");
+            // Functional syntax preserves wire keys such as "global" that cannot be class members.
+            // String annotations keep forward references deferred, as with class-based TypedDicts.
+            sb.AppendLine(requiresFunctionalSyntax
+                ? $"{className} = typing.TypedDict(\"{className}\", {{"
+                : $"class {className}(typing.TypedDict, total=False):");
             foreach (var prop in dtoType.Properties)
             {
                 // Callback-typed DTO properties carry the same CallbackParameters/CallbackReturnType
@@ -934,7 +939,14 @@ internal sealed class AtsPythonCodeGenerator : ICodeGenerator
                 var propType = prop.IsCallback
                     ? GenerateCallbackTypeSignature(prop.CallbackParameters, prop.CallbackReturnType)
                     : MapDtoPropertyTypeToPython(prop.Type);
-                sb.AppendLine(CultureInfo.InvariantCulture, $"    {JsonNamingPolicy.CamelCase.ConvertName(prop.Name)}: {propType}");
+                var wireName = JsonNamingPolicy.CamelCase.ConvertName(prop.Name);
+                sb.AppendLine(requiresFunctionalSyntax
+                    ? $"    {AtsJsonCodeWriter.ToRelaxedJsonString(wireName)}: {AtsJsonCodeWriter.ToRelaxedJsonString(propType)},"
+                    : $"    {wireName}: {propType}");
+            }
+            if (requiresFunctionalSyntax)
+            {
+                sb.AppendLine("}, total=False)");
             }
             sb.AppendLine();
         }
