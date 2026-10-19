@@ -17,6 +17,14 @@ if [[ $# -gt 1 || ( -n "$mode" && "$mode" != "--build-only" && "$mode" != "--no-
     echo "Usage: bash run.sh [--build-only|--no-build]" >&2
     exit 2
 fi
+if [[ -n "${ASPIRE_DCP_PATH:-}" && ! -x "$ASPIRE_DCP_PATH/dcp" ]]; then
+    echo "ASPIRE_DCP_PATH must identify a tools directory containing an executable dcp: $ASPIRE_DCP_PATH" >&2
+    exit 2
+fi
+arguments=()
+if [[ -n "${ASPIRE_DCP_PATH:-}" ]]; then
+    arguments+=(--DcpPublisher:CliPath "$ASPIRE_DCP_PATH/dcp")
+fi
 if [[ "$mode" != "--no-build" ]]; then
     "$dotnet" publish "$sample/Api/ComposeAdoption.Api.csproj" -p:NuGetAudit=false \
         -c Debug -o "$repo/artifacts/compose-adoption/api"
@@ -37,4 +45,4 @@ export ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL=http://localhost:18889
 export ASPIRE_DASHBOARD_PATH="$repo/artifacts/bin/Aspire.Dashboard/Debug/net11.0/Aspire.Dashboard.dll"
 
 # Invoking the built assembly avoids depending on an installed Aspire CLI bundle.
-exec "$dotnet" "$repo/artifacts/bin/ComposeAdoption.AppHost/Debug/net10.0/ComposeAdoption.AppHost.dll"
+exec "$dotnet" "$repo/artifacts/bin/ComposeAdoption.AppHost/Debug/net10.0/ComposeAdoption.AppHost.dll" "${arguments[@]}"

@@ -48,6 +48,14 @@ it does not use an unimplemented Compose `build` field. `run.sh --build-only`
 prepares these artifacts without launching; `run.sh --no-build` runs the
 previously built assembly. Both derive paths from the checkout, not a developer's
 machine-specific output directory.
+For an explicitly supplied DCP tools directory, set `ASPIRE_DCP_PATH` to its
+absolute path. The scripts reject a missing/non-executable `dcp` rather than
+falling back to packaged tools, and the launcher passes that binary through
+`DcpPublisher:CliPath`. Verification prints the Aspire commit, worktree changes,
+and the selected binary's `version` output. A custom controller build must include
+its complete tools layout (including its matching tunnel client), not just a
+copied `dcp` executable. This launcher support is not first-class Compose
+integration; the sample at this revision still uses the native-resource importer.
 It stops its own AppHosts and Compose project on exit. Keep ports **18080** (gateway),
 **18888** (dashboard) and **18889** (resource service) free. Do not run another copy
 of this sample concurrently. Logs are written to ignored `imported.log` and

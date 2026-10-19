@@ -2,6 +2,17 @@
 set -euo pipefail
 
 sample="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo="$(cd "$sample/../.." && pwd)"
+echo "Aspire source revision: $(git -C "$repo" rev-parse HEAD)"
+git -C "$repo" status --short
+if [[ -n "${ASPIRE_DCP_PATH:-}" ]]; then
+    if [[ ! -x "$ASPIRE_DCP_PATH/dcp" ]]; then
+        echo "ASPIRE_DCP_PATH must identify a tools directory containing an executable dcp: $ASPIRE_DCP_PATH" >&2
+        exit 2
+    fi
+    echo "Explicit DCP tools: $ASPIRE_DCP_PATH"
+    "$ASPIRE_DCP_PATH/dcp" version
+fi
 apphost_pid=""
 stop_apphost() {
     if [[ -n "$apphost_pid" ]]; then
