@@ -94,9 +94,12 @@ public sealed class TerminalOptions
     private int _columns = 132;
     private int _rows = 50;
 
+    internal bool HasExplicitDimensions { get; private set; }
+
     /// <summary>
     /// Gets or sets the initial number of columns for the terminal. The value must be greater than zero. Defaults to 132.
     /// </summary>
+    /// <remarks>Setting either dimension makes the dashboard's Terminals page adopt the producer's current grid instead of automatically fitting it to the view.</remarks>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when set to zero or a negative value.</exception>
     public int Columns
     {
@@ -105,12 +108,14 @@ public sealed class TerminalOptions
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
             _columns = value;
+            HasExplicitDimensions = true;
         }
     }
 
     /// <summary>
     /// Gets or sets the initial number of rows for the terminal. The value must be greater than zero. Defaults to 50.
     /// </summary>
+    /// <remarks>Setting either dimension makes the dashboard's Terminals page adopt the producer's current grid instead of automatically fitting it to the view.</remarks>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when set to zero or a negative value.</exception>
     public int Rows
     {
@@ -119,6 +124,7 @@ public sealed class TerminalOptions
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
             _rows = value;
+            HasExplicitDimensions = true;
         }
     }
 }

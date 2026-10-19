@@ -19,6 +19,7 @@ public class CapabilityDispatcherTests
     [InlineData("""{"columns":200,"rows":60}""", 200, 60)]
     [InlineData("""{"columns":200.0,"rows":60.0}""", 200, 60)]
     [InlineData("""{"columns":1,"rows":1}""", 1, 1)]
+    [InlineData("""{"columns":132,"rows":50}""", 132, 50)]
     public async Task Invoke_WithTerminal_ConfiguresDimensions(string? optionsJson, int columns, int rows)
     {
         var export = typeof(TerminalResourceBuilderExtensions).GetMethod(nameof(TerminalResourceBuilderExtensions.WithTerminal))!
@@ -63,6 +64,7 @@ public class CapabilityDispatcherTests
         var annotation = Assert.Single(resource.Resource.Annotations.OfType<TerminalAnnotation>());
         Assert.Equal(columns, annotation.Options.Columns);
         Assert.Equal(rows, annotation.Options.Rows);
+        Assert.Equal(optionsJson is not null && optionsJson != "{}", annotation.Options.HasExplicitDimensions);
     }
 
     [Theory]

@@ -33,6 +33,9 @@ public static class TerminalResourceBuilderExtensions
     /// (PTY) per replica and a hidden terminal host process bridges the PTY traffic over Hex1b's
     /// HMP v1 protocol. The terminal session can be accessed from the Aspire Dashboard's terminal
     /// page or via the <c>aspire terminal</c> CLI command.
+    /// When neither <see cref="TerminalOptions.Columns"/> nor <see cref="TerminalOptions.Rows"/>
+    /// is configured, opening the dashboard terminal automatically fits the grid to the view.
+    /// Explicit dimensions retain the producer's current grid until the viewer requests a resize.
     /// Terminal host resources can be revealed using the dashboard's Show hidden resources control
     /// to inspect their state and diagnostic telemetry. Terminal host telemetry is disabled when
     /// <see cref="DistributedApplicationOptions.DisableDashboard"/> is <see langword="true"/>.

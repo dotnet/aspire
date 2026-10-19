@@ -1340,9 +1340,17 @@ export interface RunConfiguration {
 
 /** Options for configuring a terminal session. */
 export interface TerminalOptions {
-    /** Gets or sets the initial number of columns for the terminal. The value must be greater than zero. Defaults to 132. */
+    /**
+     * Gets or sets the initial number of columns for the terminal. The value must be greater than zero. Defaults to 132.
+     *
+     * Setting either dimension makes the dashboard's Terminals page adopt the producer's current grid instead of automatically fitting it to the view.
+     */
     columns?: number;
-    /** Gets or sets the initial number of rows for the terminal. The value must be greater than zero. Defaults to 50. */
+    /**
+     * Gets or sets the initial number of rows for the terminal. The value must be greater than zero. Defaults to 50.
+     *
+     * Setting either dimension makes the dashboard's Terminals page adopt the producer's current grid instead of automatically fitting it to the view.
+     */
     rows?: number;
 }
 
