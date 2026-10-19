@@ -8,13 +8,13 @@
         <note />
       </trans-unit>
       <trans-unit id="DashboardNewLiveRunFollowed">
-        <source>You’re viewing the new live run. The previous run is available in run history.</source>
-        <target state="new">You’re viewing the new live run. The previous run is available in run history.</target>
+        <source>Previous run saved in history.</source>
+        <target state="new">Previous run saved in history.</target>
         <note />
       </trans-unit>
       <trans-unit id="DashboardNewLiveRunHistory">
-        <source>You’re still viewing a previous run. A new live run is ready.</source>
-        <target state="new">You’re still viewing a previous run. A new live run is ready.</target>
+        <source>You’re viewing a previous run.</source>
+        <target state="new">You’re viewing a previous run.</target>
         <note />
       </trans-unit>
       <trans-unit id="DashboardNewLiveRunOpen">

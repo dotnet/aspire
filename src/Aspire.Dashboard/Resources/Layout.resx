@@ -223,10 +223,10 @@
     <value>New live run connected</value>
   </data>
   <data name="DashboardNewLiveRunFollowed" xml:space="preserve">
-    <value>You’re viewing the new live run. The previous run is available in run history.</value>
+    <value>Previous run saved in history.</value>
   </data>
   <data name="DashboardNewLiveRunHistory" xml:space="preserve">
-    <value>You’re still viewing a previous run. A new live run is ready.</value>
+    <value>You’re viewing a previous run.</value>
   </data>
   <data name="DashboardNewLiveRunOpen" xml:space="preserve">
     <value>Open live run</value>
