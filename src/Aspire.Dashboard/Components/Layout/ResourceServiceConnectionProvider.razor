@@ -3,11 +3,11 @@
 @if (_isDisconnected)
 {
     <div class="apphost-connection-status" role="status">
-        <FluentIcon Value="@(new Icons.Filled.Size20.Warning())" Color="Color.Error" />
+        <FluentIcon Value="@(new Icons.Filled.Size16.Warning())" Color="Color.Error" />
         <div class="apphost-connection-message">
             <strong>@Loc[nameof(Resources.Reconnect.ResourceServiceOfflineTitle)]</strong>
-            <span>@Loc[nameof(Resources.Reconnect.ResourceServiceOfflineDescription)]</span>
+            <span title="@Loc[nameof(Resources.Reconnect.ResourceServiceOfflineDescription)]">@Loc[nameof(Resources.Reconnect.ResourceServiceOfflineDescription)]</span>
         </div>
-        <FluentButton OnClick="ReconnectFromJs">@Loc[nameof(Resources.Reconnect.ResourceServiceReconnectRetryButtonText)]</FluentButton>
+        <FluentButton Class="apphost-reconnect-action" Appearance="ButtonAppearance.Transparent" OnClick="ReconnectFromJs">@Loc[nameof(Resources.Reconnect.ResourceServiceReconnectRetryButtonText)]</FluentButton>
     </div>
 }
