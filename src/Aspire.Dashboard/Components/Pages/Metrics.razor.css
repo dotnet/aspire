@@ -202,9 +202,22 @@
 }
 
 /* Keep common meter names such as "System.Net.Http" readable: the group list is the only place that
-   tells meters apart. The splitter's own Min only applies while dragging, not to the initial 20% size. */
+   tells meters apart. The splitter's own Min only applies while dragging, not to the initial 20% size.
+   The horizontal padding keeps the filter box and the selected group off the pane's edges. */
 ::deep .fluent-multi-splitter-pane:has(> .metric-groups) {
     min-width: 220px;
+    padding: 0 var(--spacingHorizontalS);
+}
+
+::deep .metrics-filter-results-group {
+    margin-bottom: var(--spacingVerticalM);
+}
+
+::deep .metrics-filter-results-meter {
+    margin: 0 0 var(--spacingVerticalS) 0;
+    color: var(--colorNeutralForeground2);
+    font-size: 14px;
+    font-weight: 600;
 }
 
 ::deep .metrics-content {

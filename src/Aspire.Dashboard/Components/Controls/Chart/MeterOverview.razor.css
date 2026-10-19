@@ -3,6 +3,8 @@
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: var(--spacingVerticalM);
     max-width: 1400px;
+    /* The scroll container has no right padding, so without this the last column touches the edge. */
+    padding-right: var(--spacingHorizontalL);
     padding-bottom: var(--spacingVerticalL);
 }
 

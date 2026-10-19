@@ -85,11 +85,20 @@ public partial class MetricGroupList : IDisposable
         return groups;
     }
 
-    private bool IsSelected(MetricGroup group) => group.IsPinned
-        ? PageViewModel.ShowPinned
-        // The meter stays selected while one of its instruments is open, to show where the chart belongs
-        // and to let the user go back to the meter's cards.
-        : !PageViewModel.ShowPinned && string.Equals(PageViewModel.SelectedMeter, group.MeterName, StringComparison.Ordinal);
+    private bool IsSelected(MetricGroup group)
+    {
+        // Filter results span every group, so none of them is the current one.
+        if (PageViewModel.ShowFilterResults)
+        {
+            return false;
+        }
+
+        return group.IsPinned
+            ? PageViewModel.ShowPinned
+            // The meter stays selected while one of its instruments is open, to show where the chart belongs
+            // and to let the user go back to the meter's cards.
+            : !PageViewModel.ShowPinned && string.Equals(PageViewModel.SelectedMeter, group.MeterName, StringComparison.Ordinal);
+    }
 
     public void Dispose()
     {

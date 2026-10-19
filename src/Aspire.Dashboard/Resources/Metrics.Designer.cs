@@ -126,6 +126,12 @@ namespace Aspire.Dashboard.Resources {
             }
         }
 
+        public static string MetricsFilterResultsTitle {
+            get {
+                return ResourceManager.GetString("MetricsFilterResultsTitle", resourceCulture);
+            }
+        }
+
         public static string MetricsInstrumentNoDataTooltip {
             get {
                 return ResourceManager.GetString("MetricsInstrumentNoDataTooltip", resourceCulture);

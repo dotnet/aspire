@@ -916,7 +916,7 @@ public partial class MetricsTests : DashboardTestContext
     }
 
     [Fact]
-    public async Task MetricGroups_TextFilter_FiltersGroupsAndCards()
+    public async Task MetricGroups_TextFilter_ShowsMatchesFromEveryMeter()
     {
         MetricsSetupHelpers.SetupMetricsPage(this);
 
@@ -957,26 +957,36 @@ public partial class MetricsTests : DashboardTestContext
 
         cut.WaitForState(() => cut.Instance.PageViewModel.Instruments?.Count == 3);
 
-        // Show the first meter's cards so the filter's effect on cards is visible too.
-        await cut.InvokeAsync(() => cut.FindAll(".metric-group").Single(g => g.TextContent.Contains("test-meter1")).Click());
+        // Show the first meter's cards, so the test covers matches outside the selected group.
+        cut.FindAll(".metric-group").Single(g => g.TextContent.Contains("test-meter1")).Click();
         cut.WaitForAssertion(() => Assert.Equal(["http.request.count", "memory.usage"], GetCardNames(cut)));
 
         var filterInput = cut.FindComponents<FluentTextInput>().Single(c => c.Instance.Class == "metric-groups-search");
 
-        // An instrument name match keeps its meter's group, counting only the matching instruments, and filters the cards.
+        // Typing shows matches from every meter, grouped by meter, and no group is selected.
         await cut.InvokeAsync(() => filterInput.Instance.ValueChanged.InvokeAsync("MEMORY"));
         cut.WaitForAssertion(() =>
         {
             Assert.Equal(["test-meter1 1"], GetMetricGroups(cut));
-            Assert.Equal(["memory.usage"], GetCardNames(cut));
+            Assert.Equal(["test-meter1: memory.usage"], GetFilterResults(cut));
+            Assert.Empty(cut.FindAll(".metric-group.selected"));
         });
 
-        // A meter name match keeps all of that meter's instruments.
-        await cut.InvokeAsync(() => filterInput.Instance.ValueChanged.InvokeAsync("meter1"));
+        // A match in another meter than the selected one is shown too.
+        await cut.InvokeAsync(() => filterInput.Instance.ValueChanged.InvokeAsync("e"));
         cut.WaitForAssertion(() =>
         {
-            Assert.Equal(["test-meter1 2"], GetMetricGroups(cut));
-            Assert.Equal(["http.request.count", "memory.usage"], GetCardNames(cut));
+            Assert.Equal(["test-meter1 2", "test-meter2 1"], GetMetricGroups(cut));
+            Assert.Equal(["test-meter1: http.request.count", "test-meter1: memory.usage", "test-meter2: queue.length"], GetFilterResults(cut));
+        });
+
+        // Picking a group narrows the matches to that group.
+        cut.FindAll(".metric-group").Single(g => g.TextContent.Contains("test-meter2")).Click();
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Empty(cut.FindAll(".metrics-filter-results-group"));
+            Assert.Equal(["queue.length"], GetCardNames(cut));
+            Assert.Equal("test-meter2", cut.Find(".metric-group.selected .metric-group-name").TextContent);
         });
 
         await cut.InvokeAsync(() => filterInput.Instance.ValueChanged.InvokeAsync("does-not-exist"));
@@ -985,6 +995,15 @@ public partial class MetricsTests : DashboardTestContext
             Assert.Empty(GetMetricGroups(cut));
             Assert.Equal("No metrics match the filter", cut.Find(".metric-groups-empty").TextContent.Trim());
         });
+
+        // Clearing the filter returns to the selected group.
+        await cut.InvokeAsync(() => filterInput.Instance.ValueChanged.InvokeAsync(""));
+        cut.WaitForAssertion(() => Assert.Equal(["queue.length"], GetCardNames(cut)));
+
+        // Each filter result as "<meter>: <instrument>".
+        static List<string> GetFilterResults(IRenderedComponent<Metrics> cut) =>
+            [.. cut.FindAll(".metrics-filter-results-group").SelectMany(g => g.QuerySelectorAll(".meter-card-name")
+                .Select(n => $"{g.QuerySelector(".metrics-filter-results-meter")!.TextContent}: {n.TextContent}"))];
     }
 
     [Fact]

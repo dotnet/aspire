@@ -203,4 +203,8 @@
   <data name="MetricsPinnedEmpty" xml:space="preserve">
     <value>No pinned metrics for this resource. Pin a metric from its card or chart to see it here.</value>
   </data>
+  <data name="MetricsFilterResultsTitle" xml:space="preserve">
+    <value>Metrics matching "{0}"</value>
+    <comment>{0} is the filter text</comment>
+  </data>
 </root>

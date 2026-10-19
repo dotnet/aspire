@@ -4,6 +4,7 @@
 @page "/metrics/resource/{resourceName}/meter/{meterName}/instrument/{instrumentName}"
 @layout ResourcesLayout
 
+@using System.Globalization
 @using Aspire.Dashboard.Components.Controls.Grid
 @using Aspire.Dashboard.Resources
 @using Microsoft.AspNetCore.Components.Rendering
@@ -78,12 +79,32 @@
                                     PageViewModel="@PageViewModel"
                                     SelectGroupAsync="@SelectGroupAsync"
                                     GetGroupUrl="@GetGroupUrl"
-                                    TextFilterChanged="@StateHasChanged"/>
+                                    TextFilterChanged="@OnTextFilterChanged"/>
                             }
                         </FluentMultiSplitterPane>
                         <FluentMultiSplitterPane Size="80%">
                             <div class="metrics-content">
-                                    @if (PageViewModel.SelectedResource.Id?.ReplicaSetName != null && PageViewModel is { SelectedMeter: not null, SelectedInstrument: not null })
+                                    @if (PageViewModel is { ShowFilterResults: true, SelectedResource.Id: { } filterResourceId })
+                                    {
+                                        var resultGroups = GetFilterResultGroups();
+                                        <h3 class="meter-name-title">@string.Format(CultureInfo.CurrentCulture, Loc[nameof(Dashboard.Resources.Metrics.MetricsFilterResultsTitle)], PageViewModel.TextFilter.Trim())</h3>
+                                        @if (resultGroups.Count == 0)
+                                        {
+                                            <p class="metrics-pinned-empty">@Loc[nameof(Dashboard.Resources.Metrics.MetricsNoMatchingInstruments)]</p>
+                                        }
+                                        @foreach (var resultGroup in resultGroups)
+                                        {
+                                            <section @key="resultGroup.Key" class="metrics-filter-results-group" aria-label="@resultGroup.Key">
+                                                <h4 class="metrics-filter-results-meter">@resultGroup.Key</h4>
+                                                <MeterOverview ResourceKey="@filterResourceId.GetResourceKey()"
+                                                               Instruments="@resultGroup.ToList()"
+                                                               Duration="@PageViewModel.SelectedDuration.Id"
+                                                               ShowMeterName="false"
+                                                               GetInstrumentUrl="@GetInstrumentUrl" />
+                                            </section>
+                                        }
+                                    }
+                                    else if (PageViewModel.SelectedResource.Id?.ReplicaSetName != null && PageViewModel is { SelectedMeter: not null, SelectedInstrument: not null })
                                     {
                                         <ChartContainer
                                             ResourceKey="@(PageViewModel.SelectedResource.Id.GetResourceKey())"
@@ -216,7 +237,7 @@
                 IncludeLabel="true"
                 SelectGroupAsync="@SelectGroupAsync"
                 GetGroupUrl="@GetGroupUrl"
-                TextFilterChanged="@StateHasChanged"/>
+                TextFilterChanged="@OnTextFilterChanged"/>
         }
     }
 }

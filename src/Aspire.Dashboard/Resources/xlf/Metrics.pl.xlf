@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="pl" original="../Metrics.resx">
     <body>
+      <trans-unit id="MetricsFilterResultsTitle">
+        <source>Metrics matching "{0}"</source>
+        <target state="new">Metrics matching "{0}"</target>
+        <note>{0} is the filter text</note>
+      </trans-unit>
       <trans-unit id="MetricsGroupsLabel">
         <source>Metric groups</source>
         <target state="new">Metric groups</target>

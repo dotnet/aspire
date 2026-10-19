@@ -197,6 +197,8 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
         viewModel.SelectedMeter = null;
         viewModel.SelectedInstrument = null;
         viewModel.ShowPinned = false;
+        // Navigating (opening a card, or a group from another page) shows what the URL selects, not filter results.
+        viewModel.ShowFilterResults = false;
         viewModel.SelectedViewKind = Enum.TryParse(typeof(MetricViewKind), ViewKindName, out var view) && view is MetricViewKind vk ? vk : null;
 
         if (viewModel.Instruments != null && Pinned is true)
@@ -417,6 +419,12 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
         /// Gets or sets the text that filters the metric groups and the cards of the selected group.
         /// </summary>
         public string TextFilter { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets whether the content shows the filter's matches from every meter instead of the selection.
+        /// Set while the user types, and cleared when they pick a group or open an instrument.
+        /// </summary>
+        public bool ShowFilterResults { get; set; }
         public OtlpInstrumentSummary? SelectedInstrument { get; set; }
         public required SelectViewModel<ResourceTypeDetails> SelectedResource { get; set; }
         public SelectViewModel<TimeSpan> SelectedDuration { get; set; } = null!;
@@ -442,6 +450,8 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
 
     private Task SelectGroupAsync(string? meterName, bool pinned)
     {
+        // Picking a group narrows the filter's matches to that group.
+        PageViewModel.ShowFilterResults = false;
         PageViewModel.ShowPinned = pinned;
         PageViewModel.SelectedMeter = pinned ? null : meterName;
         PageViewModel.SelectedInstrument = null;
@@ -500,6 +510,26 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
     private void OnPinsChanged()
     {
         _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void OnTextFilterChanged()
+    {
+        // Typing searches every meter: matches are often in another group than the selected one, e.g. typing "cpu"
+        // and then "request". Clearing the filter returns to the selection, including an open chart.
+        PageViewModel.ShowFilterResults = PageViewModel.TextFilter.Trim().Length > 0;
+    }
+
+    /// <summary>
+    /// Gets the filter's matches from every meter, grouped by meter. The pinned group isn't included because its
+    /// instruments also belong to a meter, and listing them twice would make the results look like duplicates.
+    /// </summary>
+    private List<IGrouping<string, OtlpInstrumentSummary>> GetFilterResultGroups()
+    {
+        return [.. (PageViewModel.Instruments ?? [])
+            .Where(i => MetricFilter.Matches(i, PageViewModel.TextFilter))
+            .OrderBy(i => i.Name, StringComparer.Ordinal)
+            .GroupBy(i => i.Parent.Name)
+            .OrderBy(g => g.Key, StringComparer.Ordinal)];
     }
 
     private string GetInstrumentUrl(OtlpInstrumentSummary instrument)
