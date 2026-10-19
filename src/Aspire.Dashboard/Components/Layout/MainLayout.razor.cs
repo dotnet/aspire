@@ -133,7 +133,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             }
         }
 
-        DashboardClient.ConnectionStateChanged += OnConnectionStateChanged;
+        LiveAppHostClient.ConnectionStateChanged += OnConnectionStateChanged;
         DataSourcePool.CurrentRunChanged += OnCurrentRunChanged;
         // Session restoration can await across a rollover before the handler is registered.
         // Reconcile a live selection now, while preserving explicitly selected history.
@@ -319,6 +319,9 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
     [Inject]
     public required DashboardDataSourcePool DataSourcePool { get; init; }
+
+    [Inject(Key = ServiceClient.DashboardClient.LiveAppHostServiceKey)]
+    public required IDashboardClient LiveAppHostClient { get; init; }
 
     private void OnConnectionStateChanged(DashboardConnectionState state) => _ = InvokeAsync(StateHasChanged);
 
@@ -596,7 +599,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        DashboardClient.ConnectionStateChanged -= OnConnectionStateChanged;
+        LiveAppHostClient.ConnectionStateChanged -= OnConnectionStateChanged;
         DataSourcePool.CurrentRunChanged -= OnCurrentRunChanged;
         _isDisposing = true;
 

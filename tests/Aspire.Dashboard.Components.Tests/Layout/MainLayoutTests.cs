@@ -1097,6 +1097,34 @@ public partial class MainLayoutTests : DashboardTestContext
     }
 
     [Fact]
+    public async Task RestoredHistory_ReturnToLive_ContinuesReceivingLiveConnectionChanges()
+    {
+        var store = new FluentUISetupHelpers.TestDashboardRunStore();
+        var current = store.GetCurrentRun();
+        store.SetRuns([current, current with { RunId = "history", IsCurrent = false }]);
+        var liveClient = new TestDashboardClient();
+        SetupMainLayoutServices(dashboardRunStore: store,
+            sessionStorage: new TestSessionStorage { OnGetTaskAsync = _ => Task.FromResult<(bool Success, object? Value)>((true, "history")) },
+            dashboardClient: new TestDashboardClient(isReadOnly: true), liveAppHostClient: liveClient);
+        var cut = Render<MainLayout>(parameters => parameters.Add(p => p.ViewportInformation,
+            new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false)));
+        var selection = Services.GetRequiredService<IDashboardRunSelection>();
+        cut.WaitForAssertion(() => Assert.Equal("history", selection.SelectedRun.RunId));
+        var picker = cut.FindComponent<DashboardRunSelect>();
+        picker.Find("fluent-button").Click();
+        var live = cut.WaitForElements("fluent-menu-item")[0];
+        live.TriggerEvent("onmenuitemchange", new MenuItemEventArgs { Id = live.Id, Text = live.TextContent, Checked = true });
+        cut.WaitForAssertion(() => Assert.True(selection.SelectedRun.IsCurrent));
+
+        var renders = cut.RenderCount;
+        await cut.InvokeAsync(() => liveClient.SetConnectionState(DashboardConnectionState.Disconnected));
+        cut.WaitForAssertion(() => Assert.True(cut.RenderCount > renders));
+        renders = cut.RenderCount;
+        await cut.InvokeAsync(() => liveClient.SetConnectionState(DashboardConnectionState.Connected));
+        cut.WaitForAssertion(() => Assert.True(cut.RenderCount > renders));
+    }
+
+    [Fact]
     public async Task ConnectionOnlyTransition_RefreshesResourceCommandControls()
     {
         var command = new CommandViewModel("restart", CommandViewModelState.Enabled, "Restart", "", "", [], true, "", IconVariant.Regular);
@@ -1317,7 +1345,8 @@ public partial class MainLayoutTests : DashboardTestContext
         BrowserTimeProvider? browserTimeProvider = null,
         IDashboardRunStore? dashboardRunStore = null,
         ISessionStorage? sessionStorage = null,
-        TestDashboardClient? dashboardClient = null)
+        TestDashboardClient? dashboardClient = null,
+        TestDashboardClient? liveAppHostClient = null)
     {
         FluentUISetupHelpers.AddCommonDashboardServices(
             this,
@@ -1335,7 +1364,7 @@ public partial class MainLayoutTests : DashboardTestContext
         Services.AddSingleton<IThemeResolver, TestThemeResolver>();
         dashboardClient ??= new TestDashboardClient();
         Services.AddSingleton<IDashboardClient>(dashboardClient);
-        Services.AddKeyedSingleton<IDashboardClient>(DashboardClient.LiveAppHostServiceKey, dashboardClient);
+        Services.AddKeyedSingleton<IDashboardClient>(DashboardClient.LiveAppHostServiceKey, liveAppHostClient ?? dashboardClient);
         Services.AddSingleton<ITooltipService, TooltipService>();
         Services.Configure<DashboardOptions>(o =>
         {
