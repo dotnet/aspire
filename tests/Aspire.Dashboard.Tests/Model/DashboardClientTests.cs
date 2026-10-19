@@ -3,6 +3,7 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Net;
 using System.Net.WebSockets;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -11,9 +12,11 @@ using System.Threading.Channels;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Terminal;
+using Aspire.Dashboard.Tests.Integration;
 using Aspire.Dashboard.Tests.Shared;
 using Aspire.Dashboard.Utils;
 using Aspire.DashboardService.Proto.V1;
+using Aspire.Hosting;
 using Aspire.Tests;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
@@ -740,6 +743,76 @@ public sealed class DashboardClientTests(ITestOutputHelper testOutputHelper) : I
         .AddSingleton(TimeProvider.System)
         .AddSingleton<IKnownPropertyLookup, MockKnownPropertyLookup>()
         .BuildServiceProvider();
+
+    [Theory]
+    [InlineData("http://localhost:80", "http://localhost", "https://localhost:443", "https://localhost")]
+    [InlineData("https://localhost:443", "https://localhost", "http://localhost:80", "http://localhost")]
+    public async Task ResourceOrigins_DefaultPorts_MatchBrowserOriginAfterHandshakeAndUpdates(
+        string initialOrigin, string initialBrowserOrigin, string updatedOrigin, string updatedBrowserOrigin)
+    {
+        var updates = Channel.CreateUnbounded<WatchResourcesUpdate>();
+        updates.Writer.TryWrite(new WatchResourcesUpdate { InitialData = new InitialResourceData() });
+        await using var client = CreateResourceServiceClient();
+        client.SetDashboardServiceClient(new MockDashboardServiceClient
+        {
+            ResourceUpdatesChannel = updates.Reader,
+            CorsAllowedOrigins = initialOrigin
+        });
+        await client.WhenResourcesReady.DefaultTimeout();
+        Assert.True(client.IsAppHostOriginAllowed(initialBrowserOrigin));
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            config =>
+            {
+                config[DashboardConfigNames.ResourceServiceUrlName.ConfigKey] = "http://localhost:12345";
+                config[DashboardConfigNames.ResourceServiceClientAuthModeName.ConfigKey] = nameof(ResourceClientAuthMode.Unsecured);
+            },
+            preConfigureBuilder: builder => builder.Services.AddSingleton(client));
+        await app.StartAsync().DefaultTimeout();
+        using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.OtlpServiceHttpEndPointAccessor().EndPoint}");
+        Assert.Equal(initialBrowserOrigin, await GetAllowedOriginAsync(initialBrowserOrigin));
+        var (_, changes) = await client.SubscribeResourcesAsync(CancellationToken.None);
+        await using var changesReader = changes.GetAsyncEnumerator();
+
+        await updates.Writer.WriteAsync(new WatchResourcesUpdate
+        {
+            CorsAllowedOrigins = updatedOrigin,
+            Changes = new WatchResourcesChanges
+            {
+                Value = { new WatchResourcesChange { Upsert = new Resource { Name = "web", DisplayName = "web", ResourceType = "Executable", CreatedAt = Timestamp.FromDateTime(DateTime.UtcNow) } } }
+            }
+        });
+        Assert.True(await changesReader.MoveNextAsync().AsTask().DefaultTimeout());
+        Assert.False(client.IsAppHostOriginAllowed(initialBrowserOrigin));
+        Assert.True(client.IsAppHostOriginAllowed(updatedBrowserOrigin));
+        Assert.Null(await GetAllowedOriginAsync(initialBrowserOrigin));
+        Assert.Equal(updatedBrowserOrigin, await GetAllowedOriginAsync(updatedBrowserOrigin));
+
+        async Task<string?> GetAllowedOriginAsync(string origin)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Options, "/v1/traces");
+            request.Headers.Add("Origin", origin);
+            request.Headers.Add("Access-Control-Request-Method", "POST");
+            request.Headers.Add("Access-Control-Request-Headers", "content-type");
+            using var response = await httpClient.SendAsync(request).DefaultTimeout();
+            Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+            return response.Headers.TryGetValues("Access-Control-Allow-Origin", out var values) ? Assert.Single(values) : null;
+        }
+    }
+
+    [Theory]
+    [InlineData("https://localhost:8443")]
+    [InlineData("https://localhost:443/path")]
+    [InlineData("https://localhost:443/../")]
+    [InlineData("https://user@localhost:443")]
+    public async Task ResourceOrigins_Normalization_DoesNotGrantAccessToDifferentOrigin(string advertisedOrigin)
+    {
+        await using var client = CreateResourceServiceClient();
+        client.SetDashboardServiceClient(new MockDashboardServiceClient { CorsAllowedOrigins = advertisedOrigin });
+        await client.WhenConnected.DefaultTimeout();
+
+        Assert.False(client.IsAppHostOriginAllowed("https://localhost"));
+    }
 
     [Fact]
     public async Task ResourceUpdates_RefreshOriginsAfterAllocationAndPreserveOlderServerMetadata()

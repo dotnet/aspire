@@ -324,6 +324,15 @@ internal sealed class DashboardClient : IDashboardClient
     private void SetAppHostCorsOrigins(string origins) =>
         Volatile.Write(ref _appHostCorsOrigins, origins
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            // AppHost metadata can contain "https://localhost:443" while the browser sends
+            // Origin: https://localhost. Preserve paths/user info so malformed origins don't
+            // accidentally grant access to their host when removing a default port.
+            // https://www.rfc-editor.org/rfc/rfc6454#section-6.2
+            .Select(static origin => Uri.TryCreate(origin, UriKind.Absolute, out var uri) &&
+                (uri.Scheme is "http" or "https") && uri.IsDefaultPort &&
+                origin.EndsWith($":{uri.Port}", StringComparison.Ordinal)
+                    ? origin[..origin.LastIndexOf(':')]
+                    : origin)
             .ToImmutableHashSet(StringComparer.OrdinalIgnoreCase));
 
     public string AppHostRunId
