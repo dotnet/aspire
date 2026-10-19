@@ -608,29 +608,28 @@ public static class CertManagerExtensions
             }
         }
 
-        // A failed issuer deletion must not leave its managed EAB credential behind.
-        if (issuer.ExternalAccountBinding is not null)
+        // Clean up even after a failed issuer deletion or removal of EAB from the model.
+        // Both selectors are evaluated by Kubernetes, so foreign Secrets cannot be deleted.
+        var arguments = new List<string>
         {
-            await CheckExternalAccountBindingSecretOwnershipAsync(issuer, context.CancellationToken).ConfigureAwait(false);
-            var arguments = new List<string>
+            "delete", "secrets",
+            "--field-selector", $"metadata.name={GetExternalAccountBindingSecretName(issuer)}",
+            "--selector", "app.kubernetes.io/managed-by=aspire-cert-manager",
+            "--namespace", GetClusterResourceNamespace(certManager), "--ignore-not-found"
+        };
+        AddKubeConfigArgument(arguments, environment);
+        var (deleteResult, deleteDisposable) = ProcessUtil.Run(new ProcessSpec("kubectl")
+        {
+            ArgumentList = arguments,
+            ThrowOnNonZeroReturnCode = false
+        });
+        await using (deleteDisposable.ConfigureAwait(false))
+        {
+            var result = await deleteResult.WaitAsync(context.CancellationToken).ConfigureAwait(false);
+            if (result.ExitCode != 0)
             {
-                "delete", "secret", GetExternalAccountBindingSecretName(issuer),
-                "--namespace", GetClusterResourceNamespace(certManager), "--ignore-not-found"
-            };
-            AddKubeConfigArgument(arguments, environment);
-            var (deleteResult, deleteDisposable) = ProcessUtil.Run(new ProcessSpec("kubectl")
-            {
-                ArgumentList = arguments,
-                ThrowOnNonZeroReturnCode = false
-            });
-            await using (deleteDisposable.ConfigureAwait(false))
-            {
-                var result = await deleteResult.WaitAsync(context.CancellationToken).ConfigureAwait(false);
-                if (result.ExitCode != 0)
-                {
-                    throw new InvalidOperationException(
-                        $"Deleting the EAB Secret for ClusterIssuer '{issuer.Name}' failed with exit code {result.ExitCode}.");
-                }
+                throw new InvalidOperationException(
+                    $"Deleting the EAB Secret for ClusterIssuer '{issuer.Name}' failed with exit code {result.ExitCode}.");
             }
         }
     }

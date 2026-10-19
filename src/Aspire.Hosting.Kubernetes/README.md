@@ -185,7 +185,8 @@ The value is sent to `kubectl` through stdin, not command-line arguments or publ
 artifacts. Kubernetes' `Secret.data` base64 encoding is a separate layer, not encryption:
 restrict Secret access with RBAC and configure encryption at rest as appropriate.
 Existing Secrets not marked as Aspire cert-manager-managed are not adopted or deleted.
-Destroy removes the managed EAB Secret before uninstalling cert-manager; it does not
+Destroy removes the managed EAB Secret before uninstalling cert-manager, even if EAB
+was removed from the issuer configuration before redeployment; it does not
 explicitly delete cert-manager's separate `<issuer>-account-key` Secret.
 
 ClusterIssuers read Secrets from cert-manager's **cluster resource namespace**, not the

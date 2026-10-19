@@ -142,7 +142,8 @@ requires EAB. It checks successful registration, rejection of an incorrect HMAC,
 account-key preservation on redeployment, and issuer/EAB Secret cleanup through
 `aspire destroy`. A test-only admission policy rejects deletion of one issuer,
 verifying that both managed EAB Secrets are still removed while the ACME account
-key is retained. The other issuer is deleted normally.
+key is retained. The other issuer has EAB removed before redeployment and is deleted
+normally. A foreign Secret for an issuer without EAB is retained.
 The fixture uses synthetic credentials and test-only TLS trust;
 no Azure subscription or commercial ACME account is needed. This verifies account
 registration, not public certificate issuance.
