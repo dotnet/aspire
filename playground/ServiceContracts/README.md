@@ -68,7 +68,7 @@ graph DSL or a substitute for the roadmap's multi-AppHost coordination.
 HTTP client -> storefront /shop -> catalog /products
 ```
 
-`verify.py` materializes these as independently initialized and committed Git
+The standalone .NET `Verify` runner materializes these as independently initialized and committed Git
 repositories **outside the Aspire checkout**. They are not solution folders or
 submodules. The only producer content shipped to the consumer is its contract
 artifact; an image is the other release deliverable. The consumer has no
@@ -140,7 +140,8 @@ Parameter values stay deferred references so normal secret handling applies.
 
 ## Run the complete experiment
 
-Prerequisites: Linux x64, Python 3.9+, Git, .NET 10 on `PATH`, access to the
+Prerequisites: Linux x64, Git, the .NET 10 SDK (including ASP.NET Core runtime)
+on `PATH`, access to the
 repository's approved package feeds and Microsoft's container registry, and an
 already-running Docker daemon. The repository's `dotnet.sh` bootstraps its
 separate pinned .NET SDK; do not edit `global.json`.
@@ -150,15 +151,23 @@ From this Aspire branch, with a **new, nonexistent workspace path**:
 ```bash
 ./dotnet.sh --info
 docker info
-python3 playground/ServiceContracts/verify.py --workspace /tmp/aspire-contract-demo
+./dotnet.sh run --project playground/ServiceContracts/Verify -- --workspace /tmp/aspire-contract-demo
 ```
 
-The script builds the real hosting library and dashboard dependency, both
+The dependency-free .NET console runner uses the repository's pinned SDK and
+runtime; no additional scripting runtime is required. It builds the real hosting library and dashboard dependency, both
 applications, and the producer's standalone multi-stage Dockerfile. It uses DCP
 `0.27.0` as pinned by this checkout (resolved from MSBuild, not a second version
 constant). It never starts/stops the shared Docker daemon. It stops its own
 AppHosts, retains logs and both repositories, and leaves tracked fixture files
-unchanged after all probes succeed. The versioned local image is retained.
+unchanged after all probes succeed. Temporary contract edits and directory moves
+are restored in `finally` blocks even if a probe fails. Each command and HTTP
+probe has a deadline; AppHosts receive SIGTERM and a bounded graceful shutdown
+before a process-tree kill fallback. The versioned local image is retained.
+Because the repository SDK host may only contain .NET 11, the runner searches
+`PATH` for a host containing both .NET 10 and ASP.NET Core 10, then supplies that
+host/root to the application and its DCP-launched children. Builds still use
+the repository-pinned SDK.
 
 The consumer host is intentionally headless and enables normal resource-log
 forwarding. Current core option validation still requires a real dashboard
@@ -170,11 +179,11 @@ Options:
 
 ```bash
 # Source-only run does not need Docker.
-python3 playground/ServiceContracts/verify.py --workspace /tmp/contract-source --mode source
+./dotnet.sh run --project playground/ServiceContracts/Verify -- --workspace /tmp/contract-source --mode source
 # Container-only run never builds producer source on the host.
-python3 playground/ServiceContracts/verify.py --workspace /tmp/contract-image --mode container
+./dotnet.sh run --project playground/ServiceContracts/Verify -- --workspace /tmp/contract-image --mode container
 # Materialize independent repositories without building or running anything.
-python3 playground/ServiceContracts/verify.py --workspace /tmp/contract-manual --prepare-only
+./dotnet.sh run --project playground/ServiceContracts/Verify -- --workspace /tmp/contract-manual --prepare-only
 ```
 
 An unmodified producer can independently be built with

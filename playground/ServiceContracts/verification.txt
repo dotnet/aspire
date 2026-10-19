@@ -6,8 +6,14 @@ Native orchestrator: Microsoft.DeveloperControlPlane.linux-amd64 0.27.0
 Docker daemon: 29.1.3 (existing daemon reused)
 
 Reproduction:
-  python3 playground/ServiceContracts/verify.py --workspace <new-directory>
+  ./dotnet.sh run --project playground/ServiceContracts/Verify -- --workspace <new-directory>
   See README.md for dependencies, manual switching, and exact test commands.
+  The standalone .NET runner has no package references or scripting-runtime dependency.
+  All 14 probes below were rerun with this replacement runner on 2026-10-19 UTC.
+  Runner build: succeeded with warnings treated as errors.
+  Existing-workspace rejection and clean fixture repositories: verified.
+  The installed .NET 10 + ASP.NET Core host is selected explicitly; the pinned
+  SDK-only .NET 11 host remains responsible for builds, not application execution.
 
 Builds:
   Aspire.Hosting and AppHost support: succeeded
@@ -54,23 +60,23 @@ Runtime assertions (actual consumer HTTP /shop -> producer HTTP /products):
 
 Readiness evidence (timestamps extracted from normal resource logs):
   Source:
-    08:34:17.5839185Z storefront waiting for catalog to become healthy
-    08:34:21.9190000Z catalog /health completed HTTP 200
-    08:34:21.9600000Z storefront process launched
+    14:41:43.1079295Z storefront waiting for catalog to become healthy
+    14:41:49.7970000Z catalog /health completed HTTP 200
+    14:41:49.8370000Z storefront process launched
   Source with explicit Kestrel endpoint:
-    08:34:30.8496772Z storefront waiting for catalog to become healthy
-    08:34:38.4030000Z catalog /health completed HTTP 200
-    08:34:38.5290000Z storefront process launched
+    14:41:59.0839052Z storefront waiting for catalog to become healthy
+    14:42:03.0710000Z catalog /health completed HTTP 200
+    14:42:03.1060000Z storefront process launched
   Container:
-    08:35:01.5951558Z storefront waiting for catalog to become healthy
-    08:35:01.7371779Z catalog /health completed HTTP 200
-    08:35:01.8020000Z storefront process launched
+    14:42:28.3941163Z storefront waiting for catalog to become healthy
+    14:42:28.5689447Z catalog /health completed HTTP 200
+    14:42:28.6300000Z storefront process launched
 
 Artifacts retained by the recorded run:
   Local image: aspire-contract-catalog:1.0.0
-  Image ID: sha256:e17a8f2b0b284858c628586cd332714a53ce5f17eaac55998525cdb46193881e
-  Producer fixture commit: 45ac5fdf0d71372cbfdad4932c40ef6cbb9790e5
-  Consumer fixture commit: 84d8fe65bbd108caafd0c792218fbe44f4d2c740
+  Image ID: sha256:13a56b3a48ebc94fcf1584063215dc37a7b17b4e68146c37c764346c8a7109ac
+  Producer fixture commit: 2a9e55377be56a1b46ab0c93a4997de98d6113e8
+  Consumer fixture commit: d951bcfc3daa9da7c58662746bd57b900efe3082
   Both fixture working trees were clean after the runner restored its probes.
   AppHosts stopped and no experiment containers remained running.
   Fixture commits/image IDs are per-run artifacts, not remotely published releases.
@@ -92,8 +98,7 @@ Post-publication regression:
   ContainerReferenceParser. Invalid separators, whitespace, leading punctuation,
   and tags longer than 128 characters fail before model registration. All 167
   targeted tests and all 14 runtime probes passed after this additional fix.
-  The readiness timestamps above are from the earlier Kestrel-fix run; the latest
-  run also returned the same exact HTTP payload in all successful modes.
+  The readiness timestamps above are from the replacement .NET runner's run.
 
 Clean-checkout prerequisite validation:
   Original PR head 649a296c11a61ac5bea1e4f63c96ee8405f64f53 was cloned separately
