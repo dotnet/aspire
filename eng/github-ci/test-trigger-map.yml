@@ -136,6 +136,8 @@ path_rules:
     reason: solution membership can add an existing project without touching that project's files, so run everything
 
   - paths:
+      - .config/dotnet-tools.json
+      - .mcp.json
       - src/Aspire.Dashboard/Components/Controls/TerminalView.razor.js
       - src/Aspire.Dashboard/Components/Controls/TerminalTitle.razor.js
       - src/Aspire.Dashboard/Components/Layout/TerminalDock.razor.js
@@ -197,15 +199,18 @@ path_rules:
   # template fixtures, and test certificates -> err toward ALL. The link-compiled tests/Shared/**/*.cs
   # are handled precisely by Layer 1 (see the `ignore` section), NOT routed here.
   - paths:
-      - tests/Shared/**/*.props
-      - tests/Shared/**/*.targets
-      - tests/Shared/**/*.proj
-      - tests/Shared/**/*.config
-      - tests/Shared/**/*.json
-      - tests/Shared/**/*.sh
-      - tests/Shared/**/*.pfx
-      - tests/Shared/**/Dockerfile*
+      - tests/Shared/*.props
+      - tests/Shared/*.targets
+      - tests/Shared/*.proj
+      - tests/Shared/*.config
+      - tests/Shared/RepoTesting/**/*.props
+      - tests/Shared/RepoTesting/**/*.targets
+      - tests/Shared/Docker/**/*.config
+      - tests/Shared/Docker/**/*.sh
+      - tests/Shared/Docker/**/Dockerfile*
+      - tests/Shared/TemplatesTesting/**/*.targets
       - tests/Shared/TemplatesTesting/data/**
+      - tests/Shared/TestCertificates/**/*.pfx
     targets: [ALL]
     reason: shared test build inputs and fixtures are consumed across multiple test lanes
 
@@ -260,6 +265,7 @@ path_rules:
       - eng/TestEnumerationRunsheetBuilder/**
       - tools/ExtractTestPartitions/**   # compiled partition extractor used for every split test project
       - eng/testing/CITestsProperties.props
+      - eng/scripts/verify-nonblocking-test-results.ps1
       - .github/workflows/tests.yml
       - .github/workflows/run-tests.yml
     targets: [ALL]
@@ -362,6 +368,7 @@ path_rules:
       - src/Aspire.Hosting.JavaScript/**
       - src/Aspire.Hosting.Redis/**
       - src/Aspire.Hosting.RemoteHost/**
+      - src/Aspire.Hosting.Dotnet/**
       - src/Aspire.Managed/**
       - .github/workflows/tests.yml
       - .github/workflows/extension-unit-tests.yml
@@ -390,7 +397,14 @@ path_rules:
   - paths:
       - .github/workflows/native-dashboard-validation.yml
       - eng/scripts/test-native-dashboard.ps1
-      - tests/Aspire.Dashboard.Tests/Integration/Playwright/NativeAotDashboardTests.cs
+      - tests/Aspire.Dashboard.Tests/Aspire.Dashboard.Tests.csproj
+      - tests/Aspire.Dashboard.Playwright.Tests/Aspire.Dashboard.Playwright.Tests.csproj
+      - tests/Aspire.Dashboard*.Tests/**/Native*Dashboard*Tests.cs
+      - tests/Aspire.Dashboard.Playwright.Tests/Integration/Playwright/Infrastructure/**
+      - tests/Aspire.Dashboard.Tests/Shared/MockDashboardClient.cs
+      - tests/Shared/Playwright/**
+      - tests/Shared/AsyncTestHelpers.cs
+      - tests/Shared/Telemetry/TelemetryTestHelpers.cs
     targets: [job:native-dashboard-validation]
     reason: native Dashboard archive production and packaged runtime validation
   - paths:
@@ -399,6 +413,17 @@ path_rules:
     reason: validates the Native AOT Dashboard publish warning policy
 
   # --- outerloop / e2e test targets: loose paths (production projects in affected_project_rules) --------
+  - paths:
+      - tests/Aspire.Dashboard.Playwright.Tests/**
+      - tests/Aspire.Dashboard.Tests/Shared/MockDashboardClient.cs
+      - tests/Aspire.Dashboard.Tests/Shared/TerminalTestProducer.cs
+      - tests/Shared/Playwright/**
+    targets: [test:Aspire.Dashboard.Playwright.Tests]
+    reason: OUTERLOOP-ONLY today (SkipTests on GH Actions unless RunOuterloopTests)
+  - paths:
+      - tests/Shared/Playwright/**
+    targets: [test:Aspire.Templates.Tests]
+    reason: shared Playwright sources and browser provisioning used by template tests
   - paths:
       - tests/Aspire.EndToEnd.Tests/**
       - tests/testproject/**
@@ -518,6 +543,10 @@ path_rules:
     targets: [job:cli-starter-validation]
     reason: package construction and template content consumed by the C# starter validation scenario
   - paths:
+      - src/Aspire.Hosting.Dotnet/**
+    targets: [test:Aspire.Cli.EndToEnd.Tests, test:Aspire.Templates.Tests, job:cli-starter-validation]
+    reason: runtime-only Dotnet dependency in generated C# AppHosts, including when project-graph analysis is unavailable
+  - paths:
       - playground/**
     targets: [test:Aspire.Playground.Tests]
     reason: Aspire.Playground.Tests builds/runs apps under playground/
@@ -537,9 +566,10 @@ path_rules:
       - tools/SelectTests/**
       - eng/github-ci/test-trigger-map.yml
       - eng/github-ci/ci-skip-entirely-patterns.txt
+      - eng/github-ci/resolve-comparison-base.sh
       - .gitignore
     targets: [test:Infrastructure.Tests]
-    reason: Infrastructure.Tests validates the selector map, prefilter, and root ignore behavior
+    reason: Infrastructure.Tests validates selector inputs and comparison history
   - paths:
       - .github/workflows/**
       - .github/actionlint.yaml
@@ -596,10 +626,14 @@ affected_project_rules:
       - Aspire.AppHost.Sdk
       - Aspire.Hosting.AppHost
       - Aspire.Hosting.PostgreSQL
+      - Aspire.Hosting.Dotnet
       - Aspire.Hosting.CodeGeneration.TypeScript
       - Aspire.Hosting.JavaScript
     targets: [job:cli-starter-validation]
     reason: direct executables, SDK, and hosting/code-generation packages used by the C# and TypeScript starter scenarios
+  - projects: [Aspire.Hosting.Dotnet]
+    targets: [test:Aspire.Cli.EndToEnd.Tests, test:Aspire.Templates.Tests]
+    reason: generated C# AppHosts use AddDotnetProject through a runtime-only package reference
   - projects:
       - Aspire.TypeSystem
       - Aspire.Hosting.RemoteHost
@@ -690,6 +724,7 @@ affected_project_rules:
       - Aspire.Hosting.CodeGeneration.Java
       - Aspire.Hosting.CodeGeneration.TypeScript
       - Aspire.Hosting.Docker
+      - Aspire.Hosting.Dotnet
       - Aspire.Hosting.Java
       - Aspire.Hosting.JavaScript
       - Aspire.Hosting.Redis
