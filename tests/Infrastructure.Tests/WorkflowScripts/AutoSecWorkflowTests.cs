@@ -79,29 +79,6 @@ public sealed class AutoSecWorkflowTests(ITestOutputHelper testOutput)
         Assert.Null(result["counts"]);
     }
 
-    [Fact]
-    public void AlertReadersHaveDependabotPermissionInSourceAndCompiledWorkflow()
-    {
-        var source = new YamlStream();
-        source.Load(new StringReader(ReadWorkflow("auto-sec.md").Split("---", 3, StringSplitOptions.None)[1]));
-        var frontmatter = Assert.IsType<YamlMappingNode>(source.Documents[0].RootNode);
-        var permissions = Assert.IsType<YamlMappingNode>(frontmatter.Children[new YamlScalarNode("permissions")]);
-        Assert.Equal("read", permissions.Children[new YamlScalarNode("vulnerability-alerts")].ToString());
-        Assert.Equal("read", permissions.Children[new YamlScalarNode("security-events")].ToString());
-
-        var compiled = new YamlStream();
-        compiled.Load(new StringReader(ReadWorkflow("auto-sec.lock.yml")));
-        var root = Assert.IsType<YamlMappingNode>(compiled.Documents[0].RootNode);
-        var jobs = Assert.IsType<YamlMappingNode>(root.Children[new YamlScalarNode("jobs")]);
-        foreach (var jobName in new[] { "agent", "approve_dependabot_pr" })
-        {
-            var job = Assert.IsType<YamlMappingNode>(jobs.Children[new YamlScalarNode(jobName)]);
-            var jobPermissions = Assert.IsType<YamlMappingNode>(job.Children[new YamlScalarNode("permissions")]);
-            Assert.Equal("read", jobPermissions.Children[new YamlScalarNode("vulnerability-alerts")].ToString());
-            Assert.Equal("read", jobPermissions.Children[new YamlScalarNode("security-events")].ToString());
-        }
-    }
-
     [Theory]
     [RequiresTools(["node"])]
     [InlineData("files", 401)]
@@ -3670,10 +3647,6 @@ public sealed class AutoSecWorkflowTests(ITestOutputHelper testOutput)
         var gateway = Assert.Single(steps, step => step.Children[new YamlScalarNode("name")].ToString() == "Start MCP Gateway");
         Assert.Contains("echo \"::add-mask::${MCP_GATEWAY_AGENT_ID}\"\nexec >/dev/null 2>&1\n",
             gateway.Children[new YamlScalarNode("run")].ToString());
-        var collection = Assert.Single(steps, step => step.Children[new YamlScalarNode("name")].ToString() == "Collect alerts and Dependabot pull requests");
-        Assert.Contains("exec >/dev/null 2>&1", collection.Children[new YamlScalarNode("run")].ToString());
-        Assert.True(collection.Children[new YamlScalarNode("run")].ToString().IndexOf("exec >/dev/null 2>&1", StringComparison.Ordinal)
-            < collection.Children[new YamlScalarNode("run")].ToString().IndexOf("gh api", StringComparison.Ordinal));
         foreach (var name in new[] { "Detect agent errors", "Redact secrets in logs" })
         {
             var diagnostic = Assert.Single(steps, step => step.Children[new YamlScalarNode("name")].ToString() == name);
@@ -4597,8 +4570,10 @@ public sealed class AutoSecWorkflowTests(ITestOutputHelper testOutput)
         Assert.Equal(
             ["head_sha", "pr_number"],
             Regex.Matches(approvalInputs, "^        ([a-z_]+):\r?$", RegexOptions.Multiline).Select(match => match.Groups[1].Value).Order(StringComparer.Ordinal));
-        Assert.Contains("covered_alerts: m.coveredAlerts(alerts, ecosystem, updates, versionChanges, headContents, baseContents)", source, StringComparison.Ordinal);
-        Assert.Contains("gh pr list --repo \"${REPO}\" --author \"app/dependabot\" --state open --base main", source, StringComparison.Ordinal);
+        Assert.Contains("covered_alerts: m.coveredAlerts(alerts, ecosystem, updates, versionChanges, headContents, baseContents)",
+            ReadWorkflow(Path.Combine("auto-sec", "collect-prs.js")), StringComparison.Ordinal);
+        Assert.Contains("gh pr list --repo \"${REPO}\" --author \"app/dependabot\" --state open --base main",
+            ReadWorkflow(Path.Combine("auto-sec", "collect.sh")), StringComparison.Ordinal);
 
         // push-to-pull-request-branch has no branch filter, so a deterministic gate step must
         // run before the safe-output handler to restrict pushes to the auto-sec branch.

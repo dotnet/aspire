@@ -192,16 +192,16 @@ async function main() {
     switch (request.mode) {
         case 'collect-alerts': {
             const { spawnSync } = require('node:child_process');
-            const source = fs.readFileSync(path.join(__dirname, '..', '..', '..', '.github', 'workflows', 'auto-sec.md'), 'utf8');
-            const body = /  - name: Collect alerts and Dependabot pull requests\r?\n[\s\S]*?    run: \|\r?\n([\s\S]*?)(?=\r?\n# Runs in)/.exec(source)?.[1];
-            if (!body) {
-                throw new Error('Missing alert collector');
-            }
+            const sourceDir = path.join(__dirname, '..', '..', '..', '.github', 'workflows', 'auto-sec');
             const workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'auto-sec-collection-'));
             try {
+                // Mirror the collector's relative module paths in an isolated workspace
+                // so it can load the real helpers without writing outputs into the checkout.
                 const gateDir = path.join(workDir, '.github', 'workflows', 'auto-sec');
                 fs.mkdirSync(gateDir, { recursive: true });
-                fs.copyFileSync(path.join(__dirname, '..', '..', '..', '.github', 'workflows', 'auto-sec', 'auto-sec.js'), path.join(gateDir, 'auto-sec.js'));
+                for (const file of ['collect.sh', 'collect-prs.js', 'auto-sec.js']) {
+                    fs.copyFileSync(path.join(sourceDir, file), path.join(gateDir, file));
+                }
                 fs.mkdirSync(path.join(workDir, 'runner-temp', 'auto-sec-gate'), { recursive: true });
                 for (const [name, value] of Object.entries({
                     alerts: request.alerts ?? [],
@@ -238,7 +238,7 @@ async function main() {
                     }
                 `;
                 const child = spawnSync('bash', ['-e', '-s'], {
-                    input: stub + '\n' + body.replace(/^ {6}/gm, ''),
+                    input: stub + '\nexport -f gh\nbash .github/workflows/auto-sec/collect.sh\n',
                     cwd: workDir,
                     env: { ...process.env, COLLECTION_FAILURE: request.failure ?? '' },
                     encoding: 'utf8',
@@ -262,12 +262,8 @@ async function main() {
             break;
         }
         case 'collect-prs': {
-            // Execute the production inline collector, not a duplicate implementation.
-            const source = fs.readFileSync(path.join(__dirname, '..', '..', '..', '.github', 'workflows', 'auto-sec.md'), 'utf8');
-            const script = /      node -e '\r?\n([\s\S]*?)\r?\n      '/.exec(source)?.[1];
-            if (!script) {
-                throw new Error('Missing Dependabot collector');
-            }
+            // Execute the production collector, not a duplicate implementation.
+            const script = fs.readFileSync(path.join(__dirname, '..', '..', '..', '.github', 'workflows', 'auto-sec', 'collect-prs.js'), 'utf8');
             const calls = [];
             let output = null;
             let failed = false;
