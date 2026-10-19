@@ -55,6 +55,14 @@ public sealed class DashboardDataSourcePool : IDisposable
         CurrentRunChanged?.Invoke();
     }
 
+    internal bool IsCurrentDatabase(string databasePath)
+    {
+        lock (_lock)
+        {
+            return !_disposed && s_pathComparer.Equals(_current?.Database.DatabasePath, databasePath);
+        }
+    }
+
     internal IDisposable RetainCurrent(out Lease run)
     {
         // Do not expose the replacement run before its schema is initialized.

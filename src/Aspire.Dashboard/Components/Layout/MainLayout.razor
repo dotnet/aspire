@@ -139,8 +139,10 @@
             @if (!_isSwitchingRuns)
             {
                 var selectedRun = RunSelection.SelectedRun;
-                <CascadingValue @key="selectedRun.RunId" Name="DashboardRunId" Value="selectedRun.RunId" IsFixed="true">
-                    @Body
+                <CascadingValue Name="@nameof(DashboardConnectionState)" Value="DashboardClient.ConnectionState">
+                    <CascadingValue @key="selectedRun.RunId" Name="DashboardRunId" Value="selectedRun.RunId" IsFixed="true">
+                        @Body
+                    </CascadingValue>
                 </CascadingValue>
             }
         </main>

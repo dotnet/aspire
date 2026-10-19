@@ -150,7 +150,7 @@ internal sealed class DashboardServiceHost : IHostedService
                 var port = configuration.GetValue<int?>(portKey);
                 if (port is null)
                 {
-                    port = portAllocator.AllocatePort(System.Net.Sockets.ProtocolType.Tcp);
+                    port = AllocatePersistentResourceServicePort(applicationModel, dcpOptions.Value, configuration, portAllocator, _logger);
                     userSecretsManager.TrySetSecret(portKey, port.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
                 }
                 endpoint = endpoint with { Port = port.Value };
@@ -231,6 +231,19 @@ internal sealed class DashboardServiceHost : IHostedService
     /// configured, its scheme is used. When no URI is provided, defaults to HTTPS unless
     /// unsecured transport is explicitly allowed.
     /// </summary>
+    internal static int AllocatePersistentResourceServicePort(
+        DistributedApplicationModel model,
+        DcpOptions options,
+        IConfiguration configuration,
+        ProxylessEndpointPortAllocator allocator,
+        ILogger logger)
+    {
+        // The resource service starts before DCP prepares workloads. Reserve the model's
+        // known ports now so an unused fixed endpoint is not claimed and saved for this listener.
+        DcpExecutor.ReserveEndpointPorts(model, options, configuration, allocator, logger);
+        return allocator.AllocatePort(System.Net.Sockets.ProtocolType.Tcp);
+    }
+
     internal static string ResolveScheme(Uri? configuredUri, bool allowUnsecuredTransport)
     {
         if (configuredUri is not null)

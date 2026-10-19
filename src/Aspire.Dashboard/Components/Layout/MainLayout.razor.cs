@@ -135,6 +135,12 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
         DashboardClient.ConnectionStateChanged += OnConnectionStateChanged;
         DataSourcePool.CurrentRunChanged += OnCurrentRunChanged;
+        // Session restoration can await across a rollover before the handler is registered.
+        // Reconcile a live selection now, while preserving explicitly selected history.
+        if (RunSelection.SelectedRun.IsCurrent && RunSelection.SelectedRun.RunId != RunStore.GetCurrentRun().RunId)
+        {
+            RunSelection.SelectRun(runId: null);
+        }
         NotificationService.OnChange += HandleNotificationsChanged;
 
         // Theme change can be triggered from the settings dialog. This logic applies the new theme to the browser window.

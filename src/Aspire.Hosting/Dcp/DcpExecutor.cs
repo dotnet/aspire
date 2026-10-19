@@ -639,32 +639,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IDcpObjectFactory, IAsyncDispo
             .Where(sp => sp.Endpoints.Any())
             .ToArray();
 
-        // Resolve endpoint behavior and exclude known public ports before any dynamic allocation can claim them.
-        foreach (var sp in serviceProducers)
-        {
-            foreach (var endpoint in sp.Endpoints)
-            {
-                endpoint.SetResolvedIsProxied(GetEffectiveIsProxied(sp.ModelResource, endpoint, _options.Value.RandomizePorts));
-                DcpModelUtilities.ValidateEndpointPorts(sp.ModelResource, endpoint);
-
-                if (TryGetEffectiveFixedPublicPort(sp.ModelResource, endpoint, _options.Value.RandomizePorts, out var fixedPublicPort))
-                {
-                    _proxylessEndpointPortAllocator.ExcludePort(fixedPublicPort);
-                }
-
-                if (TryGetPersistedProxylessEndpointPort(sp.ModelResource, endpoint) is int persistedPort)
-                {
-                    _proxylessEndpointPortAllocator.ExcludePort(persistedPort);
-                }
-
-                if (sp.ModelResource is IComputeResource &&
-                    !sp.ModelResource.IsContainer() &&
-                    EndpointAnnotation.NormalizePort(endpoint.TargetPort) is int fixedTargetPort)
-                {
-                    _proxylessEndpointPortAllocator.ExcludePort(fixedTargetPort);
-                }
-            }
-        }
+        ReserveEndpointPorts(_model, _options.Value, _configuration, _proxylessEndpointPortAllocator, _logger);
 
         // Create DCP services after known ports are excluded, allocating missing proxyless public ports as needed.
         foreach (var sp in serviceProducers)
@@ -732,6 +707,41 @@ internal sealed class DcpExecutor : IDcpExecutor, IDcpObjectFactory, IAsyncDispo
         {
             var containerNetworkServices = _containerNetworkEndpointProvisioner.CreateContainerNetworkServices(re);
             _appResources.AddRange(containerNetworkServices.Select(cns => cns.ServiceResource));
+        }
+    }
+
+    internal static void ReserveEndpointPorts(
+        DistributedApplicationModel model,
+        DcpOptions options,
+        IConfiguration configuration,
+        ProxylessEndpointPortAllocator allocator,
+        ILogger logger)
+    {
+        // Resolve endpoint behavior and exclude known public ports before any dynamic allocation can claim them.
+        foreach (var resource in model.Resources)
+        {
+            foreach (var endpoint in resource.Annotations.OfType<EndpointAnnotation>())
+            {
+                endpoint.SetResolvedIsProxied(GetEffectiveIsProxied(resource, endpoint, options.RandomizePorts));
+                DcpModelUtilities.ValidateEndpointPorts(resource, endpoint);
+
+                if (TryGetEffectiveFixedPublicPort(resource, endpoint, options.RandomizePorts, out var fixedPublicPort))
+                {
+                    allocator.ExcludePort(fixedPublicPort);
+                }
+
+                if (TryGetPersistedProxylessEndpointPort(resource, endpoint, options.RandomizePorts, configuration, logger) is int persistedPort)
+                {
+                    allocator.ExcludePort(persistedPort);
+                }
+
+                if (resource is IComputeResource &&
+                    !resource.IsContainer() &&
+                    EndpointAnnotation.NormalizePort(endpoint.TargetPort) is int fixedTargetPort)
+                {
+                    allocator.ExcludePort(fixedTargetPort);
+                }
+            }
         }
     }
 
@@ -841,7 +851,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IDcpObjectFactory, IAsyncDispo
         }
 
         int publicPort;
-        if (TryGetPersistedProxylessEndpointPort(resource, endpoint) is int persistedPort)
+        if (TryGetPersistedProxylessEndpointPort(resource, endpoint, _options.Value.RandomizePorts, _configuration, _logger) is int persistedPort)
         {
             publicPort = persistedPort;
             _logger.LogDebug("Using persisted public port {Port} for proxyless endpoint '{EndpointName}' on persistent resource '{ResourceName}'.", persistedPort, endpoint.Name, resource.Name);
@@ -877,16 +887,16 @@ internal sealed class DcpExecutor : IDcpExecutor, IDcpObjectFactory, IAsyncDispo
             !TryGetEffectiveFixedPublicPort(resource, endpoint, randomizePorts: false, out _);
     }
 
-    private int? TryGetPersistedProxylessEndpointPort(IResource resource, EndpointAnnotation endpoint)
+    private static int? TryGetPersistedProxylessEndpointPort(IResource resource, EndpointAnnotation endpoint, bool randomizePorts, IConfiguration configuration, ILogger logger)
     {
-        if (_options.Value.RandomizePorts ||
+        if (randomizePorts ||
             !resource.HasPersistentLifetime() ||
             !NeedsPublicPort(resource, endpoint))
         {
             return null;
         }
 
-        var configuredPort = _configuration[GetPersistedProxylessEndpointPortKey(resource, endpoint)];
+        var configuredPort = configuration[GetPersistedProxylessEndpointPortKey(resource, endpoint)];
         if (configuredPort is null)
         {
             return null;
@@ -898,7 +908,7 @@ internal sealed class DcpExecutor : IDcpExecutor, IDcpObjectFactory, IAsyncDispo
             return port;
         }
 
-        _logger.LogDebug("Ignoring invalid persisted public port value '{Port}' for proxyless endpoint '{EndpointName}' on persistent resource '{ResourceName}'.", configuredPort, endpoint.Name, resource.Name);
+        logger.LogDebug("Ignoring invalid persisted public port value '{Port}' for proxyless endpoint '{EndpointName}' on persistent resource '{ResourceName}'.", configuredPort, endpoint.Name, resource.Name);
         return null;
     }
 

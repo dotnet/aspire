@@ -132,6 +132,10 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     [Inject]
     public required IToastService ToastService { get; init; }
 
+    // Invalidate command controls and cached menus when only the AppHost connection changes.
+    [CascadingParameter(Name = nameof(DashboardConnectionState))]
+    public DashboardConnectionState AppHostConnectionState { get; set; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
 

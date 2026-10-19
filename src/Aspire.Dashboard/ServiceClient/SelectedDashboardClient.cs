@@ -103,7 +103,11 @@ internal sealed class SelectedDashboardClient(DashboardClient currentClient, Das
 
     public Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, ExecuteResourceCommandOptions options, CancellationToken cancellationToken)
     {
-        EnsureLiveConnection();
+        EnsureWritable();
+        if (currentClient.ConnectionState != DashboardConnectionState.Connected)
+        {
+            return Task.FromResult(new ResourceCommandResponseViewModel { Kind = Aspire.Dashboard.Model.ResourceCommandResponseKind.Cancelled });
+        }
         return currentClient.ExecuteResourceCommandAsync(resourceName, resourceType, command, options, cancellationToken);
     }
 

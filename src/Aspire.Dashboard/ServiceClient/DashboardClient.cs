@@ -534,6 +534,12 @@ internal sealed class DashboardClient : IDashboardClient
                             _appHostRunId = response.RunId;
                         }
                     }
+                    var consoleWriter = (_dataSourcePool?.Current.ResourceRepository as IAppHostConsoleLogWriter)
+                        ?? (_resourceRepositoryWriter as IAppHostConsoleLogWriter);
+                    if (consoleWriter is not null)
+                    {
+                        await consoleWriter.BeginAppHostRunAsync(response.RunId).ConfigureAwait(false);
+                    }
                 }
 
                 SetAppHostCorsOrigins(response.CorsAllowedOrigins);
@@ -1172,8 +1178,7 @@ internal sealed class DashboardClient : IDashboardClient
         // Console Logs page checks this capture state and displays a notice when logs aren't available.
         // See https://github.com/microsoft/aspire/issues/18823.
         using var attachment = await RetainConsoleLogAttachmentAsync(cancellationToken).ConfigureAwait(false);
-        var writer = attachment.Writer;
-        await MarkConsoleLogsLoadedAsync(resourceName, writer).ConfigureAwait(false);
+        await MarkConsoleLogsLoadedAsync(resourceName, attachment).ConfigureAwait(false);
 
         // It's ok to dispose CTS with using because this method exits after it is finished being used.
         using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken, attachment.Token);
@@ -1210,8 +1215,10 @@ internal sealed class DashboardClient : IDashboardClient
             {
                 await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: combinedTokens.Token).ConfigureAwait(false))
                 {
-                    await writer.AddConsoleLogsAsync(resourceName, response.LogLines).ConfigureAwait(false);
-                    channel.Writer.TryWrite(CreateLogLines(response.LogLines));
+                    if (await AddConsoleLogsAsync(attachment, resourceName, response.LogLines).ConfigureAwait(false))
+                    {
+                        channel.Writer.TryWrite(CreateLogLines(response.LogLines));
+                    }
                 }
                 channel.Writer.TryComplete();
             }
@@ -1227,8 +1234,7 @@ internal sealed class DashboardClient : IDashboardClient
         EnsureInitialized();
 
         using var attachment = await RetainConsoleLogAttachmentAsync(cancellationToken).ConfigureAwait(false);
-        var writer = attachment.Writer;
-        await MarkConsoleLogsLoadedAsync(resourceName, writer).ConfigureAwait(false);
+        await MarkConsoleLogsLoadedAsync(resourceName, attachment).ConfigureAwait(false);
 
         using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken, attachment.Token);
 
@@ -1239,8 +1245,10 @@ internal sealed class DashboardClient : IDashboardClient
 
         await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: combinedTokens.Token).ConfigureAwait(false))
         {
-            await writer.AddConsoleLogsAsync(resourceName, response.LogLines).ConfigureAwait(false);
-            yield return CreateLogLines(response.LogLines);
+            if (await AddConsoleLogsAsync(attachment, resourceName, response.LogLines).ConfigureAwait(false))
+            {
+                yield return CreateLogLines(response.LogLines);
+            }
         }
     }
 
@@ -1250,7 +1258,11 @@ internal sealed class DashboardClient : IDashboardClient
 
     private async ValueTask<ConsoleLogAttachment> RetainConsoleLogAttachmentAsync(CancellationToken cancellationToken)
     {
-        using (await _attachmentLock.LockAsync(cancellationToken).ConfigureAwait(false))
+        // The first handshake initializes the repository's console generation. Capturing earlier
+        // would pair an uninitialized writer with an empty run identity and could drop the first batch.
+        using var connectionLifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _clientCancellationToken);
+        await WhenConnected.WaitAsync(connectionLifetime.Token).ConfigureAwait(false);
+        using (await _attachmentLock.LockAsync(connectionLifetime.Token).ConfigureAwait(false))
         {
             // The writer, RPC identity, and cancellation token must describe the same attachment.
             // In particular, MarkConsoleLogsLoadedAsync can await SQLite while a reconnect completes.
@@ -1265,17 +1277,35 @@ internal sealed class DashboardClient : IDashboardClient
         }
     }
 
-    private async Task MarkConsoleLogsLoadedAsync(string resourceName, IResourceRepositoryWriter writer)
+    private async Task MarkConsoleLogsLoadedAsync(string resourceName, ConsoleLogAttachment attachment)
     {
         lock (_lock)
         {
-            if (_resourceByName.TryGetValue(resourceName, out var resource))
+            if (attachment.RunId == _appHostRunId && _resourceByName.TryGetValue(resourceName, out var resource))
             {
                 resource.ConsoleLogsLoaded = true;
             }
         }
 
-        await writer.MarkConsoleLogsLoadedAsync(resourceName).ConfigureAwait(false);
+        if (attachment.Writer is IAppHostConsoleLogWriter writer)
+        {
+            await writer.MarkConsoleLogsLoadedAsync(resourceName, attachment.RunId).ConfigureAwait(false);
+        }
+        else
+        {
+            await attachment.Writer.MarkConsoleLogsLoadedAsync(resourceName).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task<bool> AddConsoleLogsAsync(ConsoleLogAttachment attachment, string resourceName, IReadOnlyList<ConsoleLogLine> lines)
+    {
+        if (attachment.Writer is IAppHostConsoleLogWriter writer)
+        {
+            return await writer.AddConsoleLogsAsync(resourceName, lines, attachment.RunId).ConfigureAwait(false);
+        }
+
+        await attachment.Writer.AddConsoleLogsAsync(resourceName, lines).ConfigureAwait(false);
+        return true;
     }
 
     private static ResourceLogLine[] CreateLogLines(IList<ConsoleLogLine> logLines)
@@ -1347,7 +1377,17 @@ internal sealed class DashboardClient : IDashboardClient
                 Kind = ResourceCommandResponseKind.Cancelled
             };
         }
-        catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled && _clientCancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (attachmentToken.IsCancellationRequested || _clientCancellationToken.IsCancellationRequested)
+        {
+            var errorMessage = _loc[nameof(DashboardResources.ResourceCommandAppHostDisconnected)];
+            return new ResourceCommandResponseViewModel
+            {
+                Kind = ResourceCommandResponseKind.Failed,
+                ErrorMessage = errorMessage,
+                Message = errorMessage
+            };
+        }
+        catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled && (attachmentToken.IsCancellationRequested || _clientCancellationToken.IsCancellationRequested))
         {
             var errorMessage = _loc[nameof(DashboardResources.ResourceCommandAppHostDisconnected)];
 

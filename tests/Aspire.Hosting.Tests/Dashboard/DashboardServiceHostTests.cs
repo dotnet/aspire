@@ -3,12 +3,40 @@
 
 using System.Net;
 using Aspire.Hosting.Dashboard;
+using Aspire.Hosting.Dcp;
+using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Tests.Dashboard;
 
 [Trait("Partition", "3")]
 public class DashboardServiceHostTests
 {
+    [Fact]
+    public void AllocatePersistentResourceServicePort_ExcludesFixedAndPersistedModelEndpoints()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.AddExecutable("fixed", "unused", ".")
+            .WithEndpoint(port: 10000, targetPort: 10002, isProxied: true);
+#pragma warning disable ASPIREPERSISTENCE001 // Exercise the persistent endpoint reservation path.
+        builder.AddExecutable("persistent", "unused", ".")
+            .WithEndpoint(name: "http", isProxied: false)
+            .WithPersistentLifetime();
+#pragma warning restore ASPIREPERSISTENCE001
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Resources:persistent:http:port"] = "10001"
+        }).Build();
+        using var allocator = new ProxylessEndpointPortAllocator(10000, 10003, 0, 1, static (_, _) => true);
+
+        var port = DashboardServiceHost.AllocatePersistentResourceServicePort(
+            new DistributedApplicationModel(builder.Resources), new DcpOptions(), configuration, allocator,
+            NullLogger<DashboardServiceHost>.Instance);
+
+        Assert.Equal(10003, port);
+    }
+
     [Theory]
     [InlineData(null, false, "https")]
     [InlineData(null, true, "http")]

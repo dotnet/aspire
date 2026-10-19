@@ -78,9 +78,13 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
         });
     }
 
-    private string GetCorsAllowedOrigins() =>
-        configuration.GetString(KnownConfigNames.DashboardCorsAllowedOrigins, KnownConfigNames.Legacy.DashboardCorsAllowedOrigins)
-            ?? DashboardEventHandlers.GetAllowedOriginsFromResourceEndpoints(model) ?? string.Empty;
+    private string GetCorsAllowedOrigins()
+    {
+        var configuredOrigins = configuration.GetString(KnownConfigNames.DashboardCorsAllowedOrigins, KnownConfigNames.Legacy.DashboardCorsAllowedOrigins);
+        return !string.IsNullOrEmpty(configuredOrigins)
+            ? configuredOrigins
+            : DashboardEventHandlers.GetAllowedOriginsFromResourceEndpoints(model) ?? string.Empty;
+    }
 
     internal static string GetDashboardApplicationName(string applicationName)
     {

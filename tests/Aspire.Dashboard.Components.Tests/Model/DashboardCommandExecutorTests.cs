@@ -56,6 +56,38 @@ public class DashboardCommandExecutorTests : DashboardTestContext
         Assert.Equal(restart ? 0 : 1, calls);
     }
 
+    [Fact]
+    public async Task ExecuteAsyncCore_ConfirmationCompletesOffline_FinalizesCancelledResult()
+    {
+        var client = new TestDashboardClient(isEnabled: true, executeResourceCommand: (_, _, _, _, _) =>
+            Task.FromResult(new ResourceCommandResponseViewModel { Kind = ResourceCommandResponseKind.Cancelled }));
+        var shown = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var dialogs = new TestDialogService(onShowDialog: (_, _) =>
+        {
+            shown.TrySetResult();
+            return Task.CompletedTask;
+        });
+        FluentUISetupHelpers.AddCommonDashboardServices(this);
+        FluentUISetupHelpers.SetupFluentUIComponents(this);
+        Services.AddSingleton<IDashboardClient>(client);
+        Services.AddSingleton<Microsoft.FluentUI.AspNetCore.Components.IDialogService>(dialogs);
+        Services.AddScoped<DashboardCommandExecutor>();
+        var toasts = Render<FluentToastProvider>();
+        var executor = Services.GetRequiredService<DashboardCommandExecutor>();
+        var command = new CommandViewModel("delete", CommandViewModelState.Enabled, "Delete", "", "Confirm deletion?", [], false, "", IconVariant.Regular);
+        var resource = ModelTestHelpers.CreateResource(resourceName: "api", commands: [command]);
+        Task<bool>? execution = null;
+        await toasts.InvokeAsync(() => { execution = executor.ExecuteAsyncCore(resource, command, r => r.DisplayName); });
+        await shown.Task.DefaultTimeout();
+        client.SetConnectionState(DashboardConnectionState.Disconnected);
+
+        await dialogs.LastInstance!.CloseAsync(DialogResult.Ok(true));
+
+        Assert.False(await execution!.DefaultTimeout());
+        var notification = Assert.Single(Services.GetRequiredService<Aspire.Dashboard.Model.INotificationService>().GetNotifications());
+        Assert.Null(notification.Entry.PrimaryAction);
+    }
+
     [Theory]
     [InlineData("Playwright exited with code 1.\nExpected: <button>Retry</button>\nExpected: 1 > 0")]
     [InlineData("<div>Failure</div>")]

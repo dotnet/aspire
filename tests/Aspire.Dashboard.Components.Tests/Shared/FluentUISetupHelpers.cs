@@ -266,7 +266,7 @@ internal static class FluentUISetupHelpers
         bool supportsRunSelection = true,
         string? databasePath = null) : IDashboardRunStore
     {
-        private readonly IReadOnlyList<DashboardRunDescriptor> _runs = (runs ??
+        private IReadOnlyList<DashboardRunDescriptor> _runs = (runs ??
             [
                 new(
                 RunId: "current",
@@ -278,6 +278,8 @@ internal static class FluentUISetupHelpers
                 DatabasePath: databasePath ?? string.Empty,
                 IsCurrent: true)
             ]).ToArray();
+
+        public void SetRuns(IReadOnlyList<DashboardRunDescriptor> runs) => _runs = runs;
 
         public int GetRunsCallCount { get; private set; }
 

@@ -850,6 +850,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
 
     [Theory]
     [InlineData(null)]
+    [InlineData("")]
     [InlineData("https://configured.example")]
     public async Task WatchResources_AllocatedEndpointsRefreshCorsWithoutBlockingAttachment(string? configuredOrigins)
     {
@@ -885,7 +886,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
             });
             var allocated = await writer.ReadNextAsync().DefaultTimeout();
             Assert.True(allocated.HasCorsAllowedOrigins);
-            Assert.Equal(configuredOrigins ?? "http://localhost:45123", allocated.CorsAllowedOrigins);
+            Assert.Equal(!string.IsNullOrEmpty(configuredOrigins) ? configuredOrigins : "http://localhost:45123", allocated.CorsAllowedOrigins);
         }
         finally
         {

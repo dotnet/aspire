@@ -90,6 +90,10 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     [SupplyParameterFromQuery(Name = "showHiddenResources")]
     public bool ShowHiddenResources { get; set; }
 
+    // Invalidate command controls and cached menus when only the AppHost connection changes.
+    [CascadingParameter(Name = nameof(DashboardConnectionState))]
+    public DashboardConnectionState AppHostConnectionState { get; set; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
 

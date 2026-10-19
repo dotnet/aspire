@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Threading.Channels;
 using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Components.Resize;
@@ -11,6 +12,7 @@ using Aspire.Dashboard.Model.BrowserStorage;
 using Aspire.Dashboard.Tests.Shared;
 using Aspire.Dashboard.Utils;
 using Aspire.Tests.Shared;
+using Aspire.Tests.Shared.DashboardModel;
 using Bunit;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.InternalTesting;
@@ -1065,6 +1067,74 @@ public partial class MainLayoutTests : DashboardTestContext
         Assert.Equal(LogLevel.Error, errorLog.LogLevel);
         Assert.Equal("Failed to restore dashboard run 'historical'. Falling back to the current run.", errorLog.Message);
         Assert.Same(exception, errorLog.Exception);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RunSelectionPending_RolloverReconcilesLiveSelectionAndPreservesStoredHistory(bool restoreHistory)
+    {
+        var store = new FluentUISetupHelpers.TestDashboardRunStore();
+        var first = store.GetCurrentRun();
+        var restored = new TaskCompletionSource<(bool Success, object? Value)>(TaskCreationOptions.RunContinuationsAsynchronously);
+        SetupMainLayoutServices(dashboardRunStore: store, sessionStorage: new TestSessionStorage
+        {
+            OnGetTaskAsync = _ => restored.Task
+        });
+        var cut = Render<MainLayout>(builder => builder.Add(p => p.ViewportInformation,
+            new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false)));
+        var selection = Services.GetRequiredService<IDashboardRunSelection>();
+        Assert.Equal(first.RunId, selection.SelectedRun.RunId);
+        store.SetRuns([first with { IsCurrent = false }, first with { RunId = "second", IsCurrent = true }]);
+
+        await cut.InvokeAsync(() => restored.SetResult((true, restoreHistory ? first.RunId : null)));
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal(restoreHistory ? first.RunId : "second", selection.SelectedRun.RunId);
+            Assert.Equal(!restoreHistory, selection.SelectedRun.IsCurrent);
+        });
+    }
+
+    [Fact]
+    public async Task ConnectionOnlyTransition_RefreshesResourceCommandControls()
+    {
+        var command = new CommandViewModel("restart", CommandViewModelState.Enabled, "Restart", "", "", [], true, "", IconVariant.Regular);
+        var resource = ModelTestHelpers.CreateResource(resourceName: "api", commands: [command]);
+        var client = new TestDashboardClient(isEnabled: true, initialResources: [resource],
+            resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>);
+        Services.AddSingleton<IconResolver>();
+        SetupMainLayoutServices(dashboardClient: client);
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        var resources = new System.Collections.Concurrent.ConcurrentDictionary<string, ResourceViewModel>(StringComparers.ResourceName)
+        {
+            [resource.Name] = resource
+        };
+        var cut = Render<MainLayout>(parameters => parameters
+            .Add(p => p.ViewportInformation, viewport)
+            .Add(p => p.Body, body =>
+            {
+                // Routed pages can skip a parent render when their route parameters have not changed.
+                // The connection cascade must still invalidate command controls underneath that boundary.
+                body.OpenComponent<RenderOnceComponent>(0);
+                body.AddAttribute(1, nameof(RenderOnceComponent.ChildContent), (RenderFragment)(controls =>
+                {
+                    controls.OpenComponent<ResourceActions>(0);
+                    controls.AddAttribute(1, nameof(ResourceActions.Resource), resource);
+                    controls.AddAttribute(2, nameof(ResourceActions.ResourceByName), resources);
+                    controls.AddAttribute(3, nameof(ResourceActions.MaxHighlightedCount), 1);
+                    controls.AddAttribute(4, nameof(ResourceActions.IsCommandExecuting), (Func<ResourceViewModel, CommandViewModel, bool>)((_, _) => false));
+                    controls.CloseComponent();
+                }));
+                body.CloseComponent();
+            }));
+        bool IsDisabled() => cut.FindComponents<FluentButton>().Single(button => button.Instance.Title == "Restart").Instance.Disabled;
+        Assert.False(IsDisabled());
+
+        await cut.InvokeAsync(() => client.SetConnectionState(DashboardConnectionState.Disconnected));
+        cut.WaitForAssertion(() => Assert.True(IsDisabled()));
+        await cut.InvokeAsync(() => client.SetConnectionState(DashboardConnectionState.Connected));
+        cut.WaitForAssertion(() => Assert.False(IsDisabled()));
     }
 
     [Fact]
