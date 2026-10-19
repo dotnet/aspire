@@ -4,11 +4,11 @@
 namespace Aspire.Tray;
 
 /// <summary>
-/// The flyout panel shown by a left click on the tray icon. It owns the layout and every bit
-/// of interaction state (hover, press, keyboard focus, scrolling, the collapsed recent list)
-/// and turns <see cref="TrayViewState"/> into a <see cref="TrayPanelScene"/>. The macOS and
-/// Windows hosts only forward input, draw the display list, and run the returned actions,
-/// so both platforms look and behave the same.
+/// The flyout panel shown when the tray icon is activated. It is the tray's only UI: it owns the
+/// layout and every bit of interaction state (hover, press, keyboard focus, scrolling, the
+/// collapsed recent list, a row's open action list) and turns <see cref="TrayViewState"/> into a
+/// <see cref="TrayPanelScene"/>. The macOS and Windows hosts only forward input, draw the display
+/// list, and run the returned actions, so both platforms look and behave the same.
 /// </summary>
 /// <remarks>
 /// Not thread-safe: hosts call it from their UI thread only.
@@ -29,6 +29,12 @@ internal sealed class TrayPanel
     public const double ConfirmHeight = 92;
     public const double SettingsRowHeight = 62;
     public const double AboutHeight = 84;
+    public const double ActionItemHeight = 30;
+
+    // The action list is a card under its row: 4 px above and below its items, plus a 6 px gap
+    // below the card so it doesn't touch the next row.
+    private const double ActionListPadding = 4;
+    private const double ActionListGap = 6;
 
     // Trailing row buttons are laid out from the right edge of the row's content area.
     private const double RowInset = 8;
@@ -57,6 +63,9 @@ internal sealed class TrayPanel
     private bool? _recentExpanded;
     private PanelConfirm? _confirm;
     private PanelSettings? _settings;
+    private (PanelSection Section, AppHostId Host)? _actions;
+    private IReadOnlyList<string> _openInApplications = [];
+    private string _fileManagerName = "Finder";
     private double _listScroll;
 
     public TrayPanel(TrayViewState state, TrayPanelPalette palette)
@@ -126,6 +135,47 @@ internal sealed class TrayPanel
     /// <summary>Whether the panel shows its Settings view instead of the AppHost list.</summary>
     public bool IsSettingsOpen => _settings is not null;
 
+    /// <summary>The row whose action list is open, if any.</summary>
+    public (PanelSection Section, AppHostId Host)? ActionsRow => _actions;
+
+    /// <summary>
+    /// The installed applications a row's action list offers to open the AppHost folder in, in
+    /// display order. The host discovers them; each one becomes an "Open in" item.
+    /// </summary>
+    public IReadOnlyList<string> OpenInApplications
+    {
+        get => _openInApplications;
+        set
+        {
+            if (!_openInApplications.SequenceEqual(value))
+            {
+                _openInApplications = [.. value];
+                _scene = null;
+            }
+        }
+    }
+
+    /// <summary>The platform's file manager, for the "Show in …" item: "Finder" or "File Explorer".</summary>
+    public string FileManagerName
+    {
+        get => _fileManagerName;
+        set
+        {
+            if (_fileManagerName != value)
+            {
+                _fileManagerName = value;
+                _scene = null;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Shows the keyboard focus on the first control, for a panel opened from the keyboard or by a
+    /// screen reader, so the user can see where Tab and the arrow keys start.
+    /// </summary>
+    public PanelResponse FocusFirst()
+        => FocusAt(Scene.Targets.Where(target => target.Enabled && IsPrimary(target.Kind)).ToList(), 0);
+
     /// <summary>
     /// Switches to the Settings view, or refreshes it when it is already open. Focus starts on
     /// the back arrow so Enter or Escape returns to the list.
@@ -135,6 +185,7 @@ internal sealed class TrayPanel
         if (_settings is null)
         {
             _confirm = null;
+            _actions = null;
             _listScroll = _scroll;
             _scroll = 0;
             _focus = new(PanelTargetKind.Back, PanelSection.None, null);
@@ -163,6 +214,7 @@ internal sealed class TrayPanel
     public PanelResponse ConfirmRemoveMissing(AppHostMenuItem host)
     {
         _settings = null;
+        _actions = null;
         _recentExpanded = true;
         BeginConfirm(new(PanelConfirmKind.RemoveMissing, PanelSection.Recent, host));
         RefreshHover();
@@ -201,6 +253,7 @@ internal sealed class TrayPanel
         _scroll = 0;
         _listScroll = 0;
         _confirm = null;
+        _actions = null;
         _settings = null;
         _scene = null;
     }
@@ -319,11 +372,16 @@ internal sealed class TrayPanel
         switch (key)
         {
             case PanelKey.Escape:
-                // Escape steps back one level: out of a confirmation, then out of Settings,
-                // and only then closes the panel.
+                // Escape steps back one level: out of a confirmation or an action list, then
+                // out of Settings, and only then closes the panel.
                 if (_confirm is not null)
                 {
                     CancelConfirm();
+                    return PanelResponse.Changed;
+                }
+                if (_actions is not null)
+                {
+                    CloseActions(returnFocus: true);
                     return PanelResponse.Changed;
                 }
                 if (_settings is not null)
@@ -357,14 +415,66 @@ internal sealed class TrayPanel
     private static bool IsPrimary(PanelTargetKind kind)
         => kind is PanelTargetKind.Row or PanelTargetKind.ToggleRecent or PanelTargetKind.Documentation
             or PanelTargetKind.Settings or PanelTargetKind.Quit or PanelTargetKind.ConfirmCancel or PanelTargetKind.Back
-            or PanelTargetKind.LaunchAtSignIn;
+            or PanelTargetKind.LaunchAtSignIn || IsActionItem(kind);
 
     private static bool IsConfirmTarget(PanelTargetKind kind)
         => kind is PanelTargetKind.ConfirmCancel or PanelTargetKind.ConfirmAccept;
 
+    /// <summary>The items of a row's action list.</summary>
+    private static bool IsActionItem(PanelTargetKind kind)
+        => kind is PanelTargetKind.OpenIn or PanelTargetKind.ShowInFolder or PanelTargetKind.CopyPath
+            or PanelTargetKind.TogglePin or PanelTargetKind.RemoveRecent;
+
+    /// <summary>
+    /// Opens the action list of a row under it, or closes it when it is already open. The list
+    /// takes the place of the native context menu: Open in, Show in Finder or File Explorer,
+    /// Copy path, Pin or Unpin, and Remove for a recent row.
+    /// </summary>
+    private void ToggleActions(PanelTargetKey row)
+    {
+        if (_actions == (row.Section, row.Host!.Value))
+        {
+            CloseActions(returnFocus: true);
+            return;
+        }
+        _confirm = null;
+        _actions = (row.Section, row.Host!.Value);
+        _scene = null;
+        // The list is below the row and may be below the fold, so scroll all of it into view.
+        // Focus stays on the button that opened it: Down moves into the list.
+        var items = Scene.Targets.Where(target => IsActionItem(target.Kind)).ToList();
+        if (items.Count > 0)
+        {
+            var bottom = items.Max(target => target.Bounds.Bottom) + ActionListPadding;
+            var top = Scene.Targets.FirstOrDefault(target => target.Key == row with { Kind = PanelTargetKind.Row })?.Bounds.Y ?? bottom;
+            if (bottom > _viewport.Bottom)
+            {
+                // Never scroll the row itself out of view to show the end of a long list.
+                _scroll += Math.Min(bottom - _viewport.Bottom, Math.Max(0, top - _viewport.Y));
+            }
+            _scene = null;
+        }
+    }
+
+    private void CloseActions(bool returnFocus)
+    {
+        if (_actions is not { } actions)
+        {
+            return;
+        }
+        _actions = null;
+        if (returnFocus)
+        {
+            // Return focus to the button that opened the list.
+            _focus = new(PanelTargetKind.More, actions.Section, actions.Host);
+        }
+        _scene = null;
+    }
+
     private void BeginConfirm(PanelConfirm confirm)
     {
         _confirm = confirm;
+        _actions = null;
         // Focus starts on Cancel, so Enter or Space right after the click never confirms.
         _focus = new(PanelTargetKind.ConfirmCancel, confirm.Section, confirm.Host?.Id);
         _scene = null;
@@ -489,25 +599,50 @@ internal sealed class TrayPanel
             _confirm = null;
             _scene = null;
         }
+        var togglesActions = target.Kind is PanelTargetKind.More
+            || (target.Kind == PanelTargetKind.Row && host is { CanOpenDashboard: false, IsStarting: false, IsStopping: false });
+        if (_actions is not null && !togglesActions && !IsActionItem(target.Kind))
+        {
+            // Likewise, acting on anything but the list (or the button that toggles it) closes it.
+            CloseActions(returnFocus: false);
+        }
         switch (target.Kind)
         {
             // A starting or stopping AppHost has nothing to open yet (or anymore): its dashboard
-            // isn't reachable, and the More menu would only offer disabled actions. Keep the panel open.
+            // isn't reachable. Keep the panel open and ignore the click.
             case PanelTargetKind.Row when host is { IsStarting: true } or { IsStopping: true }:
                 return null;
             case PanelTargetKind.Row when host is { CanOpenDashboard: true }:
             case PanelTargetKind.Dashboard:
                 return new(PanelActionKind.OpenDashboard, host, target.Bounds) { Recent = recent };
             case PanelTargetKind.Row:
-                // Rows without a dashboard open the same menu as their "More" button.
-                var more = Scene.Targets.FirstOrDefault(other => other.Key == target.Key with { Kind = PanelTargetKind.More });
-                return new(PanelActionKind.More, host, more?.Bounds ?? target.Bounds) { Recent = recent };
+            case PanelTargetKind.More:
+                // Rows without a dashboard open the same action list as their "More" button.
+                ToggleActions(target.Key);
+                return null;
             case PanelTargetKind.Stop:
                 return new(PanelActionKind.Stop, host, target.Bounds) { Recent = recent };
             case PanelTargetKind.Start:
                 return new(PanelActionKind.Start, host, target.Bounds) { Recent = recent };
-            case PanelTargetKind.More:
-                return new(PanelActionKind.More, host, target.Bounds) { Recent = recent };
+            case PanelTargetKind.OpenIn:
+                CloseActions(returnFocus: true);
+                return new(PanelActionKind.OpenIn, host, target.Bounds)
+                {
+                    Recent = recent,
+                    Application = target.Key.Item < _openInApplications.Count ? _openInApplications[target.Key.Item] : null
+                };
+            case PanelTargetKind.ShowInFolder:
+                CloseActions(returnFocus: true);
+                return new(PanelActionKind.ShowInFolder, host, target.Bounds) { Recent = recent };
+            case PanelTargetKind.CopyPath:
+                CloseActions(returnFocus: true);
+                return new(PanelActionKind.CopyPath, host, target.Bounds) { Recent = recent };
+            case PanelTargetKind.TogglePin:
+                CloseActions(returnFocus: true);
+                return new(PanelActionKind.TogglePin, host, target.Bounds) { Recent = recent };
+            case PanelTargetKind.RemoveRecent:
+                CloseActions(returnFocus: false);
+                return new(PanelActionKind.RemoveRecent, host, target.Bounds) { Recent = true };
             case PanelTargetKind.ToggleRecent:
                 _recentExpanded = !IsRecentExpanded;
                 _scene = null;
@@ -566,6 +701,7 @@ internal sealed class TrayPanel
         else
         {
             RevalidateConfirm();
+            RevalidateActions();
             if (state.AppHosts.Count == 0)
             {
                 Add(ListItemKind.Empty, EmptyStateHeight, PanelSection.None, null);
@@ -607,6 +743,11 @@ internal sealed class TrayPanel
                 var confirming = _confirm is { Kind: PanelConfirmKind.RemoveMissing } confirm
                     && confirm.Section == section && confirm.Host?.Id == host.Id;
                 Add(confirming ? ListItemKind.Confirm : ListItemKind.Row, confirming ? ConfirmHeight : RowHeight, section, host);
+                if (!confirming && _actions == (section, host.Id))
+                {
+                    var count = GetRowActions(host, section).Count;
+                    Add(ListItemKind.Actions, count * ActionItemHeight + 2 * ActionListPadding + ActionListGap, section, host);
+                }
             }
         }
 
@@ -684,6 +825,9 @@ internal sealed class TrayPanel
                     break;
                 case ListItemKind.Confirm:
                     AddConfirm(sink, targets, _confirm!, item.Host, top, palette);
+                    break;
+                case ListItemKind.Actions:
+                    AddActions(sink, targets, item.Host!, item.Section, top, item.Height, palette);
                     break;
                 case ListItemKind.SettingsToggle:
                     AddSettingsToggle(sink, targets, item.Target, _settings!, top, palette);
@@ -827,7 +971,10 @@ internal sealed class TrayPanel
     {
         var rowKey = new PanelTargetKey(PanelTargetKind.Row, section, host.Id);
         var row = new PanelRect(RowInset, top + 2, Width - 2 * RowInset, RowHeight - 4);
-        var active = IsWithinRow(_hover, rowKey) || IsWithinRow(_pressed, rowKey) || (_focusVisible && IsWithinRow(_focus, rowKey));
+        // A row whose action list is open keeps its buttons visible, so its "More" button can be
+        // seen as the list's owner and clicked again to close it.
+        var expanded = _actions == (section, host.Id);
+        var active = expanded || IsWithinRow(_hover, rowKey) || IsWithinRow(_pressed, rowKey) || (_focusVisible && IsWithinRow(_focus, rowKey));
         if (_pressed == rowKey)
         {
             commands.Add(new FillPathCommand(PanelPath.RoundedRect(row, 6), palette.Pressed));
@@ -860,7 +1007,7 @@ internal sealed class TrayPanel
                 PanelTargetKind.Dashboard => (PanelIcon.ExternalLink, $"Open dashboard for {host.DisplayName}", host.CanOpenDashboard),
                 PanelTargetKind.Stop => (PanelIcon.Stop, $"Stop {host.DisplayName}", host.CanStop),
                 PanelTargetKind.Start => (PanelIcon.Play, $"Start {host.DisplayName}", host.CanStart),
-                _ => (PanelIcon.More, $"More actions for {host.DisplayName}", true)
+                _ => (PanelIcon.More, expanded ? $"Hide actions for {host.DisplayName}" : $"More actions for {host.DisplayName}", true)
             };
             // Buttons always keep their space so the text never reflows on hover, and they
             // stay hit-testable: the pointer is inside the row, so they are visible, before any click.
@@ -868,6 +1015,11 @@ internal sealed class TrayPanel
             if (!active)
             {
                 continue;
+            }
+            if (kind == PanelTargetKind.More && expanded && _hover != key && _pressed != key)
+            {
+                // Mark the button as selected while its list is open, like the gear for Settings.
+                commands.Add(new FillPathCommand(PanelPath.RoundedRect(bounds, 6), palette.Pressed));
             }
             if (enabled)
             {
@@ -877,6 +1029,72 @@ internal sealed class TrayPanel
                 : _hover == key || _pressed == key ? palette.TextPrimary
                 : palette.TextSecondary;
             TrayPanelGlyphs.AddIcon(commands, icon, bounds.Inset(6, 6), color);
+        }
+    }
+
+    /// <summary>Closes an action list whose row went away, such as an AppHost that stopped.</summary>
+    private void RevalidateActions()
+    {
+        if (_actions is not { } actions)
+        {
+            return;
+        }
+        var hosts = actions.Section switch
+        {
+            PanelSection.Running => _state.AppHosts.Where(host => host.Id.AppHostPid != 0),
+            PanelSection.Pinned => _state.AppHosts.Where(host => host.Id.AppHostPid == 0),
+            _ => IsRecentExpanded ? _state.RecentAppHosts : []
+        };
+        if (!hosts.Any(host => host.Id == actions.Host))
+        {
+            CloseActions(returnFocus: false);
+        }
+    }
+
+    /// <summary>The items of a row's action list, in display order.</summary>
+    private List<(PanelTargetKind Kind, int Item, PanelIcon Icon, string Label, string Name)> GetRowActions(AppHostMenuItem host, PanelSection section)
+    {
+        var name = host.DisplayName;
+        var actions = new List<(PanelTargetKind, int, PanelIcon, string, string)>();
+        for (var i = 0; i < _openInApplications.Count; i++)
+        {
+            var application = _openInApplications[i];
+            actions.Add((PanelTargetKind.OpenIn, i, PanelIcon.AppWindow, $"Open in {application}", $"Open {name} in {application}"));
+        }
+        actions.Add((PanelTargetKind.ShowInFolder, 0, PanelIcon.Folder, $"Show in {_fileManagerName}", $"Show {name} in {_fileManagerName}"));
+        actions.Add((PanelTargetKind.CopyPath, 0, PanelIcon.Copy, "Copy path", $"Copy the folder path of {name}"));
+        actions.Add(host.IsPinned
+            ? (PanelTargetKind.TogglePin, 0, PanelIcon.Unpin, "Unpin", $"Unpin {name}")
+            : (PanelTargetKind.TogglePin, 0, PanelIcon.Pin, "Pin", $"Pin {name}"));
+        if (section == PanelSection.Recent)
+        {
+            actions.Add((PanelTargetKind.RemoveRecent, 0, PanelIcon.Remove, "Remove from recent", $"Remove {name} from recent AppHosts"));
+        }
+        return actions;
+    }
+
+    /// <summary>
+    /// Draws a row's action list: a card under the row with one item per action, each an icon and
+    /// a label. It looks the same on both platforms, unlike the native menus it replaces, and its
+    /// items are ordinary targets, so the keyboard and screen readers reach them like any button.
+    /// </summary>
+    private void AddActions(List<PanelCommand> commands, List<PanelHitTarget> targets, AppHostMenuItem host, PanelSection section,
+        double top, double height, TrayPanelPalette palette)
+    {
+        var card = new PanelRect(RowInset, top, Width - 2 * RowInset, height - ActionListGap);
+        commands.Add(new FillPathCommand(PanelPath.RoundedRect(card, 8), palette.Gutter));
+        commands.Add(new StrokePathCommand(PanelPath.RoundedRect(card.Inset(0.5, 0.5), 7.5), palette.Border, 1));
+        var y = card.Y + ActionListPadding;
+        foreach (var (kind, index, icon, label, name) in GetRowActions(host, section))
+        {
+            var item = new PanelRect(card.X + ActionListPadding, y, card.Width - 2 * ActionListPadding, ActionItemHeight);
+            var key = new PanelTargetKey(kind, section, host.Id, index);
+            AddInteractionFill(commands, key, item, palette, includeFocus: false);
+            // Line the icons up with the status glyphs and the labels with the AppHost names above.
+            TrayPanelGlyphs.AddIcon(commands, icon, new(22, item.Y + 7, 16, 16), _hover == key ? palette.TextPrimary : palette.TextSecondary);
+            commands.Add(new TextCommand(new(TextLeft, item.Y, item.Right - 8 - TextLeft, item.Height), label, PanelFontRole.Body, palette.TextPrimary));
+            AddTarget(targets, key, item, name, true, host);
+            y += ActionItemHeight;
         }
     }
 
@@ -1172,7 +1390,8 @@ internal sealed class TrayPanel
         Row,
         Confirm,
         SettingsToggle,
-        About
+        About,
+        Actions
     }
 
     /// <summary>One item of the scrolled list. <see cref="Target"/> tells Settings items apart.</summary>

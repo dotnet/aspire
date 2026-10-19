@@ -32,8 +32,6 @@ internal static partial class AppKit
     public static void Set(nint receiver, string selector, nint argument) => SendVoidPointer(receiver, Selector(selector), argument);
     public static void Release(nint value) => SendVoid(value, Selector("release"));
     public static nint Constant(string name) => Marshal.ReadIntPtr(NativeLibrary.GetExport(s_appKit, name));
-    public static bool Supports(nint receiver, string selector)
-        => SendReturningBool(receiver, Selector("respondsToSelector:"), Selector(selector)) != 0;
     public static double DoubleConstant(string name) => BitConverter.Int64BitsToDouble(Marshal.ReadInt64(NativeLibrary.GetExport(s_appKit, name)));
 
     /// <summary>
@@ -96,16 +94,10 @@ internal static partial class AppKit
     private static partial nint SendUtf8(nint receiver, nint selector, string argument);
 
     [LibraryImport(ObjC, EntryPoint = "objc_msgSend")]
-    public static partial nint SendThreePointers(nint receiver, nint selector, nint first, nint second, nint third);
-
-    [LibraryImport(ObjC, EntryPoint = "objc_msgSend")]
     public static partial nint SendTwoPointers(nint receiver, nint selector, nint first, nint second);
 
     [LibraryImport(ObjC, EntryPoint = "objc_msgSend")]
     public static partial void SendVoidTwoPointers(nint receiver, nint selector, nint first, nint second);
-
-    [LibraryImport(ObjC, EntryPoint = "objc_msgSend")]
-    public static partial byte PopUpMenu(nint receiver, nint selector, nint positioningItem, NativePoint location, nint view);
 
     [LibraryImport(ObjC, EntryPoint = "objc_msgSend")]
     public static partial nint SendInt64(nint receiver, nint selector, long argument);
@@ -244,9 +236,6 @@ internal static partial class AppKit
 
     [LibraryImport(CoreFoundation)]
     public static partial nint CFRunLoopGetMain();
-
-    [LibraryImport(CoreFoundation)]
-    public static partial nint CFRunLoopCopyCurrentMode(nint runLoop);
 
     [LibraryImport(CoreFoundation)]
     public static partial nint CFRetain(nint value);

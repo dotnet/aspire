@@ -406,7 +406,7 @@ internal sealed class TrayController : IAsyncDisposable
             Task<StartResult> command;
             lock (_gate)
             {
-                // Discovery may have changed after the menu gesture but before this worker.
+                // Discovery may have changed after the click but before this worker.
                 RequireStartablePathLocked(path);
                 TrayAppHostPath.RequireExistingFile(path);
                 command = _client.StartAsync(path, _shutdown.Token);

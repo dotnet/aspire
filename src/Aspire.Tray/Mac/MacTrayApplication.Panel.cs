@@ -7,19 +7,17 @@ using System.Runtime.InteropServices;
 namespace Aspire.Tray;
 
 /// <summary>
-/// The flyout panel shown by a left click on the status item. Layout, glyphs and interaction
-/// live in the shared <see cref="TrayPanel"/>; this part only hosts it in a borderless NSPanel,
-/// forwards input, and draws the display list with NSBezierPath and NSAttributedString.
-/// VoiceOver sees the panel through MacTrayApplication.PanelAccessibility.cs. A right click,
-/// Control-click, or keyboard or VoiceOver activation of the status item still opens the
-/// native menu.
+/// The flyout panel, the tray's only UI, shown by any activation of the status item. Layout,
+/// glyphs and interaction live in the shared <see cref="TrayPanel"/>; this part only hosts it in
+/// a borderless NSPanel, forwards input, and draws the display list with NSBezierPath and
+/// NSAttributedString. VoiceOver sees the panel through MacTrayApplication.PanelAccessibility.cs.
 /// </summary>
 internal sealed partial class MacTrayApplication
 {
     // NSEvent types and modifier flags.
     // https://developer.apple.com/documentation/appkit/nsevent/eventtype
     private const long LeftMouseDownEvent = 1;
-    private const long ControlKeyMask = 1 << 18;
+    private const long RightMouseDownEvent = 3;
     private const long ShiftKeyMask = 1 << 17;
     private const long CommandKeyMask = 1 << 20;
     private const double PanelScreenMargin = 8;
@@ -79,7 +77,8 @@ internal sealed partial class MacTrayApplication
         var button = AppKit.Get(_statusItem, "button");
         AppKit.Set(button, "setTarget:", _target);
         AppKit.Set(button, "setAction:", AppKit.Selector("statusItemClicked:"));
-        // Act on mouse-down, like a menu, for both buttons; the right button opens the menu.
+        // Act on mouse-down, like a menu, for both buttons: a right click or Control-click opens
+        // the same panel as a left click.
         // https://developer.apple.com/documentation/appkit/nscontrol/sendaction(on:)
         AppKit.SendInt64(button, AppKit.Selector("sendActionOn:"), (1 << 1) | (1 << 3));
     }
@@ -87,16 +86,17 @@ internal sealed partial class MacTrayApplication
     private void OnStatusItemActivated()
     {
         var currentEvent = AppKit.Get(_application, "currentEvent");
-        var type = currentEvent == 0 ? 0 : AppKit.GetInt64(currentEvent, AppKit.Selector("type"));
-        var modifiers = currentEvent == 0 ? 0 : AppKit.GetInt64(currentEvent, AppKit.Selector("modifierFlags"));
-        // Only a plain left mouse-down opens the flyout. Keyboard and VoiceOver activation
-        // (AXPress), right clicks and Control-clicks get the native menu, which is accessible.
-        if (type != LeftMouseDownEvent || (modifiers & ControlKeyMask) != 0)
-        {
-            HidePanel();
-            ShowNativeMenu();
-            return;
-        }
+        ToggleFromStatusItem(currentEvent == 0 ? 0 : AppKit.GetInt64(currentEvent, AppKit.Selector("type")));
+    }
+
+    /// <summary>
+    /// Toggles the panel for an activation of the status item. Every activation opens it: a left
+    /// or right click, a Control-click, and keyboard or VoiceOver activation (AXPress), which
+    /// performs the button's click without a mouse event. Those last ones also show the keyboard
+    /// focus, so the user can see where Tab and the arrow keys start.
+    /// </summary>
+    private void ToggleFromStatusItem(long eventType)
+    {
         if (_panelVisible || Environment.TickCount64 - _panelHiddenAt < 250)
         {
             // A click on the status item can first take key status away from the panel, which
@@ -104,37 +104,26 @@ internal sealed partial class MacTrayApplication
             HidePanel();
             return;
         }
-        ShowPanel();
+        ShowPanel(keyboard: eventType is not (LeftMouseDownEvent or RightMouseDownEvent));
     }
 
-    private void ShowNativeMenu()
+    private void ShowPanel(bool keyboard = false)
     {
-        // The standard way to open a status item's menu on demand: attach it, click, detach.
-        // performClick: returns when menu tracking ends.
-        // https://developer.apple.com/documentation/appkit/nsstatusitem/menu
-        var button = AppKit.Get(_statusItem, "button");
-        AppKit.Set(_statusItem, "setMenu:", _menu);
-        try
-        {
-            AppKit.Set(button, "performClick:", 0);
-        }
-        finally
-        {
-            AppKit.Set(_statusItem, "setMenu:", 0);
-        }
-    }
-
-    private void ShowPanel()
-    {
-        if (_openMenus.Count != 0 || _modalDepth != 0 || _quitting)
+        if (_quitting)
         {
             return;
         }
         EnsurePanel();
         _controller.PruneMissingPinnedAppHosts();
-        _panel!.Update(_controller.State);
+        DiscoverFolderApplications();
+        _panel!.OpenInApplications = _installedFolderApplications.Select(application => application.Title).ToArray();
+        _panel.Update(_controller.State);
         _panel.Reset();
         _panel.Palette = GetPanelPalette();
+        if (keyboard)
+        {
+            _panel.FocusFirst();
+        }
         _panelVisible = true;
         LayoutPanel();
         AppKit.SendBool(AppKit.Get(_statusItem, "button"), AppKit.Selector("highlight:"), 1);
@@ -164,7 +153,7 @@ internal sealed partial class MacTrayApplication
         {
             return;
         }
-        _panel = new TrayPanel(_controller.State, GetPanelPalette());
+        _panel = new TrayPanel(_controller.State, GetPanelPalette()) { FileManagerName = "Finder" };
         var frame = new AppKit.NativeRect(new(0, 0), new(TrayPanel.Width, 200));
         // Borderless (0), buffered backing (2).
         _panelWindow = AppKit.CreateWindow(AppKit.Get(AppKit.Class("AspireTrayFlyoutPanel"), "alloc"),
@@ -209,9 +198,13 @@ internal sealed partial class MacTrayApplication
             screen = AppKit.Get(AppKit.Class("NSScreen"), "mainScreen");
         }
         var visible = AppKit.GetRect(screen, "visibleFrame");
-        if (buttonWindow == 0)
+        var visibleTop = visible.Origin.Y + visible.Size.Height;
+        if (buttonWindow == 0 || anchor.Origin.Y + anchor.Size.Height < visibleTop)
         {
-            anchor = new(new(visible.Origin.X + visible.Size.Width - TrayPanel.Width, visible.Origin.Y + visible.Size.Height), new(0, 0));
+            // A status item hidden behind the camera housing, or pushed off a crowded menu bar,
+            // keeps an offscreen window (observed at y = -37). Hang the panel from the top-right
+            // corner of the screen instead of shrinking it to fit below that window.
+            anchor = new(new(visible.Origin.X + visible.Size.Width - TrayPanel.Width, visibleTop), new(0, 0));
         }
         // Screen coordinates have a bottom-left origin. The panel hangs below the menu bar,
         // centered on the status item and kept inside the visible frame.
@@ -280,10 +273,22 @@ internal sealed partial class MacTrayApplication
                 StopAppHost(action.Host!.Id);
                 break;
             case PanelActionKind.Start:
-                RunAction(() => StartFromPanel(action));
+                RunAction(() => StartAppHost(action.Host!.Id.AppHostPath));
                 break;
-            case PanelActionKind.More:
-                ShowRowMenu(action);
+            case PanelActionKind.OpenIn:
+                RunAction(() => OpenIn(action.Host!.Id.AppHostPath, action.Application
+                    ?? throw new InvalidOperationException("The selected application is no longer available.")));
+                break;
+            case PanelActionKind.ShowInFolder:
+                RunAction(() => ShowInFinder(action.Host!.Id.AppHostPath));
+                break;
+            case PanelActionKind.CopyPath:
+                // Copy the containing folder, as a terminal or editor wants it. This works even
+                // when the AppHost file itself was moved or deleted.
+                RunAction(() => _copyPath(Path.GetDirectoryName(action.Host!.Id.AppHostPath)!));
+                break;
+            case PanelActionKind.TogglePin:
+                RunAction(() => _controller.SetPinned(action.Host!.Id.AppHostPath, !action.Host.IsPinned));
                 break;
             case PanelActionKind.ClearRecent:
                 RunAction(_controller.ClearRecent);
@@ -301,11 +306,6 @@ internal sealed partial class MacTrayApplication
             case PanelActionKind.SetLaunchAtSignIn:
                 ApplyPanelResponse(_panel!.UpdateSettings(PanelSettings.SetLaunchAtSignIn(_startupSettings, action.Enabled, _interactiveSmoke,
                     static ex => LogFailure("Unable to change launch-at-sign-in settings", ex))));
-                if (_settingsWindow != 0)
-                {
-                    // Keep an open native Settings window in sync with the panel's toggle.
-                    ReloadStartupSettings();
-                }
                 break;
             case PanelActionKind.Quit:
                 HidePanel();
@@ -318,49 +318,6 @@ internal sealed partial class MacTrayApplication
     }
 
     private static void LogStartupReadFailure(Exception exception) => LogFailure("Unable to read launch-at-sign-in settings", exception);
-
-    /// <summary>
-    /// Starts a pinned or recent AppHost from the panel. A recent entry whose source file is gone
-    /// turns into an inline removal prompt instead of the NSAlert the native menu shows.
-    /// </summary>
-    private void StartFromPanel(PanelAction action)
-    {
-        var path = action.Host!.Id.AppHostPath;
-        if (action.Recent && TrayAppHostPath.IsMissing(path)
-            && _controller.State.RecentAppHosts.FirstOrDefault(host => host.Id.AppHostPath == path) is { } recent)
-        {
-            ApplyPanelResponse(_panel!.ConfirmRemoveMissing(recent));
-            return;
-        }
-        StartAppHost(path);
-    }
-
-    private void ShowRowMenu(PanelAction action)
-    {
-        // Reuse the row's native action submenu (Open In, Finder, Copy Path, Pin) instead of
-        // rebuilding it. A copy is popped so the original keeps its place in the status menu.
-        var row = (action.Recent ? _recentRows : _rows).FirstOrDefault(row => row.Id == action.Host!.Id)
-            ?? _rows.Concat(_recentRows).FirstOrDefault(row => row.Id.AppHostPath == action.Host!.Id.AppHostPath);
-        if (row is null)
-        {
-            return;
-        }
-        var menu = AppKit.Get(row.Submenu, "copy");
-        try
-        {
-            AppKit.Set(menu, "setDelegate:", _target);
-            _menus.Add(menu);
-            // The view is flipped, so the anchor's bottom-left is in panel coordinates directly.
-            AppKit.PopUpMenu(menu, AppKit.Selector("popUpMenuPositioningItem:atLocation:inView:"),
-                0, new(action.Anchor.X, action.Anchor.Bottom + 2), _panelView);
-        }
-        finally
-        {
-            AppKit.Set(menu, "setDelegate:", 0);
-            _menus.Remove(menu);
-            AppKit.Release(menu);
-        }
-    }
 
     private TrayPanelPalette GetPanelPalette()
     {
@@ -589,11 +546,13 @@ internal sealed partial class MacTrayApplication
         var modifiers = AppKit.GetInt64(nativeEvent, AppKit.Selector("modifierFlags"));
         if ((modifiers & CommandKeyMask) != 0)
         {
-            // Command-Q quits and Command-W closes, as in any other window.
+            // Command-Q quits and Command-W closes, as in any other window, and Command-comma
+            // opens Settings, as in any other app.
             return keyCode switch
             {
                 12 => new(false, new PanelAction(PanelActionKind.Quit)),
                 13 => new(false, new PanelAction(PanelActionKind.Close)),
+                43 when !_panel!.IsSettingsOpen => new(false, new PanelAction(PanelActionKind.Settings)),
                 _ => PanelResponse.None
             };
         }
@@ -623,9 +582,9 @@ internal sealed partial class MacTrayApplication
     {
         VerifyUIThread();
         var button = AppKit.Get(_statusItem, "button");
-        Require(AppKit.Get(_statusItem, "menu") == 0, "The status item must not keep its menu attached; left click opens the panel.");
+        Require(AppKit.Get(_statusItem, "menu") == 0, "The status item must not keep a menu attached; every activation opens the panel.");
         Require(AppKit.Get(button, "action") == AppKit.Selector("statusItemClicked:") && AppKit.Get(button, "target") == _target,
-            "The status button must route clicks to the panel/menu selector.");
+            "The status button must route clicks to the panel selector.");
         ShowPanel();
         try
         {
@@ -655,6 +614,19 @@ internal sealed partial class MacTrayApplication
                     _panel.Key(PanelKey.Down);
                     _panel.PointerMoved(row.HitBounds.X + 40, row.HitBounds.CenterY);
                     captures.Add(CapturePanel(Path.Combine(captureDirectory, "panel-dark-interactive.png")));
+                    _panel.Reset();
+                }
+                var more = _panel.Scene.Targets.FirstOrDefault(target => target.Kind == PanelTargetKind.More);
+                if (more is not null)
+                {
+                    _panel.Invoke(more.Key);
+                    foreach (var (name, appearance) in new[] { ("light", "NSAppearanceNameAqua"), ("dark", "NSAppearanceNameDarkAqua") })
+                    {
+                        AppKit.Set(_panelView, "setAppearance:", AppKit.Get(AppKit.Class("NSAppearance"), "appearanceNamed:", AppKit.Constant(appearance)));
+                        _panel.Palette = GetPanelPalette();
+                        captures.Add(CapturePanel(Path.Combine(captureDirectory, $"panel-actions-{name}.png")));
+                    }
+                    _panel.Key(PanelKey.Escape);
                 }
                 AppKit.Set(_panelView, "setAppearance:", 0);
                 _panel.Palette = GetPanelPalette();
@@ -663,9 +635,7 @@ internal sealed partial class MacTrayApplication
             // The gear opens Settings inside the panel; its toggle round-trips through the
             // startup settings (an isolated in-memory store during smoke).
             ClickPanelForSmoke(_panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.Settings));
-            Require(_panel.IsSettingsOpen && _panelVisible
-                && (_settingsWindow == 0 || AppKit.GetBool(_settingsWindow, AppKit.Selector("isVisible")) == 0),
-                "The gear must open the Settings view inside the panel, not the Settings window.");
+            Require(_panel.IsSettingsOpen && _panelVisible, "The gear must open the Settings view inside the panel.");
             RequireWindowMatchesScene();
             VerifyPanelAccessibilityForSmoke("the Settings view");
             var launch = _panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.LaunchAtSignIn);

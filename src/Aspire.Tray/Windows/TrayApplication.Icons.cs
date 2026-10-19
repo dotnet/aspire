@@ -29,33 +29,11 @@ internal sealed unsafe partial class TrayApplication
         _iconState = status;
     }
 
-    private enum MenuStatus { Unknown, Healthy, Warning, Unhealthy, Stopped }
-
-    private static MenuStatus GetMenuStatus(AppHostMenuItem? host, bool discoveryAvailable) => host switch
-    {
-        null => MenuStatus.Unknown,
-        { IsStarting: true } or { IsStopping: true } => MenuStatus.Warning,
-        _ when !discoveryAvailable => MenuStatus.Warning,
-        { Error: not null } => MenuStatus.Unhealthy,
-        { IsRunning: false } => MenuStatus.Stopped,
-        _ => host.Health switch
-        {
-            AppHostHealth.Healthy => MenuStatus.Healthy,
-            AppHostHealth.Warning => MenuStatus.Warning,
-            AppHostHealth.Unhealthy => MenuStatus.Unhealthy,
-            _ => MenuStatus.Unknown
-        }
-    };
-
-    /// <summary>
-    /// Owns notification icons and premultiplied health and utility menu bitmaps at one DPI.
-    /// </summary>
+    /// <summary>Owns the notification icons at one DPI.</summary>
     private sealed class Artwork : IDisposable
     {
         private readonly TrayApplication _owner;
         private readonly List<nint> _icons = [];
-        private readonly List<PixelCanvas> _menuBitmaps = [];
-        private readonly Dictionary<MenuStatus, PixelCanvas> _statusBitmaps = [];
         private bool _disposed;
 
         internal Artwork(TrayApplication owner, uint dpi)
@@ -76,27 +54,6 @@ internal sealed unsafe partial class TrayApplication
                 Running = CreateTrayIcon(original, light ? 0xFF1E9E57 : 0xFF34C46E, dimmed: false);
                 Attention = CreateTrayIcon(original, light ? 0xFFD98A00 : 0xFFF2A93B, dimmed: false);
                 Dimmed = CreateTrayIcon(original, badge: null, dimmed: true);
-                var glyphHeight = Math.Max(1, (int)Math.Round(12d * dpi / 96));
-                // Segoe MDL2 Assets: Library (E8F1) and Settings (E713).
-                // https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font
-                DocumentationBitmap = CreateMenuBitmap("\uE8F1", glyphHeight);
-                SettingsBitmap = CreateMenuBitmap("\uE713", glyphHeight);
-                foreach (var status in Enum.GetValues<MenuStatus>())
-                {
-                    var canvas = new PixelCanvas(owner, Size);
-                    _statusBitmaps.Add(status, canvas);
-                    var color = status switch
-                    {
-                        MenuStatus.Healthy => 0xFF269653,
-                        MenuStatus.Warning => 0xFFE58A00,
-                        MenuStatus.Unhealthy => 0xFFD63E42,
-                        _ => 0xFF929292
-                    };
-                    var radius = Size * 0.3;
-                    Action<double, double, double, uint> draw = status == MenuStatus.Stopped ? canvas.Square : canvas.Circle;
-                    draw(Size / 2d, Size / 2d, radius, 0xFF606060);
-                    draw(Size / 2d, Size / 2d, radius - Size / 16d, color);
-                }
             }
             catch
             {
@@ -110,9 +67,6 @@ internal sealed unsafe partial class TrayApplication
         internal nint Running { get; }
         internal nint Attention { get; }
         internal nint Dimmed { get; }
-        internal nint DocumentationBitmap { get; }
-        internal nint SettingsBitmap { get; }
-        internal nint Status(MenuStatus status) => _statusBitmaps[status].Handle;
 
         internal nint TrayIcon(TrayIconStatus status) => status switch
         {
@@ -136,14 +90,6 @@ internal sealed unsafe partial class TrayApplication
             {
                 return false;
             }
-        }
-
-        private nint CreateMenuBitmap(string glyph, int glyphHeight)
-        {
-            var canvas = new PixelCanvas(_owner, Size);
-            _menuBitmaps.Add(canvas);
-            canvas.DrawMenuGlyph(glyph, glyphHeight);
-            return canvas.Handle;
         }
 
         private nint CreateTrayIcon(nint original, uint? badge, bool dimmed)
@@ -197,15 +143,6 @@ internal sealed unsafe partial class TrayApplication
             foreach (var icon in _icons)
             {
                 _owner.Cleanup(NativeMethods.DestroyIcon(icon) != 0, "DestroyIcon");
-            }
-            // Menus borrow these handles; RefreshMenu destroys them before replacing artwork.
-            foreach (var bitmap in _menuBitmaps)
-            {
-                bitmap.Dispose();
-            }
-            foreach (var bitmap in _statusBitmaps.Values)
-            {
-                bitmap.Dispose();
             }
         }
     }
@@ -265,81 +202,6 @@ internal sealed unsafe partial class TrayApplication
             // Premultiplied BGRA: every channel scales by the same factor.
             uint Channel(uint value, int shift) => (uint)Math.Round(((value >> shift) & 255) * factor) << shift;
             pixel = Channel(pixel, 24) | Channel(pixel, 16) | Channel(pixel, 8) | Channel(pixel, 0);
-        }
-
-        internal void Square(double x, double y, double halfSize, uint color)
-            => DrawShape((px, py) => Math.Max(Math.Abs(px - x), Math.Abs(py - y)) - halfSize, color);
-
-        internal void Line(double x1, double y1, double x2, double y2, double width, uint color)
-        {
-            var dx = x2 - x1;
-            var dy = y2 - y1;
-            var lengthSquared = dx * dx + dy * dy;
-            DrawShape((x, y) =>
-            {
-                var t = Math.Clamp(((x - x1) * dx + (y - y1) * dy) / lengthSquared, 0, 1);
-                var px = x - (x1 + t * dx);
-                var py = y - (y1 + t * dy);
-                return Math.Sqrt(px * px + py * py) - width / 2;
-            }, color);
-        }
-
-        internal void DrawMenuGlyph(string glyph, int height)
-        {
-            var dc = NativeMethods.CreateCompatibleDC(0);
-            NativeCallException.Require(dc != 0, "CreateCompatibleDC(menu glyph)");
-            nint font = 0;
-            nint previousFont = 0;
-            nint previousBitmap = 0;
-            try
-            {
-                previousBitmap = NativeMethods.SelectObject(dc, Handle);
-                NativeCallException.Require(previousBitmap != 0 && previousBitmap != -1, "SelectObject(menu bitmap)");
-                // ANTIALIASED_QUALITY produces grayscale coverage, not ClearType's colored
-                // fringes. GDI does not supply usable alpha, so draw white on the cleared DIB.
-                font = NativeMethods.CreateFont(-height, 0, 0, 0, 400, 0, 0, 0, 1, 0, 0, 4, 0, "Segoe MDL2 Assets");
-                NativeCallException.Require(font != 0, "CreateFontW(menu glyph)");
-                previousFont = NativeMethods.SelectObject(dc, font);
-                NativeCallException.Require(previousFont != 0 && previousFont != -1, "SelectObject(menu font)");
-                NativeCallException.Require(NativeMethods.SetTextColor(dc, 0xFFFFFF) != uint.MaxValue, "SetTextColor(menu glyph)");
-                NativeCallException.Require(NativeMethods.SetBkMode(dc, 1) != 0, "SetBkMode(menu glyph)"); // TRANSPARENT.
-                var bounds = new NativeMethods.Rect { Right = _size, Bottom = _size };
-                NativeCallException.Require(NativeMethods.DrawText(dc, glyph, glyph.Length, ref bounds,
-                    0x1 | 0x4 | 0x20 | 0x800) > 0, "DrawTextW(menu glyph)"); // CENTER | VCENTER | SINGLELINE | NOPREFIX.
-                NativeCallException.Require(NativeMethods.GdiFlush() != 0, "GdiFlush(menu glyph)");
-
-                // COLORREF is 0x00BBGGRR; DIB pixels are premultiplied 0xAARRGGBB.
-                // System menu text color also supplies the user's high-contrast foreground.
-                var color = NativeMethods.GetSysColor(7); // COLOR_MENUTEXT.
-                var red = color & 255;
-                var green = (color >> 8) & 255;
-                var blue = (color >> 16) & 255;
-                for (var index = 0; index < _size * _size; index++)
-                {
-                    var pixel = Pixels[index];
-                    var alpha = ((pixel & 255) + ((pixel >> 8) & 255) + ((pixel >> 16) & 255) + 1) / 3;
-                    Pixels[index] = alpha << 24
-                        | ((red * alpha + 127) / 255) << 16
-                        | ((green * alpha + 127) / 255) << 8
-                        | (blue * alpha + 127) / 255;
-                }
-            }
-            finally
-            {
-                if (previousFont != 0 && previousFont != -1)
-                {
-                    _owner.Cleanup(NativeMethods.SelectObject(dc, previousFont) != 0, "SelectObject(restore menu font)");
-                }
-                if (previousBitmap != 0 && previousBitmap != -1)
-                {
-                    _owner.Cleanup(NativeMethods.SelectObject(dc, previousBitmap) != 0, "SelectObject(restore menu bitmap)");
-                }
-                _owner.Cleanup(NativeMethods.DeleteDC(dc) != 0, "DeleteDC(menu glyph)");
-                if (font != 0)
-                {
-                    _owner.Cleanup(NativeMethods.DeleteObject(font) != 0, "DeleteObject(menu font)");
-                }
-            }
         }
 
         private void DrawShape(Func<double, double, double> distance, uint color)

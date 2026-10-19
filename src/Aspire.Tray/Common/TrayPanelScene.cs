@@ -96,7 +96,20 @@ internal enum PanelTargetKind
     /// <summary>The back arrow in the header of the Settings view.</summary>
     Back,
     /// <summary>The "Launch at sign-in" toggle row of the Settings view.</summary>
-    LaunchAtSignIn
+    LaunchAtSignIn,
+    /// <summary>
+    /// An "Open in" item of a row's action list. <see cref="PanelTargetKey.Item"/> indexes
+    /// <see cref="TrayPanel.OpenInApplications"/>.
+    /// </summary>
+    OpenIn,
+    /// <summary>The "Show in Finder" or "Show in File Explorer" item of a row's action list.</summary>
+    ShowInFolder,
+    /// <summary>The "Copy path" item of a row's action list.</summary>
+    CopyPath,
+    /// <summary>The "Pin" or "Unpin" item of a row's action list.</summary>
+    TogglePin,
+    /// <summary>The "Remove from recent" item of a recent row's action list.</summary>
+    RemoveRecent
 }
 
 /// <summary>The inline confirmation a panel is showing in place of a row or section header.</summary>
@@ -119,8 +132,10 @@ internal enum PanelSection
 /// <summary>
 /// Identifies a hit target across scene rebuilds, so hover, press and focus survive a
 /// refresh even when rows move. The same AppHost can be listed only once per section.
+/// <see cref="Item"/> tells apart targets of the same kind for one row, such as the
+/// "Open in" items of its action list.
 /// </summary>
-internal readonly record struct PanelTargetKey(PanelTargetKind Kind, PanelSection Section, AppHostId? Host);
+internal readonly record struct PanelTargetKey(PanelTargetKind Kind, PanelSection Section, AppHostId? Host, int Item = 0);
 
 /// <summary>
 /// How a screen reader presents an element. Hosts map it to the platform role: an AXButton or
@@ -204,10 +219,23 @@ internal enum PanelActionKind
     /// <see cref="TrayPanel.ConfirmRemoveMissing"/> instead of showing a dialog.
     /// </summary>
     Start,
-    More,
+    /// <summary>
+    /// Open the AppHost's folder in <see cref="PanelAction.Application"/>, one of
+    /// <see cref="TrayPanel.OpenInApplications"/>.
+    /// </summary>
+    OpenIn,
+    /// <summary>Reveal the AppHost file in Finder or File Explorer.</summary>
+    ShowInFolder,
+    /// <summary>Copy the path of the folder that contains the AppHost.</summary>
+    CopyPath,
+    /// <summary>Pin the AppHost, or unpin it when it is already pinned.</summary>
+    TogglePin,
     /// <summary>Clear the recent list. The panel has already confirmed it inline.</summary>
     ClearRecent,
-    /// <summary>Remove one recent AppHost whose source file is missing. Already confirmed inline.</summary>
+    /// <summary>
+    /// Remove one entry from the recent list: picked from its action list, or confirmed inline
+    /// after its source file was found missing.
+    /// </summary>
     RemoveRecent,
     ToggleRecent,
     Documentation,
@@ -224,7 +252,7 @@ internal enum PanelActionKind
 
 /// <summary>
 /// What the platform host should do in response to input. <see cref="Anchor"/> is the
-/// rectangle in panel coordinates a popup menu should be placed against.
+/// rectangle in panel coordinates of the control that produced it.
 /// </summary>
 internal sealed record PanelAction(PanelActionKind Kind, AppHostMenuItem? Host = null, PanelRect Anchor = default)
 {
@@ -233,6 +261,9 @@ internal sealed record PanelAction(PanelActionKind Kind, AppHostMenuItem? Host =
 
     /// <summary>For the Settings toggles: the value the user asked for.</summary>
     public bool Enabled { get; init; }
+
+    /// <summary>For <see cref="PanelActionKind.OpenIn"/>: the title of the application to open the folder in.</summary>
+    public string? Application { get; init; }
 }
 
 /// <summary>The result of an input event: whether the panel must be redrawn, and an action to run.</summary>

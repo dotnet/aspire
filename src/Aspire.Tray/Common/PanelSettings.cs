@@ -30,7 +30,7 @@ internal sealed record PanelSettings(TrayStartupState? Startup, string? StartupE
 
     /// <summary>
     /// Applies the panel's launch-at-sign-in toggle and returns the registration as it is
-    /// afterwards, with any failure as the view's error. This mirrors the native Settings windows.
+    /// afterwards, with any failure as the view's error.
     /// </summary>
     public static PanelSettings SetLaunchAtSignIn(ITrayStartupSettings settings, bool enabled, bool preview,
         Action<Exception>? logFailure = null)

@@ -8,7 +8,6 @@ internal sealed partial class MacTrayApplication : IDisposable
     private readonly TrayController _controller;
     private readonly ITrayStartupSettings _startupSettings;
     private readonly Action<Uri> _openDashboard;
-    private readonly Func<TrayConfirmation, bool>? _confirmAction;
     private readonly Action<string> _copyPath;
     private readonly string _autosaveName;
     private readonly int _uiThread = Environment.CurrentManagedThreadId;
@@ -19,7 +18,6 @@ internal sealed partial class MacTrayApplication : IDisposable
         string autosaveName,
         ITrayStartupSettings startupSettings,
         Action<Uri>? openDashboard = null,
-        Func<TrayConfirmation, bool>? confirmAction = null,
         Action<string>? copyPath = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(autosaveName);
@@ -28,7 +26,6 @@ internal sealed partial class MacTrayApplication : IDisposable
         _controller = controller;
         _startupSettings = startupSettings;
         _openDashboard = openDashboard ?? OpenDashboardInBrowser;
-        _confirmAction = confirmAction;
         _copyPath = copyPath ?? CopyPathToPasteboard;
         InitializeNative();
         _controller.Changed += RequestRefresh;
@@ -105,10 +102,3 @@ internal sealed partial class MacTrayApplication : IDisposable
         }
     }
 }
-
-internal sealed record TrayConfirmation(
-    string Message,
-    string Detail,
-    string ActionTitle,
-    bool CancelIsDefault,
-    bool ActionRequiresExplicitChoice);

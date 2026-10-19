@@ -28,15 +28,6 @@ internal static class AppHostPresentation
 
     public static string GetTitle(AppHostInfo host) => Compact(GetDisplayName(host), 44);
 
-    public static string GetPathLabel(string appHostPath) => Compact(appHostPath, 44);
-
-    public static string GetMenuDetailsText(string appHostPath, string subtitle)
-        => ToSingleLine($"{appHostPath} \u00b7 {subtitle}");
-
-    public static string GetMenuDetailsLabel(string details) => Compact(details, 45);
-
-    public static string GetCompactMenuLabel(AppHostMenuItem host) => Compact(host.DisplayName, 44);
-
     public static string GetSubtitle(AppHostInfo host) => $"{Compact(GetLocation(host), 44)} \u00b7 PID {host.AppHostPid}";
 
     public static string GetLabel(AppHostInfo host)

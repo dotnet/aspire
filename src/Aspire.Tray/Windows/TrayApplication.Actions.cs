@@ -5,13 +5,14 @@ namespace Aspire.Tray;
 
 internal sealed partial class TrayApplication
 {
+    private FolderApplication[] _installedApplications = [];
+
     private void Dispatch(ActionTarget target)
     {
         if (_quitRequested)
         {
             return;
         }
-        HideMenuTooltip();
         _dispatchDepth++;
         try
         {
@@ -22,29 +23,12 @@ internal sealed partial class TrayApplication
                     break;
                 case ActionKind.Stop:
                     // Stopping isn't confirmed, as in the dashboard. The controller revalidates the
-                    // exact process lifetime, so a stale sender never stops a replacement.
+                    // exact process lifetime, so a stale action never stops a replacement.
                     if (!RequireCurrentRow(target.Id).CanStop)
                     {
                         throw new InvalidOperationException("Stop is no longer available for the selected AppHost.");
                     }
                     controller.RequestStop(controller.RequireLiveInstance(target.Id).Id);
-                    break;
-                case ActionKind.StartFromPanel:
-                    // A recent entry whose source file is gone becomes an inline removal prompt
-                    // in the panel instead of the dialog the native menu shows.
-                    if (_panel is not null && _panelVisible
-                        && controller.State.RecentAppHosts.FirstOrDefault(host => host.Id == target.Id) is { } recent
-                        && TrayAppHostPath.IsMissing(recent.Id.AppHostPath))
-                    {
-                        ApplyPanelResponse(_panel.ConfirmRemoveMissing(recent));
-                        break;
-                    }
-                    goto case ActionKind.Start;
-                case ActionKind.ClearRecentConfirmed:
-                    controller.ClearRecent();
-                    break;
-                case ActionKind.RemoveRecent:
-                    controller.RemoveRecent(target.Id.AppHostPath);
                     break;
                 case ActionKind.Start:
                     RequireCurrentRow(target.Id);
@@ -52,6 +36,13 @@ internal sealed partial class TrayApplication
                     {
                         controller.RequestStart(target.Id.AppHostPath);
                     }
+                    break;
+                case ActionKind.ClearRecent:
+                    // The panel has already confirmed it inline.
+                    controller.ClearRecent();
+                    break;
+                case ActionKind.RemoveRecent:
+                    controller.RemoveRecent(target.Id.AppHostPath);
                     break;
                 case ActionKind.TogglePin:
                     var row = RequireCurrentRow(target.Id);
@@ -64,33 +55,28 @@ internal sealed partial class TrayApplication
                 case ActionKind.Explorer:
                 case ActionKind.OpenIn:
                     RequireCurrentRow(target.Id);
+                    var application = target.Kind == ActionKind.OpenIn
+                        ? target.Application ?? throw new InvalidOperationException("The selected application is no longer available.")
+                        : null;
                     if (RequireProjectFile(target.Id.AppHostPath))
                     {
                         if (smokeSeconds is not null && !_interactiveSmoke)
                         {
                             throw new InvalidOperationException("External application launch is disabled in smoke mode.");
                         }
-                        if (target.Kind == ActionKind.Explorer)
+                        HidePanel();
+                        if (application is null)
                         {
                             FolderApplication.ShowInExplorer(target.Id.AppHostPath);
                         }
                         else
                         {
-                            target.Application!.Open(Path.GetDirectoryName(target.Id.AppHostPath)!);
+                            application.Open(Path.GetDirectoryName(target.Id.AppHostPath)!);
                         }
-                    }
-                    break;
-                case ActionKind.ClearRecent:
-                    if (Confirm("Clear recently opened AppHosts?", "Pinned AppHosts are kept. This can't be undone.", "Clear"))
-                    {
-                        controller.ClearRecent();
                     }
                     break;
                 case ActionKind.Documentation:
                     OpenUrl(new Uri("https://aspire.dev"));
-                    break;
-                case ActionKind.Settings:
-                    ShowSettings();
                     break;
                 case ActionKind.Quit:
                     RequestQuit();
@@ -129,6 +115,10 @@ internal sealed partial class TrayApplication
             ?? throw new InvalidOperationException("The selected AppHost is no longer available.");
     }
 
+    /// <summary>
+    /// Checks that an AppHost's source file still exists before acting on it. A missing pinned
+    /// AppHost is pruned. A missing recent one is offered for removal inline in the panel.
+    /// </summary>
     private bool RequireProjectFile(string path)
     {
         if (!TrayAppHostPath.IsMissing(path))
@@ -140,12 +130,10 @@ internal sealed partial class TrayApplication
         {
             controller.PruneMissingPinnedAppHosts();
         }
-        else if (controller.State.RecentAppHosts.Any(host => TrayAppHostPath.Comparer.Equals(host.Id.AppHostPath, path)))
+        else if (controller.State.RecentAppHosts.FirstOrDefault(host => TrayAppHostPath.Comparer.Equals(host.Id.AppHostPath, path)) is { } recent
+            && _panel is not null)
         {
-            if (Confirm("AppHost not found", $"This AppHost no longer exists:\n{path}\n\nRemove it from recently opened AppHosts?", "Remove"))
-            {
-                controller.RemoveRecent(path);
-            }
+            ApplyPanelResponse(_panel.ConfirmRemoveMissing(recent));
         }
         else
         {
@@ -157,7 +145,7 @@ internal sealed partial class TrayApplication
     private void ShowMessage(string title, string detail, uint flags)
     {
         var previousOwner = _modalOwner;
-        _modalOwner = _settingsWindow != 0 ? _settingsWindow : _window;
+        _modalOwner = _window;
         _modalDepth++;
         try
         {
@@ -192,4 +180,11 @@ internal sealed partial class TrayApplication
             throw new NativeCallException("ShellExecuteW(open URL)", (int)result);
         }
     }
+
+    private enum ActionKind
+    {
+        Dashboard, Stop, Start, TogglePin, Explorer, CopyPath, OpenIn, ClearRecent, RemoveRecent, Documentation, Quit
+    }
+
+    private sealed record ActionTarget(ActionKind Kind, AppHostId Id = default, FolderApplication? Application = null);
 }

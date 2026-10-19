@@ -352,9 +352,9 @@ internal sealed partial class MacTrayApplication
             static (app, key) => app._panelVisible && app._panel!.Scene.Targets.Any(target => target.Key == key.Target && target.Enabled));
         if (handled && application is not null)
         {
-            // Answer VoiceOver first and act on the next run loop turn: some actions block in a
-            // nested loop (the row's "…" menu tracks until it closes), which would otherwise hold
-            // VoiceOver's AXPress request until then. The element is retained until it runs.
+            // Answer VoiceOver first and act on the next run loop turn, so an action that takes a
+            // while (opening an application, writing saved state) never holds VoiceOver's AXPress
+            // request. The element is retained until it runs.
             AppKit.PerformSelectorAfterDelay(application._target, AppKit.Selector("performSelector:withObject:afterDelay:"),
                 AppKit.Selector("panelAccessibilityPress:"), self, 0);
         }

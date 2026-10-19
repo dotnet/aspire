@@ -6,7 +6,6 @@ namespace Aspire.Tray;
 internal sealed partial class MacTrayApplication
 {
     private const double TrayCanvasSize = 22;
-    private const double StatusIconSize = 14;
 
     // The logo is drawn 17 points wide, centered horizontally, so the visible triangle is about
     // 14 points tall like the system's menu bar glyphs (Wi-Fi, battery). The source triangle ends
@@ -317,43 +316,4 @@ internal sealed partial class MacTrayApplication
         AppKit.SendVoid(GetColor(color), AppKit.Selector("setStroke"));
         AppKit.SendVoid(path, AppKit.Selector("stroke"));
     }
-
-    private nint GetHealthImage(AppHostHealth health, bool running)
-    {
-        var key = (running ? health : AppHostHealth.Unknown, running);
-        if (_healthImages.TryGetValue(key, out var existing))
-        {
-            return existing;
-        }
-        // Native symbols remain legible in light/dark/selected menus and carry meaning
-        // without relying on color perception. An inactive host is neutral, not an error.
-        var symbol = AppKit.SendTwoPointers(AppKit.Class("NSImage"),
-            AppKit.Selector("imageWithSystemSymbolName:accessibilityDescription:"),
-            AppKit.String(HealthSymbol(health, running)), AppKit.String(HealthDescription(health, running)));
-        if (symbol == 0)
-        {
-            throw new InvalidOperationException("A required AppHost health symbol is unavailable.");
-        }
-        var image = AppKit.Get(symbol, "copy");
-        AppKit.SendSize(image, AppKit.Selector("setSize:"), new(StatusIconSize, StatusIconSize));
-        AppKit.SendBool(image, AppKit.Selector("setTemplate:"), 1);
-        _healthImages.Add(key, image);
-        return image;
-    }
-
-    private static string HealthSymbol(AppHostHealth health, bool running) => !running ? "stop.circle" : health switch
-    {
-        AppHostHealth.Healthy => "checkmark.circle",
-        AppHostHealth.Warning => "exclamationmark.triangle",
-        AppHostHealth.Unhealthy => "xmark.octagon",
-        _ => "questionmark.circle"
-    };
-
-    private static string HealthDescription(AppHostHealth health, bool running) => !running ? "AppHost stopped" : health switch
-    {
-        AppHostHealth.Healthy => "All resources healthy",
-        AppHostHealth.Warning => "Resources waiting or degraded",
-        AppHostHealth.Unhealthy => "Resources failed or unhealthy",
-        _ => "Resource health unavailable"
-    };
 }

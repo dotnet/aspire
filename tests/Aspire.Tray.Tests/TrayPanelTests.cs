@@ -11,10 +11,12 @@ public class TrayPanelTests
     private static readonly string[] s_sampleNames =
     [
         "typical", "empty", "connecting", "errors", "disconnected", "many",
-        "confirm-clear", "confirm-missing", "settings", "settings-unavailable"
+        "confirm-clear", "confirm-missing", "settings", "settings-unavailable", "actions", "actions-recent"
     ];
 
     public static TheoryData<string> SampleNames => new(s_sampleNames);
+
+    private static readonly string[] s_applications = ["Visual Studio Code", "Terminal"];
 
     private static TrayViewState Sample(string name) => name switch
     {
@@ -31,9 +33,16 @@ public class TrayPanelTests
     private static TrayPanel CreatePanel(string name, TrayPanelPalette palette, double maxHeight = TrayPanel.DefaultMaxHeight)
     {
         var state = Sample(name);
-        var panel = new TrayPanel(state, palette) { MaxHeight = maxHeight };
+        var panel = new TrayPanel(state, palette) { MaxHeight = maxHeight, OpenInApplications = s_applications };
         switch (name)
         {
+            case "actions":
+                Click(panel, Target(panel, PanelTargetKind.More, state.AppHosts[3]).HitBounds);
+                break;
+            case "actions-recent":
+                Click(panel, panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.ToggleRecent).HitBounds);
+                Click(panel, Target(panel, PanelTargetKind.More, state.RecentAppHosts[0]).HitBounds);
+                break;
             case "confirm-clear":
                 Click(panel, panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.ClearRecent).HitBounds);
                 break;
@@ -162,17 +171,161 @@ public class TrayPanelTests
     }
 
     [Fact]
-    public void ClickingARowWithoutDashboardOpensItsMoreMenuAnchoredAtTheMoreButton()
+    public void ClickingARowWithoutDashboardOpensItsActionListUnderIt()
     {
         var state = TrayPanelSamples.Typical();
-        var panel = new TrayPanel(state, TrayPanelPalette.Light);
+        var panel = new TrayPanel(state, TrayPanelPalette.Light) { OpenInApplications = s_applications };
         var host = state.AppHosts[2];
-        var row = panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.Row && target.Host == host);
-        var more = panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.More && target.Host == host);
+        var row = Target(panel, PanelTargetKind.Row, host);
 
         var response = Click(panel, row.HitBounds, offsetX: 10);
 
-        Assert.Equal(new PanelAction(PanelActionKind.More, host, more.Bounds), response.Action);
+        Assert.Null(response.Action);
+        Assert.Equal((PanelSection.Running, host.Id), panel.ActionsRow);
+        var items = panel.Scene.Targets.Where(target => target.Host == host && target.Bounds.Y > row.Bounds.Bottom).ToList();
+        Assert.Equal(
+        [
+            "Open Redis in Visual Studio Code",
+            "Open Redis in Terminal",
+            "Show Redis in Finder",
+            "Copy the folder path of Redis",
+            "Pin Redis"
+        ], items.Select(target => target.AccessibleName));
+        var next = Target(panel, PanelTargetKind.Row, state.AppHosts[3]);
+        Assert.All(items, item => Assert.True(item.Bounds.Bottom <= next.Bounds.Y, $"{item.Key} overlaps the next row"));
+        Assert.Equal(
+            ["Open in Visual Studio Code", "Open in Terminal", "Show in Finder", "Copy path", "Pin"],
+            panel.Scene.Commands.OfType<TextCommand>().Where(text => text.Bounds.Y >= items[0].Bounds.Y && text.Bounds.Bottom <= items[^1].Bounds.Bottom)
+                .Select(text => text.Text));
+    }
+
+    [Fact]
+    public void ActionListItemsReturnTheirActionsAndCloseTheList()
+    {
+        var state = TrayPanelSamples.Typical();
+        var panel = new TrayPanel(state, TrayPanelPalette.Light) { OpenInApplications = s_applications, FileManagerName = "File Explorer" };
+        var host = state.AppHosts[0];
+
+        PanelAction? Pick(PanelTargetKind kind, int item = 0)
+        {
+            Click(panel, Target(panel, PanelTargetKind.More, host).HitBounds);
+            var target = panel.Scene.Targets.Single(target => target.Key == new PanelTargetKey(kind, PanelSection.Running, host.Id, item));
+            var action = Click(panel, target.HitBounds).Action;
+            Assert.Null(panel.ActionsRow);
+            return action;
+        }
+
+        Assert.Equal(new PanelAction(PanelActionKind.OpenIn, host, default) { Application = "Terminal" },
+            Pick(PanelTargetKind.OpenIn, 1)! with { Anchor = default });
+        Assert.Equal(PanelActionKind.ShowInFolder, Pick(PanelTargetKind.ShowInFolder)?.Kind);
+        Assert.Equal(PanelActionKind.CopyPath, Pick(PanelTargetKind.CopyPath)?.Kind);
+        var pin = Pick(PanelTargetKind.TogglePin);
+        Assert.Equal(PanelActionKind.TogglePin, pin?.Kind);
+        Assert.Equal(host, pin?.Host);
+        Click(panel, Target(panel, PanelTargetKind.More, host).HitBounds);
+        Assert.Contains(panel.Scene.Commands.OfType<TextCommand>(), text => text.Text == "Show in File Explorer");
+    }
+
+    [Fact]
+    public void PinnedRowsOfferUnpinAndRecentRowsOfferRemove()
+    {
+        var state = TrayPanelSamples.Typical();
+        var panel = new TrayPanel(state, TrayPanelPalette.Light);
+        Click(panel, Target(panel, PanelTargetKind.More, state.AppHosts[3]).HitBounds);
+
+        Assert.Equal("Unpin Weather", panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.TogglePin).AccessibleName);
+        Assert.DoesNotContain(panel.Scene.Targets, target => target.Kind == PanelTargetKind.RemoveRecent);
+
+        Click(panel, panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.ToggleRecent).HitBounds);
+        var recent = state.RecentAppHosts[0];
+        Click(panel, Target(panel, PanelTargetKind.More, recent).HitBounds);
+        var remove = panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.RemoveRecent);
+        var action = Click(panel, remove.HitBounds).Action;
+
+        Assert.Equal(new PanelAction(PanelActionKind.RemoveRecent, recent, remove.Bounds) { Recent = true }, action);
+        Assert.Null(panel.ActionsRow);
+    }
+
+    [Fact]
+    public void ClickingMoreAgainOrAnywhereElseClosesTheActionList()
+    {
+        var state = TrayPanelSamples.Typical();
+        var panel = new TrayPanel(state, TrayPanelPalette.Light);
+
+        Click(panel, Target(panel, PanelTargetKind.More, state.AppHosts[0]).HitBounds);
+        Assert.Equal("Hide actions for eShop", Target(panel, PanelTargetKind.More, state.AppHosts[0]).AccessibleName);
+        Click(panel, Target(panel, PanelTargetKind.More, state.AppHosts[0]).HitBounds);
+        Assert.Null(panel.ActionsRow);
+
+        Click(panel, Target(panel, PanelTargetKind.More, state.AppHosts[0]).HitBounds);
+        Click(panel, Target(panel, PanelTargetKind.More, state.AppHosts[1]).HitBounds);
+        Assert.Equal((PanelSection.Running, state.AppHosts[1].Id), panel.ActionsRow);
+
+        var stop = Click(panel, Target(panel, PanelTargetKind.Stop, state.AppHosts[0]).HitBounds);
+        Assert.Equal(PanelActionKind.Stop, stop.Action?.Kind);
+        Assert.Null(panel.ActionsRow);
+    }
+
+    [Fact]
+    public void KeyboardMovesIntoTheActionListAndEscapeReturnsToMore()
+    {
+        var state = TrayPanelSamples.Typical();
+        var panel = new TrayPanel(state, TrayPanelPalette.Light) { OpenInApplications = s_applications };
+        var more = Target(panel, PanelTargetKind.More, state.AppHosts[0]).Key;
+        panel.Focus(more);
+
+        panel.Key(PanelKey.Enter);
+        Assert.Equal((PanelSection.Running, state.AppHosts[0].Id), panel.ActionsRow);
+        panel.Key(PanelKey.Down);
+        Assert.Equal(new PanelTargetKey(PanelTargetKind.OpenIn, PanelSection.Running, state.AppHosts[0].Id), panel.FocusedTarget);
+        panel.Key(PanelKey.Down);
+        panel.Key(PanelKey.Down);
+        Assert.Equal(new PanelTargetKey(PanelTargetKind.ShowInFolder, PanelSection.Running, state.AppHosts[0].Id), panel.FocusedTarget);
+
+        var escape = panel.Key(PanelKey.Escape);
+        Assert.Null(escape.Action);
+        Assert.Null(panel.ActionsRow);
+        Assert.Equal(more, panel.FocusedTarget);
+        Assert.Equal(PanelActionKind.Close, panel.Key(PanelKey.Escape).Action?.Kind);
+    }
+
+    [Fact]
+    public void ActionListClosesWhenItsAppHostGoesAway()
+    {
+        var state = TrayPanelSamples.Typical();
+        var panel = new TrayPanel(state, TrayPanelPalette.Light);
+        Click(panel, Target(panel, PanelTargetKind.More, state.AppHosts[0]).HitBounds);
+
+        panel.Update(state with { AppHosts = state.AppHosts.Skip(1).ToArray() });
+
+        Assert.DoesNotContain(panel.Scene.Targets, target => target.Kind == PanelTargetKind.CopyPath);
+        Assert.Null(panel.ActionsRow);
+    }
+
+    [Fact]
+    public void ActionListBelowTheFoldIsScrolledIntoView()
+    {
+        var state = TrayPanelSamples.Many();
+        var panel = new TrayPanel(state, TrayPanelPalette.Light) { MaxHeight = 400 };
+        var last = state.AppHosts[^1];
+        panel.Focus(Target(panel, PanelTargetKind.Row, last).Key);
+
+        panel.Invoke(Target(panel, PanelTargetKind.More, last).Key);
+
+        Assert.All(panel.Scene.Targets.Where(target => target.Kind is PanelTargetKind.CopyPath or PanelTargetKind.TogglePin),
+            target => Assert.True(panel.Viewport.Contains(target.Bounds), $"{target.Key} at {target.Bounds}"));
+    }
+
+    [Fact]
+    public void FocusFirstShowsKeyboardFocusOnTheFirstControl()
+    {
+        var state = TrayPanelSamples.Typical();
+        var panel = new TrayPanel(state, TrayPanelPalette.Light);
+
+        Assert.True(panel.FocusFirst().Redraw);
+
+        Assert.Equal(Target(panel, PanelTargetKind.Row, state.AppHosts[0]).Key, panel.FocusedTarget);
+        Assert.Contains(panel.Scene.Commands.OfType<StrokePathCommand>(), stroke => stroke.Color == TrayPanelPalette.Light.Focus);
     }
 
     [Fact]
@@ -540,6 +693,10 @@ public class TrayPanelTests
         panel.ShowSettings(new(null, null, Preview: false));
         panel.Reset();
         Assert.False(panel.IsSettingsOpen);
+
+        Click(panel, Target(panel, PanelTargetKind.More, state.AppHosts[0]).HitBounds);
+        panel.Reset();
+        Assert.Null(panel.ActionsRow);
     }
 
     [Fact]
@@ -722,6 +879,12 @@ public class TrayPanelTests
     [InlineData((int)PanelIcon.ChevronRight)]
     [InlineData((int)PanelIcon.Alert)]
     [InlineData((int)PanelIcon.Layers)]
+    [InlineData((int)PanelIcon.AppWindow)]
+    [InlineData((int)PanelIcon.Folder)]
+    [InlineData((int)PanelIcon.Copy)]
+    [InlineData((int)PanelIcon.Pin)]
+    [InlineData((int)PanelIcon.Unpin)]
+    [InlineData((int)PanelIcon.Remove)]
     public void IconsStayInsideTheirBox(int value)
     {
         var icon = (PanelIcon)value;

@@ -27,7 +27,13 @@ internal enum PanelIcon
     ChevronRight,
     ChevronLeft,
     Alert,
-    Layers
+    Layers,
+    AppWindow,
+    Folder,
+    Copy,
+    Pin,
+    Unpin,
+    Remove
 }
 
 /// <summary>
@@ -151,6 +157,37 @@ internal static class TrayPanelGlyphs
                 Stroke(new PanelPath().MoveTo(16, 5).LineTo(28, 11).LineTo(16, 17).LineTo(4, 11).Close(), 1.75);
                 Stroke(new PanelPath().MoveTo(4, 16).LineTo(16, 22).LineTo(28, 16), 1.75);
                 Stroke(new PanelPath().MoveTo(4, 21).LineTo(16, 27).LineTo(28, 21), 1.75);
+                break;
+            case PanelIcon.AppWindow:
+                // A generic application window: the Open in items use it for every application.
+                Stroke(PanelPath.RoundedRect(new(2.25, 3, 11.5, 10), 1.75), 1.4);
+                Stroke(new PanelPath().MoveTo(2.25, 6).LineTo(13.75, 6), 1.4);
+                break;
+            case PanelIcon.Folder:
+                Stroke(new PanelPath().MoveTo(2.25, 4.75)
+                    .CubicTo(2.25, 3.92, 2.92, 3.25, 3.75, 3.25).LineTo(6.25, 3.25).LineTo(7.75, 4.75).LineTo(12.25, 4.75)
+                    .CubicTo(13.08, 4.75, 13.75, 5.42, 13.75, 6.25).LineTo(13.75, 11.25)
+                    .CubicTo(13.75, 12.08, 13.08, 12.75, 12.25, 12.75).LineTo(3.75, 12.75)
+                    .CubicTo(2.92, 12.75, 2.25, 12.08, 2.25, 11.25).Close(), 1.4);
+                break;
+            case PanelIcon.Copy:
+                Stroke(PanelPath.RoundedRect(new(5.75, 5.75, 7.5, 7.5), 1.5), 1.4);
+                Stroke(new PanelPath().MoveTo(10.25, 3.25).LineTo(4.75, 3.25)
+                    .CubicTo(3.92, 3.25, 3.25, 3.92, 3.25, 4.75).LineTo(3.25, 10.25), 1.4);
+                break;
+            case PanelIcon.Pin:
+            case PanelIcon.Unpin:
+                // A push pin: a flat head, a flared body and the needle.
+                Stroke(new PanelPath().MoveTo(5.25, 2.75).LineTo(10.75, 2.75)
+                    .MoveTo(6.5, 2.75).LineTo(6.5, 6.75).LineTo(4.5, 9.25).LineTo(11.5, 9.25).LineTo(9.5, 6.75).LineTo(9.5, 2.75)
+                    .MoveTo(8, 9.25).LineTo(8, 13.5), 1.4);
+                if (icon == PanelIcon.Unpin)
+                {
+                    Stroke(new PanelPath().MoveTo(2.75, 2.75).LineTo(13.25, 13.25), 1.4);
+                }
+                break;
+            case PanelIcon.Remove:
+                Stroke(new PanelPath().MoveTo(4.5, 4.5).LineTo(11.5, 11.5).MoveTo(11.5, 4.5).LineTo(4.5, 11.5), 1.5);
                 break;
         }
 

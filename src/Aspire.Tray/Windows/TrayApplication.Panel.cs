@@ -8,12 +8,11 @@ using Microsoft.Win32;
 namespace Aspire.Tray;
 
 /// <summary>
-/// The flyout panel shown by a left click on the notification icon. Layout, glyphs and
-/// interaction live in the shared <see cref="TrayPanel"/>; this part hosts it in a WS_POPUP
-/// window, forwards input, and draws the display list: shapes with the GDI+ flat API
-/// (anti-aliased) and text with GDI DrawTextW (ClearType on an opaque background).
-/// UI Automation sees the panel through TrayApplication.PanelAutomation.cs. A right click or
-/// keyboard selection of the icon still opens the native menu.
+/// The flyout panel, the tray's only UI, shown by any activation of the notification icon.
+/// Layout, glyphs and interaction live in the shared <see cref="TrayPanel"/>; this part hosts it
+/// in a WS_POPUP window, forwards input, and draws the display list: shapes with the GDI+ flat
+/// API (anti-aliased) and text with GDI DrawTextW (ClearType on an opaque background).
+/// UI Automation sees the panel through TrayApplication.PanelAutomation.cs.
 /// </summary>
 internal sealed unsafe partial class TrayApplication
 {
@@ -30,6 +29,7 @@ internal sealed unsafe partial class TrayApplication
     private bool _panelUsesDwmCorners;
     private bool _panelPaletteDirty = true;
     private long _panelHiddenAt;
+    private long _panelShownAt;
     private uint _panelDpi = 96;
     private nuint _gdiplusToken;
     private nint _panelLogo;
@@ -38,8 +38,14 @@ internal sealed unsafe partial class TrayApplication
 
     private double PanelScale => _panelDpi / 96.0;
 
-    private void TogglePanel()
+    private void TogglePanel(bool keyboard)
     {
+        if (_panelVisible && Environment.TickCount64 - _panelShownAt < 300)
+        {
+            // One gesture can arrive twice, such as the two clicks of a double-click or a repeated
+            // NIN_KEYSELECT; the panel it just opened stays open.
+            return;
+        }
         if (_panelVisible || Environment.TickCount64 - _panelHiddenAt < 300)
         {
             // Clicking the icon first deactivates the panel, which already hid it; that same
@@ -47,19 +53,25 @@ internal sealed unsafe partial class TrayApplication
             HidePanel();
             return;
         }
-        ShowPanel();
+        ShowPanel(keyboard);
     }
 
-    private void ShowPanel()
+    private void ShowPanel(bool keyboard = false)
     {
-        if (_menuOpen || _modalDepth != 0 || _quitRequested)
+        if (_modalDepth != 0 || _quitRequested)
         {
             return;
         }
         EnsurePanel();
         controller.PruneMissingPinnedAppHosts();
-        _panel!.Update(controller.State);
+        _panel!.OpenInApplications = _installedApplications.Select(application => application.Title).ToArray();
+        _panel.Update(controller.State);
         _panel.Reset();
+        if (keyboard)
+        {
+            _panel.FocusFirst();
+        }
+        _panelShownAt = Environment.TickCount64;
         _panelPaletteDirty = true;
         _panelVisible = true;
         LayoutPanel(show: true);
@@ -106,7 +118,7 @@ internal sealed unsafe partial class TrayApplication
             NativeCallException.Require(NativeMethods.RegisterClass(ref windowClass) != 0, "RegisterClassW(flyout)");
         }
         _panelClassRegistered = true;
-        _panel = new TrayPanel(controller.State, GetPanelPalette());
+        _panel = new TrayPanel(controller.State, GetPanelPalette()) { FileManagerName = "File Explorer" };
         // A tool window keeps the flyout off the taskbar and Alt+Tab; owning it by the
         // message window keeps it above that window's dialogs' z-order rules.
         _panelWindow = NativeMethods.CreateWindowEx(NativeMethods.WsExToolWindow | NativeMethods.WsExTopmost, PanelClassName, "Aspire",
@@ -202,7 +214,7 @@ internal sealed unsafe partial class TrayApplication
 
     private void UpdatePanel(TrayViewState state)
     {
-        // RefreshMenu also runs on the 200 ms timer; repaint only for a new state or theme.
+        // RefreshState also runs on the 200 ms timer; repaint only for a new state or theme.
         if (!_panelVisible || _panel is null || (ReferenceEquals(state, _panel.State) && !_panelPaletteDirty))
         {
             return;
@@ -247,13 +259,22 @@ internal sealed unsafe partial class TrayApplication
                 Dispatch(new(ActionKind.Stop, id));
                 break;
             case PanelActionKind.Start:
-                Dispatch(new(ActionKind.StartFromPanel, id));
+                Dispatch(new(ActionKind.Start, id));
                 break;
-            case PanelActionKind.More:
-                ShowPanelRowMenu(action);
+            case PanelActionKind.OpenIn:
+                Dispatch(new(ActionKind.OpenIn, id, _installedApplications.FirstOrDefault(application => application.Title == action.Application)));
+                break;
+            case PanelActionKind.ShowInFolder:
+                Dispatch(new(ActionKind.Explorer, id));
+                break;
+            case PanelActionKind.CopyPath:
+                Dispatch(new(ActionKind.CopyPath, id));
+                break;
+            case PanelActionKind.TogglePin:
+                Dispatch(new(ActionKind.TogglePin, id));
                 break;
             case PanelActionKind.ClearRecent:
-                Dispatch(new(ActionKind.ClearRecentConfirmed));
+                Dispatch(new(ActionKind.ClearRecent));
                 break;
             case PanelActionKind.RemoveRecent:
                 Dispatch(new(ActionKind.RemoveRecent, id));
@@ -268,11 +289,6 @@ internal sealed unsafe partial class TrayApplication
             case PanelActionKind.SetLaunchAtSignIn:
                 ApplyPanelResponse(_panel!.UpdateSettings(
                     PanelSettings.SetLaunchAtSignIn(startupSettings, action.Enabled, _interactiveSmoke, LogStartupFailure)));
-                if (_settingsWindow != 0)
-                {
-                    // Keep an open native Settings window in sync with the panel's toggle.
-                    ReadStartupSettings();
-                }
                 break;
             case PanelActionKind.Quit:
                 HidePanel();
@@ -286,52 +302,6 @@ internal sealed unsafe partial class TrayApplication
 
     private static void LogStartupFailure(Exception exception)
         => Program.Log($"Tray startup settings failed in the panel ({exception.GetType().Name}): {exception.Message}");
-
-    private void ShowPanelRowMenu(PanelAction action)
-    {
-        // Reuse the host's native action submenu (Open in, File Explorer, Copy path, Pin) and
-        // its command map instead of rebuilding them for the panel.
-        var menu = _menu;
-        var row = menu?.Rows.FirstOrDefault(row => row.Id == action.Host!.Id && row.Recent == action.Recent)
-            ?? menu?.Rows.FirstOrDefault(row => row.Id.AppHostPath == action.Host!.Id.AppHostPath);
-        if (menu is null || row is null)
-        {
-            return;
-        }
-        var point = new NativeMethods.Point
-        {
-            X = (int)Math.Round(action.Anchor.X * PanelScale),
-            Y = (int)Math.Round(action.Anchor.Bottom * PanelScale)
-        };
-        NativeCallException.Require(NativeMethods.ClientToScreen(_panelWindow, ref point) != 0, "ClientToScreen(flyout)");
-        _menuOpen = true;
-        uint selected;
-        try
-        {
-            // Owned by the panel so the popup does not deactivate (and close) it.
-            Marshal.SetLastPInvokeError(0);
-            selected = NativeMethods.TrackPopupMenuEx(row.Submenu, NativeMethods.TpmReturnCmd | NativeMethods.TpmRightButton,
-                point.X, point.Y, _panelWindow, 0);
-            var error = Marshal.GetLastPInvokeError();
-            if (selected == 0 && error != 0)
-            {
-                throw new NativeCallException("TrackPopupMenuEx(flyout)", error);
-            }
-        }
-        finally
-        {
-            _menuOpen = false;
-            _displayedState = null;
-        }
-        if (!_quitRequested && menu.Commands.TryGetValue(selected, out var target))
-        {
-            Dispatch(target);
-        }
-        if (!_quitRequested)
-        {
-            RefreshMenu();
-        }
-    }
 
     private static TrayPanelPalette GetPanelPalette()
     {
@@ -782,6 +752,13 @@ internal sealed unsafe partial class TrayApplication
                 var delta = unchecked((short)((wParam >> 16) & 0xFFFF));
                 ApplyPanelResponse(_panel.Scroll(delta / 120.0 * WheelStep));
                 return 0;
+            case NativeMethods.WmKeyDown when wParam == 0xBC && NativeMethods.GetKeyState(0x11) < 0:
+                // Ctrl+comma (VK_OEM_COMMA with VK_CONTROL) opens Settings, as in other Windows apps.
+                if (!_panel.IsSettingsOpen)
+                {
+                    RunPanelAction(new(PanelActionKind.Settings));
+                }
+                return 0;
             case NativeMethods.WmKeyDown:
                 PanelKey? key = (int)wParam switch
                 {
@@ -801,7 +778,7 @@ internal sealed unsafe partial class TrayApplication
                     return 0;
                 }
                 break;
-            case NativeMethods.WmActivate when (wParam & 0xFFFF) == 0 && !_menuOpen:
+            case NativeMethods.WmActivate when (wParam & 0xFFFF) == 0:
                 // WA_INACTIVE: clicking anywhere else closes the flyout, like a menu.
                 HidePanel();
                 return 0;

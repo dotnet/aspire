@@ -23,7 +23,6 @@ internal sealed unsafe partial class TrayApplication(TrayController controller, 
     private bool _classRegistered;
     private bool _iconAdded;
     private bool _timerAdded;
-    private bool _menuOpen;
     private bool _quitRequested;
     private bool _shutdownRequested;
     private bool _loopEnded;
@@ -35,8 +34,6 @@ internal sealed unsafe partial class TrayApplication(TrayController controller, 
     private int _restoreAttempts;
     private long? _smokeDeadline;
     private NativeMethods.NotifyIconData _iconData;
-    private NativeMenu? _menu;
-    private TrayViewState? _displayedState;
     private Exception? _callbackFailure;
     private Artwork? _artwork;
     private TrayIconStatus? _iconState;
@@ -45,7 +42,6 @@ internal sealed unsafe partial class TrayApplication(TrayController controller, 
 
     internal int ExitCode { get; private set; }
     internal Action? SmokeTick { get; set; }
-    internal Func<string, string, uint, bool>? ConfirmForSmoke { get; set; }
     internal Action<Uri>? OpenUrlForSmoke { get; set; }
     internal Action<string>? CopyPathForSmoke { get; set; }
     internal Action<Exception>? ErrorForSmoke { get; set; }
@@ -91,9 +87,8 @@ internal sealed unsafe partial class TrayApplication(TrayController controller, 
     {
         if (RuntimeInformation.ProcessArchitecture is not (Architecture.X64 or Architecture.Arm64)
             || sizeof(NativeMethods.WindowClass) != 72 || sizeof(NativeMethods.Message) != 48
-            || sizeof(NativeMethods.NotifyIconData) != 976 || sizeof(NativeMethods.MenuItemInfo) != 80
-            || sizeof(NativeMethods.IconInfo) != 32 || sizeof(NativeMethods.BitmapInfo) != 44
-            || sizeof(NativeMethods.ToolInfo) != 72)
+            || sizeof(NativeMethods.NotifyIconData) != 976
+            || sizeof(NativeMethods.IconInfo) != 32 || sizeof(NativeMethods.BitmapInfo) != 44)
         {
             throw new PlatformNotSupportedException("This frontend requires the Windows x64 or ARM64 native layouts.");
         }
@@ -113,11 +108,6 @@ internal sealed unsafe partial class TrayApplication(TrayController controller, 
                 if (result == 0)
                 {
                     break;
-                }
-                if (HandleSettingsShortcut(in message)
-                    || (_settingsWindow != 0 && NativeMethods.IsDialogMessage(_settingsWindow, ref message) != 0))
-                {
-                    continue;
                 }
                 NativeMethods.TranslateMessage(in message);
                 NativeMethods.DispatchMessage(in message);
@@ -140,15 +130,6 @@ internal sealed unsafe partial class TrayApplication(TrayController controller, 
 
     private void Initialize()
     {
-        // The embedded Common Controls v6 manifest opts both managed and NativeAOT
-        // executables into themed controls; loading the standard classes activates them.
-        // https://learn.microsoft.com/windows/win32/controls/cookbook-overview
-        var controls = new NativeMethods.CommonControls
-        {
-            Size = (uint)sizeof(NativeMethods.CommonControls),
-            Classes = 0x4000 | 0x4 // ICC_STANDARD_CLASSES | ICC_BAR_CLASSES (tooltips).
-        };
-        NativeCallException.Require(NativeMethods.InitCommonControlsEx(in controls) != 0, "InitCommonControlsEx");
         _previousDpiContext = NativeMethods.SetThreadDpiAwarenessContext(-4);
         NativeCallException.Require(_previousDpiContext != 0, "SetThreadDpiAwarenessContext");
         _module = NativeMethods.GetModuleHandle(null);
@@ -182,7 +163,7 @@ internal sealed unsafe partial class TrayApplication(TrayController controller, 
             Program.Log(message);
             controller.ReportActionError(message);
         });
-        RefreshMenu();
+        RefreshState();
         if (smokeSeconds is not null)
         {
             ProbeRegistrationForSmoke();
@@ -195,7 +176,6 @@ internal sealed unsafe partial class TrayApplication(TrayController controller, 
         }
         _timerAdded = NativeMethods.SetTimer(window, TimerId, 200, 0) != 0;
         NativeCallException.Require(_timerAdded, "SetTimer");
-        InstallSettingsMenuFilter();
         _smokeDeadline = smokeSeconds is int seconds ? Environment.TickCount64 + seconds * 1000L : null;
         controller.Changed += RequestRefresh;
         // Allocation is not readiness: this message must actually pass through DispatchMessage.
@@ -218,6 +198,24 @@ internal sealed unsafe partial class TrayApplication(TrayController controller, 
                 Program.Log(_callbackFailure.Message);
             }
         }
+    }
+
+    private void RefreshState()
+    {
+        controller.PruneMissingPinnedAppHosts();
+        var state = controller.State;
+        if (_artwork is null || _dpiDirty)
+        {
+            var replacement = new Artwork(this, NativeMethods.GetDpiForWindow(_window));
+            var previous = _artwork;
+            _artwork = replacement;
+            _iconState = null;
+            UpdateTrayIcon(state);
+            previous?.Dispose();
+            _dpiDirty = false;
+        }
+        UpdateTrayIcon(state);
+        UpdatePanel(state);
     }
 
     private bool TryAddIcon()
@@ -255,7 +253,7 @@ internal sealed unsafe partial class TrayApplication(TrayController controller, 
                 return;
             }
         }
-        RefreshMenu();
+        RefreshState();
         if (!_iconAdded && !TryAddIcon())
         {
             // Explorer may broadcast while its notification area is still initializing.
@@ -295,7 +293,7 @@ internal sealed unsafe partial class TrayApplication(TrayController controller, 
         }
         catch (Exception ex)
         {
-            // Managed exceptions must not cross user32 callback frames, including nested menus.
+            // Managed exceptions must not cross user32 callback frames, including nested modal loops.
             if (s_current is { } application)
             {
                 application._callbackFailure ??= ex;
@@ -338,7 +336,7 @@ internal sealed unsafe partial class TrayApplication(TrayController controller, 
                 Interlocked.Exchange(ref _refreshPosted, 0);
                 if (!_quitRequested)
                 {
-                    RefreshMenu();
+                    RefreshState();
                 }
                 return 0;
             case NativeMethods.RestoreMessage:
@@ -346,13 +344,6 @@ internal sealed unsafe partial class TrayApplication(TrayController controller, 
                 return 0;
             case NativeMethods.QuitMessage:
                 QuitOnLoop();
-                return 0;
-            case NativeMethods.SettingsMessage when !_quitRequested:
-                _settingsShortcutPending = false;
-                Dispatch(new(ActionKind.Settings));
-                return 0;
-            case NativeMethods.SmokeMessage when smokeSeconds is not null:
-                Dispatch(_smokeActions[checked((int)wParam)]);
                 return 0;
             case NativeMethods.WmTimer when wParam == TimerId:
                 OnTimer();
@@ -365,26 +356,16 @@ internal sealed unsafe partial class TrayApplication(TrayController controller, 
                 _panelPaletteDirty = true;
                 RequestRefresh();
                 return 0;
-            case NativeMethods.WmMenuRightButtonUp when _menuOpen && _modalDepth == 0:
-                PinContextRow(lParam, (uint)wParam);
-                return 0;
-            case NativeMethods.WmMenuSelect:
-                SelectMenuTooltip(wParam, lParam);
-                return 0;
-            case NativeMethods.TrayCallback when !_menuOpen && !_quitRequested && _modalDepth == 0:
+            case NativeMethods.TrayCallback when !_quitRequested && _modalDepth == 0:
                 // NIM_SETVERSION(4): LOWORD(lParam)=event; wParam holds signed screen coordinates.
+                // Every activation of the icon toggles the flyout panel: a left click (NIN_SELECT),
+                // a right click or the context menu key (WM_CONTEXTMENU), and Enter or Space on the
+                // focused icon (NIN_KEYSELECT), which also shows the keyboard focus in the panel.
+                // https://learn.microsoft.com/windows/win32/api/shellapi/nf-shellapi-shell_notifyiconw
                 var notification = (uint)((nuint)lParam & 0xFFFF);
-                if (notification == NativeMethods.NinSelect)
+                if (notification is NativeMethods.NinSelect or NativeMethods.WmContextMenu or NativeMethods.NinKeySelect)
                 {
-                    // A left click toggles the flyout panel.
-                    TogglePanel();
-                }
-                else if (notification is NativeMethods.WmContextMenu or NativeMethods.NinKeySelect)
-                {
-                    // A right click and keyboard selection (Enter or Space on the focused icon) open
-                    // the native menu, which is the accessible and feature-complete path.
-                    HidePanel();
-                    ShowMenu(wParam);
+                    TogglePanel(keyboard: notification == NativeMethods.NinKeySelect);
                 }
                 return 0;
             case NativeMethods.WmClose:
@@ -415,8 +396,7 @@ internal sealed unsafe partial class TrayApplication(TrayController controller, 
                 throw new NativeCallException("Shell_NotifyIconW(Explorer recovery)");
             }
         }
-        RefreshMenu();
-        UpdateMenuTooltip();
+        RefreshState();
         if (smokeSeconds is not null && _modalDepth != 0)
         {
             CompleteDialogForSmoke();
@@ -438,16 +418,11 @@ internal sealed unsafe partial class TrayApplication(TrayController controller, 
             return;
         }
         _quitRequested = true;
-        HideMenuTooltip();
         HidePanel();
         lock (_lifecycleGate)
         {
             _shutdownRequested = true;
             FailRestoreRequests(new InvalidOperationException("The tray is shutting down."));
-        }
-        if (_menuOpen)
-        {
-            Cleanup(NativeMethods.EndMenu() != 0, "EndMenu");
         }
         if (_modalDepth != 0)
         {
@@ -509,15 +484,6 @@ internal sealed unsafe partial class TrayApplication(TrayController controller, 
             if (_iconAdded)
             {
                 Cleanup(NativeMethods.ShellNotifyIcon(NativeMethods.NimDelete, ref _iconData) != 0, "Shell_NotifyIconW(NIM_DELETE)");
-            }
-            if (!DisposeMenuTooltip())
-            {
-                return;
-            }
-            _menu?.Dispose();
-            if (!DisposeSettings())
-            {
-                return;
             }
             // The flyout is owned by the message window, so destroy it first.
             DisposePanel();

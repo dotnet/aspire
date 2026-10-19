@@ -1,23 +1,18 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Globalization;
 using System.Runtime.InteropServices;
 
 namespace Aspire.Tray;
 
+// Smoke hooks drive the real flyout: clicks and keys go through its window procedure as
+// WM_LBUTTONDOWN/UP and WM_KEYDOWN, presses through the same Invoke path UI Automation uses,
+// and actions through the panel host. No browser or application is launched.
 internal sealed unsafe partial class TrayApplication
 {
-    private readonly Dictionary<int, ActionTarget> _smokeActions = [];
     private SmokeDialog? _smokeDialog;
-    private nint _tooltipFocusForSmoke;
 
-    internal bool IsTrackingForSmoke => _menuOpen;
-    internal bool IsTooltipVisibleForSmoke => _menuTooltipWindow != 0 && NativeMethods.IsWindowVisible(_menuTooltipWindow) != 0;
-    internal nint MenuForSmoke => _menu!.Handle;
     internal nint IconForSmoke => _iconData.Icon;
-    internal IReadOnlyList<AppHostId> RowIdsForSmoke => _menu!.Rows.Select(row => row.Id).ToArray();
-    internal Func<bool>? DialogReadyForSmoke { get; set; }
     internal int IconAddFailuresForSmoke { get; set; }
 
     private void ProbeRegistrationForSmoke()
@@ -53,7 +48,7 @@ internal sealed unsafe partial class TrayApplication
         RequireSmoke();
         _interactiveSmoke = true;
         _smokeDeadline = null;
-        ShowSettings();
+        ShowPanel();
     }
 
     internal void ShowMessageForSmoke()
@@ -68,19 +63,10 @@ internal sealed unsafe partial class TrayApplication
         {
             return;
         }
-        if (DialogReadyForSmoke?.Invoke() == false)
-        {
-            return;
-        }
         var owner = _modalOwner != 0 ? _modalOwner : _window;
         var dialog = GetEnabledPopup(owner);
         if (dialog == 0 || dialog == owner)
         {
-            return;
-        }
-        if (_taskDialogRequest is not null)
-        {
-            CompleteTaskDialogForSmoke(dialog, pending);
             return;
         }
         // DM_GETDEFID returns MAKELONG(default button ID, DC_HASDEFID). Verify the
@@ -96,104 +82,201 @@ internal sealed unsafe partial class TrayApplication
         _smokeDialog = null;
     }
 
-    /// <summary>
-    /// Answers a task dialog by button ID. Its buttons are not child windows that GetDlgItem or
-    /// DM_GETDEFID can reach, so the dialog is driven through its own TDM_* messages instead.
-    /// </summary>
-    private void CompleteTaskDialogForSmoke(nint dialog, SmokeDialog pending)
-    {
-        NativeSmokeHarness.Require(dialog == _taskDialog && NativeMethods.IsWindowVisible(dialog) != 0,
-            "The owned popup is not the visible task dialog.");
-        NativeSmokeHarness.Require(pending.DefaultId == ConfirmCancelId && ReadControlText(dialog) == "Aspire",
-            "The task dialog must be titled Aspire and default to Cancel.");
-        NativeCallException.Require(NativeMethods.PostMessage(dialog, NativeMethods.TdmClickButton, (nuint)pending.Response, 0) != 0,
-            "PostMessageW(TDM_CLICK_BUTTON)");
-        _smokeDialog = null;
-    }
-
-    internal int CaptureActionForSmoke(string kind, AppHostId id = default)
+    /// <summary>Shows the panel when it is hidden (Windows may deactivate it in a background run).</summary>
+    private TrayPanel EnsurePanelForSmoke()
     {
         RequireSmoke();
-        var action = _menu!.Commands.Values.Single(action => action.Kind.ToString() == kind && action.Id == id);
-        var token = _smokeActions.Count + 1;
-        _smokeActions.Add(token, action);
-        return token;
-    }
-
-    internal void InvokeActionForSmoke(int token)
-    {
-        RequireSmoke();
-        NativeMethods.SendMessage(_window, NativeMethods.SmokeMessage, (nuint)token, 0);
-    }
-
-    internal void TrackForSmoke(AppHostId id)
-    {
-        RequireSmoke();
-        NativeCallException.Require(NativeMethods.GetCursorPos(out var point) != 0, "GetCursorPos(smoke)");
-        PrepareMenu(point);
-        TrackMenu(_menu!.Rows.Single(row => row.Id == id).Submenu, point);
-    }
-
-    internal void EndTrackingForSmoke()
-    {
-        RequireSmoke();
-        NativeCallException.Require(_menuOpen && NativeMethods.EndMenu() != 0, "EndMenu(smoke)");
-    }
-
-    internal void VerifyMenuDetailsForSmoke(AppHostId id, string expected)
-    {
-        RequireSmoke();
-        var row = _menu!.Rows.Single(row => row.Id == id);
-        var last = (uint)(NativeMethods.GetMenuItemCount(row.Submenu) - 1);
-        NativeSmokeHarness.Require(row.DetailsText == expected
-            && ReadText(row.Submenu, last, true) == Literal(AppHostPresentation.GetPathLabel(row.Id.AppHostPath)),
-            "The final AppHost menu entry has incorrect path/status text.");
-    }
-
-    internal void SelectMenuDetailsForSmoke(AppHostId id, bool details)
-    {
-        RequireSmoke();
-        NativeSmokeHarness.Require(_menuOpen, "Menu selection requires the native tracking loop.");
-        var row = _menu!.Rows.Single(row => row.Id == id);
-        _tooltipFocusForSmoke = NativeMethods.GetFocus();
-        // Generate real WM_MENUSELECT notifications, including for the disabled details
-        // item, without moving the user's pointer or requiring foreground keyboard input.
-        // https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-hilitemenuitem
-        NativeCallException.Require(NativeMethods.HiliteMenuItem(_window, row.Submenu,
-            details ? row.DetailsPosition : row.Pin, (details ? NativeMethods.MfByPosition : 0) | 0x80) != 0,
-            "HiliteMenuItem(smoke details)");
-    }
-
-    internal void VerifyDetailsTooltipForSmoke(AppHostId id, string expected)
-    {
-        RequireSmoke();
-        NativeSmokeHarness.Require(IsTooltipVisibleForSmoke && _menuTooltipRow?.Id == id,
-            "The actual details tooltip is not visible for the selected AppHost lifetime.");
-        NativeSmokeHarness.Require(NativeMethods.GetFocus() == _tooltipFocusForSmoke, "The tooltip stole keyboard focus.");
-        var text = new char[expected.Length + 2];
-        fixed (char* buffer = text)
+        if (!_panelVisible)
         {
-            var tool = MenuTooltipInfo();
-            tool.Text = buffer;
-            NativeMethods.SendMessage(_menuTooltipWindow, NativeMethods.TtmGetText, (nuint)text.Length, (nint)(&tool));
-            NativeSmokeHarness.Require(new string(buffer) == expected, "The native tooltip must contain the full, untruncated value.");
+            ShowPanel();
         }
-        NativeCallException.Require(NativeMethods.GetWindowRect(_menuTooltipWindow, out var bounds) != 0,
-            "GetWindowRect(smoke tooltip)");
-        var monitor = new NativeMethods.MonitorInfo { Size = (uint)sizeof(NativeMethods.MonitorInfo) };
-        NativeCallException.Require(NativeMethods.GetMonitorInfo(NativeMethods.MonitorFromWindow(_window, 2), ref monitor) != 0,
-            "GetMonitorInfoW(smoke tooltip)");
-        NativeSmokeHarness.Require(bounds.Right > bounds.Left && bounds.Bottom > bounds.Top
-            && bounds.Left >= monitor.Work.Left && bounds.Right <= monitor.Work.Right
-            && bounds.Top >= monitor.Work.Top && bounds.Bottom <= monitor.Work.Bottom,
-            $"The tooltip must remain within the monitor work area. Tooltip: ({bounds.Left}, {bounds.Top})-({bounds.Right}, {bounds.Bottom}); work area: ({monitor.Work.Left}, {monitor.Work.Top})-({monitor.Work.Right}, {monitor.Work.Bottom}).");
+        return _panel!;
     }
 
-    internal void VerifyNoTooltipForSmoke()
+    internal TrayPanel PanelForSmoke => EnsurePanelForSmoke();
+
+    /// <summary>Finds a target, expanding the recent list and scrolling as a user would to reach it.</summary>
+    private PanelHitTarget FindPanelTargetForSmoke(PanelTargetKind kind, AppHostId? host, int item = 0)
+    {
+        var panel = EnsurePanelForSmoke();
+        if (host is { } id && !panel.IsRecentExpanded && panel.State.RecentAppHosts.Any(recent => recent.Id == id)
+            && !panel.Scene.Targets.Any(target => target.Key.Host == id))
+        {
+            ClickPanelForSmoke(panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.ToggleRecent));
+        }
+        var target = panel.Scene.Targets.FirstOrDefault(target => target.Kind == kind && target.Key.Host == host && target.Key.Item == item)
+            ?? throw new InvalidOperationException($"The panel has no {kind} target for the AppHost.");
+        if (target.HitBounds.IsEmpty)
+        {
+            // Scroll it into view as the wheel would. A positive delta reveals content above.
+            var viewport = panel.Viewport;
+            ApplyPanelResponse(panel.Scroll(target.Bounds.Y < viewport.Y ? viewport.Y - target.Bounds.Y : viewport.Bottom - target.Bounds.Bottom));
+            target = panel.Scene.Targets.Single(other => other.Key == target.Key);
+        }
+        return target;
+    }
+
+    /// <summary>Clicks a target with real mouse messages sent to the panel's window procedure.</summary>
+    internal void ClickPanelForSmoke(PanelTargetKind kind, AppHostId? host = null, int item = 0)
+        => ClickPanelForSmoke(FindPanelTargetForSmoke(kind, host, item));
+
+    private void ClickPanelForSmoke(PanelHitTarget target)
+    {
+        // Client coordinates in device pixels, packed as MAKELPARAM(x, y).
+        var x = (int)Math.Round(target.HitBounds.CenterX * PanelScale);
+        var y = (int)Math.Round(target.HitBounds.CenterY * PanelScale);
+        var point = (nint)(uint)((ushort)x | ((ushort)y << 16));
+        NativeMethods.SendMessage(_panelWindow, NativeMethods.WmMouseMove, 0, point);
+        NativeMethods.SendMessage(_panelWindow, NativeMethods.WmLeftButtonDown, 1, point);
+        NativeMethods.SendMessage(_panelWindow, NativeMethods.WmLeftButtonUp, 0, point);
+    }
+
+    /// <summary>Presses a target the way UI Automation's Invoke does.</summary>
+    internal void PressPanelForSmoke(PanelTargetKind kind, AppHostId? host = null)
+        => ApplyPanelResponse(_panel!.Invoke(FindPanelTargetForSmoke(kind, host).Key));
+
+    /// <summary>Sends a key to the panel's window procedure.</summary>
+    internal void SendPanelKeyForSmoke(int virtualKey)
+    {
+        EnsurePanelForSmoke();
+        NativeMethods.SendMessage(_panelWindow, NativeMethods.WmKeyDown, (nuint)virtualKey, 0);
+    }
+
+    /// <summary>Opens a row's action list and picks one of its items.</summary>
+    internal void PickRowActionForSmoke(AppHostId host, PanelTargetKind kind, int item = 0)
+    {
+        ClickPanelForSmoke(PanelTargetKind.More, host);
+        ClickPanelForSmoke(kind, host, item);
+        NativeSmokeHarness.Require(_panel!.ActionsRow is null, "Picking an action must close the action list.");
+    }
+
+    /// <summary>
+    /// Opens a row's action list through UI Automation, checks its items and their order, moves
+    /// into it with the keyboard, and closes it with Escape.
+    /// </summary>
+    internal void VerifyActionListForSmoke(AppHostId host)
+    {
+        PressPanelForSmoke(PanelTargetKind.More, host);
+        var panel = _panel!;
+        var row = panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.Row && target.Key.Host == host);
+        var name = row.Host!.DisplayName;
+        var expected = _installedApplications.Select(application => $"Open {name} in {application.Title}")
+            .Concat([$"Show {name} in File Explorer", $"Copy the folder path of {name}", row.Host.IsPinned ? $"Unpin {name}" : $"Pin {name}"])
+            .Concat(row.Key.Section == PanelSection.Recent ? [$"Remove {name} from recent AppHosts"] : []);
+        var items = panel.Scene.Targets.Where(target => target.Key.Host == host && target.Bounds.Y > row.Bounds.Bottom).ToList();
+        NativeSmokeHarness.Require(panel.ActionsRow == (row.Key.Section, host) && items.Select(target => target.AccessibleName).SequenceEqual(expected),
+            $"The action list does not offer the expected items: {string.Join(", ", items.Select(target => target.AccessibleName))}.");
+        SendPanelKeyForSmoke(0x28); // VK_DOWN
+        NativeSmokeHarness.Require(panel.FocusedTarget == items[0].Key, "Down must move from the More button into the action list.");
+        SendPanelKeyForSmoke(0x1B); // VK_ESCAPE
+        NativeSmokeHarness.Require(panel.ActionsRow is null && _panelVisible && panel.FocusedTarget?.Kind == PanelTargetKind.More,
+            "Escape must close the action list, keep the panel open and return focus to More.");
+    }
+
+    /// <summary>Runs an action as if the panel had produced it from a scene that is now out of date.</summary>
+    internal void RunPanelActionForSmoke(PanelAction action)
+    {
+        EnsurePanelForSmoke();
+        RunPanelAction(action);
+    }
+
+    /// <summary>Hides and reopens the panel, which revalidates pinned AppHosts like a user reopening it.</summary>
+    internal void ReopenPanelForSmoke()
+    {
+        HidePanel();
+        _panelHiddenAt = 0;
+        ShowPanel();
+    }
+
+    /// <summary>
+    /// Checks that every notification the icon sends opens the panel: a left click (NIN_SELECT), a
+    /// right click (WM_CONTEXTMENU) and keyboard selection (NIN_KEYSELECT), which also shows the
+    /// keyboard focus. Also checks Ctrl+comma and the Settings view with isolated startup settings.
+    /// </summary>
+    internal void VerifyActivationForSmoke()
     {
         RequireSmoke();
-        NativeSmokeHarness.Require(!IsTooltipVisibleForSmoke && !_menuTooltipVisible && _menuTooltipRow is null,
-            "The tooltip remained visible or pending after leaving the details entry.");
+        foreach (var (notification, keyboard) in new[]
+        {
+            (NativeMethods.NinSelect, false), (NativeMethods.WmContextMenu, false), (NativeMethods.NinKeySelect, true)
+        })
+        {
+            HidePanel();
+            _panelHiddenAt = 0;
+            NativeMethods.SendMessage(_window, NativeMethods.TrayCallback, 0, (nint)notification);
+            NativeSmokeHarness.Require(_panelVisible && (_panel!.FocusedTarget is not null) == keyboard,
+                $"Notification 0x{notification:x} must open the panel{(keyboard ? " with keyboard focus" : "")}.");
+            // A repeated notification right after opening (a double-click) keeps it open.
+            NativeMethods.SendMessage(_window, NativeMethods.TrayCallback, 0, (nint)notification);
+            NativeSmokeHarness.Require(_panelVisible, "A repeated activation closed the panel it had just opened.");
+            _panelShownAt = 0;
+            NativeMethods.SendMessage(_window, NativeMethods.TrayCallback, 0, (nint)notification);
+            NativeSmokeHarness.Require(!_panelVisible, "Activating the icon again must close the panel.");
+        }
+        _panelHiddenAt = 0;
+        ShowPanel();
+        NativeSmokeHarness.Require(!_panel!.IsSettingsOpen, "Settings opened unexpectedly.");
+        // Ctrl+comma: mark Ctrl down in this thread's key state table, which GetKeyState reads,
+        // rather than synthesizing global input with SendInput.
+        // https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-setkeyboardstate
+        var keys = new byte[256];
+        fixed (byte* state = keys)
+        {
+            NativeCallException.Require(NativeMethods.GetKeyboardState(state) != 0, "GetKeyboardState(smoke)");
+            var control = keys[0x11];
+            keys[0x11] = 0x80;
+            NativeCallException.Require(NativeMethods.SetKeyboardState(state) != 0, "SetKeyboardState(smoke)");
+            try
+            {
+                SendPanelKeyForSmoke(0xBC); // VK_OEM_COMMA
+            }
+            finally
+            {
+                keys[0x11] = control;
+                NativeMethods.SetKeyboardState(state);
+            }
+        }
+        NativeSmokeHarness.Require(_panel.IsSettingsOpen, "Ctrl+comma must open the Settings view in the panel.");
+        SendPanelKeyForSmoke(0x1B); // VK_ESCAPE
+        NativeSmokeHarness.Require(!_panel.IsSettingsOpen && _panelVisible, "Escape must leave the Settings view and keep the panel open.");
+        HidePanel();
+    }
+
+    /// <summary>
+    /// Opens the Settings view with the gear and checks its launch-at-sign-in switch against the
+    /// isolated startup settings: <paramref name="enabled"/> is whether it can be pressed and
+    /// <paramref name="description"/> the text under it.
+    /// </summary>
+    internal void VerifySettingsViewForSmoke(bool on, bool enabled, string description)
+    {
+        var panel = EnsurePanelForSmoke();
+        if (!panel.IsSettingsOpen)
+        {
+            ClickPanelForSmoke(PanelTargetKind.Settings);
+        }
+        else
+        {
+            // Re-read the settings, as reopening the view does.
+            RunPanelAction(new(PanelActionKind.Settings));
+        }
+        var toggle = panel.Scene.Accessibility.Single(element => element.Target?.Kind == PanelTargetKind.LaunchAtSignIn);
+        NativeSmokeHarness.Require(toggle.Role == PanelAccessibleRole.Switch && toggle.Checked == on && toggle.Enabled == enabled
+            && toggle.Description == description,
+            $"The Settings switch misrepresents startup state: checked={toggle.Checked}, enabled={toggle.Enabled}, description={toggle.Description}.");
+    }
+
+    internal void ToggleLaunchAtSignInForSmoke()
+    {
+        EnsurePanelForSmoke();
+        ClickPanelForSmoke(PanelTargetKind.LaunchAtSignIn);
+    }
+
+    internal void CloseSettingsViewForSmoke()
+    {
+        if (_panel is { IsSettingsOpen: true })
+        {
+            ClickPanelForSmoke(PanelTargetKind.Back);
+        }
     }
 
     internal void RestartExplorerForSmoke()
@@ -212,11 +295,10 @@ internal sealed unsafe partial class TrayApplication
         NativeMethods.SendMessage(_window, NativeMethods.WmDpiChanged, 0, 0);
     }
 
-    internal void VerifyNativeStateForSmoke(bool retained = false)
+    internal void VerifyNativeStateForSmoke()
     {
         RequireSmoke();
         var state = controller.State;
-        var menu = _menu!;
         NativeSmokeHarness.Require(_artwork is { Original: not 0, Running: not 0, Attention: not 0, Dimmed: not 0 },
             "Native icon ownership is incomplete.");
         NativeSmokeHarness.Require(_iconAdded && _iconData.Icon == _artwork!.TrayIcon(TrayIconStatusRules.Get(state)),
@@ -225,186 +307,20 @@ internal sealed unsafe partial class TrayApplication
         NativeSmokeHarness.Require(Enum.GetValues<TrayIconStatus>().Select(_artwork!.TrayIcon).Distinct().Count() == 4
             && _artwork.TrayIcon(TrayIconStatus.Connecting) == _artwork.TrayIcon(TrayIconStatus.Unavailable),
             "Idle, running, attention, and dimmed need distinct notification icons.");
-        NativeSmokeHarness.Require(_artwork.DocumentationBitmap != 0 && _artwork.SettingsBitmap != 0
-            && _artwork.DocumentationBitmap != _artwork.SettingsBitmap,
-            "Documentation and Settings must own distinct native menu bitmaps.");
-        NativeSmokeHarness.Require(Enum.GetValues<MenuStatus>().Select(_artwork.Status).Distinct().Count() == 5,
-            "AppHost health and stopped states must have distinct native status bitmaps.");
-        VerifyStatusTextForSmoke();
-        if (!retained)
+        var panel = EnsurePanelForSmoke();
+        var rows = panel.Scene.Targets.Where(target => target.Kind == PanelTargetKind.Row && target.Key.Section != PanelSection.Recent).ToList();
+        NativeSmokeHarness.Require(rows.Select(row => row.Host!.Id).SequenceEqual(
+                state.AppHosts.Where(host => host.Id.AppHostPid != 0).Concat(state.AppHosts.Where(host => host.Id.AppHostPid == 0)).Select(host => host.Id)),
+            "The panel does not list the AppHosts of the shared view state in order.");
+        foreach (var row in rows)
         {
-            NativeSmokeHarness.Require(menu.Rows.Select(row => row.Id).SequenceEqual(state.AppHosts.Concat(state.RecentAppHosts).Select(row => row.Id)),
-                "Native host order differs from the shared view state.");
-            NativeSmokeHarness.Require(NativeMethods.GetMenuItemCount(menu.Handle) == state.AppHosts.Count + 7 + (state.ShowStatus ? 1 : 0),
-                "Root menu contains an unexpected header or item.");
+            var host = state.AppHosts.Single(host => host.Id == row.Host!.Id);
+            bool Enabled(PanelTargetKind kind) => panel.Scene.Targets.FirstOrDefault(target => target.Key == row.Key with { Kind = kind })?.Enabled == true;
+            NativeSmokeHarness.Require(row.AccessibleName.StartsWith($"{host.DisplayName}, ", StringComparison.Ordinal)
+                && Enabled(PanelTargetKind.Dashboard) == host.CanOpenDashboard && Enabled(PanelTargetKind.Stop) == host.CanStop
+                && Enabled(PanelTargetKind.Start) == host.CanStart, "A panel row misrepresents its AppHost's actions.");
         }
-        var rootTitles = ReadMenuTitles(menu.Handle);
-        NativeSmokeHarness.Require(rootTitles.TakeLast(4).SequenceEqual(new[] { "Documentation", SettingsMenuLabel, "", "Quit Aspire" })
-            && (ReadItem(menu.Handle, (uint)(rootTitles.Length - 2), true).Type & NativeMethods.MfSeparator) != 0,
-            "Root utility actions are missing.");
-        foreach (var row in menu.Rows)
-        {
-            var host = (row.Recent ? state.RecentAppHosts : state.AppHosts).SingleOrDefault(host => host.Id == row.Id);
-            var item = ReadItem(row.Parent, row.Position, true);
-            NativeSmokeHarness.Require(item.Submenu == row.Submenu && item.Submenu != 0, "A host row is not an action submenu.");
-            NativeSmokeHarness.Require(((item.State & 3) == 0) == (host is not null), "Stale row enabled state is incorrect.");
-            NativeSmokeHarness.Require(item.Bitmap != 0
-                && item.Bitmap == _artwork.Status(GetMenuStatus(host, state.Discovery == DiscoveryState.Live)),
-                "AppHost rows must retain their current color-coded health icons.");
-            if (!retained && host is not null)
-            {
-                NativeSmokeHarness.Require((row.Dashboard != 0) == host.IsRunning,
-                    "Every running AppHost must expose Open dashboard, including when it needs attention.");
-            }
-            VerifyAction(row.Submenu, row.Dashboard, host?.CanOpenDashboard == true);
-            VerifyAction(row.Submenu, row.Stop, host?.CanStop == true);
-            VerifyAction(row.Submenu, row.Start, host?.CanStart == true);
-            VerifyAction(row.Submenu, row.Pin, host is not null);
-            VerifyAction(row.Submenu, row.CopyPath, host is not null);
-            var titles = ReadMenuTitles(row.Submenu);
-            string[] firstActions = row.Dashboard != 0
-                ? ["Open dashboard", host?.IsStopping == true ? "Stopping..." : StopMenuLabel]
-                : [host?.IsStarting == true ? "Starting..." : "Start AppHost"];
-            NativeSmokeHarness.Require(titles[..^2].SequenceEqual(firstActions.Concat([
-                host?.IsPinned == true ? "Unpin AppHost" : "Pin AppHost", "", "Show in File Explorer", "Copy path", "Open in", ""])),
-                "AppHost submenu actions must precede the divider and final details entry.");
-            if (row.Dashboard != 0)
-            {
-                NativeSmokeHarness.Require((ReadItem(row.Submenu, row.Dashboard, false).State & 0x1000) != 0,
-                    "Open dashboard must retain its default-action emphasis.");
-            }
-            NativeSmokeHarness.Require((ReadItem(row.Submenu, (uint)(firstActions.Length + 1), true).Type & NativeMethods.MfSeparator) != 0,
-                "Pin/Unpin must be separated from the file actions by a divider.");
-            NativeSmokeHarness.Require(row.DetailsPosition == (uint)(titles.Length - 1)
-                && row.StatusPosition == row.DetailsPosition - 1
-                && (ReadItem(row.Submenu, row.StatusPosition - 1, true).Type & NativeMethods.MfSeparator) != 0,
-                "AppHost status and path must be the final entries under a divider.");
-            var status = ReadItem(row.Submenu, row.StatusPosition, true);
-            NativeSmokeHarness.Require((status.State & 3) != 0 && status.Id == 0 && status.Submenu == 0
-                && titles[^2] == Literal(AppHostPresentation.GetMenuDetailsLabel(
-                    GetMenuStatusText(host, state.Discovery == DiscoveryState.Live))),
-                "The AppHost status must remain current and non-actionable.");
-            var details = ReadItem(row.Submenu, row.DetailsPosition, true);
-            NativeSmokeHarness.Require((details.State & 3) != 0 && details.Id == 0 && details.Submenu == 0,
-                "The AppHost details entry must be non-actionable.");
-            NativeSmokeHarness.Require(ReadText(row.Parent, row.Position, true)
-                == Literal(host is null ? row.Title : AppHostPresentation.GetCompactMenuLabel(host)),
-                "Native AppHost labels must retain their name without a status suffix.");
-            NativeSmokeHarness.Require(row.DetailsText == AppHostPresentation.GetMenuDetailsText(row.Id.AppHostPath,
-                host?.Subtitle ?? "AppHost no longer available")
-                && titles[^1] == Literal(AppHostPresentation.GetPathLabel(row.Id.AppHostPath)),
-                "The AppHost details entry is not up to date.");
-            NativeSmokeHarness.Require(StringInfo.ParseCombiningCharacters(titles[^1].Replace("&&", "&", StringComparison.Ordinal)).Length <= 44,
-                "The displayed path must fit within 44 text elements.");
-        }
-        VerifyMenuIcons(menu, menu.Handle);
-    }
-
-    private static void VerifyStatusTextForSmoke()
-    {
-        var host = new AppHostMenuItem(default, "Smoke", "", "Smoke", false, false, false, null)
-        {
-            IsRunning = true, Health = AppHostHealth.Healthy
-        };
-        NativeSmokeHarness.Require(GetMenuStatusText(host, true) == "Running - all resources healthy"
-            && GetMenuStatusText(host with { Health = AppHostHealth.Warning }, true) == "Running - resources need attention"
-            && GetMenuStatusText(host with { Health = AppHostHealth.Unhealthy }, true) == "Running - unhealthy resources"
-            && GetMenuStatusText(host with { Health = AppHostHealth.Unknown }, true) == "Running - resource health unknown",
-            "AppHost menus must expose resource health in text as well as color.");
-        NativeSmokeHarness.Require(GetMenuStatusText(host with { IsStarting = true }, true) == "Starting AppHost..."
-            && GetMenuStatusText(host with { IsStopping = true }, true) == "Stopping AppHost..."
-            && GetMenuStatusText(host, false) == "Discovery unavailable"
-            && GetMenuStatusText(host with { IsRunning = false }, true) == "Stopped"
-            && GetMenuStatusText(host with { Error = "Stop failed." }, true) == "Stop failed."
-            && GetMenuStatusText(null, true) == "AppHost no longer available",
-            "AppHost status text must distinguish transitions, errors, stopped hosts, and stale discovery.");
-        foreach (var (health, status) in new[]
-        {
-            (AppHostHealth.Healthy, MenuStatus.Healthy),
-            (AppHostHealth.Warning, MenuStatus.Warning),
-            (AppHostHealth.Unhealthy, MenuStatus.Unhealthy),
-            (AppHostHealth.Unknown, MenuStatus.Unknown)
-        })
-        {
-            NativeSmokeHarness.Require(GetMenuStatus(host with { Health = health }, true) == status,
-                "Running AppHosts must retain their reported health color.");
-        }
-        NativeSmokeHarness.Require(GetMenuStatus(host with { IsStarting = true }, true) == MenuStatus.Warning
-            && GetMenuStatus(host with { IsStopping = true }, true) == MenuStatus.Warning
-            && GetMenuStatus(host, false) == MenuStatus.Warning
-            && GetMenuStatus(host with { Error = "Stop failed." }, true) == MenuStatus.Unhealthy
-            && GetMenuStatus(host with { IsRunning = false }, true) == MenuStatus.Stopped
-            && GetMenuStatus(null, true) == MenuStatus.Unknown,
-            "Transitions, errors, stopped hosts, and stale discovery must update the AppHost status icon.");
-    }
-
-    private void VerifyMenuIcons(NativeMenu root, nint menu)
-    {
-        var count = NativeMethods.GetMenuItemCount(menu);
-        NativeCallException.Require(count >= 0, "GetMenuItemCount(smoke icons)");
-        for (var position = 0; position < count; position++)
-        {
-            var item = ReadItem(menu, (uint)position, true);
-            var row = root.Rows.SingleOrDefault(row => row.Parent == menu && row.Position == (uint)position);
-            var state = controller.State;
-            var host = row is null ? null
-                : (row.Recent ? state.RecentAppHosts : state.AppHosts).SingleOrDefault(host => host.Id == row.Id);
-            var expectedBitmap = row is not null
-                ? _artwork!.Status(GetMenuStatus(host, state.Discovery == DiscoveryState.Live))
-                : item.Submenu == 0 && root.Commands.TryGetValue(item.Id, out var command) ? command.Kind switch
-            {
-                ActionKind.Documentation => _artwork!.DocumentationBitmap,
-                ActionKind.Settings => _artwork!.SettingsBitmap,
-                _ => 0
-            } : 0;
-            NativeSmokeHarness.Require(item.Bitmap == expectedBitmap,
-                "Only AppHost health indicators, Documentation, and Settings may have menu icons.");
-            if (item.Submenu != 0)
-            {
-                VerifyMenuIcons(root, item.Submenu);
-            }
-        }
-    }
-
-    private static void VerifyAction(nint menu, uint id, bool enabled)
-    {
-        if (id != 0)
-        {
-            var item = ReadItem(menu, id, false);
-            NativeSmokeHarness.Require(((item.State & 3) == 0) == enabled && item.Bitmap == 0, "Native action state or text-only presentation is incorrect.");
-        }
-    }
-
-    private static NativeMethods.MenuItemInfo ReadItem(nint menu, uint id, bool position)
-    {
-        var info = new NativeMethods.MenuItemInfo
-        {
-            Size = (uint)sizeof(NativeMethods.MenuItemInfo),
-            Mask = NativeMethods.MiimState | NativeMethods.MiimBitmap | NativeMethods.MiimSubmenu | NativeMethods.MiimId | NativeMethods.MiimFType
-        };
-        NativeCallException.Require(NativeMethods.GetMenuItemInfo(menu, id, position ? 1 : 0, ref info) != 0, "GetMenuItemInfoW(smoke)");
-        return info;
-    }
-
-    private static string ReadText(nint menu, uint id, bool position)
-    {
-        var info = new NativeMethods.MenuItemInfo { Size = (uint)sizeof(NativeMethods.MenuItemInfo), Mask = NativeMethods.MiimString };
-        NativeCallException.Require(NativeMethods.GetMenuItemInfo(menu, id, position ? 1 : 0, ref info) != 0, "GetMenuItemInfoW(smoke text length)");
-        var text = new char[info.TextLength + 1];
-        fixed (char* buffer = text)
-        {
-            info.Text = buffer;
-            info.TextLength = (uint)text.Length;
-            NativeCallException.Require(NativeMethods.GetMenuItemInfo(menu, id, position ? 1 : 0, ref info) != 0, "GetMenuItemInfoW(smoke text)");
-            return new string(buffer);
-        }
-    }
-
-    private static string[] ReadMenuTitles(nint menu)
-    {
-        var count = NativeMethods.GetMenuItemCount(menu);
-        NativeCallException.Require(count >= 0, "GetMenuItemCount(smoke)");
-        return Enumerable.Range(0, count).Select(position => ReadText(menu, (uint)position, true)).ToArray();
+        NativeSmokeHarness.Require(_iconData.CallbackMessage == NativeMethods.TrayCallback, "The icon must report activations to the panel.");
     }
 
     private void RequireSmoke()
@@ -412,169 +328,6 @@ internal sealed unsafe partial class TrayApplication
         if (smokeSeconds is null)
         {
             throw new InvalidOperationException("Native smoke hooks are unavailable in normal mode.");
-        }
-    }
-
-    internal nint SettingsWindowForSmoke => _settingsWindow;
-
-    internal void ClickSettingsControlForSmoke(string control)
-    {
-        RequireSmoke();
-        FocusSettings();
-        var target = control switch
-        {
-            "Startup" => _settingsCheckbox,
-            "Refresh" => _settingsRefresh,
-            _ => throw new ArgumentException("Unknown Settings smoke control.", nameof(control))
-        };
-        NativeSmokeHarness.Require(target != 0 && NativeMethods.IsWindowVisible(target) != 0, "The Settings control is not visible.");
-        NativeMethods.SendMessage(target, NativeMethods.BmClick, 0, 0);
-    }
-
-    internal void RefreshSettingsForSmoke()
-    {
-        RequireSmoke();
-        if (NativeMethods.IsWindowVisible(_settingsRefresh) != 0)
-        {
-            ClickSettingsControlForSmoke("Refresh");
-        }
-        else
-        {
-            // Normal Settings has no refresh action; reopening reads external changes.
-            ShowSettings();
-        }
-    }
-
-    internal void CloseSettingsForSmoke()
-    {
-        RequireSmoke();
-        NativeMethods.SendMessage(_settingsWindow, NativeMethods.WmClose, 0, 0);
-        NativeSmokeHarness.Require(_settingsWindow == 0 && _settingsIcon == 0
-            && _settingsHeadingFont == 0 && _settingsControlBounds.Count == 0,
-            "Closing Settings did not release its native window, logo, and font.");
-    }
-
-    internal void VerifySettingsForSmoke(uint checkState, bool enabled, string status)
-    {
-        RequireSmoke();
-        NativeSmokeHarness.Require(_settingsWindow != 0 && _settingsIcon != 0 && _settingsMenuFilter != 0,
-            "The modeless Settings window, icon, or local shortcut hook is missing.");
-        NativeSmokeHarness.Require(NativeMethods.IsThemeActive() == 0 || NativeMethods.IsAppThemed() != 0,
-            "The native executable did not activate Common Controls v6 visual styles.");
-        NativeSmokeHarness.Require(ReadControlText(_settingsWindow) == "Aspire Tray Settings"
-            && ReadControlText(NativeMethods.GetDlgItem(_settingsWindow, SettingsGeneralId)) == "General"
-            && ReadControlText(NativeMethods.GetDlgItem(_settingsWindow, SettingsAboutId)) == "About",
-            "Settings sections are missing.");
-        NativeSmokeHarness.Require(NativeMethods.SendMessage(_settingsCheckbox, NativeMethods.BmGetCheck, 0, 0) == (nint)checkState
-            && (NativeMethods.IsWindowEnabled(_settingsCheckbox) != 0) == enabled, "The native startup checkbox misrepresents backend state.");
-        NativeSmokeHarness.Require(ReadControlText(_settingsStatus) == status, "The Settings status/error text is incorrect.");
-        var showDetails = status.Length != 0;
-        NativeSmokeHarness.Require((NativeMethods.IsWindowVisible(_settingsStatus) != 0) == showDetails
-            && (NativeMethods.IsWindowVisible(_settingsRefresh) != 0) == showDetails,
-            "Startup details and Refresh must appear only when startup is unavailable or failed.");
-        var expectedControls = new List<string> { "General", "", "&Launch Aspire Tray when I sign in", TraySettingsText.StartupDescription };
-        if (showDetails)
-        {
-            expectedControls.AddRange([status, "&Refresh startup status"]);
-        }
-        expectedControls.AddRange(["About", "", "Aspire logo", "Aspire Tray", AboutDescriptionText, AboutVersionText, "", "&Close"]);
-        var visibleControls = new List<string>();
-        for (var control = NativeMethods.GetWindow(_settingsWindow, 5); control != 0; control = NativeMethods.GetWindow(control, 2))
-        {
-            // GW_CHILD / GW_HWNDNEXT enumerate the actual direct child controls.
-            if (NativeMethods.IsWindowVisible(control) != 0)
-            {
-                visibleControls.Add(ReadControlText(control));
-            }
-        }
-        NativeSmokeHarness.Require(visibleControls.SequenceEqual(expectedControls),
-            "Settings does not expose the expected compact controls in reading and tab order.");
-        char* className = stackalloc char[32];
-        foreach (var label in new[] { _settingsStartupDescription, _settingsStatus, _settingsProductName, _settingsAboutDescription, _settingsVersion })
-        {
-            var length = NativeMethods.GetClassName(label, className, 32);
-            NativeCallException.Require(length != 0, "GetClassNameW(Settings label)");
-            NativeSmokeHarness.Require(new ReadOnlySpan<char>(className, length).Equals("Static", StringComparison.OrdinalIgnoreCase),
-                "Settings information must be exposed as a label rather than an editable field.");
-        }
-        NativeCallException.Require(NativeMethods.GetWindowRect(_settingsStatus, out var statusBounds) != 0, "GetWindowRect(Settings status smoke)");
-        NativeCallException.Require(NativeMethods.GetWindowRect(_settingsRefresh, out var refreshBounds) != 0, "GetWindowRect(Settings refresh smoke)");
-        NativeCallException.Require(NativeMethods.GetWindowRect(_settingsClose, out var closeBounds) != 0, "GetWindowRect(Settings close smoke)");
-        NativeCallException.Require(NativeMethods.GetWindowRect(_settingsWindow, out var windowBounds) != 0, "GetWindowRect(Settings window smoke)");
-        NativeSmokeHarness.Require((!showDetails || statusBounds.Bottom < refreshBounds.Top)
-            && (_settingsScrollMaximum > 0 || closeBounds.Bottom < windowBounds.Bottom),
-            "Wrapping status text overlaps an action or pushes it outside Settings.");
-        NativeSmokeHarness.Require((!showDetails || _settingsControlBounds[_settingsRefresh].Bottom < _settingsGeneralBounds.Bottom)
-            && _settingsControlBounds[_settingsVersion].Bottom < _settingsAboutBounds.Bottom
-            && _settingsGeneralBounds.Bottom < _settingsAboutBounds.Top,
-            "Settings actions extend outside their section or the sections overlap.");
-        NativeSmokeHarness.Require(ReadControlText(_settingsVersion) == AboutVersionText, "Settings About information is incomplete.");
-        NativeSmokeHarness.Require(NativeMethods.SendMessage(_settingsLogo, 0x171, 0, 0) == _settingsIcon
-            && _settingsControlBounds[_settingsLogo].Right < _settingsControlBounds[_settingsProductName].Left
-            && _settingsControlBounds[_settingsLogo].Top > _settingsAboutBounds.Top
-            && _settingsControlBounds[_settingsLogo].Bottom < _settingsAboutBounds.Bottom,
-            "The DPI-scaled Aspire logo must appear beside the About information.");
-        NativeSmokeHarness.Require(ReadControlText(_settingsCheckbox) == "&Launch Aspire Tray when I sign in",
-            "The native checkbox is not clearly labeled.");
-        NativeSmokeHarness.Require(NativeMethods.IsChild(_settingsWindow, NativeMethods.GetFocus()) != 0,
-            "Settings did not retain keyboard focus.");
-    }
-
-    internal void VerifySettingsScrollingForSmoke()
-    {
-        RequireSmoke();
-        var monitor = new NativeMethods.MonitorInfo { Size = (uint)sizeof(NativeMethods.MonitorInfo) };
-        NativeCallException.Require(NativeMethods.GetMonitorInfo(NativeMethods.MonitorFromWindow(_settingsWindow, 2), ref monitor) != 0,
-            "GetMonitorInfoW(Settings scroll smoke)");
-        var original = _settingsStatusText;
-        try
-        {
-            // Size the fixture from the actual desktop so this exercises overflow even
-            // on a large monitor, without changing resolution or OS accessibility settings.
-            var lines = (monitor.Work.Bottom - monitor.Work.Top) / SettingsRect(0, 0, 0, 8).Bottom + 1;
-            SetSettingsStatus(string.Join("\r\n", Enumerable.Repeat("Startup detail requiring additional space.", lines)));
-            NativeSmokeHarness.Require(_settingsScrollMaximum > 0, "Long Settings details did not create a scrollable viewport.");
-            NativeCallException.Require(NativeMethods.GetWindowRect(_settingsWindow, out var window) != 0, "GetWindowRect(Settings scroll smoke)");
-            NativeSmokeHarness.Require(window.Top >= monitor.Work.Top && window.Bottom <= monitor.Work.Bottom,
-                "Settings overflow extends beyond the monitor work area.");
-            NativeMethods.SetFocus(_settingsClose);
-            VerifySettingsFocusVisibleForSmoke(_settingsClose);
-            NativeMethods.SendMessage(_settingsWindow, NativeMethods.WmVerticalScroll, 6, 0); // SB_TOP.
-            NativeSmokeHarness.Require(_settingsScrollPosition == 0, "Settings scrollbar did not return to the top.");
-            NativeMethods.SendMessage(_settingsWindow, NativeMethods.WmVerticalScroll, 7, 0); // SB_BOTTOM.
-            var scroll = new NativeMethods.ScrollInfo { Size = (uint)sizeof(NativeMethods.ScrollInfo), Mask = 4 };
-            NativeCallException.Require(NativeMethods.GetScrollInfo(_settingsWindow, 1, ref scroll) != 0, "GetScrollInfo(Settings scroll smoke)");
-            NativeSmokeHarness.Require(scroll.Position == _settingsScrollMaximum && _settingsScrollPosition == scroll.Position,
-                "The native scrollbar and Settings content disagree about their position.");
-            NativeMethods.SetFocus(_settingsCheckbox);
-            VerifySettingsFocusVisibleForSmoke(_settingsCheckbox);
-        }
-        finally
-        {
-            SetSettingsStatus(original);
-        }
-    }
-
-    private void VerifySettingsFocusVisibleForSmoke(nint control)
-    {
-        NativeCallException.Require(NativeMethods.GetClientRect(_settingsWindow, out var client) != 0, "GetClientRect(Settings focus smoke)");
-        NativeCallException.Require(NativeMethods.GetWindowRect(control, out var bounds) != 0, "GetWindowRect(Settings focus smoke)");
-        var origin = new NativeMethods.Point();
-        NativeCallException.Require(NativeMethods.ClientToScreen(_settingsWindow, ref origin) != 0, "ClientToScreen(Settings focus smoke)");
-        NativeSmokeHarness.Require(NativeMethods.GetFocus() == control
-            && bounds.Top >= origin.Y && bounds.Bottom <= origin.Y + client.Bottom,
-            "Keyboard focus did not scroll the complete native Settings control into view.");
-    }
-
-    private static string ReadControlText(nint control)
-    {
-        var length = NativeMethods.GetWindowTextLength(control);
-        var text = new char[length + 1];
-        fixed (char* buffer = text)
-        {
-            var count = NativeMethods.GetWindowText(control, buffer, text.Length);
-            NativeCallException.Require(count == length, "GetWindowTextW(Settings smoke)");
-            return new string(buffer, 0, count);
         }
     }
 

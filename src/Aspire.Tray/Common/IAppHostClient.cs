@@ -12,7 +12,7 @@ internal interface IAppHostClient
 
 internal readonly record struct AppHostId(string AppHostPath, int AppHostPid, long? ProcessStartTimeUnixMilliseconds)
 {
-    // Identity matching follows the platform, but paths also reach menus, the clipboard,
+    // Identity matching follows the platform, but paths also reach the panel, the clipboard,
     // and CLI arguments. Keep their original casing rather than storing an uppercased key.
     public bool Equals(AppHostId other)
         => TrayAppHostPath.Comparer.Equals(AppHostPath, other.AppHostPath)

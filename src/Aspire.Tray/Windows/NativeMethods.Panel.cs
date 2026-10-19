@@ -203,4 +203,10 @@ internal static unsafe partial class NativeMethods
 
     [LibraryImport("gdiplus.dll")]
     internal static partial int GdipReleaseDC(nint graphics, nint dc);
+
+    [LibraryImport("user32.dll")]
+    internal static partial int GetKeyboardState(byte* state);
+
+    [LibraryImport("user32.dll")]
+    internal static partial int SetKeyboardState(byte* state);
 }
