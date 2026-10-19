@@ -13,6 +13,7 @@ using Aspire.Dashboard.Tests.Shared;
 using Aspire.Dashboard.Utils;
 using Aspire.Tests.Shared;
 using Aspire.Tests.Shared.DashboardModel;
+using Aspire.Tests.Utils;
 using Bunit;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.InternalTesting;
@@ -27,9 +28,96 @@ using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 namespace Aspire.Dashboard.Components.Tests.Layout;
 
 [UseCulture("en-US")]
-public partial class MainLayoutTests : DashboardTestContext
+public partial class MainLayoutTests(ITestOutputHelper testOutputHelper) : DashboardTestContext
 {
     private IRenderedComponent<FluentMessageBarProvider>? _messageBarProvider;
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task LiveRunConnectionStatus_DisconnectedAndRetrying_StaysOfflineUntilConnected(bool isDesktop)
+    {
+        var client = new TestDashboardClient(isEnabled: true, initialResources: [],
+            resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>);
+        SetupMainLayoutServices(dashboardClient: client);
+        var cut = Render<MainLayout>(parameters => parameters.Add(p => p.ViewportInformation,
+            new ViewportInformation(IsDesktop: isDesktop, IsUltraLowHeight: false, IsUltraLowWidth: false)));
+        var picker = cut.FindComponent<DashboardRunSelect>();
+        Assert.Equal("Live run", picker.FindComponent<AspireMenuButton>().Instance.Text);
+
+        await cut.InvokeAsync(() => client.SetConnectionState(DashboardConnectionState.Disconnected));
+        cut.WaitForAssertion(() => Assert.Equal("AppHost offline", picker.FindComponent<AspireMenuButton>().Instance.Text));
+        Assert.Equal(Color.Error, picker.FindComponent<AspireMenuButton>().Instance.IconStartColor);
+        Assert.Equal("AppHost offline", cut.Find(".apphost-connection-message strong").TextContent);
+
+        await cut.InvokeAsync(() => client.SetConnectionState(DashboardConnectionState.Connecting));
+        cut.WaitForAssertion(() => Assert.Equal("AppHost offline", picker.FindComponent<AspireMenuButton>().Instance.Text));
+        Assert.Equal(Color.Error, picker.FindComponent<AspireMenuButton>().Instance.IconStartColor);
+        Assert.Single(cut.FindAll(".apphost-connection-status"));
+
+        await cut.InvokeAsync(() => client.SetConnectionState(DashboardConnectionState.Connected));
+        cut.WaitForAssertion(() => Assert.Equal("Live run", picker.FindComponent<AspireMenuButton>().Instance.Text));
+        Assert.Equal(Color.Success, picker.FindComponent<AspireMenuButton>().Instance.IconStartColor);
+        Assert.Empty(cut.FindAll(".apphost-connection-status"));
+        Assert.Empty(cut.FindAll(".new-live-run-notice"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task NewLiveRun_WaitsForConnection_PreservesHistoryAndCanOpenLive(bool viewingHistory)
+    {
+        using var workspace = TemporaryWorkspace.Create(testOutputHelper);
+        using var store = new DashboardRunStore(Microsoft.Extensions.Options.Options.Create(new DashboardOptions
+        {
+            Data = new DashboardDataOptions { Directory = workspace.Path, PersistenceMode = DashboardPersistenceMode.Run }
+        }), Microsoft.Extensions.Logging.Abstractions.NullLogger<DashboardRunStore>.Instance, TimeProvider.System);
+        var client = new TestDashboardClient(isEnabled: true, initialResources: [],
+            resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>);
+        string? historicalRunId = null;
+        SetupMainLayoutServices(dashboardRunStore: store, dashboardClient: client,
+            sessionStorage: new TestSessionStorage { OnGetAsync = _ => (true, historicalRunId) });
+        // Dispose the component service provider before deleting its run directory: the pool
+        // retains the store until all circuit leases have been released.
+        try
+        {
+            var pool = Services.GetRequiredService<DashboardDataSourcePool>();
+            await pool.InitializeAsync(CancellationToken.None);
+            pool.PublishRun();
+            await pool.StartAppHostRunAsync("first", CancellationToken.None);
+            var previous = store.GetCurrentRun();
+            await pool.StartAppHostRunAsync("before-view", CancellationToken.None);
+            historicalRunId = viewingHistory ? previous.RunId : null;
+            var cut = Render<MainLayout>(parameters => parameters.Add(p => p.ViewportInformation,
+                new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false)));
+            var selection = Services.GetRequiredService<IDashboardRunSelection>();
+            await cut.InvokeAsync(() => client.SetConnectionState(DashboardConnectionState.Disconnected));
+            await pool.StartAppHostRunAsync("second", CancellationToken.None);
+            cut.WaitForAssertion(() => Assert.Equal(viewingHistory ? previous.RunId : store.RunId, selection.SelectedRun.RunId));
+            Assert.Empty(cut.FindAll(".new-live-run-notice"));
+            await cut.InvokeAsync(() => client.SetConnectionState(DashboardConnectionState.Connecting));
+            Assert.Empty(cut.FindAll(".new-live-run-notice"));
+            await cut.InvokeAsync(() => client.SetConnectionState(DashboardConnectionState.Connected));
+            cut.WaitForAssertion(() => Assert.Equal("New live run connected", cut.Find(".new-live-run-notice strong").TextContent));
+            Assert.Equal(viewingHistory ? previous.RunId : store.RunId, selection.SelectedRun.RunId);
+            var notice = cut.Find(".new-live-run-notice");
+            if (viewingHistory)
+            {
+                notice.QuerySelector("fluent-button")!.Click();
+                cut.WaitForAssertion(() => Assert.Equal(store.RunId, selection.SelectedRun.RunId));
+            }
+            else
+            {
+                notice.QuerySelector("fluent-button[aria-label='Dismiss new live run notice']")!.Click();
+            }
+            cut.WaitForAssertion(() => Assert.Empty(cut.FindAll(".new-live-run-notice")));
+            await pool.PruningTask;
+        }
+        finally
+        {
+            await DisposeAsync();
+        }
+    }
 
     [Fact]
     public void OnInitialize_BrowserInfoCircuitDisconnected_DoesNotThrow()

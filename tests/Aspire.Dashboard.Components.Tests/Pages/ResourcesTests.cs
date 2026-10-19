@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
@@ -665,8 +665,10 @@ public partial class ResourcesTests : DashboardTestContext
         await dialogService.LastInstance!.CloseAsync();
     }
 
-    [Fact]
-    public async Task ResourceGraphContextMenu_OpensWithoutWaitingForClose()
+    [Theory]
+    [InlineData(DashboardConnectionState.Connected, DashboardConnectionState.Disconnected)]
+    [InlineData(DashboardConnectionState.Disconnected, DashboardConnectionState.Connected)]
+    public async Task ResourceGraphContextMenu_ConnectionChanges_CloseCachedMenu(DashboardConnectionState initialState, DashboardConnectionState nextState)
     {
         var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
         var resource = CreateResource(
@@ -696,6 +698,11 @@ public partial class ResourcesTests : DashboardTestContext
             builder.AddCascadingValue(viewport);
         });
 
+        await cut.InvokeAsync(() =>
+        {
+            cut.Instance.AppHostConnectionState = initialState;
+            cut.Render();
+        });
         var showContextMenuAsync = typeof(Components.Pages.Resources)
             .GetMethod("ShowContextMenuAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
 
@@ -709,7 +716,12 @@ public partial class ResourcesTests : DashboardTestContext
         Assert.Equal("Resource1", headerItem.Text);
         Assert.NotNull(headerItem.Icon);
 
-        await cut.InvokeAsync(() => contextMenu.FindComponent<FluentMenu>().Instance.OnOpenedChangedAsync(false));
+        await cut.InvokeAsync(() =>
+        {
+            dashboardClient.SetConnectionState(nextState);
+            cut.Instance.AppHostConnectionState = nextState;
+            cut.Render();
+        });
 
         Assert.False(contextMenu.Instance.Open);
         Assert.Equal(false, menuStateHandler.Invocations.Last().Arguments[0]);

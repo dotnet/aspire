@@ -135,6 +135,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     private AspireMenu? _contextMenu;
     private bool _contextMenuOpen;
+    private DashboardConnectionState? _previousConnectionState;
     private readonly List<MenuButtonItem> _contextMenuItems = new();
     private string? _contextMenuFocusElementId;
 
@@ -639,6 +640,17 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     protected override async Task OnParametersSetAsync()
     {
+        if (_previousConnectionState != AppHostConnectionState)
+        {
+            _previousConnectionState = AppHostConnectionState;
+            // Graph menus cache command availability when opened. Close them on connection
+            // changes so their old enabled state cannot survive a disconnect or reconnect.
+            if (_contextMenuOpen && _contextMenu is not null)
+            {
+                await _contextMenu.CloseAsync();
+            }
+        }
+
         if (await this.InitializeViewModelAsync())
         {
             return;

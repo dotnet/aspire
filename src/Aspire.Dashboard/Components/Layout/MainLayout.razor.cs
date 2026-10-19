@@ -20,6 +20,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     private bool _isNavMenuOpen;
     private bool _isDisposing;
 
+    private bool _hasNewLiveRun;
     private bool _runSelectionChanged;
     private bool _isSwitchingRuns;
     private bool _hasResourceTerminals;
@@ -329,6 +330,9 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     {
         _ = InvokeAsync(() =>
         {
+            // The replacement run is published before the AppHost handshake finishes. Render the
+            // arrival notice only after the live client reports Connected, including when viewing history.
+            _hasNewLiveRun = RunStore.SupportsRunSelection;
             // A deliberately selected history entry stays selected. The live view follows the AppHost.
             if (RunSelection.SelectedRun.IsCurrent)
             {
@@ -336,6 +340,12 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             }
             StateHasChanged();
         });
+    }
+
+    private async Task OpenNewLiveRunAsync()
+    {
+        await SwitchDashboardRunAsync(runId: null);
+        _hasNewLiveRun = false;
     }
 
     private async Task SwitchDashboardRunAsync(string? runId)

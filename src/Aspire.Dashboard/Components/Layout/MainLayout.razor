@@ -31,6 +31,7 @@
                 var selectedRun = RunSelection.SelectedRun;
                 <DashboardRunSelect SelectedRunId="@selectedRun.RunId"
                                     SelectedRunIsCurrent="@selectedRun.IsCurrent"
+                                    AppHostConnectionState="@LiveAppHostClient.ConnectionState"
                                     SelectedRunStartedAtUtc="@selectedRun.StartedAtUtc"
                                     SelectedRunIdChanged="@SwitchDashboardRunAsync" />
             }
@@ -105,6 +106,7 @@
                 var selectedRun = RunSelection.SelectedRun;
                 <DashboardRunSelect SelectedRunId="@selectedRun.RunId"
                                     SelectedRunIsCurrent="@selectedRun.IsCurrent"
+                                    AppHostConnectionState="@LiveAppHostClient.ConnectionState"
                                     SelectedRunStartedAtUtc="@selectedRun.StartedAtUtc"
                                     SelectedRunIdChanged="@SwitchDashboardRunAsync" />
             }
@@ -131,6 +133,23 @@
 
     <div class="messagebar-container">
         <ResourceServiceConnectionProvider />
+        @if (_hasNewLiveRun && LiveAppHostClient.ConnectionState == DashboardConnectionState.Connected)
+        {
+            <div class="new-live-run-notice" role="status">
+                <FluentIcon Value="@(new Icons.Filled.Size20.CheckmarkCircle())" Color="Color.Success" />
+                <div class="new-live-run-content">
+                    <strong>@Loc[nameof(Layout.DashboardNewLiveRunTitle)]</strong>
+                    <span>@Loc[RunSelection.SelectedRun.IsCurrent ? nameof(Layout.DashboardNewLiveRunFollowed) : nameof(Layout.DashboardNewLiveRunHistory)]</span>
+                </div>
+                @if (!RunSelection.SelectedRun.IsCurrent)
+                {
+                    <FluentButton OnClick="OpenNewLiveRunAsync">@Loc[nameof(Layout.DashboardNewLiveRunOpen)]</FluentButton>
+                }
+                <FluentButton OnClick="@(() => _hasNewLiveRun = false)" aria-label="@Loc[nameof(Layout.DashboardNewLiveRunDismiss)]">
+                    <FluentIcon Value="@(new Icons.Regular.Size16.Dismiss())" />
+                </FluentButton>
+            </div>
+        }
         <FluentMessageBarProvider Section="@DashboardUIHelpers.MessageBarSection" Class="top-messagebar" MaxMessageCount="null" NewestOnTop="true" />
     </div>
     <div class="layout-body-container">

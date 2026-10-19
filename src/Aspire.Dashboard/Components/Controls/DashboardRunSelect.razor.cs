@@ -21,11 +21,42 @@ public partial class DashboardRunSelect : ComponentBase
     private static readonly Icon s_pinnedIcon = new Icons.Filled.Size16.Pin();
     private readonly string _runMenuItemIdPrefix = $"dashboard-run-{Guid.NewGuid():N}";
 
+    private bool _hasDisconnected;
+
+    protected override void OnParametersSet()
+    {
+        if (AppHostConnectionState == DashboardConnectionState.Connected)
+        {
+            _hasDisconnected = false;
+        }
+        else if (AppHostConnectionState == DashboardConnectionState.Disconnected)
+        {
+            _hasDisconnected = true;
+        }
+    }
+
     private string RunSelectTitle => Loc[nameof(LayoutResources.DashboardRunSelectTitle)];
     private string RunSelectAccessibleLabel => Loc[nameof(LayoutResources.DashboardRunSelectAccessibleLabel), SelectedRunText];
     private string SelectedRunText => SelectedRunIsCurrent
-        ? Loc[nameof(LayoutResources.DashboardRunSelectCurrent)]
+        ? CurrentRunText
         : FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, SelectedRunStartedAtUtc.UtcDateTime);
+
+    private string CurrentRunText => AppHostConnectionState switch
+    {
+        DashboardConnectionState.Connected => Loc[nameof(LayoutResources.DashboardRunSelectCurrent)],
+        DashboardConnectionState.Connecting when !_hasDisconnected => Loc[nameof(LayoutResources.DashboardRunSelectConnecting)],
+        _ => Loc[nameof(LayoutResources.DashboardRunSelectOffline)]
+    };
+
+    private Color SelectedRunColor => !SelectedRunIsCurrent ? Color.Warning : AppHostConnectionState switch
+    {
+        DashboardConnectionState.Connected => Color.Success,
+        DashboardConnectionState.Connecting when !_hasDisconnected => Color.Warning,
+        _ => Color.Error
+    };
+
+    [Parameter]
+    public DashboardConnectionState AppHostConnectionState { get; set; } = DashboardConnectionState.Connected;
 
     [Parameter, EditorRequired]
     public required string SelectedRunId { get; set; }
@@ -149,7 +180,7 @@ public partial class DashboardRunSelect : ComponentBase
     {
         if (run.IsCurrent)
         {
-            return Loc[nameof(LayoutResources.DashboardRunSelectCurrent)];
+            return CurrentRunText;
         }
 
         return FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, run.StartedAtUtc.UtcDateTime);

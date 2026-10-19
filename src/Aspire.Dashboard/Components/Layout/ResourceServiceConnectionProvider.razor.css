@@ -1,8 +1,16 @@
 .apphost-connection-status {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.5rem 1rem;
-    background: var(--neutral-layer-2);
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: var(--messagebar-error-background-color);
+    border-block-end: 1px solid var(--messagebar-error-border-color);
+    flex-wrap: wrap;
+}
+
+.apphost-connection-message {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: min(100%, 16rem);
 }
