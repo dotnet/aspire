@@ -164,7 +164,7 @@ suite('outdatedCliNotifier', () => {
             displayedRecommendedVersion: '13.6.0-preview.2',
         },
     ]) {
-        test(`omits build metadata in the warning for ${currentVersion} to ${recommendedVersion}`, async () => {
+        test(`uses Doctor's current version and omits recommended build metadata for ${currentVersion} to ${recommendedVersion}`, async () => {
             const { notifier, versionProvider, surface } = createNotifier();
             versionProvider.identity = {
                 cliPath: '/cli/aspire',
@@ -173,7 +173,7 @@ suite('outdatedCliNotifier', () => {
             };
             versionProvider.recommendation = {
                 status: 'available',
-                currentVersion,
+                currentVersion: displayedCurrentVersion,
                 version: recommendedVersion,
             };
             surface.selection = strings.updateAspireCliAction;

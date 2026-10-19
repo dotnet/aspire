@@ -39,6 +39,7 @@ interface CliCheckState {
 interface PendingNotification {
     target: CliPathResolutionTarget;
     cli: CliVersionInfo;
+    currentVersion: string;
     recommendedVersion: string;
 }
 
@@ -156,7 +157,7 @@ export class OutdatedCliNotifier implements vscode.Disposable {
         try {
             selectionPromise = this._surface.showWarning(
                 strings.outdatedAspireCliWarning(
-                    notification.cli.version.split('+', 1)[0],
+                    notification.currentVersion,
                     notification.cli.cliPath,
                     notification.recommendedVersion.split('+', 1)[0]),
                 strings.updateAspireCliAction,
@@ -352,7 +353,7 @@ export class OutdatedCliNotifier implements vscode.Disposable {
 
         const comparison = compareCliVersionValues(identity.version, recommendation.version);
         return comparison !== undefined && comparison < 0
-            ? { target, cli: identity, recommendedVersion: recommendation.version }
+            ? { target, cli: identity, currentVersion: recommendation.currentVersion, recommendedVersion: recommendation.version }
             : undefined;
     }
 
