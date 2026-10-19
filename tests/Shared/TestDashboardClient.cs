@@ -37,6 +37,7 @@ public class TestDashboardClient : IDashboardClient
     public Task WhenResourcesReady { get; }
     public string ApplicationName { get; } = "TestApp";
     public string? MinRequiredVersion => null;
+    public string AppHostRunId { get; set; } = string.Empty;
     public DashboardConnectionState ConnectionState => _connectionState;
     public ConcurrentQueue<(IReadOnlyList<string> ResourceNames, DateTime ClearDate)> ClearedConsoleLogs { get; } = new();
     public ConcurrentQueue<string> ClosedTerminals { get; } = new();

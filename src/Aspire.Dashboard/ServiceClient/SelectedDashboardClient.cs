@@ -12,6 +12,7 @@ internal sealed class SelectedDashboardClient(DashboardClient currentClient, Das
 {
     public Task WhenConnected => IsReadOnly ? Task.CompletedTask : currentClient.WhenConnected;
     public Task WhenResourcesReady => IsReadOnly ? Task.CompletedTask : currentClient.WhenResourcesReady;
+    public string AppHostRunId => currentClient.AppHostRunId;
     public bool IsEnabled => IsReadOnly || currentClient.IsEnabled;
     public bool IsReadOnly => dataSource.IsReadOnly;
     public DashboardConnectionState ConnectionState => IsReadOnly ? DashboardConnectionState.Connected : currentClient.ConnectionState;

@@ -804,6 +804,45 @@ public sealed class DashboardClientTests(ITestOutputHelper testOutputHelper) : I
     }
 
     [Fact]
+    public async Task ExecuteCommand_RunChangesAfterConfirmation_RejectsOriginalAttachment()
+    {
+        var first = Channel.CreateUnbounded<WatchResourcesUpdate>();
+        var second = Channel.CreateUnbounded<WatchResourcesUpdate>();
+        var reattached = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var calls = 0;
+        var service = new MockDashboardServiceClient
+        {
+            RunId = "first",
+            ResourceUpdatesProvider = () =>
+            {
+                if (Interlocked.Increment(ref calls) == 1)
+                {
+                    return first.Reader;
+                }
+                reattached.TrySetResult();
+                return second.Reader;
+            }
+        };
+        await using var client = CreateResourceServiceClient();
+        client.SetDashboardServiceClient(service);
+        await client.WhenConnected.DefaultTimeout();
+        var origin = client.AppHostRunId;
+        service.RunId = "second";
+        first.Writer.Complete(new RpcException(new Status(StatusCode.Unavailable, "AppHost restarted during confirmation")));
+        await reattached.Task.DefaultTimeout();
+        var command = new CommandViewModel("delete", CommandViewModelState.Enabled, "Delete", "", "Confirm?", [], false, "", Microsoft.FluentUI.AspNetCore.Components.IconVariant.Regular);
+        var response = await client.ExecuteResourceCommandAsync("api", "Project", command,
+            new ExecuteResourceCommandOptions { ExpectedAppHostRunId = origin }, CancellationToken.None);
+        Assert.Equal(Aspire.Dashboard.Model.ResourceCommandResponseKind.Cancelled, response.Kind);
+        Assert.Empty(service.CommandCalls);
+
+        response = await client.ExecuteResourceCommandAsync("api", "Project", command,
+            new ExecuteResourceCommandOptions { ExpectedAppHostRunId = client.AppHostRunId }, CancellationToken.None);
+        Assert.Equal(Aspire.Dashboard.Model.ResourceCommandResponseKind.Succeeded, response.Kind);
+        Assert.Equal("second", Assert.Single(service.CommandCalls));
+    }
+
+    [Fact]
     public async Task Interactions_RunChanges_RejectsDelayedRepliesForReusedInteractionId()
     {
         var firstResources = Channel.CreateUnbounded<WatchResourcesUpdate>();
@@ -1572,6 +1611,7 @@ public sealed class DashboardClientTests(ITestOutputHelper testOutputHelper) : I
         public string RunId { get; set; } = "";
         public string CorsAllowedOrigins { get; init; } = "";
         public ConcurrentQueue<(string? RunId, bool Cancelled)> ConsoleCalls { get; } = new();
+        public ConcurrentQueue<string?> CommandCalls { get; } = new();
         public IReadOnlyList<WatchResourceConsoleLogsUpdate> ConsoleLogUpdates { get; init; } = [];
         public ChannelReader<WatchResourceConsoleLogsUpdate>? ConsoleUpdatesChannel { get; init; }
         public Action? OnConsoleWatchStarted { get; init; }
@@ -1655,6 +1695,7 @@ public sealed class DashboardClientTests(ITestOutputHelper testOutputHelper) : I
 
         public override AsyncUnaryCall<ResourceCommandResponse> ExecuteResourceCommandAsync(ResourceCommandRequest request, CallOptions options)
         {
+            CommandCalls.Enqueue(options.Headers?.GetValue("x-aspire-apphost-run-id"));
             if (CancelExecuteResourceCommandOnCallCancellation)
             {
                 return new AsyncUnaryCall<ResourceCommandResponse>(

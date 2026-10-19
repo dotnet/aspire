@@ -326,6 +326,17 @@ internal sealed class DashboardClient : IDashboardClient
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .ToImmutableHashSet(StringComparer.OrdinalIgnoreCase));
 
+    public string AppHostRunId
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _appHostRunId;
+            }
+        }
+    }
+
     private Metadata GetSessionHeaders() => GetSessionHeaders(_appHostRunId);
 
     private Metadata GetSessionHeaders(string runId)
@@ -1285,6 +1296,18 @@ internal sealed class DashboardClient : IDashboardClient
 
         EnsureInitialized();
 
+        string runId;
+        CancellationToken attachmentToken;
+        using (await _attachmentLock.LockAsync(cancellationToken).ConfigureAwait(false))
+        {
+            runId = _appHostRunId;
+            attachmentToken = _appHostToken;
+            if (options.ExpectedAppHostRunId is { } expectedRunId && expectedRunId != runId)
+            {
+                return new ResourceCommandResponseViewModel { Kind = ResourceCommandResponseKind.Cancelled };
+            }
+        }
+
         var request = new ResourceCommandRequest()
         {
             CommandName = command.Name,
@@ -1303,9 +1326,10 @@ internal sealed class DashboardClient : IDashboardClient
 
         try
         {
-            using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken, _appHostToken);
+            using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken, attachmentToken);
 
-            var response = await _client!.ExecuteResourceCommandAsync(request, headers: GetSessionHeaders(), cancellationToken: combinedTokens.Token);
+            // Keep the header and lifetime from the same attachment even if rollover happens after validation.
+            var response = await _client!.ExecuteResourceCommandAsync(request, headers: GetSessionHeaders(runId), cancellationToken: combinedTokens.Token);
 
             return response.ToViewModel();
         }

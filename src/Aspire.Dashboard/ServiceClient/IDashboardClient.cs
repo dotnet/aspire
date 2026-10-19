@@ -62,6 +62,9 @@ public interface IDashboardClient : IResourceRepository, IAsyncDisposable
     /// </remarks>
     string ApplicationName { get; }
 
+    /// <summary>Gets the currently attached AppHost run identity.</summary>
+    string AppHostRunId { get; }
+
     /// <summary>
     /// Gets the minimum dashboard version required by the connected AppHost,
     /// or <see langword="null"/> if not yet known.
@@ -106,6 +109,9 @@ public interface IDashboardClient : IResourceRepository, IAsyncDisposable
 /// </summary>
 public sealed class ExecuteResourceCommandOptions
 {
+    // UI commands capture this before confirmation. Immediate callers may target the current attachment.
+    public string? ExpectedAppHostRunId { get; init; }
+
     /// <summary>
     /// Gets the invocation arguments supplied to the command, keyed by argument name.
     /// </summary>

@@ -687,6 +687,7 @@ public class ResourceOutgoingPeerResolverTests
         public Task WhenResourcesReady => Task.CompletedTask;
         public string ApplicationName => "ApplicationName";
         public string? MinRequiredVersion => null;
+        public string AppHostRunId => string.Empty;
         public DashboardConnectionState ConnectionState => DashboardConnectionState.Connected;
 #pragma warning disable CS0067 // Event is never used - required by interface
         public event Action<DashboardConnectionState>? ConnectionStateChanged;
