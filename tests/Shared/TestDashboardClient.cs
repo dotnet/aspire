@@ -36,7 +36,7 @@ public class TestDashboardClient : IDashboardClient
     public bool IsReadOnly { get; set; }
     public Task WhenConnected { get; }
     public Task WhenResourcesReady { get; }
-    public string ApplicationName { get; } = "TestApp";
+    public string ApplicationName { get; set; } = "TestApp";
     public string? MinRequiredVersion => null;
     public string AppHostRunId { get; set; } = string.Empty;
     public DashboardConnectionState ConnectionState => _connectionState;

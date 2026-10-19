@@ -1496,61 +1496,70 @@ public partial class ResourcesTests : DashboardTestContext
         Assert.Equal("error", resource.StateStyle);
     }
 
-    [Fact]
-    public void CollapsedResourceNames_FetchedAfterDashboardClientConnected_KeyIncludesApplicationNameAndHash()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CollapsedResourceNames_HandshakeChangesApplicationName_ReloadsAndSavesCorrectKey(bool nameChangesDuringRead)
     {
-        // Arrange
         var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
-        var initialResources = new List<ResourceViewModel>
-        {
-            CreateResource("Resource1", "Type1", "Running", null),
-        };
-
-        var connectionTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        const string applicationName = "MyTestApplication";
-
-        var dashboardClient = new TestDashboardClient(
-            isEnabled: true,
-            applicationName: applicationName,
-            initialResources: initialResources,
-            resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>,
-            whenConnected: connectionTcs.Task);
-
-        var collapsedResourceNamesKeyUsed = string.Empty;
-        var getAsyncCallOrder = new List<(string Key, bool ConnectionCompleted)>();
-
-        var localStorage = new TestLocalStorage
+        var parent = CreateResource("parent", "Project", "Running", null);
+        var properties = ImmutableDictionary<string, ResourcePropertyViewModel>.Empty.Add(
+            KnownProperties.Resource.ParentName,
+            new ResourcePropertyViewModel(KnownProperties.Resource.ParentName, ProtobufValue.ForString(parent.Name),
+                isValueSensitive: false, knownProperty: null, sortOrder: 0, displayName: null, isHighlighted: false));
+        var child = CreateResource("child", "Executable", "Running", null, properties: properties);
+        var connected = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var client = new TestDashboardClient(isEnabled: true, applicationName: "StartupName", initialResources: [parent, child],
+            resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>, whenConnected: connected.Task);
+        client.SetConnectionState(DashboardConnectionState.Disconnected);
+        var startupKey = BrowserStorageKeys.CollapsedResourceNamesKey("StartupName");
+        var handshakeKey = BrowserStorageKeys.CollapsedResourceNamesKey("HandshakeName");
+        var finalKey = BrowserStorageKeys.CollapsedResourceNamesKey(nameChangesDuringRead ? "UpdatedHandshakeName" : "HandshakeName");
+        var reads = new List<string>();
+        var writes = new List<(string Key, object? Value)>();
+        var storage = new TestLocalStorage
         {
             OnGetAsync = key =>
             {
-                // Track every GetAsync call and whether the connection was completed at that time
-                getAsyncCallOrder.Add((key, connectionTcs.Task.IsCompleted));
-                if (key.Contains(BrowserStorageKeys.CollapsedResourceNamesKeyPrefix))
+                if (key.StartsWith(BrowserStorageKeys.CollapsedResourceNamesKeyPrefix, StringComparison.Ordinal))
                 {
-                    collapsedResourceNamesKeyUsed = key;
+                    reads.Add(key);
                 }
-                return (false, null);
-            }
+                if (nameChangesDuringRead && key == handshakeKey)
+                {
+                    client.ApplicationName = "UpdatedHandshakeName";
+                    return (true, new List<string>());
+                }
+                return key == finalKey ? (true, new List<string> { parent.PersistentKey }) : (false, null);
+            },
+            OnSetAsync = (key, value) => writes.Add((key, value))
         };
+        ResourceSetupHelpers.SetupResourcesPage(this, viewport, client, storage);
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        JSInterop.SetupVoid("focusElement", _ => true).SetVoidResult();
+        JSInterop.SetupVoid("Microsoft.FluentUI.Blazor.Utilities.Attributes.observeAttributeChange", _ => true).SetVoidResult();
+        var cut = Render<Components.Pages.Resources>(parameters => parameters.AddCascadingValue(viewport));
+        cut.WaitForAssertion(() => Assert.Equal(2, cut.Instance.GetFilteredResources().Count()));
+        Assert.False(connected.Task.IsCompleted);
+        Assert.Equal([startupKey], reads);
 
-        ResourceSetupHelpers.SetupResourcesPage(this, viewport, dashboardClient, localStorage);
-
-        // Complete the connection immediately so the component can initialize
-        connectionTcs.SetResult();
-
-        // Act - Render the component
-        var cut = Render<Components.Pages.Resources>(builder =>
+        await cut.InvokeAsync(() =>
         {
-            builder.AddCascadingValue(viewport);
+            client.ApplicationName = "HandshakeName";
+            connected.SetResult();
+            client.SetConnectionState(DashboardConnectionState.Connected);
         });
-
-        // Assert 1 - The key should include the application name
-        Assert.Matches("^Aspire_Resources_CollapsedResourceNames_mytestapplication-[a-f0-9]{16}$", collapsedResourceNamesKeyUsed);
-
-        // Assert 2 - CollapsedResourceNames was only fetched after connection was completed
-        var collapsedResourceNamesCall = getAsyncCallOrder.FirstOrDefault(c => c.Key.Contains(BrowserStorageKeys.CollapsedResourceNamesKeyPrefix));
-        Assert.NotEqual(default, collapsedResourceNamesCall);
-        Assert.True(collapsedResourceNamesCall.ConnectionCompleted,
-            "CollapsedResourceNames was fetched before the dashboard client was connected");
+        cut.Render();
+        cut.WaitForAssertion(() => Assert.Equal(nameChangesDuringRead ? [startupKey, handshakeKey, finalKey] : [startupKey, finalKey], reads));
+        var rows = await cut.InvokeAsync(() => cut.Instance.GetData(new GridItemsProviderRequest<ResourceGridViewModel>()).AsTask());
+        Assert.Equal(parent.Name, Assert.Single(rows.Items).Resource.Name);
+        var toggle = Assert.Single(cut.FindComponents<FluentButton>(), button => button.Instance.Class == "main-grid-expand-button");
+        await cut.InvokeAsync(toggle.Instance.OnClick.InvokeAsync);
+        Assert.Collection(writes, write =>
+        {
+            Assert.Equal(finalKey, write.Key);
+            Assert.Empty(Assert.IsType<List<string>>(write.Value));
+        });
     }
+
 }
