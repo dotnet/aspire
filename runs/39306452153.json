@@ -1,0 +1,79 @@
+{
+  "run_id": 39306452153,
+  "run_attempt": 1,
+  "run_url": "https://github.com/microsoft/aspire/actions/runs/39306452153",
+  "run_scope": "main",
+  "analyzed_at": "2026-10-19T19:39:46Z",
+  "verdict": "mixed",
+  "pr": null,
+  "triggering_merge_pr": null,
+  "main_context": {
+    "last_successful_main_sha": "88ff9ba57c2841cce759adffa849373f9406b0f5",
+    "failed_sha": "949287a1b6ceaf8d8db49b41e594f74b1a74ba2c",
+    "candidate_merge_history_state": "incomplete",
+    "candidate_merges": null
+  },
+  "failed_jobs": [
+    {
+      "name": "Tests / Validate VS Code extension bootstrap (Linux)",
+      "id": 118245754188,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39306452153/job/118245754188",
+      "classification": "transient-infra",
+      "reason": "Step 'Validate seeded cache via yarn install' failed with 'error Error: https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/is-absolute/-/is-absolute-1.0.0.tgz: Request failed \"429 Too Many Requests\"' - NuGet-backed npm registry rate limiting, matches prior infra cause.",
+      "failed_steps": [
+        "Validate seeded cache via yarn install"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Hosting.Azure.Tests, Hosting.Azure, Hosting.Azure, tests/Aspire... / Hosting.Azure (ubuntu-latest)",
+      "id": 118245790662,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39306452153/job/118245790662",
+      "classification": "flaky-test",
+      "reason": "Single test AzureFunctionsTests.AddAzureFunctionsProject_WorksWithMultipleProjects failed with TaskCanceledException during DistributedApplication.StopAsync; 2080/2086 tests passed, matches a recurring flaky cause with 16 prior occurrences.",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x)",
+      "id": 118250748643,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39306452153/job/118250748643",
+      "classification": "main-repository-breakage",
+      "reason": "All 59 TypeScript validation AppHosts passed; failure occurs after in the external Nuxt integration test's Docker build step, matching the long-recurring deterministic Nuxt 'npm ci' Docker build failure (44 prior occurrences).",
+      "failed_steps": [
+        "Run TypeScript SDK validation"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / Polyglot Validation Results",
+      "id": 118255906053,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39306452153/job/118255906053",
+      "classification": "main-repository-breakage",
+      "reason": "Downstream aggregation job fails solely because 'TypeScript SDK Validation (Node 22.x)' reported failure; not an independent failure.",
+      "failed_steps": [
+        "Check validation results"
+      ]
+    }
+  ],
+  "failed_tests": [
+    {
+      "name": "Aspire.Hosting.Azure.Tests.AzureFunctionsTests.AddAzureFunctionsProject_WorksWithMultipleProjects",
+      "job": "Tests / No-package tests (regular, Aspire.Hosting.Azure.Tests, Hosting.Azure, Hosting.Azure, tests/Aspire... / Hosting.Azure (ubuntu-latest)",
+      "error": "System.Threading.Tasks.TaskCanceledException : A task was canceled.",
+      "stack_trace": "at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)\n   at Microsoft.Extensions.Hosting.Internal.Host.StopAsync(CancellationToken cancellationToken)\n   at Aspire.Hosting.DistributedApplication.StopAsync(CancellationToken cancellationToken) in /_/src/Aspire.Hosting/DistributedApplication.cs:line 497\n   at Aspire.Hosting.Azure.Tests.AzureFunctionsTests.AddAzureFunctionsProject_WorksWithMultipleProjects() in /home/runner/work/aspire/aspire/tests/Aspire.Hosting.Azure.Tests/AzureFunctionsTests.cs:line 201\n--- End of stack trace from previous location ---",
+      "standard_output": "| [2026-10-19T19:01:06] Aspire.Hosting.DistributedApplication Information: Aspire AppHost version: 17.0.0-ci\n| [2026-10-19T19:01:06] Aspire.Hosting.DistributedApplication Information: Distributed application starting.\n| [2026-10-19T19:01:06] Aspire.Hosting.DistributedApplication Information: Application host directory is: /home/runner/work/aspire/aspire/tests/Aspire.Hosting.TestUtilities\n| [2026-10-19T19:01:06] Aspire.Hosting.Devcontainers.Codespaces.CodespacesResourceUrlRewriterService Trace: Not running in Codespaces, skipping URL rewriting.\n| [2026-10-19T19:01:06] Aspire.Hosting.Backchannel.AuxiliaryBackchannelService Debug: Starting auxiliary backchannel service on socket path: /home/runner/.aspire/cli/bch/KfshLkY6TmIfpiYoa1J.4719\n| [2026-10-19T19:01:06] Aspire.Hosting.Backchannel.AuxiliaryBackchannelService Debug: Auxiliary backchannel listening on /home/runner/.aspire/cli/bch/KfshLkY6TmIfpiYoa1J.4719\n| [2026-10-19T19:01:06] Aspire.Hosting.Cli.BackchannelService Debug: Backchannel socket path was not specified.\n| [2026-10-19T19:01:06] Aspire.Hosting.Cli.CliOrphanDetector Debug: No CLI process ID configured. Orphan detection disabled.\n| [2026-10-19T19:01:06] Aspire.Hosting.Dcp.DcpHost Debug: Prepared DCP TLS certificate files for thumbprint 6D100A34AA7BB651F4D5AF91C12664C419EE8ABA.\n| [2026-10-19T19:01:06] Aspire.Hosting.FileSystemService Debug: Allocated temporary directory: /tmp/aspire-dcpjYvFSK\n| [2026-10-19T19:01:06] Aspire.Hosting.Dcp.DcpHost Information: Starting DCP with arguments: start-apiserver --monitor 4719 --detach --kubeconfig \"/tmp/aspire-dcpjYvFSK/kubeconfig\" --tls-cert-thumbprint \"6D100A34AA7BB651F4D5AF91C12664C419EE8ABA\" --tls-cert-file \"/home/runner/.aspire/dev-certs/https/08C814EEFC10C79E9313BB4E470CC05230EB2885F050CD38ACC7BDDF1BBF4B5D.crt\" --tls-key-file \"/home/runner/.aspire/dev-certs/https/08C814EEFC10C79E9313BB4E470CC05230EB2885F050CD38ACC7BDDF1BBF4B5D.key\"\n| [2026-10-19T19:01:06] Aspire.Hosting.Dcp.DcpExecutor Debug: Preparing services. Ports randomized: True\n| [2026-10-19T19:01:06] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Version: 1 Resource azure-environment/azure-environment update published: ResourceType = AzureEnvironmentResource, CreationTimeStamp = 2026-10-19T19:01:06, State = { Text = NotStarted, Style = (null) }, IsHidden = True, HeathStatus = (null), ResourceReady = False, ExitCode = (null), Urls = {  }, EnvironmentVariables = {  }, Properties = {  }, HealthReports = {  }, Commands = { reset-provisioning-state (Reset provisioning state) = Enabled change-azure-context (Change Azure context) = Enabled reprovision-all (Reprovision all) = Enabled delete-azure-resources (Delete Azure resources) = Enabled }\n| [2026-10-19T19:01:06] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Version: 1 Resource funcstorage53c8d/funcstorage53c8d-naxzbvtr update published: ResourceType = AzureStorageResource, CreationTimeStamp = (null), State = { Text = (null), Style = (null) }, IsHidden = False, HeathStatus = (null), ResourceReady = False, ExitCode = (null), Urls = {  }, EnvironmentVariables = {  }, Properties = {  }, HealthReports = { funcstorage53c8d_check = (null) }, Commands = { start (Start) = Disabled stop (Stop) = Hidden restart (Restart) = Disabled }\n| [2026-10-19T19:01:06] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Version: 1 Resource funcapp/funcapp-qcmvbmrt update published: ResourceType = Project, CreationTimeStamp = (null), State = { Text = (null), Style = (null) }, IsHidden = False, HeathStatus = (null), ResourceReady = False, ExitCode = (null), Urls = {  }, EnvironmentVariables = {  }, Properties = {  }, HealthReports = {  }, Commands = { start (Start) = Disabled stop (Stop) = Hidden restart (Restart) = Disabled rebuild (Rebuild) = Disabled }\n| [2026-10-19T19:01:06] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Version: 1 Resource funcapp2/funcapp2-uprejcsr update published: ResourceType = Project, Creation",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Only 1 of 2086 tests failed, with a TaskCanceledException during host shutdown; matches a known recurring flaky pattern (16 prior occurrences) unrelated to repository changes."
+    }
+  ],
+  "causes": [
+    "npm-registry-rate-limit",
+    "aspire-hosting-azure-servicebus-stopasync-taskcanceled",
+    "typescript-sdk-nuxt-integration-npm-ci-docker-build-failure"
+  ]
+}
