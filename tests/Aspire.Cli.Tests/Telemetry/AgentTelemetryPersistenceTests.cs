@@ -31,7 +31,7 @@ public class AgentTelemetryPersistenceTests(ITestOutputHelper outputHelper)
     public void SharedExporter_DisablesStandardMetricsAndPerformanceCounters()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
-        using var process = RemoteExecutor.Invoke(static async storageDirectory =>
+        using var process = RemoteExecutor.Invoke(static storageDirectory => Task.Run(async () =>
         {
             // Isolate cached exporter settings and prevent SDK diagnostics from making real requests.
             Environment.SetEnvironmentVariable("APPLICATIONINSIGHTS_STATSBEAT_DISABLED", "true");
@@ -120,7 +120,7 @@ public class AgentTelemetryPersistenceTests(ITestOutputHelper outputHelper)
             Assert.Equal(
                 [("MessageData", "reported-event"), ("MetricData", "_OTELRESOURCE_"), ("RemoteDependencyData", "reported-operation")],
                 exportedItems.OrderBy(item => item.BaseType, StringComparer.Ordinal).ToArray());
-        }, workspace.WorkspaceRoot.FullName);
+        }).DefaultTimeout(), workspace.WorkspaceRoot.FullName);
     }
 
     [Theory]
