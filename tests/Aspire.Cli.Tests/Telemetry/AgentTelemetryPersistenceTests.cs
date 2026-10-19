@@ -437,10 +437,11 @@ public class AgentTelemetryPersistenceTests(ITestOutputHelper outputHelper)
             });
             using var client = new HttpClient(handler);
             using var provider = CreateRecoveryProvider(directory, client);
-            using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+            // The real three-minute lease needs headroom beyond the local extra-long timeout.
+            using var timeout = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan + TestConstants.LongTimeoutTimeSpan);
             await AgentTelemetryUploader.DrainAsync(directory, lockPath, timeout.Token);
             Assert.True(delivered.Task.IsCompletedSuccessfully);
-        }, storage, lockPath, new RemoteInvokeOptions { TimeOut = 360_000 }).Dispose();
+        }, storage, lockPath, new RemoteInvokeOptions { TimeOut = TestConstants.ExtraLongTimeoutDuration * 2 }).Dispose();
     }
 
     private static TracerProvider CreateRecoveryProvider(string storage, HttpClient client)
