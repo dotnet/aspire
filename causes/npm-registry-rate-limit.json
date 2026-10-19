@@ -24,6 +24,13 @@
       "job": "Tests / Run VS Code extension unit tests (Windows) / Run VS Code extension unit tests (Windows)",
       "pr_number": 0,
       "observed_at": "2026-10-19T14:19:42Z"
+    },
+    {
+      "run_id": 39262205559,
+      "run_url": "https://github.com/microsoft/aspire/actions/runs/39262205559",
+      "job": "Tests / Validate VS Code extension bootstrap (Linux)",
+      "pr_number": 0,
+      "observed_at": "2026-10-19T14:49:16Z"
     }
   ],
   "issue_url": "https://github.com/microsoft/aspire/issues/18691"

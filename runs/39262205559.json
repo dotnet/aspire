@@ -1,0 +1,112 @@
+{
+  "run_id": 39262205559,
+  "run_attempt": 1,
+  "run_url": "https://github.com/microsoft/aspire/actions/runs/39262205559",
+  "run_scope": "main",
+  "analyzed_at": "2026-10-19T14:49:16Z",
+  "verdict": "mixed",
+  "pr": null,
+  "triggering_merge_pr": null,
+  "main_context": {
+    "last_successful_main_sha": "88ff9ba57c2841cce759adffa849373f9406b0f5",
+    "failed_sha": "9241c68e626f0df55084bd1463b7eb31f6c2c911",
+    "candidate_merge_history_state": "incomplete",
+    "candidate_merges": null
+  },
+  "failed_jobs": [
+    {
+      "name": "Tests / Validate VS Code extension bootstrap (Linux)",
+      "id": 118104584934,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39262205559/job/118104584934",
+      "classification": "transient-infra",
+      "reason": "yarn install failed fetching browserslist from the dnceng npm proxy feed with HTTP 429 Too Many Requests; a registry rate-limit, not a repository issue.",
+      "failed_steps": [
+        "Validate seeded cache via yarn install"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (macos-latest)",
+      "id": 118104624725,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39262205559/job/118104624725",
+      "classification": "flaky-test",
+      "reason": "Two StartCommandTests multi-project-file scenarios timed out after 30000ms on macOS, matching recurring known-flaky patterns tracked since early October (issues #20738 and #20737).",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Hosting.DevTunnels.Tests, Hosting.DevTunnels, Hosting.DevTunnel... / Hosting.DevTunnels (ubuntu-latest)",
+      "id": 118104651636,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39262205559/job/118104651636",
+      "classification": "flaky-test",
+      "reason": "DevTunnelMonitorTests.AnotherHostCannotEstablishUnknownLocalReadiness threw ObjectDisposedException on a disposed IServiceProvider, matching a previously tracked recurring flaky pattern (issue #20935).",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x)",
+      "id": 118107933747,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39262205559/job/118107933747",
+      "classification": "main-repository-breakage",
+      "reason": "All 59 TypeScript validation AppHosts passed, then the generated Nuxt 'web' publish image build step failed deterministically, matching the long-running tracked main breakage (issue #20866, 42+ prior occurrences).",
+      "failed_steps": [
+        "Run TypeScript SDK validation"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / Polyglot Validation Results",
+      "id": 118113607796,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39262205559/job/118113607796",
+      "classification": "main-repository-breakage",
+      "reason": "Aggregator job fails because the TypeScript SDK validation shard failed (Python/Go/Java succeeded, TypeScript failed), directly downstream of the same Nuxt Docker build breakage.",
+      "failed_steps": [
+        "Check validation results"
+      ]
+    }
+  ],
+  "failed_tests": [
+    {
+      "name": "Aspire.Hosting.DevTunnels.Tests.DevTunnelMonitorTests.AnotherHostCannotEstablishUnknownLocalReadiness",
+      "job": "Tests / No-package tests (regular, Aspire.Hosting.DevTunnels.Tests, Hosting.DevTunnels, Hosting.DevTunnel... / Hosting.DevTunnels (ubuntu-latest)",
+      "error": "System.ObjectDisposedException : Cannot access a disposed object.\nObject name: 'IServiceProvider'.",
+      "stack_trace": "at Microsoft.Extensions.DependencyInjection.ServiceLookup.ThrowHelper.ThrowObjectDisposedException()\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.ServiceProviderEngineScope.GetService(Type serviceType)\n   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService(IServiceProvider provider, Type serviceType)\n   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService[T](IServiceProvider provider)\n   at Aspire.Hosting.DevTunnelsResourceBuilderExtensions.<>c__DisplayClass15_0.<AddDevTunnelPort>b__5(UpdateCommandStateContext context) in /_/src/Aspire.Hosting.DevTunnels/DevTunnelResourceBuilderExtensions.cs:line 647\n   at Aspire.Hosting.ApplicationModel.ResourceNotificationService.UpdateCommands(IResource resource, CustomResourceSnapshot previousState) in /_/src/Aspire.Hosting/ApplicationModel/ResourceNotificationService.cs:line 1149\n   at Aspire.Hosting.ApplicationModel.ResourceNotificationService.PublishUpdateAsync(IResource resource, String resourceId, Func`2 stateFactory) in /_/src/Aspire.Hosting/ApplicationModel/ResourceNotificationService.cs:line 887\n   at Aspire.Hosting.ApplicationModel.ResourceNotificationService.PublishUpdateAsync(IResource resource, Func`2 stateFactory) in /_/src/Aspire.Hosting/ApplicationModel/ResourceNotificationService.cs:line 1271\n   at Aspire.Hosting.DevTunnelsResourceBuilderExtensions.UpdatePortAccessAsync(DevTunnelPortResource portResource, ResourceNotificationService notifications, ResourceLoggerService logs, DateTimeOffset now) in /_/src/Aspire.Hosting.DevTunnels/DevTunnelResourceBuilderExtensions.cs:line 811\n   at Aspire.Hosting.DevTunnels.DevTunnelMonitor.<>c__DisplayClass40_0.<<RefreshAccessAsync>b__0>d.MoveNext() in /_/src/Aspire.Hosting.DevTunnels/DevTunnelMonitor.cs:line 356\n--- End of stack trace from previous location ---\n   at Aspire.Hosting.DevTunnels.DevTunnelMonitor.<>c__DisplayClass55_0`1.<<InvokeAsync>b__0>d.MoveNext() in /_/src/As",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Test disposes its IServiceProvider during teardown/race with a background command-state update callback; matches a previously tracked recurring ObjectDisposedException pattern (issue #20935) unrelated to the triggering PR."
+    },
+    {
+      "name": "Aspire.Cli.Tests.Commands.StartCommandTests.StartCommand_WhenMultipleProjectFilesFound_JsonFormat_ReturnsNonZeroExitCode",
+      "job": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (macos-latest)",
+      "error": "System.TimeoutException : The operation at /Users/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/Commands/StartCommandTests.cs:318 timed out after reaching the limit of 30000ms.",
+      "stack_trace": "at Microsoft.AspNetCore.InternalTesting.AsyncTestHelpers.TimeoutAfter[T](Task`1 task, TimeSpan timeout, String filePath, Int32 lineNumber) in /Users/runner/work/aspire/aspire/tests/Shared/AsyncTestHelpers.cs:line 180\n   at Aspire.Cli.Tests.Commands.StartCommandTests.StartCommand_WhenMultipleProjectFilesFound_JsonFormat_ReturnsNonZeroExitCode() in /Users/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/Commands/StartCommandTests.cs:line 318\n--- End of stack trace from previous location ---",
+      "standard_output": "Temporary workspace created at: /var/folders/n6/hn37q6pj7sj_9dmqqc2113800000gn/T/Aspire.Cli.Tests/Workspace/kva4gya2.03r\n| [2026-10-19T14:13:12] Aspire.Cli.Configuration.Features Trace: Feature check: stagingChannelEnabled, ConfigKey: features:stagingChannelEnabled, Value: '(null)', DefaultValue: False\n| [2026-10-19T14:13:12] Aspire.Cli.Configuration.Features Trace: Feature stagingChannelEnabled using default value: False\n| [2026-10-19T14:13:12] Aspire.Cli.Configuration.Features Trace: Feature check: showAllTemplates, ConfigKey: features:showAllTemplates, Value: '(null)', DefaultValue: False\n| [2026-10-19T14:13:12] Aspire.Cli.Configuration.Features Trace: Feature showAllTemplates using default value: False\n| [2026-10-19T14:13:12] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotPython, ConfigKey: features:experimentalPolyglotPython, Value: '(null)', DefaultValue: False\n| [2026-10-19T14:13:12] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotPython using default value: False\n| [2026-10-19T14:13:12] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotGo, ConfigKey: features:experimentalPolyglotGo, Value: '(null)', DefaultValue: False\n| [2026-10-19T14:13:12] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotGo using default value: False\n| [2026-10-19T14:13:12] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotJava, ConfigKey: features:experimentalPolyglotJava, Value: '(null)', DefaultValue: False\n| [2026-10-19T14:13:12] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotJava using default value: False\n| [2026-10-19T14:13:12] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotRust, ConfigKey: features:experimentalPolyglotRust, Value: '(null)', DefaultValue: False\n| [2026-10-19T14:13:12] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotRust using default value: False\n| [2026-10-19T14:13:12] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotPython, ConfigKey: features:experimentalPolyglotPython, Value: '(null)', DefaultValue: False\n| [2026-10-19T14:13:12] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotPython using default value: False\n| [2026-10-19T14:13:12] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotJava, ConfigKey: features:experimentalPolyglotJava, Value: '(null)', DefaultValue: False\n| [2026-10-19T14:13:12] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotJava using default value: False\n| [2026-10-19T14:13:12] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotGo, ConfigKey: features:experimentalPolyglotGo, Value: '(null)', DefaultValue: False\n| [2026-10-19T14:13:12] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotGo using default value: False\n| [2026-10-19T14:13:12] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotRust, ConfigKey: features:experimentalPolyglotRust, Value: '(null)', DefaultValue: False\n| [2026-10-19T14:13:12] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotRust using default value: False\n| [2026-10-19T14:13:12] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotGo, ConfigKey: features:experimentalPolyglotGo, Value: '(null)', DefaultValue: False\n| [2026-10-19T14:13:12] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotGo using default value: False\n| [2026-10-19T14:13:12] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotJava, ConfigKey: features:experimentalPolyglotJava, Value: '(null)', DefaultValue: False\n| [2026-10-19T14:13:12] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotJava using default value: False\n| [2026-10-19T14:13:12] Aspire.Cli.Configuration.Features Trace: Feature check: stagingChannelEnabled, ConfigKey: features:stagingChannelEnabled, Valu",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "30-second timeout on macOS matches an established recurring flaky pattern (issue #20738) first observed well before this run and unrelated to the triggering PR's changes."
+    },
+    {
+      "name": "Aspire.Cli.Tests.Commands.StartCommandTests.StartCommand_WhenMultipleProjectFilesFound_NonInteractive_ReturnsNonZeroExitCode",
+      "job": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (macos-latest)",
+      "error": "System.TimeoutException : The operation at /Users/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/Commands/StartCommandTests.cs:288 timed out after reaching the limit of 30000ms.",
+      "stack_trace": "at Microsoft.AspNetCore.InternalTesting.AsyncTestHelpers.TimeoutAfter[T](Task`1 task, TimeSpan timeout, String filePath, Int32 lineNumber) in /Users/runner/work/aspire/aspire/tests/Shared/AsyncTestHelpers.cs:line 180\n   at Aspire.Cli.Tests.Commands.StartCommandTests.StartCommand_WhenMultipleProjectFilesFound_NonInteractive_ReturnsNonZeroExitCode() in /Users/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/Commands/StartCommandTests.cs:line 288\n--- End of stack trace from previous location ---",
+      "standard_output": "Temporary workspace created at: /var/folders/n6/hn37q6pj7sj_9dmqqc2113800000gn/T/Aspire.Cli.Tests/Workspace/m2c2i2xl.gkl\n| [2026-10-19T14:13:43] Aspire.Cli.Configuration.Features Trace: Feature check: stagingChannelEnabled, ConfigKey: features:stagingChannelEnabled, Value: '(null)', DefaultValue: False\n| [2026-10-19T14:13:43] Aspire.Cli.Configuration.Features Trace: Feature stagingChannelEnabled using default value: False\n| [2026-10-19T14:13:43] Aspire.Cli.Configuration.Features Trace: Feature check: showAllTemplates, ConfigKey: features:showAllTemplates, Value: '(null)', DefaultValue: False\n| [2026-10-19T14:13:43] Aspire.Cli.Configuration.Features Trace: Feature showAllTemplates using default value: False\n| [2026-10-19T14:13:43] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotPython, ConfigKey: features:experimentalPolyglotPython, Value: '(null)', DefaultValue: False\n| [2026-10-19T14:13:43] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotPython using default value: False\n| [2026-10-19T14:13:43] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotGo, ConfigKey: features:experimentalPolyglotGo, Value: '(null)', DefaultValue: False\n| [2026-10-19T14:13:43] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotGo using default value: False\n| [2026-10-19T14:13:43] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotJava, ConfigKey: features:experimentalPolyglotJava, Value: '(null)', DefaultValue: False\n| [2026-10-19T14:13:43] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotJava using default value: False\n| [2026-10-19T14:13:43] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotRust, ConfigKey: features:experimentalPolyglotRust, Value: '(null)', DefaultValue: False\n| [2026-10-19T14:13:43] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotRust using default value: False\n| [2026-10-19T14:13:43] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotPython, ConfigKey: features:experimentalPolyglotPython, Value: '(null)', DefaultValue: False\n| [2026-10-19T14:13:43] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotPython using default value: False\n| [2026-10-19T14:13:43] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotJava, ConfigKey: features:experimentalPolyglotJava, Value: '(null)', DefaultValue: False\n| [2026-10-19T14:13:43] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotJava using default value: False\n| [2026-10-19T14:13:43] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotGo, ConfigKey: features:experimentalPolyglotGo, Value: '(null)', DefaultValue: False\n| [2026-10-19T14:13:43] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotGo using default value: False\n| [2026-10-19T14:13:43] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotRust, ConfigKey: features:experimentalPolyglotRust, Value: '(null)', DefaultValue: False\n| [2026-10-19T14:13:43] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotRust using default value: False\n| [2026-10-19T14:13:43] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotGo, ConfigKey: features:experimentalPolyglotGo, Value: '(null)', DefaultValue: False\n| [2026-10-19T14:13:43] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotGo using default value: False\n| [2026-10-19T14:13:43] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotJava, ConfigKey: features:experimentalPolyglotJava, Value: '(null)', DefaultValue: False\n| [2026-10-19T14:13:43] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotJava using default value: False\n| [2026-10-19T14:13:43] Aspire.Cli.Configuration.Features Trace: Feature check: stagingChannelEnabled, ConfigKey: features:stagingChannelEnabled, Valu",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "30-second timeout on macOS matches an established recurring flaky pattern (issue #20737) first observed well before this run and unrelated to the triggering PR's changes."
+    }
+  ],
+  "causes": [
+    "npm-registry-rate-limit",
+    "aspire-cli-tests-startcommandtests-multipleprojectfiles-timeout",
+    "aspire-cli-tests-startcommandtests-multipleprojectfiles-noninteractive-timeout",
+    "devtunnels-devtunnelmonitor-anotherhostcannotestablishunknownlocalreadiness-objectdisposed",
+    "typescript-sdk-nuxt-integration-npm-ci-docker-build-failure"
+  ]
+}
