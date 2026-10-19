@@ -1270,7 +1270,7 @@ internal sealed class DashboardClient : IDashboardClient
             var writer = _resourceRepositoryWriter;
             if (_dataSourcePool is not null)
             {
-                retention = _dataSourcePool.RetainCurrent(out var run);
+                retention = _dataSourcePool.RetainCurrent(out var run, out _);
                 writer = (IResourceRepositoryWriter)run.ResourceRepository;
             }
             return new ConsoleLogAttachment(retention, writer, _appHostRunId, _appHostToken);

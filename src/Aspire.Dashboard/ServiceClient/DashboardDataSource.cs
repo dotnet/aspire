@@ -76,19 +76,28 @@ public sealed class DashboardDataSource : IDashboardRunSelection, IDisposable
 
     internal async Task MutateCurrentRunAsync(string originatingRunId, Func<ITelemetryRepositoryWriter, IResourceRepository, Task> mutation)
     {
-        // Validate and select the writer under the rollover lock. A dialog callback queued before
-        // dismissal must never apply its old selections to the replacement run.
+        EnsureWritable();
+        if (!await TryMutateCurrentRunAsync(originatingRunId, mutation).ConfigureAwait(false))
+        {
+            throw new InvalidOperationException("The dashboard run changed. Reopen the dialog before changing data.");
+        }
+    }
+
+    internal async Task<bool> TryMutateCurrentRunAsync(string originatingRunId, Func<ITelemetryRepositoryWriter, IResourceRepository, Task> mutation)
+    {
+        // Validate and select the writer under the rollover lock. A callback queued before
+        // its page or dialog is replaced must never apply old selections to the new run.
         using (await _dataSourcePool.RunWriteLock.LockAsync().ConfigureAwait(false))
         {
-            EnsureWritable();
-            if (SelectedRun.RunId != originatingRunId || _runStore.GetCurrentRun().RunId != originatingRunId ||
+            if (IsReadOnly || SelectedRun.RunId != originatingRunId || _runStore.GetCurrentRun().RunId != originatingRunId ||
                 !_dataSourcePool.IsCurrentDatabase(SelectedRun.DatabasePath))
             {
-                throw new InvalidOperationException("The dashboard run changed. Reopen the dialog before changing data.");
+                return false;
             }
 
             var current = _dataSourcePool.Current;
             await mutation((ITelemetryRepositoryWriter)current.TelemetryRepository, current.ResourceRepository).ConfigureAwait(false);
+            return true;
         }
     }
 
@@ -110,7 +119,7 @@ public sealed class DashboardDataSource : IDashboardRunSelection, IDisposable
             selectedRun = currentRun;
         }
 
-        if (SelectedRun?.RunId == selectedRun.RunId)
+        if (!selectedRun.IsCurrent && SelectedRun?.RunId == selectedRun.RunId)
         {
             return;
         }
@@ -150,7 +159,7 @@ public sealed class DashboardDataSource : IDashboardRunSelection, IDisposable
         {
             var previousHistoricalDataSourceLease = _historicalDataSourceLease;
             _historicalDataSourceLease = null;
-            SelectCurrentRun(selectedRun);
+            selectedRun = SelectCurrentRun();
             previousHistoricalDataSourceLease?.Dispose();
         }
 
@@ -169,15 +178,16 @@ public sealed class DashboardDataSource : IDashboardRunSelection, IDisposable
         _historicalDataSourceLease = null;
     }
 
-    private void SelectCurrentRun(DashboardRunDescriptor currentRun)
+    private DashboardRunDescriptor SelectCurrentRun()
     {
         var previousRetention = _currentRetention;
-        _currentRetention = _dataSourcePool.RetainCurrent(out var currentDataSource);
+        _currentRetention = _dataSourcePool.RetainCurrent(out var currentDataSource, out var currentRun);
         TelemetryRepository = currentDataSource.TelemetryRepository;
         ResourceRepository = currentDataSource.ResourceRepository;
         IsReadOnly = false;
         SelectedRun = currentRun;
         previousRetention?.Dispose();
+        return currentRun;
     }
 
     private void LogRunSwitch(DashboardRunDescriptor? previousRun, DashboardRunDescriptor selectedRun)

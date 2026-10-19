@@ -30,7 +30,7 @@ public sealed class DashboardDataSourcePool : IDisposable
         {
             lock (_lock)
             {
-                if (_runStore is not DashboardRunStore store || !store.StartAppHostRun(appHostRunId))
+                if (_runStore is not DashboardRunStore store || !store.StartAppHostRun(appHostRunId, out var retiredRunOwnership))
                 {
                     return;
                 }
@@ -38,11 +38,12 @@ public sealed class DashboardDataSourcePool : IDisposable
                 if (_current is not null)
                 {
                     // Retain the directory while old circuits and in-flight operations finish reading it.
-                    var retiredRun = _runStore.GetRuns().Single(r => r.DatabasePath == _current.Database.DatabasePath);
-                    _current.RetainDirectory(_runStore.TryAcquireRunLease(retiredRun));
+                    _current.RetainDirectory(retiredRunOwnership);
+                    retiredRunOwnership = null;
                     _current.Dispose();
                     _current = null;
                 }
+                retiredRunOwnership?.Dispose();
             }
             await InitializeAsync(cancellationToken).ConfigureAwait(false);
             PublishRun();
@@ -63,13 +64,14 @@ public sealed class DashboardDataSourcePool : IDisposable
         }
     }
 
-    internal IDisposable RetainCurrent(out Lease run)
+    internal IDisposable RetainCurrent(out Lease run, out DashboardRunDescriptor descriptor)
     {
         // Do not expose the replacement run before its schema is initialized.
         using var transition = RunWriteLock.Lock();
         lock (_lock)
         {
             run = Current;
+            descriptor = _runStore.GetCurrentRun();
             return run.Retain();
         }
     }

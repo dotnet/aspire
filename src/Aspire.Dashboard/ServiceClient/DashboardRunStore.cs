@@ -290,10 +290,11 @@ internal sealed class DashboardRunStore : IDashboardRunStore, IDisposable
         }
     }
 
-    internal bool StartAppHostRun(string appHostRunId)
+    internal bool StartAppHostRun(string appHostRunId, out IDisposable? retiredRunOwnership)
     {
         lock (_runStateLock)
         {
+            retiredRunOwnership = null;
             if (string.IsNullOrEmpty(appHostRunId) || _appHostRunId == appHostRunId)
             {
                 return false;
@@ -329,7 +330,12 @@ internal sealed class DashboardRunStore : IDashboardRunStore, IDisposable
                 throw;
             }
 
-            _runLock?.Dispose();
+            // Transfer the held OS lock without closing it. Reopening it after publishing the new
+            // run would leave a gap in which another dashboard could acquire and prune this database.
+            var retiredRunId = RunId;
+            var retiredLock = new OwnedRunLock(_runLock!) { ReferenceCount = 1 };
+            _leasedRuns.Add(retiredRunId, retiredLock);
+            retiredRunOwnership = new RunLease(this, retiredRunId, retiredLock);
             _runLock = runLock;
             CurrentWorkingDirectory = directory;
             DatabasePath = Path.Combine(directory, DatabaseFileName);

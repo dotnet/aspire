@@ -66,9 +66,6 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
     public ITelemetryRepository TelemetryRepository => DataSource.TelemetryRepository;
 
     [Inject]
-    public required ITelemetryRepositoryWriter TelemetryRepositoryWriter { get; init; }
-
-    [Inject]
     public required TracesViewModel TracesViewModel { get; init; }
 
     [Inject]
@@ -176,8 +173,11 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
         return GridItemsProviderResult.From(traces.Items, virtualizedTraceCount);
     }
 
+    private string _originatingRunId = null!;
+
     protected override void OnInitialized()
     {
+        _originatingRunId = DataSource.SelectedRun.RunId;
         TelemetryContextProvider.Initialize(TelemetryContext);
 
         _gridColumns = [
@@ -385,8 +385,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
 
     private Task ClearTraces(ResourceKey? key)
     {
-        DataSource.EnsureWritable();
-        return TelemetryRepositoryWriter.ClearTracesAsync(key);
+        return DataSource.TryMutateCurrentRunAsync(_originatingRunId, (writer, _) => writer.ClearTracesAsync(key));
     }
 
     private List<MenuButtonItem> GetFilterMenuItems()

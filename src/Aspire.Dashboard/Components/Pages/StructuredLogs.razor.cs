@@ -66,9 +66,6 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
     public ITelemetryRepository TelemetryRepository => DataSource.TelemetryRepository;
 
     [Inject]
-    public required ITelemetryRepositoryWriter TelemetryRepositoryWriter { get; init; }
-
-    [Inject]
     public required StructuredLogsViewModel ViewModel { get; init; }
 
     [Inject]
@@ -171,8 +168,11 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
         return GridItemsProviderResult.From(logs.Items, virtualizedLogCount);
     }
 
+    private string _originatingRunId = null!;
+
     protected override void OnInitialized()
     {
+        _originatingRunId = DataSource.SelectedRun.RunId;
         TelemetryContextProvider.Initialize(TelemetryContext);
 
         _gridColumns = [
@@ -564,8 +564,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
 
     private Task ClearStructureLogs(ResourceKey? key)
     {
-        DataSource.EnsureWritable();
-        return TelemetryRepositoryWriter.ClearStructuredLogsAsync(key);
+        return DataSource.TryMutateCurrentRunAsync(_originatingRunId, (writer, _) => writer.ClearStructuredLogsAsync(key));
     }
 
     public class StructuredLogsPageViewModel
