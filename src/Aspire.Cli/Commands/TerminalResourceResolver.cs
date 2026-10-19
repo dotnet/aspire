@@ -25,7 +25,14 @@ internal sealed class TerminalResourceResolver(IInteractionService interactionSe
             TerminalCommandStrings.LookingUpResource,
             async () => await connection.GetResourceSnapshotsAsync(includeHidden: true, cancellationToken).ConfigureAwait(false));
 
-        var matches = ResourceSnapshotMapper.WhereMatchesResourceName(snapshots, resourceName).ToList();
+        var matches = ResourceSnapshotMapper.ResolveResources(resourceName, snapshots);
+        if (matches.Count == 0)
+        {
+            // Keep ambiguous display-name matches for diagnostics and legacy numeric selection,
+            // without allowing them to override the shared resolver's exact instance-name match.
+            matches = ResourceSnapshotMapper.WhereMatchesResourceName(snapshots, resourceName).ToList();
+        }
+
         if (matches.Count == 0)
         {
             interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture,

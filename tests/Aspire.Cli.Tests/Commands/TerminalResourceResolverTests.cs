@@ -94,6 +94,36 @@ public class TerminalResourceResolverTests
     }
 
     [Theory]
+    [InlineData("shell-def456", null)]
+    [InlineData("SHELL-DEF456", null)]
+    [InlineData("shell-def456", 1)]
+    public async Task ExactInstanceTakesPrecedenceOverAnotherResourcesDisplayName(string resourceName, int? requestedReplica)
+    {
+        var interaction = new TestInteractionService();
+        var selected = new TerminalReplicaInfo { ReplicaIndex = 1, Label = "shell-1", ConsumerUdsPath = "selected.sock", IsAlive = true };
+        var backchannel = new TestAppHostAuxiliaryBackchannel
+        {
+            ResourceSnapshots =
+            [
+                new() { Name = "other-abc123", DisplayName = "shell-def456", Properties = Properties("0") },
+                new() { Name = "shell-def456", DisplayName = "shell", Properties = Properties("1") }
+            ],
+            GetTerminalInfoHandler = (name, _) =>
+            {
+                Assert.Equal("shell", name);
+                return Task.FromResult(new GetTerminalInfoResponse { IsAvailable = true, Replicas = [selected] });
+            }
+        };
+
+        var (name, replica) = await new TerminalResourceResolver(interaction)
+            .ResolveAsync(backchannel, resourceName, requestedReplica, CancellationToken.None).DefaultTimeout();
+
+        Assert.Equal("shell", name);
+        Assert.Same(selected, replica);
+        Assert.Empty(interaction.DisplayedErrors);
+    }
+
+    [Theory]
     [InlineData("shell", 0, false)]
     [InlineData("shell", 1, true)]
     [InlineData("shell-def456", 1, false)]
