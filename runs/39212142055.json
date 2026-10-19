@@ -1,0 +1,67 @@
+{
+  "run_id": 39212142055,
+  "run_attempt": 1,
+  "run_url": "https://github.com/microsoft/aspire/actions/runs/39212142055",
+  "run_scope": "main",
+  "analyzed_at": "2026-10-19T07:34:35Z",
+  "verdict": "mixed",
+  "pr": null,
+  "triggering_merge_pr": null,
+  "main_context": {
+    "last_successful_main_sha": "88ff9ba57c2841cce759adffa849373f9406b0f5",
+    "failed_sha": "b88b44cfa2739f05fa59cf2965f7816e39ce7eda",
+    "candidate_merge_history_state": "incomplete",
+    "candidate_merges": null
+  },
+  "failed_jobs": [
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Dashboard.Components.Tests, Dashboard.Components, Dashboard.Com... / Dashboard.Components (windows-latest)",
+      "id": 117928267402,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39212142055/job/117928267402",
+      "classification": "flaky-test",
+      "reason": "Single structured test failure (1 of 800 tests) in a bUnit rendering/exemplar-dialog assertion; isolated single-test failure within an otherwise fully-passing run is consistent with a UI render-timing race rather than a deterministic repository break.",
+      "failed_steps": [
+        "Run tests (Windows)"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x)",
+      "id": 117931292716,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39212142055/job/117931292716",
+      "classification": "main-repository-breakage",
+      "reason": "Log shows all 59 TypeScript validation AppHosts passed, then the external Nuxt integration step ('External TypeScript integration hosts and generated AppHost SDK') starts/stops the Nuxt apphost and exits with code 1, matching the recurring (38 prior occurrences) deterministic 'npm ci' Docker build failure in the generated Nuxt publish image.",
+      "failed_steps": [
+        "Run TypeScript SDK validation"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / Polyglot Validation Results",
+      "id": 117934639223,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39212142055/job/117934639223",
+      "classification": "main-repository-breakage",
+      "reason": "Aggregation job deterministically fails because it reports 'TypeScript: failure' from the upstream TypeScript SDK Validation job, which itself failed due to the Nuxt integration Docker build breakage.",
+      "failed_steps": [
+        "Check validation results"
+      ]
+    }
+  ],
+  "failed_tests": [
+    {
+      "name": "Aspire.Dashboard.Components.Tests.Pages.MetricsTests.ChartContainer_UnavailableHistogramPercentiles_TablePreservesExemplars(includeAvailableIntervals: False, onlyShowValueChanges: False)",
+      "job": "Tests / No-package tests (regular, Aspire.Dashboard.Components.Tests, Dashboard.Components, Dashboard.Com... / Dashboard.Components (windows-latest)",
+      "error": "Assert.Single() Failure: The collection was empty",
+      "stack_trace": "at Aspire.Dashboard.Components.Tests.Pages.MetricsTests.ChartContainer_UnavailableHistogramPercentiles_TablePreservesExemplars(Boolean includeAvailableIntervals, Boolean onlyShowValueChanges) in /_/tests/Aspire.Dashboard.Components.Tests/Pages/MetricsTests.cs:line 245\n--- End of stack trace from previous location ---",
+      "standard_output": "Temporary workspace created at: C:\\Users\\runneradmin\\AppData\\Local\\Temp\\Aspire.Dashboard.Components.Tests\\Workspace\\h0zjmej3.zb0\nDisposing temporary workspace at: C:\\Users\\runneradmin\\AppData\\Local\\Temp\\Aspire.Dashboard.Components.Tests\\Workspace\\h0zjmej3.zb0",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "The test clicks a table button to open an exemplars dialog and asserts a dialog was enqueued via Assert.Single(dialogs); the empty collection indicates the bUnit click/render cycle had not completed before the assertion, a known pattern for this test class (other MetricsTests races are already tracked), and only this single test failed out of 800 on this run."
+    }
+  ],
+  "causes": [
+    "dashboard-components-chartcontainer-unavailablehistogrampercentiles-exemplars",
+    "typescript-sdk-nuxt-integration-npm-ci-docker-build-failure"
+  ]
+}
