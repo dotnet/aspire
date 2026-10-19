@@ -53,4 +53,4 @@ createServer(async (request, response) => {
         response.writeHead(503);
         response.end('Cache unavailable.');
     }
-}).listen(8080, '0.0.0.0');
+}).listen(Number(process.env.PORT ?? 8080), '0.0.0.0');

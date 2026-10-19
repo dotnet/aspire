@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Native.Api;
 using Aspire.Hosting.Native.Core.Tests.TestServices;
@@ -13,22 +15,36 @@ namespace Aspire.Hosting.Native.Core.Tests;
 public class NativeCliControlTests
 {
     [Fact]
-    public void CliReceivesOfflineSdkAndLanguageSpecWithoutChangingAtsDiscovery()
+    public async Task CliReceivesOfflineSdkAndLanguageSpecWithoutChangingAtsDiscovery()
     {
         var server = new NativeApplicationServer();
         using var client = new RpcTestClient(server, NativeLanguageCatalog.LoadEmbedded());
         var spec = Result(client.Call("getRuntimeSpec", new JsonArray("typescript/nodejs")));
-        Assert.Equal("typescript/nodejs", spec["language"]!.GetValue<string>());
-        Assert.Equal("npx", spec["execute"]!["command"]!.GetValue<string>());
         var sdk = Result(client.Call("generateCode", new JsonArray("TypeScript", null))).AsObject();
-        Assert.Equal(["apphost-server.json", "aspire.mts", "base.mts", "integration-host.mts", "native-builder.mts", "native-client.mts", "native-pipeline.mts", "native-types.mts", "transport.mts"],
-            sdk.Select(file => file.Key).Order(StringComparer.Ordinal));
         Assert.All(sdk, file => Assert.False(string.IsNullOrWhiteSpace(file.Value!.GetValue<string>())));
-        Assert.Contains("from './native-pipeline.mjs'", sdk["native-builder.mts"]!.GetValue<string>());
+        var assembly = typeof(NativeLanguageCatalog).Assembly;
+        foreach (var file in sdk.Where(file => file.Key != "apphost-server.json"))
+        {
+            using var stream = assembly.GetManifestResourceStream("NativeSdk." + file.Key);
+            Assert.NotNull(stream);
+            using var reader = new StreamReader(stream);
+            Assert.Equal(await reader.ReadToEndAsync(TestContext.Current.CancellationToken), file.Value!.GetValue<string>());
+        }
         var identity = JsonNode.Parse(sdk["apphost-server.json"]!.GetValue<string>())!;
-        Assert.Equal(2, identity["generation"]!.GetValue<int>());
-        Assert.False(string.IsNullOrWhiteSpace(identity["contractId"]!.GetValue<string>()));
-        Assert.False(string.IsNullOrWhiteSpace(identity["version"]!.GetValue<string>()));
+        Assert.Equal(assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion,
+            identity["version"]!.GetValue<string>());
+        identity["version"] = "server-version";
+        // Normalize embedded file line endings before JSON escapes them for the snapshot.
+        foreach (var (name, content) in spec["migrationFiles"]!.AsObject().ToArray())
+        {
+            spec["migrationFiles"]![name] = content!.GetValue<string>().ReplaceLineEndings("\n");
+        }
+        await Verify(JsonSerializer.Serialize(new
+        {
+            runtimeSpec = spec,
+            sdkFiles = sdk.Select(file => file.Key).Order(StringComparer.Ordinal),
+            identity
+        }, new JsonSerializerOptions { WriteIndented = true }), "json").UseDirectory("Snapshots");
         Assert.NotEmpty(Result(client.Call("getCapabilities", null))["Capabilities"]!.AsArray());
         Assert.Empty(Result(client.Call("getAppHostServerConfiguration", null)).AsArray());
         Assert.Equal("INVALID_ARGUMENT", Error(client.Call("getAppHostServerConfiguration", new JsonArray("unexpected"))));

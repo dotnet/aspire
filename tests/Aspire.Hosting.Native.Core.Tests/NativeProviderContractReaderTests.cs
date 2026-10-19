@@ -3,7 +3,6 @@
 
 using Aspire.Hosting.Native.CodeGeneration;
 using Aspire.Hosting.Native.Tooling;
-using Aspire.TypeSystem;
 
 namespace Aspire.Hosting.Native.Core.Tests;
 
@@ -30,7 +29,7 @@ public class NativeProviderContractReaderTests
     }
 
     [Fact]
-    public void PortableIdentityAliasesPreserveAtsTypesAndCallbackMetadata()
+    public async Task PortableIdentityAliasesPreserveAtsTypesAndCallbackMetadata()
     {
         var exports = NativeProviderContractReader.Read("""
             {"protocolVersion":2,"capabilities":[{"id":"example/configure","method":"configure",
@@ -42,24 +41,7 @@ public class NativeProviderContractReaderTests
                 "callbackReturnType":{"typeId":"string","category":"Primitive"}}],
             "returnType":{"typeId":"example/Resource","category":"Handle"}}]}
             """);
-        var export = Assert.Single(exports);
-        var capability = export.Capability;
-        Assert.Equal("example/configure", capability.CapabilityId);
-        Assert.Equal("configure", capability.MethodName);
-        Assert.Equal("Configure a resource.", capability.Description);
-        Assert.True(capability.IsExperimental);
-        Assert.Equal("example/Resource", capability.TargetTypeId);
-        Assert.Equal("resource", capability.TargetParameterName);
-        Assert.Null(export.LifecyclePhase);
-        Assert.Equal(AtsTypeCategory.Handle, capability.ReturnType.Category);
-        Assert.Collection(capability.Parameters,
-            parameter => Assert.Equal("example/Resource", parameter.Type!.TypeId),
-            parameter =>
-            {
-                Assert.True(parameter.IsCallback);
-                Assert.Equal("string", Assert.Single(parameter.CallbackParameters!).Type.TypeId);
-                Assert.Equal("string", parameter.CallbackReturnType!.TypeId);
-            });
+        await Verify(exports).UseDirectory("Snapshots");
     }
 
     [Fact]

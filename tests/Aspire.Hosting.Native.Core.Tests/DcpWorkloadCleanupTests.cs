@@ -6,6 +6,7 @@ using Aspire.Hosting.Native.Dcp;
 using Aspire.Hosting.Native.Model;
 using Aspire.Hosting.Native.Runtime;
 using Aspire.Hosting.Native.Server;
+using Microsoft.Extensions.Time.Testing;
 using System.Text.Json.Nodes;
 using static Aspire.Hosting.Native.Core.Tests.TestServices.RpcTestClient;
 using static Aspire.Hosting.Native.Core.Tests.TestServices.WorkspaceRpcTestContext;
@@ -124,16 +125,19 @@ public class DcpWorkloadCleanupTests
     [InlineData(true)]
     public async Task RetirementRetriesFailedDeletionAndRemovesBothResources(bool timeout)
     {
-        var options = new NativeServerOptions { CleanupTimeout = TimeSpan.FromMilliseconds(100) };
+        var clock = new FakeTimeProvider();
+        var options = new NativeServerOptions { TimeProvider = clock, CleanupTimeout = TimeSpan.FromSeconds(2) };
         using var handler = new DcpCleanupTestHandler();
         var attempts = 0;
+        var cleanupStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         handler.BeforeDelete = async (_, token) =>
         {
             if (Interlocked.Increment(ref attempts) == 1)
             {
                 if (timeout)
                 {
-                    await Task.Delay(Timeout.InfiniteTimeSpan, token);
+                    cleanupStarted.SetResult();
+                    await Task.Delay(Timeout.InfiniteTimeSpan, clock, token);
                 }
                 throw new HttpRequestException("Transient failure");
             }
@@ -145,6 +149,13 @@ public class DcpWorkloadCleanupTests
         using var owner = runtime.ClaimResource(resource);
         await owner.StartWorkload(new ContainerWorkload("example:1", 6379, [], []));
         owner.Dispose();
+        if (timeout)
+        {
+            await cleanupStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
+            clock.Advance(options.CleanupTimeout - TimeSpan.FromTicks(1));
+            Assert.False(runtime.Completion.IsCompleted);
+            clock.Advance(TimeSpan.FromTicks(1));
+        }
         await Assert.ThrowsAnyAsync<Exception>(() => runtime.Completion);
         Assert.Equal(2, handler.Resources.Count);
         runtime.Dispose();

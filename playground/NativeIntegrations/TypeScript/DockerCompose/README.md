@@ -83,6 +83,8 @@ node --input-type=module -e \
 ```
 
 Local `run` and detached `start` use native DCP orchestration, not Docker Compose.
+The web executable listens on the DCP-assigned `PORT`; published containers use
+the fixed target port 8080 and a dynamically assigned host port.
 The sample registers deployment-policy pipeline steps only in publish mode, where
 their Compose dependencies exist. A host stop request gives a running guest a
 bounded interval to retire workloads and providers before its transport closes.

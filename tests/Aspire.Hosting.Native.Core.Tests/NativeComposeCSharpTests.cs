@@ -204,10 +204,13 @@ public class NativeComposeCSharpTests
             var context = await builder.PublishAsync(client, "published", "Comparison", "verify-publish", TestContext.Current.CancellationToken);
             await target.Task;
             var document = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(context.OutputPath, "compose.yaml")))!;
-            Assert.Equal("unless-stopped", document["services"]!["helper"]!["restart"]!.GetValue<string>());
-            Assert.Equal("$$HOME", document["services"]!["helper"]!["labels"]!["literal"]!.GetValue<string>());
-            Assert.Equal("missing", document["services"]!["web"]!["pull_policy"]!.GetValue<string>());
             Assert.Empty(runner.Calls);
+            await Verify(document.ToJsonString(new() { WriteIndented = true }), "json")
+                .UseDirectory("Snapshots")
+                .AddScrubber(text => text
+                    .Replace(JsonEncodedText.Encode(Path.Combine(root.FullName, "web", "Dockerfile")).ToString(), "/app/web/Dockerfile")
+                    .Replace(JsonEncodedText.Encode(Path.Combine(root.FullName, "web")).ToString(), "/app/web")
+                    .Replace(DockerComposeGenerator.ProjectName(root.FullName, "Comparison", "compose"), "comparison-project"));
         }
         finally
         {
@@ -234,18 +237,35 @@ public class NativeComposeCSharpTests
             await target.PublishAsync(context);
             Assert.Empty(runner.Calls);
             await target.DeployAsync(context);
-            Assert.Equal(5, runner.Calls.Count);
             Assert.All(runner.Calls, call =>
             {
                 Assert.Equal("docker", call.Executable);
                 Assert.Equal("1", call.Options.Environment["COMPOSE_DISABLE_ENV_FILE"]);
                 Assert.Equal("explicit-secret", call.Options.Environment["ASPIRE_PARAMETER_CACHE_PASSWORD"]);
             });
-            Assert.Equal(["compose", "version", "--short"], runner.Calls.First().Arguments);
+            Assert.All(runner.Calls.Skip(2), call =>
+                Assert.Equal(OperatingSystem.IsWindows() ? "NUL" : "/dev/null", call.Arguments[4]));
             var state = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(context.OutputPath, "deployment-state.json")))!;
-            Assert.Equal("http://127.0.0.1:49152", state["services"]![1]!["endpoints"]![0]!["url"]!.GetValue<string>());
+            var snapshot = new
+            {
+                state,
+                calls = runner.Calls.Select(call => new
+                {
+                    executable = call.Executable,
+                    arguments = call.Arguments.Select(argument => NormalizePath(argument == "NUL" ? "/dev/null" : argument)),
+                    workingDirectory = NormalizePath(call.Options.WorkingDirectory),
+                    timeout = call.Options.Timeout
+                })
+            };
+            await Verify(JsonSerializer.Serialize(snapshot, new JsonSerializerOptions { WriteIndented = true }), "json")
+                .UseDirectory("Snapshots")
+                .AddScrubber(text => text.Replace(
+                    DockerComposeGenerator.ProjectName(root.FullName, "Comparison", "compose"), "comparison-project"));
             await target.DeployAsync(context);
             Assert.Equal(10, runner.Calls.Count);
+
+            string NormalizePath(string value) => value.Replace(root.FullName, "/app", StringComparison.Ordinal)
+                .Replace(Path.DirectorySeparatorChar, '/');
         }
         finally
         {

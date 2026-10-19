@@ -30,7 +30,9 @@ await cache.publishAsDockerComposeService(async (_target, service) => {
 const web = builder.addExecutable('web', process.execPath, fileURLToPath(new URL('./web/', import.meta.url)))
     .withArgs('server.mts')
     .withReference(cache)
-    .withHttpEndpoint({ name: 'http', targetPort: 8080 })
+    .withHttpEndpoint(builder.executionContext().isPublishMode()
+        ? { name: 'http', targetPort: 8080 }
+        : { name: 'http', env: 'PORT' })
     .withExternalHttpEndpoints()
     .waitFor(cache);
 await web.withComputeEnvironment(compose);

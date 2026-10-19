@@ -6,7 +6,6 @@ import { execFile, spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { cp, mkdir, mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { createServer } from 'node:net';
 import { setTimeout as delay } from 'node:timers/promises';
 import { promisify } from 'node:util';
 
@@ -93,23 +92,9 @@ async function deployedUrl(): Promise<string> {
 }
 async function localLifecycle(env: NodeJS.ProcessEnv): Promise<void> {
     const volume = `aspire-native-lifecycle-${randomBytes(8).toString('hex')}`;
-    const reservation = createServer();
-    await new Promise<void>((accept, reject) => {
-        reservation.once('error', reject);
-        reservation.listen(0, '127.0.0.1', accept);
-    });
-    const address = reservation.address();
-    assert.ok(address && typeof address !== 'string');
-    const port = address.port;
-    await new Promise<void>((accept, reject) => reservation.close(error => error ? reject(error) : accept()));
-    // The sample uses a fixed container target port. Local executable runs need
-    // an isolated host port, while their named Redis volume must survive restart.
     const apphost = join(workspace, 'apphost.mts');
-    const webSource = join(workspace, 'web/server.mts');
     await writeFile(apphost, (await readFile(apphost, 'utf8'))
-        .replace('builder.getDefaultDataVolumeName(cache.resource)', JSON.stringify(volume))
-        .replace('targetPort: 8080', `targetPort: ${port}`));
-    await writeFile(webSource, (await readFile(webSource, 'utf8')).replace('.listen(8080', `.listen(${port}`));
+        .replace('builder.getDefaultDataVolumeName(cache.resource)', JSON.stringify(volume)));
     const localEnvironment = { ...env, ASPIRE_HOME: join(workspace, 'local-home') };
     const arguments_ = ['--apphost', 'apphost.mts', '--non-interactive', '--nologo'];
     const child = spawn(cliPath!, ['run', ...arguments_], { cwd: workspace, env: localEnvironment });

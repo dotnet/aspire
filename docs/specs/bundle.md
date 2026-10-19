@@ -99,9 +99,16 @@ running core resources and qualified protocol-v2 npm providers. Guest RPC uses
 Unix-domain sockets on Unix and current-user-only named pipes on Windows,
 matching the managed server's transports. CLI backchannels retain their existing
 Unix-domain socket protocol on both platforms. Managed
-integration assemblies, other guest runtimes, publishing and server
-debugging are rejected. Existing managed packages are not automatically ported.
+integration assemblies, other guest runtimes and server debugging are rejected.
+Existing managed packages are not automatically ported.
 NativeAOT is an implementation detail, not the feature's name.
+
+`aspire publish`, `aspire deploy` and custom `aspire do` targets use the native
+pipeline scheduler with callbacks executed by the authoring guest. Publishing
+does not start local DCP workloads or Dashboard. The separate, nonshipping
+[Docker Compose integration](../../playground/NativeIntegrations/TypeScript/DockerCompose/README.md)
+demonstrates end-to-end publishing and deployment; it does not establish parity
+with managed deployment integrations or make run-only providers publishable.
 
 The CLI leases one bundle for execution, SDK generation, DCP and Dashboard.
 `aspire-managed apphost-codegen-v2` combines its sibling server's offline ATS
