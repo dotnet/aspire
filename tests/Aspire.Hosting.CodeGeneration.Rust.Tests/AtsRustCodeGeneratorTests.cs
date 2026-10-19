@@ -79,10 +79,10 @@ public class AtsRustCodeGeneratorTests
                 use terminal_callback_probe::{ExecutableResource, TerminalOptions};
                 use serde_json::json;
 
-                // Compile both call shapes without requiring a running AppHost.
+                // Compile default-preserving and configured callbacks without a running AppHost.
                 fn configure_resource(resource: &ExecutableResource) {
-                    let _ = resource.with_terminal();
-                    let _ = resource.with_terminal_with_callback(|args| {
+                    let _ = resource.with_terminal(|_| serde_json::Value::Null);
+                    let _ = resource.with_terminal(|args| {
                         let mut options: TerminalOptions = serde_json::from_value(args[0].clone()).unwrap();
                         options.columns = 200.0;
                         json!({"p0": options.to_map()})

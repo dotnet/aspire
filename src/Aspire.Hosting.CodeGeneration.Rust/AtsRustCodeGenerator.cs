@@ -456,29 +456,13 @@ internal sealed class AtsRustCodeGenerator : ICodeGenerator
         }
     }
 
-    private void GenerateCapabilityMethod(string structName, AtsCapabilityInfo capability, bool includeOptionalCallbacks = false)
+    private void GenerateCapabilityMethod(string structName, AtsCapabilityInfo capability)
     {
         var targetParamName = capability.TargetParameterName ?? "builder";
         var methodName = ToSnakeCase(capability.MethodName);
         var parameters = capability.Parameters
             .Where(p => !string.Equals(p.Name, targetParamName, StringComparison.Ordinal))
             .ToList();
-        var optionalCallbackCount = parameters.Count(p => p.IsCallback && p.IsOptional);
-        if (optionalCallbackCount > 0)
-        {
-            if (includeOptionalCallbacks)
-            {
-                methodName += optionalCallbackCount == 1 ? "_with_callback" : "_with_callbacks";
-            }
-            else
-            {
-                // Rust cannot overload methods or omit arguments. Keep the default call separate
-                // from the closure-taking variant so existing parameterless calls still compile.
-                parameters.RemoveAll(p => p.IsCallback && p.IsOptional);
-                GenerateCapabilityMethod(structName, capability, includeOptionalCallbacks: true);
-            }
-        }
-
         // Check if this is a List/Dict property getter (no parameters, returns List/Dict)
         if (parameters.Count == 0 && IsListOrDictPropertyGetter(capability.ReturnType))
         {
