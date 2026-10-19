@@ -543,4 +543,7 @@ public class EntraIdInitializationTests
 
         return [.. batches.Current.Select(line => (line.Content[(line.Content.IndexOf(' ') + 1)..], line.IsErrorMessage))];
     }
-}
+
+            // Stands in for Aspire.Hosting.Azure's internal exception, which Entra matches by type name.
+            private sealed class MissingConfigurationException(string message) : Exception(message);
+        }

@@ -146,7 +146,7 @@ public static class EntraIdResourceExtensions
                 tenantId = await resource.TenantIdOutputReference.GetValueAsync(cancellationToken).ConfigureAwait(false);
                 clientId = await resource.ClientIdOutputReference.GetValueAsync(cancellationToken).ConfigureAwait(false);
             }
-            catch (MissingConfigurationException)
+            catch (Exception ex) when (IsMissingAzureConfiguration(ex))
             {
                 // The Azure provisioning controller already published the "Missing subscription configuration"
                 // state for this resource, like every other Azure resource. Don't overwrite it with FailedToStart.
@@ -292,6 +292,11 @@ public static class EntraIdResourceExtensions
 
         return parameterValue;
     }
+
+    // MissingConfigurationException is internal to Aspire.Hosting.Azure, so match it by name rather than exposing it.
+    private static bool IsMissingAzureConfiguration(Exception ex)
+        => ex.GetType().Name == "MissingConfigurationException" ||
+            ex is AggregateException aggregate && aggregate.InnerExceptions.Any(IsMissingAzureConfiguration);
 
     private static Task PublishFailedToStartAsync(EntraIdApplicationResource resource, InitializeResourceEvent evt)
     {
