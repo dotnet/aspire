@@ -118,19 +118,49 @@ public sealed class DashboardDataSourceTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    public async Task AppHostRunChange_SelectedHistoryCanBePinnedAfterAnotherRollover()
+    {
+        using var workspace = TemporaryWorkspace.Create(testOutputHelper);
+        var options = CreateOptions(workspace);
+        using var store = CreateRunStore(options);
+        using var pool = new DashboardDataSourcePool(store, CreateRepositoryFactory(options));
+        await pool.InitializeAsync(CancellationToken.None);
+        pool.PublishRun();
+        await pool.StartAppHostRunAsync("first", CancellationToken.None);
+        var firstRunId = store.RunId;
+        await pool.StartAppHostRunAsync("second", CancellationToken.None);
+        var history = store.GetRunById(firstRunId, onlyCompatible: true)!;
+        using (var lease = pool.TryAcquire(history))
+        {
+            Assert.NotNull(lease);
+            await pool.StartAppHostRunAsync("third", CancellationToken.None);
+            Assert.True(store.GetRunById(firstRunId, onlyCompatible: true)!.IsLeased);
+            store.SetRunPinned(history, true);
+            Assert.True(store.GetRunById(firstRunId, onlyCompatible: true)!.IsPinned);
+        }
+        Assert.False(store.GetRunById(firstRunId, onlyCompatible: true)!.IsLeased);
+        await pool.PruningTask;
+    }
+
+    [Fact]
     public async Task AppHostRunChange_BackgroundPruningDoesNotBlockAttachmentAndContainsFailures()
     {
         using var workspace = TemporaryWorkspace.Create(testOutputHelper);
         var options = CreateOptions(workspace);
         var sink = new TestSink();
         var logger = new TestLogger<DashboardRunStore>(new TestLoggerFactory(sink, enabled: true));
-        var deleting = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var deleting = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         using var release = new ManualResetEventSlim();
-        using var store = new DashboardRunStore(options, logger, TimeProvider.System, _ =>
+        var deletionCount = 0;
+        using var store = new DashboardRunStore(options, logger, TimeProvider.System, directory =>
         {
-            deleting.TrySetResult();
-            release.Wait();
-            throw new InvalidOperationException("Test deletion failure");
+            if (Interlocked.Increment(ref deletionCount) == 1)
+            {
+                deleting.TrySetResult(directory);
+                release.Wait();
+                throw new InvalidOperationException("Test deletion failure");
+            }
+            Directory.Delete(directory, recursive: true);
         });
         using var pool = new DashboardDataSourcePool(store, CreateRepositoryFactory(options));
         await pool.InitializeAsync(CancellationToken.None);
@@ -144,8 +174,15 @@ public sealed class DashboardDataSourceTests(ITestOutputHelper testOutputHelper)
         try
         {
             var attachment = pool.StartAppHostRunAsync("overflow", CancellationToken.None);
-            await deleting.Task.DefaultTimeout();
+            var deletingDirectory = await deleting.Task.DefaultTimeout();
             await attachment.DefaultTimeout();
+            var currentPath = await Task.Run(() => pool.Current.Database.DatabasePath).DefaultTimeout();
+            Assert.Equal(store.DatabasePath, currentPath);
+            var deletingRun = store.GetRunById(Path.GetFileName(deletingDirectory), onlyCompatible: true)!;
+            Assert.Null(store.TryAcquireRunLease(deletingRun));
+            Assert.Throws<InvalidOperationException>(() => store.SetRunPinned(deletingRun, true));
+            await Task.Run(() => pool.StartAppHostRunAsync("another-attachment", CancellationToken.None)).DefaultTimeout();
+            await new CurrentResourceWriter(pool).ReplaceResourcesAsync([]).DefaultTimeout();
             Assert.False(pool.PruningTask.IsCompleted);
         }
         finally
