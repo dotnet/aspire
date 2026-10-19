@@ -74,6 +74,8 @@ dockerTools.buildLayeredImage {
       "DOTNET_ROOT=${dotnetCorePackages.sdk_10_0}/share/dotnet"
       "DOTNET_CLI_TELEMETRY_OPTOUT=1"
       "ASPIRE_CLI_TELEMETRY_OPTOUT=true"
+      # The disposable smoke fixture uses HTTP rather than testing certificate trust.
+      "ASPIRE_ALLOW_UNSECURED_TRANSPORT=true"
       "ASPIRE_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS=true"
       "features__updateNotificationsEnabled=false"
       "ASPIRE_CLI_NUGET_SERVICE_INDEX=https://packagefeedproxy.microsoft.io/nuget/v3/index.json"
