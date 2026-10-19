@@ -949,19 +949,24 @@ public static class EntraIdResourceExtensions
     private static void AddOwners(List<object> target, string[] ownerObjectIds, string paramName)
     {
         ArgumentNullException.ThrowIfNull(ownerObjectIds, paramName);
+        // Normalize to the canonical lowercase "D" format first: Guid.TryParse also accepts compact ("N") and
+        // braced ("B") spellings, which Graph would treat as the same owner.
+        var normalized = new List<string>(ownerObjectIds.Length);
         foreach (var id in ownerObjectIds)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(id, paramName);
-            if (!Guid.TryParse(id, out _))
+            if (!Guid.TryParse(id, out var guid))
             {
                 throw new ArgumentException($"'{id}' is not a valid directory object ID. Owner IDs must be GUIDs.", paramName);
             }
+
+            normalized.Add(guid.ToString("D"));
         }
 
         // Duplicate owner IDs would be rejected by Microsoft Graph, so skip ones that are already present.
-        foreach (var id in ownerObjectIds)
+        foreach (var id in normalized)
         {
-            if (!target.Any(o => o is string s && string.Equals(s, id, StringComparison.OrdinalIgnoreCase)))
+            if (!target.Any(o => o is string s && string.Equals(s, id, StringComparison.Ordinal)))
             {
                 target.Add(id);
             }

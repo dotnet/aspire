@@ -63,6 +63,19 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public void WithOwners_NormalizesAndDeduplicatesGuidFormats()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var entra = builder.AddEntraIdApplication("entra-web")
+            .WithApplicationOwners(
+                "00001111-AAAA-2222-bbbb-3333cccc4444",
+                "00001111aaaa2222bbbb3333cccc4444",
+                "{00001111-aaaa-2222-bbbb-3333cccc4444}");
+
+        Assert.Equal(["00001111-aaaa-2222-bbbb-3333cccc4444"], entra.Resource.ApplicationOwners);
+    }
+
+    [Fact]
     public void DefaultProvisioning_HasNoOwners()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
