@@ -146,6 +146,12 @@ public static class EntraIdResourceExtensions
                 tenantId = await resource.TenantIdOutputReference.GetValueAsync(cancellationToken).ConfigureAwait(false);
                 clientId = await resource.ClientIdOutputReference.GetValueAsync(cancellationToken).ConfigureAwait(false);
             }
+            catch (MissingConfigurationException)
+            {
+                // The Azure provisioning controller already published the "Missing subscription configuration"
+                // state for this resource, like every other Azure resource. Don't overwrite it with FailedToStart.
+                return;
+            }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 logger.LogError(ex, "Failed to provision the Entra ID application. If your tenant does not allow creating registrations, use AddExistingEntraApplication with an existing registration's tenant ID and client ID.");
