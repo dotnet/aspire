@@ -278,7 +278,7 @@ public class AtsPythonCodeGeneratorTests
         var aspirePy = files["aspire_app.py"];
 
         Assert.Contains("app_host_file_path: str | None = None", aspirePy);
-        Assert.Contains("effective_options['AppHostFilePath'] = app_host_file_path", aspirePy);
+        Assert.Contains("effective_options['appHostFilePath'] = app_host_file_path", aspirePy);
         Assert.Contains("app_host_file_path = os.environ.get('ASPIRE_APPHOST_FILEPATH')", aspirePy);
     }
 
