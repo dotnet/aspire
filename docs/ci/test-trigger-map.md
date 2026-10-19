@@ -309,8 +309,9 @@ for distinct routing boundaries:
 
 - add a representative positive for each new or narrowed edge;
 - record deliberately excluded consumers in focused negative cases; and
-- add a structural assertion when the same consumer list is intentionally
-  duplicated across `path_rules` and `affected_project_rules`.
+- audit intentionally duplicated consumer lists for consistency and exercise
+  selector behavior through both `path_rules` and `affected_project_rules`,
+  rather than asserting equality of configuration lists.
 
 Treat a widened or relaxed negative expectation as a reason to re-check which
 artifacts the workflow downloads and which lanes execute it.
@@ -391,13 +392,15 @@ it.
 5. **Add focused regressions for the routing boundary.**
    - curated routing changes use the real map with a representative positive
      and focused negatives for deliberate exclusions;
-   - intentionally duplicated consumer lists get a structural equality check;
+   - intentionally duplicated consumer lists are audited for consistency and
+     exercised through each routing mechanism, not compared for equality;
    - selector-engine behavior uses focused synthetic maps in
      `SelectTestsAcceptanceTests.cs`;
    - CLI rendering and side-channel behavior belongs in
      `SelectTestsCliTests.cs`;
-   - action or workflow-gate contracts belong in `SelectTestsWorkflowTests.cs`
-     or an exact real-workflow invariant.
+   - action or workflow-gate behavior is validated through actual entry points
+     where practical and in the consuming CI workflow, not through assertions
+     on workflow source text.
 
 After restoring the repository, run the focused selector suite:
 
