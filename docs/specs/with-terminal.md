@@ -23,7 +23,7 @@ them with the `WithTerminal` options callback. TypeScript AppHosts use the same
 callback pattern:
 
 ```typescript
-builder.addExecutable("agent", "my-agent", ".")
+builder.addExecutable("agent", "my-agent", ".", [])
     .withTerminal({
         configure: async options => {
             options.columns = 200;
