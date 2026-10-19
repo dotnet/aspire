@@ -60,7 +60,8 @@ public static class AzureKubernetesEnvironmentExtensions
             o => o.SupportsTargetedRoleAssignments = true);
 
         // Create the unified AKS environment resource
-        var resource = new AzureKubernetesEnvironmentResource(name, ConfigureAksInfrastructure);
+        var resource = new AzureKubernetesEnvironmentResource(name,
+            ConfigureAksInfrastructure);
 
         // Create the inner KubernetesEnvironmentResource directly so it can hold
         // Kubernetes-specific state without surfacing as a second environment in
@@ -94,10 +95,84 @@ public static class AzureKubernetesEnvironmentExtensions
         resource.Annotations.Add(new ContainerRegistryReferenceAnnotation(defaultRegistry.Resource));
         k8sEnvBuilder.WithAnnotation(new ContainerRegistryReferenceAnnotation(defaultRegistry.Resource));
 
-        // Wire ACR name as a parameter on the AKS resource so the Bicep module
-        // can create an AcrPull role assignment for the kubelet identity.
-        // The publishing context will wire this as a parameter in main.bicep.
-        resource.Parameters["acrName"] = defaultRegistry.Resource.NameOutputReference;
+        var controlPlaneIdentity = builder.CreateResourceBuilder(new AzureUserAssignedIdentityResource($"{name}-control-plane-identity"));
+        var kubeletIdentity = builder.CreateResourceBuilder(new AzureUserAssignedIdentityResource($"{name}-kubelet-identity"));
+        resource.ControlPlaneIdentity = controlPlaneIdentity.Resource;
+        resource.KubeletIdentity = kubeletIdentity.Resource;
+        resource.References.Add(controlPlaneIdentity.Resource);
+        resource.References.Add(kubeletIdentity.Resource);
+
+        // A pre-created kubelet identity outside the node resource group requires this grant
+        // before cluster creation. Explicit identity references also propagate role prerequisites.
+        // https://learn.microsoft.com/azure/aks/pre-created-kubelet-managed-identity
+        controlPlaneIdentity.WithAnnotation(new RoleAssignmentAnnotation(kubeletIdentity.Resource,
+            new HashSet<RoleDefinition>
+            {
+                new(ArmBuiltInRole.ManagedIdentityOperator.ToString(), ArmBuiltInRole.GetBuiltInRoleName(ArmBuiltInRole.ManagedIdentityOperator))
+            }));
+
+        var identitiesPrepared = false;
+        builder.Pipeline.AddStep(
+            name: $"prepare-aks-identities-{name}",
+            action: context =>
+            {
+                if (identitiesPrepared || resource.IsExcludedFromPublish())
+                {
+                    return Task.CompletedTask;
+                }
+
+                if (resource.IsExisting())
+                {
+                    resource.References.Remove(controlPlaneIdentity.Resource);
+                    resource.References.Remove(kubeletIdentity.Resource);
+                    return Task.CompletedTask;
+                }
+
+                foreach (var identity in new[] { controlPlaneIdentity.Resource, kubeletIdentity.Resource })
+                {
+                    if (context.Model.Resources.Any(existing => StringComparer.OrdinalIgnoreCase.Equals(existing.Name, identity.Name)))
+                    {
+                        throw new DistributedApplicationException($"The AKS environment '{name}' requires the resource name '{identity.Name}' for its managed identity.");
+                    }
+                }
+
+                // Configuration callbacks can set the cluster's scope. Resolve it before preparing
+                // identity roles without caching the template: publishing must regenerate it after
+                // workload identities have been prepared.
+                using var template = resource.GetBicepTemplateFile();
+                controlPlaneIdentity.Resource.Scope = resource.Scope;
+                kubeletIdentity.Resource.Scope = resource.Scope;
+
+                // Resolve the final registry and subnet selections after model configuration.
+                // Standard Azure role preparation handles assignment scope and deployment ordering.
+                if (resource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReference) &&
+                    registryReference.Registry is AzureContainerRegistryResource registry)
+                {
+                    kubeletIdentity.WithRoleAssignments(builder.CreateResourceBuilder(registry), ContainerRegistryBuiltInRole.AcrPull);
+                }
+
+                var subnets = resource.NodePoolSubnets.Values.AsEnumerable();
+                if (resource.TryGetLastAnnotation<AksSubnetAnnotation>(out var subnet))
+                {
+                    subnets = subnets.Append(subnet.SubnetId);
+                }
+
+                foreach (var network in subnets.Select(subnet => subnet.Resource).Distinct())
+                {
+                    controlPlaneIdentity.WithAnnotation(new RoleAssignmentAnnotation((AzureProvisioningResource)network,
+                        new HashSet<RoleDefinition>
+                        {
+                            new("4d97b98b-1d4f-4787-a291-c67834d212e7", "NetworkContributor")
+                        }));
+                }
+
+                context.Model.Resources.Add(controlPlaneIdentity.Resource);
+                context.Model.Resources.Add(kubeletIdentity.Resource);
+                identitiesPrepared = true;
+
+                return Task.CompletedTask;
+            },
+            requiredBy: AzureEnvironmentResource.PrepareResourcesStepName);
 
         // Ensure push steps wait for ALL Azure provisioning to complete. Push steps
         // call registry.Endpoint.GetValueAsync() which awaits the BicepOutputReference
@@ -353,10 +428,6 @@ public static class AzureKubernetesEnvironmentExtensions
         builder.Resource.KubernetesEnvironment.Annotations.Add(
             new ContainerRegistryReferenceAnnotation(registry.Resource));
 
-        // Update the acrName parameter to reference the explicit registry's output
-        // (replaces the default ACR reference set during AddAzureKubernetesEnvironment)
-        builder.Resource.Parameters["acrName"] = registry.Resource.NameOutputReference;
-
         return builder;
     }
 
@@ -527,6 +598,27 @@ public static class AzureKubernetesEnvironmentExtensions
             Tags = { { "aspire-resource-name", aksResource.Name } }
         };
 
+        if (aksResource.ControlPlaneIdentity is { } controlPlaneIdentity &&
+            aksResource.KubeletIdentity is { } kubeletIdentity)
+        {
+            var controlPlane = (UserAssignedIdentity)controlPlaneIdentity.AddAsExistingResource(infrastructure);
+            var kubelet = (UserAssignedIdentity)kubeletIdentity.AddAsExistingResource(infrastructure);
+            aks.ClusterIdentity = new ManagedClusterIdentity
+            {
+                IdentityType = ManagedServiceIdentityType.UserAssigned,
+                UserAssignedIdentities =
+                {
+                    [BicepFunction.Interpolate($"{controlPlane.Id}").Compile().ToString()] = new ManagedServiceIdentityUserAssignedIdentitiesValue()
+                }
+            };
+            aks.IdentityProfile["kubeletidentity"] = new ContainerServiceUserAssignedIdentity
+            {
+                ResourceId = kubelet.Id,
+                ClientId = kubelet.ClientId,
+                ObjectId = kubelet.PrincipalId
+            };
+        }
+
         if (aksResource.KubernetesVersion is not null)
         {
             aks.KubernetesVersion = aksResource.KubernetesVersion;
@@ -682,8 +774,11 @@ public static class AzureKubernetesEnvironmentExtensions
             : CreateAksCluster(infrastructure, aksResource);
 
         // ACR pull role assignment for kubelet identity
-        if (aksResource.DefaultContainerRegistry is not null || aksResource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out _))
+        if (aksResource.IsExisting() &&
+            aksResource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReference) &&
+            registryReference.Registry is AzureContainerRegistryResource registry)
         {
+            aksResource.Parameters["acrName"] = registry.NameOutputReference;
             var acrNameParam = new ProvisioningParameter("acrName", typeof(string));
             infrastructure.Add(acrNameParam);
 

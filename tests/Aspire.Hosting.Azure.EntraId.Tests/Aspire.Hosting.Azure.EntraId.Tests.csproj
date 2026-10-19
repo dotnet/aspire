@@ -9,4 +9,11 @@
     <ProjectReference Include="..\Aspire.Hosting.TestUtilities\Aspire.Hosting.TestUtilities.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="$(TestsSharedDir)\TestModuleInitializer.cs" />
+    <Compile Include="$(TestsSharedDir)\TestPipelineActivityReporter.cs" />
+    <PackageReference Include="Verify.XunitV3" />
+    <PackageReference Include="Microsoft.Identity.Web" />
+  </ItemGroup>
+
 </Project>

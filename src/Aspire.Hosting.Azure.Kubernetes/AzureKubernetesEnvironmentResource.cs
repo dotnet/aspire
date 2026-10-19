@@ -307,6 +307,16 @@ public partial class AzureKubernetesEnvironmentResource :
     internal AzureContainerRegistryResource? DefaultContainerRegistry { get; set; }
 
     /// <summary>
+    /// Gets or sets the identity used by the AKS control plane.
+    /// </summary>
+    internal AzureUserAssignedIdentityResource? ControlPlaneIdentity { get; set; }
+
+    /// <summary>
+    /// Gets or sets the identity used by kubelets to pull container images.
+    /// </summary>
+    internal AzureUserAssignedIdentityResource? KubeletIdentity { get; set; }
+
+    /// <summary>
     /// Gets the load balancer resources registered against this AKS environment via
     /// <see cref="AzureKubernetesEnvironmentExtensions.AddLoadBalancer"/>. Used by
     /// the Bicep emission to synthesize per-LB role assignments granting the
