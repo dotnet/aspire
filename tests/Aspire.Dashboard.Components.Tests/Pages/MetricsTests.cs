@@ -1179,7 +1179,7 @@ public partial class MetricsTests : DashboardTestContext
             Assert.Equal(instrumentName, card.QuerySelector(".meter-card-name")!.TextContent);
             Assert.Equal(
                 DashboardUrls.MetricsUrl(resource: "TestApp", meter: "test-meter", instrument: instrumentName, duration: 5, view: MetricViewKind.Graph.ToString()),
-                card.GetAttribute("href"));
+                card.QuerySelector(".meter-card-link")!.GetAttribute("href"));
             Assert.NotNull(card.QuerySelector(".meter-card-value-number"));
             Assert.False(string.IsNullOrEmpty(card.QuerySelector($".{sparklineClass}")!.GetAttribute("d")));
         }
@@ -1208,6 +1208,62 @@ public partial class MetricsTests : DashboardTestContext
                 }
             };
         }
+    }
+
+    [Fact]
+    public async Task MeterCard_PinInstrument_ShowsInPinnedSection()
+    {
+        MetricsSetupHelpers.SetupMetricsPage(this);
+
+        var telemetryRepository = Services.GetRequiredService<SqliteTelemetryRepository>();
+        await telemetryRepository.AddMetricsAsync(new AddContext(), new RepeatedField<ResourceMetrics>
+        {
+            new ResourceMetrics
+            {
+                Resource = CreateResource(name: "TestApp"),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "test-instrument-a", startTime: s_testTime.AddMinutes(1)),
+                            CreateSumMetric(metricName: "test-instrument-b", startTime: s_testTime.AddMinutes(1))
+                        }
+                    }
+                }
+            }
+        });
+        Services.GetRequiredService<NavigationManager>().NavigateTo(
+            DashboardUrls.MetricsUrl(resource: "TestApp", meter: "test-meter", duration: 5, view: MetricViewKind.Graph.ToString()));
+
+        var cut = Render<Metrics>(builder =>
+        {
+            builder.Add(m => m.ResourceName, "TestApp");
+            builder.AddCascadingValue(new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
+        });
+
+        cut.WaitForAssertion(() => Assert.Equal(2, cut.FindAll(".meter-card").Count));
+        Assert.Empty(cut.FindAll(".metrics-pinned"));
+
+        var pinButton = cut.FindComponents<MetricPinButton>().Single(b => b.Instance.InstrumentKey.InstrumentName == "test-instrument-b");
+        pinButton.Find("fluent-button").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            var pinnedItem = Assert.Single(cut.FindAll(".metrics-pinned-item"));
+            Assert.Equal("test-instrument-b", pinnedItem.QuerySelector(".metrics-pinned-item-name")!.TextContent);
+            Assert.Equal(
+                DashboardUrls.MetricsUrl(resource: "TestApp", meter: "test-meter", instrument: "test-instrument-b", duration: 5, view: MetricViewKind.Graph.ToString()),
+                pinnedItem.GetAttribute("href"));
+            Assert.Equal("true", pinButton.Find("fluent-button").GetAttribute("aria-pressed"));
+        });
+        Assert.Equal([new OtlpInstrumentKey("test-meter", "test-instrument-b")], Services.GetRequiredService<MetricPinStore>().GetPins());
+
+        pinButton.Find("fluent-button").Click();
+
+        cut.WaitForAssertion(() => Assert.Empty(cut.FindAll(".metrics-pinned")));
     }
 
     private async Task ChangeResourceAndAssertInstrument(string app1InstrumentName, string app2InstrumentName, string? expectedMeterNameAfterChange, string? expectedInstrumentNameAfterChange)

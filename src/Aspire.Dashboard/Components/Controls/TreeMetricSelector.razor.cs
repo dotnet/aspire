@@ -13,7 +13,7 @@ using MetricsResources = Aspire.Dashboard.Resources.Metrics;
 
 namespace Aspire.Dashboard.Components.Controls;
 
-public partial class TreeMetricSelector
+public partial class TreeMetricSelector : IDisposable
 {
     private readonly Dictionary<string, bool> _meterExpansion = new(StringComparer.Ordinal);
 
@@ -37,6 +37,12 @@ public partial class TreeMetricSelector
     [Parameter]
     public bool IncludeLabel { get; set; }
 
+    [Parameter, EditorRequired]
+    public required Func<OtlpInstrumentSummary, string> GetInstrumentUrl { get; set; }
+
+    [Inject]
+    public required MetricPinStore PinStore { get; init; }
+
     [Inject]
     public required DashboardDataSource DataSource { get; init; }
 
@@ -47,6 +53,16 @@ public partial class TreeMetricSelector
     public required IStringLocalizer<MetricsResources> MetricsLoc { get; init; }
 
     public ITelemetryRepository TelemetryRepository => DataSource.TelemetryRepository;
+
+    protected override void OnInitialized()
+    {
+        PinStore.Changed += OnPinsChanged;
+    }
+
+    private void OnPinsChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
 
     public void OnResourceChanged()
     {
@@ -156,6 +172,25 @@ public partial class TreeMetricSelector
         return groups;
     }
 
+    private List<OtlpInstrumentSummary> GetFilteredPinnedInstruments()
+    {
+        // Pins are stored by meter and instrument name across resources. Only show the ones this
+        // resource reports, in the order they were pinned.
+        var instrumentsByKey = PageViewModel.Instruments!.ToDictionary(i => i.GetKey());
+        var filter = _textFilter.Trim();
+        var pinned = new List<OtlpInstrumentSummary>();
+        foreach (var key in PinStore.GetPins())
+        {
+            if (instrumentsByKey.TryGetValue(key, out var instrument) &&
+                (filter.Length == 0 || key.MeterName.Contains(filter, StringComparisons.UserTextSearch) || InstrumentMatchesFilter(instrument, filter)))
+            {
+                pinned.Add(instrument);
+            }
+        }
+
+        return pinned;
+    }
+
     private static bool InstrumentMatchesFilter(OtlpInstrumentSummary instrument, string filter)
     {
         return instrument.Name.Contains(filter, StringComparisons.UserTextSearch)
@@ -197,6 +232,11 @@ public partial class TreeMetricSelector
         }
 
         return tooltip;
+    }
+
+    public void Dispose()
+    {
+        PinStore.Changed -= OnPinsChanged;
     }
 
     private sealed record MeterGroup(string MeterName, List<OtlpInstrumentSummary> Instruments);

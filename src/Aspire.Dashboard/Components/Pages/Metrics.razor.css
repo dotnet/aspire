@@ -9,6 +9,13 @@
     line-height: 32px;
 }
 
+::deep .metrics-chart-title {
+    display: flex;
+    align-items: center;
+    gap: var(--spacingHorizontalXS);
+    min-width: 0;
+}
+
 ::deep .meter-name-title {
     margin: 0 0 var(--spacingVerticalM) 0;
 }
@@ -116,6 +123,68 @@
 
 ::deep .metrics-tree fluent-tree-item.nested svg {
     color: var(--colorNeutralForeground3);
+}
+
+::deep .metrics-pinned {
+    display: flex;
+    flex-direction: column;
+    margin-top: var(--spacingVerticalS);
+    padding-bottom: var(--spacingVerticalXS);
+    border-bottom: 1px solid var(--colorNeutralStroke2);
+}
+
+::deep .metrics-pinned-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 29px;
+    padding-inline-start: 8px;
+    color: var(--colorNeutralForeground3);
+    font-weight: 600;
+}
+
+::deep .metrics-pinned-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    height: 29px;
+    padding-inline-start: 28px;
+    border-radius: 4px;
+    color: var(--colorNeutralForeground1);
+    text-decoration: none;
+}
+
+::deep .metrics-pinned-item svg {
+    flex: none;
+    color: var(--colorNeutralForeground3);
+}
+
+::deep .metrics-pinned-item:hover,
+::deep .metrics-pinned-item.selected {
+    background-color: var(--colorNeutralBackground3);
+}
+
+/* Matches the selected tree item's indicator so both lists read as one navigation. */
+::deep .metrics-pinned-item.selected::after {
+    position: absolute;
+    left: 2px;
+    top: 7.5px;
+    width: 3px;
+    height: 14px;
+    content: "";
+    background-color: var(--colorBrandBackground);
+}
+
+::deep .metrics-pinned-item.no-data .metrics-pinned-item-name {
+    color: var(--colorNeutralForeground4);
+}
+
+::deep .metrics-pinned-item-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 ::deep .metrics-tree {

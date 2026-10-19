@@ -9,16 +9,12 @@
 .meter-card {
     /* Same series color as the first line of the full chart, stepped for light and dark surfaces. */
     --sparkline-color: #2a78d6;
+    position: relative;
     display: flex;
-    flex-direction: column;
-    gap: var(--spacingVerticalXS);
     min-width: 0;
-    padding: 12px 14px;
     border: 1px solid var(--colorNeutralStroke2);
     border-radius: 8px;
     background-color: var(--colorNeutralBackground1);
-    color: var(--colorNeutralForeground1);
-    text-decoration: none;
     transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 
@@ -31,9 +27,37 @@
     box-shadow: var(--shadow4);
 }
 
-.meter-card:focus-visible {
+.meter-card-link {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: var(--spacingVerticalXS);
+    min-width: 0;
+    padding: 12px 14px;
+    border-radius: inherit;
+    color: var(--colorNeutralForeground1);
+    text-decoration: none;
+}
+
+.meter-card-link:focus-visible {
     outline: 2px solid var(--colorStrokeFocus2);
     outline-offset: 1px;
+}
+
+/* The pin is only shown on hover or focus to keep cards quiet, but always shown once pinned
+   so pinned instruments are recognizable while scanning. */
+::deep .meter-card-pin {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    opacity: 0;
+    transition: opacity 120ms ease;
+}
+
+.meter-card:hover ::deep .meter-card-pin,
+.meter-card:focus-within ::deep .meter-card-pin,
+::deep .meter-card-pin.pinned {
+    opacity: 1;
 }
 
 .meter-card-header {
@@ -41,6 +65,8 @@
     align-items: center;
     gap: 6px;
     min-width: 0;
+    /* Leave room for the pin button in the top-right corner. */
+    padding-right: 24px;
 }
 
 ::deep .meter-card-icon {

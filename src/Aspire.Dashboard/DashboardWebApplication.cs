@@ -385,6 +385,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddSingleton<IDashboardRunStore>(services => services.GetRequiredService<DashboardRunStore>());
         builder.Services.AddSingleton<ResourceTagStore>();
         builder.Services.AddSingleton<ResourceOrderStore>();
+        builder.Services.AddSingleton<MetricPinStore>();
         // TryAdd for the same reason as IDashboardClient above: the factory decides which resource repository the
         // dashboard reads from, so a substituted client is only actually reachable if its factory survives too.
         builder.Services.TryAddSingleton<IRepositoryFactory, RepositoryFactory>();

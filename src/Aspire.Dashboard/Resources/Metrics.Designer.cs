@@ -96,6 +96,24 @@ namespace Aspire.Dashboard.Resources {
             }
         }
 
+        public static string MetricsPinInstrument {
+            get {
+                return ResourceManager.GetString("MetricsPinInstrument", resourceCulture);
+            }
+        }
+
+        public static string MetricsUnpinInstrument {
+            get {
+                return ResourceManager.GetString("MetricsUnpinInstrument", resourceCulture);
+            }
+        }
+
+        public static string MetricsPinnedHeader {
+            get {
+                return ResourceManager.GetString("MetricsPinnedHeader", resourceCulture);
+            }
+        }
+
         public static string MetricsInstrumentNoDataTooltip {
             get {
                 return ResourceManager.GetString("MetricsInstrumentNoDataTooltip", resourceCulture);

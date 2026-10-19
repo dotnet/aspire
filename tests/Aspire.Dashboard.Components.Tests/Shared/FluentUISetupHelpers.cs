@@ -263,6 +263,7 @@ internal static class FluentUISetupHelpers
         context.Services.AddSingleton<IOptions<DashboardOptions>>(Options.Create(new DashboardOptions()));
         context.Services.AddSingleton(new ResourceTagStore(databasePath: null, Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance));
         context.Services.AddSingleton(new ResourceOrderStore(databasePath: null, Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance));
+        context.Services.AddSingleton(new MetricPinStore(databasePath: null, Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance));
         context.Services.AddScoped<ResourcePaneState>();
     }
 

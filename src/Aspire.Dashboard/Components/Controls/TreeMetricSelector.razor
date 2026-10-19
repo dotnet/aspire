@@ -29,6 +29,35 @@
 
 @{
     var meterGroups = GetFilteredMeterGroups();
+    var pinnedInstruments = GetFilteredPinnedInstruments();
+}
+
+@if (pinnedInstruments.Count > 0)
+{
+    @* Pinned instruments are plain links rather than tree items. The same instrument also appears under
+       its meter, and the tree only supports one selected item per instrument. *@
+    <div class="metrics-pinned" role="group" aria-labelledby="metrics-pinned-header">
+        <div class="metrics-pinned-header" id="metrics-pinned-header">
+            <FluentIcon Value="@(new Icons.Filled.Size16.Pin())" Color="Color.Custom" CustomColor="currentColor" />
+            <span>@Loc[nameof(Metrics.MetricsPinnedHeader)]</span>
+        </div>
+        @foreach (var instrument in pinnedInstruments)
+        {
+            var isSelected = PageViewModel.SelectedInstrument?.GetKey() == instrument.GetKey();
+            var icon = GetInstrumentIcon(instrument.Type);
+            <a @key="instrument.GetKey()"
+               class="metrics-pinned-item @(isSelected ? "selected" : null) @(HasInstrumentData(instrument) ? null : "no-data")"
+               href="@GetInstrumentUrl(instrument)"
+               aria-current="@(isSelected ? "page" : null)"
+               data-tooltip="@($"{instrument.Parent.Name} \u203A {GetInstrumentTooltip(instrument, HasInstrumentData(instrument))}")">
+                @if (icon is not null)
+                {
+                    <FluentIcon Value="@icon" Color="Color.Custom" CustomColor="currentColor" />
+                }
+                <span class="metrics-pinned-item-name">@instrument.Name</span>
+            </a>
+        }
+    </div>
 }
 
 @if (meterGroups.Count == 0)

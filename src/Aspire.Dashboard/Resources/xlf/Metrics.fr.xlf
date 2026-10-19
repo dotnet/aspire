@@ -97,6 +97,16 @@
         <target state="translated">Métriques {0}</target>
         <note>{0} is an application name</note>
       </trans-unit>
+      <trans-unit id="MetricsPinInstrument">
+        <source>Pin metric</source>
+        <target state="new">Pin metric</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsPinnedHeader">
+        <source>Pinned</source>
+        <target state="new">Pinned</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MetricsSelectAResource">
         <source>Select a resource to view metrics</source>
         <target state="translated">Sélectionner une ressource pour afficher les métriques</target>
@@ -105,6 +115,11 @@
       <trans-unit id="MetricsSelectInstrument">
         <source>Select instrument.</source>
         <target state="translated">Sélectionnez un instrument.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsUnpinInstrument">
+        <source>Unpin metric</source>
+        <target state="new">Unpin metric</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsViewAttributesToolbar">

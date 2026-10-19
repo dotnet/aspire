@@ -12,7 +12,10 @@ else
 {
     <div class="metrics-chart">
         <div class="metrics-chart-header">
-            <h3>@_instrument.Summary.Name</h3>
+            <div class="metrics-chart-title">
+                <h3>@_instrument.Summary.Name</h3>
+                <MetricPinButton InstrumentKey="@_instrument.Summary.GetKey()" />
+            </div>
             <p>@_instrument.Summary.Description</p>
 
             @if (_instrumentViewModel.HasIncompatibleHistogramBounds)

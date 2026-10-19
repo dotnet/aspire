@@ -188,4 +188,13 @@
   <data name="MetricsOverviewNoData" xml:space="preserve">
     <value>No data</value>
   </data>
+  <data name="MetricsPinInstrument" xml:space="preserve">
+    <value>Pin metric</value>
+  </data>
+  <data name="MetricsUnpinInstrument" xml:space="preserve">
+    <value>Unpin metric</value>
+  </data>
+  <data name="MetricsPinnedHeader" xml:space="preserve">
+    <value>Pinned</value>
+  </data>
 </root>

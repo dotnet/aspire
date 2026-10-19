@@ -1,0 +1,68 @@
+@namespace Aspire.Dashboard.Components
+
+@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Otlp.Model
+@using MetricsResources = Aspire.Dashboard.Resources.Metrics
+
+@implements IDisposable
+
+@inject MetricPinStore PinStore
+@inject IStringLocalizer<MetricsResources> Loc
+
+@{
+    var label = _isPinned ? Loc[nameof(MetricsResources.MetricsUnpinInstrument)] : Loc[nameof(MetricsResources.MetricsPinInstrument)];
+}
+
+<FluentButton Appearance="ButtonAppearance.Transparent"
+              IconOnly="true"
+              Class="@($"metric-pin-button{(_isPinned ? " pinned" : null)} {Class}")"
+              data-tooltip="@label"
+              aria-label="@label"
+              aria-pressed="@(_isPinned ? "true" : "false")"
+              OnClick="TogglePinned">
+    <FluentIcon Value="@(_isPinned ? s_pinnedIcon : s_unpinnedIcon)" Color="Color.Custom" CustomColor="currentColor" />
+</FluentButton>
+
+@code {
+    private static readonly Icon s_pinnedIcon = new Icons.Filled.Size16.Pin();
+    private static readonly Icon s_unpinnedIcon = new Icons.Regular.Size16.Pin();
+
+    private bool _isPinned;
+
+    [Parameter, EditorRequired]
+    public required OtlpInstrumentKey InstrumentKey { get; set; }
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    protected override void OnInitialized()
+    {
+        // Another button for the same instrument (e.g. the card and the chart header) can change the pin.
+        PinStore.Changed += OnPinsChanged;
+    }
+
+    protected override void OnParametersSet()
+    {
+        _isPinned = PinStore.IsPinned(InstrumentKey);
+    }
+
+    private void TogglePinned()
+    {
+        PinStore.SetPinned(InstrumentKey, !_isPinned);
+        _isPinned = PinStore.IsPinned(InstrumentKey);
+    }
+
+    private void OnPinsChanged()
+    {
+        _ = InvokeAsync(() =>
+        {
+            _isPinned = PinStore.IsPinned(InstrumentKey);
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose()
+    {
+        PinStore.Changed -= OnPinsChanged;
+    }
+}

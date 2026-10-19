@@ -14,7 +14,10 @@
         var gradientId = $"{_gradientIdPrefix}-{i}";
         var icon = GetInstrumentIcon(instrument.Type);
 
-        <a @key="instrument" class="meter-card @(cardData.LatestValue is null ? "no-data" : null)" href="@GetInstrumentUrl(instrument)">
+        @* The pin button sits beside the link rather than inside it: interactive content isn't allowed
+           inside <a>, and nesting would make clicking the pin also navigate to the instrument. *@
+        <div @key="instrument" class="meter-card @(cardData.LatestValue is null ? "no-data" : null)">
+        <a class="meter-card-link" href="@GetInstrumentUrl(instrument)">
             <div class="meter-card-header">
                 @if (icon is not null)
                 {
@@ -66,5 +69,7 @@
                 }
             </div>
         </a>
+        <MetricPinButton InstrumentKey="@instrument.GetKey()" Class="meter-card-pin" />
+        </div>
     }
 </div>

@@ -76,7 +76,8 @@
                                 <TreeMetricSelector
                                     @ref="_treeMetricSelector"
                                     PageViewModel="@PageViewModel"
-                                    HandleSelectedTreeItemChangedAsync="@HandleSelectedTreeItemChangedAsync"/>
+                                    HandleSelectedTreeItemChangedAsync="@HandleSelectedTreeItemChangedAsync"
+                                    GetInstrumentUrl="@GetInstrumentUrl"/>
                             }
                         </FluentMultiSplitterPane>
                         <FluentMultiSplitterPane Size="80%">
@@ -195,7 +196,8 @@
                 @ref="_treeMetricSelector"
                 PageViewModel="@PageViewModel"
                 IncludeLabel="true"
-                HandleSelectedTreeItemChangedAsync="@HandleSelectedTreeItemChangedAsync"/>
+                HandleSelectedTreeItemChangedAsync="@HandleSelectedTreeItemChangedAsync"
+                                    GetInstrumentUrl="@GetInstrumentUrl"/>
         }
     }
 }
