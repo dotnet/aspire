@@ -21,6 +21,7 @@ public partial class DashboardRunSelect : ComponentBase
     private static readonly Icon s_pinnedIcon = new Icons.Filled.Size16.Pin();
     private readonly string _runMenuItemIdPrefix = $"dashboard-run-{Guid.NewGuid():N}";
 
+    private AspireMenuButton? _menuButton;
     private bool _hasDisconnected;
 
     protected override void OnParametersSet()
@@ -93,7 +94,9 @@ public partial class DashboardRunSelect : ComponentBase
             var menuItem = new MenuButtonItem
             {
                 Id = $"{_runMenuItemIdPrefix}-{Uri.EscapeDataString(run.RunId)}",
-                RenderKey = run.RunId,
+                // Reopening must reset Fluent's checked state after an external run switch.
+                // Keep keys stable during pinning and reordering within the open menu.
+                RenderKey = (run.RunId, _menuButton?.MenuOpenKey),
                 Text = FormatRunOption(run),
                 Role = MenuItemRole.Radio,
                 Checked = string.Equals(run.RunId, SelectedRunId, StringComparison.Ordinal),
