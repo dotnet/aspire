@@ -9,6 +9,7 @@
       SkipPlaygroundProjects - if 'true', skips building playground projects, defaults to 'false'
       SkipBundleDeps         - if 'true', skips building eng/dcppack, eng/dashboardpack, Aspire.Dashboard, Aspire.TerminalHost, and Aspire.Cli projects during the main managed build, defaults to 'false'
       BuildBundleDepsOnly    - if 'true', builds only the RID-specific eng/dcppack and eng/dashboardpack projects for $(TargetRids), plus Aspire.Dashboard and Aspire.TerminalHost for restore, defaults to 'false'
+      SkipNativeCliBootstrapBuild - experimental native-only build optimization; keeps CLI in restore but builds it only through clipack, defaults to 'false'
       TargetRids             - colon separated list of RIDs to build native projects for
   -->
 
@@ -109,6 +110,17 @@
 
     <ProjectToBuild Include="@(OverrideProjectToBuild)" />
   </ItemGroup>
+
+  <Target Name="_SkipNativeCliBootstrapBuild"
+          BeforeTargets="ExecuteBuildTargets"
+          Condition="'$(SkipNativeCliBootstrapBuild)' == 'true' and '$(SkipManagedBuild)' == 'true' and '$(SkipNativeBuild)' != 'true' and '$(BuildBundleDepsOnly)' != 'true' and '@(OverrideProjectToBuild)' == '' and '$(Projects)' == ''">
+    <!-- Keep the outer restore: a first restore inside clipack's MSBuild invocation cannot
+         import newly restored NativeAOT targets into its already-cached project evaluation.
+         Only the non-RID Build/Pack root is redundant with clipack's RID-specific Publish. -->
+    <ItemGroup>
+      <ProjectToBuild Remove="$(RepoRoot)src\Aspire.Cli\Aspire.Cli.csproj" />
+    </ItemGroup>
+  </Target>
 
   <!-- When building from source, we want to use the live repo contents as opposed to cloning the repo. -->
   <PropertyGroup Condition="'$(ArcadeBuildFromSource)' == 'true' or '$(DotNetBuildRepo)' == 'true'">

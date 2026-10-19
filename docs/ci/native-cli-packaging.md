@@ -19,6 +19,50 @@ The GitHub Actions test workflow builds native CLI archives per OS/RID and uploa
 
 These PR artifacts are useful for validation and dogfooding, but they are not the final official signed release artifacts.
 
+### Experimental native-only build roots
+
+The reusable native archive workflow accepts `nativeCliRootOnly` (default
+`false`). It passes `SkipNativeCliBootstrapBuild=true` only to the CLI packaging
+invocation. `eng/Build.props` retains the outer CLI restore, then removes the
+non-RID CLI root immediately before Arcade's `ExecuteBuildTargets`. The RID
+clipack project still restores and publishes the CLI and produces the archive,
+dotnet-tool packages, npm packages, and native symbols.
+
+Do not remove the CLI from the outer restore. On a clean workspace, the inner
+MSBuild restore can create the NativeAOT package imports after the CLI project
+evaluation has already been cached. Publishing with that evaluation can succeed
+without running ILC and produce a managed apphost instead of the native CLI.
+The existing tool-package size check rejects that result.
+
+In the first-attempt macOS ARM64 binlog from
+[run 39316168683](https://github.com/microsoft/aspire/actions/runs/39316168683/attempts/1),
+the outer non-RID C# compile took 58.56 seconds and the RID publish C# compile
+took 59.33 seconds, almost completely concurrently. There was one subsequent
+220.73-second ILC execution. These are task intervals, not additive wall-time
+savings. The experiment removes duplicate managed compilation, not native
+compilation or any artifact family.
+
+Keep this switch off until controlled upstream PR runs establish the benefit.
+Compare at least three clean runs per setting on the same runner types and
+source, recording median/min/max for CLI packaging and the whole native job.
+Require exactly one CLI `CoreCompile` Csc execution plus ILC in the candidate
+binlog, unchanged package inventories, and passing existing tool/npm, bundle,
+and native smoke checks. Local unbundled packaging alone does not validate the
+embedded runtime or the full six-RID matrix.
+
+The dedicated `native-cli-root-experiment.yml` workflow runs only on upstream
+draft PRs whose title contains `[ci-native-root-experiment]` and whose changes
+match its limited path filter. It runs three clean macOS ARM64 jobs per setting
+on the same PR source, at most two concurrently. The optional
+`artifactNamePrefix` input isolates all four artifact families by setting and
+repetition; its empty default preserves existing artifact names. Normal PR
+CI does not enable the build optimization.
+
+This opt-in adds six complete native jobs, approximately 140 macOS
+runner-minutes at the observed baseline, in addition to normal PR CI. Title
+edits and new pushes can trigger another trial; body-only edits do not.
+The concurrency group cancels superseded experiments.
+
 ## Internal signed builds
 
 The internal Azure DevOps `build_sign_native` stage is responsible for producing signed native CLI artifacts. Windows and macOS native jobs run with code signing enabled so each OS/arch-specific native executable can be signed or notarized on the appropriate platform.

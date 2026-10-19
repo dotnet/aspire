@@ -1,0 +1,42 @@
+name: Native CLI root experiment
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, edited]
+    paths:
+      - .github/workflows/native-cli-root-experiment.yml
+      - .github/workflows/build-cli-native-archives.yml
+      - eng/Build.props
+      - tests/Infrastructure.Tests/NativeCliBuildRootsTests.cs
+
+permissions:
+  contents: read
+
+concurrency:
+  # An ignored body edit must not cancel an active measurement run.
+  group: native-cli-root-experiment-${{ github.event.action == 'edited' && github.event.changes.title == null && github.run_id || github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  measure:
+    name: macOS ARM64 root-only=${{ matrix.rootOnly }} repeat=${{ matrix.repeat }}
+    if: >-
+      github.repository == 'microsoft/aspire' &&
+      github.event.pull_request.draft &&
+      (github.event.action != 'edited' || github.event.changes.title != null) &&
+      contains(github.event.pull_request.title, '[ci-native-root-experiment]')
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        repeat: [1, 2, 3]
+        rootOnly: [false, true]
+    uses: ./.github/workflows/build-cli-native-archives.yml
+    with:
+      configuration: Release
+      nativeCliRootOnly: ${{ matrix.rootOnly }}
+      artifactNamePrefix: native-root-${{ matrix.rootOnly && 'candidate' || 'control' }}-${{ matrix.repeat }}-
+      targets: '[{"os":"macos-latest","runner":"macos-latest","rids":"osx-arm64"}]'
+      versionOverrideArg: >-
+        /p:VersionSuffix=pr.${{ github.event.pull_request.number }}.g${{ github.event.pull_request.head.sha }}
+        /p:DotNetFinalVersionKind=prerelease
