@@ -27,6 +27,12 @@ namespace Aspire.Cli.Tests.Telemetry;
 
 public class AgentTelemetryPersistenceTests(ITestOutputHelper outputHelper)
 {
+    // Recovery must outlast the exporter's real three-minute lease and allow retries; shared test timeouts can expire too soon.
+    private const int LeaseRecoveryTimeoutMilliseconds = 5 * 60 * 1000;
+
+    // Allow an extra minute for provider disposal after the drain deadline.
+    private const int LeaseRecoveryProcessTimeoutMilliseconds = 6 * 60 * 1000;
+
     [Fact]
     public void SharedExporter_DisablesStandardMetricsAndPerformanceCounters()
     {
@@ -437,11 +443,10 @@ public class AgentTelemetryPersistenceTests(ITestOutputHelper outputHelper)
             });
             using var client = new HttpClient(handler);
             using var provider = CreateRecoveryProvider(directory, client);
-            // The real three-minute lease needs headroom beyond the local extra-long timeout.
-            using var timeout = new CancellationTokenSource(TestConstants.ExtraLongTimeoutTimeSpan + TestConstants.LongTimeoutTimeSpan);
+            using var timeout = new CancellationTokenSource(LeaseRecoveryTimeoutMilliseconds);
             await AgentTelemetryUploader.DrainAsync(directory, lockPath, timeout.Token);
             Assert.True(delivered.Task.IsCompletedSuccessfully);
-        }, storage, lockPath, new RemoteInvokeOptions { TimeOut = TestConstants.ExtraLongTimeoutDuration * 2 }).Dispose();
+        }, storage, lockPath, new RemoteInvokeOptions { TimeOut = LeaseRecoveryProcessTimeoutMilliseconds }).Dispose();
     }
 
     private static TracerProvider CreateRecoveryProvider(string storage, HttpClient client)
