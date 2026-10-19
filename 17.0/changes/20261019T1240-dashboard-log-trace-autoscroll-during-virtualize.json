@@ -1,0 +1,19 @@
+{
+  "area": "Dashboard",
+  "areaEmoji": "📊",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Improvements",
+  "communityContributors": [],
+  "description": "Console Logs, Structured Logs, and Traces pages now keep their initially empty scroll region pinned to the bottom while the virtualized list converges on its final layout, and stop auto-following as soon as the user scrolls, clicks, or presses a key.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "📌",
+  "firstMergedAt": "2026-10-19T12:40:03Z",
+  "lastMergedAt": "2026-10-19T12:40:03Z",
+  "name": "Smoother log and trace scrolling while the dashboard loads",
+  "owner": "JamesNK",
+  "prs": [
+    20977
+  ]
+}

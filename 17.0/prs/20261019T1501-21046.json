@@ -1,0 +1,9 @@
+{
+  "author": "JamesNK",
+  "comment": "Routine dependency bump of Fluent UI components from 5.0.0 to 5.0.1 with no user-facing behavior change",
+  "mergedAt": "2026-10-19T15:01:12Z",
+  "number": 21046,
+  "runDate": "2026-10-19T18:06:23Z",
+  "status": "excluded",
+  "title": "Update dashboard Fluent UI to 5.0.1"
+}

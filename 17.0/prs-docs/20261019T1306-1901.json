@@ -1,0 +1,9 @@
+{
+  "author": "IEvangelist",
+  "comment": "Internal release-sync tooling fix for the docs repo; not related to any product changelog entry",
+  "mergedAt": "2026-10-19T13:06:37Z",
+  "number": 1901,
+  "runDate": "2026-10-19T18:06:23Z",
+  "status": "excluded",
+  "title": "Keep release sync from re-conflicting after a squashed repair PR"
+}

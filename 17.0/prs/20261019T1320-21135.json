@@ -1,0 +1,9 @@
+{
+  "author": "JamesNK",
+  "comment": "Fixes a cancellation race causing the CLI snapshot watch stream to report a false discovery failure",
+  "mergedAt": "2026-10-19T13:20:05Z",
+  "number": 21135,
+  "runDate": "2026-10-19T18:06:23Z",
+  "status": "included",
+  "title": "Fix CLI snapshot watch cancellation"
+}

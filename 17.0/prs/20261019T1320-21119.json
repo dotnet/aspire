@@ -1,0 +1,9 @@
+{
+  "author": "JamesNK",
+  "comment": "Generated deployments now use the 17.0 dashboard image instead of 13.6",
+  "mergedAt": "2026-10-19T13:20:57Z",
+  "number": 21119,
+  "runDate": "2026-10-19T18:06:23Z",
+  "status": "included",
+  "title": "Use the 17.0 dashboard image for generated deployments"
+}

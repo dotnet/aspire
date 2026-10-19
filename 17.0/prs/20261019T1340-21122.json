@@ -1,0 +1,9 @@
+{
+  "author": "JamesNK",
+  "comment": "Test-only change bounding CLI test waits/cleanup with shared timeouts; no production or user-facing impact",
+  "mergedAt": "2026-10-19T13:40:46Z",
+  "number": 21122,
+  "runDate": "2026-10-19T18:06:23Z",
+  "status": "excluded",
+  "title": "Bound CLI test waits and cleanup with shared timeouts"
+}
