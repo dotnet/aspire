@@ -29,6 +29,7 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
     private OtlpInstrumentKey? _renderedInstrument;
     private string? _renderedTheme;
     private bool _renderedShowCount;
+    private bool _renderedShowRunningTotal;
     private DateTimeOffset? _previousDataEndTime;
     private bool? _renderedHasOverflow;
 
@@ -108,13 +109,15 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
         if (_renderedInstrument is null || _renderedInstrument != InstrumentViewModel.Instrument.GetKey() ||
             _renderedDimensionAttributes is null || !DimensionAttributesEqual(_renderedDimensionAttributes, dimensionAttributes) ||
             _renderedTheme != InstrumentViewModel.Theme ||
-            _renderedShowCount != InstrumentViewModel.ShowCount)
+            _renderedShowCount != InstrumentViewModel.ShowCount ||
+            _renderedShowRunningTotal != InstrumentViewModel.ShowRunningTotal)
         {
             // Dimensions (or entire chart) has changed. Re-render the entire chart.
             _renderedInstrument = InstrumentViewModel.Instrument.GetKey();
             _renderedDimensionAttributes = dimensionAttributes;
             _renderedTheme = InstrumentViewModel.Theme;
             _renderedShowCount = InstrumentViewModel.ShowCount;
+            _renderedShowRunningTotal = InstrumentViewModel.ShowRunningTotal;
             await UpdateChartAsync(tickUpdate: false, inProgressDataTime).ConfigureAwait(false);
             _lastUpdateTime = TimeProvider.GetUtcNow();
             // Derived components can update Blazor-rendered state during OnAfterRenderAsync.
@@ -183,6 +186,13 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
             ? GetDisplayedUnit(InstrumentViewModel.Instrument)
             : CountUnit;
 
+        var showChangePerInterval = ChartDataCalculator.IsMonotonicCounter(InstrumentViewModel.Instrument) && !InstrumentViewModel.ShowRunningTotal;
+        if (showChangePerInterval)
+        {
+            // e.g. "Requests per interval", so the legend and table header say these aren't totals.
+            unit = string.Format(CultureInfo.CurrentCulture, Loc[nameof(ControlsStrings.ChartContainerUnitPerInterval)], unit);
+        }
+
         var calculator = new ChartDataCalculator(GraphPointCount, Duration);
         ChartData data;
 
@@ -192,6 +202,18 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
 
             // TODO: Exemplars on non-histogram charts doesn't work well. Don't display for now.
             data.Exemplars.Clear();
+
+            if (showChangePerInterval)
+            {
+                // A counter reports a running total. Convert it to the increase in each interval, using the same
+                // calculation as the counter's card. The table reads these traces too, so both views agree.
+                var trace = data.Traces.Single();
+                var increases = ChartDataCalculator.CalculateCounterIncreases(trace.Values, InstrumentViewModel.Instrument!.AggregationTemporality);
+                trace.Values.Clear();
+                trace.Values.AddRange(increases);
+                trace.DiffValues.Clear();
+                trace.DiffValues.AddRange(increases);
+            }
         }
         else
         {

@@ -58,6 +58,10 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
     public bool? Pinned { get; set; }
 
     [Parameter]
+    [SupplyParameterFromQuery(Name = "total")]
+    public bool? ShowRunningTotal { get; set; }
+
+    [Parameter]
     [SupplyParameterFromQuery(Name = "duration")]
     public int? DurationMinutes { get; set; }
 
@@ -163,6 +167,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
             MeterName = PageViewModel.SelectedMeter,
             InstrumentName = PageViewModel.SelectedInstrument?.Name,
             Pinned = PageViewModel.ShowPinned,
+            ShowRunningTotal = PageViewModel.ShowRunningTotal,
             DurationMinutes = (int)PageViewModel.SelectedDuration.Id.TotalMinutes,
             ViewKind = PageViewModel.SelectedViewKind?.ToString()
         };
@@ -200,6 +205,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
         // Navigating (opening a card, or a group from another page) shows what the URL selects, not filter results.
         viewModel.ShowFilterResults = false;
         viewModel.SelectedViewKind = Enum.TryParse(typeof(MetricViewKind), ViewKindName, out var view) && view is MetricViewKind vk ? vk : null;
+        viewModel.ShowRunningTotal = ShowRunningTotal is true;
 
         if (viewModel.Instruments != null && Pinned is true)
         {
@@ -425,6 +431,11 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
         /// Set while the user types, and cleared when they pick a group or open an instrument.
         /// </summary>
         public bool ShowFilterResults { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether a counter's chart shows its running total instead of its change per interval.
+        /// </summary>
+        public bool ShowRunningTotal { get; set; }
         public OtlpInstrumentSummary? SelectedInstrument { get; set; }
         public required SelectViewModel<ResourceTypeDetails> SelectedResource { get; set; }
         public SelectViewModel<TimeSpan> SelectedDuration { get; set; } = null!;
@@ -438,6 +449,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
         public string? MeterName { get; set; }
         public string? InstrumentName { get; set; }
         public bool Pinned { get; set; }
+        public bool ShowRunningTotal { get; set; }
         public int DurationMinutes { get; set; }
         public required string? ViewKind { get; set; }
     }
@@ -470,9 +482,16 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
             instrument: serializable.InstrumentName,
             duration: serializable.DurationMinutes,
             view: serializable.ViewKind,
-            pinned: serializable.Pinned);
+            pinned: serializable.Pinned,
+            total: serializable.ShowRunningTotal);
 
         return ResourcesLayout?.AddSelectionToUrl(url) ?? url;
+    }
+
+    private async Task OnShowRunningTotalChangedAsync(bool showRunningTotal)
+    {
+        PageViewModel.ShowRunningTotal = showRunningTotal;
+        await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
     }
 
     private async Task OnViewChangedAsync(MetricViewKind newView)

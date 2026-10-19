@@ -113,6 +113,8 @@
                                             Duration="PageViewModel.SelectedDuration.Id"
                                             ActiveView="@(PageViewModel.SelectedViewKind ?? Metrics.MetricViewKind.Graph)"
                                             OnViewChangedAsync="@OnViewChangedAsync"
+                                            ShowRunningTotal="@PageViewModel.ShowRunningTotal"
+                                            OnShowRunningTotalChangedAsync="@OnShowRunningTotalChangedAsync"
                                             Resources="@_resources" />
                                     }
                                     else if (PageViewModel is { ShowPinned: true, SelectedResource.Id: { } pinnedResourceId })

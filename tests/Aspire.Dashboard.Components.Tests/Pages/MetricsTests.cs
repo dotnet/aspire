@@ -74,6 +74,8 @@ public partial class MetricsTests : DashboardTestContext
             builder.Add(component => component.Duration, TimeSpan.FromMinutes(1));
             builder.Add(component => component.ActiveView, view);
             builder.Add(component => component.OnViewChangedAsync, _ => Task.CompletedTask);
+            builder.Add(component => component.ShowRunningTotal, false);
+            builder.Add(component => component.OnShowRunningTotalChangedAsync, _ => Task.CompletedTask);
             builder.Add(component => component.Resources, [resource]);
         });
 
@@ -208,6 +210,8 @@ public partial class MetricsTests : DashboardTestContext
             builder.Add(component => component.Duration, TimeSpan.FromMinutes(1));
             builder.Add(component => component.ActiveView, MetricViewKind.Table);
             builder.Add(component => component.OnViewChangedAsync, _ => Task.CompletedTask);
+            builder.Add(component => component.ShowRunningTotal, false);
+            builder.Add(component => component.OnShowRunningTotalChangedAsync, _ => Task.CompletedTask);
             builder.Add(component => component.Resources, [resource]);
         });
         cut.WaitForState(() => cut.FindComponents<MetricTable>().Count == 1);
@@ -345,6 +349,9 @@ public partial class MetricsTests : DashboardTestContext
             builder.Add(component => component.Duration, TimeSpan.FromMinutes(5));
             builder.Add(component => component.ActiveView, MetricViewKind.Graph);
             builder.Add(component => component.OnViewChangedAsync, _ => Task.CompletedTask);
+            // This test checks table rows and formatting, so show the counter's reported values, not its change per interval.
+            builder.Add(component => component.ShowRunningTotal, true);
+            builder.Add(component => component.OnShowRunningTotalChangedAsync, _ => Task.CompletedTask);
             builder.Add(component => component.Resources, [resource]);
         });
         cut.WaitForAssertion(() =>
@@ -467,6 +474,9 @@ public partial class MetricsTests : DashboardTestContext
             builder.Add(component => component.Duration, TimeSpan.FromMinutes(5));
             builder.Add(component => component.ActiveView, MetricViewKind.Table);
             builder.Add(component => component.OnViewChangedAsync, _ => Task.CompletedTask);
+            // This test checks table rows and formatting, so show the counter's reported values, not its change per interval.
+            builder.Add(component => component.ShowRunningTotal, true);
+            builder.Add(component => component.OnShowRunningTotalChangedAsync, _ => Task.CompletedTask);
             builder.Add(component => component.Resources, [resource]);
         });
 
@@ -557,6 +567,9 @@ public partial class MetricsTests : DashboardTestContext
                 builder.Add(component => component.Duration, TimeSpan.FromSeconds(1));
                 builder.Add(component => component.ActiveView, MetricViewKind.Table);
                 builder.Add(component => component.OnViewChangedAsync, _ => Task.CompletedTask);
+                // This test checks table rows and formatting, so show the counter's reported values, not its change per interval.
+                builder.Add(component => component.ShowRunningTotal, true);
+                builder.Add(component => component.OnShowRunningTotalChangedAsync, _ => Task.CompletedTask);
                 builder.Add(component => component.Resources, [resource]);
             });
 
@@ -1356,6 +1369,52 @@ public partial class MetricsTests : DashboardTestContext
             Assert.Equal("12.3K", tile.QuerySelector(".live-metric-tile-number")!.TextContent);
             // A counter's sparkline shows bars of the increase per interval.
             Assert.NotNull(tile.QuerySelector(".metric-sparkline-bars"));
+        });
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task InitialLoad_TotalQuery_SetsCounterRunningTotal(bool total)
+    {
+        MetricsSetupHelpers.SetupMetricsPage(this);
+
+        Services.GetRequiredService<NavigationManager>().NavigateTo(DashboardUrls.MetricsUrl(
+            resource: "TestApp",
+            meter: "test-meter",
+            instrument: "test-instrument",
+            duration: 5,
+            view: MetricViewKind.Graph.ToString(),
+            total: total));
+
+        var telemetryRepository = Services.GetRequiredService<SqliteTelemetryRepository>();
+        await telemetryRepository.AddMetricsAsync(new AddContext(), new RepeatedField<ResourceMetrics>
+        {
+            new ResourceMetrics
+            {
+                Resource = CreateResource(name: "TestApp"),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter"),
+                        Metrics = { CreateSumMetric(metricName: "test-instrument", startTime: s_testTime.AddMinutes(1)) }
+                    }
+                }
+            }
+        });
+
+        var cut = Render<Metrics>(builder =>
+        {
+            builder.Add(m => m.ResourceName, "TestApp");
+            builder.AddCascadingValue(new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
+        });
+
+        // The URL keeps the choice, so a link or back navigation shows the same view of the counter.
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal(total, cut.Instance.PageViewModel.ShowRunningTotal);
+            Assert.Equal(total, cut.FindComponent<ChartContainer>().Instance.ShowRunningTotal);
         });
     }
 

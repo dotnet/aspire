@@ -546,4 +546,11 @@
   <data name="Download" xml:space="preserve">
     <value>Download</value>
   </data>
+  <data name="ChartContainerShowChangePerIntervalLabel" xml:space="preserve">
+    <value>Show change per interval</value>
+  </data>
+  <data name="ChartContainerUnitPerInterval" xml:space="preserve">
+    <value>{0} per interval</value>
+    <comment>{0} is the instrument's unit, e.g. "Requests"</comment>
+  </data>
 </root>

@@ -146,6 +146,44 @@ internal sealed class ChartDataCalculator
         };
     }
 
+    /// <summary>
+    /// Gets whether the instrument is a counter: a sum that only increases. Its values are a running total,
+    /// so the change per interval is usually more telling than the total itself.
+    /// </summary>
+    internal static bool IsMonotonicCounter(OtlpInstrumentSummary instrument)
+        => instrument.Type == OtlpInstrumentType.Sum && instrument.IsMonotonic;
+
+    internal static List<double?> CalculateCounterIncreases(IReadOnlyList<double?> values, OtlpAggregationTemporality temporality)
+    {
+        // Delta counters already report the change per export, so their values are the increases.
+        if (temporality == OtlpAggregationTemporality.Delta)
+        {
+            return [.. values];
+        }
+
+        // Cumulative counters report a running total, e.g. [10, 15, null, 22, 3] where 3 follows a
+        // process restart. The increase is the difference from the last known total, carried across
+        // empty intervals: an app exporting every 60s leaves most 10s intervals empty, and its
+        // growth should show up in the interval where it was observed, not be dropped.
+        // After a reset the total starts again from zero, so the new value itself is the increase.
+        var increases = new List<double?>(values.Count);
+        double? previous = null;
+        foreach (var value in values)
+        {
+            if (value is not { } current)
+            {
+                increases.Add(null);
+                continue;
+            }
+
+            // The first point has nothing to compare against.
+            increases.Add(previous is { } last ? (current >= last ? current - last : current) : null);
+            previous = current;
+        }
+
+        return increases;
+    }
+
     internal static bool TryCalculatePoint(List<DimensionScope> dimensions, DateTimeOffset start, DateTimeOffset end, out double pointValue)
     {
         var hasValue = false;

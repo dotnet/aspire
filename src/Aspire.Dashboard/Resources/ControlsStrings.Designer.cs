@@ -195,6 +195,18 @@ namespace Aspire.Dashboard.Resources {
             }
         }
 
+        public static string ChartContainerShowChangePerIntervalLabel {
+            get {
+                return ResourceManager.GetString("ChartContainerShowChangePerIntervalLabel", resourceCulture);
+            }
+        }
+
+        public static string ChartContainerUnitPerInterval {
+            get {
+                return ResourceManager.GetString("ChartContainerUnitPerInterval", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Show count.
         /// </summary>

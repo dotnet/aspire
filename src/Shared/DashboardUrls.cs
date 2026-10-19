@@ -277,7 +277,7 @@ internal static class DashboardUrls
         return url;
     }
 
-    public static string MetricsUrl(string? resource = null, string? meter = null, string? instrument = null, int? duration = null, string? view = null, bool pinned = false)
+    public static string MetricsUrl(string? resource = null, string? meter = null, string? instrument = null, int? duration = null, string? view = null, bool pinned = false, bool total = false)
     {
         var url = $"/{MetricsBasePath}";
         if (resource != null)
@@ -305,6 +305,11 @@ internal static class DashboardUrls
         if (view != null)
         {
             url = AddQueryString(url, "view", view);
+        }
+        if (total)
+        {
+            // A counter shows its change per interval by default; this keeps the running total in links.
+            url = AddQueryString(url, "total", "true");
         }
 
         return url;
