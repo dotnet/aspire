@@ -70,6 +70,8 @@ same SDK/runtime as the playground. Its `up`, `verify` and `down` commands repla
 separate scripting-runtime requirements. Run it from inside the repository.
 Ctrl+C during verification cancels polling, stops the owned AppHost and still
 runs fixture restoration/reconciliation before returning a nonzero exit.
+The AppHost also awaits its remote sessions in a `finally` block, because host
+startup cancellation can return before hosted-service shutdown is invoked.
 The verifier uses the built AppHost, real SSH, real Docker and real Redis; it
 does not substitute a fake transport or fake dependency. It reserves local ports
 18080 and 16379 for the duration of the run. Do not run parallel copies.

@@ -36,4 +36,13 @@ builder.AddProject<Projects.RemoteDependencies_Api>("api")
     .WithReference(cache)
     .WaitFor(cache);
 
-await builder.Build().RunAsync();
+await using var app = builder.Build();
+try
+{
+    await app.RunAsync();
+}
+finally
+{
+    // Host startup cancellation can return before hosted-service StopAsync is invoked.
+    await app.Services.GetRequiredService<RemoteSessions>().StopAsync(CancellationToken.None);
+}
