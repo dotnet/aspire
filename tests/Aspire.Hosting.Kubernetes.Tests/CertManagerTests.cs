@@ -4,6 +4,7 @@
 using System.Text;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -15,6 +16,102 @@ namespace Aspire.Hosting.Kubernetes.Tests;
 public class CertManagerTests
 {
     private const string TestHmacKey = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh_-";
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task WithAcmeServerForPolyglot_ResolvesStringsAndParameters(bool parameterizedUrl, bool parameterizedEmail)
+    {
+        var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration["Parameters:acmeurl"] = "https://acme.example.com/directory";
+        builder.Configuration["Parameters:acmeemail"] = "ops@contoso.com";
+        var url = builder.AddParameter("acmeurl");
+        var email = builder.AddParameter("acmeemail");
+        var issuer = builder.AddKubernetesEnvironment("env").AddCertManager("cert-manager").AddIssuer("acme");
+
+        var result = issuer.WithAcmeServerForPolyglot(
+            parameterizedUrl ? url : "https://acme.example.com/directory",
+            parameterizedEmail ? email : "ops@contoso.com");
+
+        Assert.Same(issuer, result);
+        var spec = Assert.IsType<CertManagerAcmeIssuerSpec>(issuer.Resource.Spec);
+        Assert.Equal("https://acme.example.com/directory", await spec.ServerUrl.GetValueAsync(TestContext.Current.CancellationToken));
+        Assert.Equal("ops@contoso.com", await spec.Email.GetValueAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task WithExternalAccountBindingForPolyglot_ResolvesStringsAndParameters(bool parameterizedKeyId)
+    {
+        var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration["Parameters:keyid"] = "account-123";
+        var keyId = builder.AddParameter("keyid");
+        var hmacKey = builder.AddParameter("hmac", secret: true);
+        var issuer = builder.AddKubernetesEnvironment("env").AddCertManager("cert-manager").AddIssuer("acme");
+
+        var result = issuer.WithExternalAccountBindingForPolyglot(parameterizedKeyId ? keyId : "account-123", hmacKey);
+
+        Assert.Same(issuer, result);
+        var binding = Assert.IsType<CertManagerExternalAccountBinding>(issuer.Resource.ExternalAccountBinding);
+        Assert.Same(hmacKey.Resource, binding.HmacKey);
+        Assert.Equal("account-123", await binding.KeyId.GetValueAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public void PolyglotAcmeConfiguration_RejectsUnsupportedUnionValues()
+    {
+        var builder = TestDistributedApplicationBuilder.Create();
+        var hmacKey = builder.AddParameter("hmac", secret: true);
+        var issuer = builder.AddKubernetesEnvironment("env").AddCertManager("cert-manager").AddIssuer("acme");
+
+        Assert.Throws<ArgumentException>(() => issuer.WithAcmeServerForPolyglot(42, "ops@contoso.com"));
+        Assert.Throws<ArgumentException>(() => issuer.WithAcmeServerForPolyglot("https://acme.example.com/directory", 42));
+        Assert.Throws<ArgumentException>(() => issuer.WithAcmeServerForPolyglot(null!, "ops@contoso.com"));
+        Assert.Throws<ArgumentException>(() => issuer.WithExternalAccountBindingForPolyglot(42, hmacKey));
+        Assert.Throws<ArgumentException>(() => issuer.WithExternalAccountBindingForPolyglot(null!, hmacKey));
+        Assert.Throws<ArgumentException>(() => issuer.WithExternalAccountBindingForPolyglot("account-123", builder.AddParameter("nonsecret")));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ExternalAccountBindingCleanup_InvalidNamespaceWarnsAndContinues(bool ambiguousOverride)
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var certManager = builder.AddKubernetesEnvironment("env").AddCertManager("cert-manager");
+        var issuer = certManager.AddIssuer("acme")
+            .WithExternalAccountBinding("account-123", builder.AddParameter("hmac", secret: true));
+        if (ambiguousOverride)
+        {
+            certManager.Resource.HelmChart.Values["extraArgs[0]"] = "--cluster-resource-namespace=accounts";
+        }
+        else
+        {
+            certManager.Resource.HelmChart.Values["clusterResourceNamespace"] = "INVALID_NAMESPACE";
+        }
+        using var app = builder.Build();
+        var logger = new FakeLogger();
+        await using var reportingStep = await new NullPublishingActivityReporter().CreateStepAsync("cleanup");
+        var context = new PipelineStepContext
+        {
+            PipelineContext = new PipelineContext(
+                app.Services.GetRequiredService<DistributedApplicationModel>(),
+                new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish),
+                app.Services, logger, TestContext.Current.CancellationToken),
+            ReportingStep = reportingStep
+        };
+
+        await CertManagerExtensions.DeleteExternalAccountBindingSecretAsync(context, issuer.Resource);
+
+        var warning = Assert.Single(logger.Collector.GetSnapshot());
+        Assert.Equal(LogLevel.Warning, warning.Level);
+        Assert.Contains("acme-eab", warning.Message);
+        Assert.Contains("Remove the Secret manually", warning.Message);
+        Assert.Contains("Continuing destroy", warning.Message);
+    }
 
     [Theory]
     [InlineData(false)]

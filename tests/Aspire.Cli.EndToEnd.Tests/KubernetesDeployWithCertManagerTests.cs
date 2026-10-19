@@ -118,10 +118,10 @@ public sealed class KubernetesDeployWithCertManagerTests(ITestOutputHelper outpu
 
             content = await File.ReadAllTextAsync(appHostPath, TestContext.Current.CancellationToken);
             var bindingToRemove = typeScript
-                ? "await invalid.withExternalAccountBindingParam(keyId, invalidHmac);"
+                ? "await invalid.withExternalAccountBinding(keyId, invalidHmac);"
                 : ".WithExternalAccountBinding(keyId, invalidHmac)";
             var foreignBindingToRemove = typeScript
-                ? "await foreign.withExternalAccountBindingParam(keyId, hmac);"
+                ? "await foreign.withExternalAccountBinding(keyId, hmac);"
                 : ".WithExternalAccountBinding(keyId, hmac)";
             Assert.Contains(bindingToRemove, content);
             Assert.Contains(foreignBindingToRemove, content);
@@ -148,11 +148,18 @@ public sealed class KubernetesDeployWithCertManagerTests(ITestOutputHelper outpu
                 "elif grep -q 'EAB cleanup rejection fixture' issuer-delete-result.txt; then REJECTED=1; break; " +
                 "else cat issuer-delete-result.txt; break; fi; done; test \"$REJECTED\" = 1",
                 counter, TimeSpan.FromMinutes(2));
+            await auto.RunCommandAsync(
+                "REJECTED=0; for i in $(seq 1 60); do " +
+                "if kubectl delete secret pebble-invalid-eab -n cert-manager-chart --dry-run=server > secret-delete-result.txt 2>&1; then sleep 1; " +
+                "elif grep -q 'EAB Secret cleanup rejection fixture' secret-delete-result.txt; then REJECTED=1; break; " +
+                "else cat secret-delete-result.txt; break; fi; done; test \"$REJECTED\" = 1",
+                counter, TimeSpan.FromMinutes(2));
             await auto.AspireDestroyAsync(counter, TimeSpan.FromMinutes(5));
             await auto.RunCommandAsync(
                 "ISSUERS=$(kubectl get clusterissuer pebble-valid pebble-invalid --ignore-not-found -o name) && " +
                 "test \"$ISSUERS\" = clusterissuer.cert-manager.io/pebble-valid && " +
-                "SECRETS=$(kubectl get secret pebble-valid-eab pebble-invalid-eab -n cert-manager-chart --ignore-not-found -o name) && test -z \"$SECRETS\" && " +
+                "SECRETS=$(kubectl get secret pebble-valid-eab pebble-invalid-eab -n cert-manager-chart --ignore-not-found -o name) && test \"$SECRETS\" = secret/pebble-invalid-eab && " +
+                "RELEASES=$(helm list -n cert-manager-chart --short) && test -z \"$RELEASES\" && " +
                 "FOREIGN=$(kubectl get secret pebble-foreign-eab -n cert-manager-chart -o jsonpath='{.data.unrelated}') && test \"$FOREIGN\" = cmV0YWlu && " +
                 "test \"$EAB_ACCOUNT_UID\" = \"$(kubectl get secret pebble-valid-account-key -n cert-manager-chart -o jsonpath='{.metadata.uid}')\"",
                 counter);
@@ -187,6 +194,30 @@ public sealed class KubernetesDeployWithCertManagerTests(ITestOutputHelper outpu
           name: reject-eab-issuer-deletion
         spec:
           policyName: reject-eab-issuer-deletion
+          validationActions: ["Deny"]
+        ---
+        apiVersion: admissionregistration.k8s.io/v1
+        kind: ValidatingAdmissionPolicy
+        metadata:
+          name: reject-eab-secret-deletion
+        spec:
+          failurePolicy: Fail
+          matchConstraints:
+            resourceRules:
+              - apiGroups: [""]
+                apiVersions: ["v1"]
+                operations: ["DELETE"]
+                resources: ["secrets"]
+          validations:
+            - expression: "oldObject.metadata.name != 'pebble-invalid-eab'"
+              message: EAB Secret cleanup rejection fixture
+        ---
+        apiVersion: admissionregistration.k8s.io/v1
+        kind: ValidatingAdmissionPolicyBinding
+        metadata:
+          name: reject-eab-secret-deletion
+        spec:
+          policyName: reject-eab-secret-deletion
           validationActions: ["Deny"]
         """;
 
@@ -229,16 +260,16 @@ public sealed class KubernetesDeployWithCertManagerTests(ITestOutputHelper outpu
         });
         const certManager = await k8s.addCertManager("cert-manager");
         const valid = await certManager.addIssuer("pebble-valid");
-        await valid.withAcmeServerParams(server, email);
+        await valid.withAcmeServer(server, email);
         await valid.withExternalAccountBinding("fixture-key-id", hmac);
         await valid.withHttp01Solver();
         const invalid = await certManager.addIssuer("pebble-invalid");
-        await invalid.withAcmeServerUrlParam(server, "aspire-e2e-test@microsoft.com");
-        await invalid.withExternalAccountBindingParam(keyId, invalidHmac);
+        await invalid.withAcmeServer(server, "aspire-e2e-test@microsoft.com");
+        await invalid.withExternalAccountBinding(keyId, invalidHmac);
         await invalid.withHttp01Solver();
         const foreign = await certManager.addIssuer("pebble-foreign");
-        await foreign.withAcmeServerParams(server, email);
-        await foreign.withExternalAccountBindingParam(keyId, hmac);
+        await foreign.withAcmeServer(server, email);
+        await foreign.withExternalAccountBinding(keyId, hmac);
         await foreign.withHttp01Solver();
         """;
 }

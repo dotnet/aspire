@@ -173,7 +173,7 @@ public static class CertManagerExtensions
     /// <param name="email">The contact email registered with the ACME account.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{CertManagerIssuerResource}"/> for chaining.</returns>
     /// <ats-returns>The resource builder.</ats-returns>
-    [AspireExport]
+    [AspireExportIgnore(Reason = "Handled by the withAcmeServer union export.")]
     public static IResourceBuilder<CertManagerIssuerResource> WithAcmeServer(
         this IResourceBuilder<CertManagerIssuerResource> builder,
         string serverUrl,
@@ -208,7 +208,7 @@ public static class CertManagerExtensions
     /// </remarks>
     /// <exception cref="ArgumentNullException">A required argument is null.</exception>
     /// <exception cref="ArgumentException">The key identifier is empty or the HMAC parameter is not secret.</exception>
-    [AspireExport]
+    [AspireExportIgnore(Reason = "Handled by the withExternalAccountBinding union export.")]
     public static IResourceBuilder<CertManagerIssuerResource> WithExternalAccountBinding(
         this IResourceBuilder<CertManagerIssuerResource> builder,
         string keyId,
@@ -236,7 +236,7 @@ public static class CertManagerExtensions
     /// </remarks>
     /// <exception cref="ArgumentNullException">A required argument is null.</exception>
     /// <exception cref="ArgumentException">The HMAC parameter is not secret.</exception>
-    [AspireExport("withExternalAccountBindingParam")]
+    [AspireExportIgnore(Reason = "Handled by the withExternalAccountBinding union export.")]
     public static IResourceBuilder<CertManagerIssuerResource> WithExternalAccountBinding(
         this IResourceBuilder<CertManagerIssuerResource> builder,
         IResourceBuilder<ParameterResource> keyId,
@@ -248,6 +248,25 @@ public static class CertManagerExtensions
 
         return WithExternalAccountBindingCore(builder, ReferenceExpression.Create($"{keyId.Resource}"), hmacKey);
     }
+
+    /// <summary>
+    /// Configures External Account Binding with a literal or parameterized key identifier and a secret HMAC parameter.
+    /// </summary>
+    /// <param name="builder">The issuer resource builder.</param>
+    /// <param name="keyId">The provider's key identifier, as a string or parameter resource builder.</param>
+    /// <param name="hmacKey">A secret parameter containing the provider's base64url-encoded HMAC key.</param>
+    /// <returns>The resource builder.</returns>
+    [AspireExport("withExternalAccountBinding")]
+    internal static IResourceBuilder<CertManagerIssuerResource> WithExternalAccountBindingForPolyglot(
+        this IResourceBuilder<CertManagerIssuerResource> builder,
+        [AspireUnion(typeof(string), typeof(IResourceBuilder<ParameterResource>))] object keyId,
+        IResourceBuilder<ParameterResource> hmacKey)
+        => keyId switch
+        {
+            string value => builder.WithExternalAccountBinding(value, hmacKey),
+            IResourceBuilder<ParameterResource> parameter => builder.WithExternalAccountBinding(parameter, hmacKey),
+            _ => throw new ArgumentException("Key identifier must be a string or a parameter resource builder.", nameof(keyId))
+        };
 
     private static IResourceBuilder<CertManagerIssuerResource> WithExternalAccountBindingCore(
         IResourceBuilder<CertManagerIssuerResource> builder,
@@ -271,7 +290,7 @@ public static class CertManagerExtensions
     /// <param name="email">A parameter resource builder whose value is the contact email registered with the ACME account.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{CertManagerIssuerResource}"/> for chaining.</returns>
     /// <ats-returns>The resource builder.</ats-returns>
-    [AspireExport("withAcmeServerParam")]
+    [AspireExportIgnore(Reason = "Handled by the withAcmeServer union export.")]
     public static IResourceBuilder<CertManagerIssuerResource> WithAcmeServer(
         this IResourceBuilder<CertManagerIssuerResource> builder,
         string serverUrl,
@@ -298,7 +317,7 @@ public static class CertManagerExtensions
     /// <ats-returns>The resource builder.</ats-returns>
     /// <exception cref="ArgumentNullException">A required argument is null.</exception>
     /// <exception cref="ArgumentException">The email is empty.</exception>
-    [AspireExport("withAcmeServerUrlParam")]
+    [AspireExportIgnore(Reason = "Handled by the withAcmeServer union export.")]
     public static IResourceBuilder<CertManagerIssuerResource> WithAcmeServer(
         this IResourceBuilder<CertManagerIssuerResource> builder,
         IResourceBuilder<ParameterResource> serverUrl,
@@ -324,7 +343,7 @@ public static class CertManagerExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{CertManagerIssuerResource}"/> for chaining.</returns>
     /// <ats-returns>The resource builder.</ats-returns>
     /// <exception cref="ArgumentNullException">A required argument is null.</exception>
-    [AspireExport("withAcmeServerParams")]
+    [AspireExportIgnore(Reason = "Handled by the withAcmeServer union export.")]
     public static IResourceBuilder<CertManagerIssuerResource> WithAcmeServer(
         this IResourceBuilder<CertManagerIssuerResource> builder,
         IResourceBuilder<ParameterResource> serverUrl,
@@ -340,6 +359,27 @@ public static class CertManagerExtensions
 
         return builder;
     }
+
+    /// <summary>
+    /// Configures the ACME directory URL and contact email using strings or parameters.
+    /// </summary>
+    /// <param name="builder">The issuer resource builder.</param>
+    /// <param name="serverUrl">The ACME directory URL, as a string or parameter resource builder.</param>
+    /// <param name="email">The account contact email, as a string or parameter resource builder.</param>
+    /// <returns>The resource builder.</returns>
+    [AspireExport("withAcmeServer")]
+    internal static IResourceBuilder<CertManagerIssuerResource> WithAcmeServerForPolyglot(
+        this IResourceBuilder<CertManagerIssuerResource> builder,
+        [AspireUnion(typeof(string), typeof(IResourceBuilder<ParameterResource>))] object serverUrl,
+        [AspireUnion(typeof(string), typeof(IResourceBuilder<ParameterResource>))] object email)
+        => (serverUrl, email) switch
+        {
+            (string url, string contact) => builder.WithAcmeServer(url, contact),
+            (string url, IResourceBuilder<ParameterResource> contact) => builder.WithAcmeServer(url, contact),
+            (IResourceBuilder<ParameterResource> url, string contact) => builder.WithAcmeServer(url, contact),
+            (IResourceBuilder<ParameterResource> url, IResourceBuilder<ParameterResource> contact) => builder.WithAcmeServer(url, contact),
+            _ => throw new ArgumentException("Server URL and email must each be a string or a parameter resource builder.")
+        };
 
     /// <summary>
     /// Adds an HTTP-01 ACME challenge solver to the issuer. cert-manager will satisfy the
@@ -609,11 +649,31 @@ public static class CertManagerExtensions
         }
 
         // Clean up even after a failed issuer deletion or removal of EAB from the model.
-        var @namespace = GetClusterResourceNamespace(certManager, validateEabConfiguration: issuer.ExternalAccountBinding is not null);
+        await DeleteExternalAccountBindingSecretAsync(context, issuer).ConfigureAwait(false);
+    }
+
+    internal static async Task DeleteExternalAccountBindingSecretAsync(
+        PipelineStepContext context, CertManagerIssuerResource issuer)
+    {
+        var certManager = issuer.Parent;
+        var environment = certManager.Parent;
+        var secretName = GetExternalAccountBindingSecretName(issuer);
+        string @namespace;
+        try
+        {
+            @namespace = GetClusterResourceNamespace(certManager, validateEabConfiguration: issuer.ExternalAccountBinding is not null);
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            context.Logger.LogWarning(
+                "Could not determine the namespace for EAB Secret '{SecretName}': {Error}. Remove the Secret manually from cert-manager's cluster resource namespace. Continuing destroy.",
+                secretName, ex.Message);
+            return;
+        }
         var arguments = new List<string>
         {
             "delete", "secrets",
-            "--field-selector", $"metadata.name={GetExternalAccountBindingSecretName(issuer)}",
+            "--field-selector", $"metadata.name={secretName}",
             "--selector", "app.kubernetes.io/managed-by=aspire-cert-manager",
             "--namespace", @namespace, "--ignore-not-found"
         };
@@ -628,8 +688,9 @@ public static class CertManagerExtensions
             var result = await deleteResult.WaitAsync(context.CancellationToken).ConfigureAwait(false);
             if (result.ExitCode != 0)
             {
-                throw new InvalidOperationException(
-                    $"Deleting the EAB Secret for ClusterIssuer '{issuer.Name}' in namespace '{@namespace}' failed with exit code {result.ExitCode}.");
+                context.Logger.LogWarning(
+                    "Deleting EAB Secret '{SecretName}' in namespace '{Namespace}' failed with exit code {ExitCode}. Remove the Secret manually. Continuing destroy.",
+                    secretName, @namespace, result.ExitCode);
             }
         }
     }

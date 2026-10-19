@@ -80,7 +80,7 @@ await prodIssuer.withAcmeServer('https://acme-v02.api.letsencrypt.org/directory'
 await prodIssuer.withHttp01Solver();
 
 const prodIssuerParam = await certManager.addIssuer('letsencrypt-prod-param');
-await prodIssuerParam.withAcmeServerParam('https://acme-v02.api.letsencrypt.org/directory', acmeEmail);
+await prodIssuerParam.withAcmeServer('https://acme-v02.api.letsencrypt.org/directory', acmeEmail);
 await prodIssuerParam.withHttp01Solver();
 
 const stagingIssuer = await certManager.addIssuer('letsencrypt-staging');
@@ -88,7 +88,7 @@ await stagingIssuer.withAcmeServer('https://acme-staging-v02.api.letsencrypt.org
 await stagingIssuer.withHttp01Solver();
 
 const stagingIssuerParam = await certManager.addIssuer('letsencrypt-staging-param');
-await stagingIssuerParam.withAcmeServerParam('https://acme-staging-v02.api.letsencrypt.org/directory', acmeEmail);
+await stagingIssuerParam.withAcmeServer('https://acme-staging-v02.api.letsencrypt.org/directory', acmeEmail);
 await stagingIssuerParam.withHttp01Solver();
 
 const customIssuer = await certManager.addIssuer('custom-acme');
@@ -98,15 +98,15 @@ await customIssuer.withExternalAccountBinding('provider-key-id', eabKey);
 await customIssuer.withHttp01Solver();
 
 const customIssuerParam = await certManager.addIssuer('custom-acme-param');
-await customIssuerParam.withAcmeServerParam('https://acme.example.com/directory', acmeEmail);
+await customIssuerParam.withAcmeServer('https://acme.example.com/directory', acmeEmail);
 const eabKeyId = await builder.addParameter('eab-key-id');
-await customIssuerParam.withExternalAccountBindingParam(eabKeyId, eabKey);
+await customIssuerParam.withExternalAccountBinding(eabKeyId, eabKey);
 await customIssuerParam.withHttp01Solver();
 
 const acmeUrl = await builder.addParameter('acme-url');
 const parameterizedServerIssuer = await certManager.addIssuer('parameterized-server');
-await parameterizedServerIssuer.withAcmeServerUrlParam(acmeUrl, 'admin@example.com');
-await parameterizedServerIssuer.withAcmeServerParams(acmeUrl, acmeEmail);
+await parameterizedServerIssuer.withAcmeServer(acmeUrl, 'admin@example.com');
+await parameterizedServerIssuer.withAcmeServer(acmeUrl, acmeEmail);
 await parameterizedServerIssuer.withHttp01Solver();
 
 // Wire the staging issuer onto the gateway via the typed cert-manager overload.

@@ -112,7 +112,7 @@ k8s.AddGateway("public")
 
 The former `WithLetsEncryptProduction` and `WithLetsEncryptStaging` helpers have been removed.
 Use `WithAcmeServer` with the corresponding URL instead; for TypeScript, use `withAcmeServer`
-or `withAcmeServerParam` when the email is a parameter. Use staging for development and CI
+with either strings or parameters. Use staging for development and CI
 to avoid production rate limits; staging certificates are not publicly trusted.
 
 The directory URL can also be a non-secret parameter, so one AppHost can select an endpoint
@@ -126,8 +126,8 @@ var issuer = certManager.AddIssuer("acme")
 ```
 
 Set `Parameters__acmeserver` before deployment. Either the URL, email, or both can be
-parameterized. In TypeScript, use `withAcmeServerUrlParam(serverUrl, "ops@contoso.com")`
-for a parameterized URL with a literal email, or `withAcmeServerParams(serverUrl, email)`
+parameterized. In TypeScript, use `withAcmeServer(serverUrl, "ops@contoso.com")`
+for a parameterized URL with a literal email, or `withAcmeServer(serverUrl, email)`
 when both are parameters.
 
 | Provider | ACME directory | External Account Binding |
@@ -168,8 +168,8 @@ In TypeScript:
 const keyId = await builder.addParameter("acmeeabkeyid");
 const hmacKey = await builder.addParameter("acmeeabhmackey", { secret: true });
 const issuer = await certManager.addIssuer("zerossl");
-await issuer.withAcmeServerParam("https://acme.zerossl.com/v2/DV90", email);
-await issuer.withExternalAccountBindingParam(keyId, hmacKey);
+await issuer.withAcmeServer("https://acme.zerossl.com/v2/DV90", email);
+await issuer.withExternalAccountBinding(keyId, hmacKey);
 await issuer.withHttp01Solver();
 ```
 
@@ -188,6 +188,8 @@ Existing Secrets not marked as Aspire cert-manager-managed are not adopted or de
 Destroy removes the managed EAB Secret before uninstalling cert-manager, even if EAB
 was removed from the issuer configuration before redeployment; it does not
 explicitly delete cert-manager's separate `<issuer>-account-key` Secret.
+If EAB Secret cleanup fails, destroy logs a warning and continues with Helm uninstall
+and infrastructure teardown. Remove any retained EAB Secret manually.
 Changing issuer names or namespaces after deployment requires manual cleanup of
 resources at their previous locations.
 
