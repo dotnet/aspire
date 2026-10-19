@@ -156,9 +156,9 @@ export class OutdatedCliNotifier implements vscode.Disposable {
         try {
             selectionPromise = this._surface.showWarning(
                 strings.outdatedAspireCliWarning(
-                    notification.cli.version,
+                    notification.cli.version.split('+', 1)[0],
                     notification.cli.cliPath,
-                    notification.recommendedVersion),
+                    notification.recommendedVersion.split('+', 1)[0]),
                 strings.updateAspireCliAction,
                 strings.dontShowAgainLabel);
         }
