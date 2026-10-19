@@ -506,7 +506,7 @@ internal sealed class DashboardClient : IDashboardClient
                         {
                             foreach (var interaction in _pendingInteractionCollection)
                             {
-                                var complete = new WatchInteractionsResponseUpdate { InteractionId = interaction.InteractionId, Complete = new InteractionComplete() };
+                                var complete = new WatchInteractionsResponseUpdate { InteractionId = interaction.InteractionId, AppHostRunId = _appHostRunId, Complete = new InteractionComplete() };
                                 foreach (var channel in _outgoingInteractionChannels)
                                 {
                                     channel.Writer.TryWrite(complete);
@@ -520,8 +520,8 @@ internal sealed class DashboardClient : IDashboardClient
                             while (_incomingInteractionChannel.Reader.TryRead(out _))
                             {
                             }
+                            _appHostRunId = response.RunId;
                         }
-                        _appHostRunId = response.RunId;
                     }
                 }
 
@@ -840,8 +840,15 @@ internal sealed class DashboardClient : IDashboardClient
     {
         // Create the watch interactions call. This is a bidirectional streaming call.
         // Responses are streamed out to all watchers. Requests are sent from the incoming interaction channel.
-        var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        using var call = _client!.WatchInteractions(headers: GetSessionHeaders(), cancellationToken: cts.Token);
+        string runId;
+        CancellationToken attachmentToken;
+        using (await _attachmentLock.LockAsync(cancellationToken).ConfigureAwait(false))
+        {
+            runId = _appHostRunId;
+            attachmentToken = _appHostToken;
+        }
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, attachmentToken);
+        using var call = _client!.WatchInteractions(headers: GetSessionHeaders(runId), cancellationToken: cts.Token);
 
         if (await IsUnimplemented(call).ConfigureAwait(false))
         {
@@ -852,16 +859,22 @@ internal sealed class DashboardClient : IDashboardClient
         }
 
         // Send
-        _ = Task.Run(async () =>
+        var sendTask = Task.Run(async () =>
         {
             try
             {
                 await foreach (var update in _incomingInteractionChannel.Reader.ReadAllAsync(cts.Token).ConfigureAwait(false))
                 {
-                    await call.RequestStream.WriteAsync(update).ConfigureAwait(false);
+                    if (update.AppHostRunId == runId)
+                    {
+                        await call.RequestStream.WriteAsync(update).ConfigureAwait(false);
+                    }
                 }
             }
-            catch (Exception ex) when (ex is not OperationCanceledException)
+            catch (OperationCanceledException) when (cts.IsCancellationRequested)
+            {
+            }
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Error writing to interaction request stream.");
             }
@@ -886,6 +899,11 @@ internal sealed class DashboardClient : IDashboardClient
 
                 lock (_lock)
                 {
+                    if (_appHostRunId != runId)
+                    {
+                        continue;
+                    }
+                    response.AppHostRunId = runId;
                     if (response.Complete != null)
                     {
                         // Interaction finished. Remove from pending collection.
@@ -899,12 +917,11 @@ internal sealed class DashboardClient : IDashboardClient
                         }
                         _pendingInteractionCollection.Add(response);
                     }
-                }
-
-                foreach (var channel in _outgoingInteractionChannels)
-                {
-                    // Channel is unbound so TryWrite always succeeds.
-                    channel.Writer.TryWrite(response);
+                    foreach (var channel in _outgoingInteractionChannels)
+                    {
+                        // Publish before a run transition can enqueue completion of this interaction.
+                        channel.Writer.TryWrite(response);
+                    }
                 }
             }
         }
@@ -912,6 +929,14 @@ internal sealed class DashboardClient : IDashboardClient
         {
             // Ensure the write task is cancelled if we exit the loop.
             cts.Cancel();
+            try
+            {
+                // Finish consuming the old queue before another stream can read replies for a new run.
+                await sendTask.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cts.IsCancellationRequested)
+            {
+            }
         }
 
         return RetryResult.Retry;
@@ -938,9 +963,20 @@ internal sealed class DashboardClient : IDashboardClient
         return false;
     }
 
-    public async Task SendInteractionRequestAsync(WatchInteractionsRequestUpdate request, CancellationToken cancellationToken)
+    public Task SendInteractionRequestAsync(WatchInteractionsRequestUpdate request, CancellationToken cancellationToken)
     {
-        await _incomingInteractionChannel.Writer.WriteAsync(request, cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (_lock)
+        {
+            if (request.AppHostRunId == _appHostRunId)
+            {
+                // The unbounded queue and run transition share this lock. A delayed callback from
+                // a retired run cannot enter a stream whose header identifies the new AppHost.
+                _incomingInteractionChannel.Writer.TryWrite(request);
+            }
+        }
+
+        return Task.CompletedTask;
     }
 
     public Task WhenConnected

@@ -803,6 +803,62 @@ public sealed class DashboardClientTests(ITestOutputHelper testOutputHelper) : I
         }
     }
 
+    [Fact]
+    public async Task Interactions_RunChanges_RejectsDelayedRepliesForReusedInteractionId()
+    {
+        var firstResources = Channel.CreateUnbounded<WatchResourcesUpdate>();
+        var secondResources = Channel.CreateUnbounded<WatchResourcesUpdate>();
+        var firstInteractions = Channel.CreateUnbounded<WatchInteractionsResponseUpdate>();
+        var secondInteractions = Channel.CreateUnbounded<WatchInteractionsResponseUpdate>();
+        var secondSubscribed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var sent = Channel.CreateUnbounded<(string? RunId, WatchInteractionsRequestUpdate Update)>();
+        var resourceCalls = 0;
+        var interactionCalls = 0;
+        var mock = new MockDashboardServiceClient
+        {
+            RunId = "first",
+            ResourceUpdatesProvider = () => Interlocked.Increment(ref resourceCalls) == 1 ? firstResources.Reader : secondResources.Reader,
+            InteractionUpdatesProvider = () =>
+            {
+                if (Interlocked.Increment(ref interactionCalls) == 1)
+                {
+                    return firstInteractions.Reader;
+                }
+                secondSubscribed.TrySetResult();
+                return secondInteractions.Reader;
+            },
+            OnInteractionWrite = (runId, update) => sent.Writer.TryWrite((runId, update))
+        };
+        await using var client = CreateResourceServiceClient();
+        client.SetDashboardServiceClient(mock);
+        using var cts = new CancellationTokenSource();
+        await using var updates = client.SubscribeInteractionsAsync(cts.Token).GetAsyncEnumerator();
+        var next = updates.MoveNextAsync().AsTask();
+        await client.WhenConnected.DefaultTimeout();
+        await firstInteractions.Writer.WriteAsync(new WatchInteractionsResponseUpdate { InteractionId = 1, MessageBox = new InteractionMessageBox() });
+        Assert.True(await next.DefaultTimeout());
+        Assert.Equal("first", updates.Current.AppHostRunId);
+        var oldReply = new WatchInteractionsRequestUpdate { InteractionId = 1, AppHostRunId = updates.Current.AppHostRunId, Complete = new InteractionComplete() };
+
+        mock.RunId = "second";
+        firstResources.Writer.Complete(new RpcException(new Status(StatusCode.Unavailable, "AppHost restarted")));
+        await secondSubscribed.Task.DefaultTimeout();
+        Assert.True(await updates.MoveNextAsync().AsTask().DefaultTimeout());
+        Assert.Equal(WatchInteractionsResponseUpdate.KindOneofCase.Complete, updates.Current.KindCase);
+        Assert.Equal("first", updates.Current.AppHostRunId);
+        await secondInteractions.Writer.WriteAsync(new WatchInteractionsResponseUpdate { InteractionId = 1, MessageBox = new InteractionMessageBox() });
+        Assert.True(await updates.MoveNextAsync().AsTask().DefaultTimeout());
+        Assert.Equal("second", updates.Current.AppHostRunId);
+
+        await client.SendInteractionRequestAsync(oldReply, CancellationToken.None);
+        var currentReply = new WatchInteractionsRequestUpdate { InteractionId = 1, AppHostRunId = updates.Current.AppHostRunId, MessageBox = new InteractionMessageBox { Result = true } };
+        await client.SendInteractionRequestAsync(currentReply, CancellationToken.None);
+        var actual = await sent.Reader.ReadAsync().AsTask().DefaultTimeout();
+        Assert.Equal("second", actual.RunId);
+        Assert.Same(currentReply, actual.Update);
+        Assert.False(sent.Reader.TryRead(out _));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -1519,6 +1575,7 @@ public sealed class DashboardClientTests(ITestOutputHelper testOutputHelper) : I
         public IReadOnlyList<WatchResourceConsoleLogsUpdate> ConsoleLogUpdates { get; init; } = [];
         public ChannelReader<WatchResourceConsoleLogsUpdate>? ConsoleUpdatesChannel { get; init; }
         public Action? OnConsoleWatchStarted { get; init; }
+        public Action<string?, WatchInteractionsRequestUpdate>? OnInteractionWrite { get; init; }
         public IReadOnlyList<WatchResourcesUpdate> ResourceUpdates { get; init; } = [];
         public ChannelReader<WatchResourcesUpdate>? ResourceUpdatesChannel { get; init; }
         public Func<ChannelReader<WatchResourcesUpdate>>? ResourceUpdatesProvider { get; init; }
@@ -1554,7 +1611,14 @@ public sealed class DashboardClientTests(ITestOutputHelper testOutputHelper) : I
         public override AsyncDuplexStreamingCall<WatchInteractionsRequestUpdate, WatchInteractionsResponseUpdate> WatchInteractions(CallOptions options)
         {
             return new AsyncDuplexStreamingCall<WatchInteractionsRequestUpdate, WatchInteractionsResponseUpdate>(
-                new ClientStreamWriter<WatchInteractionsRequestUpdate>(),
+                new ClientStreamWriter<WatchInteractionsRequestUpdate>
+                {
+                    OnWrite = update =>
+                    {
+                        OnInteractionWrite?.Invoke(options.Headers?.GetValue("x-aspire-apphost-run-id"), update);
+                        return Task.CompletedTask;
+                    }
+                },
                 new AsyncStreamReader<WatchInteractionsResponseUpdate>(channel: InteractionUpdatesProvider?.Invoke()),
                 Task.FromResult(new Metadata()),
                 () => InteractionUpdatesProvider is null ? new Status(StatusCode.Unimplemented, "Unimplemented!") : Status.DefaultSuccess,
