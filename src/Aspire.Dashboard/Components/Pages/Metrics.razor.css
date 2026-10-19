@@ -41,7 +41,9 @@
 }
 
 ::deep .metrics-chart {
-    --metrics-chart-horizontal-offset: 20px;
+    /* The plot reserves its own left margin for the y-axis labels, so the chart no longer needs an outer
+       offset. An offset indented the instrument's title past the content's left margin. */
+    --metrics-chart-horizontal-offset: 0px;
 
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
@@ -67,19 +69,15 @@
     padding: 0 6px;
 }
 
-@media (min-width: 768px) {
-    ::deep .metrics-chart {
-        --metrics-chart-horizontal-offset: 40px;
-
-        padding-left: var(--metrics-chart-horizontal-offset);
-    }
-}
-
+/* The header spans the content's width so its title row ends at the right edge, where the pin button
+   lines up with the toolbar's action buttons. Long text below the title keeps a readable width. */
 ::deep .metrics-chart-header {
     grid-area: header;
-    max-width: 800px;
-    margin-right: 8px;
     overflow-x: hidden;
+}
+
+::deep .metrics-chart-header > :not(.metrics-chart-title) {
+    max-width: 800px;
 }
 
 ::deep .metrics-chart-footer {
@@ -111,10 +109,21 @@
     line-height: 22px;
 }
 
+::deep .metric-groups-filter-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacingHorizontalXS);
+    margin-top: var(--layout-top-padding);
+}
+
 ::deep .metric-groups-search {
     display: block;
-    width: 100%;
-    margin-top: var(--layout-top-padding);
+    flex: 1;
+    min-width: 0;
+}
+
+::deep .metric-groups-all {
+    flex: none;
 }
 
 ::deep .metric-groups-search > fluent-text-input,
@@ -207,12 +216,21 @@
     overflow: auto;
 }
 
+/* Reserve the scrollbar's space even when the content fits, so the content's width (and the pin button's
+   alignment with the toolbar above) doesn't shift when a scrollbar appears. A thinner scrollbar keeps the
+   reserved space small. --scrollbar-size sizes the dashboard's WebKit scrollbars; Firefox already uses thin. */
+::deep .fluent-multi-splitter-pane:has(> .metrics-content) {
+    --scrollbar-size: 6px;
+    scrollbar-gutter: stable;
+}
+
 /* Keep common meter names such as "System.Net.Http" readable: the group list is the only place that
    tells meters apart. The splitter's own Min only applies while dragging, not to the initial 20% size.
    The horizontal padding keeps the filter box and the selected group off the pane's edges. */
 ::deep .fluent-multi-splitter-pane:has(> .metric-groups) {
     min-width: 220px;
-    padding: 0 var(--spacingHorizontalS);
+    /* 12px on the left lines the filter up with the section selector above it. */
+    padding: 0 var(--spacingHorizontalS) 0 12px;
 }
 
 ::deep .metrics-filter-results-group {
@@ -229,8 +247,11 @@
 ::deep .metrics-content {
     height: 100%;
     min-height: 0;
-    /* Match left padding of the page header */
-    margin-left: 18px;
+    /* Same left margin as the group list's items, so both panes start their content at the same inset.
+       The right margin plus the 6px scrollbar gutter puts the content's right edge at the toolbar's
+       right edge (12px from the page edge), aligning the chart's pin with the toolbar's action buttons. */
+    margin-left: 12px;
+    margin-right: 6px;
 }
 
 ::deep .plotly-chart-container {

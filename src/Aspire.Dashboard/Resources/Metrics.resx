@@ -207,4 +207,14 @@
     <value>Metrics matching "{0}"</value>
     <comment>{0} is the filter text</comment>
   </data>
+  <data name="MetricsAllInstrumentsTitle" xml:space="preserve">
+    <value>All metrics</value>
+  </data>
+  <data name="MetricsShowAllInstruments" xml:space="preserve">
+    <value>Show all metrics</value>
+  </data>
+  <data name="MetricsBackTo" xml:space="preserve">
+    <value>Back to {0}</value>
+    <comment>{0} is where the metric was opened from, e.g. a meter name or "Pinned"</comment>
+  </data>
 </root>

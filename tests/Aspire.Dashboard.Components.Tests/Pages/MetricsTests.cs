@@ -1418,6 +1418,142 @@ public partial class MetricsTests : DashboardTestContext
         });
     }
 
+    [Fact]
+    public async Task ShowAllInstruments_ListsEveryMeterAndUpdatesUrl()
+    {
+        MetricsSetupHelpers.SetupMetricsPage(this);
+        await AddTwoMetersAsync();
+
+        var navigationManager = Services.GetRequiredService<NavigationManager>();
+        var cut = Render<Metrics>(builder =>
+        {
+            builder.Add(m => m.ResourceName, "TestApp");
+            builder.AddCascadingValue(new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
+        });
+        cut.WaitForState(() => cut.Instance.PageViewModel.Instruments?.Count == 3);
+
+        cut.Find(".metric-groups-all").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.True(cut.Instance.PageViewModel.ShowAll);
+            Assert.Equal("All metrics", cut.Find(".meter-name-title").TextContent);
+            Assert.Equal(["test-meter1: http.request.count", "test-meter1: memory.usage", "test-meter2: queue.length"], GetFilterResultsByMeter(cut));
+            Assert.Equal("true", cut.Find(".metric-groups-all").GetAttribute("aria-pressed"));
+            Assert.Empty(cut.FindAll(".metric-group.selected"));
+            Assert.Contains("all=true", navigationManager.Uri);
+        });
+    }
+
+    [Fact]
+    public async Task InstrumentChart_Back_ReturnsToGroupItWasOpenedFrom()
+    {
+        MetricsSetupHelpers.SetupMetricsPage(this);
+        Services.GetRequiredService<MetricPinStore>().SetPinned(new OtlpInstrumentKey("test-meter2", "queue.length"), pinned: true);
+        await AddTwoMetersAsync();
+
+        var navigationManager = Services.GetRequiredService<NavigationManager>();
+        navigationManager.NavigateTo(DashboardUrls.MetricsUrl(resource: "TestApp", duration: 5, pinned: true));
+
+        var cut = Render<Metrics>(builder =>
+        {
+            builder.Add(m => m.ResourceName, "TestApp");
+            builder.AddCascadingValue(new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
+        });
+        cut.WaitForAssertion(() => Assert.True(cut.Instance.PageViewModel.ShowPinned));
+
+        // Open the pinned instrument's chart, as clicking its card does.
+        navigationManager.NavigateTo(DashboardUrls.MetricsUrl(resource: "TestApp", meter: "test-meter2", instrument: "queue.length", duration: 5));
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal("queue.length", cut.Instance.PageViewModel.SelectedInstrument?.Name);
+            Assert.Equal("Back to Pinned", cut.Find(".metrics-chart-back").GetAttribute("aria-label"));
+        });
+
+        cut.Find(".metrics-chart-back").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.True(cut.Instance.PageViewModel.ShowPinned);
+            Assert.Null(cut.Instance.PageViewModel.SelectedInstrument);
+            Assert.Contains("pinned=true", navigationManager.Uri);
+        });
+    }
+
+    [Fact]
+    public async Task MeterCards_InstrumentsWithoutData_AreLast()
+    {
+        MetricsSetupHelpers.SetupMetricsPage(this);
+
+        // The page's clock is fixed in tests: data at that time is inside the cards' time range,
+        // while data from 1970 is far outside it.
+        var now = new DateTime(2025, 12, 20, 23, 59, 50, DateTimeKind.Utc);
+        var telemetryRepository = Services.GetRequiredService<SqliteTelemetryRepository>();
+        await telemetryRepository.AddMetricsAsync(new AddContext(), new RepeatedField<ResourceMetrics>
+        {
+            new ResourceMetrics
+            {
+                Resource = CreateResource(name: "TestApp"),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "a-without-data", startTime: s_testTime.AddMinutes(1)),
+                            CreateSumMetric(metricName: "b-with-data", startTime: now)
+                        }
+                    }
+                }
+            }
+        });
+        Services.GetRequiredService<NavigationManager>().NavigateTo(
+            DashboardUrls.MetricsUrl(resource: "TestApp", meter: "test-meter", duration: 5));
+
+        var cut = Render<Metrics>(builder =>
+        {
+            builder.Add(m => m.ResourceName, "TestApp");
+            builder.AddCascadingValue(new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
+        });
+
+        cut.WaitForAssertion(() => Assert.Equal(["b-with-data", "a-without-data"], GetCardNames(cut)));
+    }
+
+    private async Task AddTwoMetersAsync()
+    {
+        var telemetryRepository = Services.GetRequiredService<SqliteTelemetryRepository>();
+        await telemetryRepository.AddMetricsAsync(new AddContext(), new RepeatedField<ResourceMetrics>
+        {
+            new ResourceMetrics
+            {
+                Resource = CreateResource(name: "TestApp"),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter1"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "http.request.count", startTime: s_testTime.AddMinutes(1)),
+                            CreateSumMetric(metricName: "memory.usage", startTime: s_testTime.AddMinutes(1))
+                        }
+                    },
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter2"),
+                        Metrics = { CreateSumMetric(metricName: "queue.length", startTime: s_testTime.AddMinutes(1)) }
+                    }
+                }
+            }
+        });
+    }
+
+    // Each card of the grouped results as "<meter>: <instrument>".
+    private static List<string> GetFilterResultsByMeter(IRenderedComponent<Metrics> cut) =>
+        [.. cut.FindAll(".metrics-filter-results-group").SelectMany(g => g.QuerySelectorAll(".meter-card-name")
+            .Select(n => $"{g.QuerySelector(".metrics-filter-results-meter")!.TextContent}: {n.TextContent}"))];
+
     // Each group as "<name> <instrument count>".
     private static List<string> GetMetricGroups(IRenderedComponent<Metrics> cut) =>
         [.. cut.FindAll(".metric-group").Select(g => $"{g.QuerySelector(".metric-group-name")!.TextContent} {g.QuerySelector(".metric-group-count")!.TextContent}")];

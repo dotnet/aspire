@@ -8,7 +8,9 @@
 @inject IStringLocalizer<MetricsResources> Loc
 
 <div class="meter-overview">
-    @foreach (var instrument in Instruments)
+    @* Instruments without data go last, so the cards worth reading come first. The sort is stable,
+       so each group keeps its own order (alphabetical, or the order instruments were pinned). *@
+    @foreach (var instrument in Instruments.OrderBy(i => GetSparkline(i).LatestValue is null))
     {
         var cardData = GetSparkline(instrument);
         var icon = GetInstrumentIcon(instrument.Type);

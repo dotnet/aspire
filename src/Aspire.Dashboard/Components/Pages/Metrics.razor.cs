@@ -58,6 +58,10 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
     public bool? Pinned { get; set; }
 
     [Parameter]
+    [SupplyParameterFromQuery(Name = "all")]
+    public bool? ShowAll { get; set; }
+
+    [Parameter]
     [SupplyParameterFromQuery(Name = "total")]
     public bool? ShowRunningTotal { get; set; }
 
@@ -167,6 +171,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
             MeterName = PageViewModel.SelectedMeter,
             InstrumentName = PageViewModel.SelectedInstrument?.Name,
             Pinned = PageViewModel.ShowPinned,
+            All = PageViewModel.ShowAll,
             ShowRunningTotal = PageViewModel.ShowRunningTotal,
             DurationMinutes = (int)PageViewModel.SelectedDuration.Id.TotalMinutes,
             ViewKind = PageViewModel.SelectedViewKind?.ToString()
@@ -199,17 +204,25 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
 
         UpdateInstruments(viewModel);
 
+        // Where an instrument is opened from, so its chart can go back there. Captured before the
+        // URL replaces the selection.
+        var openedFrom = viewModel.SelectedInstrument is null ? GetCurrentGroup(viewModel) : viewModel.ReturnTarget;
+        var showedFilterResults = viewModel.ShowFilterResults;
+
         viewModel.SelectedMeter = null;
         viewModel.SelectedInstrument = null;
         viewModel.ShowPinned = false;
-        // Navigating (opening a card, or a group from another page) shows what the URL selects, not filter results.
-        viewModel.ShowFilterResults = false;
+        viewModel.ShowAll = false;
         viewModel.SelectedViewKind = Enum.TryParse(typeof(MetricViewKind), ViewKindName, out var view) && view is MetricViewKind vk ? vk : null;
         viewModel.ShowRunningTotal = ShowRunningTotal is true;
 
         if (viewModel.Instruments != null && Pinned is true)
         {
             viewModel.ShowPinned = true;
+        }
+        else if (viewModel.Instruments != null && ShowAll is true)
+        {
+            viewModel.ShowAll = true;
         }
         else if (viewModel.Instruments != null && !string.IsNullOrEmpty(MeterName))
         {
@@ -223,6 +236,14 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
         {
             SelectDefaultView(viewModel);
         }
+
+        // Search results aren't part of the URL. Keep showing them across navigations that don't open an
+        // instrument, e.g. going back to them from an instrument's chart. Opening an instrument hides them.
+        viewModel.ShowFilterResults = showedFilterResults && viewModel.SelectedInstrument is null && viewModel.TextFilter.Trim().Length > 0;
+        viewModel.ReturnTarget = viewModel.SelectedInstrument is { } instrument
+            ? openedFrom ?? new MetricReturnTarget(MetricGroupKind.Meter, instrument.Parent.Name)
+            : null;
+
         return Task.CompletedTask;
 
         SelectViewModel<ResourceTypeDetails>? TryGetSingleResource()
@@ -241,7 +262,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
     /// </summary>
     private void SelectDefaultView(MetricsViewModel viewModel)
     {
-        if (viewModel.SelectedMeter is not null || viewModel.SelectedInstrument is not null || viewModel.ShowPinned || viewModel.Instruments is not { Count: > 0 } instruments)
+        if (viewModel.SelectedMeter is not null || viewModel.SelectedInstrument is not null || viewModel.ShowPinned || viewModel.ShowAll || viewModel.Instruments is not { Count: > 0 } instruments)
         {
             return;
         }
@@ -422,6 +443,16 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
         public bool ShowPinned { get; set; }
 
         /// <summary>
+        /// Gets or sets whether every instrument is shown, grouped by meter.
+        /// </summary>
+        public bool ShowAll { get; set; }
+
+        /// <summary>
+        /// Gets or sets where the selected instrument was opened from, so its chart can navigate back there.
+        /// </summary>
+        public MetricReturnTarget? ReturnTarget { get; set; }
+
+        /// <summary>
         /// Gets or sets the text that filters the metric groups and the cards of the selected group.
         /// </summary>
         public string TextFilter { get; set; } = string.Empty;
@@ -449,6 +480,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
         public string? MeterName { get; set; }
         public string? InstrumentName { get; set; }
         public bool Pinned { get; set; }
+        public bool All { get; set; }
         public bool ShowRunningTotal { get; set; }
         public int DurationMinutes { get; set; }
         public required string? ViewKind { get; set; }
@@ -460,15 +492,68 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
         Graph
     }
 
-    private Task SelectGroupAsync(string? meterName, bool pinned)
+    /// <summary>
+    /// A set of instruments shown as cards: one meter's, the pinned ones, all of them, or the filter's matches.
+    /// </summary>
+    public enum MetricGroupKind
     {
-        // Picking a group narrows the filter's matches to that group.
-        PageViewModel.ShowFilterResults = false;
-        PageViewModel.ShowPinned = pinned;
-        PageViewModel.SelectedMeter = pinned ? null : meterName;
+        Meter,
+        Pinned,
+        All,
+        FilterResults
+    }
+
+    public sealed record MetricReturnTarget(MetricGroupKind Kind, string? MeterName);
+
+    private static MetricReturnTarget? GetCurrentGroup(MetricsViewModel viewModel)
+    {
+        if (viewModel.ShowFilterResults)
+        {
+            return new MetricReturnTarget(MetricGroupKind.FilterResults, viewModel.SelectedMeter);
+        }
+        if (viewModel.ShowPinned)
+        {
+            return new MetricReturnTarget(MetricGroupKind.Pinned, null);
+        }
+        if (viewModel.ShowAll)
+        {
+            return new MetricReturnTarget(MetricGroupKind.All, null);
+        }
+
+        return viewModel.SelectedMeter is { } meterName ? new MetricReturnTarget(MetricGroupKind.Meter, meterName) : null;
+    }
+
+    private Task SelectGroupAsync(MetricGroupKind kind, string? meterName)
+    {
+        // Picking a group narrows the filter's matches to that group. Search results come back only through
+        // the chart's back button, which returns to where the instrument was opened from.
+        PageViewModel.ShowFilterResults = kind == MetricGroupKind.FilterResults;
+        PageViewModel.ShowPinned = kind == MetricGroupKind.Pinned;
+        PageViewModel.ShowAll = kind == MetricGroupKind.All;
+        PageViewModel.SelectedMeter = kind is MetricGroupKind.Meter or MetricGroupKind.FilterResults ? meterName : null;
         PageViewModel.SelectedInstrument = null;
 
         return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
+    }
+
+    private Task NavigateBackAsync()
+    {
+        var target = PageViewModel.ReturnTarget ?? new MetricReturnTarget(MetricGroupKind.Meter, PageViewModel.SelectedMeter);
+        return SelectGroupAsync(target.Kind, target.MeterName);
+    }
+
+    private string GetBackLabel()
+    {
+        var target = PageViewModel.ReturnTarget ?? new MetricReturnTarget(MetricGroupKind.Meter, PageViewModel.SelectedMeter);
+        var name = target.Kind switch
+        {
+            MetricGroupKind.Pinned => Loc[nameof(Dashboard.Resources.Metrics.MetricsPinnedHeader)].Value,
+            MetricGroupKind.All => Loc[nameof(Dashboard.Resources.Metrics.MetricsAllInstrumentsTitle)].Value,
+            MetricGroupKind.FilterResults => string.Format(CultureInfo.CurrentCulture, Loc[nameof(Dashboard.Resources.Metrics.MetricsFilterResultsTitle)], PageViewModel.TextFilter.Trim()),
+            _ => target.MeterName ?? string.Empty
+        };
+
+        return string.Format(CultureInfo.CurrentCulture, Loc[nameof(Dashboard.Resources.Metrics.MetricsBackTo)], name);
     }
 
     public string GetUrlFromSerializableViewModel(MetricsPageState serializable)
@@ -483,6 +568,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
             duration: serializable.DurationMinutes,
             view: serializable.ViewKind,
             pinned: serializable.Pinned,
+            all: serializable.All,
             total: serializable.ShowRunningTotal);
 
         return ResourcesLayout?.AddSelectionToUrl(url) ?? url;
@@ -514,14 +600,15 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
         return [.. groupInstruments.Where(i => MetricFilter.Matches(i, PageViewModel.TextFilter))];
     }
 
-    private string GetGroupUrl(string? meterName, bool pinned)
+    private string GetGroupUrl(MetricGroupKind kind, string? meterName)
     {
         var url = DashboardUrls.MetricsUrl(
             resource: PageViewModel.SelectedResource.Name,
-            meter: meterName,
+            meter: kind == MetricGroupKind.Meter ? meterName : null,
             duration: DurationMinutes,
             view: ViewKindName,
-            pinned: pinned);
+            pinned: kind == MetricGroupKind.Pinned,
+            all: kind == MetricGroupKind.All);
 
         return ResourcesLayout?.AddPaneToUrl(url) ?? url;
     }

@@ -23,10 +23,10 @@ public partial class MetricGroupList : IDisposable
     public required Metrics.MetricsViewModel PageViewModel { get; set; }
 
     [Parameter, EditorRequired]
-    public required Func<string?, bool, Task> SelectGroupAsync { get; set; }
+    public required Func<Metrics.MetricGroupKind, string?, Task> SelectGroupAsync { get; set; }
 
     [Parameter, EditorRequired]
-    public required Func<string?, bool, string> GetGroupUrl { get; set; }
+    public required Func<Metrics.MetricGroupKind, string?, string> GetGroupUrl { get; set; }
 
     /// <summary>
     /// Raised when the filter text changes, so the page can filter the selected group's cards too.
@@ -87,8 +87,8 @@ public partial class MetricGroupList : IDisposable
 
     private bool IsSelected(MetricGroup group)
     {
-        // Filter results span every group, so none of them is the current one.
-        if (PageViewModel.ShowFilterResults)
+        // Filter results and the all-instruments view span every group, so none of them is the current one.
+        if (PageViewModel.ShowFilterResults || PageViewModel.ShowAll)
         {
             return false;
         }

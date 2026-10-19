@@ -2,6 +2,16 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="zh-Hans" original="../Metrics.resx">
     <body>
+      <trans-unit id="MetricsAllInstrumentsTitle">
+        <source>All metrics</source>
+        <target state="new">All metrics</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsBackTo">
+        <source>Back to {0}</source>
+        <target state="new">Back to {0}</target>
+        <note>{0} is where the metric was opened from, e.g. a meter name or "Pinned"</note>
+      </trans-unit>
       <trans-unit id="MetricsFilterResultsTitle">
         <source>Metrics matching "{0}"</source>
         <target state="new">Metrics matching "{0}"</target>
@@ -130,6 +140,11 @@
       <trans-unit id="MetricsSelectInstrument">
         <source>Select instrument.</source>
         <target state="translated">选择检测。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsShowAllInstruments">
+        <source>Show all metrics</source>
+        <target state="new">Show all metrics</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsUnpinInstrument">

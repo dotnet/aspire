@@ -84,10 +84,14 @@
                         </FluentMultiSplitterPane>
                         <FluentMultiSplitterPane Size="80%">
                             <div class="metrics-content">
-                                    @if (PageViewModel is { ShowFilterResults: true, SelectedResource.Id: { } filterResourceId })
+                                    @if (PageViewModel is { SelectedResource.Id: { } filterResourceId } && (PageViewModel.ShowFilterResults || (PageViewModel.ShowAll && PageViewModel.SelectedInstrument is null)))
                                     {
+                                        @* Filter results and the all-instruments view both list instruments from every meter, grouped by meter. *@
                                         var resultGroups = GetFilterResultGroups();
-                                        <h3 class="meter-name-title">@string.Format(CultureInfo.CurrentCulture, Loc[nameof(Dashboard.Resources.Metrics.MetricsFilterResultsTitle)], PageViewModel.TextFilter.Trim())</h3>
+                                        var resultsTitle = PageViewModel.TextFilter.Trim().Length > 0
+                                            ? string.Format(CultureInfo.CurrentCulture, Loc[nameof(Dashboard.Resources.Metrics.MetricsFilterResultsTitle)], PageViewModel.TextFilter.Trim())
+                                            : Loc[nameof(Dashboard.Resources.Metrics.MetricsAllInstrumentsTitle)].Value;
+                                        <h3 class="meter-name-title">@resultsTitle</h3>
                                         @if (resultGroups.Count == 0)
                                         {
                                             <p class="metrics-pinned-empty">@Loc[nameof(Dashboard.Resources.Metrics.MetricsNoMatchingInstruments)]</p>
@@ -115,6 +119,8 @@
                                             OnViewChangedAsync="@OnViewChangedAsync"
                                             ShowRunningTotal="@PageViewModel.ShowRunningTotal"
                                             OnShowRunningTotalChangedAsync="@OnShowRunningTotalChangedAsync"
+                                            BackLabel="@GetBackLabel()"
+                                            OnBackAsync="@NavigateBackAsync"
                                             Resources="@_resources" />
                                     }
                                     else if (PageViewModel is { ShowPinned: true, SelectedResource.Id: { } pinnedResourceId })

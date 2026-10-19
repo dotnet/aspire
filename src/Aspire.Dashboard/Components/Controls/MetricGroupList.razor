@@ -15,20 +15,35 @@
     <label for="metric-groups-filter">@Loc[nameof(Metrics.MetricsGroupsLabel)]</label>
 }
 
-<FluentTextInput TextInputType="TextInputType.Search"
-                 Id="metric-groups-filter"
-                 Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
-                 aria-label="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
-                 Class="metric-groups-search"
-                 Immediate="true"
-                 ImmediateDelay="@FluentUIExtensions.InputDelay"
-                 AutoComplete="off"
-                 @bind-Value="PageViewModel.TextFilter"
-                 @bind-Value:after="OnTextFilterChanged">
-    <StartTemplate>
-        <FluentIcon Value="@(new Icons.Regular.Size16.Search())" Color="Color.Primary" />
-    </StartTemplate>
-</FluentTextInput>
+<div class="metric-groups-filter-row">
+    <FluentTextInput TextInputType="TextInputType.Search"
+                     Id="metric-groups-filter"
+                     Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
+                     aria-label="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
+                     Class="metric-groups-search"
+                     Immediate="true"
+                     ImmediateDelay="@FluentUIExtensions.InputDelay"
+                     AutoComplete="off"
+                     @bind-Value="PageViewModel.TextFilter"
+                     @bind-Value:after="OnTextFilterChanged">
+        <StartTemplate>
+            <FluentIcon Value="@(new Icons.Regular.Size16.Search())" Color="Color.Primary" />
+        </StartTemplate>
+    </FluentTextInput>
+    @{
+        var allLabel = Loc[nameof(Metrics.MetricsShowAllInstruments)];
+        var isAllSelected = PageViewModel is { ShowAll: true, ShowFilterResults: false, SelectedInstrument: null };
+    }
+    @* Shows every instrument, grouped by meter. Primary while selected, like the dashboard's other toggle buttons. *@
+    <FluentButton Class="aspire-button metric-groups-all"
+                  Appearance="@(isAllSelected ? ButtonAppearance.Primary : ButtonAppearance.Default)"
+                  IconOnly="true"
+                  IconStart="@(new Icons.Regular.Size16.TextAsterisk())"
+                  OnClick="@(() => SelectGroupAsync(Pages.Metrics.MetricGroupKind.All, null))"
+                  aria-pressed="@(isAllSelected ? "true" : "false")"
+                  data-tooltip="@allLabel"
+                  aria-label="@allLabel" />
+</div>
 
 @{
     var groups = GetGroups();
@@ -45,10 +60,10 @@
         var isSelected = IsSelected(group);
         <a @key="group.Key"
            class="metric-group @(isSelected ? "selected" : null) @(group.IsPinned ? "pinned" : null)"
-           href="@GetGroupUrl(group.MeterName, group.IsPinned)"
+           href="@GetGroupUrl(group.IsPinned ? Pages.Metrics.MetricGroupKind.Pinned : Pages.Metrics.MetricGroupKind.Meter, group.MeterName)"
            aria-current="@(isSelected ? "page" : null)"
            data-tooltip="@group.Name"
-           @onclick="@(() => SelectGroupAsync(group.MeterName, group.IsPinned))"
+           @onclick="@(() => SelectGroupAsync(group.IsPinned ? Pages.Metrics.MetricGroupKind.Pinned : Pages.Metrics.MetricGroupKind.Meter, group.MeterName))"
            @onclick:preventDefault="true">
             <FluentIcon Value="@(group.IsPinned ? s_pinnedIcon : s_meterIcon)" Color="Color.Custom" CustomColor="currentColor" />
             <span class="metric-group-name">@group.Name</span>
