@@ -1,0 +1,90 @@
+name: CI shadow experiment
+
+on:
+  # A draft title marker opts in before workflow_dispatch is registered on
+  # the default branch. Ordinary PRs never schedule the workload.
+  pull_request:
+    types: [opened, reopened, synchronize, edited, converted_to_draft]
+    paths:
+      - .github/workflows/ci-shadow*.yml
+      - eng/scripts/*ci-shadow*.ps1
+      - tests/Infrastructure.Tests/PowerShellScripts/CiShadow*
+      - docs/ci/shadow-experiments.md
+  workflow_dispatch:
+    inputs:
+      pull_request:
+        description: Upstream PR number (pins its exact head once; optional with source_sha)
+        type: string
+        default: ''
+      source_sha:
+        description: Full source SHA; with a PR, also checks the expected head
+        type: string
+        default: ''
+      source_repository:
+        description: Repository for explicit-SHA mode only
+        type: string
+        default: microsoft/aspire
+      repetitions:
+        description: Independent repetitions (use 3 before drawing conclusions)
+        type: choice
+        options: ['3', '1', '2']
+        default: '3'
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    if: >-
+      ${{ github.repository == 'microsoft/aspire' &&
+          (github.event_name == 'workflow_dispatch' ||
+           (github.event.pull_request.draft == true &&
+            contains(github.event.pull_request.title, '[ci-shadow]'))) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      source_sha: ${{ steps.plan.outputs.source_sha }}
+      source_repository: ${{ steps.plan.outputs.source_repository }}
+      repetitions: ${{ steps.plan.outputs.repetitions }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Pin source and bounded workload
+        id: plan
+        shell: pwsh
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha || github.event.pull_request.head.sha }}
+          SOURCE_REPOSITORY: ${{ inputs.source_repository || 'microsoft/aspire' }}
+          PULL_REQUEST: ${{ inputs.pull_request || github.event.pull_request.number }}
+          REPETITIONS: ${{ inputs.repetitions || '3' }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ./eng/scripts/new-ci-shadow-plan.ps1 `
+            -SourceSha $env:SOURCE_SHA -SourceRepository $env:SOURCE_REPOSITORY `
+            -PullRequest $env:PULL_REQUEST -Repetitions $env:REPETITIONS `
+            -OutputDirectory "${{ runner.temp }}/shadow-plan"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: shadow-plan
+          path: ${{ runner.temp }}/shadow-plan
+          if-no-files-found: error
+          retention-days: 3
+
+  compare:
+    needs: plan
+    permissions:
+      contents: read
+      actions: read
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix: ${{ fromJSON(needs.plan.outputs.repetitions) }}
+    uses: ./.github/workflows/ci-shadow-managed-tests.yml
+    with:
+      source_sha: ${{ needs.plan.outputs.source_sha }}
+      source_repository: ${{ needs.plan.outputs.source_repository }}
+      repetition: ${{ matrix.repetition }}

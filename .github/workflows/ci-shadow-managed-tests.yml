@@ -1,0 +1,212 @@
+name: Compare managed test payload
+
+on:
+  workflow_call:
+    inputs:
+      source_sha:
+        type: string
+        required: true
+      source_repository:
+        type: string
+        required: true
+      repetition:
+        type: number
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  baseline:
+    name: Baseline ${{ inputs.repetition }} / ${{ matrix.class }}
+    runs-on: 8-core-ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        class: [StableConnectionStringBuilderTests, ResourceBuilderLifetimeTests]
+    steps:
+      - name: Checkout harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: harness
+          persist-credentials: false
+      - name: Checkout pinned source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ inputs.source_repository }}
+          ref: ${{ inputs.source_sha }}
+          path: source
+          persist-credentials: false
+      - name: Build and execute one class
+        shell: pwsh
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          SOURCE_REPOSITORY: ${{ inputs.source_repository }}
+          REPETITION: ${{ inputs.repetition }}
+          TEST_CLASS: ${{ matrix.class }}
+        run: |
+          ./harness/eng/scripts/run-ci-shadow-workload.ps1 `
+            -Arm baseline -Class $env:TEST_CLASS -SourceRoot "$env:GITHUB_WORKSPACE/source" `
+            -SourceSha $env:SOURCE_SHA -SourceRepository $env:SOURCE_REPOSITORY -Repetition $env:REPETITION `
+            -OutputDirectory "${{ runner.temp }}/evidence" -PayloadDirectory "${{ runner.temp }}/payload"
+      - name: Preserve baseline evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: shadow-${{ inputs.repetition }}-evidence-baseline-${{ matrix.class }}
+          path: ${{ runner.temp }}/evidence
+          if-no-files-found: error
+          retention-days: 3
+      - name: Preserve build diagnostics
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: shadow-${{ inputs.repetition }}-binlogs-baseline-${{ matrix.class }}
+          path: source/artifacts/log
+          if-no-files-found: warn
+          retention-days: 3
+
+  producer:
+    name: Payload producer ${{ inputs.repetition }}
+    runs-on: 8-core-ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: harness
+          persist-credentials: false
+      - name: Checkout pinned source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ inputs.source_repository }}
+          ref: ${{ inputs.source_sha }}
+          path: source
+          persist-credentials: false
+      - name: Build identical project and archive its output
+        shell: pwsh
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          SOURCE_REPOSITORY: ${{ inputs.source_repository }}
+          REPETITION: ${{ inputs.repetition }}
+        run: |
+          ./harness/eng/scripts/run-ci-shadow-workload.ps1 `
+            -Arm producer -SourceRoot "$env:GITHUB_WORKSPACE/source" `
+            -SourceSha $env:SOURCE_SHA -SourceRepository $env:SOURCE_REPOSITORY -Repetition $env:REPETITION `
+            -OutputDirectory "${{ runner.temp }}/evidence" -PayloadDirectory "${{ runner.temp }}/payload"
+      - name: Upload immutable test payload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: shadow-${{ inputs.repetition }}-payload
+          path: ${{ runner.temp }}/payload
+          if-no-files-found: error
+          retention-days: 3
+      - name: Preserve producer evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: shadow-${{ inputs.repetition }}-evidence-producer
+          path: ${{ runner.temp }}/evidence
+          if-no-files-found: error
+          retention-days: 3
+      - name: Preserve build diagnostics
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: shadow-${{ inputs.repetition }}-binlogs-producer
+          path: source/artifacts/log
+          if-no-files-found: warn
+          retention-days: 3
+
+  payload:
+    name: Payload consumer ${{ inputs.repetition }} / ${{ matrix.class }}
+    needs: producer
+    runs-on: 8-core-ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        class: [StableConnectionStringBuilderTests, ResourceBuilderLifetimeTests]
+    steps:
+      - name: Checkout harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: harness
+          persist-credentials: false
+      - name: Checkout pinned source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ inputs.source_repository }}
+          ref: ${{ inputs.source_sha }}
+          path: source
+          persist-credentials: false
+      - name: Download same-repetition payload
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: shadow-${{ inputs.repetition }}-payload
+          path: ${{ runner.temp }}/payload
+      - name: Bootstrap runtime and execute without MSBuild
+        shell: pwsh
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          SOURCE_REPOSITORY: ${{ inputs.source_repository }}
+          REPETITION: ${{ inputs.repetition }}
+          TEST_CLASS: ${{ matrix.class }}
+        run: |
+          ./harness/eng/scripts/run-ci-shadow-workload.ps1 `
+            -Arm payload -Class $env:TEST_CLASS -SourceRoot "$env:GITHUB_WORKSPACE/source" `
+            -SourceSha $env:SOURCE_SHA -SourceRepository $env:SOURCE_REPOSITORY -Repetition $env:REPETITION `
+            -OutputDirectory "${{ runner.temp }}/evidence" -PayloadDirectory "${{ runner.temp }}/payload"
+      - name: Preserve consumer evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: shadow-${{ inputs.repetition }}-evidence-payload-${{ matrix.class }}
+          path: ${{ runner.temp }}/evidence
+          if-no-files-found: error
+          retention-days: 3
+
+  report:
+    name: Verify equivalent tests ${{ inputs.repetition }}
+    if: always()
+    needs: [baseline, producer, payload]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Download measurements and TRX only
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: shadow-${{ inputs.repetition }}-evidence-*
+          path: ${{ runner.temp }}/evidence
+      - name: Capture original-attempt job and step timestamps
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPORT_DIRECTORY: ${{ runner.temp }}/report
+        run: |
+          mkdir -p "$REPORT_DIRECTORY"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT" > "$REPORT_DIRECTORY/run.json"
+          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT/jobs?per_page=100" > "$REPORT_DIRECTORY/jobs.json"
+      - name: Reject missing, empty, failed, or unequal tests
+        shell: pwsh
+        env:
+          REPETITION: ${{ inputs.repetition }}
+        run: |
+          ./eng/scripts/compare-ci-shadow-results.ps1 `
+            -EvidenceDirectory "${{ runner.temp }}/evidence" -Repetition $env:REPETITION `
+            -JobsPath "${{ runner.temp }}/report/jobs.json" -RunPath "${{ runner.temp }}/report/run.json" `
+            -OutputPath "${{ runner.temp }}/report/comparison.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: shadow-${{ inputs.repetition }}-comparison
+          path: ${{ runner.temp }}/report
+          if-no-files-found: error
+          retention-days: 3

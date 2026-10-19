@@ -74,6 +74,20 @@ public sealed class TestTriggerMapTests
         Assert.Empty(result.Jobs);
     }
 
+    [Theory]
+    [InlineData("eng/scripts/new-ci-shadow-plan.ps1")]
+    [InlineData("eng/scripts/run-ci-shadow-workload.ps1")]
+    [InlineData("eng/scripts/compare-ci-shadow-results.ps1")]
+    public void ShadowHarnessInputsSelectInfrastructureCoverage(string path)
+    {
+        var result = SelectWithRealMap(path);
+
+        Assert.False(result.SelectsAll);
+        Assert.Equal(["Infrastructure.Tests"], result.TestProjects);
+        Assert.Empty(result.Jobs);
+        Assert.Empty(result.UnmatchedFiles);
+    }
+
     [Fact]
     public void TemplateManifestBuildTargetSelectsInfrastructureCoverage()
     {

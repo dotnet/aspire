@@ -232,6 +232,13 @@ path_rules:
     targets: [test:Infrastructure.Tests]
     reason: resource metadata tests read project configuration and resource filenames at runtime
 
+  - paths:
+      - eng/scripts/new-ci-shadow-plan.ps1
+      - eng/scripts/run-ci-shadow-workload.ps1
+      - eng/scripts/compare-ci-shadow-results.ps1
+    targets: [test:Infrastructure.Tests]
+    reason: behavioral tests exercise shadow experiment planning, payload execution, and result comparison
+
   # Local composite actions used by regular PR CI. Route each action to the work it can affect; when
   # the blast radius is not precise enough, keep the conservative full-matrix target.
   - paths:
