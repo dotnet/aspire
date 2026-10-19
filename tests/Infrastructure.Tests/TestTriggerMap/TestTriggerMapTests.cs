@@ -1073,6 +1073,10 @@ public sealed class TestTriggerMapTests
     [InlineData("Aspire.Dashboard")]
     [InlineData("Aspire.TerminalHost")]
     [InlineData("CreateLayout")]
+    [InlineData("Aspire.AppHost.Sdk")]
+    [InlineData("Aspire.Hosting.AppHost")]
+    [InlineData("Aspire.Hosting.Dotnet")]
+    [InlineData("Aspire.ProjectTemplates")]
     public void NixPackageRunsWhenBundleRuntimeProjectIsAffected(string project)
     {
         var result = SelectWithRealMap(
@@ -1089,6 +1093,8 @@ public sealed class TestTriggerMapTests
     [InlineData("flake.lock")]
     [InlineData("eng/nix/package.nix")]
     [InlineData("eng/nix/versions.json")]
+    [InlineData("eng/nix/runtime-image.nix")]
+    [InlineData("eng/nix/runtime-smoke/run.sh")]
     public void NixPackageInputsSelectTheirConsumers(string path)
     {
         var result = SelectWithRealMap(path);
@@ -1096,6 +1102,16 @@ public sealed class TestTriggerMapTests
         Assert.False(result.SelectsAll);
         Assert.Equal(["Infrastructure.Tests"], result.TestProjects);
         Assert.Equal(["job:nix-package"], result.Jobs);
+    }
+
+    [Fact]
+    public void NixRuntimeSmokeRunsForItsEmptyTemplateInput()
+    {
+        var result = SelectWithRealMap(
+            "src/Aspire.ProjectTemplates/templates/aspire-empty/AspireApplication.1.AppHost/AppHost.cs");
+
+        Assert.False(result.SelectsAll);
+        Assert.Contains("job:nix-package", result.Jobs);
     }
 
     [Fact]
@@ -1273,7 +1289,7 @@ public sealed class TestTriggerMapTests
             ["Aspire.Cli.EndToEnd.Tests", "Aspire.Templates.Tests", "Infrastructure.Tests"],
             result.TestProjects.Order(StringComparer.Ordinal));
         Assert.Equal(
-            ["job:cli-starter-validation", "job:extension-e2e", "job:homebrew-installer", "job:polyglot", "job:winget-installer"],
+            ["job:cli-starter-validation", "job:extension-e2e", "job:homebrew-installer", "job:nix-package", "job:polyglot", "job:winget-installer"],
             result.Jobs.Order(StringComparer.Ordinal));
     }
 

@@ -10,6 +10,14 @@ The derivation runs `aspire setup --install-path` to expand the bundle under `$o
 
 At runtime, the `nix` install route uses the package-owned layout without extracting the embedded payload again or creating bundle leases. Caches, logs, and other user state still use the normal Aspire home directory. Upgrade or repair the bundle through Nix, not by extracting new binaries into the store.
 
+## Runtime validation
+
+The Nix CI job builds `runtime-image.nix` from the current CLI archive and runs `runtime-smoke/run.sh` in a non-root, read-only Nix-only image. The image has no generic Linux ELF interpreter or `nix-ld`; an unpatched DCP control must fail before the packaged CLI is exercised.
+
+The smoke creates an AppHost from the matching template package, starts an HTTP project, and verifies a container can reach it through Aspire's container tunnel. It checks Dashboard availability, package-owned executable paths, absence of runtime bundle extraction, and cleanup across two start/stop cycles. Host networking, the Docker socket, and identical host/container workspace paths are used only on the disposable Linux CI runner.
+
+This validates the loader and filesystem constraints relevant to NixOS, not a booted NixOS system or the macOS tray. Diagnostics are uploaded as the `nix-runtime-smoke` artifact.
+
 ## Usage
 
 Run the Aspire CLI directly:
