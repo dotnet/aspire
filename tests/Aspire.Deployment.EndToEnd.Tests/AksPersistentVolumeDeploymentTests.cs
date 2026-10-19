@@ -301,11 +301,20 @@ public sealed class AksPersistentVolumeDeploymentTests(ITestOutputHelper output)
             """,
             appHostPath);
 
+        // Local deployment tests install the latest GA CLI, while CI uses the current build.
+        // Accept both starter-template project registration shapes so the deployment behavior,
+        // rather than template syntax, remains the subject of this test.
+        var apiServiceRegistration = content.Contains(
+            """builder.AddDotnetProject("apiservice", "../AksPersistentVolume.ApiService/AksPersistentVolume.ApiService.csproj")""",
+            StringComparison.Ordinal)
+                ? """builder.AddDotnetProject("apiservice", "../AksPersistentVolume.ApiService/AksPersistentVolume.ApiService.csproj")"""
+                : """builder.AddProject<Projects.AksPersistentVolume_ApiService>("apiservice")""";
+
         content = ReplaceRequired(
             content,
-            """builder.AddDotnetProject("apiservice", "../AksPersistentVolume.ApiService/AksPersistentVolume.ApiService.csproj")""",
-            """
-            builder.AddDotnetProject("apiservice", "../AksPersistentVolume.ApiService/AksPersistentVolume.ApiService.csproj")
+            apiServiceRegistration,
+            $"""
+            {apiServiceRegistration}
                 .WithPersistentVolume(data, "/srv/data", env: "DATA_PATH")
                 .WithPersistentVolume(sharedData, "/srv/shared")
                 .WithEnvironment("DEPLOYMENT_REVISION", "first")
