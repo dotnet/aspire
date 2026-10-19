@@ -1,0 +1,56 @@
+{
+  "run_id": 39274223952,
+  "run_attempt": 1,
+  "run_url": "https://github.com/microsoft/aspire/actions/runs/39274223952",
+  "run_scope": "main",
+  "analyzed_at": "2026-10-19T16:23:06Z",
+  "verdict": "mixed",
+  "pr": null,
+  "triggering_merge_pr": null,
+  "main_context": {
+    "last_successful_main_sha": "88ff9ba57c2841cce759adffa849373f9406b0f5",
+    "failed_sha": "479f80b41a2da40a5221da758008734f56a0014e",
+    "candidate_merge_history_state": "incomplete",
+    "candidate_merges": null
+  },
+  "failed_jobs": [
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (macos-latest)",
+      "id": 118135301422,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39274223952/job/118135301422",
+      "classification": "transient-infra",
+      "reason": "Test host crashed with exit code 137 (SIGKILL) after all 2429 collected tests passed (0 failed, 20 skipped); matches recurring prior infra cause for macOS test host being killed despite passing tests.",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x)",
+      "id": 118138558599,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39274223952/job/118138558599",
+      "classification": "main-repository-breakage",
+      "reason": "All 59 TypeScript validation AppHosts passed; job fails afterward during the Nuxt integration step with exit code 1, matching a recurring deterministic Docker build failure at 'npm ci' for the generated Nuxt publish image, observed repeatedly on main since Oct 19 07:34 (before this run).",
+      "failed_steps": [
+        "Run TypeScript SDK validation"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / Polyglot Validation Results",
+      "id": 118144026213,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39274223952/job/118144026213",
+      "classification": "main-repository-breakage",
+      "reason": "Aggregation job deterministically fails because it reports the upstream TypeScript SDK Validation (Node 22.x) job result ('TypeScript: failure'), which is itself a main-repository breakage.",
+      "failed_steps": [
+        "Check validation results"
+      ]
+    }
+  ],
+  "failed_tests": [],
+  "causes": [
+    "aspire-cli-tests-macos-testhost-sigkill-137",
+    "typescript-sdk-nuxt-integration-npm-ci-docker-build-failure"
+  ]
+}
