@@ -18,6 +18,8 @@ namespace Aspire.Deployment.EndToEnd.Tests;
 /// Proves that the cert-manager API surface generated for TypeScript via <c>[AspireExport]</c>
 /// works end-to-end against a real AKS cluster (this complements the polyglot type-check
 /// validation in <c>tests/PolyglotAppHosts/Aspire.Hosting.Kubernetes/TypeScript/apphost.mts</c>).
+/// Also verifies the configured system and workload node-pool OS SKUs after deployment
+/// and redeployment.
 ///
 /// Uses Let's Encrypt <em>production</em> so the served cert chains to a publicly-trusted root
 /// (mirrors a realistic deployment). Production is rate-limited (50 certs / registered
@@ -150,11 +152,13 @@ const aks = await builder.addAzureKubernetesEnvironment("aks");
 await aks.withSubnet(aksSubnet);
 await aks.withSystemNodePool(async pool => {
     pool.vmSize = "Standard_D2as_v5";
+    pool.osSku = "AzureLinux";
 });
 await aks.addNodePool("workload", async pool => {
     pool.vmSize = "Standard_D2as_v5";
     pool.minCount = 1;
     pool.maxCount = 3;
+    pool.osSku = "AzureLinux";
 });
 
 const publicLb = await aks.addLoadBalancer("public", albSubnet);
@@ -223,6 +227,19 @@ await builder.build().run();
             await auto.TypeAsync(
                 $"AKS_NAME=$(az aks list -g {resourceGroupName} --query '[0].name' -o tsv) && " +
                 $"az aks get-credentials -g {resourceGroupName} -n $AKS_NAME --overwrite-existing");
+            await auto.EnterAsync();
+            await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromSeconds(60));
+
+            // Compare the full sorted TSV output (name<TAB>osSku per row) so missing,
+            // extra, or incorrectly configured pools fail rather than matching one pool.
+            const string verifyNodePoolOsSkus =
+                "NODE_POOLS=$(az aks nodepool list -g \"$AZURE__RESOURCEGROUP\" --cluster-name \"$AKS_NAME\" " +
+                "--query 'sort_by(@, &name)[].[name, osSku]' -o tsv) && " +
+                "printf 'Node pools (name, OS SKU):\\n%s\\n' \"$NODE_POOLS\" && " +
+                "test \"$NODE_POOLS\" = $'system\\tAzureLinux\\nworkload\\tAzureLinux'";
+
+            output.WriteLine("Verifying system and workload node-pool OS SKUs after deployment...");
+            await auto.TypeAsync(verifyNodePoolOsSkus);
             await auto.EnterAsync();
             await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromSeconds(60));
 
@@ -339,6 +356,11 @@ await builder.build().run();
             await auto.EnterAsync();
             await auto.WaitForPipelineSuccessAsync(timeout: TimeSpan.FromMinutes(20));
             await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromMinutes(2));
+
+            output.WriteLine("Verifying system and workload node-pool OS SKUs after redeployment...");
+            await auto.TypeAsync(verifyNodePoolOsSkus);
+            await auto.EnterAsync();
+            await auto.WaitForSuccessPromptAsync(counter, TimeSpan.FromSeconds(60));
 
             output.WriteLine("Step 19: Destroying deployment...");
             await auto.AspireDestroyAsync(counter);
