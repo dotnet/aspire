@@ -60,15 +60,20 @@ public sealed class AksPersistentVolumeDeploymentTests(ITestOutputHelper output)
             var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
 
             await auto.PrepareEnvironmentAsync(workspace, counter);
-            await auto.InstallCurrentBuildAspireCliAsync(counter, output);
+            var installStrategy = await auto.InstallCurrentBuildAspireCliAsync(counter, output);
+            var currentBuildPackageArguments = GetCurrentBuildPackageArguments(installStrategy);
 
-            await auto.AspireNewAsync(projectName, counter, useRedisCache: false);
+            await auto.AspireNewAsync(
+                projectName,
+                counter,
+                useRedisCache: false,
+                extraArguments: currentBuildPackageArguments);
 
             await auto.TypeAsync($"cd {projectName}");
             await auto.EnterAsync();
             await auto.WaitForSuccessPromptAsync(counter);
 
-            await auto.TypeAsync("aspire add Aspire.Hosting.Azure.Kubernetes");
+            await auto.TypeAsync($"aspire add Aspire.Hosting.Azure.Kubernetes {currentBuildPackageArguments}");
             await auto.EnterAsync();
             await auto.WaitForAspireAddCompletionAsync(counter);
 
@@ -647,6 +652,17 @@ public sealed class AksPersistentVolumeDeploymentTests(ITestOutputHelper output)
         }
 
         return content.Replace(oldValue, newValue, StringComparison.Ordinal);
+    }
+
+    private static string GetCurrentBuildPackageArguments(CliInstallStrategy strategy)
+    {
+        if (strategy.Mode is not CliInstallMode.PullRequest)
+        {
+            return string.Empty;
+        }
+
+        var prNumber = DeploymentE2ETestHelpers.GetPrNumber();
+        return $"--source \"$HOME/.aspire/hives/pr-{prNumber}/packages\" --version \"$(aspire --version)\"";
     }
 
     private static int GetAvailablePort()
