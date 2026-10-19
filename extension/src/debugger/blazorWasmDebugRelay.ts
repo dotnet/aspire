@@ -10,6 +10,9 @@ import { registerRunCleanup } from './runCleanupRegistry';
 
 const inspectPathPlaceholder = '{browserInspectUriPath}';
 const maxPayload = 256 * 1024 * 1024;
+// Match js-debug's browser launch default when C# has not supplied an explicit timeout.
+// https://github.com/microsoft/vscode-js-debug/blob/main/src/configuration.ts
+const defaultLaunchTimeout = 10000;
 const browserTypes = new Set(['chrome', 'msedge', 'pwa-chrome', 'pwa-msedge']);
 
 export function registerBlazorWasmDebugRelay(owner: AspireResourceExtendedDebugConfiguration): vscode.Disposable {
@@ -41,7 +44,8 @@ export function registerBlazorWasmDebugRelay(owner: AspireResourceExtendedDebugC
             }
 
             try {
-                const pending = createBlazorWasmDebugRelay(upstream);
+                const timeout = typeof configuration.timeout === 'number' ? configuration.timeout : defaultLaunchTimeout;
+                const pending = createBlazorWasmDebugRelay(upstream, timeout);
                 relays.add(pending);
                 const relay = await pending;
                 if (disposed || token?.isCancellationRequested) {
@@ -102,7 +106,10 @@ export interface BlazorWasmDebugRelay extends vscode.Disposable {
     readonly inspectUri: string;
 }
 
-export async function createBlazorWasmDebugRelay(upstream: string): Promise<BlazorWasmDebugRelay> {
+export async function createBlazorWasmDebugRelay(upstream: string, timeout: number): Promise<BlazorWasmDebugRelay> {
+    // Share the resolved launch budget across opening attempts, including time before the first
+    // CDP command. js-debug disables its launch deadline for nonpositive timeout values.
+    const deadline = timeout > 0 ? Date.now() + timeout : undefined;
     const prefix = `/${randomUUID()}`;
     const sockets = new Set<net.Socket>();
     const upstreams = new Set<WebSocket>();
@@ -137,15 +144,23 @@ export async function createBlazorWasmDebugRelay(upstream: string): Promise<Blaz
             || requestPath.includes('#')
             || (!requestPath.startsWith(`${prefix}/devtools/browser/`)
                 && !requestPath.startsWith(`${prefix}/devtools/page/`))) {
+            // Node removes its HTTP socket-error handler before emitting 'upgrade', even when
+            // the upgrade is rejected. A peer reset must not escape into the extension host.
+            socket.on('error', error => {
+                extensionLogOutputChannel.debug(`Blazor WASM debug relay rejected connection failed: ${error.message}`);
+                socket.destroy();
+            });
             socket.end('HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\nConnection: close\r\n\r\n');
             return;
         }
 
         webSockets.handleUpgrade(request, socket, head, client => {
             let target: WebSocket | undefined;
+            let openingTimeout: ReturnType<typeof setTimeout> | undefined;
             let pendingBytes = 0;
             const pending: Array<{ data: RawData; binary: boolean }> = [];
             const fail = (error: Error) => {
+                clearTimeout(openingTimeout);
                 if (!disposed && client.readyState !== WebSocket.CLOSED) {
                     extensionLogOutputChannel.warn(`Blazor WASM debug relay connection failed: ${error.message}`);
                 }
@@ -165,6 +180,7 @@ export async function createBlazorWasmDebugRelay(upstream: string): Promise<Blaz
             };
             client.on('error', fail);
             client.on('close', () => {
+                clearTimeout(openingTimeout);
                 pending.length = 0;
                 target?.terminate();
             });
@@ -202,10 +218,12 @@ export async function createBlazorWasmDebugRelay(upstream: string): Promise<Blaz
                 upstreams.add(target);
                 target.on('error', fail);
                 target.on('close', () => {
+                    clearTimeout(openingTimeout);
                     upstreams.delete(target!);
                     client.terminate();
                 });
                 target.on('open', () => {
+                    clearTimeout(openingTimeout);
                     for (const message of pending.splice(0)) {
                         forward(client, target!, message.data, message.binary);
                     }
@@ -216,6 +234,13 @@ export async function createBlazorWasmDebugRelay(upstream: string): Promise<Blaz
                         forward(target!, client, message, isBinary);
                     }
                 });
+                if (deadline !== undefined) {
+                    // Use an absolute deadline rather than an HTTP socket inactivity timeout:
+                    // partial upgrade responses must not extend the launch budget.
+                    openingTimeout = setTimeout(() => fail(new Error('Opening handshake has timed out')),
+                        Math.max(1, deadline - Date.now()));
+                    openingTimeout.unref();
+                }
             });
         });
     });

@@ -175,8 +175,11 @@ js-debug's two-second opening deadline from cold C# bridge startup. The relay
 acknowledges the local connection first and connects to the bridge only after the
 IDE sends a command, so abandoned opening attempts cannot claim the native debugger
 connection ([dotnet/vscode-csharp#9890](https://github.com/dotnet/vscode-csharp/issues/9890)).
-It preserves the selected debugger, protocol messages, and launch timeout, and
-stops with its resource run. Generic browser launches and the legacy WASM backend
+It preserves the selected debugger and protocol messages, bounds pending bridge
+upgrades by the resolved launch timeout, and honors disabled timeouts. Established
+connections stay alive until confirmed root-session termination or final parent
+disposal, including when a stop request is delayed or rejected. Generic browser
+launches and the legacy WASM backend
 keep their existing transports.
 
 The browser debugger fixtures target the .NET version pinned by the repository's `global.json`. Their NuGet sources must include the matching daily feed because the standalone Blazor gateway is acquired as a .NET tool at run time.

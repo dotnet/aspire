@@ -1869,7 +1869,11 @@ export class AspireDebugSession implements vscode.DebugAdapter, DashboardLaunche
               }
             });
 
-            cleanupResource();
+            // Browser transports stay alive until confirmed termination: an acknowledged or
+            // rejected stop request does not establish that the root session has ended.
+            if (!browserTermination) {
+              cleanupResource();
+            }
 
             return stop;
           };

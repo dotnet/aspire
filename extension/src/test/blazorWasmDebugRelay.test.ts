@@ -1,14 +1,18 @@
 import * as assert from 'assert';
 import { once } from 'events';
-import * as http from 'http';
+import http = require('http');
 import * as net from 'net';
 import { setTimeout as delay } from 'timers/promises';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import WebSocket, { WebSocketServer } from 'ws';
+import AspireDcpServer from '../dcp/AspireDcpServer';
+import { AspireDebugSession } from '../debugger/AspireDebugSession';
 import { createBlazorWasmDebugRelay, registerBlazorWasmDebugRelay } from '../debugger/blazorWasmDebugRelay';
 import { cleanupRun } from '../debugger/runCleanupRegistry';
 import { AspireResourceExtendedDebugConfiguration } from '../dcp/types';
+import AspireRpcServer from '../server/AspireRpcServer';
+import { AspireTerminalProvider } from '../utils/AspireTerminalProvider';
 import { extensionLogOutputChannel } from '../utils/logging';
 
 suite('Blazor WASM debug relay', () => {
@@ -96,7 +100,7 @@ suite('Blazor WASM debug relay', () => {
     }
 
     async function relay(upstream: string) {
-        const result = await createBlazorWasmDebugRelay(upstream);
+        const result = await createBlazorWasmDebugRelay(upstream, 30000);
         cleanups.push(() => result.dispose());
         return result;
     }
@@ -118,6 +122,52 @@ suite('Blazor WASM debug relay', () => {
         cleanups.push(() => cancellation.dispose());
         assert.ok(provider.resolveDebugConfigurationWithSubstitutedVariables);
         return await provider.resolveDebugConfigurationWithSubstitutedVariables(undefined, configuration, token ?? cancellation.token);
+    }
+
+    async function browserSession(upstream: string, starts: boolean) {
+        const started = new vscode.EventEmitter<vscode.DebugSession>();
+        const terminated = new vscode.EventEmitter<vscode.DebugSession>();
+        cleanups.push(() => started.dispose(), () => terminated.dispose());
+        sinon.stub(vscode.debug, 'onDidStartDebugSession').callsFake(started.event);
+        sinon.stub(vscode.debug, 'onDidTerminateDebugSession').callsFake(terminated.event);
+        sinon.stub(vscode.debug, 'registerDebugAdapterTrackerFactory').returns({ dispose() { } });
+        const parent: vscode.DebugSession = {
+            id: 'aspire-session',
+            type: 'aspire',
+            name: 'Aspire',
+            workspaceFolder: undefined,
+            configuration: { type: 'aspire', request: 'launch', name: 'Aspire' },
+            customRequest: sinon.stub(),
+            getDebugProtocolBreakpoint: sinon.stub(),
+        };
+        const owner = new AspireDebugSession(
+            parent,
+            sinon.createStubInstance(AspireRpcServer),
+            sinon.createStubInstance(AspireDcpServer),
+            sinon.createStubInstance(AspireTerminalProvider),
+            () => { });
+        cleanups.push(() => owner.finalizeForExtensionShutdown());
+        let resolved: vscode.DebugConfiguration | undefined;
+        sinon.stub(vscode.debug, 'startDebugging').callsFake(async (_folder, debugConfiguration) => {
+            assert.ok(typeof debugConfiguration !== 'string');
+            const candidate = await resolve({
+                ...debugConfiguration,
+                type: 'pwa-msedge',
+                inspectUri: `${upstream}{browserInspectUriPath}`,
+            });
+            assert.ok(candidate);
+            resolved = candidate;
+            if (starts) {
+                started.fire({ ...parent, id: 'browser-session', type: resolved.type, configuration: resolved });
+            }
+            return starts;
+        });
+        const resource = await owner.startAndGetDebugSession(configuration({ type: 'blazorwasm' }));
+        assert.ok(resolved);
+        return { owner, resource, resolved, terminate: () => {
+            assert.ok(resource);
+            terminated.fire(resource.session);
+        } };
     }
 
     test('an abandoned opening never reaches the bridge or displaces a live retry', async () => {
@@ -199,6 +249,163 @@ suite('Blazor WASM debug relay', () => {
         sinon.assert.calledWithExactly(warning, 'Blazor WASM debug relay connection failed: Unexpected server response: 503');
     });
 
+    for (const timeout of [undefined, 3000]) {
+        test(`closes a stalled bridge upgrade at the ${timeout ?? 'default'} launch deadline`, async () => {
+            const upstream = await bridge(true);
+            const warning = sinon.stub(extensionLogOutputChannel, 'warn');
+            const clock = sinon.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'], shouldClearNativeTimers: true });
+            cleanups.push(() => clock.restore());
+            registerBlazorWasmDebugRelay(configuration({ type: 'blazorwasm' }));
+            const resolved = await resolve(configuration({ inspectUri: `${upstream.url}{browserInspectUriPath}`, timeout }));
+            assert.ok(resolved);
+            const client = await connect(resolved.inspectUri);
+            // Browser startup consumes part of the same launch budget before its first CDP command.
+            await clock.tickAsync(1000);
+            client.send('start');
+            await upstream.opening;
+            const clientClosed = once(client, 'close');
+            const upstreamClosed = once(upstream.requests[0].socket, 'close');
+            // An incomplete upgrade can remain active on the wire without ever becoming usable.
+            upstream.requests[0].socket.write('HTTP/1.1 101 Switching Protocols\r\n');
+            await clock.tickAsync((timeout ?? 10000) - 1001);
+            assert.strictEqual(client.readyState, WebSocket.OPEN);
+            await clock.tickAsync(1);
+            await Promise.all([clientClosed, upstreamClosed]);
+
+            assert.strictEqual(client.readyState, WebSocket.CLOSED);
+            assert.strictEqual(upstream.requests[0].socket.destroyed, true);
+            sinon.assert.calledWithExactly(warning, 'Blazor WASM debug relay connection failed: Opening handshake has timed out');
+        });
+    }
+
+    test('a stalled bridge upgrade expires through a real launch timer', async () => {
+        const upstream = await bridge(true);
+        const guard = await createBlazorWasmDebugRelay(upstream.url, 1000);
+        cleanups.push(() => guard.dispose());
+        const client = await connect(guard.inspectUri);
+        const clientClosed = once(client, 'close');
+        client.send('start');
+        await upstream.opening;
+        const upstreamClosed = once(upstream.requests[0].socket, 'close');
+        await Promise.all([clientClosed, upstreamClosed]);
+
+        assert.strictEqual(client.readyState, WebSocket.CLOSED);
+        assert.strictEqual(upstream.requests[0].socket.destroyed, true);
+    });
+
+    for (const timeout of [0, -1]) {
+        test(`preserves the disabled launch timeout ${timeout}`, async () => {
+            const upstream = await bridge(true);
+            const clock = sinon.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'], shouldClearNativeTimers: true });
+            cleanups.push(() => clock.restore());
+            registerBlazorWasmDebugRelay(configuration({ type: 'blazorwasm' }));
+            const resolved = await resolve(configuration({ inspectUri: `${upstream.url}{browserInspectUriPath}`, timeout }));
+            assert.ok(resolved);
+            const client = await connect(resolved.inspectUri);
+            const response = once(client, 'message');
+            client.send('start');
+            await upstream.opening;
+            await clock.tickAsync(60000);
+            assert.strictEqual(client.readyState, WebSocket.OPEN);
+            upstream.release();
+
+            const [data] = await response;
+            assert.strictEqual(data.toString(), 'start');
+        });
+    }
+
+    test('the launch deadline does not close an established debugger transport', async () => {
+        const upstream = await bridge();
+        const clock = sinon.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'], shouldClearNativeTimers: true });
+        cleanups.push(() => clock.restore());
+        registerBlazorWasmDebugRelay(configuration({ type: 'blazorwasm' }));
+        const resolved = await resolve(configuration({ inspectUri: `${upstream.url}{browserInspectUriPath}`, timeout: 3000 }));
+        assert.ok(resolved);
+        const client = await connect(resolved.inspectUri);
+        const firstResponse = once(client, 'message');
+        client.send('start');
+        await firstResponse;
+        await clock.tickAsync(60000);
+        const response = once(client, 'message');
+        client.send('still-debugging');
+
+        const [data] = await response;
+        assert.strictEqual(data.toString(), 'still-debugging');
+    });
+
+    for (const stopOutcome of ['delayed', 'rejected']) {
+        test(`keeps the connected relay alive during a ${stopOutcome} browser stop`, async () => {
+            const upstream = await bridge();
+            let acknowledgeStop!: () => void;
+            let rejectStop!: (error: Error) => void;
+            const stopRequest = new Promise<void>((resolve, reject) => {
+                acknowledgeStop = resolve;
+                rejectStop = reject;
+            });
+            const stopDebugging = sinon.stub(vscode.debug, 'stopDebugging').returns(stopRequest);
+            const { resource, resolved, terminate } = await browserSession(upstream.url, true);
+            assert.ok(resource);
+            const client = await connect(resolved.inspectUri);
+            const firstResponse = once(client, 'message');
+            client.send('start');
+            await firstResponse;
+            const stopping = Promise.resolve(resource.stopSession());
+            if (stopOutcome === 'rejected') {
+                const rejected = assert.rejects(stopping, /Stop rejected/);
+                rejectStop(new Error('Stop rejected'));
+                await rejected;
+            }
+            else {
+                const pendingResponse = Promise.race([
+                    once(client, 'message').then(([data]) => data.toString()),
+                    once(client, 'close').then(() => 'connection-closed'),
+                ]);
+                client.send('stop-pending');
+                assert.strictEqual(await pendingResponse, 'stop-pending');
+                acknowledgeStop();
+                await Promise.resolve();
+            }
+            const response = Promise.race([
+                once(client, 'message').then(([data]) => data.toString()),
+                once(client, 'close').then(() => 'connection-closed'),
+            ]);
+            client.send('still-debugging');
+            assert.strictEqual(await response, 'still-debugging');
+            sinon.assert.notCalled(providerDisposed);
+
+            stopDebugging.resolves();
+            const retry = stopOutcome === 'rejected' ? resource.stopSession() : stopping;
+            const closed = once(client, 'close');
+            terminate();
+            await Promise.all([retry, closed]);
+            sinon.assert.calledOnce(providerDisposed);
+        });
+    }
+
+    test('final parent disposal releases the relay even when the browser stop rejects', async () => {
+        const upstream = await bridge();
+        sinon.stub(vscode.debug, 'stopDebugging').rejects(new Error('Final stop rejected'));
+        const { owner, resolved } = await browserSession(upstream.url, true);
+        const client = await connect(resolved.inspectUri);
+        const closed = once(client, 'close');
+        owner.finalizeForExtensionShutdown();
+        await closed;
+
+        sinon.assert.calledOnce(providerDisposed);
+    });
+
+    test('a failed browser launch releases its resolved relay', async () => {
+        const upstream = await bridge();
+        const { resource, resolved } = await browserSession(upstream.url, false);
+        assert.strictEqual(resource, undefined);
+        sinon.assert.calledOnce(providerDisposed);
+        const client = new WebSocket(resolved.inspectUri.replace('{browserInspectUriPath}', '/devtools/browser/test'));
+        cleanups.push(() => { client.terminate(); });
+
+        await assert.rejects(once(client, 'open'), /ECONNREFUSED/);
+        assert.deepStrictEqual(upstream.requests, []);
+    });
+
     for (const closedBy of ['IDE', 'bridge']) {
         test(`closing an established ${closedBy} connection releases its peer`, async () => {
             const upstream = await bridge();
@@ -237,6 +444,52 @@ suite('Blazor WASM debug relay', () => {
             assert.deepStrictEqual(upstream.requests, []);
         });
     }
+
+    test('handles a connection reset after rejecting an upgrade and keeps the relay usable', async () => {
+        const upstream = await bridge();
+        const createServer = sinon.spy(http, 'createServer');
+        const debug = sinon.stub(extensionLogOutputChannel, 'debug');
+        const guard = await relay(upstream.url);
+        const server = createServer.returnValues[0];
+        assert.ok(server instanceof http.Server);
+        let rejectedSocket: net.Socket | undefined;
+        server.on('upgrade', (_request, socket) => {
+            assert.ok(socket instanceof net.Socket);
+            rejectedSocket = socket;
+        });
+        const uri = new URL(guard.inspectUri.replace('{browserInspectUriPath}', '/devtools/browser/test'));
+        const resetClient = net.createConnection({ host: uri.hostname, port: Number(uri.port) });
+        cleanups.push(() => { resetClient.destroy(); });
+        await once(resetClient, 'connect');
+        const rejected = once(resetClient, 'data');
+        resetClient.write([
+            'GET /incorrect/devtools/browser/test HTTP/1.1',
+            'Host: localhost',
+            'Connection: Upgrade',
+            'Upgrade: websocket',
+            'Sec-WebSocket-Version: 13',
+            'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==',
+            '', '',
+        ].join('\r\n'));
+        const [response] = await rejected;
+        assert.match(response.toString(), /^HTTP\/1.1 403 /);
+        const closed = once(resetClient, 'close');
+        resetClient.resetAndDestroy();
+        await closed;
+        assert.ok(rejectedSocket);
+        const socket = rejectedSocket;
+        // The kernel can finish the socket before the RST arrives; also deliver the late error
+        // deterministically so this cannot pass merely because the reset lost that race.
+        assert.doesNotThrow(() => socket.emit('error', new Error('read ECONNRESET')));
+        sinon.assert.calledWithExactly(debug, 'Blazor WASM debug relay rejected connection failed: read ECONNRESET');
+        assert.deepStrictEqual(upstream.requests, []);
+        const live = await connect(guard.inspectUri);
+        const message = once(live, 'message');
+        live.send('live-command');
+
+        const [data] = await message;
+        assert.strictEqual(data.toString(), 'live-command');
+    });
 
     test('rewrites only the native inspectUri and releases it with the owned run', async () => {
         const upstream = await bridge();
