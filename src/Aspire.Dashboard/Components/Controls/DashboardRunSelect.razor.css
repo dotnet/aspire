@@ -1,30 +1,18 @@
-.application-run-select ::deep .application-run-select-button {
-    --colorNeutralBackground1: var(--aspire-page-background);
-    --colorNeutralBackground1Hover: var(--run-select-hover-background);
-    --colorNeutralBackground1Pressed: var(--run-select-pressed-background);
-    margin-right: 8px;
-    height: 28px;
-    min-height: 28px;
+/* While a recording is shown, the button also shows how long ago it started, so it grows past the square
+   size of the other header buttons. */
+.application-run-select ::deep .application-run-select-button.historical {
+    flex-basis: auto;
+    width: auto;
+    max-width: none;
+}
+
+.application-run-select ::deep .application-run-select-button.historical::part(control) {
+    width: auto;
+    gap: 6px;
     padding: 0 8px;
+}
+
+.application-run-select ::deep .application-run-select-text {
     font-weight: var(--fontWeightRegular);
-    border: 1px solid transparent;
-    border-radius: 6px;
-}
-
-.application-run-select ::deep .application-run-status {
-    margin-inline-end: 11px;
-}
-
-.application-run-select ::deep .application-run-select-button::part(control) {
-    height: 28px;
-    min-height: 28px;
-    padding-left: 8px;
-    padding-right: 8px;
-    border: 1px solid transparent;
-    border-radius: 6px;
-}
-
-/* Previous runs show a full date, time and duration on one line, which doesn't fit FluentUI's default 300px menu width. */
-.application-run-select ::deep fluent-menu-list {
-    max-width: 380px;
+    white-space: nowrap;
 }

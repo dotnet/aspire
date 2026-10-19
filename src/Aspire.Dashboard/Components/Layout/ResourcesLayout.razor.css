@@ -908,3 +908,9 @@
         display: none;
     }
 }
+
+/* Fluent UI has no 16px GroupList icon. Draw the 20px one at 16px so the grouping button matches the
+   filter and collapse buttons next to it. FluentIcon sets the width inline, hence !important. */
+.resource-pane-head ::deep #resourcePaneGroupingButton svg {
+    width: 16px !important;
+}

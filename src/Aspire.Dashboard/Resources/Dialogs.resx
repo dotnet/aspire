@@ -188,7 +188,8 @@
     <value>Logs &amp; telemetry</value>
   </data>
   <data name="HelpDialogShortcutsHint" xml:space="preserve">
-    <value>Use shortcuts outside text fields and terminal input. Panel shortcuts apply to an open details panel. Press F6 in a terminal to focus its controls before using dashboard shortcuts.</value>
+    <value>Use shortcuts outside text fields and terminal input. Panel shortcuts apply to an open details panel. Press {0} in a terminal to focus its controls before using dashboard shortcuts.</value>
+    <comment>{0} is the F6 key, rendered as a keyboard key.</comment>
   </data>
   <data name="HelpDialogGoToHome" xml:space="preserve">
     <value>Home</value>

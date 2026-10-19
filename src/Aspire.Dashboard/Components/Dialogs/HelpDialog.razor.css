@@ -59,7 +59,8 @@
     margin: 0;
 }
 
-.help-shortcut kbd {
+.help-shortcut kbd,
+.help-shortcuts-hint kbd {
     min-width: 24px;
     padding: 2px 6px;
     border: 1px solid var(--colorNeutralStroke1);

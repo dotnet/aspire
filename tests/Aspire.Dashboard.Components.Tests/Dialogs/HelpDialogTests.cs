@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Model;
@@ -150,6 +151,7 @@ public class HelpDialogTests : DashboardTestContext
             ],
             categories.SelectMany(category => category.QuerySelectorAll(".help-shortcut"))
                 .Select(row => (row.QuerySelector("dt")!.TextContent, row.QuerySelector("kbd")!.TextContent)));
-        Assert.Equal(Resources.Dialogs.HelpDialogShortcutsHint, cut.Find(".help-shortcuts-hint").TextContent);
+        Assert.Equal(string.Format(CultureInfo.InvariantCulture, Resources.Dialogs.HelpDialogShortcutsHint, "F6"), cut.Find(".help-shortcuts-hint").TextContent);
+        Assert.Equal("F6", cut.Find(".help-shortcuts-hint kbd").TextContent);
     }
 }

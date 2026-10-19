@@ -2,7 +2,12 @@
 
 <FluentDialogBody Class="help-dialog-body">
     <div class="help-content">
-        <p class="help-shortcuts-hint">@Loc[nameof(Dialogs.HelpDialogShortcutsHint)]</p>
+        @{
+            // The hint names the F6 key mid-sentence; split around the placeholder so the key renders like the
+            // shortcuts below while translators keep control of the word order.
+            var hintParts = Loc[nameof(Dialogs.HelpDialogShortcutsHint)].Value.Split("{0}", 2);
+        }
+        <p class="help-shortcuts-hint">@hintParts[0]@if (hintParts.Length > 1) {<kbd>F6</kbd>@hintParts[1]}</p>
 
         @{
             var shortcutCategories = GetShortcutsByCategory();

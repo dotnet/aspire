@@ -39,10 +39,12 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     private const string SettingsDialogId = "SettingsDialog";
     private const string HelpDialogId = "HelpDialog";
     private const string NotificationsDialogId = "NotificationsDialog";
+    private const string RecordingsDialogId = "RecordingsDialog";
     private const string AIAgentsDialogId = "AIAgentsDialog";
     internal const string HelpButtonId = "dashboard-help-button";
     internal const string SettingsButtonId = "dashboard-settings-button";
     internal const string NavigationButtonId = "dashboard-navigation-button";
+    internal const string RunSelectButtonId = "dashboard-run-select-button";
     internal const string DashboardDocumentationUrl = "https://aspire.dev/dashboard/overview/";
 
     /// <summary>
@@ -303,7 +305,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
     private string GetDefaultReturnFocusElementId(string desktopButtonId) => ViewportInformation.IsDesktop ? desktopButtonId : NavigationButtonId;
 
-    private async Task SwitchDashboardRunAsync(string? runId)
+    internal async Task SwitchDashboardRunAsync(string? runId)
     {
         _runSelectionChanged = true;
         var selectedRunId = RunSelection.SelectedRun is { IsCurrent: false } selectedRun ? selectedRun.RunId : null;
@@ -476,6 +478,30 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         }
 
         _openPageDialog = await DialogService.ShowPanelAsync<NotificationsDialog>(parameters).ConfigureAwait(true);
+    }
+
+    private async Task LaunchRecordingsAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            Title = Loc[nameof(Resources.Layout.DashboardRunSelectTitle)],
+            PrimaryAction = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)].Value,
+            SecondaryAction = null,
+            Modal = true,
+            Alignment = HorizontalAlignment.Right,
+            Width = "350px",
+            Id = RecordingsDialogId,
+            // The recordings button is in the header on every viewport, so focus always returns to it.
+            OnDialogClosing = EventCallback.Factory.Create<IDialogInstance>(this, _ => HandleDialogClose(RunSelectButtonId))
+        };
+
+        if (!await CloseOpenPageDialogForReplacementAsync(RecordingsDialogId).ConfigureAwait(true))
+        {
+            return;
+        }
+
+        var content = new DashboardRunsDialogContent(RunSelection.SelectedRun.RunId, SwitchDashboardRunAsync);
+        _openPageDialog = await DialogService.ShowPanelAsync<DashboardRunsDialog>(content, parameters).ConfigureAwait(true);
     }
 
     private static readonly IReadOnlySet<AspireKeyboardShortcut> s_subscribedShortcuts = new HashSet<AspireKeyboardShortcut>

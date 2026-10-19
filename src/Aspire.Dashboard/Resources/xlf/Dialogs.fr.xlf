@@ -514,9 +514,9 @@ For more information about using AI agents with the dashboard, including setting
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogShortcutsHint">
-        <source>Use shortcuts outside text fields and terminal input. Panel shortcuts apply to an open details panel. Press F6 in a terminal to focus its controls before using dashboard shortcuts.</source>
-        <target state="new">Use shortcuts outside text fields and terminal input. Panel shortcuts apply to an open details panel. Press F6 in a terminal to focus its controls before using dashboard shortcuts.</target>
-        <note />
+        <source>Use shortcuts outside text fields and terminal input. Panel shortcuts apply to an open details panel. Press {0} in a terminal to focus its controls before using dashboard shortcuts.</source>
+        <target state="new">Use shortcuts outside text fields and terminal input. Panel shortcuts apply to an open details panel. Press {0} in a terminal to focus its controls before using dashboard shortcuts.</target>
+        <note>{0} is the F6 key, rendered as a keyboard key.</note>
       </trans-unit>
       <trans-unit id="HelpDialogTogglePanelOpen">
         <source>Close panel</source>

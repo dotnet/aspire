@@ -15,15 +15,7 @@ namespace Aspire.Dashboard.Components.Controls;
 
 public partial class DashboardRunSelect : ComponentBase
 {
-    private const string DashboardRunsHelpUrl = "https://aka.ms/aspire/run-persistence";
-
-    private static readonly Icon s_checkmarkIcon = new Icons.Regular.Size16.Checkmark();
     private static readonly Icon s_historyIcon = new Icons.Regular.Size24.History();
-    private static readonly Icon s_liveIcon = new Icons.Filled.Size12.Play();
-    private static readonly Icon s_helpIcon = new Icons.Regular.Size16.QuestionCircle();
-    private static readonly Icon s_keepIcon = new Icons.Regular.Size16.LockClosed();
-    private static readonly Icon s_keptIcon = new Icons.Filled.Size16.LockClosed();
-    private readonly string _runMenuItemIdPrefix = $"dashboard-run-{Guid.NewGuid():N}";
 
     // The button is icon-only while the live view is shown, and shows how long ago the recording started
     // otherwise, with the full date in its tooltip. The accessible label always states what is being viewed.
@@ -37,7 +29,7 @@ public partial class DashboardRunSelect : ComponentBase
         : FormatRunDate(SelectedRunStartedAtUtc);
 
     [Parameter, EditorRequired]
-    public required string SelectedRunId { get; set; }
+    public required string ButtonId { get; set; }
 
     [Parameter]
     public bool SelectedRunIsCurrent { get; set; }
@@ -46,100 +38,13 @@ public partial class DashboardRunSelect : ComponentBase
     public DateTimeOffset SelectedRunStartedAtUtc { get; set; }
 
     [Parameter]
-    public EventCallback<string?> SelectedRunIdChanged { get; set; }
+    public EventCallback OnClick { get; set; }
 
     [Inject]
     public required IStringLocalizer<LayoutResources> Loc { get; init; }
 
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
-
-    [Inject]
-    public required IDashboardRunStore RunStore { get; init; }
-
-    [Inject]
-    public required ILogger<DashboardRunSelect> Logger { get; init; }
-
-    private IList<MenuButtonItem> LoadRuns()
-    {
-        var runs = GetSortedRuns(RunStore.GetRuns());
-
-        var menuItems = new List<MenuButtonItem>();
-        var hasRecordings = false;
-        foreach (var run in runs)
-        {
-            if (!run.IsCurrent && !hasRecordings)
-            {
-                hasRecordings = true;
-                AddRecordingsHeader(menuItems);
-            }
-
-            var isCompatible = run.IsCompatible;
-            var menuItem = new MenuButtonItem
-            {
-                Id = $"{_runMenuItemIdPrefix}-{Uri.EscapeDataString(run.RunId)}",
-                RenderKey = run.RunId,
-                Text = FormatRunOption(run),
-                Description = FormatRunDuration(run),
-                Role = MenuItemRole.Radio,
-                Checked = string.Equals(run.RunId, SelectedRunId, StringComparison.Ordinal),
-                Icon = s_checkmarkIcon,
-                StartIcon = run.IsCurrent ? s_liveIcon : null,
-                StartIconColor = Color.Success,
-                IsDisabled = !isCompatible,
-                Tooltip = !isCompatible
-                    ? Loc[nameof(LayoutResources.DashboardRunSelectIncompatibleTooltip)].Value
-                    : run.IsCurrent ? null : FormatRunDate(run.StartedAtUtc),
-                SecondaryActionIcon = run.IsPinned ? s_keptIcon : s_keepIcon,
-                SecondaryActionAriaLabel = Loc[run.IsPinned
-                    ? nameof(LayoutResources.DashboardRunSelectUnpin)
-                    : nameof(LayoutResources.DashboardRunSelectPin)],
-                IsSecondaryActionSelected = run.IsPinned,
-                OnSecondaryActionClick = () =>
-                {
-                    SetRunPinned(run, !run.IsPinned);
-                    return Task.CompletedTask;
-                },
-                OnClick = () => SelectedRunIdChanged.InvokeAsync(run.IsCurrent ? null : run.RunId)
-            };
-            menuItems.Add(menuItem);
-        }
-
-        // Keep the section visible when there's nothing recorded so users learn that recordings exist.
-        if (!hasRecordings)
-        {
-            AddRecordingsHeader(menuItems);
-            menuItems.Add(new MenuButtonItem
-            {
-                Id = $"{_runMenuItemIdPrefix}-no-recordings",
-                IsEmptyGroupText = true,
-                Text = Loc[nameof(LayoutResources.DashboardRunSelectNoRecordings)]
-            });
-        }
-
-        menuItems.Add(new MenuButtonItem { IsDivider = true });
-        menuItems.Add(MenuButtonItem.CreateExternalLink(
-            Loc[nameof(LayoutResources.DashboardRunSelectHelp)],
-            DashboardRunsHelpUrl,
-            s_helpIcon,
-            tooltip: Loc[nameof(LayoutResources.DashboardRunSelectHelpTooltip)]));
-
-        return menuItems;
-    }
-
-    private void AddRecordingsHeader(List<MenuButtonItem> menuItems)
-    {
-        if (menuItems.Count > 0)
-        {
-            menuItems.Add(new MenuButtonItem { IsDivider = true });
-        }
-        menuItems.Add(new MenuButtonItem
-        {
-            Id = $"{_runMenuItemIdPrefix}-recordings-header",
-            IsGroupHeader = true,
-            Text = Loc[nameof(LayoutResources.DashboardRunSelectRecordings)]
-        });
-    }
 
     internal static List<DashboardRunDescriptor> GetSortedRuns(IReadOnlyList<DashboardRunDescriptor> storedRuns)
     {
@@ -173,28 +78,6 @@ public partial class DashboardRunSelect : ComponentBase
         }
 
         return result;
-    }
-
-    private void SetRunPinned(DashboardRunDescriptor run, bool isPinned)
-    {
-        try
-        {
-            RunStore.SetRunPinned(run, isPinned);
-        }
-        catch (Exception exception)
-        {
-            Logger.LogError(exception, "Failed to update the pinned state of dashboard run '{RunId}'.", run.RunId);
-        }
-    }
-
-    private string FormatRunOption(DashboardRunDescriptor run)
-    {
-        if (run.IsCurrent)
-        {
-            return Loc[nameof(LayoutResources.DashboardRunSelectCurrent)];
-        }
-
-        return FormatRunAge(run.StartedAtUtc);
     }
 
     private string FormatRunDate(DateTimeOffset startedAtUtc) => FormatHelpers.FormatDateTime(TimeProvider, startedAtUtc.UtcDateTime);

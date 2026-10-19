@@ -867,7 +867,7 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Use shortcuts outside text fields and terminal input. Panel shortcuts apply to an open details panel. Press F6 in a terminal to focus its controls before using dashboard shortcuts..
+        ///   Looks up a localized string similar to Use shortcuts outside text fields and terminal input. Panel shortcuts apply to an open details panel. Press {0} in a terminal to focus its controls before using dashboard shortcuts..
         /// </summary>
         public static string HelpDialogShortcutsHint {
             get {

@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Threading.Channels;
-using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Components.Tests.Shared;
@@ -76,12 +75,12 @@ public partial class MainLayoutTests
             Assert.True(shortcuts.IsShortcutAvailable(AspireKeyboardShortcut.GoToTerminals));
         });
         Assert.Equal(1, client.ResourceSubscriptionCount);
-        await cut.InvokeAsync(() => cut.FindComponent<DashboardRunSelect>().Instance.SelectedRunIdChanged.InvokeAsync("historical"));
+        await cut.InvokeAsync(() => cut.Instance.SwitchDashboardRunAsync("historical"));
         await disposed.Task.WaitAsync(DefaultWaitTimeout);
         Assert.False(HasTerminals());
         Assert.False(shortcuts.IsShortcutAvailable(AspireKeyboardShortcut.GoToTerminals));
         Assert.Empty(cut.FindComponents<ResourceTerminalsAvailabilityProvider>());
-        await cut.InvokeAsync(() => cut.FindComponent<DashboardRunSelect>().Instance.SelectedRunIdChanged.InvokeAsync(null));
+        await cut.InvokeAsync(() => cut.Instance.SwitchDashboardRunAsync(null));
         cut.WaitForAssertion(() =>
         {
             Assert.True(HasTerminals());

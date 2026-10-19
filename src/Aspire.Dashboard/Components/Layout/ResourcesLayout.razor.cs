@@ -61,6 +61,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
     private bool _pendingLandingRedirect;
     private bool _hasLocation;
     private string? _lastLocation;
+    private bool _isDisposed;
     private IReadOnlyList<string> _selectedResourceNames = [];
     private List<SelectedResourceItem> _selectedItems = [];
     private string? _selectionAnchor;
@@ -190,6 +191,11 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
 
     protected override async Task OnInitializedAsync()
     {
+        // Switching between the live view and a recording, including restoring one when the dashboard opens,
+        // re-creates the page and can dispose this layout while it's still initializing. Capture the token before
+        // the first await: DisposeAsync cancels and then disposes the source, after which its Token throws.
+        var cancellationToken = _cts.Token;
+
         _lastLocation = NavigationManager.Uri;
         UpdateFromLocation(_lastLocation);
 
@@ -227,6 +233,11 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
             await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.ResourcePaneGrouping, _grouping.ToString());
         }
         await ApplyPaneModeFromLocationAsync(_lastLocation);
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
         TagStore.Changed += OnTagsChanged;
         OrderStore.Changed += OnOrderChanged;
 
@@ -249,6 +260,12 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
                     _collapsedResourceNames.Add(resourceName);
                 }
             }
+        }
+
+        // Don't subscribe after DisposeAsync has run: nothing would dispose these subscriptions.
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return;
         }
 
         _logsSubscription = TelemetryRepository.OnNewLogs(null, SubscriptionType.Other, async () =>
@@ -282,7 +299,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
             return;
         }
 
-        var (snapshot, subscription) = await DataSource.ResourceRepository.SubscribeResourcesAsync(_cts.Token);
+        var (snapshot, subscription) = await DataSource.ResourceRepository.SubscribeResourcesAsync(cancellationToken);
         foreach (var resource in snapshot)
         {
             UpsertResource(resource);
@@ -299,7 +316,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
 
         _resourceSubscriptionTask = Task.Run(async () =>
         {
-            await foreach (var changes in subscription.WithCancellation(_cts.Token).ConfigureAwait(false))
+            await foreach (var changes in subscription.WithCancellation(cancellationToken).ConfigureAwait(false))
             {
                 foreach (var (changeType, resource) in changes)
                 {
@@ -1540,7 +1557,10 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
         // FluentTabs also raises this when a tab is disposed, for example when leaving the resources view, and
         // when it syncs with ActiveTabId after a navigation. Only a change made while this layout shows the current
         // URL is a user selecting a tab.
-        if (!string.Equals(NavigationManager.Uri, _lastLocation, StringComparison.Ordinal)
+        // Switching between the live view and a recording re-creates the page, and the outgoing layout's tabs
+        // raise changes while they're torn down, which would otherwise navigate to another tab.
+        if (_isDisposed
+            || !string.Equals(NavigationManager.Uri, _lastLocation, StringComparison.Ordinal)
             || newTab?.Id is not { } id
             || !id.StartsWith("tab-", StringComparison.Ordinal)
             || !Enum.TryParse<ResourceTab>(id["tab-".Length..], out var tab)
@@ -1627,6 +1647,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
 
     public async ValueTask DisposeAsync()
     {
+        _isDisposed = true;
         _cts.Cancel();
         TagStore.Changed -= OnTagsChanged;
         OrderStore.Changed -= OnOrderChanged;

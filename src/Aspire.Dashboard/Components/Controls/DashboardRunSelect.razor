@@ -1,16 +1,19 @@
+@* The header button of the live view and recordings. It opens the recordings panel, like the notifications and
+   settings buttons open theirs. *@
 <div class="application-run-select">
-    <AspireMenuButton Text="@ButtonText"
-                      Title="@RunSelectTitle"
-                      aria-label="@RunSelectAccessibleLabel"
-                      Icon="@(SelectedRunIsCurrent ? s_historyIcon : null)"
-                      IconColor="@(SelectedRunIsCurrent ? Color.Custom : Color.Primary)"
-                      IconCustomColor="@(SelectedRunIsCurrent ? "currentColor" : null)"
-                      IconStart="@(SelectedRunIsCurrent ? null : s_historyIcon)"
-                      IconStartClass="application-run-status"
-                      IconStartColor="Color.Warning"
-                      ItemsProvider="@LoadRuns"
-                      ButtonAppearance="ButtonAppearance.Default"
-                      ButtonClass="application-run-select-button"
-                      HideIcon="true"
-                      RestoreFocusOnItemClick="true" />
+    <FluentButton Id="@ButtonId"
+                  Class="@($"header-button application-run-select-button{(SelectedRunIsCurrent ? string.Empty : " historical")}")"
+                  Appearance="ButtonAppearance.Default"
+                  OnClick="@OnClick"
+                  data-tooltip="@RunSelectTitle"
+                  aria-label="@RunSelectAccessibleLabel"
+                  aria-haspopup="dialog">
+        <FluentIcon Value="@s_historyIcon"
+                    Class="@(SelectedRunIsCurrent ? null : "application-run-status")"
+                    Color="@(SelectedRunIsCurrent ? Color.Default : Color.Warning)" />
+        @if (ButtonText is { } text)
+        {
+            <span class="application-run-select-text">@text</span>
+        }
+    </FluentButton>
 </div>
