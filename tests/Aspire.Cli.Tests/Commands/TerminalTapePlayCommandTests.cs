@@ -411,7 +411,9 @@ public class TerminalTapePlayCommandTests(ITestOutputHelper outputHelper)
         await host.WriteAsync("Waiting for authentication");
         var stdout = new TestOutputTextWriter(outputHelper);
         using var errors = new StringWriter();
-        using var provider = CreateProvider(workspace, host.SocketPath, stdout, errors);
+        // Avoid wrapping long workspace paths in source-location assertions.
+        using var provider = CreateProvider(workspace, host.SocketPath, stdout, errors,
+            configureOptions: options => options.DisableAnsi = true);
         await File.WriteAllTextAsync(Path.Combine(workspace.WorkspaceRoot.FullName, "wait.tape"),
             "# Deliberately impossible condition\nWait+Screen@100ms /never_appears/");
         var result = provider.GetRequiredService<RootCommand>().Parse("terminal tape play shell --tape-file wait.tape");
