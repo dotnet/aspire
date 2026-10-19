@@ -1,6 +1,10 @@
 #!/bin/sh
 set -eu
 ssh-keygen -A
+# A bind mount retains the developer UID; StrictModes requires root-owned server key material.
+cp /run/fixture-authorized-key /root/.ssh/authorized_keys
+chown 0:0 /root/.ssh/authorized_keys
+chmod 600 /root/.ssh/authorized_keys
 # A forcibly stopped fixture can retain pidfiles whose PIDs were reused on restart.
 rm -f /var/run/docker.pid /var/run/docker/containerd/containerd.pid
 dockerd --host=unix:///var/run/docker.sock --storage-driver=vfs >/var/log/dockerd.log 2>&1 &

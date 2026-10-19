@@ -53,7 +53,7 @@ public sealed class RemoteRedisResource : Resource, IResourceWithEndpoints, IRes
         $"set -eu; ids=\"$(docker container ls -a --no-trunc --filter {SshTarget.Quote($"name=^/{ContainerName}$")} --format '{{{{.ID}}}}')\"; " +
         "if [ -n \"$ids\" ]; then " +
         $"test \"$(docker inspect --format '{{{{ index .Config.Labels \"aspire.remote.owner\" }}}}' \"$ids\")\" = {SshTarget.Quote(Owner)} " +
-        "&& docker rm -f \"$ids\"; fi";
+        "&& docker rm -fv \"$ids\"; fi";
 }
 
 public static class RemoteDependencyExtensions
@@ -99,7 +99,7 @@ public static class RemoteDependencyExtensions
         builder.Services.AddHostedService(sp => sp.GetRequiredService<RemoteSessions>());
         return builder.AddResource(new RemoteRedisResource(name, machine.Resource, localPort, image, hostNetworkPort))
             .WithParentRelationship(machine)
-            .WaitFor(machine)
+            .WaitFor(machine, WaitBehavior.StopOnResourceUnavailable)
             .ExcludeFromManifest()
             .WithInitialState(new CustomResourceSnapshot
             {

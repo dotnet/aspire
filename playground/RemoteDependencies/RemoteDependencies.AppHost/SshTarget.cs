@@ -46,7 +46,7 @@ public sealed record SshTarget
         };
         // Ignore user/global SSH configuration: no inherited proxies, forwards or control sockets.
         string[] arguments = ["-F", "/dev/null", "-T", "-o", "BatchMode=yes",
-            "-o", "StrictHostKeyChecking=yes", "-o", $"UserKnownHostsFile={KnownHostsFile}",
+            "-o", "StrictHostKeyChecking=yes", "-o", KnownHostsOption(KnownHostsFile),
             "-o", "GlobalKnownHostsFile=/dev/null", "-o", "IdentitiesOnly=yes",
             "-o", "ConnectTimeout=5", "-o", "ServerAliveInterval=2",
             "-o", "ServerAliveCountMax=2", "-o", "ExitOnForwardFailure=yes",
@@ -93,6 +93,12 @@ public sealed record SshTarget
     }
 
     public static string Quote(string value) => "'" + value.Replace("'", "'\"'\"'", StringComparison.Ordinal) + "'";
+
+    // OpenSSH parses this option as a filename list even though it is one process argument.
+    internal static string KnownHostsOption(string path) =>
+        "UserKnownHostsFile=\"" + path.Replace("\\", "\\\\", StringComparison.Ordinal)
+            .Replace("\"", "\\\"", StringComparison.Ordinal)
+            .Replace("%", "%%", StringComparison.Ordinal) + "\"";
 
     public static void Stop(Process process)
     {

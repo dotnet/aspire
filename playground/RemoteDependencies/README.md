@@ -98,6 +98,10 @@ the local Docker control channel, not unauthenticated `ssh-keyscan`. Password,
 keyboard-interactive, agent, X11 and remote forwarding are disabled. Local
 forwarding is restricted to remote IPv4 loopback destinations. Use
 `.fixture/env.sh` for the generated SSH port and key paths; do not commit it.
+The public key is mounted at a staging path and copied to a root-owned mode-0600
+server `authorized_keys`, so a non-root developer's bind-mount UID does not fail
+OpenSSH `StrictModes`. Known-hosts paths are quoted for OpenSSH's own option
+parser, including paths with spaces.
 
 `fixture.py up` sets `REMOTE_HOST_NETWORK_PORT=26379`. This is an explicit
 **Linux host-network fallback inside the isolated remote fixture**, not host
@@ -126,6 +130,8 @@ The resource uses repository-standard `OnInitializeResource`,
 `BeforeResourceStartedEvent`, allocated endpoint/connection-string events,
 `ResourceNotificationService`, `ResourceLoggerService`, relationships and
 `WaitFor`. An explicitly owned hosted service awaits session cleanup on shutdown.
+The cache explicitly stops waiting on an unavailable machine, including when
+dashboard mode would otherwise default to waiting indefinitely for recovery.
 The endpoint describes the **local tunnel**, including its local target port,
 so DCP does not allocate a conflicting proxy or give local projects a remote
 loopback address. Readiness requires accepted SSH forwarding, a protocol-level
@@ -154,6 +160,9 @@ Each run uses a random container name and `aspire.remote.owner` label. Cleanup
 looks up that name, verifies the owner and removes the **captured immutable ID**,
 not all containers, a global prefix, or a reused name. The integration verifier
 also creates an unrelated sentinel container and proves it survives cleanup.
+Removal includes only that container's associated anonymous volumes: the Redis
+image declares `/data` as a volume even with persistence disabled. The verifier
+asserts the nested engine's volume inventory is unchanged after each full run.
 
 After the checks, remove the fixture and its nested workloads, anonymous Docker
 data volume, generated image and ephemeral key files:
@@ -171,7 +180,7 @@ cache logs/properties after SSH recovers. Do not substitute a broad `docker rm`.
 ## Evidence and design implications
 
 [verification.json](verification.json) records the completed six-scenario run.
-Nineteen focused tests pass, and the targeted AppHost/API build reports zero
+Twenty-two focused tests pass, and the targeted AppHost/API build reports zero
 warnings/errors. The scenario runner additionally checks the API's incremented
 value directly inside Redis, native state transitions, log delivery, inactive
 URLs, actual HTTP 503s, scoped cleanup and explicit restart recovery. It stops
@@ -180,11 +189,17 @@ reconciles only the exact intentionally orphaned owned container.
 
 A second, clean checkout of the published commit was also tested without
 preexisting `.dotnet`, `artifacts` or `.fixture` directories. The targeted restore
-downloaded the pinned SDK/runtime toolset; a fresh build, all 19 tests and the
+downloaded the pinned SDK/runtime toolset; a fresh build, all focused tests and the
 complete six-scenario run passed. Its fixture generated new identities and was
 removed afterward. No files, keys or build outputs were copied from the original
 checkout. This proves the committed-source journey on this Linux environment,
 not a second physical host or an independent WAN topology.
+
+Additional review regression checks used a public-key bind mount owned by UID
+1000 and a real `known_hosts` path containing spaces; the complete SSH matrix
+passed with `StrictModes` enabled and zero anonymous-volume leaks. An injected
+AppHost shutdown reporting failure also confirmed the verifier's nested teardown
+still restores the fixture and removes its sentinel/volumes.
 
 This builds on the discussion's CLI-based runtime abstraction guidance rather
 than introducing another engine API client. The existing `SshRemoteOptions`

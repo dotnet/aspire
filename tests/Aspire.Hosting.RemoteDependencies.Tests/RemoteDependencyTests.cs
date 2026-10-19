@@ -11,6 +11,15 @@ namespace Aspire.Hosting.RemoteDependencies.Tests;
 public class RemoteDependencyTests
 {
     [Theory]
+    [InlineData("/tmp/path with spaces/known_hosts", "UserKnownHostsFile=\"/tmp/path with spaces/known_hosts\"")]
+    [InlineData("/tmp/percent%file", "UserKnownHostsFile=\"/tmp/percent%%file\"")]
+    [InlineData("/tmp/a\"b\\c", "UserKnownHostsFile=\"/tmp/a\\\"b\\\\c\"")]
+    public void EncodesKnownHostsForOpenSshParser(string path, string expected)
+    {
+        Assert.Equal(expected, SshTarget.KnownHostsOption(path));
+    }
+
+    [Theory]
     [InlineData("-oProxyCommand=bad", "developer")]
     [InlineData("host name", "developer")]
     [InlineData("host", "-bad")]
@@ -40,6 +49,11 @@ public class RemoteDependencyTests
             Assert.Equal("127.0.0.1:16379", await ((IResourceWithConnectionString)first).GetConnectionStringAsync());
             Assert.Throws<ArgumentOutOfRangeException>(() => new RemoteRedisResource("bad", machine, 0, "redis", null));
             Assert.Throws<ArgumentOutOfRangeException>(() => new RemoteRedisResource("bad", machine, 1234, "redis", 65536));
+            var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions { DisableDashboard = false });
+            var remote = builder.AddRemoteMachine("machine", machine.Target);
+            var cache = builder.AddRemoteRedis("cache", remote, 16379, "redis:7-alpine", 26379);
+            Assert.Equal(WaitBehavior.StopOnResourceUnavailable,
+                Assert.Single(cache.Resource.Annotations.OfType<WaitAnnotation>()).WaitBehavior);
         }
         finally
         {

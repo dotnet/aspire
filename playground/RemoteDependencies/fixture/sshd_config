@@ -5,6 +5,7 @@ PermitRootLogin prohibit-password
 PasswordAuthentication no
 KbdInteractiveAuthentication no
 PubkeyAuthentication yes
+StrictModes yes
 AuthorizedKeysFile /root/.ssh/authorized_keys
 AllowTcpForwarding local
 PermitOpen 127.0.0.1:*

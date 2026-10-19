@@ -1,6 +1,7 @@
 {
   "topology": "local AppHost/API -> loopback SSH -> isolated SSH fixture -> host-network nested Redis",
   "wan_tested": false,
+  "anonymous_volume_leaks": 0,
   "scenarios": [
     {
       "scenario": "local HTTP -> SSH -> real Redis; logs/status/cleanup/ownership",

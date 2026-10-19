@@ -111,6 +111,7 @@ def healthy(session):
 
 def verify():
     clean()
+    initial_volumes = set(remote("volume", "ls", "-q").splitlines())
     sentinel = remote("run", "-d", "--name", "aspire-remote-unrelated-" + uuid.uuid4().hex,
                       "redis:7-alpine")
     results = []
@@ -189,21 +190,24 @@ def verify():
         session = None
         results.append({"scenario": "remote machine outage -> Unavailable + 503 + explicit cleanup command", "passed": True})
     finally:
-        if session is not None:
-            session.stop()
-        subprocess.run(["docker", "start", CONTAINER], check=True, stdout=subprocess.DEVNULL)
-        wait_for(lambda: subprocess.run(["docker", "exec", CONTAINER, "docker", "info"],
-                                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0,
-                 "fixture engine restored")
-        # The outage deliberately prevents AppHost cleanup; reconcile only that exact owned ID.
-        if "leaked" in locals() and leaked:
-            owner = remote("inspect", "--format", '{{index .Config.Labels "aspire.remote.owner"}}', leaked)
-            assert len(owner) == 32 and remote("inspect", "--format", "{{.Name}}", leaked) == "/aspire-remote-" + owner
-            remote("rm", "-f", leaked)
-        remote("rm", "-f", sentinel)
+        try:
+            if session is not None:
+                session.stop()
+        finally:
+            subprocess.run(["docker", "start", CONTAINER], check=True, stdout=subprocess.DEVNULL)
+            wait_for(lambda: subprocess.run(["docker", "exec", CONTAINER, "docker", "info"],
+                                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0,
+                     "fixture engine restored")
+            # The outage deliberately prevents AppHost cleanup; reconcile only that exact owned ID.
+            if "leaked" in locals() and leaked:
+                owner = remote("inspect", "--format", '{{index .Config.Labels "aspire.remote.owner"}}', leaked)
+                assert len(owner) == 32 and remote("inspect", "--format", "{{.Name}}", leaked) == "/aspire-remote-" + owner
+                remote("rm", "-fv", leaked)
+            remote("rm", "-fv", sentinel)
     clean()
+    assert set(remote("volume", "ls", "-q").splitlines()) == initial_volumes, "Anonymous Redis volume leaked"
     evidence = {"topology": "local AppHost/API -> loopback SSH -> isolated SSH fixture -> host-network nested Redis",
-                "wan_tested": False, "scenarios": results}
+                "wan_tested": False, "anonymous_volume_leaks": 0, "scenarios": results}
     (fixture.STATE / "evidence.json").write_text(json.dumps(evidence, indent=2) + "\n")
     print(json.dumps(evidence, indent=2))
 

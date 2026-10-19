@@ -52,7 +52,7 @@ def up():
                     "--label", f"aspire.remote.fixture={owner}",
                     "--name", f"aspire-ssh-fixture-{owner}",
                     "-p", f"127.0.0.1:{ssh_port}:22",
-                    "--mount", f"type=bind,src={key}.pub,dst=/root/.ssh/authorized_keys,readonly",
+                    "--mount", f"type=bind,src={key}.pub,dst=/run/fixture-authorized-key,readonly",
                     image)
     (STATE / "state.json").write_text(json.dumps(
         {"container": container, "owner": owner, "image": image}, indent=2))
