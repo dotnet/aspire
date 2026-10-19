@@ -107,6 +107,7 @@ public class ServiceContractTests(ITestOutputHelper outputHelper)
     [InlineData("version", "\"1.0\"", "three-part numeric version")]
     [InlineData("imageTag", "\"latest\"", "explicit image/tag")]
     [InlineData("imageTag", "null", "explicit image/tag")]
+    [InlineData("image", "\"https://registry.example/catalog\"", "invalid container image")]
     [InlineData("http", "null", "HTTP target port")]
     [InlineData("http", """{"targetPort":0,"portEnvironmentVariable":"PORT","readinessPath":"/health"}""", "HTTP target port")]
     [InlineData("http", """{"targetPort":8080,"portEnvironmentVariable":"BAD-NAME","readinessPath":"/health"}""", "HTTP target port")]
@@ -185,6 +186,8 @@ public class ServiceContractTests(ITestOutputHelper outputHelper)
 
     [Theory]
     [InlineData("../outside.csproj", "project must be inside")]
+    [InlineData(@"..\outside.csproj", "project must be inside")]
+    [InlineData(@"src/..\..\outside.csproj", "project must be inside")]
     [InlineData("Missing.csproj", "does not exist")]
     public async Task RejectsInvalidSourceProject(string project, string expected)
     {
@@ -201,6 +204,28 @@ public class ServiceContractTests(ITestOutputHelper outputHelper)
 
         Assert.Contains(expected, exception.Message);
         Assert.DoesNotContain(builder.Resources, resource => resource.Name == "catalog");
+    }
+
+    [Theory]
+    [InlineData(@"src\Catalog\Catalog.csproj")]
+    [InlineData(@"src/Catalog\Catalog.csproj")]
+    public async Task SourceProjectUsesNativeProjectSeparatorNormalization(string project)
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var root = workspace.WorkspaceRoot.FullName;
+        var directory = Directory.CreateDirectory(Path.Combine(root, "src", "Catalog"));
+        var expectedPath = Path.Combine(directory.FullName, "Catalog.csproj");
+        await File.WriteAllTextAsync(expectedPath, "<Project Sdk=\"Microsoft.NET.Sdk.Web\" />");
+        var contract = JsonNode.Parse(Contract)!;
+        contract["project"] = project;
+        var path = Path.Combine(root, "aspire-service.json");
+        await File.WriteAllTextAsync(path, contract.ToJsonString());
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var resource = builder.AddServiceContract("catalog", path, "contoso.catalog", 1,
+            new Dictionary<string, IResourceBuilder<ParameterResource>> { ["token"] = builder.AddParameter("token") }, root);
+
+        Assert.True(Assert.IsType<ProjectResource>(resource.Resource).TryGetProjectMetadata(out var metadata));
+        Assert.Equal(expectedPath, metadata.ProjectPath);
     }
 
     [Fact]

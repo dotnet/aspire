@@ -74,6 +74,9 @@ submodules. The only producer content shipped to the consumer is its contract
 artifact; an image is the other release deliverable. The consumer has no
 `ProjectReference` to producer code. It references this Aspire checkout solely
 because the experimental hosting API has not been published.
+These standalone fixtures are excluded from the repository's default playground
+build glob; the runner supplies `AspireRepoRoot` and builds their independent
+projects explicitly.
 
 ```csharp
 var catalog = builder.AddServiceContract(
@@ -205,8 +208,8 @@ should use normal AppHost configuration providers, not shell history or images.
 
 ## Verification and failure UX
 
-The recorded run is in [verification.txt](verification.txt): 99 hosting tests
-(including 24 contract cases) passed on .NET 10, and all 14 runtime probes passed.
+The recorded run is in [verification.txt](verification.txt): 104 hosting tests
+(including 29 contract cases) passed on .NET 10, and all 14 runtime probes passed.
 This is local runtime evidence, not a claim about CI or production deployment.
 
 The runner requires exact response JSON in source mode, after the producer-only

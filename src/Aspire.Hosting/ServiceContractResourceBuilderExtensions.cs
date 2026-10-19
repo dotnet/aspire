@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -72,7 +73,7 @@ public static class ServiceContractResourceBuilderExtensions
             ArgumentException.ThrowIfNullOrWhiteSpace(sourceDirectory);
             var root = Path.GetFullPath(sourceDirectory, builder.AppHostDirectory);
             contract = ReadContract(Path.Combine(root, "aspire-service.json"), contractId, majorVersion);
-            projectPath = Path.GetFullPath(contract.Project, root);
+            projectPath = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(root, contract.Project));
             var relativePath = Path.GetRelativePath(root, projectPath);
             if (Path.IsPathRooted(relativePath) || relativePath == ".." ||
                 relativePath.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
@@ -107,7 +108,16 @@ public static class ServiceContractResourceBuilderExtensions
             return Configure(builder.AddProject(name, projectPath, launchProfileName: null), targetPort: null);
         }
 
-        return Configure(builder.AddContainer(name, contract.Image, contract.ImageTag), contract.Http.TargetPort);
+        var container = builder.CreateResourceBuilder(new ContainerResource(name));
+        try
+        {
+            container.WithImage(contract.Image).WithImageTag(contract.ImageTag);
+        }
+        catch (ArgumentException exception)
+        {
+            throw new DistributedApplicationException($"Invalid service contract '{artifactPath}': invalid container image '{contract.Image}'.", exception);
+        }
+        return Configure(builder.AddResource(container.Resource), contract.Http.TargetPort);
 
         IResourceBuilder<T> Configure<T>(IResourceBuilder<T> resource, int? targetPort)
             where T : IResourceWithEnvironment, IResourceWithEndpoints

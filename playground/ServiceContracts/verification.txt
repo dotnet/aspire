@@ -20,14 +20,14 @@ Builds:
 Tests:
   Built tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj, then ran its
   net10.0 test assembly using /usr/bin/dotnet with four --filter-class options:
-    Aspire.Hosting.Tests.ServiceContractTests (24 cases)
+    Aspire.Hosting.Tests.ServiceContractTests (29 cases)
     Aspire.Hosting.Tests.ProjectResourceTests
     Aspire.Hosting.Tests.WithEnvironmentTests
     Aspire.Hosting.Tests.KestrelConfigTests
   Test run summary: Passed! (net10.0|x64)
-    total: 99
+    total: 104
     failed: 0
-    succeeded: 99
+    succeeded: 104
     skipped: 0
 
 Runtime assertions (actual consumer HTTP /shop -> producer HTTP /products):
@@ -66,9 +66,9 @@ Readiness evidence (timestamps extracted from normal resource logs):
 
 Artifacts retained by the recorded run:
   Local image: aspire-contract-catalog:1.0.0
-  Image ID: sha256:f117a169f1b48a13f10a60afe1326a5e0f03fd7c2656df2890191a68a1cd8636
-  Producer fixture commit: fc3a7a4b7693e6103a695b07110ae2397c48a583
-  Consumer fixture commit: 0d3e01085f1c460c98ba8f29f2005324899fb5ef
+  Image ID: sha256:e00d7d470a62dcee0f0ec90b5355e3b1c4b7a7c125e2fe659a25a970702d63f5
+  Producer fixture commit: a8a16d3910b7231032c7065f47fdc136f63c005f
+  Consumer fixture commit: a1bd5e85df178cf1baacf5f7f31150d6762584c6
   Both fixture working trees were clean after the runner restored its probes.
   AppHosts stopped and no experiment containers remained running.
   Fixture commits/image IDs are per-run artifacts, not remotely published releases.
@@ -80,6 +80,14 @@ Post-publication regression:
   Binding the port variable separately preserves native project URL/Kestrel
   injection. The same test now passes, alongside the existing Kestrel suite and
   a real HTTP source-mode Kestrel runtime probe.
+  Subsequent review fixes normalize source paths with the same helper as
+  AddProject (including mixed/backslash separators and traversal), parse images
+  on a detached resource before registration, and exclude independent fixtures
+  from the default build glob. All 104 tests and all 14 runtime probes passed
+  after these changes. Evaluating eng/Build.props retained 184 regular playground
+  projects and selected no ServiceContracts fixtures.
+  The readiness timestamps above are from the earlier Kestrel-fix run; the latest
+  run also returned the same exact HTTP payload in all successful modes.
 
 Clean-checkout prerequisite validation:
   Original PR head 649a296c11a61ac5bea1e4f63c96ee8405f64f53 was cloned separately
