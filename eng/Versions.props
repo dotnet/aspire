@@ -6,8 +6,8 @@
     <PatchVersion>0</PatchVersion>
     <VersionPrefix>$(MajorVersion).$(MinorVersion).$(PatchVersion)</VersionPrefix>
     <PreReleaseVersionLabel>preview.1</PreReleaseVersionLabel>
-    <!-- The development branch precedes its dashboard image. Remove this override once the matching image tag is published. -->
-    <AspireDashboardImageTag>13.6</AspireDashboardImageTag>
+    <!-- Uncomment this override in future releases when the development branch precedes its dashboard image, using an available tag. -->
+    <!-- <AspireDashboardImageTag>17.0</AspireDashboardImageTag> -->
     <DefaultTargetFramework>net10.0</DefaultTargetFramework>
     <AllTargetFrameworks>$(DefaultTargetFramework);net11.0</AllTargetFrameworks>
     <!-- dotnet versions for running template tests -->
@@ -37,7 +37,7 @@
     <MicrosoftDotNetBuildTasksArchivesVersion>10.0.0-beta.26472.2</MicrosoftDotNetBuildTasksArchivesVersion>
     <!-- dotnet/extensions -->
     <MicrosoftExtensionsAIVersion>10.10.0</MicrosoftExtensionsAIVersion>
-    <MicrosoftExtensionsAIOpenAIVersion>10.10.0</MicrosoftExtensionsAIOpenAIVersion>
+    <MicrosoftExtensionsAIOpenAIVersion>10.10.1</MicrosoftExtensionsAIOpenAIVersion>
     <MicrosoftExtensionsAIAzureAIInferenceVersion>10.0.0-preview.1.25559.3</MicrosoftExtensionsAIAzureAIInferenceVersion>
     <MicrosoftExtensionsHttpResilienceVersion>10.10.0</MicrosoftExtensionsHttpResilienceVersion>
     <MicrosoftExtensionsDependencyInjectionAutoActivationVersion>10.10.0</MicrosoftExtensionsDependencyInjectionAutoActivationVersion>
