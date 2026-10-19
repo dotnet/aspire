@@ -363,6 +363,7 @@ Progress and informational messages go to stderr, so redirection captures only M
 | `startTimestamp` | Resource start time, when available. |
 | `stopTimestamp` | Resource stop time, when available. |
 | `source` | Source path, image, or executable, depending on resource type. |
+| `sourceLocation` | Optional registration-call location, separate from the executable/image `source`. |
 | `exitCode` | Process exit code, when the resource has exited. |
 | `healthStatus` | Current health status, when available. |
 | `dashboardUrl` | Dashboard URL for the resource, when available. |
@@ -373,6 +374,31 @@ Progress and informational messages go to stderr, so redirection captures only M
 | `environment` | Environment variables keyed by variable name. |
 | `healthReports` | Health report objects keyed by report name. |
 | `commands` | Resource command metadata keyed by command name. |
+
+`sourceLocation`, when available, associates this runtime resource with the call that
+registered it. It does not replace the runtime `name` or `uid` used by resource commands.
+Older AppHosts and SDKs can omit it.
+
+Generated SDKs capture source only for resource-returning `add*` methods, not for
+unrelated capabilities that happen to have an `add*` name.
+
+| Source-location field | Description |
+| --------------------- | ----------- |
+| `filePath` | Absolute source-document path. |
+| `lineNumber` | One-based source line. |
+| `columnNumber` | Optional one-based UTF-16 column; Java and non-ASCII Rust source lines report only a line. |
+| `documentHash` | `fnv1a64:` followed by 16 lowercase hexadecimal digits, computed over the UTF-8 document after removing leading BOM characters. Line endings are preserved. |
+| `methodName` | Optional source method name, used to distinguish calls in a fluent expression. |
+
+The fingerprint detects source revisions; it is not an authentication mechanism.
+C# records it at compilation. JavaScript/TypeScript uses embedded source-map contents
+when present, otherwise source-file freshness checks. Java and Rust also check source
+freshness against the running class or executable. Capture can be unavailable, for
+example when source maps or source files are missing.
+
+Editors must reject locations whose fingerprint does not match the current document.
+Without a usable location, duplicate names do not prove which declaration ran; the
+VS Code extension hides ambiguous inline state/actions while retaining tree controls.
 
 ## Logs
 

@@ -129,6 +129,8 @@ import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -345,6 +347,74 @@ public class AspireClient {
                 unregisterCancellation(cancellationId);
             }
         }
+    }
+
+    Map<String, Object> captureResourceSource() {
+        List<StackWalker.StackFrame> frames = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE)
+            .walk(stream -> stream.limit(32).toList());
+        for (int index = 1; index < frames.size(); index++) {
+            StackWalker.StackFrame frame = frames.get(index);
+            StackWalker.StackFrame previous = frames.get(index - 1);
+            if (!previous.getClassName().startsWith("aspire.") || frame.getClassName().startsWith("aspire.")
+                    || frame.getFileName() == null || frame.getLineNumber() <= 0) {
+                continue;
+            }
+            String projectDirectory = System.getenv("ASPIRE_PROJECT_DIRECTORY");
+            String appHostFile = System.getenv("ASPIRE_APPHOST_FILEPATH");
+            if (projectDirectory == null) {
+                debug("Cannot capture resource source without ASPIRE_PROJECT_DIRECTORY.");
+                return null;
+            }
+            Path filePath;
+            if (appHostFile != null && Path.of(appHostFile).getFileName().toString().equals(frame.getFileName())) {
+                filePath = Path.of(appHostFile);
+            } else {
+                String className = frame.getClassName();
+                int packageEnd = className.lastIndexOf('.');
+                Path relative = Path.of(packageEnd < 0 ? "" : className.substring(0, packageEnd).replace('.', '/'))
+                    .resolve(frame.getFileName());
+                Path projectPath = Path.of(projectDirectory);
+                Path rootSource = projectPath.resolve(relative);
+                Path mavenSource = projectPath.resolve("src").resolve("main").resolve("java").resolve(relative);
+                if (Files.isRegularFile(rootSource) == Files.isRegularFile(mavenSource)) {
+                    debug("Cannot uniquely resolve resource source file " + frame.getFileName());
+                    return null;
+                }
+                filePath = Files.isRegularFile(rootSource) ? rootSource : mavenSource;
+            }
+            try {
+                // Class files do not contain a source checksum. Reject source edited after
+                // compilation rather than associating old bytecode with a newer declaration.
+                var classFile = frame.getDeclaringClass().getResource("/" + frame.getClassName().replace('.', '/') + ".class");
+                long compiledAt = 0;
+                if (classFile != null && (classFile.getProtocol().equals("file") || classFile.getProtocol().equals("jar"))) {
+                    compiledAt = classFile.openConnection().getLastModified();
+                } else if (filePath.toAbsolutePath().normalize().toString().equals(System.getProperty("jdk.launcher.sourcefile"))) {
+                    compiledAt = ProcessHandle.current().info().startInstant().map(java.time.Instant::toEpochMilli).orElse(0L);
+                }
+                if (compiledAt == 0 || Files.getLastModifiedTime(filePath).toMillis() > compiledAt) {
+                    debug("Cannot associate resource source with the compiled document revision.");
+                    return null;
+                }
+                String text = Files.readString(filePath, StandardCharsets.UTF_8).replaceFirst("^\uFEFF+", "");
+                long hash = -3750763034362895579L;
+                for (byte value : text.getBytes(StandardCharsets.UTF_8)) {
+                    hash = (hash ^ (value & 0xff)) * 1099511628211L;
+                }
+                Map<String, Object> source = new HashMap<>();
+                source.put("filePath", filePath.toAbsolutePath().normalize().toString());
+                source.put("lineNumber", frame.getLineNumber());
+                source.put("columnNumber", null);
+                source.put("documentHash", "fnv1a64:" + String.format("%016x", hash));
+                source.put("methodName", previous.getMethodName());
+                return source;
+            } catch (IOException error) {
+                debug("Cannot read resource source location: " + error.getMessage());
+                return null;
+            }
+        }
+        debug("Cannot find the resource registration caller.");
+        return null;
     }
 
     private Object sendRequest(String method, Object params) {
@@ -2014,6 +2084,10 @@ public class IDistributedApplicationBuilder extends HandleWrapperBase {
         if (port != null) {
             reqArgs.put("port", AspireClient.serializeValue(port));
         }
+        var $source = getClient().captureResourceSource();
+        if ($source != null) {
+            reqArgs.put("$source", $source);
+        }
         var result = getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/addTestRedis", reqArgs);
         return (TestRedisResource) result;
     }
@@ -2023,6 +2097,10 @@ public class IDistributedApplicationBuilder extends HandleWrapperBase {
         Map<String, Object> reqArgs = new HashMap<>();
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("name", AspireClient.serializeValue(name));
+        var $source = getClient().captureResourceSource();
+        if ($source != null) {
+            reqArgs.put("$source", $source);
+        }
         var result = getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/addTestVault", reqArgs);
         return (ITestVaultResource) result;
     }
@@ -3177,6 +3255,10 @@ public class TestRedisResource extends ResourceBuilderBase {
         reqArgs.put("name", AspireClient.serializeValue(name));
         if (databaseName != null) {
             reqArgs.put("databaseName", AspireClient.serializeValue(databaseName));
+        }
+        var $source = getClient().captureResourceSource();
+        if ($source != null) {
+            reqArgs.put("$source", $source);
         }
         var result = getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/addTestChildDatabase", reqArgs);
         return (TestDatabaseResource) result;

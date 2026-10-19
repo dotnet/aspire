@@ -10,7 +10,7 @@ import { AspireAppHostTreeProvider } from '../views/AspireAppHostTreeProvider';
 import { isCommandVisibleToUi, isEnabledCommand } from '../views/treePresentation';
 import { compareResourceCommands, getParameterValueDescription, getResourceStateDescription } from '../utils/resourceDisplay';
 import { AppHostDataRepository, ResourceJson, AppHostDisplayInfo, ResourceCommandJson } from '../data/AppHostDataRepository';
-import { findResourceState, findWorkspaceResourceState, matchesAppHostPathOrDirectory } from './resourceStateUtils';
+import { createWorkspaceResourceAppHost, findResourceDeclarationState, matchesAppHostPathOrDirectory } from './resourceStateUtils';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { ResourceState, HealthStatus, StateStyle, ResourceType } from './resourceConstants';
 import {
@@ -208,11 +208,14 @@ export class AspireCodeLensProvider implements vscode.CodeLensProvider {
         const globalAppHost = this._resolveGlobalAppHostForDocument(document, appHosts);
         const workspaceAppHostMatchesDocument = workspaceAppHostPath !== '' && this._documentMatchesAppHostPath(document, workspaceAppHostPath);
         const hasRunningData = globalAppHost !== undefined || (workspaceAppHostMatchesDocument && (workspaceResources.length > 0 || workspaceAppHost !== undefined));
-        const findWorkspace = workspaceAppHostMatchesDocument
-            ? findWorkspaceResourceState(workspaceResources, workspaceAppHostPath)
-            : () => undefined;
+        const resourceAppHosts = [
+            ...(globalAppHost ? [globalAppHost] : []),
+            ...(workspaceAppHostMatchesDocument
+                ? [createWorkspaceResourceAppHost(workspaceResources, workspaceAppHostPath, workspaceAppHost)] : []),
+        ];
 
         const lenses: vscode.CodeLens[] = [];
+        const seenResources = new Set<string>();
 
         // Builder-statement lenses (Open Dashboard + View Logs) appear only when this
         // document maps to a concretely-running AppHost — independent of whether any
@@ -257,13 +260,19 @@ export class AspireCodeLensProvider implements vscode.CodeLensProvider {
             } else if (resource.kind === 'resource') {
                 // Resources get state lenses when live data is available
                 if (hasRunningData) {
-                    const match = (globalAppHost ? findResourceState([globalAppHost], resource.name) : undefined)
-                        ?? findWorkspace(resource.name);
+                    const match = findResourceDeclarationState(resourceAppHosts, resource, resources, document);
                     if (match) {
-                        this._addStateLenses(lenses, lineRange, match.resource, match.appHost);
+                        const matchedRange = match.sourceLine === undefined ? lineRange
+                            : new vscode.Range(match.sourceLine, 0, match.sourceLine, 0);
+                        const key = JSON.stringify([match.appHost.appHostPath, match.resource.name, matchedRange.start.line]);
+                        if (seenResources.has(key)) {
+                            continue;
+                        }
+                        seenResources.add(key);
+                        this._addStateLenses(lenses, matchedRange, match.resource, match.appHost);
                         const debuggerInstallHint = getDebuggerInstallHintForResource(match.resource);
                         if (match.resource.state === ResourceState.Running && debuggerInstallHint) {
-                            this._addDebuggerInstallHintLens(lenses, lineRange, debuggerInstallHint);
+                            this._addDebuggerInstallHintLens(lenses, matchedRange, debuggerInstallHint);
                         }
                     }
                 }

@@ -162,6 +162,11 @@ export interface AspireExtensionE2ECodeLensProbeResult {
     filePath: string;
     languageId: string;
     commandTitles: readonly string[];
+    lenses: readonly {
+        line: number;
+        commandId: string | undefined;
+        stringArguments: readonly string[];
+    }[];
 }
 
 export interface AspireDebugConsoleOutputEvent {

@@ -575,8 +575,16 @@ internal sealed class CapabilityDispatcher
 
         try
         {
-            return await registration.Handler(args, _handles).ConfigureAwait(false);
+            var sourceLocation = ReadResourceSourceLocation(capabilityId, args);
+            var result = await registration.Handler(args, _handles).ConfigureAwait(false);
+            if (sourceLocation is not null && HandleRef.FromJsonNode(result) is { } handle)
+            {
+                AttachResourceSourceLocation(_handles.GetObject(handle.HandleId), sourceLocation, args);
+            }
+
+            return result;
         }
+
         catch (PolyglotCapabilityInvocationException ex)
         {
             activity.SetError(ex);
@@ -650,6 +658,89 @@ internal sealed class CapabilityDispatcher
     public JsonNode? Invoke(string capabilityId, JsonObject? args)
     {
         return InvokeAsync(capabilityId, args).GetAwaiter().GetResult();
+    }
+
+    private void AttachResourceSourceLocation(object value, ResourceSourceLocation source, JsonObject args)
+    {
+        // RemoteHost loads the application's Hosting version in an isolated load context.
+        // Resolve its contracts there rather than pinning RemoteHost to a Hosting assembly.
+        if (GetResource(value) is not { } resource)
+        {
+            return;
+        }
+
+        // Add-style modifiers may return a new builder handle for the same input resource.
+        foreach (var argument in args)
+        {
+            if (HandleRef.FromJsonNode(argument.Value) is { } input
+                && _handles.TryGet(input.HandleId, out var inputValue, out _) && inputValue is not null
+                && ReferenceEquals(resource, GetResource(inputValue)))
+            {
+                return;
+            }
+        }
+
+        var resourceType = resource.GetType().GetInterfaces().First(type => type.FullName == "Aspire.Hosting.ApplicationModel.IResource");
+        var annotationType = resourceType.Assembly.GetType("Aspire.Hosting.ApplicationModel.ResourceSourceLocationAnnotation");
+        if (annotationType is null)
+        {
+            _logger.LogDebug("The application's Hosting version does not support resource source locations.");
+            return;
+        }
+        var annotations = (System.Collections.IList)resourceType.GetProperty("Annotations")!.GetValue(resource)!;
+        lock (annotations)
+        {
+            if (annotations.Cast<object>().Any(annotationType.IsInstanceOfType))
+            {
+                return;
+            }
+            var annotation = Activator.CreateInstance(annotationType, [source.FilePath, source.LineNumber, source.ColumnNumber, source.DocumentHash])!;
+            annotationType.GetProperty("MethodName")?.SetValue(annotation, source.MethodName);
+            annotations.Add(annotation);
+        }
+    }
+
+    private static object? GetResource(object value)
+    {
+        var interfaces = value.GetType().GetInterfaces();
+        if (interfaces.Any(type => type.FullName == "Aspire.Hosting.ApplicationModel.IResource"))
+        {
+            return value;
+        }
+
+        var builderType = interfaces.FirstOrDefault(type =>
+            type.IsGenericType && type.GetGenericTypeDefinition().FullName == "Aspire.Hosting.ApplicationModel.IResourceBuilder`1");
+
+        return builderType?.GetProperty("Resource")?.GetValue(value);
+    }
+
+    private static ResourceSourceLocation? ReadResourceSourceLocation(string capabilityId, JsonObject args)
+    {
+        if (!args.Remove("$source", out var node))
+        {
+            return null;
+        }
+
+        // SDK metadata is carried beside CLR arguments without changing the RPC signature:
+        // "$source": { "filePath": "...", "lineNumber": 12, "columnNumber": null,
+        //              "documentHash": "fnv1a64:...", "methodName": "addRedis" }.
+        ResourceSourceLocation? source;
+        try
+        {
+            source = node?.Deserialize<ResourceSourceLocation>(AtsMarshaller.JsonOptions);
+        }
+        catch (JsonException ex)
+        {
+            throw CapabilityException.InvalidArgument(capabilityId, "$source", $"Invalid resource source metadata: {ex.Message}");
+        }
+
+        if (source is null || string.IsNullOrWhiteSpace(source.FilePath) || string.IsNullOrWhiteSpace(source.DocumentHash)
+            || source.LineNumber <= 0 || source.ColumnNumber is <= 0)
+        {
+            throw CapabilityException.InvalidArgument(capabilityId, "$source", "Resource source metadata requires a nonempty path and hash, and positive source coordinates.");
+        }
+
+        return source;
     }
 
     private static async Task<object?> InvokeMethodAsync(MethodInfo method, object? target, object?[] methodArgs, bool runInvocationOnBackgroundThread)
@@ -1041,6 +1132,8 @@ internal sealed class CapabilityDispatcher
     /// Checks if a capability is registered.
     /// </summary>
     public bool HasCapability(string capabilityId) => _capabilities.ContainsKey(capabilityId);
+
+    private sealed record ResourceSourceLocation(string FilePath, int LineNumber, int? ColumnNumber, string DocumentHash, string? MethodName);
 }
 
 /// <summary>

@@ -14,7 +14,9 @@ import {
     registerCallback,
     wrapIfHandle,
     registerHandleWrapper,
-    isPromiseLike
+    isPromiseLike,
+    getResourceSourceLocation,
+    withResourceSource
 } from './transport.mjs';
 import type { AspireClientRpc } from './transport.mjs';
 
@@ -886,6 +888,8 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
     async _addTestRedisInternal(name: string, port?: number | null): Promise<TestRedisResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
         if (port !== undefined) rpcArgs.port = port;
+        const resourceSource = getResourceSourceLocation();
+        if (resourceSource) { rpcArgs['$source'] = resourceSource; }
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestRedis',
             rpcArgs
@@ -901,12 +905,14 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
      */
     addTestRedis(name: string, options?: AddTestRedisOptions): TestRedisResourcePromise {
         const port = options?.port;
-        return new TestRedisResourcePromiseImpl(this._addTestRedisInternal(name, port), this._client);
+        return new TestRedisResourcePromiseImpl(withResourceSource('addTestRedis', () => this._addTestRedisInternal(name, port), false), this._client);
     }
 
     /** @internal */
     async _addTestMarkerInternal(name: string): Promise<TestMarkerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        const resourceSource = getResourceSourceLocation();
+        if (resourceSource) { rpcArgs['$source'] = resourceSource; }
         const result = await this._client.invokeCapability<ITestMarkerResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestMarker',
             rpcArgs
@@ -916,12 +922,14 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
 
     /** Adds a resource exposed only through a bare marker interface. */
     addTestMarker(name: string): TestMarkerResourcePromise {
-        return new TestMarkerResourcePromiseImpl(this._addTestMarkerInternal(name), this._client);
+        return new TestMarkerResourcePromiseImpl(withResourceSource('addTestMarker', () => this._addTestMarkerInternal(name), false), this._client);
     }
 
     /** @internal */
     async _addTestVaultInternal(name: string): Promise<TestVaultResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        const resourceSource = getResourceSourceLocation();
+        if (resourceSource) { rpcArgs['$source'] = resourceSource; }
         const result = await this._client.invokeCapability<TestVaultResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestVault',
             rpcArgs
@@ -935,7 +943,7 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
      * @returns The interface vault resource builder.
      */
     addTestVault(name: string): TestVaultResourcePromise {
-        return new TestVaultResourcePromiseImpl(this._addTestVaultInternal(name), this._client);
+        return new TestVaultResourcePromiseImpl(withResourceSource('addTestVault', () => this._addTestVaultInternal(name), false), this._client);
     }
 
 }
@@ -1868,6 +1876,8 @@ class TestRedisResourceImpl extends ResourceBuilderBase<TestRedisResourceHandle>
     private async _addTestChildDatabaseInternal(name: string, databaseName?: string): Promise<TestDatabaseResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
         if (databaseName !== undefined) rpcArgs.databaseName = databaseName;
+        const resourceSource = getResourceSourceLocation();
+        if (resourceSource) { rpcArgs['$source'] = resourceSource; }
         const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestChildDatabase',
             rpcArgs
@@ -1884,7 +1894,7 @@ class TestRedisResourceImpl extends ResourceBuilderBase<TestRedisResourceHandle>
      */
     addTestChildDatabase(name: string, options?: AddTestChildDatabaseOptions): TestDatabaseResourcePromise {
         const databaseName = options?.databaseName;
-        return new TestDatabaseResourcePromiseImpl(this._addTestChildDatabaseInternal(name, databaseName), this._client);
+        return new TestDatabaseResourcePromiseImpl(withResourceSource('addTestChildDatabase', () => this._addTestChildDatabaseInternal(name, databaseName), false), this._client);
     }
 
     /** @internal */

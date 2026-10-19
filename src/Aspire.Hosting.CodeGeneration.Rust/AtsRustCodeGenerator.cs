@@ -457,6 +457,8 @@ internal sealed class AtsRustCodeGenerator : ICodeGenerator
     {
         var targetParamName = capability.TargetParameterName ?? "builder";
         var methodName = ToSnakeCase(capability.MethodName);
+        var captureResourceSource = capability.ReturnType.IsResourceBuilder
+            && methodName.StartsWith("add_", StringComparison.Ordinal);
         var parameters = capability.Parameters
             .Where(p => !string.Equals(p.Name, targetParamName, StringComparison.Ordinal))
             .ToList();
@@ -508,9 +510,19 @@ internal sealed class AtsRustCodeGenerator : ICodeGenerator
         }
 
         var resultType = hasReturn ? $"Result<{returnType}, Box<dyn std::error::Error>>" : "Result<(), Box<dyn std::error::Error>>";
+        if (captureResourceSource)
+        {
+            WriteLine("    #[track_caller]");
+        }
         WriteLine($"    pub fn {methodName}({paramList}) -> {resultType} {{");
         WriteLine("        let mut args: HashMap<String, Value> = HashMap::new();");
         WriteLine($"        args.insert(\"{targetParamName}\".to_string(), self.handle.to_json());");
+        if (captureResourceSource)
+        {
+            WriteLine($"        if let Some(source) = super::transport::resource_source_location(\"{methodName}\") {{");
+            WriteLine("            args.insert(\"$source\".to_string(), source);");
+            WriteLine("        }");
+        }
 
         foreach (var parameter in parameters)
         {

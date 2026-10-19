@@ -59,7 +59,16 @@ export interface ResourceHealthReportJson {
     exceptionMessage: string | null;
 }
 
+export interface ResourceSourceLocationJson {
+    filePath: string;
+    lineNumber: number;
+    columnNumber?: number | null;
+    documentHash: string;
+    methodName?: string | null;
+}
+
 export interface ResourceJson {
+    sourceLocation?: ResourceSourceLocationJson | null;
     name: string;
     displayName: string | null;
     resourceType: string;

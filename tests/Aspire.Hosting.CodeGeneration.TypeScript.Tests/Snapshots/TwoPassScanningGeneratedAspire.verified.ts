@@ -14,7 +14,9 @@ import {
     registerCallback,
     wrapIfHandle,
     registerHandleWrapper,
-    isPromiseLike
+    isPromiseLike,
+    getResourceSourceLocation,
+    withResourceSource
 } from './transport.mjs';
 import type { AspireClientRpc } from './transport.mjs';
 
@@ -10255,6 +10257,8 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
         repository = isPromiseLike(repository) ? await repository : repository;
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, endpoint };
         if (repository !== undefined) rpcArgs.repository = repository;
+        const resourceSource = getResourceSourceLocation();
+        if (resourceSource) { rpcArgs['$source'] = resourceSource; }
         const result = await this._client.invokeCapability<ContainerRegistryResourceHandle>(
             'Aspire.Hosting/addContainerRegistry',
             rpcArgs
@@ -10269,12 +10273,14 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
      */
     addContainerRegistry(name: string, endpoint: string | ParameterResource | Awaitable<ParameterResource>, options?: AddContainerRegistryOptions): ContainerRegistryResourcePromise {
         let repository = options?.repository;
-        return new ContainerRegistryResourcePromiseImpl(this._addContainerRegistryInternal(name, endpoint, repository), this._client);
+        return new ContainerRegistryResourcePromiseImpl(withResourceSource('addContainerRegistry', () => this._addContainerRegistryInternal(name, endpoint, repository), false), this._client);
     }
 
     /** @internal */
     async _addContainerInternal(name: string, image: string | AddContainerOptions): Promise<ContainerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, image };
+        const resourceSource = getResourceSourceLocation();
+        if (resourceSource) { rpcArgs['$source'] = resourceSource; }
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
             'Aspire.Hosting/addContainer',
             rpcArgs
@@ -10289,7 +10295,7 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
      * @returns The resource builder.
      */
     addContainer(name: string, image: string | AddContainerOptions): ContainerResourcePromise {
-        return new ContainerResourcePromiseImpl(this._addContainerInternal(name, image), this._client);
+        return new ContainerResourcePromiseImpl(withResourceSource('addContainer', () => this._addContainerInternal(name, image), false), this._client);
     }
 
     /** @internal */
@@ -10297,6 +10303,8 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, contextPath };
         if (dockerfilePath !== undefined) rpcArgs.dockerfilePath = dockerfilePath;
         if (stage !== undefined) rpcArgs.stage = stage;
+        const resourceSource = getResourceSourceLocation();
+        if (resourceSource) { rpcArgs['$source'] = resourceSource; }
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
             'Aspire.Hosting/addDockerfile',
             rpcArgs
@@ -10314,7 +10322,7 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
     addDockerfile(name: string, contextPath: string, options?: AddDockerfileOptions): ContainerResourcePromise {
         const dockerfilePath = options?.dockerfilePath;
         const stage = options?.stage;
-        return new ContainerResourcePromiseImpl(this._addDockerfileInternal(name, contextPath, dockerfilePath, stage), this._client);
+        return new ContainerResourcePromiseImpl(withResourceSource('addDockerfile', () => this._addDockerfileInternal(name, contextPath, dockerfilePath, stage), false), this._client);
     }
 
     /** @internal */
@@ -10326,6 +10334,8 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, contextPath, dockerfileFactory: dockerfileFactoryId };
         if (stage !== undefined) rpcArgs.stage = stage;
+        const resourceSource = getResourceSourceLocation();
+        if (resourceSource) { rpcArgs['$source'] = resourceSource; }
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
             'Aspire.Hosting/addDockerfileFactory',
             rpcArgs
@@ -10347,7 +10357,7 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
      */
     addDockerfileFactory(name: string, contextPath: string, dockerfileFactory: (arg: DockerfileFactoryContext) => Promise<string>, options?: AddDockerfileFactoryOptions): ContainerResourcePromise {
         const stage = options?.stage;
-        return new ContainerResourcePromiseImpl(this._addDockerfileFactoryInternal(name, contextPath, dockerfileFactory, stage), this._client);
+        return new ContainerResourcePromiseImpl(withResourceSource('addDockerfileFactory', () => this._addDockerfileFactoryInternal(name, contextPath, dockerfileFactory, stage), false), this._client);
     }
 
     /** @internal */
@@ -10359,6 +10369,8 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
         });
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, contextPath, callback: callbackId };
         if (stage !== undefined) rpcArgs.stage = stage;
+        const resourceSource = getResourceSourceLocation();
+        if (resourceSource) { rpcArgs['$source'] = resourceSource; }
         const result = await this._client.invokeCapability<ContainerResourceHandle>(
             'Aspire.Hosting/addDockerfileBuilder',
             rpcArgs
@@ -10379,12 +10391,14 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
      */
     addDockerfileBuilder(name: string, contextPath: string, callback: (arg: DockerfileBuilderCallbackContext) => Promise<void>, options?: AddDockerfileBuilderOptions): ContainerResourcePromise {
         const stage = options?.stage;
-        return new ContainerResourcePromiseImpl(this._addDockerfileBuilderInternal(name, contextPath, callback, stage), this._client);
+        return new ContainerResourcePromiseImpl(withResourceSource('addDockerfileBuilder', () => this._addDockerfileBuilderInternal(name, contextPath, callback, stage), false), this._client);
     }
 
     /** @internal */
     async _addDotnetToolInternal(name: string, packageId: string): Promise<DotnetToolResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, packageId };
+        const resourceSource = getResourceSourceLocation();
+        if (resourceSource) { rpcArgs['$source'] = resourceSource; }
         const result = await this._client.invokeCapability<DotnetToolResourceHandle>(
             'Aspire.Hosting/addDotnetTool',
             rpcArgs
@@ -10400,12 +10414,14 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
      * @experimental
      */
     addDotnetTool(name: string, packageId: string): DotnetToolResourcePromise {
-        return new DotnetToolResourcePromiseImpl(this._addDotnetToolInternal(name, packageId), this._client);
+        return new DotnetToolResourcePromiseImpl(withResourceSource('addDotnetTool', () => this._addDotnetToolInternal(name, packageId), false), this._client);
     }
 
     /** @internal */
     async _addExecutableInternal(name: string, command: string, workingDirectory: string, args: string[]): Promise<ExecutableResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, command, workingDirectory, args };
+        const resourceSource = getResourceSourceLocation();
+        if (resourceSource) { rpcArgs['$source'] = resourceSource; }
         const result = await this._client.invokeCapability<ExecutableResourceHandle>(
             'Aspire.Hosting/addExecutable',
             rpcArgs
@@ -10426,13 +10442,15 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
      * @returns The resource builder.
      */
     addExecutable(name: string, command: string, workingDirectory: string, args: string[]): ExecutableResourcePromise {
-        return new ExecutableResourcePromiseImpl(this._addExecutableInternal(name, command, workingDirectory, args), this._client);
+        return new ExecutableResourcePromiseImpl(withResourceSource('addExecutable', () => this._addExecutableInternal(name, command, workingDirectory, args), false), this._client);
     }
 
     /** @internal */
     async _addExternalServiceInternal(name: string, url: string | ParameterResource | Awaitable<ParameterResource>): Promise<ExternalServiceResource> {
         url = isPromiseLike(url) ? await url : url;
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, url };
+        const resourceSource = getResourceSourceLocation();
+        if (resourceSource) { rpcArgs['$source'] = resourceSource; }
         const result = await this._client.invokeCapability<ExternalServiceResourceHandle>(
             'Aspire.Hosting/addExternalService',
             rpcArgs
@@ -10442,7 +10460,7 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
 
     /** Adds an external service resource */
     addExternalService(name: string, url: string | ParameterResource | Awaitable<ParameterResource>): ExternalServiceResourcePromise {
-        return new ExternalServiceResourcePromiseImpl(this._addExternalServiceInternal(name, url), this._client);
+        return new ExternalServiceResourcePromiseImpl(withResourceSource('addExternalService', () => this._addExternalServiceInternal(name, url), false), this._client);
     }
 
     /** @internal */
@@ -10451,6 +10469,8 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
         if (value !== undefined) rpcArgs.value = value;
         if (publishValueAsDefault !== undefined) rpcArgs.publishValueAsDefault = publishValueAsDefault;
         if (secret !== undefined) rpcArgs.secret = secret;
+        const resourceSource = getResourceSourceLocation();
+        if (resourceSource) { rpcArgs['$source'] = resourceSource; }
         const result = await this._client.invokeCapability<ParameterResourceHandle>(
             'Aspire.Hosting/addParameter',
             rpcArgs
@@ -10466,13 +10486,15 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
         const value = options?.value;
         const publishValueAsDefault = options?.publishValueAsDefault;
         const secret = options?.secret;
-        return new ParameterResourcePromiseImpl(this._addParameterInternal(name, value, publishValueAsDefault, secret), this._client);
+        return new ParameterResourcePromiseImpl(withResourceSource('addParameter', () => this._addParameterInternal(name, value, publishValueAsDefault, secret), false), this._client);
     }
 
     /** @internal */
     async _addParameterFromConfigurationInternal(name: string, configurationKey: string, secret?: boolean): Promise<ParameterResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, configurationKey };
         if (secret !== undefined) rpcArgs.secret = secret;
+        const resourceSource = getResourceSourceLocation();
+        if (resourceSource) { rpcArgs['$source'] = resourceSource; }
         const result = await this._client.invokeCapability<ParameterResourceHandle>(
             'Aspire.Hosting/addParameterFromConfiguration',
             rpcArgs
@@ -10489,7 +10511,7 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
      */
     addParameterFromConfiguration(name: string, configurationKey: string, options?: AddParameterFromConfigurationOptions): ParameterResourcePromise {
         const secret = options?.secret;
-        return new ParameterResourcePromiseImpl(this._addParameterFromConfigurationInternal(name, configurationKey, secret), this._client);
+        return new ParameterResourcePromiseImpl(withResourceSource('addParameterFromConfiguration', () => this._addParameterFromConfigurationInternal(name, configurationKey, secret), false), this._client);
     }
 
     /** @internal */
@@ -10497,6 +10519,8 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, value };
         if (secret !== undefined) rpcArgs.secret = secret;
         if (persist !== undefined) rpcArgs.persist = persist;
+        const resourceSource = getResourceSourceLocation();
+        if (resourceSource) { rpcArgs['$source'] = resourceSource; }
         const result = await this._client.invokeCapability<ParameterResourceHandle>(
             'Aspire.Hosting/addParameterWithGeneratedValue',
             rpcArgs
@@ -10511,13 +10535,15 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
     addParameterWithGeneratedValue(name: string, value: GenerateParameterDefault, options?: AddParameterWithGeneratedValueOptions): ParameterResourcePromise {
         const secret = options?.secret;
         const persist = options?.persist;
-        return new ParameterResourcePromiseImpl(this._addParameterWithGeneratedValueInternal(name, value, secret, persist), this._client);
+        return new ParameterResourcePromiseImpl(withResourceSource('addParameterWithGeneratedValue', () => this._addParameterWithGeneratedValueInternal(name, value, secret, persist), false), this._client);
     }
 
     /** @internal */
     async _addConnectionStringInternal(name: string, environmentVariableNameOrExpression?: string | ReferenceExpression): Promise<ResourceWithConnectionString> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
         if (environmentVariableNameOrExpression !== undefined) rpcArgs.environmentVariableNameOrExpression = environmentVariableNameOrExpression;
+        const resourceSource = getResourceSourceLocation();
+        if (resourceSource) { rpcArgs['$source'] = resourceSource; }
         const result = await this._client.invokeCapability<IResourceWithConnectionStringHandle>(
             'Aspire.Hosting/addConnectionString',
             rpcArgs
@@ -10531,7 +10557,7 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
      */
     addConnectionString(name: string, options?: AddConnectionStringOptions): ResourceWithConnectionStringPromise {
         const environmentVariableNameOrExpression = options?.environmentVariableNameOrExpression;
-        return new ResourceWithConnectionStringPromiseImpl(this._addConnectionStringInternal(name, environmentVariableNameOrExpression), this._client);
+        return new ResourceWithConnectionStringPromiseImpl(withResourceSource('addConnectionString', () => this._addConnectionStringInternal(name, environmentVariableNameOrExpression), false), this._client);
     }
 
     /** @internal */
@@ -10539,6 +10565,8 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
         launchProfileOrOptions = isPromiseLike(launchProfileOrOptions) ? await launchProfileOrOptions : launchProfileOrOptions;
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, projectPath };
         if (launchProfileOrOptions !== undefined) rpcArgs.launchProfileOrOptions = launchProfileOrOptions;
+        const resourceSource = getResourceSourceLocation();
+        if (resourceSource) { rpcArgs['$source'] = resourceSource; }
         const result = await this._client.invokeCapability<ProjectResourceHandle>(
             'Aspire.Hosting/addProject',
             rpcArgs
@@ -10552,7 +10580,7 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
      */
     addProject(name: string, projectPath: string, options?: AddProjectOptions): ProjectResourcePromise {
         let launchProfileOrOptions = options?.launchProfileOrOptions;
-        return new ProjectResourcePromiseImpl(this._addProjectInternal(name, projectPath, launchProfileOrOptions), this._client);
+        return new ProjectResourcePromiseImpl(withResourceSource('addProject', () => this._addProjectInternal(name, projectPath, launchProfileOrOptions), false), this._client);
     }
 
     /** @internal */
@@ -10560,6 +10588,8 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
         options = isPromiseLike(options) ? await options : options;
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name, path };
         if (options !== undefined) rpcArgs.options = options;
+        const resourceSource = getResourceSourceLocation();
+        if (resourceSource) { rpcArgs['$source'] = resourceSource; }
         const result = await this._client.invokeCapability<CSharpAppResourceHandle>(
             'Aspire.Hosting/addCSharpApp',
             rpcArgs
@@ -10574,7 +10604,7 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
      */
     addCSharpApp(name: string, path: string, optionsBag?: AddCSharpAppOptions): CSharpAppResourcePromise {
         let options = optionsBag?.options;
-        return new CSharpAppResourcePromiseImpl(this._addCSharpAppInternal(name, path, options), this._client);
+        return new CSharpAppResourcePromiseImpl(withResourceSource('addCSharpApp', () => this._addCSharpAppInternal(name, path, options), false), this._client);
     }
 
     /** @internal */
@@ -10751,6 +10781,8 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
     async _addTestRedisInternal(name: string, port?: number | null): Promise<TestRedisResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
         if (port !== undefined) rpcArgs.port = port;
+        const resourceSource = getResourceSourceLocation();
+        if (resourceSource) { rpcArgs['$source'] = resourceSource; }
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestRedis',
             rpcArgs
@@ -10766,12 +10798,14 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
      */
     addTestRedis(name: string, options?: AddTestRedisOptions): TestRedisResourcePromise {
         const port = options?.port;
-        return new TestRedisResourcePromiseImpl(this._addTestRedisInternal(name, port), this._client);
+        return new TestRedisResourcePromiseImpl(withResourceSource('addTestRedis', () => this._addTestRedisInternal(name, port), false), this._client);
     }
 
     /** @internal */
     async _addTestMarkerInternal(name: string): Promise<TestMarkerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        const resourceSource = getResourceSourceLocation();
+        if (resourceSource) { rpcArgs['$source'] = resourceSource; }
         const result = await this._client.invokeCapability<ITestMarkerResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestMarker',
             rpcArgs
@@ -10781,12 +10815,14 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
 
     /** Adds a resource exposed only through a bare marker interface. */
     addTestMarker(name: string): TestMarkerResourcePromise {
-        return new TestMarkerResourcePromiseImpl(this._addTestMarkerInternal(name), this._client);
+        return new TestMarkerResourcePromiseImpl(withResourceSource('addTestMarker', () => this._addTestMarkerInternal(name), false), this._client);
     }
 
     /** @internal */
     async _addTestVaultInternal(name: string): Promise<TestVaultResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+        const resourceSource = getResourceSourceLocation();
+        if (resourceSource) { rpcArgs['$source'] = resourceSource; }
         const result = await this._client.invokeCapability<TestVaultResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestVault',
             rpcArgs
@@ -10800,7 +10836,7 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
      * @returns The interface vault resource builder.
      */
     addTestVault(name: string): TestVaultResourcePromise {
-        return new TestVaultResourcePromiseImpl(this._addTestVaultInternal(name), this._client);
+        return new TestVaultResourcePromiseImpl(withResourceSource('addTestVault', () => this._addTestVaultInternal(name), false), this._client);
     }
 
 }
@@ -48681,6 +48717,8 @@ class TestRedisResourceImpl extends ResourceBuilderBase<TestRedisResourceHandle>
     private async _addTestChildDatabaseInternal(name: string, databaseName?: string): Promise<TestDatabaseResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
         if (databaseName !== undefined) rpcArgs.databaseName = databaseName;
+        const resourceSource = getResourceSourceLocation();
+        if (resourceSource) { rpcArgs['$source'] = resourceSource; }
         const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestChildDatabase',
             rpcArgs
@@ -48697,7 +48735,7 @@ class TestRedisResourceImpl extends ResourceBuilderBase<TestRedisResourceHandle>
      */
     addTestChildDatabase(name: string, options?: AddTestChildDatabaseOptions): TestDatabaseResourcePromise {
         const databaseName = options?.databaseName;
-        return new TestDatabaseResourcePromiseImpl(this._addTestChildDatabaseInternal(name, databaseName), this._client);
+        return new TestDatabaseResourcePromiseImpl(withResourceSource('addTestChildDatabase', () => this._addTestChildDatabaseInternal(name, databaseName), false), this._client);
     }
 
     /** @internal */

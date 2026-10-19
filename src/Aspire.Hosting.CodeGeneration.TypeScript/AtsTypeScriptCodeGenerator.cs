@@ -473,7 +473,9 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
                 registerCallback,
                 wrapIfHandle,
                 registerHandleWrapper,
-                isPromiseLike
+                isPromiseLike,
+                getResourceSourceLocation,
+                withResourceSource
             } from './transport.mjs';
             import type { AspireClientRpc } from './transport.mjs';
 
@@ -1082,6 +1084,8 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     private void GenerateBuilderMethod(BuilderModel builder, AtsCapabilityInfo capability)
     {
         var methodName = capability.MethodName;
+        var captureResourceSource = capability.ReturnType.IsResourceBuilder
+            && methodName.StartsWith("add", StringComparison.OrdinalIgnoreCase);
         var internalMethodName = $"_{methodName}Internal";
         var targetParamName = capability.TargetParameterName ?? "builder";
         var userParams = capability.Parameters.Where(p => p.Name != targetParamName).ToList();
@@ -1239,6 +1243,11 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
         // Build args object with conditional inclusion
         GenerateArgsObjectWithConditionals(targetParamName, requiredParams, optionalParams);
+        if (captureResourceSource)
+        {
+            WriteLine("        const resourceSource = getResourceSourceLocation();");
+            WriteLine("        if (resourceSource) { rpcArgs['$source'] = resourceSource; }");
+        }
 
         if (returnsBuilder)
         {
@@ -1278,6 +1287,10 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         // Forward all params to internal method
         var allParamNames = userParams.Select(p => optionalParams.Contains(p) ? GetLocalParameterName(p) : p.Name);
         var internalCall = $"this.{internalMethodName}({string.Join(", ", allParamNames)})";
+        if (captureResourceSource)
+        {
+            internalCall = $"withResourceSource('{methodName}', () => {internalCall}, false)";
+        }
 
         // For build(), flush pending promises before invoking the internal method.
         // This must happen in the public wrapper (not _buildInternal) to avoid deadlock:
@@ -2837,6 +2850,8 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         var methodName = !string.IsNullOrEmpty(capability.OwningTypeName) && capability.MethodName.Contains('.')
             ? capability.MethodName[(capability.MethodName.LastIndexOf('.') + 1)..]
             : TypeScriptApiProjector.GetTypeScriptMethodName(capability.MethodName);
+        var captureResourceSource = capability.ReturnType.IsResourceBuilder
+            && methodName.StartsWith("add", StringComparison.OrdinalIgnoreCase);
 
         var internalMethodName = $"_{methodName}Internal";
 
@@ -2896,6 +2911,11 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
             // Build args with conditional inclusion
             GenerateArgsObjectWithConditionals(targetParamName, requiredParams, optionalParams);
+            if (captureResourceSource)
+            {
+                WriteLine("        const resourceSource = getResourceSourceLocation();");
+                WriteLine("        if (resourceSource) { rpcArgs['$source'] = resourceSource; }");
+            }
 
             WriteLine($"        const result = await this._client.invokeCapability<{returnHandleType}>(");
             WriteLine($"            '{capability.CapabilityId}',");
@@ -2920,6 +2940,10 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
 
             var internalCallArgs = userParams.Select(p => optionalParams.Contains(p) ? GetLocalParameterName(p) : p.Name);
             var internalCall = $"this.{internalMethodName}({string.Join(", ", internalCallArgs)})";
+            if (captureResourceSource)
+            {
+                internalCall = $"withResourceSource('{methodName}', () => {internalCall}, false)";
+            }
 
             // For build(), flush pending promises before invoking the internal method to avoid deadlock
             if (string.Equals(methodName, "build", StringComparison.OrdinalIgnoreCase))

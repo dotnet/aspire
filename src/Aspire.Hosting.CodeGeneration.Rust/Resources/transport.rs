@@ -8,6 +8,85 @@ use std::sync::{Arc, Mutex, OnceLock, RwLock};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
+/// Writes an ATS diagnostic to stderr when `ASPIRE_DEBUG` is set.
+///
+/// Arguments are passed through `format_args!` so a disabled trace does not format or allocate.
+macro_rules! ats_debug {
+    ($($arg:tt)*) => {
+        if is_debug_enabled() {
+            eprintln!("[Rust ATS] {}", format_args!($($arg)*));
+        }
+    };
+}
+
+/// Captures the user call site before a generated Add method enters the transport.
+#[track_caller]
+pub fn resource_source_location(method_name: &str) -> Option<Value> {
+    let caller = std::panic::Location::caller();
+    let source_path = std::path::PathBuf::from(caller.file());
+    let source_path = if source_path.is_absolute() {
+        source_path
+    } else if let Some(project_directory) = std::env::var_os("ASPIRE_PROJECT_DIRECTORY") {
+        std::path::PathBuf::from(project_directory).join(source_path)
+    } else {
+        match std::path::absolute(source_path) {
+            Ok(path) => path,
+            Err(error) => {
+                ats_debug!("Cannot resolve resource source location: {}", error);
+                return None;
+            }
+        }
+    };
+    // Rust records the call location, but not the original source contents. Never
+    // fingerprint a source revision newer than the executable that is running.
+    let source_modified = std::fs::metadata(&source_path).and_then(|metadata| metadata.modified());
+    let executable_modified = std::env::current_exe().and_then(std::fs::metadata)
+        .and_then(|metadata| metadata.modified());
+    match (source_modified, executable_modified) {
+        (Ok(source), Ok(executable)) if source <= executable => {}
+        _ => {
+            ats_debug!("Cannot associate resource source with the compiled document revision.");
+            return None;
+        }
+    }
+    let text = match std::fs::read_to_string(&source_path) {
+        Ok(text) => text,
+        Err(error) => {
+            ats_debug!("Cannot read resource source location: {}", error);
+            return None;
+        }
+    };
+    let text = text.trim_start_matches('\u{FEFF}');
+    // Location uses rustc's display columns, including four-column tabs and Unicode
+    // display widths, not UTF-16 offsets. Preserve line-only metadata for non-ASCII
+    // lines rather than guessing widths or adding a new dependency to existing AppHosts.
+    // https://github.com/rust-lang/rust/blob/main/compiler/rustc_middle/src/mir/consts.rs
+    let column = text.lines().nth(caller.line() as usize - 1)
+        .and_then(|line| {
+            if !line.is_ascii() {
+                return None;
+            }
+            let mut display_column = 1usize;
+            for (offset, byte) in line.bytes().enumerate() {
+                if display_column == caller.column() as usize {
+                    return Some(offset + 1);
+                }
+                display_column += if byte == b'\t' { 4 } else { 1 };
+            }
+            None
+        });
+    let hash = text.as_bytes().iter()
+        .fold(14695981039346656037u64, |hash, byte|
+            (hash ^ u64::from(*byte)).wrapping_mul(1099511628211));
+    Some(json!({
+        "filePath": source_path.to_string_lossy(),
+        "lineNumber": caller.line(),
+        "columnNumber": column,
+        "documentHash": format!("fnv1a64:{hash:016x}"),
+        "methodName": method_name
+    }))
+}
+
 // Platform-specific connection type
 #[cfg(target_os = "windows")]
 type Connection = std::fs::File;
@@ -22,17 +101,6 @@ type Connection = std::os::unix::net::UnixStream;
 fn is_debug_enabled() -> bool {
     static ENABLED: OnceLock<bool> = OnceLock::new();
     *ENABLED.get_or_init(|| std::env::var_os("ASPIRE_DEBUG").is_some())
-}
-
-/// Writes an ATS diagnostic to stderr when `ASPIRE_DEBUG` is set.
-///
-/// Arguments are passed through `format_args!` so a disabled trace does not format or allocate.
-macro_rules! ats_debug {
-    ($($arg:tt)*) => {
-        if is_debug_enabled() {
-            eprintln!("[Rust ATS] {}", format_args!($($arg)*));
-        }
-    };
 }
 
 /// Standard ATS error codes.

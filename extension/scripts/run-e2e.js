@@ -1747,7 +1747,9 @@ using Aspire.Hosting.Pipelines;
 // The E2E fixture intentionally covers interaction command arguments and terminal metadata while those APIs are still experimental.
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddProject<Projects.AspireE2E_Worker>("e2e-worker")
+if (Environment.GetEnvironmentVariable("ASPIRE_E2E_ALTERNATE_WORKER") != "true")
+{
+    builder.AddProject<Projects.AspireE2E_Worker>("e2e-worker")
     .WithHttpEndpoint(name: "http")
     .WithCommand(
         "echo-arguments",
@@ -1810,6 +1812,11 @@ builder.AddProject<Projects.AspireE2E_Worker>("e2e-worker")
             Description = "Unknown-state command excluded from the VS Code tree.",
             UpdateState = _ => (ResourceCommandState)999,
         });
+}
+else
+{
+    builder.AddProject<Projects.AspireE2E_Worker>("e2e-worker");
+}
 
 builder.AddResource(new NoCommandsResource("e2e-no-commands"));
 

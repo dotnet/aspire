@@ -7,7 +7,7 @@ import './parsers/jsTsAppHostParser';
 import './parsers/rustAppHostParser';
 import { AspireAppHostTreeProvider } from '../views/AspireAppHostTreeProvider';
 import { AppHostDisplayInfo } from '../data/AppHostDataRepository';
-import { findResourceState, findWorkspaceResourceState, matchesAppHostPathOrDirectory } from './resourceStateUtils';
+import { createWorkspaceResourceAppHost, findResourceDeclarationState, matchesAppHostPathOrDirectory } from './resourceStateUtils';
 import { ResourceState, StateStyle, HealthStatus } from './resourceConstants';
 
 type GutterCategory = 'running' | 'warning' | 'error' | 'starting' | 'stopped' | 'completed';
@@ -185,9 +185,11 @@ export class AspireGutterDecorationProvider implements vscode.Disposable {
             return;
         }
 
-        const findWorkspace = workspaceAppHostMatchesDocument
-            ? findWorkspaceResourceState(workspaceResources, workspaceAppHostPath)
-            : () => undefined;
+        const resourceAppHosts = [
+            ...(globalAppHost ? [globalAppHost] : []),
+            ...(workspaceAppHostMatchesDocument
+                ? [createWorkspaceResourceAppHost(workspaceResources, workspaceAppHostPath, this._treeProvider.workspaceAppHost)] : []),
+        ];
         const buckets = new Map<GutterCategory, vscode.DecorationOptions[]>(
             gutterCategories.map(c => [c, []])
         );
@@ -201,15 +203,14 @@ export class AspireGutterDecorationProvider implements vscode.Disposable {
             if (parsed.kind !== 'resource') {
                 continue;
             }
-            const match = (globalAppHost ? findResourceState([globalAppHost], parsed.name) : undefined)
-                ?? findWorkspace(parsed.name);
+            const match = findResourceDeclarationState(resourceAppHosts, parsed, resources, editor.document);
             if (!match) {
                 continue;
             }
 
             const { resource } = match;
             const category = classifyState(resource.state ?? '', resource.stateStyle ?? '', resource.healthStatus ?? '', resource.exitCode);
-            const line = parsed.range.start.line;
+            const line = match.sourceLine ?? parsed.range.start.line;
             const dedupeKey = `${line}:${category}`;
             if (seenLineCategories.has(dedupeKey)) {
                 continue;

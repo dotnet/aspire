@@ -1850,6 +1850,14 @@ internal sealed class AtsJavaCodeGenerator : ICodeGenerator
             }
         }
 
+        if (capability.ReturnType.IsResourceBuilder && methodName.StartsWith("add", StringComparison.Ordinal))
+        {
+            WriteLine("        var $source = getClient().captureResourceSource();");
+            WriteLine("        if ($source != null) {");
+            WriteLine("            reqArgs.put(\"$source\", $source);");
+            WriteLine("        }");
+        }
+
         if (returnInfo.ReturnsCurrentBuilder)
         {
             WriteLine($"        getClient().invokeCapability(\"{capability.CapabilityId}\", reqArgs);");

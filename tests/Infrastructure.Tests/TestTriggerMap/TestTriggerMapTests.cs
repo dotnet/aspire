@@ -181,6 +181,19 @@ public sealed class TestTriggerMapTests
             directPaths.Order(StringComparer.Ordinal));
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ResourceSourceGeneratorChangesRunExtensionE2e(bool projectGraphAvailable)
+    {
+        var result = projectGraphAvailable
+            ? SelectWithRealMap("src/Aspire.Hosting.Analyzers/ResourceSourceLocationGenerator.cs", "Aspire.Hosting.Analyzers")
+            : SelectWithRealMap("src/Aspire.Hosting.Analyzers/ResourceSourceLocationGenerator.cs");
+
+        Assert.False(result.SelectsAll);
+        Assert.Contains("job:extension-e2e", result.Jobs);
+    }
+
     [Fact]
     public void RulesAreWellFormed()
     {

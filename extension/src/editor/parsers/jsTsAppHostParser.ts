@@ -63,6 +63,7 @@ class JsTsAppHostParser implements AppHostResourceParser {
                 name: firstArgument.text,
                 methodName: methodName,
                 range: new vscode.Range(startPos, endPos),
+                invocationRange: new vscode.Range(document.positionAt(node.getStart(sourceFile)), document.positionAt(node.getEnd())),
                 kind: methodName.toLowerCase() === 'addstep' ? 'pipelineStep' : 'resource',
                 statementStartLine,
                 matchStart,

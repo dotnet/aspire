@@ -102,7 +102,11 @@ suite('E2E diagnostics probe', () => {
 
                     return [new vscode.CodeLens(
                         new vscode.Range(0, 0, 0, 0),
-                        { title: 'Probe CodeLens', command: 'aspire-vscode.test.probeCodeLens' })];
+                        {
+                            title: 'Probe CodeLens',
+                            command: 'aspire-vscode.test.probeCodeLens',
+                            arguments: ['resource', 'stop', { state: 'Enabled' }],
+                        })];
                 },
             });
 
@@ -112,6 +116,11 @@ suite('E2E diagnostics probe', () => {
             assert.strictEqual(result.filePath, expectedPath);
             assert.strictEqual(result.languageId, 'typescript');
             assert.ok(result.commandTitles.includes('Probe CodeLens'));
+            assert.deepStrictEqual(result.lenses.filter(lens => lens.commandId === 'aspire-vscode.test.probeCodeLens'), [{
+                line: 0,
+                commandId: 'aspire-vscode.test.probeCodeLens',
+                stringArguments: ['resource', 'stop'],
+            }]);
             assert.ok(!vscode.window.visibleTextEditors.some(editor => editor.document.uri.fsPath === expectedPath));
         }
         finally {

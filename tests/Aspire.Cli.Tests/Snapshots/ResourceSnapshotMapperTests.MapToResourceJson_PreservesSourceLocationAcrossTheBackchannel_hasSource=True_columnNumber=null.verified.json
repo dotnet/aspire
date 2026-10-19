@@ -1,0 +1,18 @@
+﻿{
+  "sourceLocation": {
+    "filePath": "C:\\AppHost\\AppHost.cs",
+    "lineNumber": 7,
+    "documentHash": "fnv1a64:a430d84680aabd0b",
+    "methodName": "AddContainer"
+  },
+  "name": "same-name-runtime-id",
+  "displayName": "same-name",
+  "resourceType": "Container",
+  "relationships": [],
+  "urls": [],
+  "volumes": [],
+  "properties": {},
+  "environment": {},
+  "healthReports": {},
+  "commands": {}
+}

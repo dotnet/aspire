@@ -15,6 +15,12 @@ namespace Aspire.Shared.Model.Serialization;
 internal sealed class ResourceJson
 {
     /// <summary>
+    /// The source invocation that registered this resource, when available.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ResourceSourceLocationJson? SourceLocation { get; set; }
+
+    /// <summary>
     /// The name of the resource.
     /// </summary>
     public string? Name { get; set; }
@@ -122,6 +128,18 @@ internal sealed class ResourceJson
     /// Dictionary key is the command name.
     /// </summary>
     public Dictionary<string, ResourceCommandJson>? Commands { get; set; }
+}
+
+/// <summary>
+/// Identifies a resource registration in a particular source document revision.
+/// </summary>
+internal sealed class ResourceSourceLocationJson
+{
+    public required string FilePath { get; init; }
+    public required int LineNumber { get; init; }
+    public int? ColumnNumber { get; init; }
+    public required string DocumentHash { get; init; }
+    public string? MethodName { get; init; }
 }
 
 /// <summary>

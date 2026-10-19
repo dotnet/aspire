@@ -1,0 +1,75 @@
+﻿[
+  {
+    method: invokeCapability,
+    id: 1,
+    jsonrpc: 2.0,
+    params: {
+      args: {
+        builder: {
+          $handle: builder,
+          $type: IDistributedApplicationBuilder
+        },
+        name: same,
+        $source: {
+          documentHash: fnv1a64:e639ce5c24c4550b,
+          columnNumber: null,
+          filePath: AppHost.java,
+          methodName: addTestRedis,
+          lineNumber: 8
+        }
+      },
+      capabilityId: Aspire.Hosting.CodeGeneration.Java.Tests/addTestRedis
+    }
+  },
+  {
+    method: invokeCapability,
+    id: 1,
+    jsonrpc: 2.0,
+    params: {
+      args: {
+        builder: {
+          $handle: builder,
+          $type: IDistributedApplicationBuilder
+        },
+        name: same,
+        $source: {
+          documentHash: fnv1a64:e639ce5c24c4550b,
+          columnNumber: null,
+          filePath: AppHost.java,
+          methodName: addTestRedis,
+          lineNumber: 10
+        }
+      },
+      capabilityId: Aspire.Hosting.CodeGeneration.Java.Tests/addTestRedis
+    }
+  },
+  {
+    method: invokeCapability,
+    id: 1,
+    jsonrpc: 2.0,
+    params: {
+      args: {
+        resource: {
+          $handle: builder,
+          $type: IDistributedApplicationBuilder
+        }
+      },
+      capabilityId: Tests/addNonResource
+    }
+  },
+  {
+    method: invokeCapability,
+    id: 1,
+    jsonrpc: 2.0,
+    params: {
+      args: {
+        builder: {
+          $handle: builder,
+          $type: IDistributedApplicationBuilder
+        },
+        name: same
+      },
+      capabilityId: Aspire.Hosting.CodeGeneration.Java.Tests/addTestRedis
+    }
+  }
+]
