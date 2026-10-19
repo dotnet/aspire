@@ -850,6 +850,55 @@ public class TrayPanelTests
         Assert.Equal(PanelStatusGlyph.Warning, TrayPanel.GetStatusGlyph(TrayPanelSamples.Offline("/src/A/A.cs", error: "No."), live: true));
     }
 
+    [Theory]
+    [MemberData(nameof(SampleNames))]
+    public void HeaderIsAOneLineBarMatchingTheFooter(string name)
+    {
+        foreach (var palette in new[] { TrayPanelPalette.Light, TrayPanelPalette.Dark,
+            TrayPanelPalette.FromSystemColors(new(0, 0, 0), new(255, 255, 255), new(26, 235, 255), new(63, 242, 63)) })
+        {
+            var panel = CreatePanel(name, palette);
+            var scene = panel.Scene;
+            var gutters = scene.Commands.OfType<FillPathCommand>().Where(fill => fill.Color == palette.Gutter)
+                .Select(fill => fill.Path.GetControlBounds()).ToList();
+
+            Assert.Equal(TrayPanel.FooterHeight, TrayPanel.HeaderHeight);
+            // Rounded corners come from arc math, so compare with a tolerance.
+            static bool Near(PanelRect a, PanelRect b)
+                => Math.Abs(a.X - b.X) < 1e-9 && Math.Abs(a.Y - b.Y) < 1e-9 && Math.Abs(a.Right - b.Right) < 1e-9 && Math.Abs(a.Bottom - b.Bottom) < 1e-9;
+            Assert.Contains(gutters, bounds => Near(bounds, new(0, 0, TrayPanel.Width, TrayPanel.HeaderHeight)));
+            Assert.Contains(gutters, bounds => Near(bounds, new(0, scene.Height - TrayPanel.FooterHeight, TrayPanel.Width, TrayPanel.FooterHeight)));
+            var separators = scene.Commands.OfType<FillPathCommand>().Where(fill => fill.Color == palette.Separator)
+                .Select(fill => fill.Path.GetControlBounds()).ToList();
+            Assert.Contains(new PanelRect(0, TrayPanel.HeaderHeight - 1, TrayPanel.Width, 1), separators);
+            Assert.Contains(new PanelRect(0, scene.Height - TrayPanel.FooterHeight, TrayPanel.Width, 1), separators);
+
+            // Everything in the header is centered on one line, like the footer's buttons.
+            var middle = TrayPanel.HeaderHeight / 2;
+            var header = scene.Commands.OfType<TextCommand>().Where(text => text.Bounds.Bottom <= TrayPanel.HeaderHeight).ToList();
+            Assert.NotEmpty(header);
+            Assert.All(header, text => Assert.Equal(middle, text.Bounds.CenterY));
+            Assert.All(scene.Commands.OfType<LogoCommand>(), logo => Assert.Equal(new PanelRect(20, middle - 10, 20, 20), logo.Bounds));
+            Assert.All(scene.Targets.Where(target => target.Kind == PanelTargetKind.Back),
+                back => Assert.Equal(middle, back.Bounds.CenterY));
+            Assert.All(scene.Targets.TakeLast(3), button => Assert.Equal(scene.Height - TrayPanel.FooterHeight / 2, button.Bounds.CenterY));
+        }
+    }
+
+    [Fact]
+    public void HeaderReadsTitleThenStatusOnOneLine()
+    {
+        var state = TrayPanelSamples.Typical();
+        var scene = new TrayPanel(state, TrayPanelPalette.Light).Scene;
+        var title = scene.Accessibility.Single(element => element.Key.Label == "header.title");
+        var status = scene.Accessibility.Single(element => element.Key.Label == "header.status");
+
+        Assert.Equal("Aspire", title.Name);
+        Assert.Equal(TrayPanel.GetHeaderStatus(state, TrayPanelPalette.Light).Text, status.Name);
+        Assert.Equal(title.Bounds.CenterY, status.Bounds.CenterY);
+        Assert.True(title.Bounds.Right < status.Bounds.X);
+    }
+
     [Fact]
     public void NoticeShowsABannerAndPushesTheListDown()
     {

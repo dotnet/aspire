@@ -81,7 +81,8 @@ Every activation of the tray icon opens a flyout panel, similar to OneDrive's: a
 right click, a Control-click on macOS, Enter or Space on the focused icon on Windows, and
 VoiceOver's press on macOS. Opening it from the keyboard or a screen reader also shows the
 keyboard focus on its first control. There are no native menus. The panel is the
-same on macOS and Windows: a header with the Aspire logo and a one-line status
+same on macOS and Windows: a header bar, as tall and colored as the footer, with the
+Aspire logo, the title, and a one-line status
 ("3 running · 1 needs attention", "Connecting…") behind a colored connection dot, an
 optional banner for real problems (storage, discovery, or a failed action), the AppHost
 list, and a footer with three icon buttons on the right: **Settings** (a gear),

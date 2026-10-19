@@ -17,7 +17,7 @@ internal sealed class TrayPanel
 {
     public const double Width = 360;
     public const double CornerRadius = 8;
-    public const double HeaderHeight = 60;
+    public const double HeaderHeight = 44;
     public const double FooterHeight = 44;
     public const double RowHeight = 52;
     public const double SectionHeaderHeight = 28;
@@ -800,7 +800,8 @@ internal sealed class TrayPanel
 
         var notice = string.IsNullOrWhiteSpace(state.Notice) ? null : state.Notice.Trim();
         var noticeSingleLine = notice is not null && notice.Length * AverageBodyCharacterWidth <= NoticeTextWidth;
-        var noticeHeight = notice is null ? 0 : (noticeSingleLine ? 34 : 50) + 8;
+        // The banner sits 8 px below the header bar and 8 px above the list.
+        var noticeHeight = notice is null ? 0 : (noticeSingleLine ? 34 : 50) + 16;
         var chrome = HeaderHeight + noticeHeight + FooterHeight;
         var height = Math.Min(_maxHeight, chrome + _contentHeight);
         _viewport = new(0, HeaderHeight + noticeHeight, Width, Math.Max(0, height - chrome));
@@ -814,6 +815,10 @@ internal sealed class TrayPanel
         commands.Add(new FillPathCommand(PanelPath.RoundedRect(panel, CornerRadius), palette.Background));
         commands.Add(new FillPathCommand(PanelPath.RoundedRect(footer, 0, 0, CornerRadius, CornerRadius), palette.Gutter));
         commands.Add(new FillPathCommand(PanelPath.Rectangle(new(0, footer.Y, Width, 1)), palette.Separator));
+        // The header is a bar like the footer: the same height and color, with a separator that
+        // mirrors the footer's on its bottom edge.
+        commands.Add(new FillPathCommand(PanelPath.RoundedRect(new(0, 0, Width, HeaderHeight), CornerRadius, CornerRadius, 0, 0), palette.Gutter));
+        commands.Add(new FillPathCommand(PanelPath.Rectangle(new(0, HeaderHeight - 1, Width, 1)), palette.Separator));
 
         if (_settings is null)
         {
@@ -825,11 +830,12 @@ internal sealed class TrayPanel
         }
         if (notice is not null)
         {
-            AddNotice(commands, notice, noticeSingleLine, noticeHeight - 8, palette);
+            AddNotice(commands, notice, noticeSingleLine, noticeHeight - 16, palette);
         }
-        if (_scroll > 0)
+        if (_scroll > 0 && notice is not null)
         {
-            // Mark the edge only when content is scrolled under the header.
+            // Mark the edge only when content is scrolled under the banner; under the header
+            // bar, its own separator already does.
             commands.Add(new FillPathCommand(PanelPath.Rectangle(new(0, _viewport.Y, Width, 1)), palette.Separator));
         }
 
@@ -912,22 +918,30 @@ internal sealed class TrayPanel
 
     private const double NoticeTextWidth = Width - 46 - 22;
 
+    // The header's one line: the logo over the rows' status glyphs, "Aspire" where the AppHost
+    // names start, then the connection dot and the status. "Aspire" is a fixed string, so its
+    // slot is sized for 15 px semibold system text (about 49 DIPs in SF and Segoe UI Variable)
+    // rather than measured, which keeps the layout identical on both platforms.
+    private const double HeaderTitleWidth = 56;
+
     private void AddHeader(List<PanelCommand> commands, TrayViewState state, TrayPanelPalette palette)
     {
-        commands.Add(new LogoCommand(new(16, 16, 28, 28)));
-        var title = new PanelRect(54, 12, Width - 54 - 16, 20);
+        var middle = HeaderHeight / 2;
+        commands.Add(new LogoCommand(new(20, middle - 10, 20, 20)));
+        var title = new PanelRect(TextLeft, middle - 10, HeaderTitleWidth, 20);
         commands.Add(new TextCommand(title, "Aspire", PanelFontRole.Title, palette.TextPrimary));
         AddLabel("header.title", "Aspire", title, chrome: true);
         var (status, dot) = GetHeaderStatus(state, palette);
-        commands.Add(new FillPathCommand(PanelPath.Circle(58, 40, 4), dot));
-        var statusBounds = new PanelRect(68, 32, Width - 68 - 16, 16);
+        commands.Add(new FillPathCommand(PanelPath.Circle(title.Right + 4, middle, 4), dot));
+        var statusLeft = title.Right + 14;
+        var statusBounds = new PanelRect(statusLeft, middle - 8, Width - statusLeft - 16, 16);
         commands.Add(new TextCommand(statusBounds, status, PanelFontRole.Body, palette.TextSecondary));
         AddLabel("header.status", status, statusBounds, chrome: true);
     }
 
     private void AddNotice(List<PanelCommand> commands, string notice, bool singleLine, double height, TrayPanelPalette palette)
     {
-        var banner = new PanelRect(12, HeaderHeight, Width - 24, height);
+        var banner = new PanelRect(12, HeaderHeight + 8, Width - 24, height);
         AddLabel("notice", notice, banner, chrome: true);
         commands.Add(new FillPathCommand(PanelPath.RoundedRect(banner, 6), palette.Banner));
         if (palette.IsHighContrast)
@@ -1255,7 +1269,7 @@ internal sealed class TrayPanel
         AddInteractionFill(commands, backKey, back, palette, includeFocus: false);
         TrayPanelGlyphs.AddIcon(commands, PanelIcon.ChevronLeft, back.Inset(6, 6), _hover == backKey ? palette.TextPrimary : palette.TextSecondary);
         AddTarget(targets, backKey, back, "Back to AppHosts", true, null, tooltip: "Back");
-        var title = new PanelRect(back.Right + 8, 20, Width - back.Right - 24, 20);
+        var title = new PanelRect(back.Right + 8, (HeaderHeight - 20) / 2, Width - back.Right - 24, 20);
         commands.Add(new TextCommand(title, TraySettingsText.PanelTitle, PanelFontRole.Title, palette.TextPrimary));
         AddLabel("settings.title", TraySettingsText.PanelTitle, title, chrome: true);
     }

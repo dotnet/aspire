@@ -676,6 +676,10 @@ internal sealed partial class MacTrayApplication
             Require(scene.Targets.Count(target => target.Kind == PanelTargetKind.Row) == _controller.State.AppHosts.Count
                 + (_panel.IsRecentExpanded ? _controller.State.RecentAppHosts.Count : 0), "The panel must list every AppHost.");
             VerifyPanelAccessibilityForSmoke("the list");
+            Require(scene.Accessibility.Single(element => element.Key.Label == "header.title").Bounds.CenterY == TrayPanel.HeaderHeight / 2
+                && scene.Accessibility.Single(element => element.Key.Label == "header.status").Bounds.CenterY == TrayPanel.HeaderHeight / 2
+                && TrayPanel.HeaderHeight == TrayPanel.FooterHeight,
+                "The header must be one line, as tall as the footer.");
             Require(_panelTooltips.Select(tooltip => tooltip.Text).SequenceEqual(
                     scene.Targets.Where(target => target.Tooltip is not null && !target.HitBounds.IsEmpty).Select(target => target.Tooltip!))
                 && _panelTooltipOwners.Count == _panelTooltips.Count && _panelTooltips.Any(tooltip => tooltip.Text == "Documentation")
