@@ -9,6 +9,7 @@ namespace Aspire.Hosting.Azure.Kubernetes;
 /// <remarks>
 /// Configuration remains mutable so extensions can compose changes before infrastructure generation.
 /// The final values are validated when generating the AKS agent pool profile.
+/// The node pool name and mode are fixed at construction to preserve pool identity.
 /// </remarks>
 /// <param name="Name">The name of the node pool.</param>
 /// <param name="VmSize">The VM size for nodes in the pool.</param>
@@ -25,6 +26,16 @@ public sealed record AksNodePoolConfig(
     AksNodePoolMode Mode,
     string? OsSku = null)
 {
+    /// <summary>
+    /// Gets the name of the node pool.
+    /// </summary>
+    public string Name { get; } = Name;
+
+    /// <summary>
+    /// Gets the mode of the node pool.
+    /// </summary>
+    public AksNodePoolMode Mode { get; } = Mode;
+
     /// <summary>
     /// Gets or sets the VM size for nodes in the pool.
     /// </summary>
