@@ -137,20 +137,6 @@ public sealed class KubernetesDeployWithCertManagerTests(ITestOutputHelper outpu
                 "test \"$EAB_ACCOUNT_UID\" = \"$(kubectl get secret pebble-valid-account-key -n cert-manager-chart -o jsonpath='{.metadata.uid}')\"",
                 counter, TimeSpan.FromMinutes(2));
 
-            if (!typeScript)
-            {
-                await auto.RunCommandAsync("kubectl create namespace eab-accounts", counter);
-                content = await File.ReadAllTextAsync(appHostPath, TestContext.Current.CancellationToken);
-                await File.WriteAllTextAsync(
-                    appHostPath,
-                    content.Replace(buildRun,
-                        "builder.CreateResourceBuilder(certManager.Resource.HelmChart).WithHelmValue(\"clusterResourceNamespace\", \"eab-accounts\");" +
-                        Environment.NewLine + buildRun),
-                    TestContext.Current.CancellationToken);
-                await auto.RunCommandAsync("aspire deploy --non-interactive", counter, TimeSpan.FromMinutes(10));
-                await auto.RunCommandAsync("kubectl get secret pebble-valid-eab -n eab-accounts -o name", counter);
-            }
-
             // Reject only one issuer's deletion at the API server, leaving Secret cleanup permitted.
             // Prove rejection is active before destroy so propagation delays cannot hide the regression.
             await auto.RunCommandAsync(
@@ -170,12 +156,6 @@ public sealed class KubernetesDeployWithCertManagerTests(ITestOutputHelper outpu
                 "FOREIGN=$(kubectl get secret pebble-foreign-eab -n cert-manager-chart -o jsonpath='{.data.unrelated}') && test \"$FOREIGN\" = cmV0YWlu && " +
                 "test \"$EAB_ACCOUNT_UID\" = \"$(kubectl get secret pebble-valid-account-key -n cert-manager-chart -o jsonpath='{.metadata.uid}')\"",
                 counter);
-            if (!typeScript)
-            {
-                await auto.RunCommandAsync(
-                    "SECRETS=$(kubectl get secret pebble-valid-eab -n eab-accounts --ignore-not-found -o name) && test -z \"$SECRETS\"",
-                    counter);
-            }
             await auto.CleanupKubernetesDeploymentAsync(counter, clusterName);
         }
         finally

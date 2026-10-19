@@ -188,8 +188,8 @@ Existing Secrets not marked as Aspire cert-manager-managed are not adopted or de
 Destroy removes the managed EAB Secret before uninstalling cert-manager, even if EAB
 was removed from the issuer configuration before redeployment; it does not
 explicitly delete cert-manager's separate `<issuer>-account-key` Secret.
-Non-secret deployment state records every namespace used for EAB credentials so
-destroy also cleans up previous locations after namespace changes.
+Changing issuer names or namespaces after deployment requires manual cleanup of
+resources at their previous locations.
 
 ClusterIssuers read Secrets from cert-manager's **cluster resource namespace**, not the
 application namespace. The default is the Helm installation namespace, normally

@@ -4,13 +4,11 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Kubernetes;
 using Aspire.Hosting.Kubernetes.Extensions;
 using Aspire.Hosting.Pipelines;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
@@ -498,10 +496,6 @@ public static class CertManagerExtensions
         {
             var resourceVersion = await GetExternalAccountBindingSecretResourceVersionAsync(issuer, context.CancellationToken).ConfigureAwait(false);
             var secretSpec = await BuildExternalAccountBindingSecretApplySpecAsync(issuer, resourceVersion, context.CancellationToken).ConfigureAwait(false);
-            // Record the location before writing, so a partial deploy can still be cleaned up.
-            await RecordExternalAccountBindingNamespaceAsync(
-                context.Services.GetRequiredService<IDeploymentStateManager>(), issuer,
-                GetClusterResourceNamespace(certManager), context.CancellationToken).ConfigureAwait(false);
             var (secretResult, secretDisposable) = ProcessUtil.Run(secretSpec);
             await using (secretDisposable.ConfigureAwait(false))
             {
@@ -614,66 +608,31 @@ public static class CertManagerExtensions
             }
         }
 
-        var stateManager = context.Services.GetRequiredService<IDeploymentStateManager>();
-        var namespaces = await GetExternalAccountBindingCleanupNamespacesAsync(
-            stateManager, issuer, context.CancellationToken).ConfigureAwait(false);
-        foreach (var @namespace in namespaces)
+        // Clean up even after a failed issuer deletion or removal of EAB from the model.
+        var @namespace = GetClusterResourceNamespace(certManager, validateEabConfiguration: issuer.ExternalAccountBinding is not null);
+        var arguments = new List<string>
         {
-            // Both selectors are evaluated by Kubernetes, so foreign Secrets cannot be deleted.
-            var arguments = new List<string>
+            "delete", "secrets",
+            "--field-selector", $"metadata.name={GetExternalAccountBindingSecretName(issuer)}",
+            "--selector", "app.kubernetes.io/managed-by=aspire-cert-manager",
+            "--namespace", @namespace, "--ignore-not-found"
+        };
+        AddKubeConfigArgument(arguments, environment);
+        var (deleteResult, deleteDisposable) = ProcessUtil.Run(new ProcessSpec("kubectl")
+        {
+            ArgumentList = arguments,
+            ThrowOnNonZeroReturnCode = false
+        });
+        await using (deleteDisposable.ConfigureAwait(false))
+        {
+            var result = await deleteResult.WaitAsync(context.CancellationToken).ConfigureAwait(false);
+            if (result.ExitCode != 0)
             {
-                "delete", "secrets",
-                "--field-selector", $"metadata.name={GetExternalAccountBindingSecretName(issuer)}",
-                "--selector", "app.kubernetes.io/managed-by=aspire-cert-manager",
-                "--namespace", @namespace, "--ignore-not-found"
-            };
-            AddKubeConfigArgument(arguments, environment);
-            var (deleteResult, deleteDisposable) = ProcessUtil.Run(new ProcessSpec("kubectl")
-            {
-                ArgumentList = arguments,
-                ThrowOnNonZeroReturnCode = false
-            });
-            await using (deleteDisposable.ConfigureAwait(false))
-            {
-                var result = await deleteResult.WaitAsync(context.CancellationToken).ConfigureAwait(false);
-                if (result.ExitCode != 0)
-                {
-                    throw new InvalidOperationException(
-                        $"Deleting the EAB Secret for ClusterIssuer '{issuer.Name}' in namespace '{@namespace}' failed with exit code {result.ExitCode}.");
-                }
+                throw new InvalidOperationException(
+                    $"Deleting the EAB Secret for ClusterIssuer '{issuer.Name}' in namespace '{@namespace}' failed with exit code {result.ExitCode}.");
             }
         }
     }
-
-    internal static async Task RecordExternalAccountBindingNamespaceAsync(
-        IDeploymentStateManager stateManager, CertManagerIssuerResource issuer, string @namespace, CancellationToken cancellationToken)
-    {
-        var section = await stateManager.AcquireSectionAsync(GetExternalAccountBindingStateSectionName(issuer), cancellationToken).ConfigureAwait(false);
-        var namespaces = section.Data["Namespaces"]?.AsArray() ?? [];
-        if (!namespaces.Any(value => value?.GetValue<string>() == @namespace))
-        {
-            namespaces.Add(@namespace);
-        }
-        section.Data["Namespaces"] = namespaces;
-        await stateManager.SaveSectionAsync(section, cancellationToken).ConfigureAwait(false);
-    }
-
-    internal static async Task<IReadOnlyList<string>> GetExternalAccountBindingCleanupNamespacesAsync(
-        IDeploymentStateManager stateManager, CertManagerIssuerResource issuer, CancellationToken cancellationToken)
-    {
-        var section = await stateManager.AcquireSectionAsync(GetExternalAccountBindingStateSectionName(issuer), cancellationToken).ConfigureAwait(false);
-        if (section.Data["Namespaces"] is JsonArray namespaces)
-        {
-            return namespaces.Select(value => value!.GetValue<string>()).ToArray();
-        }
-
-        // Older deployments may have no saved EAB state. Only consult current namespace
-        // configuration when EAB is actually enabled; non-EAB charts may use extraArgs.
-        return issuer.ExternalAccountBinding is not null ? [GetClusterResourceNamespace(issuer.Parent)] : [];
-    }
-
-    private static string GetExternalAccountBindingStateSectionName(CertManagerIssuerResource issuer)
-        => $"CertManagerEab:{issuer.Parent.Parent.Name}:{issuer.Name}";
 
     internal static async Task<ProcessSpec> BuildExternalAccountBindingSecretApplySpecAsync(
         CertManagerIssuerResource issuer,
@@ -693,7 +652,7 @@ public static class CertManagerExtensions
         var metadata = new Dictionary<string, object>
         {
             ["name"] = GetExternalAccountBindingSecretName(issuer),
-            ["namespace"] = GetClusterResourceNamespace(issuer.Parent),
+            ["namespace"] = GetClusterResourceNamespace(issuer.Parent, validateEabConfiguration: true),
             ["labels"] = new Dictionary<string, string>
             {
                 ["app.kubernetes.io/managed-by"] = "aspire-cert-manager"
@@ -735,7 +694,7 @@ public static class CertManagerExtensions
         var secretName = GetExternalAccountBindingSecretName(issuer);
         var arguments = new List<string>
         {
-            "get", "secret", secretName, "--namespace", GetClusterResourceNamespace(issuer.Parent),
+            "get", "secret", secretName, "--namespace", GetClusterResourceNamespace(issuer.Parent, validateEabConfiguration: true),
             "--ignore-not-found", "-o", @"jsonpath={.metadata.name}:{.metadata.labels.app\.kubernetes\.io/managed-by}:{.metadata.resourceVersion}"
         };
         AddKubeConfigArgument(arguments, issuer.Parent.Parent);
@@ -787,10 +746,10 @@ public static class CertManagerExtensions
         }
     }
 
-    internal static string GetClusterResourceNamespace(CertManagerResource certManager)
+    internal static string GetClusterResourceNamespace(CertManagerResource certManager, bool validateEabConfiguration)
     {
         var chart = certManager.HelmChart;
-        if (chart.Values.Any(pair => pair.Key.StartsWith("extraArgs", StringComparison.Ordinal)
+        if (validateEabConfiguration && chart.Values.Any(pair => pair.Key.StartsWith("extraArgs", StringComparison.Ordinal)
             && pair.Value.Contains("--cluster-resource-namespace", StringComparison.Ordinal)))
         {
             throw new InvalidOperationException(

@@ -144,8 +144,6 @@ account-key preservation on redeployment, and issuer/EAB Secret cleanup through
 verifying that both managed EAB Secrets are still removed while the ACME account
 key is retained. The other issuer has EAB removed before redeployment and is deleted
 normally. A foreign Secret for an issuer without EAB is retained.
-The C# case also changes the cluster resource namespace and verifies cleanup in
-both the original and new namespaces.
 The fixture uses synthetic credentials and test-only TLS trust;
 no Azure subscription or commercial ACME account is needed. This verifies account
 registration, not public certificate issuance.

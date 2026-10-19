@@ -4,7 +4,6 @@
 using System.Text;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Tests;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -147,7 +146,7 @@ public class CertManagerTests
             certManager.Resource.HelmChart.Values["namespace"] = chartNamespace;
         }
 
-        Assert.Equal(expected, CertManagerExtensions.GetClusterResourceNamespace(certManager.Resource));
+        Assert.Equal(expected, CertManagerExtensions.GetClusterResourceNamespace(certManager.Resource, validateEabConfiguration: true));
     }
 
     [Fact]
@@ -158,7 +157,7 @@ public class CertManagerTests
         certManager.Resource.HelmChart.Values["extraArgs[0]"] = "--cluster-resource-namespace=accounts";
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            CertManagerExtensions.GetClusterResourceNamespace(certManager.Resource));
+            CertManagerExtensions.GetClusterResourceNamespace(certManager.Resource, validateEabConfiguration: true));
         Assert.Contains("'clusterResourceNamespace' Helm value", exception.Message);
     }
 
@@ -262,38 +261,13 @@ public class CertManagerTests
     }
 
     [Fact]
-    public async Task ExternalAccountBinding_CleanupRemembersAllNamespacesWithoutCurrentBinding()
-    {
-        var builder = TestDistributedApplicationBuilder.Create();
-        var issuer = builder.AddKubernetesEnvironment("env").AddCertManager("cert-manager").AddIssuer("eab");
-        var stateManager = new InMemoryDeploymentStateManager();
-
-        await CertManagerExtensions.RecordExternalAccountBindingNamespaceAsync(
-            stateManager, issuer.Resource, "accounts-a", TestContext.Current.CancellationToken);
-        await CertManagerExtensions.RecordExternalAccountBindingNamespaceAsync(
-            stateManager, issuer.Resource, "accounts-b", TestContext.Current.CancellationToken);
-        await CertManagerExtensions.RecordExternalAccountBindingNamespaceAsync(
-            stateManager, issuer.Resource, "accounts-b", TestContext.Current.CancellationToken);
-        issuer.Resource.Parent.HelmChart.Values["extraArgs[0]"] = "--cluster-resource-namespace=accounts-c";
-
-        var namespaces = await CertManagerExtensions.GetExternalAccountBindingCleanupNamespacesAsync(
-            stateManager, issuer.Resource, TestContext.Current.CancellationToken);
-
-        Assert.Equal(["accounts-a", "accounts-b"], namespaces);
-    }
-
-    [Fact]
-    public async Task ExternalAccountBinding_NonEabCleanupDoesNotValidateNamespaceOverrides()
+    public void ExternalAccountBinding_NonEabCleanupDoesNotValidateNamespaceOverrides()
     {
         var builder = TestDistributedApplicationBuilder.Create();
         var certManager = builder.AddKubernetesEnvironment("env").AddCertManager("cert-manager");
         certManager.Resource.HelmChart.Values["extraArgs[0]"] = "--cluster-resource-namespace=accounts";
-        var issuer = certManager.AddIssuer("non-eab");
-
-        var namespaces = await CertManagerExtensions.GetExternalAccountBindingCleanupNamespacesAsync(
-            new InMemoryDeploymentStateManager(), issuer.Resource, TestContext.Current.CancellationToken);
-
-        Assert.Empty(namespaces);
+        Assert.Equal("cert-manager-chart",
+            CertManagerExtensions.GetClusterResourceNamespace(certManager.Resource, validateEabConfiguration: false));
     }
 
     [Theory]
