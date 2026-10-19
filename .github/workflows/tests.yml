@@ -470,7 +470,9 @@ jobs:
         run: |
           # The disposable runner's daemon creates sibling containers. Host networking and
           # identical workspace paths let them reach DCP and use its generated bind mounts.
+          # .NET named mutexes use /tmp/.dotnet.* regardless of the shared TMPDIR.
           timeout 15m docker run --rm --init --read-only --network host \
+            --tmpfs /tmp:rw,exec,mode=1777 \
             --group-add "$(stat -c %g /var/run/docker.sock)" \
             --mount type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock \
             --mount "type=bind,source=$NIX_RUNTIME_ROOT,target=$NIX_RUNTIME_ROOT" \

@@ -12,7 +12,7 @@ At runtime, the `nix` install route uses the package-owned layout without extrac
 
 ## Runtime validation
 
-The Nix CI job builds `runtime-image.nix` from the current CLI archive and runs `runtime-smoke/run.sh` in a non-root, read-only Nix-only image. The image has no generic Linux ELF interpreter or `nix-ld`; an unpatched DCP control must fail before the packaged CLI is exercised.
+The Nix CI job builds `runtime-image.nix` from the current CLI archive and runs `runtime-smoke/run.sh` in a non-root Nix-only image with a read-only root filesystem and writable workspace and `/tmp` mounts. The image has no generic Linux ELF interpreter or `nix-ld`; an unpatched DCP control must fail before the packaged CLI is exercised.
 
 The smoke creates an AppHost from the matching template package, starts an HTTP project, and verifies a container can reach it through Aspire's container tunnel. It checks Dashboard availability, package-owned executable paths, absence of runtime bundle extraction, and cleanup across two start/stop cycles. Host networking, the Docker socket, and identical host/container workspace paths are used only on the disposable Linux CI runner.
 
