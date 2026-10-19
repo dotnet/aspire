@@ -1,0 +1,44 @@
+{
+  "run_id": 39330941917,
+  "run_attempt": 1,
+  "run_url": "https://github.com/microsoft/aspire/actions/runs/39330941917",
+  "run_scope": "main",
+  "analyzed_at": "2026-10-19T23:11:05Z",
+  "verdict": "main-repository-breakage",
+  "pr": null,
+  "triggering_merge_pr": null,
+  "main_context": {
+    "last_successful_main_sha": "88ff9ba57c2841cce759adffa849373f9406b0f5",
+    "failed_sha": "f5b60824805c0d3ba273c496155324efb1905588",
+    "candidate_merge_history_state": "incomplete",
+    "candidate_merges": null
+  },
+  "failed_jobs": [
+    {
+      "name": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x)",
+      "id": 118332743617,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39330941917/job/118332743617",
+      "classification": "main-repository-breakage",
+      "reason": "All 59/59 TypeScript validation AppHosts pass, then the 'Run TypeScript SDK validation' step fails (exit code 1) right after stopping the NuxtApp playground apphost, matching the recurring deterministic Nuxt Docker build ('npm ci'/'npm run build') breakage seen in 47+ prior main runs since 2026-10-09.",
+      "failed_steps": [
+        "Run TypeScript SDK validation"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / Polyglot Validation Results",
+      "id": 118336601387,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39330941917/job/118336601387",
+      "classification": "main-repository-breakage",
+      "reason": "Aggregation job fails solely because it reports 'TypeScript: failure' from the upstream TypeScript SDK Validation job; no independent failure in this job itself.",
+      "failed_steps": [
+        "Check validation results"
+      ]
+    }
+  ],
+  "failed_tests": [],
+  "causes": [
+    "typescript-sdk-nuxt-integration-npm-ci-docker-build-failure"
+  ]
+}
