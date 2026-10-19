@@ -103,7 +103,8 @@
         }
         if (showMetrics)
         {
-            cardSpans.Add((OverviewCard.Metrics, _telemetryLoaded && _telemetry!.Instruments.Count > 4 ? 6 : 4));
+            // The card's tiles are the pinned instruments, so their count decides whether it needs the wider slot.
+            cardSpans.Add((OverviewCard.Metrics, _telemetryLoaded && PinStore.GetPinnedInstruments(_telemetry!.Instruments).Count > 4 ? 6 : 4));
         }
         cardSpans.Add((OverviewCard.Properties, properties.Count == 0 ? 4 : 6));
         cardSpans.Add((OverviewCard.Environment, resource.Environment.Length == 0 ? 4 : 6));
@@ -462,8 +463,22 @@
                             <span class="overview-stat-label">@Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewMeters)]</span>
                         </div>
                     </div>
+                    var pinnedInstruments = PinStore.GetPinnedInstruments(telemetry.Instruments);
+                    @if (pinnedInstruments.Count == 0)
+                    {
+                        <div class="overview-empty overview-metrics-empty">
+                            <span>@Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewNoPinnedMetrics)]</span>
+                            <a class="overview-card-link" href="@DashboardUrls.MetricsUrl(resourceName)">@Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewBrowseMeters)]</a>
+                        </div>
+                    }
+                    else
+                    {
+                    <div class="overview-metrics-pinned-label">
+                        <FluentIcon Value="@(new Icons.Filled.Size16.Pin())" Width="12px" Color="Color.Custom" CustomColor="currentColor" />
+                        <span>@Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewPinnedMetrics)]</span>
+                    </div>
                     <ul class="overview-metric-tiles">
-                        @foreach (var instrument in telemetry.Instruments.Take(MetricsPreviewCount))
+                        @foreach (var instrument in pinnedInstruments.Take(MetricsPreviewCount))
                         {
                             <li @key="@($"{instrument.Parent.Name}/{instrument.Name}")">
                                 <a class="overview-metric-tile" href="@DashboardUrls.MetricsUrl(resourceName, instrument.Parent.Name, instrument.Name)" data-tooltip="@instrument.Description">
@@ -473,6 +488,7 @@
                             </li>
                         }
                     </ul>
+                    }
                 }
             </section>
             }

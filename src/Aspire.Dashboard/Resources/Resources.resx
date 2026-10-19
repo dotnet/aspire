@@ -564,4 +564,13 @@
   <data name="ResourceTagsSuggestions" xml:space="preserve">
     <value>Tags</value>
   </data>
+  <data name="ResourceOverviewNoPinnedMetrics" xml:space="preserve">
+    <value>Pin the metrics you want to keep an eye on and they'll show up here.</value>
+  </data>
+  <data name="ResourceOverviewBrowseMeters" xml:space="preserve">
+    <value>Browse meters</value>
+  </data>
+  <data name="ResourceOverviewPinnedMetrics" xml:space="preserve">
+    <value>Pinned</value>
+  </data>
 </root>

@@ -103,12 +103,18 @@ public sealed partial class ResourceOverview : ComponentBase, IAsyncDisposable
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
+    [Inject]
+    public required MetricPinStore PinStore { get; init; }
+
     private ITelemetryRepository TelemetryRepository => DataSource.TelemetryRepository;
 
     private ResourceViewModel? Resource => ResourcesLayout?.SelectedResource;
 
     protected override async Task OnInitializedAsync()
     {
+        // The Metrics card lists pinned instruments, which can change on the metrics page in another tab.
+        PinStore.Changed += OnPinsChanged;
+
         // The console preview hides lines removed with the console logs page's "Remove" action, which are stored
         // as filters in session storage.
         await ConsoleLogsManager.EnsureInitializedAsync();
@@ -134,6 +140,11 @@ public sealed partial class ResourceOverview : ComponentBase, IAsyncDisposable
 
         EnsureSubscriptions();
         UpdateDetails();
+    }
+
+    private void OnPinsChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
     }
 
     private void OnResourcesChanged()
@@ -630,6 +641,7 @@ public sealed partial class ResourceOverview : ComponentBase, IAsyncDisposable
     public ValueTask DisposeAsync()
     {
         _subscribedLayout?.ResourcesChanged -= OnResourcesChanged;
+        PinStore.Changed -= OnPinsChanged;
 
         _resourceCts?.Cancel();
         _resourceCts?.Dispose();

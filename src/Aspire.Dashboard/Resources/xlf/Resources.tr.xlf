@@ -217,6 +217,11 @@
         <target state="translated">(Ayarı Kaldır)</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceOverviewBrowseMeters">
+        <source>Browse meters</source>
+        <target state="new">Browse meters</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceOverviewConsoleTitle">
         <source>Console</source>
         <target state="new">Console</target>
@@ -312,6 +317,11 @@
         <target state="new">No metrics</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceOverviewNoPinnedMetrics">
+        <source>Pin the metrics you want to keep an eye on and they'll show up here.</source>
+        <target state="new">Pin the metrics you want to keep an eye on and they'll show up here.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceOverviewNoProperties">
         <source>No properties</source>
         <target state="new">No properties</target>
@@ -345,6 +355,11 @@
       <trans-unit id="ResourceOverviewPageTitle">
         <source>Resource overview</source>
         <target state="new">Resource overview</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceOverviewPinnedMetrics">
+        <source>Pinned</source>
+        <target state="new">Pinned</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceOverviewPropertiesTitle">

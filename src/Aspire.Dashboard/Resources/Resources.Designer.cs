@@ -546,6 +546,24 @@ namespace Aspire.Dashboard.Resources {
             }
         }
 
+        public static string ResourceOverviewNoPinnedMetrics {
+            get {
+                return ResourceManager.GetString("ResourceOverviewNoPinnedMetrics", resourceCulture);
+            }
+        }
+
+        public static string ResourceOverviewBrowseMeters {
+            get {
+                return ResourceManager.GetString("ResourceOverviewBrowseMeters", resourceCulture);
+            }
+        }
+
+        public static string ResourceOverviewPinnedMetrics {
+            get {
+                return ResourceManager.GetString("ResourceOverviewPinnedMetrics", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Metrics.
         /// </summary>

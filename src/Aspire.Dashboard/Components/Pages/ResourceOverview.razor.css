@@ -449,6 +449,19 @@ a.overview-stat:hover .overview-stat-label {
 }
 
 /* Metric instruments are compact tiles that flow into as many columns as the card width allows. */
+.overview-metrics-empty {
+    flex-wrap: wrap;
+    gap: 4px 8px;
+}
+
+.overview-metrics-pinned-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--colorNeutralForeground2);
+    font-size: 12px;
+}
+
 .overview-metric-tiles {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
