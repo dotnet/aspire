@@ -1305,6 +1305,10 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
             EmitArgsConstruction("\t", capability, requiredParams, optionalParams, targetParamName, "s.handle");
                 WriteLine($"\tresult, err := s.client.invokeCapability(ctx, \"{capability.CapabilityId}\", reqArgs)");
             WriteLine("\tif err != nil { s.setErr(err); return nil }");
+            if (returnType.IsNullable == true)
+            {
+                WriteLine("\tif result == nil { return nil }");
+            }
             WriteLine($"\ttyped, ok := result.({returnGoType})");
             WriteLine("\tif !ok {");
             WriteLine($"\t\ts.setErr(fmt.Errorf(\"aspire: {capability.CapabilityId} returned unexpected type %T\", result))");
@@ -1327,6 +1331,10 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
         WriteLine("\tif err != nil {");
         WriteLine($"\t\treturn &{childImplName}{{resourceBuilderBase: newErroredResourceBuilder(err, s.client)}}");
         WriteLine("\t}");
+        if (returnType.IsNullable == true)
+        {
+            WriteLine("\tif result == nil { return nil }");
+        }
         WriteLine("\thref, ok := result.(handleReference)");
         WriteLine("\tif !ok {");
         WriteLine($"\t\terr := fmt.Errorf(\"aspire: {capability.CapabilityId} returned unexpected type %T\", result)");
