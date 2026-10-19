@@ -1,0 +1,133 @@
+{
+  "run_id": 39216025977,
+  "run_attempt": 1,
+  "run_url": "https://github.com/microsoft/aspire/actions/runs/39216025977",
+  "run_scope": "main",
+  "analyzed_at": "2026-10-19T08:19:32Z",
+  "verdict": "mixed",
+  "pr": null,
+  "triggering_merge_pr": null,
+  "main_context": {
+    "last_successful_main_sha": "88ff9ba57c2841cce759adffa849373f9406b0f5",
+    "failed_sha": "5bcd4dfc95d5000b36a14c5680c4ec73c63e9986",
+    "candidate_merge_history_state": "incomplete",
+    "candidate_merges": null
+  },
+  "failed_jobs": [
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (windows-latest)",
+      "id": 117940733649,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39216025977/job/117940733649",
+      "classification": "flaky-test",
+      "reason": "TelemetryShutdownTests.Shutdown_HandlesBlockedDeliveryAndStorage(Local) timed out after 30000ms in a RemoteExecutor child process on windows-latest; a single isolated timeout in an async wait, not a deterministic assertion failure tied to repo changes.",
+      "failed_steps": [
+        "Run tests (Windows)"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Dashboard.Components.Tests, Dashboard.Components, Dashboard.Com... / Dashboard.Components (windows-latest)",
+      "id": 117940733754,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39216025977/job/117940733754",
+      "classification": "flaky-test",
+      "reason": "MetricsTests.ChartContainer_UnavailableHistogramPercentiles_TablePreservesExemplars fails with 'Assert.Single() Failure: The collection was empty', matching a previously tracked flaky test with an identical error pattern.",
+      "failed_steps": [
+        "Run tests (Windows)"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Hosting.MongoDB.Tests, Hosting.MongoDB, Hosting.MongoDB, tests/... / Hosting.MongoDB (ubuntu-latest)",
+      "id": 117940738286,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39216025977/job/117940738286",
+      "classification": "flaky-test",
+      "reason": "VerifyMongoDBMultiNodeReplicaSetResource failed because resource 'rs0' did not become healthy; same root-cause family (mongod replica-set startup flakiness in CI containers) as other tracked MongoDB replica-set flaky tests, though this exact test name is new.",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Hosting.DevTunnels.Tests, Hosting.DevTunnels, Hosting.DevTunnel... / Hosting.DevTunnels (ubuntu-latest)",
+      "id": 117940746354,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39216025977/job/117940746354",
+      "classification": "flaky-test",
+      "reason": "DevTunnelMonitorTests.RestartRejectsReadinessFromPreviousRun throws ObjectDisposedException on a disposed IServiceProvider during command-state update, the same disposal-race root cause as other tracked DevTunnelMonitor flaky tests, though this exact test name is new.",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x)",
+      "id": 117943899489,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39216025977/job/117943899489",
+      "classification": "main-repository-breakage",
+      "reason": "All 59 TypeScript validation AppHosts passed, but the Nuxt integration test's generated 'web' Docker publish image build step fails deterministically, matching a long-running recurring main-repository breakage observed across dozens of prior runs since 2026-10-09.",
+      "failed_steps": [
+        "Run TypeScript SDK validation"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / Polyglot Validation Results",
+      "id": 117947591477,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39216025977/job/117947591477",
+      "classification": "main-repository-breakage",
+      "reason": "Downstream aggregation job fails solely because the TypeScript SDK Validation (Node 22.x) leg failed; logs show 'TypeScript: failure' with Python/Go/Java all succeeding.",
+      "failed_steps": [
+        "Check validation results"
+      ]
+    }
+  ],
+  "failed_tests": [
+    {
+      "name": "Aspire.Cli.Tests.Telemetry.TelemetryShutdownTests.Shutdown_HandlesBlockedDeliveryAndStorage(scenario: \"Local\")",
+      "job": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (windows-latest)",
+      "error": "Microsoft.DotNet.RemoteExecutor.RemoteExecutionException : Remote process failed with an unhandled exception.",
+      "stack_trace": "Child exception:\n  System.TimeoutException: The operation at D:\\a\\aspire\\aspire\\tests\\Aspire.Cli.Tests\\Telemetry\\TelemetryShutdownTests.cs:249 timed out after reaching the limit of 30000ms.\n   at Microsoft.AspNetCore.InternalTesting.AsyncTestHelpers.TimeoutAfter(Task task, TimeSpan timeout, String filePath, Int32 lineNumber) in D:\\a\\aspire\\aspire\\tests\\Shared\\AsyncTestHelpers.cs:line 201\n   at Aspire.Cli.Tests.Telemetry.TelemetryShutdownTests.<>c.<<Shutdown_HandlesBlockedDeliveryAndStorage>b__4_0>d.MoveNext() in D:\\a\\aspire\\aspire\\tests\\Aspire.Cli.Tests\\Telemetry\\TelemetryShutdownTests.cs:line 249\n--- End of stack trace from previous location ---\n   at Aspire.Cli.Tests.Telemetry.TelemetryShutdownTests.<>c.<<Shutdown_HandlesBlockedDeliveryAndStorage>b__4_0>d.MoveNext() in D:\\a\\aspire\\aspire\\tests\\Aspire.Cli.Tests\\Telemetry\\TelemetryShutdownTests.cs:line 260\n--- End of stack trace from previous location ---\n   at Microsoft.DotNet.RemoteExecutor.Program.Main(String[] args) in /_/src/Microsoft.DotNet.RemoteExecutor/src/Program.cs:line 65\n\nChild process:\n  Aspire.Cli.Tests, Version=42.42.42.42, Culture=neutral, PublicKeyToken=null Aspire.Cli.Tests.Telemetry.TelemetryShutdownTests+<>c System.Threading.Tasks.Task <Shutdown_HandlesBlockedDeliveryAndStorage>b__4_0(System.String, System.String)\n\nChild arguments:\n  C:\\Users\\runneradmin\\AppData\\Local\\Temp\\Aspire.Cli.Tests\\Workspace\\5phtc31q.mif, Local",
+      "standard_output": "Temporary workspace created at: C:\\Users\\runneradmin\\AppData\\Local\\Temp\\Aspire.Cli.Tests\\Workspace\\5phtc31q.mif\nDisposing temporary workspace at: C:\\Users\\runneradmin\\AppData\\Local\\Temp\\Aspire.Cli.Tests\\Workspace\\5phtc31q.mif",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "A RemoteExecutor child process timed out waiting on a 30s async operation; this is consistent with CI runner CPU/timing contention rather than a code defect, and other scenarios of the same test are already tracked as flaky on other platforms."
+    },
+    {
+      "name": "Aspire.Dashboard.Components.Tests.Pages.MetricsTests.ChartContainer_UnavailableHistogramPercentiles_TablePreservesExemplars(includeAvailableIntervals: False, onlyShowValueChanges: False)",
+      "job": "Tests / No-package tests (regular, Aspire.Dashboard.Components.Tests, Dashboard.Components, Dashboard.Com... / Dashboard.Components (windows-latest)",
+      "error": "Assert.Single() Failure: The collection was empty",
+      "stack_trace": "at Aspire.Dashboard.Components.Tests.Pages.MetricsTests.ChartContainer_UnavailableHistogramPercentiles_TablePreservesExemplars(Boolean includeAvailableIntervals, Boolean onlyShowValueChanges) in /_/tests/Aspire.Dashboard.Components.Tests/Pages/MetricsTests.cs:line 245\n--- End of stack trace from previous location ---",
+      "standard_output": "Temporary workspace created at: C:\\Users\\runneradmin\\AppData\\Local\\Temp\\Aspire.Dashboard.Components.Tests\\Workspace\\hditlwa0.33q\nDisposing temporary workspace at: C:\\Users\\runneradmin\\AppData\\Local\\Temp\\Aspire.Dashboard.Components.Tests\\Workspace\\hditlwa0.33q",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Exact match to a previously tracked flaky test with the same assertion failure and error pattern on Windows."
+    },
+    {
+      "name": "Aspire.Hosting.MongoDB.Tests.MongoDbReplicaSetFunctionalTests.VerifyMongoDBMultiNodeReplicaSetResource",
+      "job": "Tests / No-package tests (regular, Aspire.Hosting.MongoDB.Tests, Hosting.MongoDB, Hosting.MongoDB, tests/... / Hosting.MongoDB (ubuntu-latest)",
+      "error": "Aspire.Hosting.DistributedApplicationException : Stopped waiting for resource 'rs0' to become healthy because it failed to start.",
+      "stack_trace": "at Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceHealthyAsync(String resourceName, WaitBehavior waitBehavior, CancellationToken cancellationToken) in /_/src/Aspire.Hosting/ApplicationModel/ResourceNotificationService.cs:line 278\n   at Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceHealthyAsync(String resourceName, CancellationToken cancellationToken) in /_/src/Aspire.Hosting/ApplicationModel/ResourceNotificationService.cs:line 211\n   at Aspire.Hosting.MongoDB.Tests.MongoDbReplicaSetFunctionalTests.VerifyMongoDBMultiNodeReplicaSetResource() in /home/runner/work/aspire/aspire/tests/Aspire.Hosting.MongoDB.Tests/ReplicaSet/MongoDbReplicaSetFunctionalTests.cs:line 179\n--- End of stack trace from previous location ---",
+      "standard_output": "| [2026-10-19T07:30:58] Aspire.Hosting.DeveloperCertificateService Debug: Developer certificate HTTPS/TLS termination support: True\n| [2026-10-19T07:30:58] Aspire.Hosting.DistributedApplication Information: Aspire AppHost version: 17.0.0-ci\n| [2026-10-19T07:30:58] Aspire.Hosting.DistributedApplication Information: Distributed application starting.\n| [2026-10-19T07:30:58] Aspire.Hosting.DistributedApplication Information: Application host directory is: /home/runner/work/aspire/aspire/tests/Aspire.Hosting.TestUtilities\n| [2026-10-19T07:30:58] Aspire.Hosting.Cli.CliOrphanDetector Debug: No CLI process ID configured. Orphan detection disabled.\n| [2026-10-19T07:30:58] Aspire.Hosting.Cli.BackchannelService Debug: Backchannel socket path was not specified.\n| [2026-10-19T07:30:58] Aspire.Hosting.Devcontainers.Codespaces.CodespacesResourceUrlRewriterService Trace: Not running in Codespaces, skipping URL rewriting.\n| [2026-10-19T07:30:58] Aspire.Hosting.Backchannel.AuxiliaryBackchannelService Debug: Starting auxiliary backchannel service on socket path: /home/runner/.aspire/cli/bch/KfshLkY6TmIBMqa4ezb.4083\n| [2026-10-19T07:30:58] Aspire.Hosting.Backchannel.AuxiliaryBackchannelService Debug: Auxiliary backchannel listening on /home/runner/.aspire/cli/bch/KfshLkY6TmIBMqa4ezb.4083\n| [2026-10-19T07:30:58] Aspire.Hosting.Dcp.DcpHost Debug: Prepared DCP TLS certificate files for thumbprint 531C5383E20488BA4A9A2A466A197C8D5805BC6F.\n| [2026-10-19T07:30:58] Aspire.Hosting.FileSystemService Debug: Allocated temporary directory: /tmp/aspire-dcpYB5J6y\n| [2026-10-19T07:30:58] Aspire.Hosting.Dcp.DcpHost Information: Starting DCP with arguments: start-apiserver --monitor 4083 --detach --kubeconfig \"/tmp/aspire-dcpYB5J6y/kubeconfig\" --tls-cert-thumbprint \"531C5383E20488BA4A9A2A466A197C8D5805BC6F\" --tls-cert-file \"/home/runner/.aspire/dev-certs/https/CE70E83DFA4CF44EB9F48E485D449FB47D25D877C7FB0820E24CB0B78D6D7130.crt\" --tls-key-file \"/home/runner/.aspire/dev-certs/https/CE70E83DFA4CF44EB9F48E485D449FB47D25D877C7FB0820E24CB0B78D6D7130.key\"\n| [2026-10-19T07:30:58] Aspire.Hosting.Dcp.DcpExecutor Debug: Preparing services. Ports randomized: True\n| [2026-10-19T07:30:58] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Version: 1 Resource mongo1/mongo1-embcsgsy update published: ResourceType = Container, CreationTimeStamp = (null), State = { Text = (null), Style = (null) }, IsHidden = False, HeathStatus = (null), ResourceReady = False, ExitCode = (null), Urls = {  }, EnvironmentVariables = {  }, Properties = {  }, HealthReports = { mongo1_check = (null) }, Commands = { start (Start) = Disabled stop (Stop) = Hidden restart (Restart) = Disabled }\n| [2026-10-19T07:30:58] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Version: 1 Resource mongo2/mongo2-vsknyykr update published: ResourceType = Container, CreationTimeStamp = (null), State = { Text = (null), Style = (null) }, IsHidden = False, HeathStatus = (null), ResourceReady = False, ExitCode = (null), Urls = {  }, EnvironmentVariables = {  }, Properties = {  }, HealthReports = { mongo2_check = (null) }, Commands = { start (Start) = Disabled stop (Stop) = Hidden restart (Restart) = Disabled }\n| [2026-10-19T07:30:58] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Version: 1 Resource mongo3/mongo3-gwyyxhvw update published: ResourceType = Container, CreationTimeStamp = (null), State = { Text = (null), Style = (null) }, IsHidden = False, HeathStatus = (null), ResourceReady = False, ExitCode = (null), Urls = {  }, EnvironmentVariables = {  }, Properties = {  }, HealthReports = { mongo3_check = (null) }, Commands = { start (Start) = Disabled stop (Stop) = Hidden restart (Restart) = Disabled }\n| [2026-10-19T07:30:58] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Version: 1 Resource rs0/rs0 update published: ResourceType = MongoDB Replica Set, CreationTimeStamp = 2026-10-19T07:30:58, State = { Text = Waiting, Style = (null) }, IsHidden = Fa",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "MongoDB replica-set resource startup intermittently fails to reach healthy state in CI containers; the same WaitForResourceHealthyAsync failure pattern as other tracked MongoDB replica-set flaky tests."
+    },
+    {
+      "name": "Aspire.Hosting.DevTunnels.Tests.DevTunnelMonitorTests.RestartRejectsReadinessFromPreviousRun",
+      "job": "Tests / No-package tests (regular, Aspire.Hosting.DevTunnels.Tests, Hosting.DevTunnels, Hosting.DevTunnel... / Hosting.DevTunnels (ubuntu-latest)",
+      "error": "System.ObjectDisposedException : Cannot access a disposed object.\nObject name: 'IServiceProvider'.",
+      "stack_trace": "at Microsoft.Extensions.DependencyInjection.ServiceLookup.ThrowHelper.ThrowObjectDisposedException()\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.ServiceProviderEngineScope.GetService(Type serviceType)\n   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService(IServiceProvider provider, Type serviceType)\n   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService[T](IServiceProvider provider)\n   at Aspire.Hosting.DevTunnelsResourceBuilderExtensions.<>c__DisplayClass15_0.<AddDevTunnelPort>b__5(UpdateCommandStateContext context) in /_/src/Aspire.Hosting.DevTunnels/DevTunnelResourceBuilderExtensions.cs:line 647\n   at Aspire.Hosting.ApplicationModel.ResourceNotificationService.UpdateCommands(IResource resource, CustomResourceSnapshot previousState) in /_/src/Aspire.Hosting/ApplicationModel/ResourceNotificationService.cs:line 1149\n   at Aspire.Hosting.ApplicationModel.ResourceNotificationService.PublishUpdateAsync(IResource resource, String resourceId, Func`2 stateFactory) in /_/src/Aspire.Hosting/ApplicationModel/ResourceNotificationService.cs:line 887\n   at Aspire.Hosting.ApplicationModel.ResourceNotificationService.PublishUpdateAsync(IResource resource, Func`2 stateFactory) in /_/src/Aspire.Hosting/ApplicationModel/ResourceNotificationService.cs:line 1271\n   at Aspire.Hosting.DevTunnelsResourceBuilderExtensions.UpdatePortAccessAsync(DevTunnelPortResource portResource, ResourceNotificationService notifications, ResourceLoggerService logs, DateTimeOffset now) in /_/src/Aspire.Hosting.DevTunnels/DevTunnelResourceBuilderExtensions.cs:line 811\n   at Aspire.Hosting.DevTunnels.DevTunnelMonitor.<>c__DisplayClass40_0.<<RefreshAccessAsync>b__0>d.MoveNext() in /_/src/Aspire.Hosting.DevTunnels/DevTunnelMonitor.cs:line 356\n--- End of stack trace from previous location ---\n   at Aspire.Hosting.DevTunnels.DevTunnelMonitor.<>c__DisplayClass55_0`1.<<InvokeAsync>b__0>d.MoveNext() in /_/src/As",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Test teardown races with a background command-state update callback accessing a disposed DI scope, matching the same root-cause family as other tracked DevTunnelMonitor ObjectDisposedException flaky tests."
+    }
+  ],
+  "causes": [
+    "aspire-cli-tests-telemetryshutdowntests-shutdown-handlesblockeddeliveryandstorage-local-windows",
+    "dashboard-components-chartcontainer-unavailablehistogrampercentiles-exemplars",
+    "aspire-hosting-mongodb-replicaset-resource-flaky",
+    "devtunnels-devtunnelmonitor-restartrejectsreadinessfromprevious-objectdisposed",
+    "typescript-sdk-nuxt-integration-npm-ci-docker-build-failure"
+  ]
+}

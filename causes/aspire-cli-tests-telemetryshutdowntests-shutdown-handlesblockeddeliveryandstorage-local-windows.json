@@ -1,0 +1,16 @@
+{
+  "id": "aspire-cli-tests-telemetryshutdowntests-shutdown-handlesblockeddeliveryandstorage-local-windows",
+  "type": "flaky-test",
+  "title": "Flaky: TelemetryShutdownTests.Shutdown_HandlesBlockedDeliveryAndStorage(Local) RemoteExecutor times out under CPU contention",
+  "test_name": "Aspire.Cli.Tests.Telemetry.TelemetryShutdownTests.Shutdown_HandlesBlockedDeliveryAndStorage(scenario: \"Local\")",
+  "error_pattern": "Microsoft.DotNet.RemoteExecutor.RemoteExecutionException : Remote process failed with an unhandled exception.\n\nChild exception:\n  System.TimeoutException: The operation at TelemetryShutdownTests.cs:249 timed out after reaching the limit of 30000ms.\n   at Microsoft.AspNetCore.InternalTesting.AsyncTestHelpers.TimeoutAfter(Task task, TimeSpan timeout, String filePath, Int32 lineNumber)",
+  "occurrences": [
+    {
+      "run_id": 39216025977,
+      "run_url": "https://github.com/microsoft/aspire/actions/runs/39216025977",
+      "job": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (windows-latest)",
+      "pr_number": 0,
+      "observed_at": "2026-10-19T08:19:32Z"
+    }
+  ]
+}
