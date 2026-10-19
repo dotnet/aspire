@@ -64,6 +64,61 @@ public sealed class SelectTestsCliTests
     // takes on the run-full-ci label kill switch (force-all, no diff base). Because the selection is ALL, no
     // restriction props are written even under --enforce, so enumerate-tests runs the full matrix.
     [Fact]
+    public void OptInArtifactDemandWritesASeparateRecordWithoutChangingSelection()
+    {
+        RunInTempRepo((repoRoot, propsPath, output) =>
+        {
+            var matrixPath = Path.Combine(repoRoot, "matrix.json");
+            var demandPath = Path.Combine(repoRoot, "demand.json");
+            File.WriteAllText(matrixPath, """{"include":[]}""");
+            var previousMatrix = Environment.GetEnvironmentVariable("SELECT_TESTS_ARTIFACT_DEMAND_MATRIX");
+            var previousOutput = Environment.GetEnvironmentVariable("SELECT_TESTS_ARTIFACT_DEMAND_FILE");
+            Environment.SetEnvironmentVariable("SELECT_TESTS_ARTIFACT_DEMAND_MATRIX", matrixPath);
+            Environment.SetEnvironmentVariable("SELECT_TESTS_ARTIFACT_DEMAND_FILE", demandPath);
+            try
+            {
+                Assert.Equal(0, Selection.Run(Options(repoRoot, propsPath, forceAll: true, enforce: true)));
+
+                Assert.True(File.Exists(demandPath));
+                using var demand = JsonDocument.Parse(File.ReadAllText(demandPath));
+                Assert.True(demand.RootElement.GetProperty("fullDogfood").GetBoolean());
+                Assert.Equal("", output()["project_override_props"]);
+                Assert.Equal("true", output()["has_dotnet_tests"]);
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("SELECT_TESTS_ARTIFACT_DEMAND_MATRIX", previousMatrix);
+                Environment.SetEnvironmentVariable("SELECT_TESTS_ARTIFACT_DEMAND_FILE", previousOutput);
+            }
+        });
+    }
+
+    [Fact]
+    public void IncompleteArtifactDemandOptInFailsVisibly()
+    {
+        RunInTempRepo((repoRoot, propsPath, output) =>
+        {
+            var previousMatrix = Environment.GetEnvironmentVariable("SELECT_TESTS_ARTIFACT_DEMAND_MATRIX");
+            var previousOutput = Environment.GetEnvironmentVariable("SELECT_TESTS_ARTIFACT_DEMAND_FILE");
+            Environment.SetEnvironmentVariable("SELECT_TESTS_ARTIFACT_DEMAND_MATRIX", "matrix.json");
+            Environment.SetEnvironmentVariable("SELECT_TESTS_ARTIFACT_DEMAND_FILE", null);
+            try
+            {
+                var error = Assert.Throws<InvalidOperationException>(() =>
+                    Selection.Run(Options(repoRoot, propsPath, forceAll: true, enforce: true)));
+
+                Assert.Contains("requires both", error.Message);
+                Assert.Empty(output());
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("SELECT_TESTS_ARTIFACT_DEMAND_MATRIX", previousMatrix);
+                Environment.SetEnvironmentVariable("SELECT_TESTS_ARTIFACT_DEMAND_FILE", previousOutput);
+            }
+        });
+    }
+
+    [Fact]
     public void ForceAllWithoutDiffInputsWritesNoRestrictionProps()
     {
         RunInTempRepo((repoRoot, propsPath, output) =>

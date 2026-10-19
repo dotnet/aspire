@@ -1,0 +1,39 @@
+﻿{
+  "schemaVersion": 1,
+  "experimental": true,
+  "shadowOnly": true,
+  "fullDogfood": true,
+  "commonFeed": true,
+  "ridPackages": [
+    "linux-arm64",
+    "linux-x64",
+    "osx-arm64",
+    "osx-x64",
+    "win-arm64",
+    "win-x64"
+  ],
+  "cliArchives": [
+    "linux-arm64",
+    "linux-x64",
+    "osx-arm64",
+    "osx-x64",
+    "win-arm64",
+    "win-x64"
+  ],
+  "standaloneDashboard": [
+    "linux-arm64",
+    "linux-x64",
+    "osx-arm64",
+    "osx-x64",
+    "win-arm64",
+    "win-x64"
+  ],
+  "vsix": true,
+  "installers": [
+    "homebrew",
+    "winget"
+  ],
+  "reasons": [
+    "Full selection: force-all"
+  ]
+}

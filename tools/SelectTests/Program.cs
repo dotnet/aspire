@@ -255,6 +255,7 @@ internal static class Selection
         var result = selector.Select(changedFiles, layer1Affected, new SelectorOptions(options.ForceAll, options.ForceAllReason), layer1.AttributedPaths, layer1.Paths);
 
         trace.EnterStage("write summary and outputs");
+        ArtifactDemand.WriteIfRequested(result, rawChangedFiles, layer1, !options.SkipLayer1 && !options.ForceAll);
         WriteSummary(options, result, allTestProjects, changedFiles, layer1Affected, excludedFiles);
         WriteJobBooleans(options, result);
         WriteSelectionComment(options, result, allTestProjects, changedFiles);

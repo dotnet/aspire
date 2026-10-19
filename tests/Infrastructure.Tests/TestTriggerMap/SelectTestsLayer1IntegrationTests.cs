@@ -25,6 +25,56 @@ public sealed class SelectTestsLayer1IntegrationTests
         GraphAffectedProjects.EnsureMSBuildRegistered();
     }
 
+    [Theory]
+    [InlineData("tests/Core.Tests/Core.Tests.cs", false)]
+    [InlineData("src/Core/README.md", true)]
+    public void ArtifactDemandUsesGraphAttributionAndUnfilteredShippingInputs(string path, bool fullDogfood)
+    {
+        using var workspace = TemporaryWorkspace.Create(_outputHelper);
+        using var fixture = new GraphRepoFixture(workspace);
+        fixture.WriteFile("map.yml", """
+            version: 1
+            prefilter:
+              patterns_file: skip.txt
+            """);
+        fixture.WriteFile("skip.txt", "**/*.md\n");
+        fixture.WriteFile("matrix.json", """
+            {"include":[{"projectName":"Core.Tests","runs-on":"macos-latest",
+              "properties":{"requiresNugets":false,"requiresCliArchive":false}}]}
+            """);
+        var previousMatrix = Environment.GetEnvironmentVariable("SELECT_TESTS_ARTIFACT_DEMAND_MATRIX");
+        var previousOutput = Environment.GetEnvironmentVariable("SELECT_TESTS_ARTIFACT_DEMAND_FILE");
+        var demandPath = System.IO.Path.Combine(fixture.Path, "demand.json");
+        Environment.SetEnvironmentVariable("SELECT_TESTS_ARTIFACT_DEMAND_MATRIX", System.IO.Path.Combine(fixture.Path, "matrix.json"));
+        Environment.SetEnvironmentVariable("SELECT_TESTS_ARTIFACT_DEMAND_FILE", demandPath);
+        try
+        {
+            fixture.WithGitHubEnvRedirected(_ =>
+            {
+                Assert.Equal(0, Selection.Run(new RunOptions(
+                    RepoRoot: fixture.Path,
+                    MapPath: System.IO.Path.Combine(fixture.Path, "map.yml"),
+                    SlnxPath: System.IO.Path.Combine(fixture.Path, "Aspire.slnx"),
+                    From: null,
+                    To: null,
+                    ChangedFilesPath: fixture.WriteChangedFiles(path),
+                    SkipLayer1: false,
+                    ForceAll: false,
+                    Enforce: true,
+                    BeforeBuildProps: System.IO.Path.Combine(fixture.Path, "BeforeBuildProps.props"))));
+            });
+
+            using var demand = System.Text.Json.JsonDocument.Parse(File.ReadAllText(demandPath));
+            Assert.Equal(fullDogfood, demand.RootElement.GetProperty("fullDogfood").GetBoolean());
+            Assert.Equal(fullDogfood, demand.RootElement.GetProperty("commonFeed").GetBoolean());
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("SELECT_TESTS_ARTIFACT_DEMAND_MATRIX", previousMatrix);
+            Environment.SetEnvironmentVariable("SELECT_TESTS_ARTIFACT_DEMAND_FILE", previousOutput);
+        }
+    }
+
     // Failure mode: the selector wires Layer 1's affected set into the result incorrectly (drops it,
     // fails to intersect with the matrix, or never reaches the props), so a production-only change
     // silently runs no tests in enforce mode. A change to src/Core/Core.cs must reach Core.Tests

@@ -25,6 +25,83 @@ The output is the real computed selection; without `--enforce`, audit mode only
 means that CI continues to run the full matrix while reporting what would have
 been selected.
 
+## Experimental artifact-demand record
+
+The selector can optionally write a separate, **shadow-only** artifact-demand
+record. It does not change test selection, existing selector outputs, producer
+gates, dogfood installation, or platform coverage.
+
+Set both environment variables when running the selector:
+
+```bash
+SELECT_TESTS_ARTIFACT_DEMAND_MATRIX=/absolute/path/to/all_tests.json \
+SELECT_TESTS_ARTIFACT_DEMAND_FILE=/absolute/path/to/artifact-demand.json \
+dotnet run --project tools/SelectTests -- --changed-files changed-files.txt
+```
+
+The matrix input is the OS-expanded `{"include":[...]}` output of
+`eng/scripts/expand-test-matrix-github.ps1`, with evaluated `projectName`,
+`runs-on`, `properties.requiresNugets`, and `properties.requiresCliArchive`.
+It must contain every selected test consumer. Use the complete expanded matrix
+for replay; a partial matrix can conservatively over-select. Split/class entries
+are unioned by project, not inferred from test names.
+
+The version 1 record reports these independently:
+
+| Field | Meaning |
+|-------|---------|
+| `commonFeed` | Shared `built-nugets` feed |
+| `ridPackages` | Matching RID-specific DCP/Dashboard package feed |
+| `cliArchives` | Full native CLI archives |
+| `standaloneDashboard` | Standalone native Dashboard output per RID |
+| `vsix` | VS Code extension package |
+| `installers` | WinGet and/or Homebrew installer preparation |
+| `fullDogfood` | Conservative full-output superset, not a reduced feed-only installation |
+| `reasons` | Selected consumers and conservative fallback explanations |
+
+`experimental` and `shadowOnly` are always true. Arrays are sorted, deduplicated
+unions. A package-only test does not request a CLI archive. Package-free tests
+request neither, even when those tests run on macOS. Job consumers retain their
+current dependencies: polyglot uses Linux x64; extension E2E uses Linux/Windows
+x64 plus VSIX; installers use both CLI architectures of their OS and the common
+template feed, not RID-specific package downloads; starter and native
+Dashboard validation retain all six RIDs in their respective output families.
+The native CLI E2E image is outside this record's artifact families; its existing
+test/job dependency is unchanged.
+
+Shipping impact uses the **raw** change list, before the test prefilter.
+Production graph consumers, shipping files (including packed READMEs/templates,
+deletes and rename paths), unattributed inputs, unavailable graph attribution,
+unknown consumers/runners, missing selected matrix entries, and `--force-all`
+retain the full superset. Only graph-attributed test-only inputs can avoid this
+fallback. The currently ignored native package/TerminalHost/tray verifier paths
+still request native producer outputs even when no test consumes them.
+Malformed input or an incomplete opt-in fails visibly; selector/graph failures
+remain failures, not an empty demand record.
+
+This is not an early producer-gating implementation. The expanded matrix exists
+after test enumeration, while producers currently start earlier. Making all
+producers depend on enumeration adds its entire elapsed time and scheduling cost
+to retained producers; do not treat this record as evidence of a speedup.
+Adoption needs a cheaper/reused decision and coordinated expected-skip handling
+in workflow dependencies and final-results checks.
+
+### Platform policy limits
+
+Runner-to-RID mappings are explicit public-runner identities; unknown labels
+fall back to full demand. See the
+[GitHub-hosted runner reference](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
+No source filename heuristic establishes semantic OS independence.
+
+macOS package consumers, Homebrew, starter/native Dashboard validation, shipping
+inputs, and macOS producer verifiers remain deterministic demand signals.
+Package-free macOS tests still run: absence of native artifact demand does not
+justify dropping an OS test lane. CLI tests exercise real macOS filesystem,
+platform telemetry and process/socket behavior, so reducing those lanes needs
+an explicit coverage policy. Intel execution is not replaced by ARM cross-builds.
+Windows x64 remains in complete dogfood; Windows ARM64 on-demand is a separate
+coverage-policy decision. Current production defaults remain unchanged.
+
 ## Two layers
 
 Selective CI is split by **who can know a dependency**:

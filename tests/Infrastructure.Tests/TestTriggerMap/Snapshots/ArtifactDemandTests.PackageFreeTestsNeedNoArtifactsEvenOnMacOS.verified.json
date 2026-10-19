@@ -1,0 +1,15 @@
+﻿{
+  "schemaVersion": 1,
+  "experimental": true,
+  "shadowOnly": true,
+  "fullDogfood": false,
+  "commonFeed": false,
+  "ridPackages": [],
+  "cliArchives": [],
+  "standaloneDashboard": [],
+  "vsix": false,
+  "installers": [],
+  "reasons": [
+    "Test consumer: Example.Tests"
+  ]
+}

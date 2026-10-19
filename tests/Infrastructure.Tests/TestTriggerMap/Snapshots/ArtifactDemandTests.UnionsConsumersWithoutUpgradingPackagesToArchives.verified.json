@@ -1,0 +1,30 @@
+﻿{
+  "schemaVersion": 1,
+  "experimental": true,
+  "shadowOnly": true,
+  "fullDogfood": false,
+  "commonFeed": true,
+  "ridPackages": [
+    "linux-arm64",
+    "linux-x64",
+    "osx-arm64",
+    "win-x64"
+  ],
+  "cliArchives": [
+    "linux-x64",
+    "osx-arm64",
+    "osx-x64",
+    "win-x64"
+  ],
+  "standaloneDashboard": [],
+  "vsix": true,
+  "installers": [
+    "homebrew"
+  ],
+  "reasons": [
+    "Job consumer: job:extension-e2e",
+    "Job consumer: job:homebrew-installer",
+    "Test consumer: Cli.E2E.Tests",
+    "Test consumer: Templates.Tests"
+  ]
+}
