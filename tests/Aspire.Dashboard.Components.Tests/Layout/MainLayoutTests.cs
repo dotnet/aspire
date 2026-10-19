@@ -35,6 +35,24 @@ public partial class MainLayoutTests(ITestOutputHelper testOutputHelper) : Dashb
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
+    public void StandaloneRun_NoAppHostConfigured_ShowsLiveRun(bool isDesktop)
+    {
+        var client = new TestDashboardClient(isEnabled: false);
+        // A real disabled client never starts the AppHost connection and remains Connecting.
+        client.SetConnectionState(DashboardConnectionState.Connecting);
+        SetupMainLayoutServices(dashboardClient: client);
+        var cut = Render<MainLayout>(parameters => parameters.Add(p => p.ViewportInformation,
+            new ViewportInformation(IsDesktop: isDesktop, IsUltraLowHeight: false, IsUltraLowWidth: false)));
+
+        var picker = cut.FindComponent<DashboardRunSelect>().FindComponent<AspireMenuButton>();
+        Assert.Equal("Live run", picker.Instance.Text);
+        Assert.Equal(Color.Success, picker.Instance.IconStartColor);
+        Assert.Empty(cut.FindAll(".apphost-connection-status"));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public async Task LiveRunConnectionStatus_DisconnectedAndRetrying_StaysOfflineUntilConnected(bool isDesktop)
     {
         var client = new TestDashboardClient(isEnabled: true, initialResources: [],

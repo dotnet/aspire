@@ -107,6 +107,11 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
 
+    // Standalone runs can ingest telemetry without an AppHost connection to wait for.
+    private DashboardConnectionState RunSelectConnectionState => LiveAppHostClient.IsEnabled
+        ? LiveAppHostClient.ConnectionState
+        : DashboardConnectionState.Connected;
+
     private bool IsTerminalDockEnabled => !_isSwitchingRuns && DashboardClient.IsEnabled && !DashboardClient.IsReadOnly;
 
     protected override async Task OnInitializedAsync()

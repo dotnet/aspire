@@ -31,7 +31,7 @@
                 var selectedRun = RunSelection.SelectedRun;
                 <DashboardRunSelect SelectedRunId="@selectedRun.RunId"
                                     SelectedRunIsCurrent="@selectedRun.IsCurrent"
-                                    AppHostConnectionState="@LiveAppHostClient.ConnectionState"
+                                    AppHostConnectionState="@RunSelectConnectionState"
                                     SelectedRunStartedAtUtc="@selectedRun.StartedAtUtc"
                                     SelectedRunIdChanged="@SwitchDashboardRunAsync" />
             }
@@ -106,7 +106,7 @@
                 var selectedRun = RunSelection.SelectedRun;
                 <DashboardRunSelect SelectedRunId="@selectedRun.RunId"
                                     SelectedRunIsCurrent="@selectedRun.IsCurrent"
-                                    AppHostConnectionState="@LiveAppHostClient.ConnectionState"
+                                    AppHostConnectionState="@RunSelectConnectionState"
                                     SelectedRunStartedAtUtc="@selectedRun.StartedAtUtc"
                                     SelectedRunIdChanged="@SwitchDashboardRunAsync" />
             }
