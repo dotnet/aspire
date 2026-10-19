@@ -166,11 +166,11 @@ public class EntraIdApplicationResource : AzureProvisioningResource
                 continue;
             }
 
-            if (value is EntraIdEndpointRedirectUri endpointRedirectUri)
+            if (value is IEntraIdDerivedRedirectUri derivedRedirectUri)
             {
-                // The endpoint's address is only known when the parameter is resolved: after endpoint allocation when
-                // running locally, or from the compute environment when deploying.
-                var uriParameter = endpointRedirectUri
+                // The value is only known when the parameter is resolved: after endpoint allocation when running
+                // locally, from the compute environment when deploying, or from the domain parameter's value.
+                var uriParameter = derivedRedirectUri
                     .CreateExpression()
                     .AsProvisioningParameter(infrastructure, $"redirectUri{endpointIndex++}");
                 literals.Add(uriParameter.Value.Compile());
@@ -334,7 +334,7 @@ public class EntraIdApplicationResource : AzureProvisioningResource
 
     internal void AddRedirectUri(ParameterResource redirectUri) => _redirectUriValues.Add(redirectUri);
 
-    internal void AddRedirectUri(EntraIdEndpointRedirectUri redirectUri) => _redirectUriValues.Add(redirectUri);
+    internal void AddRedirectUri(IEntraIdDerivedRedirectUri redirectUri) => _redirectUriValues.Add(redirectUri);
 
     // Each entry is either a literal directory object ID (string) or a ParameterResource holding one.
     internal List<object> ApplicationOwners { get; } = [];

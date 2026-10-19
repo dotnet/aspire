@@ -8,9 +8,26 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.Azure;
 
 /// <summary>
+/// A redirect URI whose value is computed from other model values when the registration is provisioned.
+/// </summary>
+internal interface IEntraIdDerivedRedirectUri
+{
+    ReferenceExpression CreateExpression();
+}
+
+/// <summary>
+/// A redirect URI built from a domain supplied by a parameter and a caller-supplied callback path.
+/// </summary>
+internal sealed class EntraIdDomainRedirectUri(ParameterResource domain, string path) : IEntraIdDerivedRedirectUri
+{
+    // The domain is a host name (for example, app.contoso.com), so the scheme is always https.
+    public ReferenceExpression CreateExpression() => ReferenceExpression.Create($"https://{domain}{path}");
+}
+
+/// <summary>
 /// A redirect URI built from a resource endpoint and a caller-supplied callback path.
 /// </summary>
-internal sealed class EntraIdEndpointRedirectUri
+internal sealed class EntraIdEndpointRedirectUri : IEntraIdDerivedRedirectUri
 {
     private readonly bool _isPublishMode;
     private readonly RunModeOrigin? _runModeOrigin;

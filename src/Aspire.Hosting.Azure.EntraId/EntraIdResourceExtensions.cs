@@ -1084,6 +1084,63 @@ public static class EntraIdResourceExtensions
     }
 
     /// <summary>
+    /// Adds redirect URIs for a domain supplied by a parameter to a registration created by Aspire.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="domain">A parameter whose value is the domain (host name, optionally with a port) that serves the callbacks, such as <c>app.contoso.com</c>. Don't include a scheme or path.</param>
+    /// <param name="callbackPath">The first callback path on that domain, such as <c>/signin-oidc</c>.</param>
+    /// <param name="additionalCallbackPaths">Further callback paths on that domain.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when an argument is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when a path is empty or doesn't start with <c>/</c>.</exception>
+    /// <remarks>
+    /// <para>
+    /// Use this overload when the externally visible domain (for example, a custom domain or gateway) is supplied per
+    /// environment at deployment time but the callback paths are fixed by the application. Each URI is
+    /// <c>https://{domain}{path}</c>, so the scheme is always <c>https</c>.
+    /// </para>
+    /// <para>
+    /// The first path is a separate parameter so that a call with only a parameter still binds to
+    /// <see cref="WithRedirectUris(IResourceBuilder{EntraIdApplicationResource}, IResourceBuilder{ParameterResource}[])"/>.
+    /// Existing registrations are not modified.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code lang="csharp">
+    /// var domain = builder.AddParameter("web-domain");
+    /// var entraWeb = builder.AddEntraIdApplication("entra-web")
+    ///     .WithRedirectUris(domain, "/signin-oidc", "/signout-callback-oidc");
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<EntraIdApplicationResource> WithRedirectUris(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        IResourceBuilder<ParameterResource> domain,
+        string callbackPath,
+        params string[] additionalCallbackPaths)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(domain);
+        ArgumentNullException.ThrowIfNull(additionalCallbackPaths);
+
+        string[] callbackPaths = [callbackPath, .. additionalCallbackPaths];
+        foreach (var path in callbackPaths)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(path, nameof(callbackPath));
+            if (!path.StartsWith('/'))
+            {
+                throw new ArgumentException($"The callback path '{path}' must start with '/'.", nameof(callbackPath));
+            }
+        }
+
+        foreach (var path in callbackPaths)
+        {
+            builder.Resource.AddRedirectUri(new EntraIdDomainRedirectUri(domain.Resource, path));
+        }
+
+        return builder;
+    }
+
+    /// <summary>
     /// Enables ID-token issuance through implicit and hybrid flows for a registration created by Aspire.
     /// </summary>
     /// <param name="builder">The resource builder.</param>

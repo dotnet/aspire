@@ -358,7 +358,7 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         Assert.Same(entra, entra.WithRedirectUris(signIn, signOut));
         Assert.Throws<ArgumentNullException>(() => EntraIdResourceExtensions.WithRedirectUris(null!, signIn));
         Assert.Throws<ArgumentNullException>(() => entra.WithRedirectUris((IResourceBuilder<ParameterResource>[])null!));
-        Assert.Throws<ArgumentNullException>(() => entra.WithRedirectUris(signIn, null!));
+        Assert.Throws<ArgumentNullException>(() => entra.WithRedirectUris(signIn, (IResourceBuilder<ParameterResource>)null!));
         Assert.Equal(new[] { signIn.Resource, signOut.Resource }, entra.Resource.RedirectUriParameters);
     }
 
@@ -444,6 +444,41 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         }
 
         Assert.Equal("https://web-hashr.dev.localhost:7081/signin-oidc", await resolveTask.WaitAsync(TimeSpan.FromSeconds(10)));
+    }
+
+    [Fact]
+    public async Task WithRedirectUris_Domain_WritesDomainParameterWithPaths()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var domain = builder.AddParameter("web-domain");
+        var entra = builder.AddEntraIdApplication("entra-web")
+            .WithRedirectUris(domain, "/signin-oidc", "/signout-callback-oidc");
+
+        await Verify(entra.Resource.GetBicepTemplateString(), "bicep");
+        var expression = Assert.IsType<ReferenceExpression>(entra.Resource.Parameters["redirectUri0"]);
+        Assert.Equal("https://{0}/signin-oidc", expression.Format);
+        Assert.Same(domain.Resource, Assert.Single(expression.ValueProviders));
+    }
+
+    [Fact]
+    public void WithRedirectUris_Domain_RequiresPathStartingWithSlash()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var domain = builder.AddParameter("web-domain");
+        var entra = builder.AddEntraIdApplication("entra-web");
+
+        Assert.Throws<ArgumentException>("callbackPath", () => entra.WithRedirectUris(domain, "signin-oidc"));
+        Assert.Throws<ArgumentException>("callbackPath", () => entra.WithRedirectUris(domain, "/signin-oidc", "other"));
+    }
+
+    [Fact]
+    public void WithRedirectUris_SingleParameter_BindsToParameterOverload()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var entra = builder.AddEntraIdApplication("entra-web")
+            .WithRedirectUris(builder.AddParameter("web-redirect-uris"));
+
+        Assert.Single(entra.Resource.RedirectUriParameters);
     }
 
     [Fact]

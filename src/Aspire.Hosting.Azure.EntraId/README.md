@@ -87,6 +87,14 @@ compute environment. The callback path can't be discovered, so it must match the
 entraWeb.WithRedirectUris(web.GetEndpoint("https"), "/signin-oidc", "/signout-callback-oidc");
 ```
 
+When only the domain varies per environment (for example, a custom domain supplied at deployment time), pass a parameter for the domain
+and the fixed callback paths. Each URI is `https://{domain}{path}`:
+
+```csharp
+var domain = builder.AddParameter("web-domain");
+entraWeb.WithRedirectUris(domain, "/signin-oidc", "/signout-callback-oidc");
+```
+
 To supply the externally visible
 URIs per environment at deployment time (for example, behind a gateway or custom domain), pass parameters instead of literals.
 Each parameter value may contain several URIs separated by commas (split in the generated Bicep, so URIs can't contain commas
