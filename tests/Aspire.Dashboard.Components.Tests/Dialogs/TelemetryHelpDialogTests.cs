@@ -115,6 +115,7 @@ public sealed class TelemetryHelpDialogTests : DashboardTestContext
         var cut = Render<TelemetryHelpDialog>();
 
         Assert.Equal(expectedButton ? 1 : 0, cut.FindAll(".telemetry-import-button").Count);
+        Assert.Equal(expectedButton ? 1 : 0, cut.FindAll("a[href='https://aka.ms/aspire/dashboard-manage-data']").Count);
         Assert.Equal(
             expectedButton ? ["📡 Send telemetry from your app", "📥 Import telemetry from a file"] : ["📡 Send telemetry from your app"],
             cut.FindAll(".markdown-container h5").Select(heading => heading.TextContent));

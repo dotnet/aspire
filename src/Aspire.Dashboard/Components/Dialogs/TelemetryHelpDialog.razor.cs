@@ -100,9 +100,9 @@ public partial class TelemetryHelpDialog
         {
             sections.Add(string.Format(CultureInfo.CurrentCulture, Loc[nameof(Resources.Dialogs.TelemetryHelpImportDescription)],
                 Loc[nameof(Resources.Dialogs.SettingsImportButtonText)], Loc[nameof(Resources.Dialogs.ManageDataDialogTitle)]));
+            sections.Add(string.Format(CultureInfo.CurrentCulture, "[{0}]({1})",
+                Loc[nameof(Resources.Dialogs.TelemetryHelpManageDataLink)], ManageDataUrl));
         }
-        sections.Add(string.Format(CultureInfo.CurrentCulture, "[{0}]({1})",
-            Loc[nameof(Resources.Dialogs.TelemetryHelpManageDataLink)], ManageDataUrl));
 
         return string.Join(Environment.NewLine + Environment.NewLine, sections);
     }
