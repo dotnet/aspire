@@ -405,8 +405,14 @@ suite('Aspire tree action command E2E', function () {
                 60000,
                 terminalBefore);
             if (process.env.ASPIRE_EXTENSION_E2E_SKIP_CURRENT_CLI_REGRESSIONS !== 'true') {
-                assert.strictEqual(terminalCommand.subcommand,
-                    `terminal attach ${quoteExpectedShellArg(terminalResourceName)} --apphost ${quoteExpectedShellArg(appHostPath)}`);
+                const commandPrefix = `terminal attach ${quoteExpectedShellArg(terminalResourceName)} --apphost `;
+                assert.ok(terminalCommand.subcommand.startsWith(commandPrefix));
+                const appHostArgument = terminalCommand.subcommand.slice(commandPrefix.length);
+                const expectedAppHostArgument = quoteExpectedShellArg(appHostPath);
+                // VS Code URIs and CLI discovery can use different casing for Windows paths.
+                assert.strictEqual(
+                    process.platform === 'win32' ? appHostArgument.toLowerCase() : appHostArgument,
+                    process.platform === 'win32' ? expectedAppHostArgument.toLowerCase() : expectedAppHostArgument);
             }
         } finally {
             await setTerminalCommandExecutionSuppressedForE2E(false);
