@@ -1,0 +1,602 @@
+{
+  "run_id": 39259389306,
+  "run_attempt": 1,
+  "run_url": "https://github.com/microsoft/aspire/actions/runs/39259389306",
+  "run_scope": "main",
+  "analyzed_at": "2026-10-19T14:19:42Z",
+  "verdict": "mixed",
+  "pr": null,
+  "triggering_merge_pr": null,
+  "main_context": {
+    "last_successful_main_sha": "88ff9ba57c2841cce759adffa849373f9406b0f5",
+    "failed_sha": "545e47e7d58b2c138f04d153fd5a1fd3f10ffc37",
+    "candidate_merge_history_state": "incomplete",
+    "candidate_merges": null
+  },
+  "failed_jobs": [
+    {
+      "name": "Tests / Run VS Code extension unit tests (Windows) / Run VS Code extension unit tests (Windows)",
+      "id": 118087683640,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118087683640",
+      "classification": "transient-infra",
+      "reason": "'Install dependencies' step failed via yarn fetching merge-descriptors@2.0.0 from the dnceng npm mirror with HTTP 429 Too Many Requests, so vsce was never installed; subsequent Package VSIX/assert steps failed as a direct cascade of the missing vsce binary.",
+      "failed_steps": [
+        "Install dependencies",
+        "Package VSIX",
+        "Assert E2E VSIX contains bridge",
+        "Package production VSIX",
+        "Assert production VSIX excludes bridge"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (macos-latest)",
+      "id": 118087734925,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118087734925",
+      "classification": "flaky-test",
+      "reason": "'Run tests (Linux/macOS)' failed with exit code 7 after the test host crashed and was recovered via TRX sidecar; the only genuine assertion failure was GitRepositoryTests.GetIncludedFilesAsync_EmitsProfilingActivityForGitProcess timing out at 30s on macOS, consistent with known macOS CPU-contention timeout flakiness in this test class.",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Hosting.DevTunnels.Tests, Hosting.DevTunnels, Hosting.DevTunnel... / Hosting.DevTunnels (ubuntu-latest)",
+      "id": 118087769877,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118087769877",
+      "classification": "flaky-test",
+      "reason": "'Run tests (Linux/macOS)' failed with 2 test failures, both System.ObjectDisposedException on a disposed IServiceProvider inside DevTunnelMonitor callbacks racing with host teardown; this matches a recurring, previously tracked flaky pattern in DevTunnelMonitorTests.",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x)",
+      "id": 118091665870,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118091665870",
+      "classification": "main-repository-breakage",
+      "reason": "All 59 TypeScript validation AppHosts passed, but the job failed with exit code 1 after stopping the NuxtApp apphost during the Nuxt integration/publish Docker build step, matching a recurring deterministic main-repository breakage (41 prior occurrences) where 'npm ci'/'npm run build' fails building the generated Nuxt publish image.",
+      "failed_steps": [
+        "Run TypeScript SDK validation"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / Polyglot Validation Results",
+      "id": 118095936090,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118095936090",
+      "classification": "main-repository-breakage",
+      "reason": "This aggregation job deterministically fails because it reports 'TypeScript: failure' and exits 1, solely because the upstream TypeScript SDK Validation (Node 22.x) job failed on the Nuxt Docker build issue.",
+      "failed_steps": [
+        "Check validation results"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, apphost-tree)",
+      "id": 118096393255,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393255",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, dynamic-debug-configuration)",
+      "id": 118096393258,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393258",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, discovery-configuration)",
+      "id": 118096393260,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393260",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, tree-actions)",
+      "id": 118096393316,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393316",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, winui-debug)",
+      "id": 118096393356,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393356",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, tree-actions)",
+      "id": 118096393368,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393368",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, debug-dashboard)",
+      "id": 118096393385,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393385",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, discovery-configuration)",
+      "id": 118096393391,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393391",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, settings-files)",
+      "id": 118096393402,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393402",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, apphost-tree)",
+      "id": 118096393405,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393405",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, command-palette)",
+      "id": 118096393443,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393443",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, debug-dashboard)",
+      "id": 118096393454,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393454",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, apphost-lifecycle-tools)",
+      "id": 118096393465,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393465",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, command-palette)",
+      "id": 118096393494,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393494",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, apphost-lifecycle-tools)",
+      "id": 118096393502,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393502",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, package-surface)",
+      "id": 118096393612,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393612",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, zero-to-running)",
+      "id": 118096393669,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393669",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, dynamic-debug-configuration)",
+      "id": 118096393692,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393692",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, zero-to-running)",
+      "id": 118096393701,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393701",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, browser-debugger)",
+      "id": 118096393745,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393745",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, edge-cases)",
+      "id": 118096393751,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393751",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, cli-path-rejection)",
+      "id": 118096393758,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393758",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, diagnostic-logs)",
+      "id": 118096393799,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393799",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, java-codelens)",
+      "id": 118096393812,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393812",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, coordinated-build)",
+      "id": 118096393819,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393819",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, azure-functions)",
+      "id": 118096393851,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393851",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, azure-functions-node)",
+      "id": 118096393853,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393853",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, debug-startup-timeout)",
+      "id": 118096393856,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393856",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, cli-path-rejection)",
+      "id": 118096393857,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393857",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, package-surface)",
+      "id": 118096393864,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393864",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, cli-path-resolution)",
+      "id": 118096393871,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393871",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, coordinated-build)",
+      "id": 118096393875,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393875",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, deno-debugger)",
+      "id": 118096393884,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393884",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, diagnostic-logs)",
+      "id": 118096393901,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393901",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, launch-profiles)",
+      "id": 118096393941,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393941",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, launch-profiles)",
+      "id": 118096393945,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393945",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, java-apphost-debug-startup-timeout)",
+      "id": 118096393976,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096393976",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, java-starter-project-model)",
+      "id": 118096394002,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096394002",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, java-apphost)",
+      "id": 118096394013,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096394013",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, workspace-target-proof)",
+      "id": 118096394037,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096394037",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, browser-debugger)",
+      "id": 118096394128,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096394128",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, edge-cases)",
+      "id": 118096394240,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096394240",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, settings-files)",
+      "id": 118096394255,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096394255",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, debug-startup-timeout)",
+      "id": 118096394485,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39259389306/job/118096394485",
+      "classification": "transient-infra",
+      "reason": "Job failed at the 'Download aspire-extension VSIX artifact' step with 'Artifact not found for name: aspire-extension', a direct cascading consequence of the upstream 'Run VS Code extension unit tests (Windows)' job failing to produce the VSIX due to npm 429 rate limiting.",
+      "failed_steps": [
+        "Download VSIX"
+      ]
+    }
+  ],
+  "failed_tests": [
+    {
+      "name": "Aspire.Hosting.DevTunnels.Tests.DevTunnelMonitorTests.CancellingAHealthCallerDoesNotCancelTheSharedObserver",
+      "job": "Tests / No-package tests (regular, Aspire.Hosting.DevTunnels.Tests, Hosting.DevTunnels, Hosting.DevTunnel... / Hosting.DevTunnels (ubuntu-latest)",
+      "error": "System.ObjectDisposedException : Cannot access a disposed object.\nObject name: 'IServiceProvider'.",
+      "stack_trace": "at Microsoft.Extensions.DependencyInjection.ServiceLookup.ThrowHelper.ThrowObjectDisposedException()\n   at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)\n   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService[T](IServiceProvider provider)\n   at Aspire.Hosting.ApplicationModel.ResourceNotificationService.get_Configuration() in /_/src/Aspire.Hosting/ApplicationModel/ResourceNotificationService.cs:line 34\n   at Aspire.Hosting.ApplicationModel.ResourceNotificationService.RecordResourceLifecycleMilestones(IResource resource, String resourceId, ResourceNotificationState notificationState, CustomResourceSnapshot previousSnapshot, CustomResourceSnapshot snapshot) in /_/src/Aspire.Hosting/ApplicationModel/ResourceNotificationService.cs:line 998\n   at Aspire.Hosting.ApplicationModel.ResourceNotificationService.PublishUpdateAsync(IResource resource, String resourceId, Func`2 stateFactory) in /_/src/Aspire.Hosting/ApplicationModel/ResourceNotificationService.cs:line 923\n   at Aspire.Hosting.ApplicationModel.ResourceNotificationService.PublishUpdateAsync(IResource resource, Func`2 stateFactory) in /_/src/Aspire.Hosting/ApplicationModel/ResourceNotificationService.cs:line 1271\n   at Aspire.Hosting.DevTunnelsResourceBuilderExtensions.UpdatePortAccessAsync(DevTunnelPortResource portResource, ResourceNotificationService notifications, ResourceLoggerService logs, DateTimeOffset now) in /_/src/Aspire.Hosting.DevTunnels/DevTunnelResourceBuilderExtensions.cs:line 811\n   at Aspire.Hosting.DevTunnels.DevTunnelMonitor.<>c__DisplayClass40_0.<<RefreshAccessAsync>b__0>d.MoveNext() in /_/src/Aspire.Hosting.DevTunnels/DevTunnelMonitor.cs:line 356\n--- End of stack trace from previous location ---\n   at Aspire.Hosting.DevTunnels.DevTunnelMonitor.<>c__DisplayClass55_0`1.<<InvokeAsync>b__0>d.MoveNext() in /_/src/Aspire.Hosting.DevTunnels/DevTunnelMonit",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Matches a previously tracked recurring flaky pattern where DevTunnelMonitor callbacks race with host disposal during test teardown, throwing ObjectDisposedException on IServiceProvider."
+    },
+    {
+      "name": "Aspire.Hosting.DevTunnels.Tests.DevTunnelMonitorTests.EndpointCallbackCanStopAndRestartParentWithoutBlockingMonitor",
+      "job": "Tests / No-package tests (regular, Aspire.Hosting.DevTunnels.Tests, Hosting.DevTunnels, Hosting.DevTunnel... / Hosting.DevTunnels (ubuntu-latest)",
+      "error": "System.ObjectDisposedException : Cannot access a disposed object.\nObject name: 'IServiceProvider'.",
+      "stack_trace": "at Microsoft.Extensions.DependencyInjection.ServiceLookup.ThrowHelper.ThrowObjectDisposedException()\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.ServiceProviderEngineScope.GetService(Type serviceType)\n   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService(IServiceProvider provider, Type serviceType)\n   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService[T](IServiceProvider provider)\n   at Aspire.Hosting.DevTunnelsResourceBuilderExtensions.<>c__DisplayClass15_0.<AddDevTunnelPort>b__5(UpdateCommandStateContext context) in /_/src/Aspire.Hosting.DevTunnels/DevTunnelResourceBuilderExtensions.cs:line 647\n   at Aspire.Hosting.ApplicationModel.ResourceNotificationService.UpdateCommands(IResource resource, CustomResourceSnapshot previousState) in /_/src/Aspire.Hosting/ApplicationModel/ResourceNotificationService.cs:line 1149\n   at Aspire.Hosting.ApplicationModel.ResourceNotificationService.PublishUpdateAsync(IResource resource, String resourceId, Func`2 stateFactory) in /_/src/Aspire.Hosting/ApplicationModel/ResourceNotificationService.cs:line 887\n   at Aspire.Hosting.ApplicationModel.ResourceNotificationService.PublishUpdateAsync(IResource resource, Func`2 stateFactory) in /_/src/Aspire.Hosting/ApplicationModel/ResourceNotificationService.cs:line 1271\n   at Aspire.Hosting.DevTunnelsResourceBuilderExtensions.UpdatePortAccessAsync(DevTunnelPortResource portResource, ResourceNotificationService notifications, ResourceLoggerService logs, DateTimeOffset now) in /_/src/Aspire.Hosting.DevTunnels/DevTunnelResourceBuilderExtensions.cs:line 811\n   at Aspire.Hosting.DevTunnels.DevTunnelMonitor.<>c__DisplayClass40_0.<<RefreshAccessAsync>b__0>d.MoveNext() in /_/src/Aspire.Hosting.DevTunnels/DevTunnelMonitor.cs:line 356\n--- End of stack trace from previous location ---\n   at Aspire.Hosting.DevTunnels.DevTunnelMonitor.<>c__DisplayClass55_0`1.<<InvokeAsync>b__0>d.MoveNext() in /_/src/As",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Same underlying ObjectDisposedException race as CancellingAHealthCallerDoesNotCancelTheSharedObserver, in the same DevTunnelMonitor teardown path within the same test run."
+    },
+    {
+      "name": "Aspire.Cli.Tests.Git.GitRepositoryTests.GetIncludedFilesAsync_EmitsProfilingActivityForGitProcess",
+      "job": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (macos-latest)",
+      "error": "System.TimeoutException : The operation at /Users/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/Git/GitRepositoryTests.cs:126 timed out after reaching the limit of 30000ms.",
+      "stack_trace": "at Microsoft.AspNetCore.InternalTesting.AsyncTestHelpers.TimeoutAfter[T](Task`1 task, TimeSpan timeout, String filePath, Int32 lineNumber) in /Users/runner/work/aspire/aspire/tests/Shared/AsyncTestHelpers.cs:line 180\n   at Aspire.Cli.Tests.Git.GitRepositoryTests.GetIncludedFilesAsync_EmitsProfilingActivityForGitProcess() in /Users/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/Git/GitRepositoryTests.cs:line 126\n--- End of stack trace from previous location ---",
+      "standard_output": "[2026-10-19T13:37:23.2889290+00:00] Starting 'git --version' in '/Users/runner/work/aspire/aspire/artifacts/bin/Aspire.Cli.Tests/Debug/net11.0'\n[2026-10-19T13:37:23.2993030+00:00] 'git --version' started with PID 9699 after 00:00:00.0103803\n[2026-10-19T13:37:23.3081940+00:00] 'git --version' (PID 9699) stdout: git version 2.56.0\n[2026-10-19T13:37:23.3082150+00:00] 'git --version' (PID 9699) stdout closed\n[2026-10-19T13:37:23.3082270+00:00] 'git --version' (PID 9699) stderr closed\n[2026-10-19T13:37:23.3083090+00:00] 'git --version' (PID 9699) finished after 00:00:00.0193823; exit code: 0\nTemporary workspace created at: /var/folders/n6/hn37q6pj7sj_9dmqqc2113800000gn/T/Aspire.Cli.Tests/Workspace/d5rqolyj.snm\nInitializing git repository at: /var/folders/n6/hn37q6pj7sj_9dmqqc2113800000gn/T/Aspire.Cli.Tests/Workspace/d5rqolyj.snm\n[2026-10-19T13:37:23.3089470+00:00] Starting 'git init' in '/var/folders/n6/hn37q6pj7sj_9dmqqc2113800000gn/T/Aspire.Cli.Tests/Workspace/d5rqolyj.snm'\n[2026-10-19T13:37:23.3128620+00:00] 'git init' started with PID 9701 after 00:00:00.0039215\n[2026-10-19T13:37:23.3358430+00:00] 'git init' (PID 9701) stderr: hint: Using 'master' as the name for the initial branch. This default branch name\n[2026-10-19T13:37:23.3358740+00:00] 'git init' (PID 9701) stderr: hint: will change to \"main\" in Git 3.0. To configure the initial branch name\n[2026-10-19T13:37:23.3358760+00:00] 'git init' (PID 9701) stderr: hint: to use in all of your new repositories, which will suppress this warning,\n[2026-10-19T13:37:23.3358780+00:00] 'git init' (PID 9701) stderr: hint: call:\n[2026-10-19T13:37:23.3358880+00:00] 'git init' (PID 9701) stderr: hint:\n[2026-10-19T13:37:23.3358890+00:00] 'git init' (PID 9701) stderr: hint: \tgit config --global init.defaultBranch <name>\n[2026-10-19T13:37:23.3358900+00:00] 'git init' (PID 9701) stderr: hint:\n[2026-10-19T13:37:23.3358910+00:00] 'git init' (PID 9701) stderr: hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and\n[2026-10-19T13:37:23.3358920+00:00] 'git init' (PID 9701) stderr: hint: 'development'. The just-created branch can be renamed via this command:\n[2026-10-19T13:37:23.3358930+00:00] 'git init' (PID 9701) stderr: hint:\n[2026-10-19T13:37:23.3358940+00:00] 'git init' (PID 9701) stderr: hint: \tgit branch -m <name>\n[2026-10-19T13:37:23.3358950+00:00] 'git init' (PID 9701) stderr: hint:\n[2026-10-19T13:37:23.3358960+00:00] 'git init' (PID 9701) stderr: hint: Disable this message with \"git config set advice.defaultBranchName false\"\n[2026-10-19T13:37:23.3359110+00:00] 'git init' (PID 9701) stdout: Initialized empty Git repository in /private/var/folders/n6/hn37q6pj7sj_9dmqqc2113800000gn/T/Aspire.Cli.Tests/Workspace/d5rqolyj.snm/.git/\n[2026-10-19T13:37:23.3380330+00:00] 'git init' (PID 9701) stderr closed\n[2026-10-19T13:37:23.3380640+00:00] 'git init' (PID 9701) stdout closed\n[2026-10-19T13:37:23.3392490+00:00] 'git init' (PID 9701) finished after 00:00:00.0303052; exit code: 0\n[2026-10-19T13:37:23.3393050+00:00] Starting 'git config user.email test@example.com' in '/var/folders/n6/hn37q6pj7sj_9dmqqc2113800000gn/T/Aspire.Cli.Tests/Workspace/d5rqolyj.snm'\n[2026-10-19T13:37:23.3474180+00:00] 'git config user.email test@example.com' started with PID 9706 after 00:00:00.0081182\n[2026-10-19T13:37:23.3534320+00:00] 'git config user.email test@example.com' (PID 9706) stderr closed\n[2026-10-19T13:37:23.3534530+00:00] 'git config user.email test@example.com' (PID 9706) stdout closed\n[2026-10-19T13:37:23.3535710+00:00] 'git config user.email test@example.com' (PID 9706) finished after 00:00:00.0142670; exit code: 0\n[2026-10-19T13:37:23.3536010+00:00] Starting 'git config user.name Test User' in '/var/folders/n6/hn37q6pj7sj_9dmqqc2113800000gn/T/Aspire.Cli.Tests/Workspace/d5rqolyj.snm'\n[2026-10-19T13:37:23.3542240+00:00] 'git config user.name Test User' started with PID 9711 after 00:00:00.0006248\n[2026-10-19T13:37:23.3664480+00:00] 'git config user.name Test User' (PID 9711) stderr closed\n[2026",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "A 30s timeout waiting on a git subprocess during a profiling-activity test on macOS; this is the same family of macOS CPU-contention timeout flakiness seen repeatedly in other GitRepositoryTests and sibling Aspire.Cli.Tests timeout flakes on this runner image."
+    }
+  ],
+  "causes": [
+    "npm-registry-rate-limit",
+    "vscode-extension-vsix-package-build-failure",
+    "vscode-extension-e2e-vsix-artifact-not-found",
+    "typescript-sdk-nuxt-integration-npm-ci-docker-build-failure",
+    "devtunnels-devtunnelmonitor-cancellinghealthcaller-objectdisposed",
+    "devtunnels-devtunnelmonitor-endpointcallback-canstopandrestart-objectdisposed",
+    "aspire-cli-tests-git-getincludedfilesasync-emitsprofilingactivity-timeout-macos"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "id": "aspire-cli-tests-git-getincludedfilesasync-emitsprofilingactivity-timeout-macos",
+  "type": "flaky-test",
+  "title": "Flaky: GitRepositoryTests.GetIncludedFilesAsync_EmitsProfilingActivityForGitProcess times out after 30s on macOS",
+  "test_name": "Aspire.Cli.Tests.Git.GitRepositoryTests.GetIncludedFilesAsync_EmitsProfilingActivityForGitProcess",
+  "error_pattern": "System.TimeoutException : The operation at /Users/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/Git/GitRepositoryTests.cs:126 timed out after reaching the limit of 30000ms.\n   at Microsoft.AspNetCore.InternalTesting.AsyncTestHelpers.TimeoutAfter[T](Task`1 task, TimeSpan timeout, String filePath, Int32 lineNumber) in /Users/runner/work/aspire/aspire/tests/Shared/AsyncTestHelpers.cs:line 180",
+  "occurrences": [
+    {
+      "run_id": 39259389306,
+      "run_url": "https://github.com/microsoft/aspire/actions/runs/39259389306",
+      "job": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (macos-latest)",
+      "pr_number": 0,
+      "observed_at": "2026-10-19T14:19:42Z"
+    }
+  ]
+}
