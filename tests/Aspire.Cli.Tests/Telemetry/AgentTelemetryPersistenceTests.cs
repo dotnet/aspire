@@ -31,7 +31,7 @@ public class AgentTelemetryPersistenceTests(ITestOutputHelper outputHelper)
     public void SharedExporter_DisablesStandardMetricsAndPerformanceCounters()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
-        using var process = RemoteExecutor.Invoke(static storageDirectory => Task.Run(async () =>
+        using var process = RemoteExecutor.Invoke(static async storageDirectory =>
         {
             // Isolate cached exporter settings and prevent SDK diagnostics from making real requests.
             Environment.SetEnvironmentVariable("APPLICATIONINSIGHTS_STATSBEAT_DISABLED", "true");
@@ -116,11 +116,11 @@ public class AgentTelemetryPersistenceTests(ITestOutputHelper outputHelper)
             // Bypass the recorder so only the log processor can supply default metadata.
             provider.EventLogger.LogInformation("reported-event");
 
-            Assert.True(await provider.ForceFlushAsync(10_000));
+            Assert.True(await provider.ForceFlushAsync(TestConstants.DefaultTimeoutDuration).DefaultTimeout());
             Assert.Equal(
                 [("MessageData", "reported-event"), ("MetricData", "_OTELRESOURCE_"), ("RemoteDependencyData", "reported-operation")],
                 exportedItems.OrderBy(item => item.BaseType, StringComparer.Ordinal).ToArray());
-        }).DefaultTimeout(), workspace.WorkspaceRoot.FullName);
+        }, workspace.WorkspaceRoot.FullName, new RemoteInvokeOptions { TimeOut = TestConstants.LongTimeoutDuration });
     }
 
     [Theory]
