@@ -56,6 +56,16 @@ and the selected binary's `version` output. A custom controller build must inclu
 its complete tools layout (including its matching tunnel client), not just a
 copied `dcp` executable. This launcher support is not first-class Compose
 integration; the sample at this revision still uses the native-resource importer.
+`bootstrap-dcp.sh <reviewed-full-public-microsoft-dcp-commit>` obtains an exact
+public source archive without Git credentials and runs the upstream codegen/build
+inside a new ignored `artifacts/compose-dcp` directory. It requires Go (including
+the toolchain specified by that source), Make, curl, tar and unzip; network access
+to public Go modules and upstream build-tool downloads is also required. It does
+not modify another checkout or install global tools. The retained directory
+contains source, build log, source commit and the binary's version report; the
+script prints the `ASPIRE_DCP_PATH` export. Use only a reviewed commit. An arbitrary
+baseline build does not add Compose support: the agreed controller revision must
+be pinned here before claiming first-class integration or cross-repository proof.
 It stops its own AppHosts and Compose project on exit. Keep ports **18080** (gateway),
 **18888** (dashboard) and **18889** (resource service) free. Do not run another copy
 of this sample concurrently. Logs are written to ignored `imported.log` and
