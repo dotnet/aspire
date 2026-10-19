@@ -14,6 +14,7 @@
 //   { mode: "publication-guard", workflow } -> { value, repeated } or { error }
 //   { mode: "private-shell", script } -> { stdout, stderr, exitCode }
 //   { mode: "collect-prs", prs, alerts, changedFiles, contents, failure } -> { output, calls, failed }
+//   { mode: "collect-alerts", alerts, malware, codeScanning, failure } -> { stdout, stderr, exitCode, alerts, counts }
 // PRs may carry `head_repo` (defaults to microsoft/aspire) and `base_ref` (defaults to main).
 // Alerts may carry `vulnerable_version_range` and `advisory_ranges` (every range the
 // advisory lists for the package).
@@ -189,6 +190,77 @@ async function main() {
     let result;
 
     switch (request.mode) {
+        case 'collect-alerts': {
+            const { spawnSync } = require('node:child_process');
+            const source = fs.readFileSync(path.join(__dirname, '..', '..', '..', '.github', 'workflows', 'auto-sec.md'), 'utf8');
+            const body = /  - name: Collect alerts and Dependabot pull requests\r?\n[\s\S]*?    run: \|\r?\n([\s\S]*?)(?=\r?\n# Runs in)/.exec(source)?.[1];
+            if (!body) {
+                throw new Error('Missing alert collector');
+            }
+            const workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'auto-sec-collection-'));
+            try {
+                const gateDir = path.join(workDir, '.github', 'workflows', 'auto-sec');
+                fs.mkdirSync(gateDir, { recursive: true });
+                fs.copyFileSync(path.join(__dirname, '..', '..', '..', '.github', 'workflows', 'auto-sec', 'auto-sec.js'), path.join(gateDir, 'auto-sec.js'));
+                fs.mkdirSync(path.join(workDir, 'runner-temp', 'auto-sec-gate'), { recursive: true });
+                for (const [name, value] of Object.entries({
+                    alerts: request.alerts ?? [],
+                    malware: request.malware ?? [],
+                    codeScanning: request.codeScanning ?? [],
+                })) {
+                    fs.writeFileSync(path.join(workDir, `${name}.json`), JSON.stringify(value));
+                }
+                // Run the complete production shell with real jq and node. Only gh is
+                // replaced; HTTP failures deliberately emit JSON on stdout, as gh does.
+                const stub = `
+                    export REPO=microsoft/aspire RUNNER_TEMP="$PWD/runner-temp"
+                    gh() {
+                        local phase file='' query=''
+                        case "$*" in
+                            *classification=malware*) phase=malware-alerts; file=malware.json ;;
+                            */dependabot/alerts*) phase=dependabot-alerts; file=alerts.json ;;
+                            */code-scanning/alerts*) phase=code-scanning-alerts; file=codeScanning.json ;;
+                            *--author*) phase=dependabot-pull-requests ;;
+                            *--label*) phase=auto-sec-pull-requests ;;
+                            *) return 99 ;;
+                        esac
+                        if [ "$phase" = "$COLLECTION_FAILURE" ]; then
+                            printf '%s' '{"message":"synthetic private API denial","status":"403"}'
+                            printf '%s' 'synthetic private CLI diagnostic' >&2
+                            return 1
+                        fi
+                        if [ -z "$file" ]; then printf '[]'; return; fi
+                        while [ "$#" -gt 0 ]; do
+                            if [ "$1" = --jq ]; then query="$2"; break; fi
+                            shift
+                        done
+                        jq -r "$query" "$file"
+                    }
+                `;
+                const child = spawnSync('bash', ['-e', '-s'], {
+                    input: stub + '\n' + body.replace(/^ {6}/gm, ''),
+                    cwd: workDir,
+                    env: { ...process.env, COLLECTION_FAILURE: request.failure ?? '' },
+                    encoding: 'utf8',
+                    windowsHide: true,
+                    timeout: 30000,
+                });
+                if (child.error) {
+                    throw child.error;
+                }
+                const readOutput = filename => fs.existsSync(filename) ? JSON.parse(fs.readFileSync(filename, 'utf8')) : null;
+                result = {
+                    stdout: child.stdout,
+                    stderr: child.stderr,
+                    exitCode: child.status,
+                    alerts: readOutput(path.join(workDir, '.auto-sec', 'alerts.json')),
+                    counts: readOutput(path.join(workDir, 'runner-temp', 'auto-sec-gate', 'collected-counts.json')),
+                };
+            } finally {
+                fs.rmSync(workDir, { recursive: true, force: true });
+            }
+            break;
+        }
         case 'collect-prs': {
             // Execute the production inline collector, not a duplicate implementation.
             const source = fs.readFileSync(path.join(__dirname, '..', '..', '..', '.github', 'workflows', 'auto-sec.md'), 'utf8');

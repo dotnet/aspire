@@ -38,13 +38,15 @@ concurrency:
 
 timeout-minutes: 60
 
-# The agent is read-only. `security-events: read` lets the pre-agent data
-# collection list Dependabot and code scanning alerts with GITHUB_TOKEN.
+# The agent is read-only. Dependabot and code scanning use separate GITHUB_TOKEN
+# permissions; security-events alone cannot read Dependabot alerts.
+# https://github.blog/changelog/2026-09-03-github-actions-early-september-2026-updates/
 # Approvals, PR creation, and pushes happen in separate safe-output jobs.
 permissions:
   contents: read
   pull-requests: read
   security-events: read
+  vulnerability-alerts: read
   copilot-requests: write
 
 network:
@@ -101,10 +103,13 @@ pre-agent-steps:
       GH_TOKEN: ${{ github.token }}
       REPO: ${{ github.repository }}
     run: |
-      # Suppress CLI diagnostics before any private alert response is processed.
-      # The runner still records the exit status; public counts come from the scrub.
+      # Keep a diagnostic channel for fixed phase names and exit codes only.
+      # API bodies and command diagnostics must never reach the public runner log.
+      exec 3>&2
       exec >/dev/null 2>&1
       set -euo pipefail
+      phase=initialization
+      trap 'status=$?; printf "::error::Auto-sec collection failed (%s; exit %s).\n" "$phase" "$status" >&3' ERR
       mkdir -p .auto-sec
 
       # Only structured fields are kept. Advisory text (summaries, descriptions,
@@ -115,11 +120,14 @@ pre-agent-steps:
       # coverage check below rejects a target inside a later disjoint range, as the
       # approval job does. The projection runs in `jq`, not `gh --jq`, so the
       # linter treats the `$pkg` and `$key` bindings as jq variables.
+      phase=dependabot-alerts
       gh api --paginate "/repos/${REPO}/dependabot/alerts?state=open&per_page=100" --jq '.[]' \
         | jq -s 'map(.dependency.package as $pkg | ($pkg.name | ascii_downcase | gsub("[-_.]+"; "-")) as $key | {number, ecosystem: $pkg.ecosystem, package: $pkg.name, manifest_path: .dependency.manifest_path, scope: .dependency.scope, relationship: .dependency.relationship, vulnerable_version_range: .security_vulnerability.vulnerable_version_range, vulnerable_ranges: ([.security_vulnerability.vulnerable_version_range] + [(.security_advisory.vulnerabilities // [])[] | select(.package.ecosystem == $pkg.ecosystem and (.package.name | ascii_downcase | gsub("[-_.]+"; "-")) == $key) | .vulnerable_version_range] | map(select(type == "string" and . != "")) | unique), first_patched_version: .security_vulnerability.first_patched_version.identifier})' \
         > .auto-sec/dependabot-alerts.json
+      phase=malware-alerts
       gh api --paginate "/repos/${REPO}/dependabot/alerts?state=open&classification=malware&per_page=100" \
         --jq '.[] | .number' | jq -s '.' > .auto-sec/malware-alert-numbers.json
+      phase=alert-annotation
       jq --slurpfile malware .auto-sec/malware-alert-numbers.json \
         'map(. + {malware: (.number as $n | $malware[0] | index($n) != null)})' \
         .auto-sec/dependabot-alerts.json > .auto-sec/alerts.json
@@ -127,6 +135,7 @@ pre-agent-steps:
       # Code scanning alerts are in scope only when the rule maps to an action or
       # package version. Everything else is a code finding and is only counted.
       VERSION_RULES='["zizmor/unpinned-uses","zizmor/impostor-commit","zizmor/ref-confusion","zizmor/known-vulnerable-actions","zizmor/stale-action-refs","zizmor/archived-uses"]'
+      phase=code-scanning-alerts
       gh api --paginate "/repos/${REPO}/code-scanning/alerts?state=open&per_page=100" \
         --jq '.[] | {number, rule: .rule.id, tool: .tool.name, path: .most_recent_instance.location.path, start_line: .most_recent_instance.location.start_line}' \
         | jq -s --argjson rules "${VERSION_RULES}" '{
@@ -140,9 +149,11 @@ pre-agent-steps:
       # alert package to the new version in the alert's own manifest. The base
       # version is diffed too, so lockfile-only (transitive) upgrades count. Bodies
       # are parsed and then dropped. Alerts describe main, so only PRs into main count.
+      phase=dependabot-pull-requests
       gh pr list --repo "${REPO}" --author "app/dependabot" --state open --base main --limit 200 \
         --json number,title,body,headRefName,headRefOid,baseRefOid,isDraft,files,statusCheckRollup \
         > .auto-sec/dependabot-prs-raw.json
+      phase=dependabot-coverage
       node -e '
         const fs = require("node:fs");
         const { execFileSync } = require("node:child_process");
@@ -203,10 +214,12 @@ pre-agent-steps:
       '
       rm .auto-sec/dependabot-prs-raw.json .auto-sec/dependabot-alerts.json
 
+      phase=auto-sec-pull-requests
       gh pr list --repo "${REPO}" --label auto-sec --state open --limit 20 \
         --json number,title,headRefName,headRefOid,author > .auto-sec/auto-sec-prs.json
 
       # Bind public totals to collection, not the agent-writable copies of these files.
+      phase=report-counts
       node -e '
         const fs = require("node:fs");
         const path = require("node:path");
@@ -386,6 +399,7 @@ safe-outputs:
         checks: read
         statuses: read
         security-events: read
+        vulnerability-alerts: read
       inputs:
         pr_number:
           description: "Number of the open Dependabot pull request."
