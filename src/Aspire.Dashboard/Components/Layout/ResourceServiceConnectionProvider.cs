@@ -6,12 +6,16 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Layout;
 
-public sealed class ResourceServiceConnectionProvider : ComponentBase, IAsyncDisposable
+public sealed partial class ResourceServiceConnectionProvider : ComponentBase, IAsyncDisposable
 {
     private const int MaxAttemptsBeforeShowingRetry = 5;
 
     private DotNetObjectReference<ResourceServiceConnectionProvider>? _dotNetRef;
     private int _disconnectedCount;
+    private bool _isDisconnected;
+
+    [Inject]
+    public required Microsoft.Extensions.Localization.IStringLocalizer<Resources.Reconnect> Loc { get; init; }
 
     [Inject]
     public required IDashboardClient DashboardClient { get; init; }
@@ -68,6 +72,11 @@ public sealed class ResourceServiceConnectionProvider : ComponentBase, IAsyncDis
 
     private async Task UpdateModalStateAsync(DashboardConnectionState state)
     {
+        if (state is DashboardConnectionState.Disconnected or DashboardConnectionState.Connected)
+        {
+            _isDisconnected = state == DashboardConnectionState.Disconnected;
+            StateHasChanged();
+        }
         if (state is DashboardConnectionState.Connected)
         {
             _disconnectedCount = 0;

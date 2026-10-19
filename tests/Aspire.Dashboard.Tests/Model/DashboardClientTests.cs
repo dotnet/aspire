@@ -24,6 +24,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -442,6 +443,72 @@ public sealed class DashboardClientTests(ITestOutputHelper testOutputHelper) : I
         Assert.Single(initialData);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ConsoleLogs_RunChangesWhileBatchIsInFlight_BatchStaysInOriginalRun(bool follow)
+    {
+        using var workspace = TemporaryWorkspace.Create(testOutputHelper);
+        var options = Options.Create(new DashboardOptions
+        {
+            Data = new DashboardDataOptions { Directory = workspace.Path, PersistenceMode = DashboardPersistenceMode.Run }
+        });
+        using var services = new ServiceCollection()
+            .AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance)
+            .AddSingleton(options)
+            .AddSingleton<PauseManager>()
+            .AddSingleton(TimeProvider.System)
+            .AddSingleton<IKnownPropertyLookup, MockKnownPropertyLookup>()
+            .BuildServiceProvider();
+        using var store = new DashboardRunStore(options, NullLogger<DashboardRunStore>.Instance, TimeProvider.System);
+        using var pool = new DashboardDataSourcePool(store, new RepositoryFactory(services));
+        await pool.InitializeAsync(CancellationToken.None);
+        pool.PublishRun();
+        await pool.StartAppHostRunAsync("first", CancellationToken.None);
+        var firstRunId = store.RunId;
+        var writer = new CurrentResourceWriter(pool);
+        await writer.ReplaceResourcesAsync([new Resource { Name = "api", DisplayName = "api", ResourceType = "Executable", CreatedAt = Timestamp.FromDateTime(DateTime.UtcNow) }]);
+        var logs = Channel.CreateUnbounded<WatchResourceConsoleLogsUpdate>();
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using var client = CreateResourceServiceClient(resourceRepositoryWriter: writer, dataSourcePool: pool);
+        client.SetDashboardServiceClient(new MockDashboardServiceClient
+        {
+            ResourceUpdatesChannel = Channel.CreateUnbounded<WatchResourcesUpdate>().Reader,
+            ConsoleUpdatesChannel = logs.Reader,
+            OnConsoleWatchStarted = () => started.TrySetResult()
+        });
+        await using var batches = (follow
+            ? client.SubscribeConsoleLogs("api", CancellationToken.None)
+            : client.GetConsoleLogs("api", CancellationToken.None)).GetAsyncEnumerator();
+        var next = batches.MoveNextAsync().AsTask();
+        await started.Task.DefaultTimeout();
+
+        await pool.StartAppHostRunAsync("second", CancellationToken.None);
+        await logs.Writer.WriteAsync(new WatchResourceConsoleLogsUpdate
+        {
+            LogLines = { new ConsoleLogLine { LineNumber = 1, Text = "old AppHost batch" } }
+        });
+        logs.Writer.Complete();
+        Assert.True(await next.DefaultTimeout());
+        Assert.Equal("old AppHost batch", Assert.Single(batches.Current).Content);
+        Assert.False(await batches.MoveNextAsync().AsTask().DefaultTimeout());
+
+        var currentLogs = new List<ResourceLogLine>();
+        await foreach (var batch in pool.Current.ResourceRepository.GetConsoleLogs("api", CancellationToken.None))
+        {
+            currentLogs.AddRange(batch);
+        }
+        Assert.Empty(currentLogs);
+        using var history = pool.TryAcquire(store.GetRunById(firstRunId, onlyCompatible: true)!);
+        Assert.NotNull(history);
+        var historicalLogs = new List<ResourceLogLine>();
+        await foreach (var batch in history.ResourceRepository.GetConsoleLogs("api", CancellationToken.None))
+        {
+            historicalLogs.AddRange(batch);
+        }
+        Assert.Equal("old AppHost batch", Assert.Single(historicalLogs).Content);
+    }
+
     [Fact]
     public async Task SubscribeConsoleLogs_ReceivesAndPersistsLogs()
     {
@@ -531,8 +598,7 @@ public sealed class DashboardClientTests(ITestOutputHelper testOutputHelper) : I
         var resources = Channel.CreateUnbounded<WatchResourcesUpdate>();
         var firstInteractions = Channel.CreateUnbounded<WatchInteractionsResponseUpdate>();
         var secondInteractions = Channel.CreateUnbounded<WatchInteractionsResponseUpdate>();
-        var disconnected = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var recovered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var resubscribed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var interactionSubscriptions = 0;
         var resourceSubscriptions = 0;
         await using var client = CreateResourceServiceClient();
@@ -543,20 +609,17 @@ public sealed class DashboardClientTests(ITestOutputHelper testOutputHelper) : I
                 Interlocked.Increment(ref resourceSubscriptions);
                 return resources.Reader;
             },
-            InteractionUpdatesProvider = () => Interlocked.Increment(ref interactionSubscriptions) == 1
-                ? firstInteractions.Reader : secondInteractions.Reader
+            InteractionUpdatesProvider = () =>
+            {
+                if (Interlocked.Increment(ref interactionSubscriptions) == 1)
+                {
+                    return firstInteractions.Reader;
+                }
+
+                resubscribed.TrySetResult();
+                return secondInteractions.Reader;
+            }
         });
-        client.ConnectionStateChanged += state =>
-        {
-            if (state == DashboardConnectionState.Disconnected)
-            {
-                disconnected.TrySetResult();
-            }
-            else if (state == DashboardConnectionState.Connected && disconnected.Task.IsCompleted)
-            {
-                recovered.TrySetResult();
-            }
-        };
         var ready = client.WhenResourcesReady;
         await client.WhenConnected.DefaultTimeout();
         if (resourcesReceived)
@@ -566,12 +629,15 @@ public sealed class DashboardClientTests(ITestOutputHelper testOutputHelper) : I
         }
 
         firstInteractions.Writer.Complete(new RpcException(new Status(StatusCode.Unavailable, "Interaction stream disconnected")));
-        await disconnected.Task.DefaultTimeout();
+        await resubscribed.Task.DefaultTimeout();
+        // An idle interaction stream must not reset resource connection readiness. Otherwise a new
+        // resource page can wait forever even though its snapshot is already available.
+        Assert.Equal(DashboardConnectionState.Connected, client.ConnectionState);
+        Assert.True(client.WhenConnected.IsCompletedSuccessfully);
         Assert.Same(ready, client.WhenResourcesReady);
         Assert.Equal(resourcesReceived, ready.IsCompleted);
 
         await secondInteractions.Writer.WriteAsync(new WatchInteractionsResponseUpdate { InteractionId = 1 });
-        await recovered.Task.DefaultTimeout();
         Assert.Same(ready, client.WhenResourcesReady);
         Assert.Equal(resourcesReceived, ready.IsCompleted);
         if (!resourcesReceived)
@@ -1235,6 +1301,8 @@ public sealed class DashboardClientTests(ITestOutputHelper testOutputHelper) : I
         public string ApplicationName { get; init; } = "TestApplication";
         public string MinDashboardVersion { get; init; } = "";
         public IReadOnlyList<WatchResourceConsoleLogsUpdate> ConsoleLogUpdates { get; init; } = [];
+        public ChannelReader<WatchResourceConsoleLogsUpdate>? ConsoleUpdatesChannel { get; init; }
+        public Action? OnConsoleWatchStarted { get; init; }
         public IReadOnlyList<WatchResourcesUpdate> ResourceUpdates { get; init; } = [];
         public ChannelReader<WatchResourcesUpdate>? ResourceUpdatesChannel { get; init; }
         public Func<ChannelReader<WatchResourcesUpdate>>? ResourceUpdatesProvider { get; init; }
@@ -1256,8 +1324,9 @@ public sealed class DashboardClientTests(ITestOutputHelper testOutputHelper) : I
 
         public override AsyncServerStreamingCall<WatchResourceConsoleLogsUpdate> WatchResourceConsoleLogs(WatchResourceConsoleLogsRequest request, CallOptions options)
         {
+            OnConsoleWatchStarted?.Invoke();
             return new AsyncServerStreamingCall<WatchResourceConsoleLogsUpdate>(
-                new AsyncStreamReader<WatchResourceConsoleLogsUpdate>(ConsoleLogUpdates),
+                new AsyncStreamReader<WatchResourceConsoleLogsUpdate>(ConsoleLogUpdates, ConsoleUpdatesChannel),
                 Task.FromResult(new Metadata()),
                 () => Status.DefaultSuccess,
                 () => new Metadata(),
@@ -1469,7 +1538,8 @@ public sealed class DashboardClientTests(ITestOutputHelper testOutputHelper) : I
         IResourceRepositoryWriter? resourceRepositoryWriter = null,
         string? applicationName = null,
         ResourceServiceClientCertificateOptions? clientCertificate = null,
-        Action<SocketsHttpHandler>? configureHttpHandler = null)
+        Action<SocketsHttpHandler>? configureHttpHandler = null,
+        DashboardDataSourcePool? dataSourcePool = null)
     {
         var options = new DashboardOptions
         {
@@ -1495,6 +1565,7 @@ public sealed class DashboardClientTests(ITestOutputHelper testOutputHelper) : I
             Options.Create(options),
             new MockKnownPropertyLookup(),
             new TestStringLocalizer<DashboardResources>(),
+            dataSourcePool: dataSourcePool,
             resourceRepositoryWriter: resourceRepositoryWriter ?? new RecordingResourceRepositoryWriter(),
             configureHttpHandler: configureHttpHandler);
     }

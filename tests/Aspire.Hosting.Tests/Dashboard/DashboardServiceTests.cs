@@ -848,6 +848,40 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         Assert.True(true);
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("current")]
+    [InlineData("previous")]
+    public async Task AppHostRunInterceptor_OnlyCurrentAttachmentCanExecuteCommands(string? attachment)
+    {
+        using var data = CreateDashboardServiceData();
+        var interceptor = new AppHostRunInterceptor(data);
+        var headers = new Metadata();
+        if (attachment is not null)
+        {
+            headers.Add("x-aspire-apphost-run-id", attachment == "current" ? data.RunId : "old-run");
+        }
+        var context = TestServerCallContext.Create(requestHeaders: headers);
+        var invoked = false;
+        Task<ResourceCommandResponse> Execute(ResourceCommandRequest request, ServerCallContext context)
+        {
+            invoked = true;
+            return Task.FromResult(new ResourceCommandResponse());
+        }
+
+        if (attachment == "previous")
+        {
+            var error = await Assert.ThrowsAsync<RpcException>(() => interceptor.UnaryServerHandler(new ResourceCommandRequest(), context, Execute));
+            Assert.Equal(StatusCode.FailedPrecondition, error.StatusCode);
+            Assert.False(invoked);
+        }
+        else
+        {
+            await interceptor.UnaryServerHandler(new ResourceCommandRequest(), context, Execute);
+            Assert.True(invoked);
+        }
+    }
+
     [Fact]
     public async Task GetApplicationInformation_ReadsFromConfiguration()
     {
@@ -875,6 +909,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
 
         // Assert
         Assert.Equal("MyCustomAppName", response.ApplicationName);
+        Assert.Equal(dashboardServiceData.RunId, response.RunId);
     }
 
     [Fact]
@@ -1846,7 +1881,8 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
             configuration ?? new ConfigurationBuilder().Build(),
             logger ?? NullLogger<DashboardServiceImpl>.Instance,
             fileUploadStore ?? new TestInteractionFileUploadStore(),
-            terminalService ?? TestTerminalService.Create());
+            terminalService ?? TestTerminalService.Create(),
+            new DistributedApplicationModel(new ResourceCollection()));
     }
 
     private static DashboardServiceData CreateDashboardServiceData(

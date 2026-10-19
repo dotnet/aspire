@@ -1,0 +1,8 @@
+.apphost-connection-status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 1rem;
+    background: var(--neutral-layer-2);
+}

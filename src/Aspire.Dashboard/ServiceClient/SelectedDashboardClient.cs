@@ -40,11 +40,11 @@ internal sealed class SelectedDashboardClient(DashboardClient currentClient, Das
     public ResourceViewModel? GetResource(string resourceName) => dataSource.ResourceRepository.GetResource(resourceName);
     public IReadOnlyList<ResourceViewModel> GetResources() => dataSource.ResourceRepository.GetResources();
     public IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> SubscribeConsoleLogs(string resourceName, CancellationToken cancellationToken) =>
-        IsReadOnly
+        IsReadOnly || ConnectionState != DashboardConnectionState.Connected
             ? dataSource.ResourceRepository.SubscribeConsoleLogs(resourceName, cancellationToken)
             : currentClient.SubscribeConsoleLogs(resourceName, cancellationToken);
     public IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> GetConsoleLogs(string resourceName, CancellationToken cancellationToken) =>
-        IsReadOnly
+        IsReadOnly || ConnectionState != DashboardConnectionState.Connected
             ? dataSource.ResourceRepository.GetConsoleLogs(resourceName, cancellationToken)
             : currentClient.GetConsoleLogs(resourceName, cancellationToken);
 
@@ -59,25 +59,25 @@ internal sealed class SelectedDashboardClient(DashboardClient currentClient, Das
 
     public Task SendInteractionRequestAsync(WatchInteractionsRequestUpdate request, CancellationToken cancellationToken)
     {
-        EnsureWritable();
+        EnsureLiveConnection();
         return currentClient.SendInteractionRequestAsync(request, cancellationToken);
     }
 
     public Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, ExecuteResourceCommandOptions options, CancellationToken cancellationToken)
     {
-        EnsureWritable();
+        EnsureLiveConnection();
         return currentClient.ExecuteResourceCommandAsync(resourceName, resourceType, command, options, cancellationToken);
     }
 
     public Task<string> UploadFileAsync(Stream fileStream, string fileName, long expectedSize, int interactionId, string inputName, CancellationToken cancellationToken)
     {
-        EnsureWritable();
+        EnsureLiveConnection();
         return currentClient.UploadFileAsync(fileStream, fileName, expectedSize, interactionId, inputName, cancellationToken);
     }
 
     public Task<Stream> AttachTerminalAsync(string terminalId, CancellationToken cancellationToken)
     {
-        EnsureWritable();
+        EnsureLiveConnection();
         return currentClient.AttachTerminalAsync(terminalId, cancellationToken);
     }
 
@@ -86,7 +86,7 @@ internal sealed class SelectedDashboardClient(DashboardClient currentClient, Das
 
     public Task CloseTerminalAsync(string terminalId, CancellationToken cancellationToken)
     {
-        EnsureWritable();
+        EnsureLiveConnection();
         return currentClient.CloseTerminalAsync(terminalId, cancellationToken);
     }
 
@@ -94,6 +94,15 @@ internal sealed class SelectedDashboardClient(DashboardClient currentClient, Das
     {
         await Task.CompletedTask.ConfigureAwait(false);
         yield break;
+    }
+
+    private void EnsureLiveConnection()
+    {
+        EnsureWritable();
+        if (currentClient.ConnectionState != DashboardConnectionState.Connected)
+        {
+            throw new InvalidOperationException("The AppHost is disconnected.");
+        }
     }
 
     private void EnsureWritable()

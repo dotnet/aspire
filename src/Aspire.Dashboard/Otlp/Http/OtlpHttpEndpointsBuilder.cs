@@ -40,10 +40,7 @@ public static class OtlpHttpEndpointsBuilder
             .MapGroup("/v1")
             .AddOtlpHttpMetadata();
 
-        if (!string.IsNullOrEmpty(options.Cors.AllowedOrigins))
-        {
-            group = group.RequireCors(CorsPolicyName);
-        }
+        group = group.RequireCors(CorsPolicyName);
 
         group.MapPost("logs", static async (MessageBindable<ExportLogsServiceRequest> request, OtlpLogsService service) =>
         {

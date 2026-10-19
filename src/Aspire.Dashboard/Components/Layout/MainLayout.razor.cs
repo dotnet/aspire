@@ -133,6 +133,8 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             }
         }
 
+        DashboardClient.ConnectionStateChanged += OnConnectionStateChanged;
+        DataSourcePool.CurrentRunChanged += OnCurrentRunChanged;
         NotificationService.OnChange += HandleNotificationsChanged;
 
         // Theme change can be triggered from the settings dialog. This logic applies the new theme to the browser window.
@@ -308,6 +310,24 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     }
 
     private string GetDefaultReturnFocusElementId(string desktopButtonId) => ViewportInformation.IsDesktop ? desktopButtonId : NavigationButtonId;
+
+    [Inject]
+    public required DashboardDataSourcePool DataSourcePool { get; init; }
+
+    private void OnConnectionStateChanged(DashboardConnectionState state) => _ = InvokeAsync(StateHasChanged);
+
+    private void OnCurrentRunChanged()
+    {
+        _ = InvokeAsync(() =>
+        {
+            // A deliberately selected history entry stays selected. The live view follows the AppHost.
+            if (RunSelection.SelectedRun.IsCurrent)
+            {
+                RunSelection.SelectRun(runId: null);
+            }
+            StateHasChanged();
+        });
+    }
 
     private async Task SwitchDashboardRunAsync(string? runId)
     {
@@ -570,6 +590,8 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        DashboardClient.ConnectionStateChanged -= OnConnectionStateChanged;
+        DataSourcePool.CurrentRunChanged -= OnCurrentRunChanged;
         _isDisposing = true;
 
         _shortcutManagerReference?.Dispose();

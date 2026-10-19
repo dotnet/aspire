@@ -13,8 +13,27 @@ namespace Aspire.Dashboard.Components.Tests.Layout;
 public class ResourceServiceConnectionProviderTests : DashboardTestContext
 {
     [Fact]
+    public async Task Disconnected_ShowsStatusAndKeepsPageAvailable()
+    {
+        FluentUISetupHelpers.AddCommonDashboardServices(this);
+        var dashboardClient = new TestDashboardClient(isEnabled: true);
+        Services.AddSingleton<IDashboardClient>(dashboardClient);
+        JSInterop.SetupVoid("registerResourceServiceConnectionProvider", _ => true).SetVoidResult();
+        JSInterop.SetupVoid("updateResourceServiceConnectionState", _ => true).SetVoidResult();
+        var cut = Render<ResourceServiceConnectionProvider>();
+
+        await cut.InvokeAsync(() => dashboardClient.SetConnectionState(DashboardConnectionState.Disconnected));
+        cut.WaitForAssertion(() => Assert.Single(cut.FindAll("[role=status]")));
+        Assert.Empty(cut.FindAll("dialog"));
+
+        await cut.InvokeAsync(() => dashboardClient.SetConnectionState(DashboardConnectionState.Connected));
+        cut.WaitForAssertion(() => Assert.Empty(cut.FindAll("[role=status]")));
+    }
+
+    [Fact]
     public async Task ConnectionStateChanged_CanceledJsInterop_DoesNotThrow()
     {
+        FluentUISetupHelpers.AddCommonDashboardServices(this);
         var dashboardClient = new TestDashboardClient(isEnabled: true);
         Services.AddSingleton<IDashboardClient>(dashboardClient);
         JSInterop.SetupVoid("registerResourceServiceConnectionProvider", _ => true).SetVoidResult();

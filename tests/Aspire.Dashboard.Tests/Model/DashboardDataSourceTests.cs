@@ -29,6 +29,41 @@ namespace Aspire.Dashboard.Tests.Model;
 public sealed class DashboardDataSourceTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
+    public async Task AppHostRunChange_RollsStorageAndPreservesHistory()
+    {
+        using var workspace = TemporaryWorkspace.Create(testOutputHelper);
+        var options = CreateOptions(workspace);
+        using var store = CreateRunStore(options, new FixedTimeProvider(DateTimeOffset.Parse("2026-10-18T12:00:00Z")));
+        using var pool = new DashboardDataSourcePool(store, CreateRepositoryFactory(options));
+        await pool.InitializeAsync(CancellationToken.None);
+        pool.PublishRun();
+        var writer = new CurrentResourceWriter(pool);
+        await pool.StartAppHostRunAsync("apphost-a", CancellationToken.None);
+        var firstRun = store.GetCurrentRun();
+        await writer.ReplaceResourcesAsync([new Resource { Name = "first", DisplayName = "first", ResourceType = "Executable", CreatedAt = Timestamp.FromDateTime(DateTime.UtcNow) }]);
+
+        await pool.StartAppHostRunAsync("apphost-a", CancellationToken.None);
+        Assert.Equal(firstRun.RunId, store.RunId);
+        Assert.Equal("first", Assert.Single(pool.Current.ResourceRepository.GetResources()).Name);
+
+        await pool.StartAppHostRunAsync("apphost-b", CancellationToken.None);
+        Assert.NotEqual(firstRun.RunId, store.RunId);
+        Assert.Empty(pool.Current.ResourceRepository.GetResources());
+        var historicalRun = store.GetRunById(firstRun.RunId, onlyCompatible: true)!;
+        Assert.False(historicalRun.IsCurrent);
+        Assert.True(historicalRun.CleanShutdown);
+        using (var history = pool.TryAcquire(historicalRun))
+        {
+            Assert.NotNull(history);
+            Assert.Equal("first", Assert.Single(history.ResourceRepository.GetResources()).Name);
+        }
+
+        // Repeated rollovers at the same clock instant must still create distinct databases.
+        await pool.StartAppHostRunAsync("apphost-c", CancellationToken.None);
+        Assert.Equal(3, store.GetRuns().Count);
+    }
+
+    [Fact]
     public void RunDirectory_IsNestedUnderSharedRunsDirectoryAndHasApplicationMarker()
     {
         using var workspace = TemporaryWorkspace.Create(testOutputHelper);
@@ -147,6 +182,7 @@ public sealed class DashboardDataSourceTests(ITestOutputHelper testOutputHelper)
         using var dataSourcePool = new DashboardDataSourcePool(runStore, CreateRepositoryFactory(options));
         using var initializer = new DashboardDataSourceInitializer(
             dataSourcePool,
+            dashboardClient: null,
             lifetime,
             NullLogger<DashboardDataSourceInitializer>.Instance);
         await initializer.StartAsync(CancellationToken.None);
@@ -216,7 +252,7 @@ public sealed class DashboardDataSourceTests(ITestOutputHelper testOutputHelper)
             Options.Create(new DashboardOptions { ApplicationName = "Live application" }),
             new MockKnownPropertyLookup(),
             new TestStringLocalizer<Resources.Resources>(),
-            (IResourceRepositoryWriter)dataSource.ResourceRepository);
+            (IResourceRepositoryWriter)dataSource.ResourceRepository, dataSourcePool: null);
         IDashboardClient selectedClient = new SelectedDashboardClient(currentClient, dataSource);
 
         Assert.Equal("Live application", selectedClient.ApplicationName);
@@ -1480,7 +1516,7 @@ public sealed class DashboardDataSourceTests(ITestOutputHelper testOutputHelper)
             options,
             new MockKnownPropertyLookup(),
             new TestStringLocalizer<Resources.Resources>(),
-            (IResourceRepositoryWriter)currentResourceRepository);
+            (IResourceRepositoryWriter)currentResourceRepository, dataSourcePool: null);
         IDashboardClient selectedClient = new SelectedDashboardClient(currentClient, dataSource);
         var connectionStateChangedCount = 0;
         selectedClient.ConnectionStateChanged += _ => connectionStateChangedCount++;

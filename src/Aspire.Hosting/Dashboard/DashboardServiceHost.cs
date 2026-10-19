@@ -51,7 +51,10 @@ internal sealed class DashboardServiceHost : IHostedService
         ResourceCommandService resourceCommandService,
         InteractionService interactionService,
         IInteractionFileUploadStore fileUploadStore,
-        TerminalService terminalService)
+        TerminalService terminalService,
+        IUserSecretsManager userSecretsManager,
+        ProxylessEndpointPortAllocator portAllocator,
+        IOptions<DashboardOptions> dashboardOptions)
     {
         _logger = loggerFactory.CreateLogger<DashboardServiceHost>();
 
@@ -103,7 +106,7 @@ internal sealed class DashboardServiceHost : IHostedService
             builder.Services.AddSingleton(loggerOptions);
             builder.Services.Add(ServiceDescriptor.Singleton(typeof(ILogger<>), typeof(Logger<>)));
 
-            builder.Services.AddGrpc();
+            builder.Services.AddGrpc(options => options.Interceptors.Add<AppHostRunInterceptor>());
             builder.Services.AddSingleton(applicationModel);
             builder.Services.AddSingleton(resourceCommandService);
             builder.Services.AddSingleton<DashboardServiceData>();
@@ -140,6 +143,18 @@ internal sealed class DashboardServiceHost : IHostedService
             var randomizePorts = dcpOptions.Value.RandomizePorts;
 
             var endpoint = ResolveEndpoint(uri, randomizePorts, allowUnsecuredTransport);
+            if (dashboardOptions.Value.Persistent && endpoint.Port == 0)
+            {
+                // Keep the address captured by the dashboard's gRPC channel valid across AppHost runs.
+                const string portKey = "AppHost:ResourceService:Port";
+                var port = configuration.GetValue<int?>(portKey);
+                if (port is null)
+                {
+                    port = portAllocator.AllocatePort(System.Net.Sockets.ProtocolType.Tcp);
+                    userSecretsManager.TrySetSecret(portKey, port.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                }
+                endpoint = endpoint with { Port = port.Value };
+            }
 
             if (endpoint.UseListenLocalhost)
             {
@@ -242,6 +257,9 @@ internal sealed class DashboardServiceHost : IHostedService
     /// Intended to be used by the app model when launching the dashboard process, populating its
     /// <c>ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL</c> environment variable with a single URI.
     /// </remarks>
+    internal Task WaitForDashboardRunAsync(CancellationToken cancellationToken) =>
+        _app!.Services.GetRequiredService<DashboardServiceData>().RunAttached.Task.WaitAsync(TimeSpan.FromSeconds(60), cancellationToken);
+
     public async Task<string> GetResourceServiceUriAsync(CancellationToken cancellationToken = default)
     {
         var startTime = Stopwatch.GetTimestamp();

@@ -301,6 +301,39 @@ public class DashboardEventHandlersTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(expectedTelemetryOptOut?.ToString(), environmentVariables.GetValueOrDefault(DashboardConfigNames.Legacy.DebugSessionTelemetryOptOutName.EnvVarName));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ConfigureEnvironmentVariables_PersistentDashboardDoesNotWatchCliLifetime(bool persistent)
+    {
+        var configuration = new ConfigurationBuilder().Build();
+        var hook = CreateHook(new ResourceLoggerService(), ResourceNotificationServiceTestHelpers.Create(), configuration);
+        var dashboard = new ExecutableResource("aspire-dashboard", "dashboard.exe", ".");
+        if (persistent)
+        {
+#pragma warning disable ASPIREPERSISTENCE001 // Exercise the persistent executable lifetime used by the dashboard.
+            dashboard.Annotations.Add(new PersistenceAnnotation { Mode = PersistenceMode.Persistent });
+#pragma warning restore ASPIREPERSISTENCE001
+        }
+        var model = new DistributedApplicationModel([dashboard]);
+        var executionContext = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run)
+        {
+            Services = new TestServiceProvider().AddService(model)
+        });
+        var environment = new Dictionary<string, object>
+        {
+            [KnownConfigNames.CliProcessId] = "123",
+            [KnownConfigNames.CliProcessStarted] = "start",
+            [KnownConfigNames.CliProcessStartedStable] = "stable-start"
+        };
+
+        await hook.ConfigureEnvironmentVariables(new EnvironmentCallbackContext(executionContext, environmentVariables: environment, resource: dashboard));
+
+        Assert.Equal(persistent ? "" : "123", environment[KnownConfigNames.CliProcessId]);
+        Assert.Equal(persistent ? "" : "start", environment[KnownConfigNames.CliProcessStarted]);
+        Assert.Equal(persistent ? "" : "stable-start", environment[KnownConfigNames.CliProcessStartedStable]);
+    }
+
     [Fact]
     public async Task ConfigureEnvironmentVariables_HasAspireDashboardEnvVars_CopiedToDashboard()
     {

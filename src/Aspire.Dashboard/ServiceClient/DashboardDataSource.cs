@@ -32,6 +32,7 @@ public sealed class DashboardDataSource : IDashboardRunSelection, IDisposable
     private readonly DashboardDataSourcePool _dataSourcePool;
 
     private DashboardDataSourcePool.Lease? _historicalDataSourceLease;
+    private IDisposable? _currentRetention;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DashboardDataSource"/> class.
@@ -122,6 +123,8 @@ public sealed class DashboardDataSource : IDashboardRunSelection, IDisposable
             TelemetryRepository = historicalDataSourceLease.TelemetryRepository;
             ResourceRepository = historicalDataSourceLease.ResourceRepository;
             IsReadOnly = true;
+            _currentRetention?.Dispose();
+            _currentRetention = null;
             SelectedRun = selectedRun;
             previousHistoricalDataSourceLease?.Dispose();
         }
@@ -139,6 +142,7 @@ public sealed class DashboardDataSource : IDashboardRunSelection, IDisposable
     public void Dispose()
     {
         DisposeHistoricalDataSource();
+        _currentRetention?.Dispose();
     }
 
     private void DisposeHistoricalDataSource()
@@ -149,11 +153,13 @@ public sealed class DashboardDataSource : IDashboardRunSelection, IDisposable
 
     private void SelectCurrentRun(DashboardRunDescriptor currentRun)
     {
-        var currentDataSource = _dataSourcePool.Current;
+        var previousRetention = _currentRetention;
+        _currentRetention = _dataSourcePool.RetainCurrent(out var currentDataSource);
         TelemetryRepository = currentDataSource.TelemetryRepository;
         ResourceRepository = currentDataSource.ResourceRepository;
         IsReadOnly = false;
         SelectedRun = currentRun;
+        previousRetention?.Dispose();
     }
 
     private void LogRunSwitch(DashboardRunDescriptor? previousRun, DashboardRunDescriptor selectedRun)

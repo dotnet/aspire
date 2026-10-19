@@ -69,6 +69,14 @@ internal sealed class DashboardClient : IDashboardClient
     private readonly IStringLocalizer<DashboardResources> _loc;
     private readonly ILogger<DashboardClient> _logger;
     private readonly IResourceRepositoryWriter _resourceRepositoryWriter;
+    private readonly DashboardDataSourcePool? _dataSourcePool;
+    private string _appHostRunId = string.Empty;
+    private bool _hasWatchedResources;
+    private ImmutableHashSet<string> _appHostCorsOrigins = ImmutableHashSet<string>.Empty;
+
+    internal bool IsAppHostOriginAllowed(string origin) => Volatile.Read(ref _appHostCorsOrigins).Contains(origin);
+    private CancellationTokenSource _appHostCts = new();
+    private CancellationToken _appHostToken;
 
     private ImmutableHashSet<Channel<IReadOnlyList<ResourceViewModelChange>>> _outgoingResourceChannels = [];
     private ImmutableHashSet<Channel<WatchInteractionsResponseUpdate>> _outgoingInteractionChannels = [];
@@ -100,6 +108,7 @@ internal sealed class DashboardClient : IDashboardClient
         IKnownPropertyLookup knownPropertyLookup,
         IStringLocalizer<DashboardResources> loc,
         IResourceRepositoryWriter resourceRepositoryWriter,
+        DashboardDataSourcePool? dataSourcePool,
         Action<SocketsHttpHandler>? configureHttpHandler = null)
     {
         _activitySource = activitySource.ActivitySource;
@@ -108,6 +117,8 @@ internal sealed class DashboardClient : IDashboardClient
         _dashboardOptions = dashboardOptions.Value;
         _loc = loc;
         _resourceRepositoryWriter = resourceRepositoryWriter;
+        _dataSourcePool = dataSourcePool;
+        _appHostToken = _appHostCts.Token;
 
         // Take a copy of the token and always use it to avoid race between disposal of CTS and usage of token.
         _clientCancellationToken = _cts.Token;
@@ -309,6 +320,20 @@ internal sealed class DashboardClient : IDashboardClient
         return Task.CompletedTask;
     }
 
+    private Metadata GetSessionHeaders()
+    {
+        var headers = new Metadata();
+        foreach (var entry in _headers)
+        {
+            headers.Add(entry);
+        }
+        if (!string.IsNullOrEmpty(_appHostRunId))
+        {
+            headers.Add("x-aspire-apphost-run-id", _appHostRunId);
+        }
+        return headers;
+    }
+
     private void SetConnectionState(DashboardConnectionState state)
     {
         // Lock ensures that concurrent calls from both watch tasks don't duplicate
@@ -381,12 +406,12 @@ internal sealed class DashboardClient : IDashboardClient
             await Task.WhenAll(
                 Task.Run(async () =>
                 {
-                    await WatchWithRecoveryAsync(WatchResourcesAsync, "resources", onRetry: ResetResourceReadiness, cancellationToken).ConfigureAwait(false);
+                    await WatchWithRecoveryAsync(WatchResourcesAsync, "resources", onRetry: ResetResourceReadiness, updateConnectionState: true, cancellationToken).ConfigureAwait(false);
                     _resourceWatchCompleteTcs.TrySetResult();
                 }, cancellationToken),
                 Task.Run(async () =>
                 {
-                    await WatchWithRecoveryAsync(WatchInteractionsAsync, "interactions", onRetry: null, cancellationToken).ConfigureAwait(false);
+                    await WatchWithRecoveryAsync(WatchInteractionsAsync, "interactions", onRetry: null, updateConnectionState: false, cancellationToken).ConfigureAwait(false);
                     _interactionWatchCompleteTcs.TrySetResult();
                 }, cancellationToken)).ConfigureAwait(false);
         }
@@ -457,6 +482,41 @@ internal sealed class DashboardClient : IDashboardClient
                 var request = new ApplicationInformationRequest();
                 var response = await _client!.GetApplicationInformationAsync(request, headers: _headers, cancellationToken: cancellationToken);
 
+                if (_appHostRunId != response.RunId)
+                {
+                    _appHostCts.Cancel();
+                    _appHostCts.Dispose();
+                    _appHostCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                    _appHostToken = _appHostCts.Token;
+                    if (_dataSourcePool is not null)
+                    {
+                        await _dataSourcePool.StartAppHostRunAsync(response.RunId, cancellationToken).ConfigureAwait(false);
+                    }
+                    lock (_lock)
+                    {
+                        foreach (var interaction in _pendingInteractionCollection)
+                        {
+                            var complete = new WatchInteractionsResponseUpdate { InteractionId = interaction.InteractionId, Complete = new InteractionComplete() };
+                            foreach (var channel in _outgoingInteractionChannels)
+                            {
+                                channel.Writer.TryWrite(complete);
+                            }
+                        }
+                        foreach (var resource in _resourceByName.Values)
+                        {
+                            resource.ConsoleLogsLoaded = false;
+                        }
+                        _pendingInteractionCollection.Clear();
+                        while (_incomingInteractionChannel.Reader.TryRead(out _))
+                        {
+                        }
+                    }
+                    _appHostRunId = response.RunId;
+                }
+
+                Volatile.Write(ref _appHostCorsOrigins, response.CorsAllowedOrigins
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .ToImmutableHashSet(StringComparer.OrdinalIgnoreCase));
                 _applicationName = response.ApplicationName;
                 _minRequiredVersion = string.IsNullOrEmpty(response.MinDashboardVersion) ? null : response.MinDashboardVersion;
 
@@ -501,7 +561,7 @@ internal sealed class DashboardClient : IDashboardClient
         }
     }
 
-    private async Task WatchWithRecoveryAsync(Func<RetryContext, CancellationToken, Task<RetryResult>> action, string actionName, Action? onRetry, CancellationToken cancellationToken)
+    private async Task WatchWithRecoveryAsync(Func<RetryContext, CancellationToken, Task<RetryResult>> action, string actionName, Action? onRetry, bool updateConnectionState, CancellationToken cancellationToken)
     {
         // Track the number of errors we've seen since the last successfully received message.
         // As this number climbs, we extend the amount of time between reconnection attempts, in
@@ -515,9 +575,12 @@ internal sealed class DashboardClient : IDashboardClient
 
             if (retryContext.ErrorCount > 0)
             {
-                // Transition to disconnected when watch streams fail.
-                // Only the first watcher to fail will trigger the state change.
-                SetConnectionState(DashboardConnectionState.Disconnected);
+                // Resource snapshots define dashboard readiness. Interaction streams can be idle after
+                // reconnecting, so their independent retries must not leave resource pages waiting forever.
+                if (updateConnectionState)
+                {
+                    SetConnectionState(DashboardConnectionState.Disconnected);
+                }
 
                 // The most recent attempt failed. There may be more than one failure.
                 // We wait for a period of time determined by the number of errors,
@@ -560,7 +623,10 @@ internal sealed class DashboardClient : IDashboardClient
                 // event on the next failure. Without this, duplicate Disconnected transitions
                 // are suppressed and the retry button in ResourceServiceConnectionProvider
                 // never appears (it requires multiple disconnect events).
-                SetConnectionState(DashboardConnectionState.Connecting);
+                if (updateConnectionState)
+                {
+                    SetConnectionState(DashboardConnectionState.Connecting);
+                }
             }
 
             try
@@ -575,6 +641,10 @@ internal sealed class DashboardClient : IDashboardClient
                 // There's a race condition between reconnect attempts and client disposal.
                 // This has been observed in unit tests where the client is created and disposed
                 // very quickly. This check should probably be in the gRPC library instead.
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                retryContext.ErrorCount++;
             }
             catch (RpcException ex)
             {
@@ -604,7 +674,16 @@ internal sealed class DashboardClient : IDashboardClient
 
     private async Task<RetryResult> WatchResourcesAsync(RetryContext retryContext, CancellationToken cancellationToken)
     {
-        var call = _client!.WatchResources(new WatchResourcesRequest { IsReconnect = retryContext.ErrorCount != 0 }, headers: _headers, cancellationToken: cancellationToken);
+        if (_hasWatchedResources)
+        {
+            if (!await ConnectWithRetryAsync(cancellationToken).ConfigureAwait(false))
+            {
+                return RetryResult.DoNotRetry;
+            }
+        }
+        _hasWatchedResources = true;
+
+        var call = _client!.WatchResources(new WatchResourcesRequest { IsReconnect = retryContext.ErrorCount != 0, RunId = _appHostRunId }, headers: GetSessionHeaders(), cancellationToken: cancellationToken);
 
         await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
         {
@@ -632,10 +711,15 @@ internal sealed class DashboardClient : IDashboardClient
                         .Select(resource => resource.Name)
                         .ToHashSet(StringComparers.ResourceName);
 
-                    // Populate our map using the initial data.
+                    // A new snapshot can remove resources, including after an AppHost run change.
+                    // Notify long-lived consumers before replacing the in-memory map.
+                    var replacementNames = response.InitialData.Resources.Select(r => r.Name).ToHashSet(StringComparers.ResourceName);
+                    foreach (var resource in _resourceByName.Values.Where(r => !replacementNames.Contains(r.Name)))
+                    {
+                        changes ??= [];
+                        changes.Add(new(ResourceViewModelChangeType.Delete, resource));
+                    }
                     _resourceByName.Clear();
-
-                    // TODO send a "clear" event via outgoing channels, in case consumers have extra items to be removed
 
                     foreach (var resource in response.InitialData.Resources)
                     {
@@ -742,7 +826,7 @@ internal sealed class DashboardClient : IDashboardClient
         // Create the watch interactions call. This is a bidirectional streaming call.
         // Responses are streamed out to all watchers. Requests are sent from the incoming interaction channel.
         var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        using var call = _client!.WatchInteractions(headers: _headers, cancellationToken: cts.Token);
+        using var call = _client!.WatchInteractions(headers: GetSessionHeaders(), cancellationToken: cts.Token);
 
         if (await IsUnimplemented(call).ConfigureAwait(false))
         {
@@ -783,7 +867,6 @@ internal sealed class DashboardClient : IDashboardClient
                 if (retryContext.ErrorCount > 0)
                 {
                     retryContext.ErrorCount = 0;
-                    SetConnectionState(DashboardConnectionState.Connected);
                 }
 
                 lock (_lock)
@@ -998,14 +1081,15 @@ internal sealed class DashboardClient : IDashboardClient
         // historical runs can omit logs for resources that were never viewed or exported. The historical
         // Console Logs page checks this capture state and displays a notice when logs aren't available.
         // See https://github.com/microsoft/aspire/issues/18823.
-        await MarkConsoleLogsLoadedAsync(resourceName).ConfigureAwait(false);
+        using var retention = RetainConsoleLogRun(out var writer);
+        await MarkConsoleLogsLoadedAsync(resourceName, writer).ConfigureAwait(false);
 
         // It's ok to dispose CTS with using because this method exits after it is finished being used.
-        using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
+        using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken, _appHostToken);
 
-        var call = _client!.WatchResourceConsoleLogs(
+        using var call = _client!.WatchResourceConsoleLogs(
             new WatchResourceConsoleLogsRequest() { ResourceName = resourceName },
-            headers: _headers,
+            headers: GetSessionHeaders(),
             cancellationToken: combinedTokens.Token);
 
         // Write incoming logs to a channel, and then read from that channel to yield the logs.
@@ -1013,47 +1097,57 @@ internal sealed class DashboardClient : IDashboardClient
         var channel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>(
             new UnboundedChannelOptions { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = true });
 
-        var readTask = Task.Run(async () =>
+        var readTask = ReadAsync();
+        try
+        {
+            await foreach (var batch in channel.Reader.ReadAllAsync(combinedTokens.Token).ConfigureAwait(false))
+            {
+                yield return batch;
+            }
+        }
+        finally
+        {
+            // Stop and drain the reader before releasing its run. A batch already received from the
+            // old AppHost must finish writing to that database rather than the replacement run.
+            combinedTokens.Cancel();
+            await readTask.ConfigureAwait(false);
+        }
+
+        async Task ReadAsync()
         {
             try
             {
                 await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: combinedTokens.Token).ConfigureAwait(false))
                 {
-                    await _resourceRepositoryWriter.AddConsoleLogsAsync(resourceName, response.LogLines).ConfigureAwait(false);
-                    // Channel is unbound so TryWrite always succeeds.
+                    await writer.AddConsoleLogsAsync(resourceName, response.LogLines).ConfigureAwait(false);
                     channel.Writer.TryWrite(CreateLogLines(response.LogLines));
                 }
-            }
-            finally
-            {
                 channel.Writer.TryComplete();
             }
-        }, combinedTokens.Token);
-
-        await foreach (var batch in channel.Reader.ReadAllAsync(combinedTokens.Token).ConfigureAwait(false))
-        {
-            yield return batch;
+            catch (Exception ex)
+            {
+                channel.Writer.TryComplete(ex);
+            }
         }
-
-        await readTask.ConfigureAwait(false);
     }
 
     public async IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> GetConsoleLogs(string resourceName, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         EnsureInitialized();
 
-        await MarkConsoleLogsLoadedAsync(resourceName).ConfigureAwait(false);
+        using var retention = RetainConsoleLogRun(out var writer);
+        await MarkConsoleLogsLoadedAsync(resourceName, writer).ConfigureAwait(false);
 
-        using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
+        using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken, _appHostToken);
 
-        var call = _client!.WatchResourceConsoleLogs(
+        using var call = _client!.WatchResourceConsoleLogs(
             new WatchResourceConsoleLogsRequest() { ResourceName = resourceName, SuppressFollow = true },
-            headers: _headers,
+            headers: GetSessionHeaders(),
             cancellationToken: combinedTokens.Token);
 
         await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: combinedTokens.Token).ConfigureAwait(false))
         {
-            await _resourceRepositoryWriter.AddConsoleLogsAsync(resourceName, response.LogLines).ConfigureAwait(false);
+            await writer.AddConsoleLogsAsync(resourceName, response.LogLines).ConfigureAwait(false);
             yield return CreateLogLines(response.LogLines);
         }
     }
@@ -1062,7 +1156,22 @@ internal sealed class DashboardClient : IDashboardClient
     public Task ClearConsoleLogsAsync(IReadOnlyList<string> resourceNames, DateTime clearDate) =>
         _resourceRepositoryWriter.ClearConsoleLogsAsync(resourceNames, clearDate);
 
-    private async Task MarkConsoleLogsLoadedAsync(string resourceName)
+    private IDisposable? RetainConsoleLogRun(out IResourceRepositoryWriter writer)
+    {
+        if (_dataSourcePool is null)
+        {
+            writer = _resourceRepositoryWriter;
+            return null;
+        }
+
+        // Console RPCs can outlive a run transition while cancellation is observed. Retain the
+        // receiving run so delayed batches cannot be ingested into the next AppHost's database.
+        var retention = _dataSourcePool.RetainCurrent(out var run);
+        writer = (IResourceRepositoryWriter)run.ResourceRepository;
+        return retention;
+    }
+
+    private async Task MarkConsoleLogsLoadedAsync(string resourceName, IResourceRepositoryWriter writer)
     {
         lock (_lock)
         {
@@ -1072,7 +1181,7 @@ internal sealed class DashboardClient : IDashboardClient
             }
         }
 
-        await _resourceRepositoryWriter.MarkConsoleLogsLoadedAsync(resourceName).ConfigureAwait(false);
+        await writer.MarkConsoleLogsLoadedAsync(resourceName).ConfigureAwait(false);
     }
 
     private static ResourceLogLine[] CreateLogLines(IList<ConsoleLogLine> logLines)
@@ -1111,9 +1220,9 @@ internal sealed class DashboardClient : IDashboardClient
 
         try
         {
-            using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
+            using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken, _appHostToken);
 
-            var response = await _client!.ExecuteResourceCommandAsync(request, headers: _headers, cancellationToken: combinedTokens.Token);
+            var response = await _client!.ExecuteResourceCommandAsync(request, headers: GetSessionHeaders(), cancellationToken: combinedTokens.Token);
 
             return response.ToViewModel();
         }
@@ -1166,8 +1275,8 @@ internal sealed class DashboardClient : IDashboardClient
     {
         EnsureInitialized();
 
-        using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
-        using var call = _client!.UploadFile(headers: _headers, cancellationToken: combinedTokens.Token);
+        using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken, _appHostToken);
+        using var call = _client!.UploadFile(headers: GetSessionHeaders(), cancellationToken: combinedTokens.Token);
 
         const int chunkSize = 64 * 1024; // 64 KB chunks
         var buffer = new byte[chunkSize];
@@ -1276,7 +1385,7 @@ internal sealed class DashboardClient : IDashboardClient
 
     private async IAsyncEnumerable<WatchTerminalsUpdate> WatchTerminalsCoreAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        using var call = _client!.WatchTerminals(new WatchTerminalsRequest(), headers: _headers, cancellationToken: cancellationToken);
+        using var call = _client!.WatchTerminals(new WatchTerminalsRequest(), headers: GetSessionHeaders(), cancellationToken: cancellationToken);
         await foreach (var update in call.ResponseStream.ReadAllAsync(cancellationToken).ConfigureAwait(false))
         {
             yield return update;
@@ -1287,10 +1396,10 @@ internal sealed class DashboardClient : IDashboardClient
     {
         EnsureInitialized();
 
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken, _appHostToken);
         await _client!.CloseTerminalAsync(
             new CloseTerminalRequest { TerminalId = terminalId },
-            headers: _headers,
+            headers: GetSessionHeaders(),
             cancellationToken: cts.Token).ConfigureAwait(false);
     }
 
@@ -1300,8 +1409,8 @@ internal sealed class DashboardClient : IDashboardClient
 
         // The call outlives this method, so the linked CTS cannot be scoped with `using` here. Link to the client
         // token anyway so a dashboard-wide disconnect tears the tunnel down instead of leaking it.
-        var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
-        var call = _client!.AttachTerminal(headers: _headers, cancellationToken: combinedTokens.Token);
+        var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken, _appHostToken);
+        var call = _client!.AttachTerminal(headers: GetSessionHeaders(), cancellationToken: combinedTokens.Token);
         var stream = new GrpcTerminalClientStream(call, terminalId, combinedTokens);
 
         try
@@ -1330,8 +1439,10 @@ internal sealed class DashboardClient : IDashboardClient
             _cts.Dispose();
 
             _channel?.Dispose();
+            _appHostCts.Cancel();
 
             await TaskHelpers.WaitIgnoreCancelAsync(_connection, _logger, "Unexpected error from connection task.").ConfigureAwait(false);
+            _appHostCts.Dispose();
         }
     }
 

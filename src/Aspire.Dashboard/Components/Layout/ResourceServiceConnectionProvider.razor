@@ -1,0 +1,9 @@
+@namespace Aspire.Dashboard.Components.Layout
+
+@if (_isDisconnected)
+{
+    <div class="apphost-connection-status" role="status">
+        <span>@Loc[nameof(Resources.Reconnect.ResourceServiceReconnectDisconnectedText)]</span>
+        <FluentButton OnClick="ReconnectFromJs">@Loc[nameof(Resources.Reconnect.ResourceServiceReconnectRetryButtonText)]</FluentButton>
+    </div>
+}

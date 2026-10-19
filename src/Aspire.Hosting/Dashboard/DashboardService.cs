@@ -40,7 +40,7 @@ namespace Aspire.Hosting.Dashboard;
 /// counterparts, and importing both namespaces would make every bare use ambiguous.
 /// </remarks>
 [Authorize(Policy = ResourceServiceApiKeyAuthorization.PolicyName)]
-internal sealed partial class DashboardService(DashboardServiceData serviceData, IHostEnvironment hostEnvironment, IHostApplicationLifetime hostApplicationLifetime, IConfiguration configuration, ILogger<DashboardService> logger, IInteractionFileUploadStore fileUploadStore, TerminalService terminalService)
+internal sealed partial class DashboardService(DashboardServiceData serviceData, IHostEnvironment hostEnvironment, IHostApplicationLifetime hostApplicationLifetime, IConfiguration configuration, ILogger<DashboardService> logger, IInteractionFileUploadStore fileUploadStore, TerminalService terminalService, ApplicationModel.DistributedApplicationModel model)
     : Aspire.DashboardService.Proto.V1.DashboardService.DashboardServiceBase
 {
     // gRPC has a maximum receive size of 4MB. Force logs into batches to avoid exceeding receive size.
@@ -72,7 +72,10 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
         return Task.FromResult(new ApplicationInformationResponse
         {
             ApplicationName = GetDashboardApplicationName(applicationName),
-            MinDashboardVersion = MinRequiredDashboardVersion
+            MinDashboardVersion = MinRequiredDashboardVersion,
+            RunId = serviceData.RunId,
+            CorsAllowedOrigins = configuration.GetString(KnownConfigNames.DashboardCorsAllowedOrigins, KnownConfigNames.Legacy.DashboardCorsAllowedOrigins)
+                ?? DashboardEventHandlers.GetAllowedOriginsFromResourceEndpoints(model) ?? string.Empty
         });
     }
 
@@ -320,9 +323,19 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
 
         async Task WatchResourcesInternal(CancellationToken cancellationToken)
         {
+            if (!string.IsNullOrEmpty(request.RunId) && request.RunId != serviceData.RunId)
+            {
+                throw new RpcException(new Status(StatusCode.FailedPrecondition, "The AppHost run has changed."));
+            }
+
+            if (request.RunId == serviceData.RunId)
+            {
+                serviceData.RunAttached.TrySetResult();
+            }
+
             var (initialData, updates) = serviceData.SubscribeResources();
 
-            var data = new InitialResourceData();
+            var data = new InitialResourceData { RunId = serviceData.RunId };
 
             foreach (var resource in initialData)
             {

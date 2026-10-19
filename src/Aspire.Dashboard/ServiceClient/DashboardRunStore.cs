@@ -83,15 +83,16 @@ internal sealed class DashboardRunStore : IDashboardRunStore, IDisposable
     private static readonly DashboardJsonSerializerContext s_jsonContext = new(new JsonSerializerOptions { WriteIndented = true });
 
     private readonly string? _runsDirectory;
-    private readonly string? _metadataPath;
+    private string? _metadataPath;
     private readonly string _applicationMarkerFileName;
     private readonly string? _temporaryDirectory;
-    private readonly FileLock? _runLock;
+    private FileLock? _runLock;
     private DashboardRunMetadata _metadata;
     private readonly ILogger<DashboardRunStore> _logger;
     private readonly TimeProvider _timeProvider;
     private readonly Action<string> _deleteRunDirectory;
-    private readonly Lazy<IReadOnlyList<DashboardRunDescriptor>> _runs;
+    private Lazy<IReadOnlyList<DashboardRunDescriptor>> _runs;
+    private string? _appHostRunId;
     private readonly object _runStateLock = new();
     private bool _metadataPublished;
 
@@ -284,14 +285,73 @@ internal sealed class DashboardRunStore : IDashboardRunStore, IDisposable
         }
     }
 
-    public string CurrentWorkingDirectory { get; }
-    public string DatabasePath { get; }
+    internal bool StartAppHostRun(string appHostRunId)
+    {
+        lock (_runStateLock)
+        {
+            if (string.IsNullOrEmpty(appHostRunId) || _appHostRunId == appHostRunId)
+            {
+                return false;
+            }
+
+            if (_appHostRunId is null || !SupportsRunSelection)
+            {
+                _appHostRunId = appHostRunId;
+                return false;
+            }
+
+            // The AppHost ID is only an identity token. Never use a remote-supplied value as a path.
+            var now = _timeProvider.GetUtcNow();
+            // Keep directory IDs monotonic even when two restarts occur within one clock tick.
+            var startedAt = now > _metadata.StartedAtUtc ? now : _metadata.StartedAtUtc.AddMilliseconds(1);
+            var runId = startedAt.ToString("yyyyMMddTHHmmssfffZ", CultureInfo.InvariantCulture);
+            var directory = Path.Combine(_runsDirectory!, runId);
+            if (directory == CurrentWorkingDirectory)
+            {
+                runId = startedAt.AddMilliseconds(1).ToString("yyyyMMddTHHmmssfffZ", CultureInfo.InvariantCulture);
+                directory = Path.Combine(_runsDirectory!, runId);
+            }
+            Directory.CreateDirectory(directory);
+            var runLock = OpenRequiredRunLock(directory, $"Dashboard run '{runId}' is already in use.");
+            try
+            {
+                File.WriteAllText(Path.Combine(directory, _applicationMarkerFileName), string.Empty);
+                WriteMetadata(_metadata with { EndedAtUtc = startedAt, CleanShutdown = true });
+            }
+            catch
+            {
+                runLock.Dispose();
+                throw;
+            }
+
+            _runLock?.Dispose();
+            _runLock = runLock;
+            CurrentWorkingDirectory = directory;
+            DatabasePath = Path.Combine(directory, DatabaseFileName);
+            _metadataPath = Path.Combine(directory, "run.json");
+            _metadata = _metadata with { RunId = runId, StartedAtUtc = startedAt, EndedAtUtc = null, CleanShutdown = false };
+            _metadataPublished = false;
+            _appHostRunId = appHostRunId;
+            _runs = new(LoadRuns);
+            return true;
+        }
+    }
+
+    public string CurrentWorkingDirectory { get; private set; }
+    public string DatabasePath { get; private set; }
     public string RunId => _metadata.RunId;
     public DashboardPersistenceMode PersistenceMode { get; }
     public bool SupportsRunSelection => PersistenceMode == DashboardPersistenceMode.Run;
 
-    public IReadOnlyList<DashboardRunDescriptor> GetRuns() =>
-        _runs.Value.Where(run => !run.IsPruned).ToArray();
+    public IReadOnlyList<DashboardRunDescriptor> GetRuns()
+    {
+        // Lazy discovery reads both metadata and paths. Keep that snapshot in one run generation
+        // when a browser opens the selector concurrently with an AppHost reconnect.
+        lock (_runStateLock)
+        {
+            return _runs.Value.Where(run => !run.IsPruned).ToArray();
+        }
+    }
 
     public DashboardRunDescriptor GetCurrentRun() => GetRuns().Single(run => run.IsCurrent);
 

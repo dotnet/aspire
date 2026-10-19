@@ -43,6 +43,26 @@ namespace Aspire.Dashboard.Components.Tests.Pages;
 [UseCulture("en-US")]
 public partial class ResourcesTests : DashboardTestContext
 {
+    [Fact]
+    public void Resources_Disconnected_ShowsPersistedSnapshotWithoutWaitingForConnection()
+    {
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        var connected = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var client = new TestDashboardClient(
+            isEnabled: true,
+            initialResources: [CreateResource("offline-resource", "Executable", "Running", null)],
+            resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>,
+            whenConnected: connected.Task);
+        client.SetConnectionState(DashboardConnectionState.Disconnected);
+        ResourceSetupHelpers.SetupResourcesPage(this, viewport, client);
+
+        var cut = Render<Components.Pages.Resources>(builder => builder.AddCascadingValue(viewport));
+
+        cut.WaitForAssertion(() => Assert.Single(cut.Instance.PageViewModel.ResourceTypesToVisibility));
+        cut.WaitForAssertion(() => Assert.Contains("offline-resource", cut.Markup));
+        Assert.False(connected.Task.IsCompleted);
+    }
+
     [Theory]
     [InlineData(Components.Pages.Resources.ResourceViewKind.Graph)]
     [InlineData(Components.Pages.Resources.ResourceViewKind.Parameters)]

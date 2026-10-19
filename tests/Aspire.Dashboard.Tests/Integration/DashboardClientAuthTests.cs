@@ -134,6 +134,7 @@ public sealed class DashboardClientAuthTests
             dashboardOptions: Options.Create(options),
             knownPropertyLookup: new MockKnownPropertyLookup(),
             loc: new Aspire.Dashboard.Tests.TestStringLocalizer<Dashboard.Resources.Resources>(),
+            dataSourcePool: null,
             resourceRepositoryWriter: new NoopResourceRepositoryWriter(),
             configureHttpHandler: handler => handler.SslOptions.RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true);
 

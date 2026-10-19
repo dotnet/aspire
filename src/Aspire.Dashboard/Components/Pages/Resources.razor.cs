@@ -229,8 +229,8 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         }
         UpdateMenuButtons();
 
-        // Must wait until after the dashboard is connected so the application name is correct.
-        await DashboardClient.WhenConnected;
+        // Persisted resources are available even while the AppHost is offline. Waiting for a live
+        // connection here would leave a newly opened resource page empty until the AppHost returns.
         _collapsedResourceNamesKey = BrowserStorageKeys.CollapsedResourceNamesKey(DashboardClient.ApplicationName);
 
         var collapsedResult = await LocalStorage.GetAsync<List<string>>(_collapsedResourceNamesKey);

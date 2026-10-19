@@ -130,6 +130,7 @@
     }
 
     <div class="messagebar-container">
+        <ResourceServiceConnectionProvider />
         <FluentMessageBarProvider Section="@DashboardUIHelpers.MessageBarSection" Class="top-messagebar" MaxMessageCount="null" NewestOnTop="true" />
     </div>
     <div class="layout-body-container">
@@ -154,7 +155,6 @@
            new subscription rather than reusing the stream chosen for a previous selection. *@
         <TerminalDock @key="RunSelection.SelectedRun.RunId" />
     }
-    <ResourceServiceConnectionProvider />
     @if (IsTerminalDockEnabled)
     {
         <ResourceTerminalsAvailabilityProvider @key="(typeof(ResourceTerminalsAvailabilityProvider), RunSelection.SelectedRun.RunId)"
