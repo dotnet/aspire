@@ -3,6 +3,8 @@
 
 using System.Threading.Channels;
 using System.Collections.Concurrent;
+using Aspire.Hosting.Dcp;
+using Aspire.Hosting.Orchestrator;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
@@ -16,6 +18,69 @@ namespace Aspire.Hosting.Tests;
 [Trait("Partition", "2")]
 public class ResourceCommandServiceTests(ITestOutputHelper testOutputHelper)
 {
+    [Fact]
+    public async Task LaunchGroupLateStartPreparesCustomDependencyWithoutInitialState()
+    {
+        using var builder = CreateBuilder();
+        builder.AddLaunchGroups("selected", "other");
+        builder.Configuration["LaunchGroup"] = "selected";
+        var dependencyEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseDependency = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var rootEntered = new TaskCompletionSource<Task>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var started = new ConcurrentQueue<string>();
+        var dependency = builder.AddResource(new CustomResource("dependency")).WithLaunchGroup("other");
+        dependency.WithCommand(KnownResourceCommands.StartCommand, "Start", async context =>
+        {
+            started.Enqueue(context.ResourceName);
+            dependencyEntered.TrySetResult();
+            await releaseDependency.Task.WaitAsync(context.CancellationToken);
+            await context.Services.GetRequiredService<ResourceNotificationService>().PublishUpdateAsync(
+                dependency.Resource, snapshot => snapshot with { State = KnownResourceStates.Running });
+            return CommandResults.Success();
+        });
+        var root = builder.AddResource(new CustomResource("root")).WithLaunchGroup("other").WaitForStart(dependency);
+        root.WithCommand(KnownResourceCommands.StartCommand, "Start", async context =>
+        {
+            var wait = context.Services.GetRequiredService<ResourceNotificationService>()
+                .WaitForDependenciesAsync(root.Resource, context.CancellationToken);
+            rootEntered.TrySetResult(wait);
+            await wait;
+            started.Enqueue(context.ResourceName);
+            return CommandResults.Success();
+        });
+        await using var app = builder.Build();
+        await app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken);
+        _ = app.Services.GetRequiredService<ApplicationOrchestrator>();
+        await app.Services.GetRequiredService<DcpExecutorEvents>()
+            .PublishAsync(new OnResourcesPreparedContext(TestContext.Current.CancellationToken));
+        Assert.True(dependency.Resource.HasAnnotationOfType<ExplicitStartupAnnotation>());
+        Assert.True(app.ResourceNotifications.TryGetCurrentState(dependency.Resource.Name, out var initial));
+        Assert.Null(initial.Snapshot.State);
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        var start = app.ResourceCommands.ExecuteCommandAsync(root.Resource, KnownResourceCommands.StartCommand, cts.Token);
+        try
+        {
+            var wait = await rootEntered.Task.DefaultTimeout();
+            Assert.True(app.ResourceNotifications.TryGetCurrentState(dependency.Resource.Name, out var preparing));
+            Assert.Equal(KnownResourceStates.Starting, preparing.Snapshot.State?.Text);
+            await dependencyEntered.Task.DefaultTimeout();
+            Assert.False(wait.IsCompleted);
+
+            releaseDependency.TrySetResult();
+            var result = await start.DefaultTimeout();
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal(["dependency", "root"], started);
+        }
+        finally
+        {
+            releaseDependency.TrySetResult();
+            await cts.CancelAsync();
+            await start.DefaultTimeout();
+        }
+    }
+
     [Theory]
     [InlineData("Finished", WaitType.WaitUntilStarted, false)]
     [InlineData("Exited", WaitType.WaitUntilStarted, false)]

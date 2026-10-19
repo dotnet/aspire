@@ -563,8 +563,10 @@ public class ResourceCommandService
             cancellationToken.ThrowIfCancellationRequested();
             // Match lifecycle commands: a stopped container can report "Unknown".
             // See https://github.com/microsoft/aspire/issues/5977.
+            // Custom resources without an initial state also need preparation before their start handler runs.
             var startable = _resourceNotificationService.TryGetCurrentState(name, out var current) &&
-                (current.Snapshot.State?.Text == KnownResourceStates.NotStarted ||
+                (current.Snapshot.State?.Text is null ||
+                 current.Snapshot.State?.Text == KnownResourceStates.NotStarted ||
                  current.Snapshot.State?.Text == "Unknown" ||
                  KnownResourceStates.TerminalStates.Contains(current.Snapshot.State?.Text));
             if ((isDependency || precedingStartPending) && !startable)
