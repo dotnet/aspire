@@ -120,8 +120,8 @@ internal sealed class MockRepositoryFactory(
 {
     private readonly RepositoryFactory _inner = new(serviceProvider);
 
-    public ITelemetryRepository CreateTelemetryRepository(DashboardSqliteDatabase database) =>
-        _inner.CreateTelemetryRepository(database);
+    public ITelemetryRepository CreateTelemetryRepository(DashboardSqliteDatabase database, bool enableLivePeerResolution) =>
+        _inner.CreateTelemetryRepository(database, enableLivePeerResolution);
 
     public IResourceRepository CreateResourceRepository(DashboardSqliteDatabase database) =>
         resourceRepository;

@@ -176,7 +176,8 @@ internal static class FluentUISetupHelpers
             options,
             new PauseManager(),
             context.Services.GetRequiredService<TimeProvider>(),
-            outgoingPeerResolvers);
+            outgoingPeerResolvers,
+            enableLivePeerResolution: true);
         await seed(writer);
     }
 
@@ -223,7 +224,8 @@ internal static class FluentUISetupHelpers
                 options,
                 pauseManager,
                 services.GetRequiredService<TimeProvider>(),
-                outgoingPeerResolvers);
+                outgoingPeerResolvers,
+                enableLivePeerResolution: true);
         });
         context.Services.AddSingleton<ITelemetryRepository>(services => services.GetRequiredService<SqliteTelemetryRepository>());
         context.Services.AddSingleton<ITelemetryRepositoryWriter>(services => services.GetRequiredService<SqliteTelemetryRepository>());
@@ -338,7 +340,7 @@ internal static class FluentUISetupHelpers
         ITelemetryRepository telemetryRepository,
         IDashboardClient dashboardClient) : IRepositoryFactory
     {
-        public ITelemetryRepository CreateTelemetryRepository(DashboardSqliteDatabase database) => telemetryRepository;
+        public ITelemetryRepository CreateTelemetryRepository(DashboardSqliteDatabase database, bool enableLivePeerResolution) => telemetryRepository;
         public IResourceRepository CreateResourceRepository(DashboardSqliteDatabase database) => dashboardClient;
     }
 

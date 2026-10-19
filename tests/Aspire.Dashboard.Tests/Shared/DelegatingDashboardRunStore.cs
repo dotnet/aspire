@@ -8,6 +8,7 @@ namespace Aspire.Dashboard.Tests.Shared;
 internal sealed class DelegatingDashboardRunStore(IDashboardRunStore inner) : IDashboardRunStore
 {
     public Action? AfterGetCurrentRun { get; set; }
+    public Action? AfterGetRunById { get; set; }
     public bool SupportsRunSelection => inner.SupportsRunSelection;
     public IReadOnlyList<DashboardRunDescriptor> GetRuns() => inner.GetRuns();
 
@@ -18,7 +19,12 @@ internal sealed class DelegatingDashboardRunStore(IDashboardRunStore inner) : ID
         return run;
     }
 
-    public DashboardRunDescriptor? GetRunById(string runId, bool onlyCompatible) => inner.GetRunById(runId, onlyCompatible);
+    public DashboardRunDescriptor? GetRunById(string runId, bool onlyCompatible)
+    {
+        var run = inner.GetRunById(runId, onlyCompatible);
+        AfterGetRunById?.Invoke();
+        return run;
+    }
     public void SetRunPinned(DashboardRunDescriptor run, bool isPinned) => inner.SetRunPinned(run, isPinned);
     public IDisposable? TryAcquireRunLease(DashboardRunDescriptor run) => inner.TryAcquireRunLease(run);
     public void PublishRun() => inner.PublishRun();

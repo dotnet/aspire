@@ -119,7 +119,7 @@ public sealed class DashboardDataSource : IDashboardRunSelection, IDisposable
             selectedRun = currentRun;
         }
 
-        if (!selectedRun.IsCurrent && SelectedRun?.RunId == selectedRun.RunId)
+        if (!selectedRun.IsCurrent && IsReadOnly && SelectedRun?.RunId == selectedRun.RunId)
         {
             return;
         }
@@ -157,9 +157,26 @@ public sealed class DashboardDataSource : IDashboardRunSelection, IDisposable
         }
         else
         {
+            var retention = _dataSourcePool.RetainCurrent(out var currentDataSource, out var capturedCurrentRun);
+            if (runId is not null && selectedRun.RunId == runId && capturedCurrentRun.RunId != runId)
+            {
+                // An explicit run ID can become historical while we wait for rollover. Resolve it
+                // again instead of silently following Live and losing the requested selection.
+                retention.Dispose();
+                SelectRun(runId);
+                return;
+            }
+
             var previousHistoricalDataSourceLease = _historicalDataSourceLease;
+            var previousRetention = _currentRetention;
             _historicalDataSourceLease = null;
-            selectedRun = SelectCurrentRun();
+            _currentRetention = retention;
+            TelemetryRepository = currentDataSource.TelemetryRepository;
+            ResourceRepository = currentDataSource.ResourceRepository;
+            IsReadOnly = false;
+            SelectedRun = capturedCurrentRun;
+            selectedRun = capturedCurrentRun;
+            previousRetention?.Dispose();
             previousHistoricalDataSourceLease?.Dispose();
         }
 
@@ -176,18 +193,6 @@ public sealed class DashboardDataSource : IDashboardRunSelection, IDisposable
     {
         _historicalDataSourceLease?.Dispose();
         _historicalDataSourceLease = null;
-    }
-
-    private DashboardRunDescriptor SelectCurrentRun()
-    {
-        var previousRetention = _currentRetention;
-        _currentRetention = _dataSourcePool.RetainCurrent(out var currentDataSource, out var currentRun);
-        TelemetryRepository = currentDataSource.TelemetryRepository;
-        ResourceRepository = currentDataSource.ResourceRepository;
-        IsReadOnly = false;
-        SelectedRun = currentRun;
-        previousRetention?.Dispose();
-        return currentRun;
     }
 
     private void LogRunSwitch(DashboardRunDescriptor? previousRun, DashboardRunDescriptor selectedRun)
