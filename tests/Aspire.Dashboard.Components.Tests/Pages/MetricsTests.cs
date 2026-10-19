@@ -726,7 +726,7 @@ public partial class MetricsTests : DashboardTestContext
     [Theory]
     [InlineData(null)]
     [InlineData("test-instrument")]
-    public async Task InitialLoad_RouteSelection_SelectsTreeItem(string? instrumentName)
+    public async Task InitialLoad_RouteSelection_SelectsMeterGroup(string? instrumentName)
     {
         MetricsSetupHelpers.SetupMetricsPage(this);
 
@@ -766,22 +766,12 @@ public partial class MetricsTests : DashboardTestContext
 
         cut.WaitForAssertion(() =>
         {
-            var tree = cut.FindComponent<FluentTreeView>();
-            var treeItems = cut.FindComponents<FluentTreeItem>();
-            var selectedItem = Assert.Single(treeItems, item => item.Instance.Id == tree.Instance.SelectedId);
-            var meterItems = treeItems.Where(item => item.Instance.Data is string).ToList();
-            var expandedMeterItems = meterItems.Where(item => item.Find("fluent-tree-item").HasAttribute("expanded")).ToList();
-
-            Assert.True(selectedItem.Find("fluent-tree-item").HasAttribute("selected"));
-            Assert.Equal("test-meter", Assert.Single(expandedMeterItems).Instance.Data);
-            if (instrumentName is null)
-            {
-                Assert.Equal("test-meter", selectedItem.Instance.Data);
-            }
-            else
-            {
-                Assert.Equal(instrumentName, Assert.IsType<OtlpInstrumentSummary>(selectedItem.Instance.Data).Name);
-            }
+            // The meter's group is selected whether the route opens the meter's cards or one of its instruments.
+            var selectedGroup = Assert.Single(cut.FindAll(".metric-group.selected"));
+            Assert.Equal("test-meter", selectedGroup.QuerySelector(".metric-group-name")!.TextContent);
+            Assert.Equal("page", selectedGroup.GetAttribute("aria-current"));
+            Assert.Equal("test-meter", cut.Instance.PageViewModel.SelectedMeter);
+            Assert.Equal(instrumentName, cut.Instance.PageViewModel.SelectedInstrument?.Name);
         });
     }
 
@@ -851,7 +841,7 @@ public partial class MetricsTests : DashboardTestContext
     }
 
     [Fact]
-    public async Task MetricsTree_MetricsAdded_TreeUpdated()
+    public async Task MetricGroups_MetricsAdded_GroupsUpdated()
     {
         // Arrange
         MetricsSetupHelpers.SetupMetricsPage(this);
@@ -887,18 +877,8 @@ public partial class MetricsTests : DashboardTestContext
         // Assert 2
         cut.WaitForState(() => cut.Instance.PageViewModel.Instruments?.Count == 1);
 
-        cut.WaitForAssertion(() =>
-        {
-            // Assert in wait to make sure rendering has caught up to data update.
-            var tree1 = cut.FindComponent<FluentTreeView>();
-            var items1 = tree1.FindComponents<FluentTreeItem>();
-
-            foreach (var instrument in cut.Instance.PageViewModel.Instruments!)
-            {
-                Assert.Single(items1, i => i.Instance.Data as OtlpInstrumentSummary == instrument);
-                Assert.Single(items1, i => i.Instance.Data as string == instrument.Parent.Name);
-            }
-        });
+        // Assert in wait to make sure rendering has caught up to data update.
+        cut.WaitForAssertion(() => Assert.Equal(["test-meter1 1"], GetMetricGroups(cut)));
 
         // Act 2
         // New instruments added
@@ -932,22 +912,11 @@ public partial class MetricsTests : DashboardTestContext
         // Assert 2
         cut.WaitForState(() => cut.Instance.PageViewModel.Instruments?.Count == 3);
 
-        cut.WaitForAssertion(() =>
-        {
-            // Assert in wait to make sure rendering has caught up to data update.
-            var tree2 = cut.FindComponent<FluentTreeView>();
-            var items2 = tree2.FindComponents<FluentTreeItem>();
-
-            foreach (var instrument in cut.Instance.PageViewModel.Instruments!)
-            {
-                Assert.Single(items2, i => i.Instance.Data as OtlpInstrumentSummary == instrument);
-                Assert.Single(items2, i => i.Instance.Data as string == instrument.Parent.Name);
-            }
-        });
+        cut.WaitForAssertion(() => Assert.Equal(["test-meter1 2", "test-meter2 1"], GetMetricGroups(cut)));
     }
 
     [Fact]
-    public async Task MetricsTree_TextFilter_ShowsMatchingInstruments()
+    public async Task MetricGroups_TextFilter_FiltersGroupsAndCards()
     {
         MetricsSetupHelpers.SetupMetricsPage(this);
 
@@ -988,34 +957,34 @@ public partial class MetricsTests : DashboardTestContext
 
         cut.WaitForState(() => cut.Instance.PageViewModel.Instruments?.Count == 3);
 
-        var filterInput = cut.FindComponents<FluentTextInput>().Single(c => c.Instance.Class == "metrics-tree-search");
+        // Show the first meter's cards so the filter's effect on cards is visible too.
+        await cut.InvokeAsync(() => cut.FindAll(".metric-group").Single(g => g.TextContent.Contains("test-meter1")).Click());
+        cut.WaitForAssertion(() => Assert.Equal(["http.request.count", "memory.usage"], GetCardNames(cut)));
 
-        // An instrument name match only shows that instrument under its meter.
+        var filterInput = cut.FindComponents<FluentTextInput>().Single(c => c.Instance.Class == "metric-groups-search");
+
+        // An instrument name match keeps its meter's group, counting only the matching instruments, and filters the cards.
         await cut.InvokeAsync(() => filterInput.Instance.ValueChanged.InvokeAsync("MEMORY"));
-        cut.WaitForAssertion(() => Assert.Equal(["test-meter1", "memory.usage"], GetTreeItemNames(cut)));
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal(["test-meter1 1"], GetMetricGroups(cut));
+            Assert.Equal(["memory.usage"], GetCardNames(cut));
+        });
 
-        // A meter name match shows all of that meter's instruments.
+        // A meter name match keeps all of that meter's instruments.
         await cut.InvokeAsync(() => filterInput.Instance.ValueChanged.InvokeAsync("meter1"));
-        cut.WaitForAssertion(() => Assert.Equal(["test-meter1", "http.request.count", "memory.usage"], GetTreeItemNames(cut)));
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal(["test-meter1 2"], GetMetricGroups(cut));
+            Assert.Equal(["http.request.count", "memory.usage"], GetCardNames(cut));
+        });
 
         await cut.InvokeAsync(() => filterInput.Instance.ValueChanged.InvokeAsync("does-not-exist"));
         cut.WaitForAssertion(() =>
         {
-            Assert.Empty(GetTreeItemNames(cut));
-            Assert.Equal("No metrics match the filter", cut.Find(".metrics-tree-empty").TextContent.Trim());
+            Assert.Empty(GetMetricGroups(cut));
+            Assert.Equal("No metrics match the filter", cut.Find(".metric-groups-empty").TextContent.Trim());
         });
-
-        static List<string> GetTreeItemNames(IRenderedComponent<Metrics> cut)
-        {
-            return cut.FindComponent<FluentTreeView>().FindComponents<FluentTreeItem>()
-                .Select(i => i.Instance.Data switch
-                {
-                    OtlpInstrumentSummary instrument => instrument.Name,
-                    string meterName => meterName,
-                    _ => throw new InvalidOperationException("Unexpected tree item data.")
-                })
-                .ToList();
-        }
     }
 
     [Fact]
@@ -1061,68 +1030,6 @@ public partial class MetricsTests : DashboardTestContext
             var initializeChart = Assert.Single(JSInterop.Invocations, invocation => invocation.Identifier == "initializeChart");
             Assert.Equal(chart.TimeProvider.ToLocal(expectedEndTime), Assert.IsType<DateTime>(initializeChart.Arguments[3]));
         });
-    }
-
-    [Fact]
-    public async Task MetricsTree_SelectCollapsedMeter_MeterExpanded()
-    {
-        MetricsSetupHelpers.SetupMetricsPage(this);
-
-        var telemetryRepository = Services.GetRequiredService<SqliteTelemetryRepository>();
-        await telemetryRepository.AddMetricsAsync(new AddContext(), new RepeatedField<ResourceMetrics>
-        {
-            new ResourceMetrics
-            {
-                Resource = CreateResource(name: "TestApp"),
-                ScopeMetrics =
-                {
-                    new ScopeMetrics
-                    {
-                        Scope = CreateScope(name: "test-meter1"),
-                        Metrics =
-                        {
-                            CreateSumMetric(metricName: "test-instrument1", startTime: s_testTime.AddMinutes(1))
-                        }
-                    },
-                    new ScopeMetrics
-                    {
-                        Scope = CreateScope(name: "test-meter2"),
-                        Metrics =
-                        {
-                            CreateSumMetric(metricName: "test-instrument2", startTime: s_testTime.AddMinutes(1))
-                        }
-                    }
-                }
-            }
-        });
-
-        var cut = Render<Metrics>(builder =>
-        {
-            builder.AddCascadingValue(new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
-            builder.Add(m => m.ResourceName, "TestApp");
-        });
-
-        cut.WaitForState(() => cut.Instance.PageViewModel.Instruments?.Count == 2);
-
-        // The tree item's click handler collapses an expanded item before selecting it.
-        // Simulate that sequence for a meter that isn't selected yet.
-        var meterItem = cut.FindComponents<FluentTreeItem>().Single(i => i.Instance.Data as string == "test-meter2");
-        await cut.InvokeAsync(() => meterItem.Instance.ExpandedChanged.InvokeAsync(false));
-        cut.WaitForAssertion(() => Assert.False(GetMeterItem(cut).Find("fluent-tree-item").HasAttribute("expanded")));
-
-        var tree = cut.FindComponent<FluentTreeView>();
-        await cut.InvokeAsync(() => tree.Instance.CurrentSelectedChanged.InvokeAsync(GetMeterItem(cut).Instance));
-
-        cut.WaitForAssertion(() =>
-        {
-            Assert.Equal("test-meter2", cut.Instance.PageViewModel.SelectedMeter);
-            Assert.True(GetMeterItem(cut).Find("fluent-tree-item").HasAttribute("expanded"));
-        });
-
-        static IRenderedComponent<FluentTreeItem> GetMeterItem(IRenderedComponent<Metrics> cut)
-        {
-            return cut.FindComponents<FluentTreeItem>().Single(i => i.Instance.Data as string == "test-meter2");
-        }
     }
 
     [Fact]
@@ -1306,27 +1213,88 @@ public partial class MetricsTests : DashboardTestContext
             builder.AddCascadingValue(new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
         });
 
-        cut.WaitForAssertion(() => Assert.Equal(2, cut.FindAll(".meter-card").Count));
-        Assert.Empty(cut.FindAll(".metrics-pinned"));
+        cut.WaitForAssertion(() => Assert.Equal(["test-meter 2"], GetMetricGroups(cut)));
 
         var pinButton = cut.FindComponents<MetricPinButton>().Single(b => b.Instance.InstrumentKey.InstrumentName == "test-instrument-b");
         pinButton.Find("fluent-button").Click();
 
+        // The pinned group appears above the meters, linking to its own URL.
         cut.WaitForAssertion(() =>
         {
-            var pinnedItem = Assert.Single(cut.FindAll(".metrics-pinned-item"));
-            Assert.Equal("test-instrument-b", pinnedItem.QuerySelector(".metrics-pinned-item-name")!.TextContent);
+            Assert.Equal(["Pinned 1", "test-meter 2"], GetMetricGroups(cut));
             Assert.Equal(
-                DashboardUrls.MetricsUrl(resource: "TestApp", meter: "test-meter", instrument: "test-instrument-b", duration: 5, view: MetricViewKind.Graph.ToString()),
-                pinnedItem.GetAttribute("href"));
+                DashboardUrls.MetricsUrl(resource: "TestApp", duration: 5, view: MetricViewKind.Graph.ToString(), pinned: true),
+                cut.Find(".metric-group.pinned").GetAttribute("href"));
             Assert.Equal("true", pinButton.Find("fluent-button").GetAttribute("aria-pressed"));
         });
         Assert.Equal([new OtlpInstrumentKey("test-meter", "test-instrument-b")], Services.GetRequiredService<MetricPinStore>().GetPins());
 
-        pinButton.Find("fluent-button").Click();
+        // Selecting the pinned group shows the pinned instruments as cards, with their meter name.
+        cut.Find(".metric-group.pinned").Click();
+        cut.WaitForAssertion(() =>
+        {
+            Assert.True(cut.Instance.PageViewModel.ShowPinned);
+            Assert.Equal(["test-instrument-b"], GetCardNames(cut));
+            Assert.Equal("test-meter", cut.Find(".meter-card-meter").TextContent);
+        });
 
-        cut.WaitForAssertion(() => Assert.Empty(cut.FindAll(".metrics-pinned")));
+        // Unpinning the last pin keeps the selected group, explaining how to pin instead of an empty pane.
+        cut.FindComponents<MetricPinButton>().Single(b => b.Instance.InstrumentKey.InstrumentName == "test-instrument-b").Find("fluent-button").Click();
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal(["Pinned 0", "test-meter 2"], GetMetricGroups(cut));
+            Assert.NotNull(cut.Find(".metrics-pinned-empty"));
+        });
     }
+
+    [Fact]
+    public async Task InitialLoad_WithPinnedInstruments_ShowsPinnedGroup()
+    {
+        MetricsSetupHelpers.SetupMetricsPage(this);
+        Services.GetRequiredService<MetricPinStore>().SetPinned(new OtlpInstrumentKey("test-meter", "test-instrument-b"), pinned: true);
+
+        var telemetryRepository = Services.GetRequiredService<SqliteTelemetryRepository>();
+        await telemetryRepository.AddMetricsAsync(new AddContext(), new RepeatedField<ResourceMetrics>
+        {
+            new ResourceMetrics
+            {
+                Resource = CreateResource(name: "TestApp"),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "test-instrument-a", startTime: s_testTime.AddMinutes(1)),
+                            CreateSumMetric(metricName: "test-instrument-b", startTime: s_testTime.AddMinutes(1))
+                        }
+                    }
+                }
+            }
+        });
+
+        var cut = Render<Metrics>(builder =>
+        {
+            builder.Add(m => m.ResourceName, "TestApp");
+            builder.AddCascadingValue(new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
+        });
+
+        // With no meter or instrument in the route, the page opens on the instruments the user chose to watch.
+        cut.WaitForAssertion(() =>
+        {
+            Assert.True(cut.Instance.PageViewModel.ShowPinned);
+            Assert.Equal("Pinned", cut.Find(".metric-group.selected .metric-group-name").TextContent);
+            Assert.Equal(["test-instrument-b"], GetCardNames(cut));
+        });
+    }
+
+    // Each group as "<name> <instrument count>".
+    private static List<string> GetMetricGroups(IRenderedComponent<Metrics> cut) =>
+        [.. cut.FindAll(".metric-group").Select(g => $"{g.QuerySelector(".metric-group-name")!.TextContent} {g.QuerySelector(".metric-group-count")!.TextContent}")];
+
+    private static List<string> GetCardNames(IRenderedComponent<Metrics> cut) =>
+        [.. cut.FindAll(".meter-card-name").Select(n => n.TextContent)];
 
     private async Task ChangeResourceAndAssertInstrument(string app1InstrumentName, string app2InstrumentName, string? expectedMeterNameAfterChange, string? expectedInstrumentNameAfterChange)
     {

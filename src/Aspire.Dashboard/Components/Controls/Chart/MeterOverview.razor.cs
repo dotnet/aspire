@@ -10,6 +10,7 @@ using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
+using MetricsResources = Aspire.Dashboard.Resources.Metrics;
 
 namespace Aspire.Dashboard.Components;
 
@@ -43,13 +44,16 @@ public partial class MeterOverview : ComponentBase, IAsyncDisposable
     private readonly string _gradientIdPrefix = $"meter-overview-{Interlocked.Increment(ref s_nextOverviewId)}";
     private Dictionary<OtlpInstrumentKey, InstrumentCardData> _cardData = new();
     private Task? _refreshTask;
-    private (ResourceKey, string, TimeSpan, int)? _loadedParameters;
+    private (ResourceKey, TimeSpan, string)? _loadedParameters;
 
     [Parameter, EditorRequired]
     public required ResourceKey ResourceKey { get; set; }
 
+    /// <summary>
+    /// Gets or sets whether cards show their meter name, for groups mixing instruments from several meters.
+    /// </summary>
     [Parameter, EditorRequired]
-    public required string MeterName { get; set; }
+    public required bool ShowMeterName { get; set; }
 
     [Parameter, EditorRequired]
     public required IReadOnlyList<OtlpInstrumentSummary> Instruments { get; set; }
@@ -89,7 +93,9 @@ public partial class MeterOverview : ComponentBase, IAsyncDisposable
             return;
         }
 
-        var parameters = (ResourceKey, MeterName, Duration, Instruments.Count);
+        // Compare the instruments themselves, not just their count: unpinning one instrument and pinning another
+        // keeps the pinned group's count but changes which cards need data.
+        var parameters = (ResourceKey, Duration, string.Join('\n', Instruments.Select(i => $"{i.Parent.Name}\t{i.Name}")));
         if (_loadedParameters != parameters)
         {
             _loadedParameters = parameters;
@@ -295,6 +301,14 @@ public partial class MeterOverview : ComponentBase, IAsyncDisposable
             ? FormatHelpers.FormatNumberWithOptionalDecimalPlaces(scaled, maxDecimalPlaces: 1, culture) + suffix
             : FormatHelpers.FormatNumberWithOptionalDecimalPlaces(scaled, maxDecimalPlaces: 3, culture);
     }
+
+    private string? GetInstrumentTypeName(OtlpInstrumentType type) => type switch
+    {
+        OtlpInstrumentType.Gauge => Loc[nameof(MetricsResources.MetricsInstrumentTypeGauge)].Value,
+        OtlpInstrumentType.Sum => Loc[nameof(MetricsResources.MetricsInstrumentTypeCounter)].Value,
+        OtlpInstrumentType.Histogram => Loc[nameof(MetricsResources.MetricsInstrumentTypeHistogram)].Value,
+        _ => null
+    };
 
     private static Icon? GetInstrumentIcon(OtlpInstrumentType type)
     {

@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="it" original="../Metrics.resx">
     <body>
+      <trans-unit id="MetricsGroupsLabel">
+        <source>Metric groups</source>
+        <target state="new">Metric groups</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MetricsHeader">
         <source>Metrics</source>
         <target state="translated">Metriche</target>
@@ -100,6 +105,11 @@
       <trans-unit id="MetricsPinInstrument">
         <source>Pin metric</source>
         <target state="new">Pin metric</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsPinnedEmpty">
+        <source>No pinned metrics for this resource. Pin a metric from its card or chart to see it here.</source>
+        <target state="new">No pinned metrics for this resource. Pin a metric from its card or chart to see it here.</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsPinnedHeader">

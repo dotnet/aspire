@@ -277,14 +277,19 @@ internal static class DashboardUrls
         return url;
     }
 
-    public static string MetricsUrl(string? resource = null, string? meter = null, string? instrument = null, int? duration = null, string? view = null)
+    public static string MetricsUrl(string? resource = null, string? meter = null, string? instrument = null, int? duration = null, string? view = null, bool pinned = false)
     {
         var url = $"/{MetricsBasePath}";
         if (resource != null)
         {
             url += $"/resource/{Uri.EscapeDataString(resource)}";
         }
-        if (meter is not null)
+        if (pinned)
+        {
+            // The pinned group lists pinned instruments from every meter, so it replaces a meter selection.
+            url = AddQueryString(url, "pinned", "true");
+        }
+        else if (meter is not null)
         {
             // Meter and instrument must be querystring parameters because it's valid for the name to contain forward slashes.
             url = AddQueryString(url, "meter", meter);

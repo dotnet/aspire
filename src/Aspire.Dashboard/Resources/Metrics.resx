@@ -197,4 +197,10 @@
   <data name="MetricsPinnedHeader" xml:space="preserve">
     <value>Pinned</value>
   </data>
+  <data name="MetricsGroupsLabel" xml:space="preserve">
+    <value>Metric groups</value>
+  </data>
+  <data name="MetricsPinnedEmpty" xml:space="preserve">
+    <value>No pinned metrics for this resource. Pin a metric from its card or chart to see it here.</value>
+  </data>
 </root>

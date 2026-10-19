@@ -73,11 +73,12 @@
                                                  Collapsed="@(!ViewportInformation.IsDesktop)">
                             @if (ViewportInformation.IsDesktop)
                             {
-                                <TreeMetricSelector
-                                    @ref="_treeMetricSelector"
+                                <MetricGroupList
+                                    @ref="_metricGroupList"
                                     PageViewModel="@PageViewModel"
-                                    HandleSelectedTreeItemChangedAsync="@HandleSelectedTreeItemChangedAsync"
-                                    GetInstrumentUrl="@GetInstrumentUrl"/>
+                                    SelectGroupAsync="@SelectGroupAsync"
+                                    GetGroupUrl="@GetGroupUrl"
+                                    TextFilterChanged="@StateHasChanged"/>
                             }
                         </FluentMultiSplitterPane>
                         <FluentMultiSplitterPane Size="80%">
@@ -93,13 +94,30 @@
                                             OnViewChangedAsync="@OnViewChangedAsync"
                                             Resources="@_resources" />
                                     }
+                                    else if (PageViewModel is { ShowPinned: true, SelectedResource.Id: { } pinnedResourceId })
+                                    {
+                                        var pinnedInstruments = GetOverviewInstruments();
+                                        <h3 class="meter-name-title">@Loc[nameof(Dashboard.Resources.Metrics.MetricsPinnedHeader)]</h3>
+                                        @if (pinnedInstruments.Count > 0)
+                                        {
+                                            <MeterOverview ResourceKey="@pinnedResourceId.GetResourceKey()"
+                                                           Instruments="@pinnedInstruments"
+                                                           Duration="@PageViewModel.SelectedDuration.Id"
+                                                           ShowMeterName="true"
+                                                           GetInstrumentUrl="@GetInstrumentUrl" />
+                                        }
+                                        else
+                                        {
+                                            <p class="metrics-pinned-empty">@Loc[nameof(Dashboard.Resources.Metrics.MetricsPinnedEmpty)]</p>
+                                        }
+                                    }
                                     else if (PageViewModel is { SelectedMeter: not null, SelectedResource.Id: { } selectedResourceId })
                                     {
                                         <h3 class="meter-name-title">@PageViewModel.SelectedMeter</h3>
                                         <MeterOverview ResourceKey="@selectedResourceId.GetResourceKey()"
-                                                       MeterName="@PageViewModel.SelectedMeter"
-                                                       Instruments="@GetSelectedMeterInstruments()"
+                                                       Instruments="@GetOverviewInstruments()"
                                                        Duration="@PageViewModel.SelectedDuration.Id"
+                                                       ShowMeterName="false"
                                                        GetInstrumentUrl="@GetInstrumentUrl" />
                                     }
                                     else
@@ -192,12 +210,13 @@
         {
             // Show metric selector in the toolbar for mobile, since we don't have enough room to show both
             // panels on a mobile viewport.
-            <TreeMetricSelector
-                @ref="_treeMetricSelector"
+            <MetricGroupList
+                @ref="_metricGroupList"
                 PageViewModel="@PageViewModel"
                 IncludeLabel="true"
-                HandleSelectedTreeItemChangedAsync="@HandleSelectedTreeItemChangedAsync"
-                                    GetInstrumentUrl="@GetInstrumentUrl"/>
+                SelectGroupAsync="@SelectGroupAsync"
+                GetGroupUrl="@GetGroupUrl"
+                TextFilterChanged="@StateHasChanged"/>
         }
     }
 }

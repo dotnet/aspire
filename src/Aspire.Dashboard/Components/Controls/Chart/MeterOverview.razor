@@ -18,10 +18,16 @@
            inside <a>, and nesting would make clicking the pin also navigate to the instrument. *@
         <div @key="instrument" class="meter-card @(cardData.LatestValue is null ? "no-data" : null)">
         <a class="meter-card-link" href="@GetInstrumentUrl(instrument)">
+            @if (ShowMeterName)
+            {
+                <div class="meter-card-meter" title="@instrument.Parent.Name">@instrument.Parent.Name</div>
+            }
             <div class="meter-card-header">
                 @if (icon is not null)
                 {
-                    <FluentIcon Value="@icon" Class="meter-card-icon" Color="Color.Custom" CustomColor="currentColor" />
+                    <span class="meter-card-icon" data-tooltip="@GetInstrumentTypeName(instrument.Type)">
+                        <FluentIcon Value="@icon" Color="Color.Custom" CustomColor="currentColor" />
+                    </span>
                 }
                 <span class="meter-card-name" title="@instrument.Name">@instrument.Name</span>
             </div>

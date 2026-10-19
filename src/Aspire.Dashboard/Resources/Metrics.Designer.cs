@@ -114,6 +114,18 @@ namespace Aspire.Dashboard.Resources {
             }
         }
 
+        public static string MetricsGroupsLabel {
+            get {
+                return ResourceManager.GetString("MetricsGroupsLabel", resourceCulture);
+            }
+        }
+
+        public static string MetricsPinnedEmpty {
+            get {
+                return ResourceManager.GetString("MetricsPinnedEmpty", resourceCulture);
+            }
+        }
+
         public static string MetricsInstrumentNoDataTooltip {
             get {
                 return ResourceManager.GetString("MetricsInstrumentNoDataTooltip", resourceCulture);

@@ -66,6 +66,16 @@ public sealed class MetricPinStore
         }
     }
 
+    /// <summary>
+    /// Gets the pinned instruments among <paramref name="instruments"/>, in the order they were pinned.
+    /// Pins for instruments that aren't in the list, such as ones only another resource reports, are skipped.
+    /// </summary>
+    public List<OtlpInstrumentSummary> GetPinnedInstruments(IEnumerable<OtlpInstrumentSummary> instruments)
+    {
+        var instrumentsByKey = instruments.ToDictionary(i => i.GetKey());
+        return [.. GetPins().Select(key => instrumentsByKey.GetValueOrDefault(key)).OfType<OtlpInstrumentSummary>()];
+    }
+
     public bool IsPinned(OtlpInstrumentKey key)
     {
         lock (_lock)

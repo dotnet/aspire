@@ -105,142 +105,106 @@
     line-height: 22px;
 }
 
-::deep .metrics-tree-search {
+::deep .metric-groups-search {
     display: block;
     width: 100%;
     margin-top: var(--layout-top-padding);
 }
 
-::deep .metrics-tree-search > fluent-text-input,
-::deep fluent-text-input.metrics-tree-search {
+::deep .metric-groups-search > fluent-text-input,
+::deep fluent-text-input.metric-groups-search {
     width: 100%;
 }
 
-::deep .metrics-tree-empty {
+::deep .metric-groups {
+    display: flex;
+    flex-direction: column;
+    margin-top: var(--spacingVerticalS);
+}
+
+::deep .metric-groups-empty,
+::deep .metrics-pinned-empty {
     padding: var(--spacingVerticalM) var(--spacingHorizontalS);
     color: var(--colorNeutralForeground3);
 }
 
-::deep .metrics-tree fluent-tree-item.nested svg {
-    color: var(--colorNeutralForeground3);
+::deep .metric-groups-divider {
+    margin: 4px 8px;
+    border-top: 1px solid var(--colorNeutralStroke2);
 }
 
-::deep .metrics-pinned {
-    display: flex;
-    flex-direction: column;
-    margin-top: var(--spacingVerticalS);
-    padding-bottom: var(--spacingVerticalXS);
-    border-bottom: 1px solid var(--colorNeutralStroke2);
-}
-
-::deep .metrics-pinned-header {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    height: 29px;
-    padding-inline-start: 8px;
-    color: var(--colorNeutralForeground3);
-    font-weight: 600;
-}
-
-::deep .metrics-pinned-item {
+::deep .metric-group {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     min-width: 0;
-    height: 29px;
-    padding-inline-start: 28px;
+    height: 32px;
+    padding: 0 8px 0 12px;
     border-radius: 4px;
     color: var(--colorNeutralForeground1);
     text-decoration: none;
 }
 
-::deep .metrics-pinned-item svg {
+::deep .metric-group svg {
     flex: none;
     color: var(--colorNeutralForeground3);
 }
 
-::deep .metrics-pinned-item:hover,
-::deep .metrics-pinned-item.selected {
+::deep .metric-group.pinned svg {
+    color: var(--colorBrandForeground1);
+}
+
+::deep .metric-group:hover,
+::deep .metric-group.selected {
     background-color: var(--colorNeutralBackground3);
 }
 
-/* Matches the selected tree item's indicator so both lists read as one navigation. */
-::deep .metrics-pinned-item.selected::after {
+::deep .metric-group:focus-visible {
+    outline: 2px solid var(--colorStrokeFocus2);
+    outline-offset: -2px;
+}
+
+/* Same selection indicator as the resource list, so both panes read as one navigation. */
+::deep .metric-group.selected::after {
     position: absolute;
     left: 2px;
-    top: 7.5px;
+    top: 9px;
     width: 3px;
     height: 14px;
     content: "";
     background-color: var(--colorBrandBackground);
 }
 
-::deep .metrics-pinned-item.no-data .metrics-pinned-item-name {
-    color: var(--colorNeutralForeground4);
-}
-
-::deep .metrics-pinned-item-name {
+::deep .metric-group-name {
+    flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-::deep .metrics-tree {
-    min-width: auto;
-    /* The filter box above carries the top padding; this just separates it from the first item. */
-    padding-top: var(--spacingVerticalS);
-}
-
-::deep .metrics-tree fluent-tree-item::part(positioning-region) {
-    height: 29px;
-}
-
-::deep .metrics-tree fluent-tree-item::part(content) {
-    min-width: 0;
-}
-
-::deep .metrics-tree fluent-tree-item.nested::part(positioning-region) {
-    padding-inline-start: 20px;
-}
-
-::deep .metrics-tree fluent-tree-item[selected]::part(positioning-region),
-::deep .metrics-tree fluent-tree-item::part(positioning-region):hover {
-    background-color: var(--colorNeutralBackground3);
-}
-
-::deep .metrics-tree fluent-tree-item [part="text"] {
-    min-width: 0;
-    overflow: hidden;
-    color: var(--colorNeutralForeground1);
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-/* Deemphasize instruments that haven't recorded any data yet, so it's obvious at a
-   glance which metrics are worth selecting without having to click through each one. */
-::deep .metrics-tree fluent-tree-item.no-data [part="text"] {
-    color: var(--colorNeutralForeground4);
-}
-
-::deep .metrics-tree fluent-tree-item[selected] {
-    position: relative;
-}
-
-::deep .metrics-tree fluent-tree-item[selected]::after {
-    position: absolute;
-    left: 2px;
-    top: 7.5px;
-    width: 3px;
-    height: 14px;
-    content: "";
-    background-color: var(--colorBrandBackground);
+::deep .metric-group-count {
+    flex: none;
+    min-width: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background-color: var(--colorNeutralBackground4);
+    color: var(--colorNeutralForeground3);
+    font-size: var(--type-ramp-minus-1-font-size);
+    line-height: 18px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
 }
 
 ::deep .fluent-multi-splitter-pane:has(> .metrics-content),
-::deep .fluent-multi-splitter-pane:has(> .metrics-tree) {
+::deep .fluent-multi-splitter-pane:has(> .metric-groups) {
     overflow: auto;
+}
+
+/* Keep common meter names such as "System.Net.Http" readable: the group list is the only place that
+   tells meters apart. The splitter's own Min only applies while dragging, not to the initial 20% size. */
+::deep .fluent-multi-splitter-pane:has(> .metric-groups) {
+    min-width: 220px;
 }
 
 ::deep .metrics-content {

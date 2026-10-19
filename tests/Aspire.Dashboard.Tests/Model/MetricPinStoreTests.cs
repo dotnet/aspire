@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -65,6 +66,40 @@ public sealed class MetricPinStoreTests(ITestOutputHelper testOutputHelper) : ID
 
         Assert.False(store.SetPinned(s_heap, pinned: true));
         Assert.Empty(store.GetPins());
+    }
+
+    [Fact]
+    public void GetPinnedInstruments_ReturnsReportedInstrumentsInPinnedOrder()
+    {
+        var store = new MetricPinStore(databasePath: null, NullLogger.Instance);
+        store.SetPinned(s_cpu, pinned: true);
+        store.SetPinned(s_duration, pinned: true);
+        store.SetPinned(s_heap, pinned: true);
+
+        // This resource doesn't report the HTTP duration instrument, so that pin is skipped.
+        var heap = CreateInstrument(s_heap);
+        var cpu = CreateInstrument(s_cpu);
+        var unpinned = CreateInstrument(new OtlpInstrumentKey("System.Runtime", "dotnet.exceptions"));
+
+        Assert.Equal([cpu, heap], store.GetPinnedInstruments([heap, unpinned, cpu]));
+    }
+
+    private static OtlpInstrumentSummary CreateInstrument(OtlpInstrumentKey key)
+    {
+        var context = new OtlpContext { Options = new TelemetryLimitOptions(), Logger = NullLogger.Instance };
+        var resource = new OtlpResource("resource", instanceId: null, uninstrumentedPeer: false, context);
+
+        return new OtlpInstrumentSummary
+        {
+            Name = key.InstrumentName,
+            Description = string.Empty,
+            Unit = string.Empty,
+            Type = OtlpInstrumentType.Sum,
+            AggregationTemporality = OtlpAggregationTemporality.Cumulative,
+            IsMonotonic = true,
+            Parent = new OtlpScope(key.MeterName, version: string.Empty, attributes: []),
+            ResourceView = new OtlpResourceView(resource, Array.Empty<KeyValuePair<string, string>>())
+        };
     }
 
     public void Dispose() => _workspace.Dispose();

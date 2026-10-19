@@ -12,7 +12,6 @@ using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
-using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -22,7 +21,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
     private List<SelectViewModel<TimeSpan>> _durations = null!;
     private static readonly TimeSpan s_defaultDuration = TimeSpan.FromMinutes(5);
     private AspirePageContentLayout? _contentLayout;
-    private TreeMetricSelector? _treeMetricSelector;
+    private MetricGroupList? _metricGroupList;
     private readonly string _selectDurationId = $"select-duration-{Guid.NewGuid():N}";
 
     private List<OtlpResource> _resources = default!;
@@ -53,6 +52,10 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
     [Parameter]
     [SupplyParameterFromQuery(Name = "instrument")]
     public string? InstrumentName { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "pinned")]
+    public bool? Pinned { get; set; }
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "duration")]
@@ -87,6 +90,9 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
 
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
+
+    [Inject]
+    public required MetricPinStore PinStore { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
@@ -133,6 +139,9 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
             layout.ResourcesChanged += OnLayoutResourcesChanged;
         }
         _resourcesSubscription = TelemetryRepository.OnNewResources(() => InvokeAsync(OnResourcesUpdatedAsync));
+
+        // The pinned group and its cards follow pins changed from a card or a chart header.
+        PinStore.Changed += OnPinsChanged;
     }
 
     protected override async Task OnParametersSetAsync()
@@ -153,6 +162,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
             ResourceName = PageViewModel.SelectedResource.Id is not null ? PageViewModel.SelectedResource.Name : null,
             MeterName = PageViewModel.SelectedMeter,
             InstrumentName = PageViewModel.SelectedInstrument?.Name,
+            Pinned = PageViewModel.ShowPinned,
             DurationMinutes = (int)PageViewModel.SelectedDuration.Id.TotalMinutes,
             ViewKind = PageViewModel.SelectedViewKind?.ToString()
         };
@@ -186,9 +196,14 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
 
         viewModel.SelectedMeter = null;
         viewModel.SelectedInstrument = null;
+        viewModel.ShowPinned = false;
         viewModel.SelectedViewKind = Enum.TryParse(typeof(MetricViewKind), ViewKindName, out var view) && view is MetricViewKind vk ? vk : null;
 
-        if (viewModel.Instruments != null && !string.IsNullOrEmpty(MeterName))
+        if (viewModel.Instruments != null && Pinned is true)
+        {
+            viewModel.ShowPinned = true;
+        }
+        else if (viewModel.Instruments != null && !string.IsNullOrEmpty(MeterName))
         {
             viewModel.SelectedMeter = viewModel.Instruments.FirstOrDefault(i => i.Parent.Name == MeterName)?.Parent.Name;
             if (viewModel.SelectedMeter != null && !string.IsNullOrEmpty(InstrumentName))
@@ -198,7 +213,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
         }
         else
         {
-            SelectDefaultInstrument(viewModel);
+            SelectDefaultView(viewModel);
         }
         return Task.CompletedTask;
 
@@ -210,14 +225,22 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
     }
 
     /// <summary>
-    /// Selects an instrument when nothing is selected, so the page opens on a chart instead of an empty pane.
-    /// Instruments that describe request traffic and latency come first because they're the most useful signals
-    /// for most apps, followed by connection, CPU and memory instruments. Otherwise the first instrument is used.
+    /// Selects what to show when nothing is selected, so the page doesn't open on an empty pane. The pinned group
+    /// comes first when this resource reports pinned instruments, because the user chose them as the ones to watch.
+    /// Otherwise an instrument is selected: instruments that describe request traffic and latency come first because
+    /// they're the most useful signals for most apps, followed by connection, CPU and memory instruments, and then
+    /// the first instrument.
     /// </summary>
-    private static void SelectDefaultInstrument(MetricsViewModel viewModel)
+    private void SelectDefaultView(MetricsViewModel viewModel)
     {
-        if (viewModel.SelectedMeter is not null || viewModel.SelectedInstrument is not null || viewModel.Instruments is not { Count: > 0 } instruments)
+        if (viewModel.SelectedMeter is not null || viewModel.SelectedInstrument is not null || viewModel.ShowPinned || viewModel.Instruments is not { Count: > 0 } instruments)
         {
+            return;
+        }
+
+        if (PinStore.GetPinnedInstruments(instruments).Count > 0)
+        {
+            viewModel.ShowPinned = true;
             return;
         }
 
@@ -339,14 +362,14 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
             }
         }
 
-        SelectDefaultInstrument(PageViewModel);
+        SelectDefaultView(PageViewModel);
 
         await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
 
         // The mobile view doesn't update the URL when the resource changes.
         // Because of this, the page doesn't autoamtically use updated instruments.
-        // Force the metrics tree to update so it re-renders with the new resource's instruments.
-        _treeMetricSelector?.OnResourceChanged();
+        // Force the group list to update so it re-renders with the new resource's instruments.
+        _metricGroupList?.OnResourceChanged();
     }
 
     private bool ShouldClearSelectedMetrics(List<OtlpInstrumentSummary> instruments)
@@ -383,8 +406,17 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
 
     public sealed class MetricsViewModel
     {
-        public FluentTreeItem? SelectedTreeItem { get; set; }
         public string? SelectedMeter { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether the pinned group is selected. It shows pinned instruments from every meter.
+        /// </summary>
+        public bool ShowPinned { get; set; }
+
+        /// <summary>
+        /// Gets or sets the text that filters the metric groups and the cards of the selected group.
+        /// </summary>
+        public string TextFilter { get; set; } = string.Empty;
         public OtlpInstrumentSummary? SelectedInstrument { get; set; }
         public required SelectViewModel<ResourceTypeDetails> SelectedResource { get; set; }
         public SelectViewModel<TimeSpan> SelectedDuration { get; set; } = null!;
@@ -397,6 +429,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
         public string? ResourceName { get; set; }
         public string? MeterName { get; set; }
         public string? InstrumentName { get; set; }
+        public bool Pinned { get; set; }
         public int DurationMinutes { get; set; }
         public required string? ViewKind { get; set; }
     }
@@ -407,23 +440,11 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
         Graph
     }
 
-    private Task HandleSelectedTreeItemChangedAsync()
+    private Task SelectGroupAsync(string? meterName, bool pinned)
     {
-        if (PageViewModel.SelectedTreeItem?.Data is string meter)
-        {
-            PageViewModel.SelectedMeter = meter;
-            PageViewModel.SelectedInstrument = null;
-        }
-        else if (PageViewModel.SelectedTreeItem?.Data is OtlpInstrumentSummary instrument)
-        {
-            PageViewModel.SelectedMeter = instrument.Parent.Name;
-            PageViewModel.SelectedInstrument = instrument;
-        }
-        else
-        {
-            PageViewModel.SelectedMeter = null;
-            PageViewModel.SelectedInstrument = null;
-        }
+        PageViewModel.ShowPinned = pinned;
+        PageViewModel.SelectedMeter = pinned ? null : meterName;
+        PageViewModel.SelectedInstrument = null;
 
         return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
     }
@@ -438,7 +459,8 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
             meter: serializable.MeterName,
             instrument: serializable.InstrumentName,
             duration: serializable.DurationMinutes,
-            view: serializable.ViewKind);
+            view: serializable.ViewKind,
+            pinned: serializable.Pinned);
 
         return ResourcesLayout?.AddSelectionToUrl(url) ?? url;
     }
@@ -449,12 +471,35 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
         await this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: false);
     }
 
-    private List<OtlpInstrumentSummary> GetSelectedMeterInstruments()
+    private List<OtlpInstrumentSummary> GetOverviewInstruments()
     {
-        return PageViewModel.Instruments?
-            .Where(item => item.Parent.Name == PageViewModel.SelectedMeter)
-            .OrderBy(item => item.Name, StringComparer.Ordinal)
-            .ToList() ?? [];
+        if (PageViewModel.Instruments is not { } instruments)
+        {
+            return [];
+        }
+
+        var groupInstruments = PageViewModel.ShowPinned
+            ? PinStore.GetPinnedInstruments(instruments)
+            : [.. instruments.Where(i => i.Parent.Name == PageViewModel.SelectedMeter).OrderBy(i => i.Name, StringComparer.Ordinal)];
+
+        return [.. groupInstruments.Where(i => MetricFilter.Matches(i, PageViewModel.TextFilter))];
+    }
+
+    private string GetGroupUrl(string? meterName, bool pinned)
+    {
+        var url = DashboardUrls.MetricsUrl(
+            resource: PageViewModel.SelectedResource.Name,
+            meter: meterName,
+            duration: DurationMinutes,
+            view: ViewKindName,
+            pinned: pinned);
+
+        return ResourcesLayout?.AddPaneToUrl(url) ?? url;
+    }
+
+    private void OnPinsChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
     }
 
     private string GetInstrumentUrl(OtlpInstrumentSummary instrument)
@@ -489,7 +534,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
                         PageViewModel.Instruments = instruments;
 
                         // Instruments can arrive after the page loads, e.g. when the resource has just started.
-                        SelectDefaultInstrument(PageViewModel);
+                        SelectDefaultView(PageViewModel);
                         await InvokeAsync(StateHasChanged);
                     }
                 }
@@ -499,6 +544,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
 
     public void Dispose()
     {
+        PinStore.Changed -= OnPinsChanged;
         if (ResourcesLayout is { } layout)
         {
             layout.ResourcesChanged -= OnLayoutResourcesChanged;

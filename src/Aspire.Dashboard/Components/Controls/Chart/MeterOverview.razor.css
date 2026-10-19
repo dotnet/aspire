@@ -60,6 +60,15 @@
     opacity: 1;
 }
 
+.meter-card-meter {
+    overflow: hidden;
+    padding-right: 24px;
+    color: var(--colorNeutralForeground3);
+    font-size: var(--type-ramp-minus-1-font-size);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .meter-card-header {
     display: flex;
     align-items: center;
@@ -69,7 +78,8 @@
     padding-right: 24px;
 }
 
-::deep .meter-card-icon {
+.meter-card-icon {
+    display: inline-flex;
     flex: none;
     color: var(--colorNeutralForeground3);
 }
