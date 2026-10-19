@@ -46,8 +46,18 @@
                                 <stop offset="100%" class="meter-card-sparkline-stop-bottom" />
                             </linearGradient>
                         </defs>
-                        <path class="meter-card-sparkline-area" d="@cardData.AreaPath" fill="url(#@gradientId)" />
-                        <path class="meter-card-sparkline-line" d="@cardData.LinePath" />
+                        @if (cardData.Kind == SparklineKind.Bars)
+                        {
+                            @* Bars rise from zero at the bottom edge (bar data is never negative). The baseline
+                               keeps an interval range with no increases reading as zero instead of a missing chart. *@
+                            <line class="meter-card-sparkline-baseline" x1="0" x2="@SparklineWidth.ToString(CultureInfo.InvariantCulture)" y1="@s_sparklineBaselineY" y2="@s_sparklineBaselineY" />
+                            <path class="meter-card-sparkline-bars" d="@cardData.Path" />
+                        }
+                        else
+                        {
+                            <path class="meter-card-sparkline-area" d="@cardData.AreaPath" fill="url(#@gradientId)" />
+                            <path class="meter-card-sparkline-line" d="@cardData.Path" />
+                        }
                     </svg>
                 }
                 else

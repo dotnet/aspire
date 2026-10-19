@@ -23,6 +23,7 @@ public partial class MeterOverview : ComponentBase, IAsyncDisposable
     private const int SparklinePointCount = 30;
     internal const double SparklineWidth = 100;
     internal const double SparklineHeight = 32;
+    private static readonly string s_sparklineBaselineY = (SparklineHeight - SparklinePath.Inset).ToString(CultureInfo.InvariantCulture);
 
     // Cards refresh less often than the main chart: a meter can have dozens of instruments
     // and each refresh queries the telemetry store once per instrument.
@@ -214,8 +215,56 @@ public partial class MeterOverview : ComponentBase, IAsyncDisposable
             return InstrumentCardData.Empty;
         }
 
+        // The form follows what the reader wants from each instrument type:
+        // - Counters only ever grow, so a line of the running total says little. Bars of the
+        //   increase per interval show the actual activity, e.g. requests per interval.
+        // - Histograms are often sparse (no requests means no data), and a line drawn between rare
+        //   points implies values that were never measured. A bar per interval with data doesn't.
+        // - Gauges and up-down counters are levels, which is what a line shows best.
+        if (instrument.Type == OtlpInstrumentType.Sum && instrument.IsMonotonic)
+        {
+            var increases = CalculateCounterIncreases(values, instrument.AggregationTemporality);
+            return new InstrumentCardData(latestValue, SparklineKind.Bars, SparklinePath.BuildBars(increases, SparklineWidth, SparklineHeight), string.Empty);
+        }
+
+        if (instrument.Type == OtlpInstrumentType.Histogram)
+        {
+            return new InstrumentCardData(latestValue, SparklineKind.Bars, SparklinePath.BuildBars(values, SparklineWidth, SparklineHeight), string.Empty);
+        }
+
         var (line, area) = SparklinePath.Build(values, SparklineWidth, SparklineHeight);
-        return new InstrumentCardData(latestValue, line, area);
+        return new InstrumentCardData(latestValue, SparklineKind.Line, line, area);
+    }
+
+    internal static List<double?> CalculateCounterIncreases(IReadOnlyList<double?> values, OtlpAggregationTemporality temporality)
+    {
+        // Delta counters already report the change per export, so their values are the increases.
+        if (temporality == OtlpAggregationTemporality.Delta)
+        {
+            return [.. values];
+        }
+
+        // Cumulative counters report a running total, e.g. [10, 15, null, 22, 3] where 3 follows a
+        // process restart. The increase is the difference from the last known total, carried across
+        // empty intervals: an app exporting every 60s leaves most 10s intervals empty, and its
+        // growth should show up in the interval where it was observed, not be dropped.
+        // After a reset the total starts again from zero, so the new value itself is the increase.
+        var increases = new List<double?>(values.Count);
+        double? previous = null;
+        foreach (var value in values)
+        {
+            if (value is not { } current)
+            {
+                increases.Add(null);
+                continue;
+            }
+
+            // The first point has nothing to compare against.
+            increases.Add(previous is { } last ? (current >= last ? current - last : current) : null);
+            previous = current;
+        }
+
+        return increases;
     }
 
     private InstrumentCardData GetCardData(OtlpInstrumentSummary instrument)
@@ -268,8 +317,15 @@ public partial class MeterOverview : ComponentBase, IAsyncDisposable
         _disposeCts.Dispose();
     }
 
-    private sealed record InstrumentCardData(double? LatestValue, string LinePath, string AreaPath)
+    private enum SparklineKind
     {
-        public static readonly InstrumentCardData Empty = new(null, string.Empty, string.Empty);
+        Line,
+        Bars
+    }
+
+    // For lines, Path is the stroke and AreaPath the fill below it. For bars, Path holds all bars.
+    private sealed record InstrumentCardData(double? LatestValue, SparklineKind Kind, string Path, string AreaPath)
+    {
+        public static readonly InstrumentCardData Empty = new(null, SparklineKind.Line, string.Empty, string.Empty);
     }
 }

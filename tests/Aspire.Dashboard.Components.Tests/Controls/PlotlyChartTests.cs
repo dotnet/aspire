@@ -39,6 +39,7 @@ public class PlotlyChartTests : DashboardTestContext
             Parent = new OtlpScope("meter", string.Empty, []),
             Type = OtlpInstrumentType.Histogram,
             AggregationTemporality = OtlpAggregationTemporality.Cumulative,
+            IsMonotonic = false,
             ResourceView = new OtlpResourceView(resource, Array.Empty<KeyValuePair<string, string>>())
         };
         var sampleTime = timeProvider.GetUtcNow().AddSeconds(-2);
@@ -129,6 +130,7 @@ public class PlotlyChartTests : DashboardTestContext
             Parent = new OtlpScope("Parent-Name-<b>Bold</b>", string.Empty, []),
             Type = OtlpInstrumentType.Sum,
             AggregationTemporality = OtlpAggregationTemporality.Cumulative,
+            IsMonotonic = true,
             ResourceView = new OtlpResourceView(resource, Array.Empty<KeyValuePair<string, string>>())
         };
 

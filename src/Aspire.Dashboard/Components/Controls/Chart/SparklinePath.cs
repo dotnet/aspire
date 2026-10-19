@@ -7,16 +7,93 @@ using System.Text;
 namespace Aspire.Dashboard.Components.Controls.Chart;
 
 /// <summary>
-/// Builds SVG path data for a small inline sparkline.
+/// Builds SVG path data for small inline sparklines, as a line or as bars.
 /// </summary>
 public static class SparklinePath
 {
+    // Keeps strokes from being clipped at the top and bottom edges of the SVG.
+    internal const double Inset = 2;
+
     /// <summary>
     /// Builds a smoothed line path and a matching closed area path for the values.
     /// Values are spaced evenly across <paramref name="width"/>. Null values create gaps.
     /// Returns empty strings when there is nothing to draw.
     /// </summary>
     public static (string Line, string Area) Build(IReadOnlyList<double?> values, double width, double height)
+    {
+        if (values.Count < 2 || !TryCreateScale(values, height, out var scale))
+        {
+            return (string.Empty, string.Empty);
+        }
+
+        var step = width / (values.Count - 1);
+        var zeroY = scale.ScaleY(0);
+        var line = new StringBuilder();
+        var area = new StringBuilder();
+        var segment = new List<(double X, double Y)>();
+
+        for (var i = 0; i <= values.Count; i++)
+        {
+            if (i < values.Count && values[i] is { } v)
+            {
+                segment.Add((i * step, scale.ScaleY(v)));
+                continue;
+            }
+
+            if (segment.Count > 0)
+            {
+                AppendSegment(line, area, segment, zeroY);
+                segment.Clear();
+            }
+        }
+
+        return (line.ToString(), area.ToString());
+    }
+
+    /// <summary>
+    /// Builds a path of vertical bars, one per value, rising from zero. Null and zero values draw no bar.
+    /// Returns an empty string when there is nothing to draw.
+    /// </summary>
+    public static string BuildBars(IReadOnlyList<double?> values, double width, double height)
+    {
+        if (values.Count == 0 || !TryCreateScale(values, height, out var scale))
+        {
+            return string.Empty;
+        }
+
+        // Each value gets an equal slot; the gap between bars keeps them readable as separate
+        // intervals at sparkline size instead of merging into a solid block.
+        var slot = width / values.Count;
+        var barWidth = slot * 0.7;
+        var zeroY = scale.ScaleY(0);
+        var bars = new StringBuilder();
+
+        for (var i = 0; i < values.Count; i++)
+        {
+            if (values[i] is not { } v || v == 0)
+            {
+                continue;
+            }
+
+            // A tiny value next to a large one would scale below a pixel and disappear, which
+            // would look the same as an interval with no activity. Keep a minimum visible height,
+            // growing away from the zero line.
+            const double MinBarHeight = 1.5;
+            var valueY = scale.ScaleY(v);
+            var top = v > 0 ? Math.Min(valueY, zeroY - MinBarHeight) : zeroY;
+            var bottom = v > 0 ? zeroY : Math.Max(valueY, zeroY + MinBarHeight);
+
+            var x = (i * slot) + ((slot - barWidth) / 2);
+            bars.Append(CultureInfo.InvariantCulture, $"M{x:0.##},{bottom:0.##}V{top:0.##}H{x + barWidth:0.##}V{bottom:0.##}Z");
+        }
+
+        return bars.ToString();
+    }
+
+    // Sparklines start at zero, like the full chart. A flat 100 then sits at the top and a flat 0
+    // on the baseline, rather than both drawing at the same height, and small changes on a large
+    // value read as small. Negative values (possible for up-down counters) extend the range below zero.
+    private static bool TryCreateScale(IReadOnlyList<double?> values, double height, out Scale scale)
     {
         double? min = null;
         double? max = null;
@@ -29,47 +106,25 @@ public static class SparklinePath
             }
         }
 
-        if (min is null || max is null || values.Count < 2)
+        if (min is null || max is null)
         {
-            return (string.Empty, string.Empty);
+            scale = default;
+            return false;
         }
 
-        // Scale to the data's own range rather than from zero. A sparkline shows the shape of
-        // the trend, and a gauge hovering around a large value would otherwise render flat.
-        // A small vertical inset keeps the stroke from being clipped at the top and bottom.
-        const double Inset = 2;
-        var range = max.Value - min.Value;
-        var step = width / (values.Count - 1);
-
-        // A constant series sits on the baseline. Drawing it mid-height would read as a value
-        // above zero, e.g. a counter that stays at 0 would look like it had a steady non-zero rate.
-        double ScaleY(double value) => range == 0
-            ? height - Inset
-            : Inset + (height - (2 * Inset)) * (1 - ((value - min.Value) / range));
-
-        var line = new StringBuilder();
-        var area = new StringBuilder();
-        var segment = new List<(double X, double Y)>();
-
-        for (var i = 0; i <= values.Count; i++)
-        {
-            if (i < values.Count && values[i] is { } v)
-            {
-                segment.Add((i * step, ScaleY(v)));
-                continue;
-            }
-
-            if (segment.Count > 0)
-            {
-                AppendSegment(line, area, segment, height);
-                segment.Clear();
-            }
-        }
-
-        return (line.ToString(), area.ToString());
+        scale = new Scale(Math.Min(0, min.Value), Math.Max(0, max.Value), height);
+        return true;
     }
 
-    private static void AppendSegment(StringBuilder line, StringBuilder area, List<(double X, double Y)> points, double height)
+    private readonly record struct Scale(double Min, double Max, double Height)
+    {
+        // An all-zero series has no range; it draws on the baseline.
+        public double ScaleY(double value) => Max == Min
+            ? Height - Inset
+            : Inset + ((Height - (2 * Inset)) * (1 - ((value - Min) / (Max - Min))));
+    }
+
+    private static void AppendSegment(StringBuilder line, StringBuilder area, List<(double X, double Y)> points, double zeroY)
     {
         var curve = new StringBuilder();
         curve.Append(CultureInfo.InvariantCulture, $"M{points[0].X:0.##},{points[0].Y:0.##}");
@@ -94,7 +149,7 @@ public static class SparklinePath
 
         line.Append(curve);
         area.Append(curve);
-        area.Append(CultureInfo.InvariantCulture, $"L{points[^1].X:0.##},{height:0.##}L{points[0].X:0.##},{height:0.##}Z");
+        area.Append(CultureInfo.InvariantCulture, $"L{points[^1].X:0.##},{zeroY:0.##}L{points[0].X:0.##},{zeroY:0.##}Z");
     }
 
     // Monotone cubic interpolation (Fritsch–Carlson, as used by d3's curveMonotoneX).

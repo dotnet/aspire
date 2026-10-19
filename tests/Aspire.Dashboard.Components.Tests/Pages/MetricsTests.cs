@@ -1144,10 +1144,12 @@ public partial class MetricsTests : DashboardTestContext
                         Scope = CreateScope(name: "test-meter"),
                         Metrics =
                         {
-                            CreateSumMetric(metricName: "test-instrument-b", startTime: s_testTime.AddMinutes(1), value: 3),
-                            CreateSumMetric(metricName: "test-instrument-b", startTime: s_testTime.AddMinutes(2), value: 7),
-                            CreateSumMetric(metricName: "test-instrument-a", startTime: s_testTime.AddMinutes(1), value: 1),
-                            CreateSumMetric(metricName: "test-instrument-a", startTime: s_testTime.AddMinutes(2), value: 2)
+                            CreateCumulativeSumMetric(metricName: "test-instrument-b", isMonotonic: true, time: s_testTime.AddMinutes(1), value: 3),
+                            CreateCumulativeSumMetric(metricName: "test-instrument-b", isMonotonic: true, time: s_testTime.AddMinutes(2), value: 7),
+                            CreateCumulativeSumMetric(metricName: "test-instrument-a", isMonotonic: true, time: s_testTime.AddMinutes(1), value: 1),
+                            CreateCumulativeSumMetric(metricName: "test-instrument-a", isMonotonic: true, time: s_testTime.AddMinutes(2), value: 2),
+                            CreateCumulativeSumMetric(metricName: "test-instrument-c", isMonotonic: false, time: s_testTime.AddMinutes(1), value: 4),
+                            CreateCumulativeSumMetric(metricName: "test-instrument-c", isMonotonic: false, time: s_testTime.AddMinutes(2), value: 2)
                         }
                     }
                 }
@@ -1166,18 +1168,45 @@ public partial class MetricsTests : DashboardTestContext
         {
             var cards = cut.FindAll(".meter-card");
             Assert.Collection(cards,
-                card => AssertCard(card, "test-instrument-a"),
-                card => AssertCard(card, "test-instrument-b"));
+                card => AssertCard(card, "test-instrument-a", sparklineClass: "meter-card-sparkline-bars"),
+                card => AssertCard(card, "test-instrument-b", sparklineClass: "meter-card-sparkline-bars"),
+                card => AssertCard(card, "test-instrument-c", sparklineClass: "meter-card-sparkline-line"));
         });
 
-        static void AssertCard(AngleSharp.Dom.IElement card, string instrumentName)
+        // Counters (monotonic sums) show bars of the increase per interval; up-down counters show a line.
+        static void AssertCard(AngleSharp.Dom.IElement card, string instrumentName, string sparklineClass)
         {
             Assert.Equal(instrumentName, card.QuerySelector(".meter-card-name")!.TextContent);
             Assert.Equal(
                 DashboardUrls.MetricsUrl(resource: "TestApp", meter: "test-meter", instrument: instrumentName, duration: 5, view: MetricViewKind.Graph.ToString()),
                 card.GetAttribute("href"));
             Assert.NotNull(card.QuerySelector(".meter-card-value-number"));
-            Assert.False(string.IsNullOrEmpty(card.QuerySelector(".meter-card-sparkline-line")!.GetAttribute("d")));
+            Assert.False(string.IsNullOrEmpty(card.QuerySelector($".{sparklineClass}")!.GetAttribute("d")));
+        }
+
+        // Cumulative points share the process start time and advance their timestamp, like a real
+        // exporter. That lets the overview see the running total grow between intervals.
+        static Metric CreateCumulativeSumMetric(string metricName, bool isMonotonic, DateTime time, int value)
+        {
+            return new Metric
+            {
+                Name = metricName,
+                Unit = "widget",
+                Sum = new Sum
+                {
+                    AggregationTemporality = AggregationTemporality.Cumulative,
+                    IsMonotonic = isMonotonic,
+                    DataPoints =
+                    {
+                        new NumberDataPoint
+                        {
+                            AsInt = value,
+                            StartTimeUnixNano = TelemetryTestHelpers.DateTimeToUnixNanoseconds(s_testTime),
+                            TimeUnixNano = TelemetryTestHelpers.DateTimeToUnixNanoseconds(time)
+                        }
+                    }
+                }
+            };
         }
     }
 

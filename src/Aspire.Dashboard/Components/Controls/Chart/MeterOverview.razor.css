@@ -117,6 +117,17 @@
     vector-effect: non-scaling-stroke;
 }
 
+.meter-card-sparkline-baseline {
+    stroke: var(--colorNeutralStroke2);
+    stroke-width: 1px;
+    vector-effect: non-scaling-stroke;
+}
+
+.meter-card-sparkline-bars {
+    fill: var(--sparkline-color);
+    opacity: 0.85;
+}
+
 .meter-card-sparkline-stop-top {
     stop-color: var(--sparkline-color);
     stop-opacity: 0.28;

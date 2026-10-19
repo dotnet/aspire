@@ -957,6 +957,7 @@ public class ChartDataCalculatorTests
                 Unit = "items",
                 Type = OtlpInstrumentType.Gauge,
                 AggregationTemporality = OtlpAggregationTemporality.Cumulative,
+                IsMonotonic = false,
                 Parent = OtlpScope.Empty,
                 ResourceView = new OtlpResourceView(resource, Array.Empty<KeyValuePair<string, string>>())
             },
