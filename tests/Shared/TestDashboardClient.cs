@@ -30,6 +30,7 @@ public class TestDashboardClient : IDashboardClient
     private int _resourceSubscriptionCount;
     private int _getResourceCallCount;
     private int _getResourcesCallCount;
+    private int _reconnectCallCount;
 
     public bool IsEnabled { get; }
     public bool IsReadOnly { get; set; }
@@ -52,7 +53,13 @@ public class TestDashboardClient : IDashboardClient
     public int GetResourceCallCount => Volatile.Read(ref _getResourceCallCount);
     public int GetResourcesCallCount => Volatile.Read(ref _getResourcesCallCount);
     public event Action<DashboardConnectionState>? ConnectionStateChanged;
-    public Task ReconnectAsync() => Task.CompletedTask;
+    public int ReconnectCallCount => Volatile.Read(ref _reconnectCallCount);
+
+    public Task ReconnectAsync()
+    {
+        Interlocked.Increment(ref _reconnectCallCount);
+        return Task.CompletedTask;
+    }
 
     public TestDashboardClient(
         bool? isEnabled = false,

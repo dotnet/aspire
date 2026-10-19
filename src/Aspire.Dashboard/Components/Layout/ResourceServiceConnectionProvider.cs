@@ -17,7 +17,8 @@ public sealed partial class ResourceServiceConnectionProvider : ComponentBase, I
     [Inject]
     public required Microsoft.Extensions.Localization.IStringLocalizer<Resources.Reconnect> Loc { get; init; }
 
-    [Inject]
+    // Connection recovery belongs to the live AppHost even when the circuit is viewing history.
+    [Inject(Key = ServiceClient.DashboardClient.LiveAppHostServiceKey)]
     public required IDashboardClient DashboardClient { get; init; }
 
     [Inject]
