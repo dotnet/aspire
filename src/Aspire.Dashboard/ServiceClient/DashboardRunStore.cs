@@ -526,7 +526,7 @@ internal sealed class DashboardRunStore : IDashboardRunStore, IDisposable
                         {
                             // Filter out in-progress runs that are owned by other Dashboard instances.
                             using var runLock = TryOpenRunLock(directory);
-                            run.IsSelectable = runLock is not null;
+                            run.IsSelectable = run.IsLeased || runLock is not null;
                         }
                         else
                         {

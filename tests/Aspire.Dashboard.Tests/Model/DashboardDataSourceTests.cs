@@ -134,7 +134,9 @@ public sealed class DashboardDataSourceTests(ITestOutputHelper testOutputHelper)
         {
             Assert.NotNull(lease);
             await pool.StartAppHostRunAsync("third", CancellationToken.None);
-            Assert.True(store.GetRunById(firstRunId, onlyCompatible: true)!.IsLeased);
+            var refreshed = store.GetRunById(firstRunId, onlyCompatible: true)!;
+            Assert.True(refreshed.IsLeased);
+            Assert.True(refreshed.IsSelectable);
             store.SetRunPinned(history, true);
             Assert.True(store.GetRunById(firstRunId, onlyCompatible: true)!.IsPinned);
         }
