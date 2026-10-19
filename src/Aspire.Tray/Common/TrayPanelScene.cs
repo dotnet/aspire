@@ -72,6 +72,13 @@ internal sealed record TextCommand(
 /// <summary>Draws the full-color Aspire logo scaled into the bounds.</summary>
 internal sealed record LogoCommand(PanelRect Bounds) : PanelCommand;
 
+/// <summary>
+/// Draws the icon of an installed application, one of <see cref="TrayPanel.OpenInApplications"/>,
+/// scaled into the bounds. Hosts look the icon up by <see cref="Application"/> title; when they
+/// have none, they draw <see cref="Fallback"/> instead, a generic application glyph.
+/// </summary>
+internal sealed record AppIconCommand(PanelRect Bounds, string Application, IReadOnlyList<PanelCommand> Fallback) : PanelCommand;
+
 /// <summary>Intersects the clip with a rectangle until the matching <see cref="PopClipCommand"/>.</summary>
 internal sealed record PushClipCommand(PanelRect Bounds) : PanelCommand;
 
@@ -98,7 +105,11 @@ internal enum PanelTargetKind
     /// <summary>The "Launch at sign-in" toggle row of the Settings view.</summary>
     LaunchAtSignIn,
     /// <summary>
-    /// An "Open in" item of a row's action list. <see cref="PanelTargetKey.Item"/> indexes
+    /// The "Open in" item of a row's action list, which shows or hides the applications under it.
+    /// </summary>
+    OpenInMenu,
+    /// <summary>
+    /// An application under "Open in". <see cref="PanelTargetKey.Item"/> indexes
     /// <see cref="TrayPanel.OpenInApplications"/>.
     /// </summary>
     OpenIn,

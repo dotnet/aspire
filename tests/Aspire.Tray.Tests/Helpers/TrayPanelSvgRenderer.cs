@@ -60,6 +60,20 @@ internal static class TrayPanelSvgRenderer
                 case TextCommand text:
                     current.Add(RenderText(text));
                     break;
+                case AppIconCommand appIcon:
+                    // The renderer has no application icons; draw the generic glyph hosts fall back to.
+                    foreach (var shape in appIcon.Fallback)
+                    {
+                        current.Add(shape switch
+                        {
+                            FillPathCommand fill => new XElement(s_svg + "path", new XAttribute("d", ToPathData(fill.Path)), Paint("fill", fill.Color)),
+                            StrokePathCommand stroke => new XElement(s_svg + "path", new XAttribute("d", ToPathData(stroke.Path)), new XAttribute("fill", "none"),
+                                Paint("stroke", stroke.Color), new XAttribute("stroke-width", F(stroke.Width)),
+                                new XAttribute("stroke-linecap", "round"), new XAttribute("stroke-linejoin", "round")),
+                            _ => throw new InvalidOperationException("App icon fallbacks are shapes only.")
+                        });
+                    }
+                    break;
                 case LogoCommand logo:
                     current.Add(logoPng is null
                         ? new XElement(s_svg + "rect", Bounds(logo.Bounds), new XAttribute("rx", "6"), new XAttribute("fill", "#512BD4"))

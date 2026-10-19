@@ -64,6 +64,7 @@ internal sealed class TrayPanel
     private PanelConfirm? _confirm;
     private PanelSettings? _settings;
     private (PanelSection Section, AppHostId Host)? _actions;
+    private bool _openInExpanded;
     private IReadOnlyList<string> _openInApplications = [];
     private string _fileManagerName = "Finder";
     private string _quitVerb = "Quit";
@@ -272,6 +273,7 @@ internal sealed class TrayPanel
         _listScroll = 0;
         _confirm = null;
         _actions = null;
+        _openInExpanded = false;
         _settings = null;
         _scene = null;
     }
@@ -397,6 +399,14 @@ internal sealed class TrayPanel
                     CancelConfirm();
                     return PanelResponse.Changed;
                 }
+                if (_actions is { } open && _openInExpanded)
+                {
+                    // Out of the "Open in" applications first, back to the item that showed them.
+                    _openInExpanded = false;
+                    _focus = new(PanelTargetKind.OpenInMenu, open.Section, open.Host);
+                    _scene = null;
+                    return PanelResponse.Changed;
+                }
                 if (_actions is not null)
                 {
                     CloseActions(returnFocus: true);
@@ -440,7 +450,7 @@ internal sealed class TrayPanel
 
     /// <summary>The items of a row's action list.</summary>
     private static bool IsActionItem(PanelTargetKind kind)
-        => kind is PanelTargetKind.OpenIn or PanelTargetKind.ShowInFolder or PanelTargetKind.CopyPath
+        => kind is PanelTargetKind.OpenInMenu or PanelTargetKind.OpenIn or PanelTargetKind.ShowInFolder or PanelTargetKind.CopyPath
             or PanelTargetKind.TogglePin or PanelTargetKind.RemoveRecent;
 
     /// <summary>
@@ -457,17 +467,25 @@ internal sealed class TrayPanel
         }
         _confirm = null;
         _actions = (row.Section, row.Host!.Value);
+        _openInExpanded = false;
         _scene = null;
-        // The list is below the row and may be below the fold, so scroll all of it into view.
         // Focus stays on the button that opened it: Down moves into the list.
+        RevealActions(row);
+    }
+
+    /// <summary>
+    /// Scrolls an action list that is below the fold into view, after it opened or grew, without
+    /// ever scrolling its row out of view.
+    /// </summary>
+    private void RevealActions(PanelTargetKey row)
+    {
         var items = Scene.Targets.Where(target => IsActionItem(target.Kind)).ToList();
         if (items.Count > 0)
         {
             var bottom = items.Max(target => target.Bounds.Bottom) + ActionListPadding;
-            var top = Scene.Targets.FirstOrDefault(target => target.Key == row with { Kind = PanelTargetKind.Row })?.Bounds.Y ?? bottom;
+            var top = Scene.Targets.FirstOrDefault(target => target.Key == row with { Kind = PanelTargetKind.Row, Item = 0 })?.Bounds.Y ?? bottom;
             if (bottom > _viewport.Bottom)
             {
-                // Never scroll the row itself out of view to show the end of a long list.
                 _scroll += Math.Min(bottom - _viewport.Bottom, Math.Max(0, top - _viewport.Y));
             }
             _scene = null;
@@ -481,6 +499,7 @@ internal sealed class TrayPanel
             return;
         }
         _actions = null;
+        _openInExpanded = false;
         if (returnFocus)
         {
             // Return focus to the button that opened the list.
@@ -638,6 +657,12 @@ internal sealed class TrayPanel
                 return new(PanelActionKind.Stop, host, target.Bounds) { Recent = recent };
             case PanelTargetKind.Start:
                 return new(PanelActionKind.Start, host, target.Bounds) { Recent = recent };
+            case PanelTargetKind.OpenInMenu:
+                // Show or hide the applications under "Open in", keeping the list open.
+                _openInExpanded = !_openInExpanded;
+                _scene = null;
+                RevealActions(target.Key);
+                return null;
             case PanelTargetKind.OpenIn:
                 CloseActions(returnFocus: true);
                 return new(PanelActionKind.OpenIn, host, target.Bounds)
@@ -1063,15 +1088,23 @@ internal sealed class TrayPanel
         }
     }
 
-    /// <summary>The items of a row's action list, in display order.</summary>
+    /// <summary>
+    /// The items of a row's action list, in display order. "Open in" is one item; while it is
+    /// expanded, the installed applications follow it as nested items.
+    /// </summary>
     private List<(PanelTargetKind Kind, int Item, PanelIcon Icon, string Label, string Name)> GetRowActions(AppHostMenuItem host, PanelSection section)
     {
         var name = host.DisplayName;
         var actions = new List<(PanelTargetKind, int, PanelIcon, string, string)>();
-        for (var i = 0; i < _openInApplications.Count; i++)
+        if (_openInApplications.Count > 0)
         {
-            var application = _openInApplications[i];
-            actions.Add((PanelTargetKind.OpenIn, i, PanelIcon.AppWindow, $"Open in {application}", $"Open {name} in {application}"));
+            actions.Add((PanelTargetKind.OpenInMenu, 0, PanelIcon.AppWindow, "Open in",
+                _openInExpanded ? $"Hide applications to open {name} in" : $"Open {name} in…"));
+            for (var i = 0; _openInExpanded && i < _openInApplications.Count; i++)
+            {
+                var application = _openInApplications[i];
+                actions.Add((PanelTargetKind.OpenIn, i, PanelIcon.AppWindow, application, $"Open {name} in {application}"));
+            }
         }
         actions.Add((PanelTargetKind.ShowInFolder, 0, PanelIcon.Folder, $"Show in {_fileManagerName}", $"Show {name} in {_fileManagerName}"));
         actions.Add((PanelTargetKind.CopyPath, 0, PanelIcon.Copy, "Copy path", $"Copy the folder path of {name}"));
@@ -1102,9 +1135,31 @@ internal sealed class TrayPanel
             var item = new PanelRect(card.X + ActionListPadding, y, card.Width - 2 * ActionListPadding, ActionItemHeight);
             var key = new PanelTargetKey(kind, section, host.Id, index);
             AddInteractionFill(commands, key, item, palette, includeFocus: false);
-            // Line the icons up with the status glyphs and the labels with the AppHost names above.
-            TrayPanelGlyphs.AddIcon(commands, icon, new(22, item.Y + 7, 16, 16), _hover == key ? palette.TextPrimary : palette.TextSecondary);
-            commands.Add(new TextCommand(new(TextLeft, item.Y, item.Right - 8 - TextLeft, item.Height), label, PanelFontRole.Body, palette.TextPrimary));
+            var iconColor = _hover == key ? palette.TextPrimary : palette.TextSecondary;
+            if (kind == PanelTargetKind.OpenIn)
+            {
+                // Applications are nested under "Open in": their own icon where the labels above
+                // start, and the name after it.
+                var fallback = new List<PanelCommand>();
+                TrayPanelGlyphs.AddIcon(fallback, PanelIcon.AppWindow, new(TextLeft, item.Y + 7, 16, 16), iconColor);
+                commands.Add(new AppIconCommand(new(TextLeft, item.Y + 7, 16, 16), _openInApplications[index], fallback));
+                commands.Add(new TextCommand(new(TextLeft + 26, item.Y, item.Right - 8 - TextLeft - 26, item.Height), label,
+                    PanelFontRole.Body, palette.TextPrimary));
+            }
+            else
+            {
+                // Line the icons up with the status glyphs and the labels with the AppHost names above.
+                TrayPanelGlyphs.AddIcon(commands, icon, new(22, item.Y + 7, 16, 16), iconColor);
+                var labelRight = item.Right - 8;
+                if (kind == PanelTargetKind.OpenInMenu)
+                {
+                    // A chevron on the right tells that the item opens the applications under it.
+                    labelRight -= 24;
+                    TrayPanelGlyphs.AddIcon(commands, _openInExpanded ? PanelIcon.ChevronDown : PanelIcon.ChevronRight,
+                        new(item.Right - 8 - 16, item.Y + 7, 16, 16), palette.TextTertiary);
+                }
+                commands.Add(new TextCommand(new(TextLeft, item.Y, labelRight - TextLeft, item.Height), label, PanelFontRole.Body, palette.TextPrimary));
+            }
             AddTarget(targets, key, item, name, true, host);
             y += ActionItemHeight;
         }

@@ -98,9 +98,10 @@ a check (healthy), an exclamation mark (needs attention), a cross (unhealthy), a
 mark (unknown), an outlined stop (stopped), and a ring (starting or stopping).
 Hovering or focusing a row shows its buttons: **Open dashboard**, **Stop**, and **More**
 for running AppHosts, **Start** and **More** for offline ones. **More** opens the row's
-action list in the panel, under the row: **Open in** each supported installed application
-(such as Visual Studio Code, Terminal, Ghostty or Xcode on macOS, and Visual Studio Code,
-Windows Terminal or PowerShell on Windows), **Show in Finder** or **Show in File Explorer**,
+action list in the panel, under the row: **Open in**, which shows the supported installed
+applications under it, each with its own icon (such as Visual Studio Code, Terminal, Ghostty
+or Xcode on macOS, and Visual Studio Code, Windows Terminal or PowerShell on Windows; an
+application whose icon can't be read gets a generic glyph), **Show in Finder** or **Show in File Explorer**,
 **Copy path** (the folder that contains the AppHost), **Pin** or **Unpin**, and **Remove
 from recent** for a recent AppHost. It is drawn by the shared scene like the rest of the
 panel, so it looks the same on both platforms and screen readers see its items as buttons.
@@ -108,8 +109,8 @@ Clicking **More** again, picking an item, or acting on anything else closes it.
 Clicking a row itself does nothing, whether the AppHost runs or not; only its buttons act.
 The list scrolls when it is taller than the screen allows; the header and footer stay in place.
 The keyboard works too: Up/Down and Home/End move between rows and action list items, Tab
-and Shift-Tab also reach the row buttons, Enter or Space activates, and Escape closes the
-action list, then the panel. Command-comma on macOS or Ctrl+comma on Windows opens Settings,
+and Shift-Tab also reach the row buttons, Enter or Space activates, and Escape steps back
+out of the Open in applications, then the action list, then closes the panel. Command-comma on macOS or Ctrl+comma on Windows opens Settings,
 and Command-Q quits on macOS. Clicking elsewhere closes the panel.
 
 **Stop** stops the AppHost right away, without asking, like the dashboard. Clicking a

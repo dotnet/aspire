@@ -243,4 +243,12 @@ internal static unsafe partial class NativeMethods
 
     [LibraryImport("comctl32.dll", SetLastError = true)]
     internal static partial int InitCommonControlsEx(in CommonControls controls);
+
+    // Extracts an executable's icon at an exact pixel size: LOWORD of size is the large icon's.
+    // https://learn.microsoft.com/windows/win32/api/shlobj_core/nf-shlobj_core-shdefextracticonw
+    [LibraryImport("shell32.dll", EntryPoint = "SHDefExtractIconW", StringMarshalling = StringMarshalling.Utf16)]
+    internal static partial int SHDefExtractIcon(string iconFile, int index, uint flags, out nint large, nint* small, uint size);
+
+    [LibraryImport("user32.dll")]
+    internal static partial int UpdateWindow(nint window);
 }

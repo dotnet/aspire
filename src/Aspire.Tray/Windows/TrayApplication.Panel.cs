@@ -34,6 +34,7 @@ internal sealed unsafe partial class TrayApplication
     private nuint _gdiplusToken;
     private nint _panelLogo;
     private nint _panelTooltip;
+    private readonly Dictionary<(string Application, int Size), nint> _appIcons = [];
     private List<(NativeMethods.Rect Bounds, string Text)> _panelTooltips = [];
     private uint _panelLogoDpi;
     private string _panelFontFace = "Segoe UI Variable Text";
@@ -465,6 +466,29 @@ internal sealed unsafe partial class TrayApplication
                     case LogoCommand logo:
                         WithGdiDc(graphics, clips, gdi => DrawPanelLogo(gdi, logo.Bounds));
                         break;
+                    case AppIconCommand appIcon:
+                        var rect = ToDevice(appIcon.Bounds);
+                        if (GetAppIcon(appIcon.Application, rect.Right - rect.Left) is not 0 and var icon)
+                        {
+                            WithGdiDc(graphics, clips, gdi => NativeCallException.Require(
+                                NativeMethods.DrawIconEx(gdi, rect.Left, rect.Top, icon, rect.Right - rect.Left, rect.Bottom - rect.Top, 0, 0, 3) != 0,
+                                "DrawIconEx(application icon)")); // DI_NORMAL
+                        }
+                        else
+                        {
+                            foreach (var shape in appIcon.Fallback)
+                            {
+                                if (shape is FillPathCommand fallbackFill)
+                                {
+                                    FillPanelPath(graphics, fallbackFill.Path, fallbackFill.Color);
+                                }
+                                else if (shape is StrokePathCommand fallbackStroke)
+                                {
+                                    StrokePanelPath(graphics, fallbackStroke.Path, fallbackStroke.Color, fallbackStroke.Width);
+                                }
+                            }
+                        }
+                        break;
                     case PushClipCommand clip:
                         RequireGdiplus(NativeMethods.GdipSaveGraphics(graphics, out var state), "GdipSaveGraphics");
                         // CombineModeIntersect (1).
@@ -703,6 +727,25 @@ internal sealed unsafe partial class TrayApplication
             "DrawIconEx(flyout logo)"); // DI_NORMAL
     }
 
+    /// <summary>
+    /// Returns the icon of an installed "Open in" application at a pixel size, or 0 when it has
+    /// none that the shell can extract (an app execution alias such as wt.exe is a reparse point
+    /// without icon resources), in which case the panel's generic glyph is drawn.
+    /// </summary>
+    private nint GetAppIcon(string title, int size)
+    {
+        if (!_appIcons.TryGetValue((title, size), out var icon))
+        {
+            var executable = _installedApplications.FirstOrDefault(application => application.Title == title)?.Executable;
+            if (executable is null || NativeMethods.SHDefExtractIcon(executable, 0, 0, out icon, null, (uint)size) != 0)
+            {
+                icon = 0;
+            }
+            _appIcons.Add((title, size), icon);
+        }
+        return icon;
+    }
+
     private nint GetPanelFont(nint dc, PanelFontRole role)
     {
         if (_panelFonts.TryGetValue((role, _panelDpi), out var font))
@@ -879,6 +922,11 @@ internal sealed unsafe partial class TrayApplication
             Cleanup(NativeMethods.DestroyIcon(_panelLogo) != 0, "DestroyIcon(flyout logo)");
             _panelLogo = 0;
         }
+        foreach (var icon in _appIcons.Values.Where(icon => icon != 0))
+        {
+            Cleanup(NativeMethods.DestroyIcon(icon) != 0, "DestroyIcon(application icon)");
+        }
+        _appIcons.Clear();
         if (_gdiplusToken != 0)
         {
             NativeMethods.GdiplusShutdown(_gdiplusToken);

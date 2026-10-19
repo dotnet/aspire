@@ -24,6 +24,7 @@ internal sealed partial class MacTrayApplication
 
     private readonly Dictionary<PanelFontRole, nint> _panelFonts = [];
     private readonly List<nint> _panelTooltipOwners = [];
+    private readonly Dictionary<string, nint> _appIcons = [];
     private List<(PanelRect Bounds, string Text)> _panelTooltips = [];
     private TrayPanel? _panel;
     private nint _panelWindow;
@@ -386,41 +387,78 @@ internal sealed partial class MacTrayApplication
         {
             return;
         }
-        var context = AppKit.Class("NSGraphicsContext");
         foreach (var command in _panel.Scene.Commands)
         {
-            switch (command)
-            {
-                case FillPathCommand fill:
-                    SetColor(fill.Color);
-                    AppKit.SendVoid(CreateBezierPath(fill.Path), AppKit.Selector("fill"));
-                    break;
-                case StrokePathCommand stroke:
-                    SetColor(stroke.Color);
-                    var path = CreateBezierPath(stroke.Path);
-                    AppKit.SetDouble(path, AppKit.Selector("setLineWidth:"), stroke.Width);
-                    AppKit.SendInt64(path, AppKit.Selector("setLineCapStyle:"), 1);
-                    AppKit.SendInt64(path, AppKit.Selector("setLineJoinStyle:"), 1);
-                    AppKit.SendVoid(path, AppKit.Selector("stroke"));
-                    break;
-                case TextCommand text:
-                    DrawPanelText(text);
-                    break;
-                case LogoCommand logo:
-                    // NSCompositingOperationSourceOver (2), drawn upright in the flipped view.
-                    AppKit.DrawImageRespectingFlipped(_brandImage,
-                        AppKit.Selector("drawInRect:fromRect:operation:fraction:respectFlipped:hints:"),
-                        ToNative(logo.Bounds), default, 2, 1, 1, 0);
-                    break;
-                case PushClipCommand clip:
-                    AppKit.SendVoid(context, AppKit.Selector("saveGraphicsState"));
-                    AppKit.SetRect(AppKit.Class("NSBezierPath"), AppKit.Selector("clipRect:"), ToNative(clip.Bounds));
-                    break;
-                case PopClipCommand:
-                    AppKit.SendVoid(context, AppKit.Selector("restoreGraphicsState"));
-                    break;
-            }
+            DrawPanelCommand(command);
         }
+    }
+
+    private void DrawPanelCommand(PanelCommand command)
+    {
+        var context = AppKit.Class("NSGraphicsContext");
+        switch (command)
+        {
+            case FillPathCommand fill:
+                SetColor(fill.Color);
+                AppKit.SendVoid(CreateBezierPath(fill.Path), AppKit.Selector("fill"));
+                break;
+            case StrokePathCommand stroke:
+                SetColor(stroke.Color);
+                var path = CreateBezierPath(stroke.Path);
+                AppKit.SetDouble(path, AppKit.Selector("setLineWidth:"), stroke.Width);
+                AppKit.SendInt64(path, AppKit.Selector("setLineCapStyle:"), 1);
+                AppKit.SendInt64(path, AppKit.Selector("setLineJoinStyle:"), 1);
+                AppKit.SendVoid(path, AppKit.Selector("stroke"));
+                break;
+            case TextCommand text:
+                DrawPanelText(text);
+                break;
+            case LogoCommand logo:
+                // NSCompositingOperationSourceOver (2), drawn upright in the flipped view.
+                AppKit.DrawImageRespectingFlipped(_brandImage,
+                    AppKit.Selector("drawInRect:fromRect:operation:fraction:respectFlipped:hints:"),
+                    ToNative(logo.Bounds), default, 2, 1, 1, 0);
+                break;
+            case AppIconCommand appIcon:
+                if (GetAppIcon(appIcon.Application) is not 0 and var icon)
+                {
+                    AppKit.DrawImageRespectingFlipped(icon,
+                        AppKit.Selector("drawInRect:fromRect:operation:fraction:respectFlipped:hints:"),
+                        ToNative(appIcon.Bounds), default, 2, 1, 1, 0);
+                }
+                else
+                {
+                    foreach (var shape in appIcon.Fallback)
+                    {
+                        DrawPanelCommand(shape);
+                    }
+                }
+                break;
+            case PushClipCommand clip:
+                AppKit.SendVoid(context, AppKit.Selector("saveGraphicsState"));
+                AppKit.SetRect(AppKit.Class("NSBezierPath"), AppKit.Selector("clipRect:"), ToNative(clip.Bounds));
+                break;
+            case PopClipCommand:
+                AppKit.SendVoid(context, AppKit.Selector("restoreGraphicsState"));
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Returns the Finder icon of an installed "Open in" application, or 0 when it is gone. NSImage
+    /// holds every representation, so one cached image draws sharply at any scale.
+    /// https://developer.apple.com/documentation/appkit/nsworkspace/icon(forfile:)
+    /// </summary>
+    private nint GetAppIcon(string title)
+    {
+        if (!_appIcons.TryGetValue(title, out var icon))
+        {
+            var path = _installedFolderApplications.FirstOrDefault(application => application.Title == title).Path;
+            var workspace = AppKit.Get(AppKit.Class("NSWorkspace"), "sharedWorkspace");
+            icon = path is null ? 0 : AppKit.Get(AppKit.Get(workspace, "iconForFile:", AppKit.String(path)), "retain");
+            _appIcons.Add(title, icon);
+        }
+        return icon;
     }
 
     private static void SetColor(PanelColor color)
@@ -672,6 +710,12 @@ internal sealed partial class MacTrayApplication
                         _panel.Palette = GetPanelPalette();
                         captures.Add(CapturePanel(Path.Combine(captureDirectory, $"panel-actions-{name}.png")));
                     }
+                    if (_panel.Scene.Targets.FirstOrDefault(target => target.Kind == PanelTargetKind.OpenInMenu) is { } openIn)
+                    {
+                        _panel.Invoke(openIn.Key);
+                        captures.Add(CapturePanel(Path.Combine(captureDirectory, "panel-actions-open-in-dark.png")));
+                        _panel.Key(PanelKey.Escape);
+                    }
                     _panel.Key(PanelKey.Escape);
                 }
                 AppKit.Set(_panelView, "setAppearance:", 0);
@@ -770,6 +814,11 @@ internal sealed partial class MacTrayApplication
             AppKit.Release(font);
         }
         _panelFonts.Clear();
+        foreach (var icon in _appIcons.Values)
+        {
+            AppKit.Release(icon);
+        }
+        _appIcons.Clear();
         _panelVisible = false;
     }
 

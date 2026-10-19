@@ -175,7 +175,7 @@ internal sealed partial class MacTrayApplication
         var panel = _panel!;
         var row = panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.Row && target.Key.Host == host);
         var name = row.Host!.DisplayName;
-        var expected = _installedFolderApplications.Select(application => $"Open {name} in {application.Title}")
+        var expected = (_installedFolderApplications.Count > 0 ? [$"Open {name} in…"] : Array.Empty<string>())
             .Concat([$"Show {name} in Finder", $"Copy the folder path of {name}", row.Host.IsPinned ? $"Unpin {name}" : $"Pin {name}"])
             .Concat(row.Key.Section == PanelSection.Recent ? [$"Remove {name} from recent AppHosts"] : []);
         var items = panel.Scene.Targets.Where(target => target.Key.Host == host && target.Bounds.Y > row.Bounds.Bottom).ToList();
@@ -188,6 +188,24 @@ internal sealed partial class MacTrayApplication
         if (panel.FocusedTarget != items[0].Key)
         {
             throw new InvalidOperationException("Down must move from the More button into the action list.");
+        }
+        if (_installedFolderApplications.Count > 0)
+        {
+            // "Open in" shows each installed application under it, with its Finder icon.
+            ApplyPanelResponse(panel.Key(PanelKey.Enter));
+            var applications = panel.Scene.Targets.Where(target => target.Kind == PanelTargetKind.OpenIn).Select(target => target.AccessibleName);
+            var icons = panel.Scene.Commands.OfType<AppIconCommand>().ToList();
+            if (!applications.SequenceEqual(_installedFolderApplications.Select(application => $"Open {name} in {application.Title}"))
+                || icons.Count != _installedFolderApplications.Count || icons.Any(icon => GetAppIcon(icon.Application) == 0))
+            {
+                throw new InvalidOperationException("Open in must list every installed application with its icon.");
+            }
+            VerifyPanelAccessibilityForSmoke("the Open in applications");
+            ApplyPanelResponse(panel.Key(PanelKey.Escape));
+            if (panel.FocusedTarget != items[0].Key || panel.Scene.Targets.Any(target => target.Kind == PanelTargetKind.OpenIn))
+            {
+                throw new InvalidOperationException("Escape must hide the Open in applications and return to Open in.");
+            }
         }
         ApplyPanelResponse(panel.Key(PanelKey.Escape));
         if (panel.ActionsRow is not null || !_panelVisible || panel.FocusedTarget?.Kind != PanelTargetKind.More)

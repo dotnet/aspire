@@ -160,7 +160,7 @@ internal sealed unsafe partial class TrayApplication
         var panel = _panel!;
         var row = panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.Row && target.Key.Host == host);
         var name = row.Host!.DisplayName;
-        var expected = _installedApplications.Select(application => $"Open {name} in {application.Title}")
+        var expected = (_installedApplications.Length > 0 ? [$"Open {name} in…"] : Array.Empty<string>())
             .Concat([$"Show {name} in File Explorer", $"Copy the folder path of {name}", row.Host.IsPinned ? $"Unpin {name}" : $"Pin {name}"])
             .Concat(row.Key.Section == PanelSection.Recent ? [$"Remove {name} from recent AppHosts"] : []);
         var items = panel.Scene.Targets.Where(target => target.Key.Host == host && target.Bounds.Y > row.Bounds.Bottom).ToList();
@@ -168,6 +168,20 @@ internal sealed unsafe partial class TrayApplication
             $"The action list does not offer the expected items: {string.Join(", ", items.Select(target => target.AccessibleName))}.");
         SendPanelKeyForSmoke(0x28); // VK_DOWN
         NativeSmokeHarness.Require(panel.FocusedTarget == items[0].Key, "Down must move from the More button into the action list.");
+        if (_installedApplications.Length > 0)
+        {
+            // "Open in" shows each installed application under it, drawn with its icon or the glyph.
+            SendPanelKeyForSmoke(0x0D); // VK_RETURN
+            NativeSmokeHarness.Require(panel.Scene.Targets.Where(target => target.Kind == PanelTargetKind.OpenIn).Select(target => target.AccessibleName)
+                    .SequenceEqual(_installedApplications.Select(application => $"Open {name} in {application.Title}"))
+                && panel.Scene.Commands.OfType<AppIconCommand>().Count() == _installedApplications.Length,
+                "Open in must list every installed application with an icon.");
+            // Paint now, so a failing icon extraction or DrawIconEx surfaces in smoke.
+            NativeMethods.UpdateWindow(_panelWindow);
+            SendPanelKeyForSmoke(0x1B); // VK_ESCAPE
+            NativeSmokeHarness.Require(panel.FocusedTarget == items[0].Key && !panel.Scene.Targets.Any(target => target.Kind == PanelTargetKind.OpenIn),
+                "Escape must hide the Open in applications and return to Open in.");
+        }
         SendPanelKeyForSmoke(0x1B); // VK_ESCAPE
         NativeSmokeHarness.Require(panel.ActionsRow is null && _panelVisible && panel.FocusedTarget?.Kind == PanelTargetKind.More,
             "Escape must close the action list, keep the panel open and return focus to More.");

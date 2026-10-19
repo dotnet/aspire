@@ -11,7 +11,7 @@ public class TrayPanelTests
     private static readonly string[] s_sampleNames =
     [
         "typical", "empty", "connecting", "errors", "disconnected", "many",
-        "confirm-clear", "confirm-missing", "settings", "settings-unavailable", "actions", "actions-recent"
+        "confirm-clear", "confirm-missing", "settings", "settings-unavailable", "actions", "actions-recent", "actions-open-in"
     ];
 
     public static TheoryData<string> SampleNames => new(s_sampleNames);
@@ -38,6 +38,10 @@ public class TrayPanelTests
         {
             case "actions":
                 Click(panel, Target(panel, PanelTargetKind.More, state.AppHosts[3]).HitBounds);
+                break;
+            case "actions-open-in":
+                Click(panel, Target(panel, PanelTargetKind.More, state.AppHosts[0]).HitBounds);
+                Click(panel, Target(panel, PanelTargetKind.OpenInMenu, state.AppHosts[0]).HitBounds);
                 break;
             case "actions-recent":
                 Click(panel, panel.Scene.Targets.Single(target => target.Kind == PanelTargetKind.ToggleRecent).HitBounds);
@@ -190,8 +194,7 @@ public class TrayPanelTests
         var items = panel.Scene.Targets.Where(target => target.Host == host && target.Bounds.Y > row.Bounds.Bottom).ToList();
         Assert.Equal(
         [
-            "Open Redis in Visual Studio Code",
-            "Open Redis in Terminal",
+            "Open Redis in…",
             "Show Redis in Finder",
             "Copy the folder path of Redis",
             "Pin Redis"
@@ -199,7 +202,7 @@ public class TrayPanelTests
         var next = Target(panel, PanelTargetKind.Row, state.AppHosts[3]);
         Assert.All(items, item => Assert.True(item.Bounds.Bottom <= next.Bounds.Y, $"{item.Key} overlaps the next row"));
         Assert.Equal(
-            ["Open in Visual Studio Code", "Open in Terminal", "Show in Finder", "Copy path", "Pin"],
+            ["Open in", "Show in Finder", "Copy path", "Pin"],
             panel.Scene.Commands.OfType<TextCommand>().Where(text => text.Bounds.Y >= items[0].Bounds.Y && text.Bounds.Bottom <= items[^1].Bounds.Bottom)
                 .Select(text => text.Text));
     }
@@ -214,6 +217,10 @@ public class TrayPanelTests
         PanelAction? Pick(PanelTargetKind kind, int item = 0)
         {
             Click(panel, Target(panel, PanelTargetKind.More, host).HitBounds);
+            if (kind == PanelTargetKind.OpenIn)
+            {
+                Click(panel, Target(panel, PanelTargetKind.OpenInMenu, host).HitBounds);
+            }
             var target = panel.Scene.Targets.Single(target => target.Key == new PanelTargetKey(kind, PanelSection.Running, host.Id, item));
             var action = Click(panel, target.HitBounds).Action;
             Assert.Null(panel.ActionsRow);
@@ -276,22 +283,66 @@ public class TrayPanelTests
     {
         var state = TrayPanelSamples.Typical();
         var panel = new TrayPanel(state, TrayPanelPalette.Light) { OpenInApplications = s_applications };
+        var host = state.AppHosts[0].Id;
         var more = Target(panel, PanelTargetKind.More, state.AppHosts[0]).Key;
         panel.Focus(more);
 
         panel.Key(PanelKey.Enter);
-        Assert.Equal((PanelSection.Running, state.AppHosts[0].Id), panel.ActionsRow);
+        Assert.Equal((PanelSection.Running, host), panel.ActionsRow);
         panel.Key(PanelKey.Down);
-        Assert.Equal(new PanelTargetKey(PanelTargetKind.OpenIn, PanelSection.Running, state.AppHosts[0].Id), panel.FocusedTarget);
+        Assert.Equal(new PanelTargetKey(PanelTargetKind.OpenInMenu, PanelSection.Running, host), panel.FocusedTarget);
+        panel.Key(PanelKey.Enter);
         panel.Key(PanelKey.Down);
         panel.Key(PanelKey.Down);
-        Assert.Equal(new PanelTargetKey(PanelTargetKind.ShowInFolder, PanelSection.Running, state.AppHosts[0].Id), panel.FocusedTarget);
+        Assert.Equal(new PanelTargetKey(PanelTargetKind.OpenIn, PanelSection.Running, host, 1), panel.FocusedTarget);
 
-        var escape = panel.Key(PanelKey.Escape);
-        Assert.Null(escape.Action);
+        // Escape steps out of the applications, then out of the list, then closes the panel.
+        Assert.Null(panel.Key(PanelKey.Escape).Action);
+        Assert.Equal(new PanelTargetKey(PanelTargetKind.OpenInMenu, PanelSection.Running, host), panel.FocusedTarget);
+        Assert.DoesNotContain(panel.Scene.Targets, target => target.Kind == PanelTargetKind.OpenIn);
+        panel.Key(PanelKey.Down);
+        Assert.Equal(new PanelTargetKey(PanelTargetKind.ShowInFolder, PanelSection.Running, host), panel.FocusedTarget);
+        Assert.Null(panel.Key(PanelKey.Escape).Action);
         Assert.Null(panel.ActionsRow);
         Assert.Equal(more, panel.FocusedTarget);
         Assert.Equal(PanelActionKind.Close, panel.Key(PanelKey.Escape).Action?.Kind);
+    }
+
+    [Fact]
+    public void OpenInShowsTheApplicationsWithTheirIconsUnderIt()
+    {
+        var state = TrayPanelSamples.Typical();
+        var panel = new TrayPanel(state, TrayPanelPalette.Light) { OpenInApplications = s_applications };
+        var host = state.AppHosts[0];
+        Click(panel, Target(panel, PanelTargetKind.More, host).HitBounds);
+        Assert.Empty(panel.Scene.Commands.OfType<AppIconCommand>());
+
+        var openIn = Target(panel, PanelTargetKind.OpenInMenu, host);
+        Assert.Null(Click(panel, openIn.HitBounds).Action);
+
+        Assert.Equal((PanelSection.Running, host.Id), panel.ActionsRow);
+        Assert.Equal($"Hide applications to open {host.DisplayName} in", Target(panel, PanelTargetKind.OpenInMenu, host).AccessibleName);
+        var applications = panel.Scene.Targets.Where(target => target.Kind == PanelTargetKind.OpenIn).ToList();
+        Assert.Equal(["Open eShop in Visual Studio Code", "Open eShop in Terminal"], applications.Select(target => target.AccessibleName));
+        var icons = panel.Scene.Commands.OfType<AppIconCommand>().ToList();
+        Assert.Equal(s_applications, icons.Select(icon => icon.Application));
+        Assert.All(icons, icon => Assert.NotEmpty(icon.Fallback));
+        // Nested: the icons start where the labels of the other items do, under "Open in".
+        Assert.All(icons, icon => Assert.True(icon.Bounds.X > openIn.Bounds.X + 30));
+        Assert.All(applications, target => Assert.True(target.Bounds.Y >= openIn.Bounds.Bottom));
+
+        Click(panel, Target(panel, PanelTargetKind.OpenInMenu, host).HitBounds);
+        Assert.DoesNotContain(panel.Scene.Targets, target => target.Kind == PanelTargetKind.OpenIn);
+    }
+
+    [Fact]
+    public void NoOpenInItemWithoutInstalledApplications()
+    {
+        var state = TrayPanelSamples.Typical();
+        var panel = new TrayPanel(state, TrayPanelPalette.Light);
+        Click(panel, Target(panel, PanelTargetKind.More, state.AppHosts[0]).HitBounds);
+
+        Assert.DoesNotContain(panel.Scene.Targets, target => target.Kind is PanelTargetKind.OpenInMenu or PanelTargetKind.OpenIn);
     }
 
     [Fact]
