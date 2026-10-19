@@ -39,6 +39,11 @@ completes. The same options are available through the other polyglot SDKs.
 The TypeScript SDK groups the optional `configure` callback into its generated
 options argument.
 
+TypeScript and Python callbacks write back only assigned dimension properties.
+A no-op callback retains automatic dashboard fitting, just like omitting the
+callback. Explicitly assigning either dimension, even to its default value,
+selects the producer's grid instead.
+
 Python callbacks mutate the `columns` and `rows` dictionary keys. Go and Java
 callbacks use their generated `TerminalOptions` fields and setters. Rust requires
 a callback on `with_terminal(...)`; the callback returns the mutated DTO under

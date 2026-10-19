@@ -420,7 +420,7 @@ public class AtsPythonCodeGeneratorTests
                     callback = client._callback_registry[args["configure"]]
                     payload = json.loads('{"p0":{"columns":132,"rows":50}}')
                     result = callback(payload, client)
-                    assert json.loads(json.dumps(result)) == {"p0": {"columns": 200, "rows": 50}}
+                    assert json.loads(json.dumps(result)) == {"p0": {"columns": 200}}
                     results.append(result)
                 return args["builder"]
 
@@ -430,6 +430,23 @@ public class AtsPythonCodeGeneratorTests
             assert resource.with_terminal(configure=configure) is resource
             aspire_app.ExecutableResource(handle, client, terminal=configure)
             assert len(results) == 2
+
+            for callback, expected in [
+                (lambda options: None, {}),
+                (lambda options: options.__setitem__("columns", 132), {"columns": 132}),
+                (lambda options: options.update(rows=50), {"rows": 50}),
+                (lambda options: options.setdefault("columns", 200), {}),
+            ]:
+                callback_id = client.register_callback(callback, dto_writeback=True)
+                actual = client._callback_registry[callback_id]({"p0": {"columns": 132, "rows": 50}}, client)
+                assert actual == {"p0": expected}, actual
+
+            def configure_nested(options):
+                options["nested"]["name"] = "updated"
+                options["values"].append(2)
+            callback_id = client.register_callback(configure_nested, dto_writeback=True)
+            actual = client._callback_registry[callback_id]({"p0": {"nested": {"name": "original"}, "values": [1], "untouched": True}}, client)
+            assert actual == {"p0": {"nested": {"name": "updated"}, "values": [1, 2]}}, actual
 
             # A nullable value-returning callback must still return null, not its arguments.
             callback_id = client.register_callback(lambda value: None)

@@ -1,9 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
+using System.Text;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.CodeGeneration.Python;
 using Aspire.Hosting.RemoteHost.Ats;
+using Aspire.TestUtilities;
 using Aspire.TypeSystem;
 using Xunit;
 
@@ -11,6 +15,105 @@ namespace Aspire.Hosting.RemoteHost.Tests;
 
 public class CapabilityDispatcherTests
 {
+    [Fact]
+    [RequiresTools(["python3"])]
+    [SkipOnPlatform(TestPlatforms.Windows, "Uses the Unix Python executable.")]
+    public Task Invoke_WithTerminal_PythonCallbackPreservesAutoFitOnUnix()
+        => Invoke_WithTerminal_PythonCallbackPreservesAutoFit("python3");
+
+    [Fact]
+    [RequiresTools(["python"])]
+    [SkipOnPlatform(TestPlatforms.Linux | TestPlatforms.OSX | TestPlatforms.FreeBSD, "Uses the Windows Python executable.")]
+    public Task Invoke_WithTerminal_PythonCallbackPreservesAutoFitOnWindows()
+        => Invoke_WithTerminal_PythonCallbackPreservesAutoFit("python");
+
+    private static async Task Invoke_WithTerminal_PythonCallbackPreservesAutoFit(string pythonExecutable)
+    {
+        var hostingAssembly = typeof(TerminalResourceBuilderExtensions).Assembly;
+        var context = AtsCapabilityScanner.ScanAssemblies([hostingAssembly]).ToAtsContext();
+        var module = new AtsPythonCodeGenerator().GenerateDistributedApplication(context)["aspire_app.py"];
+        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(1));
+        using var process = new Process
+        {
+            StartInfo = new ProcessStartInfo(pythonExecutable)
+            {
+                RedirectStandardInput = true,
+                StandardInputEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                ArgumentList =
+                {
+                    "-c",
+                    """
+                    import json, sys, types
+                    module = types.ModuleType("aspire_app")
+                    sys.modules["aspire_app"] = module
+                    exec(compile(sys.stdin.buffer.read(), "aspire_app.py", "exec"), module.__dict__)
+                    client = module.AspireClient("unused")
+                    results = []
+                    def invoke(capability, args, kwargs=None):
+                        assert capability == "Aspire.Hosting/withTerminal"
+                        callback = client._callback_registry[args["configure"]]
+                        results.append(callback({"p0": {"columns": 132, "rows": 50}}, client))
+                        return args["builder"]
+                    client.invoke_capability = invoke
+                    handle = module.Handle({"$handle": "resource", "$type": "Aspire.Hosting/Aspire.Hosting.ApplicationModel.ExecutableResource"})
+                    resource = module.ExecutableResource(handle, client)
+                    resource.with_terminal(configure=lambda options: None)
+                    resource.with_terminal(configure=lambda options: options.__setitem__("columns", 132))
+                    resource.with_terminal(configure=lambda options: options.update(rows=50))
+                    resource.with_terminal(configure=lambda options: options.update(columns=200))
+                    print(json.dumps(results))
+                    """
+                }
+            }
+        };
+        process.Start();
+        var output = process.StandardOutput.ReadToEndAsync(timeout.Token);
+        var error = process.StandardError.ReadToEndAsync(timeout.Token);
+        try
+        {
+            await process.StandardInput.WriteAsync(module.AsMemory(), timeout.Token);
+            process.StandardInput.Close();
+            await process.WaitForExitAsync(timeout.Token);
+            Assert.True(process.ExitCode == 0, $"Python callback failed: {await output}{await error}");
+            var results = JsonNode.Parse(await output)!.AsArray();
+            Assert.Equal(4, results.Count);
+            for (var index = 0; index < results.Count; index++)
+            {
+                var builder = DistributedApplication.CreateBuilder();
+                var resource = builder.AddExecutable("terminal", "myapp", ".");
+                await using var handles = new HandleRegistry();
+                var invoker = new TestCallbackInvoker { ResultToReturn = results[index] };
+                var (marshaller, callbackFactory) = CreateTestMarshallerWithCallbacks(handles, invoker, hostingAssembly);
+                using var callbackFactoryLifetime = callbackFactory;
+                var dispatcher = new CapabilityDispatcher(handles, marshaller, [hostingAssembly]);
+                var handle = handles.Register(resource, "Aspire.Hosting/Aspire.Hosting.ApplicationModel.IResourceBuilder");
+
+                dispatcher.Invoke("Aspire.Hosting/withTerminal", new JsonObject
+                {
+                    ["builder"] = new JsonObject { ["$handle"] = handle },
+                    ["configure"] = "configure-terminal"
+                });
+
+                var annotation = Assert.Single(resource.Resource.Annotations.OfType<TerminalAnnotation>());
+                Assert.Equal(index == 3 ? 200 : 132, annotation.Options.Columns);
+                Assert.Equal(50, annotation.Options.Rows);
+                var properties = TerminalResourceSnapshotProperties.AddTerminalProperties(resource.Resource, resource.Resource.Name, []);
+                Assert.Equal(index == 0 ? "true" : "false", Assert.Single(properties, p => p.Name == "terminal.autoFit").Value);
+            }
+        }
+        finally
+        {
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+                await process.WaitForExitAsync();
+            }
+        }
+    }
+
     [Theory]
     [InlineData(null, 132, 50)]
     [InlineData("{}", 132, 50)]
