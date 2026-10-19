@@ -71,6 +71,7 @@ internal sealed class DashboardClient : IDashboardClient
     private readonly IResourceRepositoryWriter _resourceRepositoryWriter;
     private readonly DashboardDataSourcePool? _dataSourcePool;
     private string _appHostRunId = string.Empty;
+    private readonly AsyncLock _attachmentLock = new();
     private bool _hasWatchedResources;
     private ImmutableHashSet<string> _appHostCorsOrigins = ImmutableHashSet<string>.Empty;
 
@@ -320,16 +321,23 @@ internal sealed class DashboardClient : IDashboardClient
         return Task.CompletedTask;
     }
 
-    private Metadata GetSessionHeaders()
+    private void SetAppHostCorsOrigins(string origins) =>
+        Volatile.Write(ref _appHostCorsOrigins, origins
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToImmutableHashSet(StringComparer.OrdinalIgnoreCase));
+
+    private Metadata GetSessionHeaders() => GetSessionHeaders(_appHostRunId);
+
+    private Metadata GetSessionHeaders(string runId)
     {
         var headers = new Metadata();
         foreach (var entry in _headers)
         {
             headers.Add(entry);
         }
-        if (!string.IsNullOrEmpty(_appHostRunId))
+        if (!string.IsNullOrEmpty(runId))
         {
-            headers.Add("x-aspire-apphost-run-id", _appHostRunId);
+            headers.Add("x-aspire-apphost-run-id", runId);
         }
         return headers;
     }
@@ -482,41 +490,42 @@ internal sealed class DashboardClient : IDashboardClient
                 var request = new ApplicationInformationRequest();
                 var response = await _client!.GetApplicationInformationAsync(request, headers: _headers, cancellationToken: cancellationToken);
 
-                if (_appHostRunId != response.RunId)
+                using (await _attachmentLock.LockAsync(cancellationToken).ConfigureAwait(false))
                 {
-                    _appHostCts.Cancel();
-                    _appHostCts.Dispose();
-                    _appHostCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                    _appHostToken = _appHostCts.Token;
-                    if (_dataSourcePool is not null)
+                    if (_appHostRunId != response.RunId)
                     {
-                        await _dataSourcePool.StartAppHostRunAsync(response.RunId, cancellationToken).ConfigureAwait(false);
-                    }
-                    lock (_lock)
-                    {
-                        foreach (var interaction in _pendingInteractionCollection)
+                        _appHostCts.Cancel();
+                        _appHostCts.Dispose();
+                        _appHostCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                        _appHostToken = _appHostCts.Token;
+                        if (_dataSourcePool is not null)
                         {
-                            var complete = new WatchInteractionsResponseUpdate { InteractionId = interaction.InteractionId, Complete = new InteractionComplete() };
-                            foreach (var channel in _outgoingInteractionChannels)
+                            await _dataSourcePool.StartAppHostRunAsync(response.RunId, cancellationToken).ConfigureAwait(false);
+                        }
+                        lock (_lock)
+                        {
+                            foreach (var interaction in _pendingInteractionCollection)
                             {
-                                channel.Writer.TryWrite(complete);
+                                var complete = new WatchInteractionsResponseUpdate { InteractionId = interaction.InteractionId, Complete = new InteractionComplete() };
+                                foreach (var channel in _outgoingInteractionChannels)
+                                {
+                                    channel.Writer.TryWrite(complete);
+                                }
+                            }
+                            foreach (var resource in _resourceByName.Values)
+                            {
+                                resource.ConsoleLogsLoaded = false;
+                            }
+                            _pendingInteractionCollection.Clear();
+                            while (_incomingInteractionChannel.Reader.TryRead(out _))
+                            {
                             }
                         }
-                        foreach (var resource in _resourceByName.Values)
-                        {
-                            resource.ConsoleLogsLoaded = false;
-                        }
-                        _pendingInteractionCollection.Clear();
-                        while (_incomingInteractionChannel.Reader.TryRead(out _))
-                        {
-                        }
+                        _appHostRunId = response.RunId;
                     }
-                    _appHostRunId = response.RunId;
                 }
 
-                Volatile.Write(ref _appHostCorsOrigins, response.CorsAllowedOrigins
-                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                    .ToImmutableHashSet(StringComparer.OrdinalIgnoreCase));
+                SetAppHostCorsOrigins(response.CorsAllowedOrigins);
                 _applicationName = response.ApplicationName;
                 _minRequiredVersion = string.IsNullOrEmpty(response.MinDashboardVersion) ? null : response.MinDashboardVersion;
 
@@ -687,6 +696,12 @@ internal sealed class DashboardClient : IDashboardClient
 
         await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
         {
+            if (response.HasCorsAllowedOrigins)
+            {
+                // Endpoint allocation publishes resource URL updates after the AppHost handshake.
+                // Refresh origins here so a surviving dashboard accepts browser OTLP from new ports.
+                SetAppHostCorsOrigins(response.CorsAllowedOrigins);
+            }
             using var activity = _activitySource.StartActivity("Process resource update", ActivityKind.Consumer);
             activity?.SetTag("aspire.dashboard.resource_update.type", response.KindCase.ToString());
 
@@ -1073,6 +1088,34 @@ internal sealed class DashboardClient : IDashboardClient
         }
     }
 
+    internal async Task CaptureConsoleLogsAsync(string resourceName, CancellationToken cancellationToken)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
+        while (true)
+        {
+            await WhenConnected.WaitAsync(cts.Token).ConfigureAwait(false);
+            await WhenResourcesReady.WaitAsync(cts.Token).ConfigureAwait(false);
+            try
+            {
+                await foreach (var _ in SubscribeConsoleLogs(resourceName, cts.Token).ConfigureAwait(false))
+                {
+                    // SubscribeConsoleLogs persists each batch. The selected-run reader receives it from SQLite.
+                }
+            }
+            catch (OperationCanceledException) when (!cts.IsCancellationRequested)
+            {
+                // A new attachment cancelled the previous RPC; keep the viewed resource subscribed.
+            }
+            catch (RpcException ex) when (ex.StatusCode is StatusCode.Unavailable or StatusCode.Cancelled or StatusCode.FailedPrecondition or StatusCode.NotFound)
+            {
+                _logger.LogDebug(ex, "Console log capture for {ResourceName} will resume after reconnecting.", resourceName);
+            }
+
+            // A resource can end its stream before connection state changes. Avoid a hot retry loop.
+            await Task.Delay(TimeSpan.FromSeconds(1), cts.Token).ConfigureAwait(false);
+        }
+    }
+
     public async IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> SubscribeConsoleLogs(string resourceName, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         EnsureInitialized();
@@ -1081,15 +1124,16 @@ internal sealed class DashboardClient : IDashboardClient
         // historical runs can omit logs for resources that were never viewed or exported. The historical
         // Console Logs page checks this capture state and displays a notice when logs aren't available.
         // See https://github.com/microsoft/aspire/issues/18823.
-        using var retention = RetainConsoleLogRun(out var writer);
+        using var attachment = await RetainConsoleLogAttachmentAsync(cancellationToken).ConfigureAwait(false);
+        var writer = attachment.Writer;
         await MarkConsoleLogsLoadedAsync(resourceName, writer).ConfigureAwait(false);
 
         // It's ok to dispose CTS with using because this method exits after it is finished being used.
-        using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken, _appHostToken);
+        using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken, attachment.Token);
 
         using var call = _client!.WatchResourceConsoleLogs(
             new WatchResourceConsoleLogsRequest() { ResourceName = resourceName },
-            headers: GetSessionHeaders(),
+            headers: GetSessionHeaders(attachment.RunId),
             cancellationToken: combinedTokens.Token);
 
         // Write incoming logs to a channel, and then read from that channel to yield the logs.
@@ -1135,14 +1179,15 @@ internal sealed class DashboardClient : IDashboardClient
     {
         EnsureInitialized();
 
-        using var retention = RetainConsoleLogRun(out var writer);
+        using var attachment = await RetainConsoleLogAttachmentAsync(cancellationToken).ConfigureAwait(false);
+        var writer = attachment.Writer;
         await MarkConsoleLogsLoadedAsync(resourceName, writer).ConfigureAwait(false);
 
-        using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken, _appHostToken);
+        using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken, attachment.Token);
 
         using var call = _client!.WatchResourceConsoleLogs(
             new WatchResourceConsoleLogsRequest() { ResourceName = resourceName, SuppressFollow = true },
-            headers: GetSessionHeaders(),
+            headers: GetSessionHeaders(attachment.RunId),
             cancellationToken: combinedTokens.Token);
 
         await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: combinedTokens.Token).ConfigureAwait(false))
@@ -1156,19 +1201,21 @@ internal sealed class DashboardClient : IDashboardClient
     public Task ClearConsoleLogsAsync(IReadOnlyList<string> resourceNames, DateTime clearDate) =>
         _resourceRepositoryWriter.ClearConsoleLogsAsync(resourceNames, clearDate);
 
-    private IDisposable? RetainConsoleLogRun(out IResourceRepositoryWriter writer)
+    private async ValueTask<ConsoleLogAttachment> RetainConsoleLogAttachmentAsync(CancellationToken cancellationToken)
     {
-        if (_dataSourcePool is null)
+        using (await _attachmentLock.LockAsync(cancellationToken).ConfigureAwait(false))
         {
-            writer = _resourceRepositoryWriter;
-            return null;
+            // The writer, RPC identity, and cancellation token must describe the same attachment.
+            // In particular, MarkConsoleLogsLoadedAsync can await SQLite while a reconnect completes.
+            IDisposable? retention = null;
+            var writer = _resourceRepositoryWriter;
+            if (_dataSourcePool is not null)
+            {
+                retention = _dataSourcePool.RetainCurrent(out var run);
+                writer = (IResourceRepositoryWriter)run.ResourceRepository;
+            }
+            return new ConsoleLogAttachment(retention, writer, _appHostRunId, _appHostToken);
         }
-
-        // Console RPCs can outlive a run transition while cancellation is observed. Retain the
-        // receiving run so delayed batches cannot be ingested into the next AppHost's database.
-        var retention = _dataSourcePool.RetainCurrent(out var run);
-        writer = (IResourceRepositoryWriter)run.ResourceRepository;
-        return retention;
     }
 
     private async Task MarkConsoleLogsLoadedAsync(string resourceName, IResourceRepositoryWriter writer)
@@ -1523,4 +1570,9 @@ internal sealed class DashboardClient : IDashboardClient
 
         return SemVersion.ComparePrecedence(dashboardRelease, requiredRelease) >= 0;
     }
+    private sealed record ConsoleLogAttachment(IDisposable? Retention, IResourceRepositoryWriter Writer, string RunId, CancellationToken Token) : IDisposable
+    {
+        public void Dispose() => Retention?.Dispose();
+    }
+
 }

@@ -850,6 +850,51 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
 
     [Theory]
     [InlineData(null)]
+    [InlineData("https://configured.example")]
+    public async Task WatchResources_AllocatedEndpointsRefreshCorsWithoutBlockingAttachment(string? configuredOrigins)
+    {
+        var notifications = CreateResourceNotificationService(new ResourceLoggerService());
+        using var data = CreateDashboardServiceData(resourceNotificationService: notifications);
+        var resource = new TestResource("web");
+        var endpoint = new EndpointAnnotation(System.Net.Sockets.ProtocolType.Tcp, name: "http", uriScheme: "http");
+        resource.Annotations.Add(endpoint);
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["AppHost:DashboardApplicationName"] = "TestAppHost",
+            [KnownConfigNames.DashboardCorsAllowedOrigins] = configuredOrigins
+        }).Build();
+        var service = CreateDashboardService(data, configuration: configuration, model: new DistributedApplicationModel([resource]));
+        var info = await service.GetApplicationInformation(new ApplicationInformationRequest(), TestServerCallContext.Create());
+        Assert.Equal(configuredOrigins ?? "", info.CorsAllowedOrigins);
+        using var cts = new CancellationTokenSource();
+        var context = TestServerCallContext.Create(cancellationToken: cts.Token);
+        var writer = new TestServerStreamWriter<WatchResourcesUpdate>(context);
+        var watch = service.WatchResources(new WatchResourcesRequest { RunId = data.RunId }, writer, context);
+        try
+        {
+            var initial = await writer.ReadNextAsync().DefaultTimeout();
+            Assert.Equal(configuredOrigins ?? "", initial.CorsAllowedOrigins);
+            await data.RunAttached.Task.DefaultTimeout();
+
+            endpoint.AllocatedEndpoint = new(endpoint, "localhost", 45123);
+            // ApplicationOrchestrator publishes resource URL changes on ResourceEndpointsAllocatedEvent.
+            await notifications.PublishUpdateAsync(resource, snapshot => snapshot with
+            {
+                State = new ResourceStateSnapshot("Starting", null),
+                Urls = [new UrlSnapshot("http", "http://localhost:45123", false)]
+            });
+            var allocated = await writer.ReadNextAsync().DefaultTimeout();
+            Assert.True(allocated.HasCorsAllowedOrigins);
+            Assert.Equal(configuredOrigins ?? "http://localhost:45123", allocated.CorsAllowedOrigins);
+        }
+        finally
+        {
+            await CancelTokenAndAwaitTask(cts, watch).DefaultTimeout();
+        }
+    }
+
+    [Theory]
+    [InlineData(null)]
     [InlineData("current")]
     [InlineData("previous")]
     public async Task AppHostRunInterceptor_OnlyCurrentAttachmentCanExecuteCommands(string? attachment)
@@ -1872,7 +1917,8 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         IConfiguration? configuration = null,
         ILogger<DashboardServiceImpl>? logger = null,
         IInteractionFileUploadStore? fileUploadStore = null,
-                        TerminalService? terminalService = null)
+        TerminalService? terminalService = null,
+        DistributedApplicationModel? model = null)
     {
         return new DashboardServiceImpl(
             dashboardServiceData,
@@ -1882,7 +1928,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
             logger ?? NullLogger<DashboardServiceImpl>.Instance,
             fileUploadStore ?? new TestInteractionFileUploadStore(),
             terminalService ?? TestTerminalService.Create(),
-            new DistributedApplicationModel(new ResourceCollection()));
+            model ?? new DistributedApplicationModel(new ResourceCollection()));
     }
 
     private static DashboardServiceData CreateDashboardServiceData(

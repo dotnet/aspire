@@ -484,6 +484,7 @@ public sealed class DashboardClientTests(ITestOutputHelper testOutputHelper) : I
         await started.Task.DefaultTimeout();
 
         await pool.StartAppHostRunAsync("second", CancellationToken.None);
+        await pool.PruningTask;
         await logs.Writer.WriteAsync(new WatchResourceConsoleLogsUpdate
         {
             LogLines = { new ConsoleLogLine { LineNumber = 1, Text = "old AppHost batch" } }
@@ -507,6 +508,218 @@ public sealed class DashboardClientTests(ITestOutputHelper testOutputHelper) : I
             historicalLogs.AddRange(batch);
         }
         Assert.Equal("old AppHost batch", Assert.Single(historicalLogs).Content);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ConsoleLogs_RunChangesWhileMarkingLoaded_RpcKeepsOriginalAttachment(bool follow)
+    {
+        using var workspace = TemporaryWorkspace.Create(testOutputHelper);
+        var options = Options.Create(new DashboardOptions
+        {
+            Data = new DashboardDataOptions { Directory = workspace.Path, PersistenceMode = DashboardPersistenceMode.Run }
+        });
+        using var services = CreateRepositoryServices(options);
+        using var store = new DashboardRunStore(options, NullLogger<DashboardRunStore>.Instance, TimeProvider.System);
+        using var pool = new DashboardDataSourcePool(store, new RepositoryFactory(services));
+        await pool.InitializeAsync(CancellationToken.None);
+        pool.PublishRun();
+        var writer = new CurrentResourceWriter(pool);
+        var first = Channel.CreateUnbounded<WatchResourcesUpdate>();
+        var second = Channel.CreateUnbounded<WatchResourcesUpdate>();
+        var subscribed = Channel.CreateUnbounded<int>();
+        var attempts = 0;
+        var rpc = new MockDashboardServiceClient
+        {
+            RunId = "first",
+            ResourceUpdatesProvider = () =>
+            {
+                var attempt = Interlocked.Increment(ref attempts);
+                subscribed.Writer.TryWrite(attempt);
+                return attempt == 1 ? first.Reader : second.Reader;
+            }
+        };
+        await using var client = CreateResourceServiceClient(resourceRepositoryWriter: writer, dataSourcePool: pool);
+        client.SetDashboardServiceClient(rpc);
+        await client.WhenConnected.DefaultTimeout();
+        Assert.Equal(1, await subscribed.Reader.ReadAsync().AsTask().DefaultTimeout());
+        await using var batches = (follow
+            ? client.SubscribeConsoleLogs("api", CancellationToken.None)
+            : client.GetConsoleLogs("api", CancellationToken.None)).GetAsyncEnumerator();
+        Task<bool> next;
+        using (await pool.Current.Database.WriteLock.LockAsync())
+        {
+            // MarkConsoleLogsLoadedAsync is held in the old database after the attachment is captured.
+            next = batches.MoveNextAsync().AsTask();
+            rpc.RunId = "second";
+            first.Writer.Complete();
+            Assert.Equal(2, await subscribed.Reader.ReadAsync().AsTask().DefaultTimeout());
+            await pool.PruningTask;
+        }
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => next);
+        var call = Assert.Single(rpc.ConsoleCalls);
+        Assert.Equal("first", call.RunId);
+        Assert.True(call.Cancelled);
+    }
+
+    [Theory]
+    [InlineData(DashboardPersistenceMode.None, false)]
+    [InlineData(DashboardPersistenceMode.None, true)]
+    [InlineData(DashboardPersistenceMode.Resume, false)]
+    [InlineData(DashboardPersistenceMode.Resume, true)]
+    [InlineData(DashboardPersistenceMode.Run, false)]
+    public async Task SelectedConsoleLogs_OpenedOffline_ResumesCaptureWithoutDuplicatingReplay(DashboardPersistenceMode mode, bool restartAppHost)
+    {
+        using var workspace = TemporaryWorkspace.Create(testOutputHelper);
+        var options = Options.Create(new DashboardOptions
+        {
+            Data = new DashboardDataOptions { Directory = workspace.Path, PersistenceMode = mode }
+        });
+        using var services = CreateRepositoryServices(options);
+        using var store = new DashboardRunStore(options, NullLogger<DashboardRunStore>.Instance, TimeProvider.System);
+        using var pool = new DashboardDataSourcePool(store, new RepositoryFactory(services));
+        await pool.InitializeAsync(CancellationToken.None);
+        pool.PublishRun();
+        var writer = new CurrentResourceWriter(pool);
+        var updates = Channel.CreateUnbounded<WatchResourcesUpdate>();
+        updates.Writer.TryWrite(new WatchResourcesUpdate { InitialData = new InitialResourceData() });
+        var reconnected = Channel.CreateUnbounded<WatchResourcesUpdate>();
+        reconnected.Writer.TryWrite(new WatchResourcesUpdate
+        {
+            InitialData = new InitialResourceData
+            {
+                Resources = { new Resource { Name = "api", DisplayName = "api", ResourceType = "Executable", CreatedAt = Timestamp.FromDateTime(DateTime.UtcNow) } }
+            }
+        });
+        var resourceWatches = 0;
+        var logs = Channel.CreateUnbounded<WatchResourceConsoleLogsUpdate>();
+        var captureStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using var live = CreateResourceServiceClient(resourceRepositoryWriter: writer, dataSourcePool: pool);
+        var rpc = new MockDashboardServiceClient
+        {
+            RunId = "first",
+            ResourceUpdatesProvider = () => Interlocked.Increment(ref resourceWatches) == 1 ? updates.Reader : reconnected.Reader,
+            ConsoleUpdatesChannel = logs.Reader,
+            OnConsoleWatchStarted = () => captureStarted.TrySetResult()
+        };
+        live.SetDashboardServiceClient(rpc);
+        await live.WhenResourcesReady.DefaultTimeout();
+        // Populate the captured snapshot after the mock's empty initial resource snapshot.
+        await writer.ReplaceResourcesAsync([new Resource { Name = "api", DisplayName = "api", ResourceType = "Executable", CreatedAt = Timestamp.FromDateTime(DateTime.UtcNow) }]);
+        await writer.AddConsoleLogsAsync("api", [new ConsoleLogLine { LineNumber = 1, Text = "cached" }]);
+        live.SetConnectionStateForTesting(DashboardConnectionState.Disconnected);
+        using var source = new DashboardDataSource(store, NullLogger<DashboardDataSource>.Instance, pool);
+        var selected = new SelectedDashboardClient(live, source);
+        using var cts = new CancellationTokenSource();
+        await using var batches = selected.SubscribeConsoleLogs("api", cts.Token).GetAsyncEnumerator();
+
+        Assert.True(await batches.MoveNextAsync().AsTask().DefaultTimeout());
+        Assert.Equal("cached", Assert.Single(batches.Current).Content);
+        Assert.False(captureStarted.Task.IsCompleted);
+        if (restartAppHost)
+        {
+            rpc.RunId = "second";
+            updates.Writer.Complete();
+        }
+        else
+        {
+            live.SetConnectionStateForTesting(DashboardConnectionState.Connected);
+        }
+        await captureStarted.Task.DefaultTimeout();
+        await logs.Writer.WriteAsync(new WatchResourceConsoleLogsUpdate
+        {
+            LogLines = { new ConsoleLogLine { LineNumber = 1, Text = "cached" }, new ConsoleLogLine { LineNumber = 2, Text = "after reconnect" } }
+        });
+
+        Assert.True(await batches.MoveNextAsync().AsTask().DefaultTimeout());
+        Assert.Equal("after reconnect", Assert.Single(batches.Current).Content);
+        cts.Cancel();
+    }
+
+    [Fact]
+    public async Task SelectedConsoleLogs_HistoricalRun_DoesNotStartLiveCapture()
+    {
+        using var workspace = TemporaryWorkspace.Create(testOutputHelper);
+        var options = Options.Create(new DashboardOptions
+        {
+            Data = new DashboardDataOptions { Directory = workspace.Path, PersistenceMode = DashboardPersistenceMode.Run }
+        });
+        using var services = CreateRepositoryServices(options);
+        using var store = new DashboardRunStore(options, NullLogger<DashboardRunStore>.Instance, TimeProvider.System);
+        using var pool = new DashboardDataSourcePool(store, new RepositoryFactory(services));
+        await pool.InitializeAsync(CancellationToken.None);
+        pool.PublishRun();
+        await pool.StartAppHostRunAsync("first", CancellationToken.None);
+        var historyId = store.RunId;
+        var writer = new CurrentResourceWriter(pool);
+        await writer.ReplaceResourcesAsync([new Resource { Name = "api", DisplayName = "api", ResourceType = "Executable", CreatedAt = Timestamp.FromDateTime(DateTime.UtcNow) }]);
+        await writer.AddConsoleLogsAsync("api", [new ConsoleLogLine { LineNumber = 1, Text = "historical" }]);
+        await pool.StartAppHostRunAsync("second", CancellationToken.None);
+        await pool.PruningTask;
+        var updates = Channel.CreateUnbounded<WatchResourcesUpdate>();
+        updates.Writer.TryWrite(new WatchResourcesUpdate { InitialData = new InitialResourceData() });
+        var rpc = new MockDashboardServiceClient { ResourceUpdatesChannel = updates.Reader };
+        await using var live = CreateResourceServiceClient(resourceRepositoryWriter: writer, dataSourcePool: pool);
+        live.SetDashboardServiceClient(rpc);
+        await live.WhenResourcesReady.DefaultTimeout();
+        using var source = new DashboardDataSource(store, NullLogger<DashboardDataSource>.Instance, pool);
+        source.SelectRun(historyId);
+        var selected = new SelectedDashboardClient(live, source);
+        using var cts = new CancellationTokenSource();
+        await using var logs = selected.SubscribeConsoleLogs("api", cts.Token).GetAsyncEnumerator();
+
+        Assert.True(await logs.MoveNextAsync().AsTask().DefaultTimeout());
+        Assert.Equal("historical", Assert.Single(logs.Current).Content);
+        Assert.True(selected.IsReadOnly);
+        Assert.Empty(rpc.ConsoleCalls);
+        cts.Cancel();
+    }
+
+    private static ServiceProvider CreateRepositoryServices(IOptions<DashboardOptions> options) => new ServiceCollection()
+        .AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance)
+        .AddSingleton(options)
+        .AddSingleton<PauseManager>()
+        .AddSingleton(TimeProvider.System)
+        .AddSingleton<IKnownPropertyLookup, MockKnownPropertyLookup>()
+        .BuildServiceProvider();
+
+    [Fact]
+    public async Task ResourceUpdates_RefreshOriginsAfterAllocationAndPreserveOlderServerMetadata()
+    {
+        var updates = Channel.CreateUnbounded<WatchResourcesUpdate>();
+        updates.Writer.TryWrite(new WatchResourcesUpdate { InitialData = new InitialResourceData() });
+        await using var client = CreateResourceServiceClient();
+        client.SetDashboardServiceClient(new MockDashboardServiceClient
+        {
+            ResourceUpdatesChannel = updates.Reader,
+            CorsAllowedOrigins = "http://localhost:4000"
+        });
+        await client.WhenResourcesReady.DefaultTimeout();
+        // Missing optional metadata from an older server must not clear the handshake's origins.
+        Assert.True(client.IsAppHostOriginAllowed("http://localhost:4000"));
+        var (_, changes) = await client.SubscribeResourcesAsync(CancellationToken.None);
+        await using var changesReader = changes.GetAsyncEnumerator();
+        await updates.Writer.WriteAsync(new WatchResourcesUpdate
+        {
+            CorsAllowedOrigins = "http://localhost:5000",
+            Changes = new WatchResourcesChanges
+            {
+                Value = { new WatchResourcesChange { Upsert = new Resource { Name = "web", DisplayName = "web", ResourceType = "Executable", CreatedAt = Timestamp.FromDateTime(DateTime.UtcNow) } } }
+            }
+        });
+        Assert.True(await changesReader.MoveNextAsync().AsTask().DefaultTimeout());
+        Assert.False(client.IsAppHostOriginAllowed("http://localhost:4000"));
+        Assert.True(client.IsAppHostOriginAllowed("http://localhost:5000"));
+
+        await updates.Writer.WriteAsync(new WatchResourcesUpdate
+        {
+            CorsAllowedOrigins = "",
+            Changes = new WatchResourcesChanges { Value = { new WatchResourcesChange { Upsert = new Resource { Name = "web", DisplayName = "web", ResourceType = "Executable", CreatedAt = Timestamp.FromDateTime(DateTime.UtcNow) } } } }
+        });
+        Assert.True(await changesReader.MoveNextAsync().AsTask().DefaultTimeout());
+        Assert.False(client.IsAppHostOriginAllowed("http://localhost:5000"));
     }
 
     [Fact]
@@ -1300,6 +1513,9 @@ public sealed class DashboardClientTests(ITestOutputHelper testOutputHelper) : I
         public bool CancelExecuteResourceCommandOnCallCancellation { get; init; }
         public string ApplicationName { get; init; } = "TestApplication";
         public string MinDashboardVersion { get; init; } = "";
+        public string RunId { get; set; } = "";
+        public string CorsAllowedOrigins { get; init; } = "";
+        public ConcurrentQueue<(string? RunId, bool Cancelled)> ConsoleCalls { get; } = new();
         public IReadOnlyList<WatchResourceConsoleLogsUpdate> ConsoleLogUpdates { get; init; } = [];
         public ChannelReader<WatchResourceConsoleLogsUpdate>? ConsoleUpdatesChannel { get; init; }
         public Action? OnConsoleWatchStarted { get; init; }
@@ -1324,6 +1540,8 @@ public sealed class DashboardClientTests(ITestOutputHelper testOutputHelper) : I
 
         public override AsyncServerStreamingCall<WatchResourceConsoleLogsUpdate> WatchResourceConsoleLogs(WatchResourceConsoleLogsRequest request, CallOptions options)
         {
+            ConsoleCalls.Enqueue((options.Headers?.GetValue("x-aspire-apphost-run-id"), options.CancellationToken.IsCancellationRequested));
+            options.CancellationToken.ThrowIfCancellationRequested();
             OnConsoleWatchStarted?.Invoke();
             return new AsyncServerStreamingCall<WatchResourceConsoleLogsUpdate>(
                 new AsyncStreamReader<WatchResourceConsoleLogsUpdate>(ConsoleLogUpdates, ConsoleUpdatesChannel),
@@ -1361,7 +1579,9 @@ public sealed class DashboardClientTests(ITestOutputHelper testOutputHelper) : I
                 Task.FromResult(new ApplicationInformationResponse
                 {
                     ApplicationName = ApplicationName,
-                    MinDashboardVersion = MinDashboardVersion
+                    MinDashboardVersion = MinDashboardVersion,
+                    RunId = RunId,
+                    CorsAllowedOrigins = CorsAllowedOrigins
                 }),
                 Task.FromResult(new Metadata()),
                 () => Status.DefaultSuccess,

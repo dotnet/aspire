@@ -74,10 +74,13 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
             ApplicationName = GetDashboardApplicationName(applicationName),
             MinDashboardVersion = MinRequiredDashboardVersion,
             RunId = serviceData.RunId,
-            CorsAllowedOrigins = configuration.GetString(KnownConfigNames.DashboardCorsAllowedOrigins, KnownConfigNames.Legacy.DashboardCorsAllowedOrigins)
-                ?? DashboardEventHandlers.GetAllowedOriginsFromResourceEndpoints(model) ?? string.Empty
+            CorsAllowedOrigins = GetCorsAllowedOrigins()
         });
     }
+
+    private string GetCorsAllowedOrigins() =>
+        configuration.GetString(KnownConfigNames.DashboardCorsAllowedOrigins, KnownConfigNames.Legacy.DashboardCorsAllowedOrigins)
+            ?? DashboardEventHandlers.GetAllowedOriginsFromResourceEndpoints(model) ?? string.Empty;
 
     internal static string GetDashboardApplicationName(string applicationName)
     {
@@ -342,7 +345,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                 data.Resources.Add(Resource.FromSnapshot(resource));
             }
 
-            await responseStream.WriteAsync(new() { InitialData = data }, cancellationToken).ConfigureAwait(false);
+            await responseStream.WriteAsync(new() { InitialData = data, CorsAllowedOrigins = GetCorsAllowedOrigins() }, cancellationToken).ConfigureAwait(false);
 
             await foreach (var batch in updates.WithCancellation(cancellationToken).ConfigureAwait(false))
             {
@@ -368,7 +371,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                     changes.Value.Add(change);
                 }
 
-                await responseStream.WriteAsync(new() { Changes = changes }, cancellationToken).ConfigureAwait(false);
+                await responseStream.WriteAsync(new() { Changes = changes, CorsAllowedOrigins = GetCorsAllowedOrigins() }, cancellationToken).ConfigureAwait(false);
             }
         }
     }

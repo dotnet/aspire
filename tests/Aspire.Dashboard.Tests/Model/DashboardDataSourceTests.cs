@@ -14,6 +14,7 @@ using Aspire.Shared;
 using Google.Protobuf.Collections;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.Data.Sqlite;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -88,6 +89,74 @@ public sealed class DashboardDataSourceTests(ITestOutputHelper testOutputHelper)
         // Repeated rollovers at the same clock instant must still create distinct databases.
         await pool.StartAppHostRunAsync("apphost-c", CancellationToken.None);
         Assert.Equal(3, store.GetRuns().Count);
+        await pool.PruningTask;
+    }
+
+    [Fact]
+    public async Task AppHostRunChange_PrunesUnpinnedRunsAndPreservesPinnedHistory()
+    {
+        using var workspace = TemporaryWorkspace.Create(testOutputHelper);
+        var options = CreateOptions(workspace);
+        using var store = CreateRunStore(options);
+        using var pool = new DashboardDataSourcePool(store, CreateRepositoryFactory(options));
+        await pool.InitializeAsync(CancellationToken.None);
+        pool.PublishRun();
+        await pool.StartAppHostRunAsync("first", CancellationToken.None);
+        var pinned = store.GetCurrentRun();
+        store.SetRunPinned(pinned, true);
+
+        for (var i = 0; i < DashboardRunStore.MaxRuns + 3; i++)
+        {
+            await pool.StartAppHostRunAsync($"next-{i}", CancellationToken.None);
+        }
+        await pool.PruningTask;
+
+        Assert.False(store.GetCurrentRun().IsPinned);
+        Assert.True(store.GetRunById(pinned.RunId, onlyCompatible: true)!.IsPinned);
+        Assert.Equal(DashboardRunStore.MaxRuns + 1, store.GetRuns().Count);
+        Assert.Equal(DashboardRunStore.MaxRuns + 1, Directory.GetDirectories(Path.Combine(workspace.Path, "runs")).Length);
+    }
+
+    [Fact]
+    public async Task AppHostRunChange_BackgroundPruningDoesNotBlockAttachmentAndContainsFailures()
+    {
+        using var workspace = TemporaryWorkspace.Create(testOutputHelper);
+        var options = CreateOptions(workspace);
+        var sink = new TestSink();
+        var logger = new TestLogger<DashboardRunStore>(new TestLoggerFactory(sink, enabled: true));
+        var deleting = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var release = new ManualResetEventSlim();
+        using var store = new DashboardRunStore(options, logger, TimeProvider.System, _ =>
+        {
+            deleting.TrySetResult();
+            release.Wait();
+            throw new InvalidOperationException("Test deletion failure");
+        });
+        using var pool = new DashboardDataSourcePool(store, CreateRepositoryFactory(options));
+        await pool.InitializeAsync(CancellationToken.None);
+        pool.PublishRun();
+        await pool.StartAppHostRunAsync("first", CancellationToken.None);
+        for (var i = 0; i < DashboardRunStore.MaxRuns - 1; i++)
+        {
+            await pool.StartAppHostRunAsync($"next-{i}", CancellationToken.None);
+            await pool.PruningTask;
+        }
+        try
+        {
+            var attachment = pool.StartAppHostRunAsync("overflow", CancellationToken.None);
+            await deleting.Task.DefaultTimeout();
+            await attachment.DefaultTimeout();
+            Assert.False(pool.PruningTask.IsCompleted);
+        }
+        finally
+        {
+            release.Set();
+            await pool.PruningTask;
+        }
+
+        Assert.True(store.GetCurrentRun().IsCurrent);
+        var warning = Assert.Single(sink.Writes, r => r.LogLevel == LogLevel.Warning);
+        Assert.IsType<InvalidOperationException>(warning.Exception);
     }
 
     [Fact]

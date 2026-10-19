@@ -329,6 +329,8 @@ message WatchResourcesRequest {
 
 // A message received from the server when watching resources. Has multiple types of payload.
 message WatchResourcesUpdate {
+    // Refreshed with resource changes, including endpoint allocation after the initial handshake.
+    optional string cors_allowed_origins = 3;
     oneof kind {
         // The current resource state, along with other reference data such as the set of resource types that may exist.
         // Received once upon connection, before any changes.

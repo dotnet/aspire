@@ -317,7 +317,7 @@ public sealed partial class SqliteResourceRepository : IResourceRepository, IRes
             return;
         }
 
-        var viewModelLines = logLines.Select(line => new ResourceLogLine(line.LineNumber, line.Text, line.IsStdErr)).ToArray();
+        ResourceLogLine[] viewModelLines;
         Channel<IReadOnlyList<ResourceLogLine>>[] channels;
         using (await _database.WriteLock.LockAsync().ConfigureAwait(false))
         {
@@ -371,6 +371,8 @@ public sealed partial class SqliteResourceRepository : IResourceRepository, IRes
                 WHERE resource_name = @ResourceName;
                 """, new { ResourceName = resourceName }, transaction);
             InsertConsoleLogs(connection, transaction, resourceName, consoleLogsToInsert);
+            // Subscribers read the persisted view, so replayed or cleared lines must not be republished.
+            viewModelLines = consoleLogsToInsert.Select(line => new ResourceLogLine(line.LineNumber, line.Content, line.IsStdErr)).ToArray();
             TrimConsoleLogs(connection, transaction, _maxConsoleLogCount);
             transaction.Commit();
 
@@ -383,6 +385,11 @@ public sealed partial class SqliteResourceRepository : IResourceRepository, IRes
                 }
                 channels = (_consoleChannels.GetValueOrDefault(resourceName) ?? []).ToArray();
             }
+        }
+
+        if (viewModelLines.Length == 0)
+        {
+            return;
         }
 
         foreach (var channel in channels)

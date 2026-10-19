@@ -331,7 +331,7 @@ internal sealed class DashboardRunStore : IDashboardRunStore, IDisposable
             CurrentWorkingDirectory = directory;
             DatabasePath = Path.Combine(directory, DatabaseFileName);
             _metadataPath = Path.Combine(directory, "run.json");
-            _metadata = _metadata with { RunId = runId, StartedAtUtc = startedAt, EndedAtUtc = null, CleanShutdown = false };
+            _metadata = _metadata with { RunId = runId, StartedAtUtc = startedAt, EndedAtUtc = null, CleanShutdown = false, IsPinned = false };
             _metadataPublished = false;
             _appHostRunId = appHostRunId;
             _runs = new(LoadRuns);
@@ -364,17 +364,12 @@ internal sealed class DashboardRunStore : IDashboardRunStore, IDisposable
 
     public void SetRunPinned(DashboardRunDescriptor run, bool isPinned)
     {
-        var storedRun = GetRunById(run.RunId, onlyCompatible: false);
-        if (storedRun is null)
-        {
-            throw new InvalidOperationException($"Dashboard run '{run.RunId}' is no longer available.");
-        }
-
-        var runDirectory = Path.GetDirectoryName(storedRun.DatabasePath)!;
         lock (_runStateLock)
         {
-            // The current run has the store's lifetime lock, and a selected historical run has a lease.
-            // Only an unselected historical run needs a temporary lock while its metadata is updated.
+            // Resolve inside the transition lock: a previously current descriptor can become history.
+            var storedRun = GetRunById(run.RunId, onlyCompatible: false)
+                ?? throw new InvalidOperationException($"Dashboard run '{run.RunId}' is no longer available.");
+            var runDirectory = Path.GetDirectoryName(storedRun.DatabasePath)!;
             using var runLock = storedRun.IsCurrent || storedRun.IsLeased
                 ? null
                 : TryOpenRunLock(runDirectory)
@@ -424,13 +419,46 @@ internal sealed class DashboardRunStore : IDashboardRunStore, IDisposable
     /// </remarks>
     public void PruneExpiredRuns()
     {
-        if (!_metadataPublished || _runsDirectory is null || !Directory.Exists(_runsDirectory))
+        lock (_runStateLock)
         {
-            return;
+            if (!_metadataPublished || _runsDirectory is null || !Directory.Exists(_runsDirectory))
+            {
+                return;
+            }
+
+            PruneRuns(_deleteRunDirectory);
+            DeleteUnheldLocks(_runsDirectory, "*.lock", GetRunLockPath(CurrentWorkingDirectory));
+        }
+    }
+
+    internal Task PruneExpiredRunsInBackground()
+    {
+        IDisposable retention;
+        try
+        {
+            retention = Retain();
+        }
+        catch (ObjectDisposedException)
+        {
+            return Task.CompletedTask;
         }
 
-        PruneRuns(_deleteRunDirectory);
-        DeleteUnheldLocks(_runsDirectory, "*.lock", GetRunLockPath(CurrentWorkingDirectory));
+        // Retain the store until housekeeping ends, even if the host starts shutting down meanwhile.
+        // PruneExpiredRuns shares the transition lock; filesystem cleanup runs outside the handshake.
+        return Task.Run(() =>
+        {
+            using (retention)
+            {
+                try
+                {
+                    PruneExpiredRuns();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to prune expired dashboard runs.");
+                }
+            }
+        });
     }
 
     public IDisposable? TryAcquireRunLease(DashboardRunDescriptor run)

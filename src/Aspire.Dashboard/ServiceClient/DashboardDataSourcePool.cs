@@ -22,6 +22,7 @@ public sealed class DashboardDataSourcePool : IDisposable
     private Lease? _current;
     internal AsyncLock RunWriteLock { get; } = new();
     internal event Action? CurrentRunChanged;
+    internal Task PruningTask { get; private set; } = Task.CompletedTask;
 
     internal async Task StartAppHostRunAsync(string appHostRunId, CancellationToken cancellationToken)
     {
@@ -45,6 +46,11 @@ public sealed class DashboardDataSourcePool : IDisposable
             }
             await InitializeAsync(cancellationToken).ConfigureAwait(false);
             PublishRun();
+        }
+        lock (_lock)
+        {
+            // Track all queued housekeeping, including an older task that has not started yet.
+            PruningTask = Task.WhenAll(PruningTask, ((DashboardRunStore)_runStore).PruneExpiredRunsInBackground());
         }
         CurrentRunChanged?.Invoke();
     }
