@@ -1,0 +1,9 @@
+{
+  "author": "IEvangelist",
+  "comment": "Not documentation of an Aspire feature; modifies aspire.dev's own StaticHost publishing build settings (Brotli compression level), unrelated to any product changelog entry",
+  "mergedAt": "2026-10-19T02:10:54Z",
+  "number": 1879,
+  "runDate": "2026-10-19T06:05:53Z",
+  "status": "excluded",
+  "title": "Use faster Brotli compression for StaticHost publishing"
+}
