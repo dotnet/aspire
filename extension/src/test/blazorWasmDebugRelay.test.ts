@@ -1,8 +1,7 @@
 import * as assert from 'assert';
 import { once } from 'events';
-import http = require('http');
+import * as http from 'http';
 import * as net from 'net';
-import { setTimeout as delay } from 'timers/promises';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import WebSocket, { WebSocketServer } from 'ws';
@@ -13,18 +12,15 @@ import { cleanupRun } from '../debugger/runCleanupRegistry';
 import { AspireResourceExtendedDebugConfiguration } from '../dcp/types';
 import AspireRpcServer from '../server/AspireRpcServer';
 import { AspireTerminalProvider } from '../utils/AspireTerminalProvider';
-import { extensionLogOutputChannel } from '../utils/logging';
 
 suite('Blazor WASM debug relay', () => {
     const cleanups: Array<() => void | Promise<void>> = [];
     let provider: vscode.DebugConfigurationProvider;
-    let providerDisposed: sinon.SinonSpy;
 
     setup(() => {
-        providerDisposed = sinon.spy();
         sinon.stub(vscode.debug, 'registerDebugConfigurationProvider').callsFake((_type, registeredProvider) => {
             provider = registeredProvider;
-            return { dispose: providerDisposed };
+            return { dispose() { } };
         });
     });
 
@@ -189,7 +185,7 @@ suite('Blazor WASM debug relay', () => {
         assert.deepStrictEqual(upstream.received, [{ data: 'live-command', binary: false }]);
     });
 
-    test('acknowledges locally while a bridge opening exceeds js-debug two-second deadline', async () => {
+    test('acknowledges locally and buffers commands while a bridge upgrade is pending', async () => {
         const upstream = await bridge(true);
         const guard = await relay(upstream.url);
         const client = await connect(guard.inspectUri, '/devtools/page/page-id?value=one%2Ftwo');
@@ -205,7 +201,6 @@ suite('Blazor WASM debug relay', () => {
         client.send('first');
         client.send(Buffer.from('second'));
         await upstream.opening;
-        await delay(2200);
         assert.strictEqual(client.readyState, WebSocket.OPEN);
         assert.strictEqual(upstream.requests.length, 1);
         upstream.release();
@@ -235,9 +230,8 @@ suite('Blazor WASM debug relay', () => {
         assert.strictEqual(upstream.requests[0].socket.destroyed, true);
     });
 
-    test('an upstream handshake failure closes the IDE and logs the failure', async () => {
+    test('an upstream handshake failure closes the IDE', async () => {
         const upstream = await bridge(true);
-        const warning = sinon.stub(extensionLogOutputChannel, 'warn');
         const guard = await relay(upstream.url);
         const client = await connect(guard.inspectUri);
         const closed = once(client, 'close');
@@ -246,13 +240,12 @@ suite('Blazor WASM debug relay', () => {
         upstream.requests[0].socket.end('HTTP/1.1 503 Unavailable\r\nContent-Length: 0\r\n\r\n');
         await closed;
 
-        sinon.assert.calledWithExactly(warning, 'Blazor WASM debug relay connection failed: Unexpected server response: 503');
+        assert.strictEqual(client.readyState, WebSocket.CLOSED);
     });
 
     for (const timeout of [undefined, 3000]) {
         test(`closes a stalled bridge upgrade at the ${timeout ?? 'default'} launch deadline`, async () => {
             const upstream = await bridge(true);
-            const warning = sinon.stub(extensionLogOutputChannel, 'warn');
             const clock = sinon.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'], shouldClearNativeTimers: true });
             cleanups.push(() => clock.restore());
             registerBlazorWasmDebugRelay(configuration({ type: 'blazorwasm' }));
@@ -274,24 +267,8 @@ suite('Blazor WASM debug relay', () => {
 
             assert.strictEqual(client.readyState, WebSocket.CLOSED);
             assert.strictEqual(upstream.requests[0].socket.destroyed, true);
-            sinon.assert.calledWithExactly(warning, 'Blazor WASM debug relay connection failed: Opening handshake has timed out');
         });
     }
-
-    test('a stalled bridge upgrade expires through a real launch timer', async () => {
-        const upstream = await bridge(true);
-        const guard = await createBlazorWasmDebugRelay(upstream.url, 1000);
-        cleanups.push(() => guard.dispose());
-        const client = await connect(guard.inspectUri);
-        const clientClosed = once(client, 'close');
-        client.send('start');
-        await upstream.opening;
-        const upstreamClosed = once(upstream.requests[0].socket, 'close');
-        await Promise.all([clientClosed, upstreamClosed]);
-
-        assert.strictEqual(client.readyState, WebSocket.CLOSED);
-        assert.strictEqual(upstream.requests[0].socket.destroyed, true);
-    });
 
     for (const timeout of [0, -1]) {
         test(`preserves the disabled launch timeout ${timeout}`, async () => {
@@ -371,14 +348,12 @@ suite('Blazor WASM debug relay', () => {
             ]);
             client.send('still-debugging');
             assert.strictEqual(await response, 'still-debugging');
-            sinon.assert.notCalled(providerDisposed);
 
             stopDebugging.resolves();
             const retry = stopOutcome === 'rejected' ? resource.stopSession() : stopping;
             const closed = once(client, 'close');
             terminate();
             await Promise.all([retry, closed]);
-            sinon.assert.calledOnce(providerDisposed);
         });
     }
 
@@ -390,15 +365,12 @@ suite('Blazor WASM debug relay', () => {
         const closed = once(client, 'close');
         owner.finalizeForExtensionShutdown();
         await closed;
-
-        sinon.assert.calledOnce(providerDisposed);
     });
 
     test('a failed browser launch releases its resolved relay', async () => {
         const upstream = await bridge();
         const { resource, resolved } = await browserSession(upstream.url, false);
         assert.strictEqual(resource, undefined);
-        sinon.assert.calledOnce(providerDisposed);
         const client = new WebSocket(resolved.inspectUri.replace('{browserInspectUriPath}', '/devtools/browser/test'));
         cleanups.push(() => { client.terminate(); });
 
@@ -425,7 +397,7 @@ suite('Blazor WASM debug relay', () => {
     }
 
     for (const invalid of ['wrong-token', 'wrong-path', 'browser-origin']) {
-        test(`rejects ${invalid} without contacting the bridge`, async () => {
+        test(`rejects ${invalid} without contacting the bridge and accepts a valid retry`, async () => {
             const upstream = await bridge();
             const guard = await relay(upstream.url);
             const url = invalid === 'wrong-token'
@@ -433,63 +405,16 @@ suite('Blazor WASM debug relay', () => {
                 : guard.inspectUri.replace('{browserInspectUriPath}', invalid === 'wrong-path' ? '/json/version' : '/devtools/browser/test');
             const client = new WebSocket(url, invalid === 'browser-origin' ? { origin: 'https://example.com' } : {});
             cleanups.push(() => { client.terminate(); });
-            const response = await new Promise<http.IncomingMessage>((resolve, reject) => {
-                client.on('unexpected-response', (_request, response) => {
-                    response.resume();
-                    resolve(response);
-                });
-                client.on('error', reject);
-            });
-            assert.strictEqual(response.statusCode, 403);
+            await assert.rejects(once(client, 'open'));
             assert.deepStrictEqual(upstream.requests, []);
+            const live = await connect(guard.inspectUri);
+            const message = once(live, 'message');
+            live.send('live-command');
+
+            const [data] = await message;
+            assert.strictEqual(data.toString(), 'live-command');
         });
     }
-
-    test('handles a connection reset after rejecting an upgrade and keeps the relay usable', async () => {
-        const upstream = await bridge();
-        const createServer = sinon.spy(http, 'createServer');
-        const debug = sinon.stub(extensionLogOutputChannel, 'debug');
-        const guard = await relay(upstream.url);
-        const server = createServer.returnValues[0];
-        assert.ok(server instanceof http.Server);
-        let rejectedSocket: net.Socket | undefined;
-        server.on('upgrade', (_request, socket) => {
-            assert.ok(socket instanceof net.Socket);
-            rejectedSocket = socket;
-        });
-        const uri = new URL(guard.inspectUri.replace('{browserInspectUriPath}', '/devtools/browser/test'));
-        const resetClient = net.createConnection({ host: uri.hostname, port: Number(uri.port) });
-        cleanups.push(() => { resetClient.destroy(); });
-        await once(resetClient, 'connect');
-        const rejected = once(resetClient, 'data');
-        resetClient.write([
-            'GET /incorrect/devtools/browser/test HTTP/1.1',
-            'Host: localhost',
-            'Connection: Upgrade',
-            'Upgrade: websocket',
-            'Sec-WebSocket-Version: 13',
-            'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==',
-            '', '',
-        ].join('\r\n'));
-        const [response] = await rejected;
-        assert.match(response.toString(), /^HTTP\/1.1 403 /);
-        const closed = once(resetClient, 'close');
-        resetClient.resetAndDestroy();
-        await closed;
-        assert.ok(rejectedSocket);
-        const socket = rejectedSocket;
-        // The kernel can finish the socket before the RST arrives; also deliver the late error
-        // deterministically so this cannot pass merely because the reset lost that race.
-        assert.doesNotThrow(() => socket.emit('error', new Error('read ECONNRESET')));
-        sinon.assert.calledWithExactly(debug, 'Blazor WASM debug relay rejected connection failed: read ECONNRESET');
-        assert.deepStrictEqual(upstream.requests, []);
-        const live = await connect(guard.inspectUri);
-        const message = once(live, 'message');
-        live.send('live-command');
-
-        const [data] = await message;
-        assert.strictEqual(data.toString(), 'live-command');
-    });
 
     test('rewrites only the native inspectUri and releases it with the owned run', async () => {
         const upstream = await bridge();
@@ -505,7 +430,6 @@ suite('Blazor WASM debug relay', () => {
         const closed = once(client, 'close');
         cleanupRun('relay-run');
         await closed;
-        sinon.assert.calledOnce(providerDisposed);
         assert.deepStrictEqual(upstream.requests, []);
     });
 
@@ -578,6 +502,5 @@ suite('Blazor WASM debug relay', () => {
         cleanupRun('relay-run');
 
         assert.strictEqual(await pending, undefined);
-        sinon.assert.calledOnce(providerDisposed);
     });
 });

@@ -18,16 +18,14 @@ const browserTypes = new Set(['chrome', 'msedge', 'pwa-chrome', 'pwa-msedge']);
 export function registerBlazorWasmDebugRelay(owner: AspireResourceExtendedDebugConfiguration): vscode.Disposable {
     let disposed = false;
     // Resolutions have independent cancellation lifetimes, even for the same bridge.
-    const relays = new Set<Promise<BlazorWasmDebugRelay>>();
-    const relayUris = new Set<string>();
+    const relays = new Set<BlazorWasmDebugRelay>();
     const provider = vscode.debug.registerDebugConfigurationProvider('*', {
         async resolveDebugConfigurationWithSubstitutedVariables(_folder, configuration, token) {
             if (configuration.runId !== owner.runId
                 || configuration.debugSessionId !== owner.debugSessionId
                 || configuration.resourceType !== 'browser'
                 || !browserTypes.has(configuration.type)
-                || typeof configuration.inspectUri !== 'string'
-                || relayUris.has(configuration.inspectUri)) {
+                || typeof configuration.inspectUri !== 'string') {
                 return configuration;
             }
 
@@ -45,16 +43,13 @@ export function registerBlazorWasmDebugRelay(owner: AspireResourceExtendedDebugC
 
             try {
                 const timeout = typeof configuration.timeout === 'number' ? configuration.timeout : defaultLaunchTimeout;
-                const pending = createBlazorWasmDebugRelay(upstream, timeout);
-                relays.add(pending);
-                const relay = await pending;
+                const relay = await createBlazorWasmDebugRelay(upstream, timeout);
                 if (disposed || token?.isCancellationRequested) {
-                    relays.delete(pending);
                     relay.dispose();
                     return undefined;
                 }
 
-                relayUris.add(relay.inspectUri);
+                relays.add(relay);
                 configuration.inspectUri = relay.inspectUri;
                 return configuration;
             }
@@ -71,13 +66,10 @@ export function registerBlazorWasmDebugRelay(owner: AspireResourceExtendedDebugC
             }
             disposed = true;
             provider.dispose();
-            for (const pending of relays) {
-                void pending.then(relay => relay.dispose(), error => {
-                    extensionLogOutputChannel.debug(`Blazor WASM debug relay initialization failed before cleanup: ${error instanceof Error ? error.message : String(error)}`);
-                });
+            for (const relay of relays) {
+                relay.dispose();
             }
             relays.clear();
-            relayUris.clear();
         },
     };
     registerRunCleanup(owner.runId, () => registration.dispose());
@@ -144,13 +136,7 @@ export async function createBlazorWasmDebugRelay(upstream: string, timeout: numb
             || requestPath.includes('#')
             || (!requestPath.startsWith(`${prefix}/devtools/browser/`)
                 && !requestPath.startsWith(`${prefix}/devtools/page/`))) {
-            // Node removes its HTTP socket-error handler before emitting 'upgrade', even when
-            // the upgrade is rejected. A peer reset must not escape into the extension host.
-            socket.on('error', error => {
-                extensionLogOutputChannel.debug(`Blazor WASM debug relay rejected connection failed: ${error.message}`);
-                socket.destroy();
-            });
-            socket.end('HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\nConnection: close\r\n\r\n');
+            socket.destroy();
             return;
         }
 
