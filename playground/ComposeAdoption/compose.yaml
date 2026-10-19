@@ -5,20 +5,20 @@ services:
     command: ["redis-server", "--save", "", "--appendonly", "no"]
     expose: ["6379"]
   api:
-    image: python:3.12-alpine
-    command: ["python", "-u", "/app/api.py"]
+    image: mcr.microsoft.com/dotnet/aspnet:10.0
+    command: ["dotnet", "/app/ComposeAdoption.Api.dll", "--IMPLEMENTATION", "compose-dotnet"]
     environment:
       REDIS_URL: redis://redis:6379
     expose: ["8080"]
     volumes:
-      - ./api.py:/app/api.py:ro
+      - ../../artifacts/compose-adoption/api:/app:ro
     depends_on: [redis]
   gateway:
-    image: python:3.12-alpine
-    command: ["python", "-u", "/app/gateway.py"]
+    image: mcr.microsoft.com/dotnet/aspnet:10.0
+    command: ["dotnet", "/app/ComposeAdoption.Gateway.dll"]
     environment:
       API_URL: http://api:8080
     ports: ["18080:8080"]
     volumes:
-      - ./gateway.py:/app/gateway.py:ro
+      - ../../artifacts/compose-adoption/gateway:/app:ro
     depends_on: [api]

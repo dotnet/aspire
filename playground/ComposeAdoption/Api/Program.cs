@@ -13,7 +13,7 @@ app.MapGet("/", async (IConfiguration configuration, CancellationToken cancellat
     using var connection = new TcpClient();
     await connection.ConnectAsync(redis.Host, redis.Port, cancellationToken);
     await using var stream = connection.GetStream();
-    // RESP INCR visits, shared with the preexisting Python service.
+    // Redis RESP: the same counter is used by container and local-source modes.
     await stream.WriteAsync("*2\r\n$4\r\nINCR\r\n$6\r\nvisits\r\n"u8.ToArray(), cancellationToken);
     using var reader = new StreamReader(stream, Encoding.UTF8, leaveOpen: true);
     var response = await reader.ReadLineAsync(cancellationToken);
@@ -21,7 +21,7 @@ app.MapGet("/", async (IConfiguration configuration, CancellationToken cancellat
     {
         throw new InvalidOperationException($"Redis INCR failed: {response}");
     }
-    return Results.Ok(new { implementation = "local-dotnet", visits });
+    return Results.Ok(new { implementation = configuration["IMPLEMENTATION"] ?? "local-dotnet", visits });
 });
 
 app.Run();

@@ -18,6 +18,10 @@ if [[ $# -gt 1 || ( -n "$mode" && "$mode" != "--build-only" && "$mode" != "--no-
     exit 2
 fi
 if [[ "$mode" != "--no-build" ]]; then
+    "$dotnet" publish "$sample/Api/ComposeAdoption.Api.csproj" -p:NuGetAudit=false \
+        -c Debug -o "$repo/artifacts/compose-adoption/api"
+    "$dotnet" publish "$sample/Gateway/ComposeAdoption.Gateway.csproj" -p:NuGetAudit=false \
+        -c Debug -o "$repo/artifacts/compose-adoption/gateway"
     "$dotnet" build "$sample/AppHost/ComposeAdoption.AppHost.csproj" -p:NuGetAudit=false
 fi
 if [[ "$mode" == "--build-only" ]]; then

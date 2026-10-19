@@ -8,10 +8,11 @@ or second `compose up` supervisor runs alongside DCP.
 
 ## Reproduce the complete journey
 
-Requirements: Linux/macOS, Bash, curl, Python 3 (verification only), a running
+Requirements: Linux/macOS, Bash, curl, a running
 Docker engine, Docker Compose v2 or later, and the repository's .NET SDK.
 The verified environment used Linux x64, Docker 29.1.3, Compose 5.6.0, DCP 0.27.0,
-and the SDK pinned by `global.json`. Images are pulled from Docker Hub.
+and the SDK pinned by `global.json`. Redis is pulled from Docker Hub and the
+.NET 10 ASP.NET runtime image from Microsoft's container registry.
 
 Start from a fresh clone using GitHub CLI (or fetch the PR branch with git):
 
@@ -38,9 +39,13 @@ the network-dependent audit for its local sample build; it does not disable anal
 
 The script checks a real Redis-backed request through all three configurations,
 dashboard HTTP availability, absence of the replaced API container, and cleanup.
-It builds the sample and dashboard synchronously before starting its readiness
+It publishes the .NET API and gateway into ignored
+`artifacts/compose-adoption/{api,gateway}` directories, then builds the AppHost
+and dashboard synchronously before starting its readiness
 timer, so a cold compilation is not mistaken for an unresponsive application.
-`run.sh --build-only` builds without launching; `run.sh --no-build` runs the
+The Compose file bind-mounts these published assemblies into the runtime image;
+it does not use an unimplemented Compose `build` field. `run.sh --build-only`
+prepares these artifacts without launching; `run.sh --no-build` runs the
 previously built assembly. Both derive paths from the checkout, not a developer's
 machine-specific output directory.
 It stops its own AppHosts and Compose project on exit. Keep ports **18080** (gateway),
@@ -52,6 +57,7 @@ To explore interactively:
 
 ```bash
 # Original stack, without Aspire:
+bash playground/ComposeAdoption/run.sh --build-only
 docker compose -f playground/ComposeAdoption/compose.yaml up -d --wait
 curl -fsS http://localhost:18080/
 docker compose -f playground/ComposeAdoption/compose.yaml down
@@ -73,12 +79,16 @@ authentication/TLS settings should be used outside this local experiment.
 Expected responses (whitespace varies):
 
 ```json
-{"implementation":"compose-python","visits":1}
+{"implementation":"compose-dotnet","visits":1}
 {"implementation":"local-dotnet","visits":1}
 {"implementation":"local-dotnet","visits":2}
 ```
 
 The Redis counter demonstrates the real dependency, not a canned response.
+Both containerized services use .NET; verification is Bash/curl only. The API
+assembly is the same in container and local-source modes. Its container command
+selects the `compose-dotnet` response marker; the local project defaults to
+`local-dotnet`. Replacement deliberately does not inherit the container command.
 Redis is ephemeral here: the original stack is stopped before Aspire starts,
 and the counter resets between AppHost runs. This does **not** demonstrate adoption
 of existing running containers or preservation/migration of database data.
@@ -176,8 +186,10 @@ black-box service-discovery mechanisms.
 
 ## Why not a first-class Go DCP Compose resource yet?
 
-Public DCP source was inspected read-only; no DCP changes or additional repository
-credentials are needed for this experiment. Research revision:
+**No DCP PR has been created.** Public DCP source was inspected read-only; this
+implementation normalizes Compose into existing Aspire/DCP resources, rather than
+adding a first-class Compose resource. No DCP changes or additional repository
+credentials are needed for this bounded experiment. Research revision:
 [`cd36bfe59ac6d6c2a79600292f0b90affa294f89`](https://github.com/microsoft/dcp/commit/cd36bfe59ac6d6c2a79600292f0b90affa294f89).
 
 - [`api/v1/groupversion_info.go`](https://github.com/microsoft/dcp/blob/cd36bfe59ac6d6c2a79600292f0b90affa294f89/api/v1/groupversion_info.go)
@@ -216,6 +228,36 @@ dependency without introducing a new scheduling resource.
 
 ## Next design questions
 
+### What is incomplete for brownfield adoption?
+
+The sample is an acceptance probe for one supported graph, not proof that an
+arbitrary existing Compose stack can be adopted. In particular, it prepares .NET
+assemblies before Compose starts and uses only ephemeral Redis and whole-URL
+environment references. It does not exercise Compose builds, retained data or
+arbitrary existing service-discovery conventions.
+
+| Missing capability | Consequence for an existing stack |
+| --- | --- |
+| Build contexts, Dockerfiles and build arguments | A stack using `build` cannot be imported without separately producing images. |
+| Healthchecks and `service_healthy` / completion conditions | `service_started` cannot preserve readiness or migration-job semantics. |
+| Named volumes and explicit storage ownership | Existing database state cannot be adopted, and cleanup/migration ownership is undefined. |
+| Custom networks, aliases across networks and profiles | Multiple-network isolation and optional services are not preserved. |
+| Secrets/configs and explicit binding overrides | The importer cannot infer secret classification or retarget arbitrary connection-string fragments/files. |
+| Migration/override tooling and dashboard provenance | There is no guided preflight/report, generated service handles, grouping, or source mapping back to Compose fields. |
+
+The smallest coherent completion path is to choose a representative existing
+stack, record its required semantics and unchanged request path, and add an
+explicit import plan with per-service/endpoint overrides and source provenance.
+Then implement that stack's build, health and storage-ownership requirements
+with positive/negative tests and a state-preserving replacement scenario.
+Unsupported semantics must continue to fail explicitly. Calling the present
+fixture "complete Compose adoption" would skip those acceptance criteria.
+
+Existing DCP resources can still support that next slice; a Go Compose controller
+is not a prerequisite established by this experiment. If fidelity requires a
+first-class controller, its interface and joint Aspire changes are described
+above. That separate cross-repository scope must be agreed before implementation.
+
 Import currently normalizes at AppHost startup, not build time; Docker Compose must
 be on PATH and a changed file requires an AppHost restart. Typed service access,
 source-generator overrides and a one-time migration command could layer over a
@@ -245,13 +287,12 @@ Verified against Aspire base `5bcd4dfc95d5000b36a14c5680c4ec73c63e9986`:
 | --- | --- |
 | Sample, hosting integration and real dashboard build | Passed, 0 warnings / 0 errors |
 | Focused importer tests | 29 passed, 0 failed/skipped |
-| Original Compose gateway -> Python API -> Redis | `compose-python`, visits 1 |
-| Imported native DCP containers, same request | `compose-python`, visits 1 |
+| Original Compose .NET gateway -> .NET API -> Redis | `compose-dotnet`, visits 1 |
+| Imported native DCP containers, same request | `compose-dotnet`, visits 1 |
 | Gateway container -> local .NET API -> Redis | `local-dotnet`, visits 1 then 2 |
 | Dashboard HTTP in imported/replaced modes | 200 |
-| Browser inspection, imported mode | `legacy-api`, `legacy-gateway`, `legacy-redis`: Running |
-| Browser inspection, replaced mode | `legacy-gateway`, `legacy-redis`, Project `local-api`: Running |
-| Replaced gateway environment, observed allocation | `API_URL=http://aspire.dev.internal:40067` |
+| Earlier browser inspection, before the .NET-only fixture revision | Imported: three Running containers; replaced: gateway/Redis + Project `local-api`, Running |
+| Earlier replaced gateway environment, observed allocation | `API_URL=http://aspire.dev.internal:40067` |
 | API container after replacement | Absent; existing DCP tunnel proxy present |
 | AppHost shutdown | Imported containers removed by DCP |
 | Importer whitespace formatting and shell syntax | Passed |

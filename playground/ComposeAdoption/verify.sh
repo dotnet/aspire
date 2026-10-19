@@ -46,13 +46,14 @@ check_response() {
     local response=""
     for attempt in $(seq 1 90); do
         if response="$(curl -fsS --max-time 3 http://localhost:18080/)"; then
-            printf '%s\n' "$response" | python3 -c '
-import json, sys
-body = json.load(sys.stdin)
-assert body["implementation"] == sys.argv[1], body
-assert body["visits"] >= int(sys.argv[2]), body
-print(json.dumps(body))
-' "$expected" "$minimum"
+            # The fixture emits exactly {"implementation":"...","visits":1}.
+            # Anchor the entire response instead of accepting a partial match.
+            local pattern="^\\{\"implementation\":\"$expected\",\"visits\":([0-9]+)\\}$"
+            if [[ ! "$response" =~ $pattern ]] || (( BASH_REMATCH[1] < minimum )); then
+                echo "Unexpected response for $expected (minimum visits $minimum): $response" >&2
+                return 1
+            fi
+            printf '%s\n' "$response"
             return
         fi
         if [[ -n "$apphost_pid" ]] && ! kill -0 "$apphost_pid" 2>/dev/null; then
@@ -66,13 +67,13 @@ print(json.dumps(body))
 }
 
 echo "Original Compose stack:"
-check_response compose-python
+check_response compose-dotnet
 docker compose -f "$sample/compose.yaml" down
 
 echo "Imported Aspire containers:"
 bash "$sample/run.sh" --no-build > "$sample/imported.log" 2>&1 &
 apphost_pid=$!
-check_response compose-python
+check_response compose-dotnet
 curl -fsS http://localhost:18888/ > /dev/null
 stop_apphost
 
