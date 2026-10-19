@@ -8,8 +8,8 @@ namespace Aspire.Hosting.Docker.Tests;
 public class DashboardImageTests
 {
     [Fact]
-    public void ResolveTag_FromRunningAssembly_UsesBuildTimeImageTag()
+    public void ResolveTag_FromRunningAssembly_UsesProductVersion()
     {
-        Assert.Equal("13.6", DashboardImage.ResolveTag());
+        Assert.Equal("17.0", DashboardImage.ResolveTag());
     }
 }

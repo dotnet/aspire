@@ -19,7 +19,7 @@ internal static class DashboardImage
     public const string Name = "mcr.microsoft.com/aspire/nightly/dashboard";
 
     /// <summary>
-    /// Resolves the dashboard image tag from a build-time override, or the running Aspire product
+    /// Resolves the dashboard image tag from the running Aspire product
     /// version's <c>major.minor</c> (for example <c>13.5</c>).
     /// </summary>
     public static string ResolveTag()
@@ -31,22 +31,12 @@ internal static class DashboardImage
         //   "13.5.0-preview.1.25111.1+ad18db0213e9db8209bca0feb83fc801f34634f5"
         // The assembly version (e.g. "13.5.0.0") is used as a fallback when it is unavailable.
         var informationalVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
-        var imageTag = assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
-            .SingleOrDefault(attribute => attribute.Key == "AspireDashboardImageTag")?.Value;
 
-        return ResolveTag(informationalVersion, assembly.GetName().Version?.ToString(), imageTag);
+        return ResolveTag(informationalVersion, assembly.GetName().Version?.ToString());
     }
 
-    internal static string ResolveTag(string? informationalVersion, string? assemblyVersion, string? imageTag)
+    internal static string ResolveTag(string? informationalVersion, string? assemblyVersion)
     {
-        // Advance release branches can bump the product version before the matching image is
-        // published. Honor their explicit build-time pin instead of requesting a nonexistent tag
-        // or silently switching to the mutable ":latest" image.
-        if (!string.IsNullOrEmpty(imageTag))
-        {
-            return imageTag;
-        }
-
         if (TryGetMajorMinor(informationalVersion, out var majorMinor) ||
             TryGetMajorMinor(assemblyVersion, out majorMinor))
         {
