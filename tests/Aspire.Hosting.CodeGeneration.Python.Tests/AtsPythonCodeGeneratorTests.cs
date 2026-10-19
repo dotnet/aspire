@@ -358,6 +358,68 @@ public class AtsPythonCodeGeneratorTests
     [Fact]
     [RequiresTools(["python3"])]
     [SkipOnPlatform(TestPlatforms.Windows, "Uses the Unix Python executable.")]
+    public Task GeneratedAksNodePoolCallbacks_ReturnMutatedDtosOnUnix()
+        => GeneratedAksNodePoolCallbacks_ReturnMutatedDtos("python3");
+
+    [Fact]
+    [RequiresTools(["python"])]
+    [SkipOnPlatform(TestPlatforms.Linux | TestPlatforms.OSX | TestPlatforms.FreeBSD, "Uses the Windows Python executable.")]
+    public Task GeneratedAksNodePoolCallbacks_ReturnMutatedDtosOnWindows()
+        => GeneratedAksNodePoolCallbacks_ReturnMutatedDtos("python");
+
+    private Task GeneratedAksNodePoolCallbacks_ReturnMutatedDtos(string pythonExecutable)
+    {
+        var context = AtsCapabilityScanner.ScanAssemblies(
+        [
+            typeof(DistributedApplication).Assembly,
+            typeof(global::Aspire.Hosting.Kubernetes.KubernetesNodePoolResource).Assembly,
+            typeof(global::Aspire.Hosting.Azure.Kubernetes.AksNodePoolOptions).Assembly
+        ]).ToAtsContext();
+        var files = _generator.GenerateDistributedApplication(context);
+        return ExecuteGeneratedPythonAsync(pythonExecutable, files["aspire_app.py"],
+            """
+            import json
+            import typing
+            import aspire_app
+
+            assert typing.get_type_hints(aspire_app.AksNodePoolOptions) == {
+                "vmSize": str, "minCount": int, "maxCount": int, "osSku": str | None
+            }
+            client = aspire_app.AspireClient("unused")
+            handle = aspire_app.Handle({"$handle": "aks", "$type": "Aspire.Hosting.Azure.Kubernetes/Aspire.Hosting.Azure.Kubernetes.AzureKubernetesEnvironmentResource"})
+            results = []
+
+            def configure(options):
+                assert options == {"vmSize": "Standard_D2s_v5", "minCount": 1, "maxCount": 3, "osSku": None}
+                options["minCount"] = 2
+                options["maxCount"] = 5
+                options["osSku"] = "AzureLinux"
+
+            def invoke_capability(capability_id, args, kwargs=None):
+                assert capability_id in (
+                    "Aspire.Hosting.Azure.Kubernetes/withSystemNodePool",
+                    "Aspire.Hosting.Azure.Kubernetes/addNodePool",
+                )
+                callback = client._callback_registry[args["configure"]]
+                payload = json.loads('{"p0":{"vmSize":"Standard_D2s_v5","minCount":1,"maxCount":3,"osSku":null}}')
+                result = callback(payload, client)
+                assert json.loads(json.dumps(result)) == {"p0": {
+                    "vmSize": "Standard_D2s_v5", "minCount": 2, "maxCount": 5, "osSku": "AzureLinux"
+                }}
+                results.append(result)
+                return args["builder"]
+
+            client.invoke_capability = invoke_capability
+            resource = aspire_app.AzureKubernetesEnvironmentResource(handle, client)
+            assert resource.with_system_node_pool(configure) is resource
+            resource.add_node_pool("workers", configure)
+            assert len(results) == 2
+            """);
+    }
+
+    [Fact]
+    [RequiresTools(["python3"])]
+    [SkipOnPlatform(TestPlatforms.Windows, "Uses the Unix Python executable.")]
     public Task GeneratedCallback_WrapsGenericResourceBuilderHandleOnUnix()
         => GeneratedCallback_WrapsGenericResourceBuilderHandle("python3");
 

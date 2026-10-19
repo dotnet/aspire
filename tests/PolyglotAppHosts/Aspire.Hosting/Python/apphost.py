@@ -4,6 +4,7 @@
 from aspire_app import (
     AfterPublishEvent,
     AfterResourcesCreatedEvent,
+    AksNodePoolOptions,
     AksNodeVmSizes,
     AzureResourceInfrastructure,
     AzureServiceTags,
@@ -273,7 +274,15 @@ ENTRYPOINT ["dotnet", "App.dll"]"""
 
     aks = builder.add_azure_kubernetes_env("aks")
     aks.configure_infrastructure(configure_aks)
-    aks.add_node_pool("system", vm_size=AksNodeVmSizes.StandardDSv5.StandardD2sV5)
+    def configure_system_pool(pool: AksNodePoolOptions) -> None:
+        pool["osSku"] = "AzureLinux"
+
+    def configure_worker_pool(pool: AksNodePoolOptions) -> None:
+        pool["vmSize"] = AksNodeVmSizes.StandardDSv5.StandardD2sV5
+        pool["osSku"] = "AzureLinux"
+
+    aks.with_system_node_pool(configure_system_pool)
+    aks.add_node_pool("workers", configure_worker_pool)
     # builder-level pipeline APIs
     pipeline = builder.pipeline
 

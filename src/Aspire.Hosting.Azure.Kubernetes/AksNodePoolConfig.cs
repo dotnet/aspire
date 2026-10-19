@@ -16,7 +16,13 @@ public sealed record AksNodePoolConfig(
     string VmSize,
     int MinCount,
     int MaxCount,
-    AksNodePoolMode Mode);
+    AksNodePoolMode Mode)
+{
+    /// <summary>
+    /// Gets the Linux OS SKU, or <c>null</c> when AKS chooses its default.
+    /// </summary>
+    public string? OsSku { get; init; }
+}
 
 /// <summary>
 /// Specifies the mode of an AKS node pool.
