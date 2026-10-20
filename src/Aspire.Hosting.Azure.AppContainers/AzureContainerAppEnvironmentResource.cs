@@ -257,6 +257,13 @@ public class AzureContainerAppEnvironmentResource :
 
     internal bool IsExpress { get; set; }
 
+    /// <summary>
+    /// Gets a value indicating whether the environment is the target of a private link, such as an Azure Front Door
+    /// Private Link connection. Public network access is disabled for such an environment, so apps in the
+    /// environment are reachable only through the private link.
+    /// </summary>
+    internal bool IsPublicNetworkAccessDisabled => this.HasAnnotationOfType<PrivateEndpointTargetAnnotation>();
+
     internal void ValidatePublicEndpointReference(EndpointReference endpointReference)
     {
         if (!endpointReference.EndpointAnnotation.IsExternal)
@@ -283,6 +290,14 @@ public class AzureContainerAppEnvironmentResource :
     /// Gets the default domain associated with the Container App Environment.
     /// </summary>
     internal BicepOutputReference ContainerAppDomain => new("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", this);
+
+    /// <summary>
+    /// Gets the Azure region of the Container App Environment. The module only emits this output when the
+    /// environment is the target of a private link (see <see cref="IsPublicNetworkAccessDisabled"/>).
+    /// </summary>
+    internal BicepOutputReference ContainerAppLocation => new(LocationOutputName, this);
+
+    internal const string LocationOutputName = "AZURE_CONTAINER_APPS_ENVIRONMENT_LOCATION";
 
     /// <summary>
     /// Gets the name of the associated Azure Container Registry.

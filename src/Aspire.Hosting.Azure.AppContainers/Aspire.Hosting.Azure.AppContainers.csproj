@@ -28,4 +28,8 @@
     <ProjectReference Include="..\Aspire.Hosting.Azure.OperationalInsights\Aspire.Hosting.Azure.OperationalInsights.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Hosting.Azure.FrontDoor" />
+  </ItemGroup>
+
 </Project>

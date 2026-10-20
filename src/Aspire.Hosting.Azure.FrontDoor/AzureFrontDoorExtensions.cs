@@ -38,6 +38,10 @@ public static class AzureFrontDoorExtensions
     /// <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}"/> to customize the
     /// generated infrastructure directly.
     /// </para>
+    /// <para>
+    /// To reach apps in an Azure Container Apps environment over Private Link instead of the public Internet, see
+    /// <see cref="AzureFrontDoorPrivateLinkExtensions.WithAzureFrontDoorPrivateLink"/>.
+    /// </para>
     /// <example>
     /// Add an Azure Front Door resource with origins:
     /// <code lang="C#">
@@ -78,6 +82,7 @@ public static class AzureFrontDoorExtensions
             // Create a separate endpoint → origin group → origin → route per WithOrigin call.
             // This gives each backend app its own Front Door hostname.
             var originAnnotations = azureResource.Annotations.OfType<AzureFrontDoorOriginAnnotation>().ToList();
+            var privateLink = new AzureFrontDoorPrivateLinkConfigurator(infrastructure, azureResource);
             foreach (var originAnnotation in originAnnotations)
             {
                 var originResource = originAnnotation.Resource;
@@ -133,6 +138,9 @@ public static class AzureFrontDoorExtensions
                     origin.GetResourceNameRequirements().MaxLength);
                 infrastructure.Add(origin);
 
+                // Reach origins in an environment connected through Private Link over the private endpoint.
+                privateLink.TryConfigureOrigin(computeEnv, originResource.Name, originGroup, origin);
+
                 // Route
                 var route = new FrontDoorRoute($"{originBicepId}Route")
                 {
@@ -158,6 +166,8 @@ public static class AzureFrontDoorExtensions
                     Value = endpoint.Id
                 });
             }
+
+            privateLink.Complete(profile);
         };
 
         var resource = new AzureFrontDoorResource(name, configureInfrastructure);
