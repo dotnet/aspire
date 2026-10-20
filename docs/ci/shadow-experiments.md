@@ -124,3 +124,65 @@ have been inspected.
 This bounded managed-output trial does not measure the entire pipeline,
 change native producers, omit Windows/ARM coverage, or establish ten-minute CI.
 Other platform/selector/native hypotheses need their own isolated experiments.
+
+## Measured result: sharing was slower for two shards
+
+The [upstream experiment PR](https://github.com/microsoft/aspire/pull/21166)
+completed [run 39343893728, attempt 1](https://github.com/microsoft/aspire/actions/runs/39343893728).
+Its fixed source was `radical/aspire` commit
+`e8a1e1f2847f2b1f17ba84ab388352b19ff6ddf4`; all execution was upstream.
+The separately recorded harness PR merge SHA was
+`b6ed3f8ca6f70a6c4146e3a51fd67cda344cebd2`. Subsequent documentation commits
+are not measured source.
+
+All 15 workload jobs used `8-core-ubuntu-latest`, with eight observed CPUs and
+Ubuntu 24.04.5 LTS. All 19 workflow jobs succeeded. Independent inspection of
+the 12 TRX files confirmed identical complete class/method/display-name/outcome
+inventories: 42 StableConnectionStringBuilder and 10 ResourceBuilderLifetime
+tests per arm per repetition, totaling 312 passing executions.
+
+| Repetition | Baseline elapsed | Shared elapsed | Shared penalty | Baseline runner-seconds | Shared runner-seconds |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 1 | 167 s | 221 s | +54 s | 312 | 256 |
+| 2 | 176 s | 210 s | +34 s | 340 | 239 |
+| 3, mixed image patch | 157 s | 227 s | +70 s | 313 | 259 |
+
+**Image caveat:** repetitions 1 and 2 used `ubuntu-24.04` image
+`20261012.334.1` for all five workload jobs. Repetition 3 used
+`20261018.339.1` for both baseline jobs and the producer, but
+`20261012.334.1` for both consumers. Job setup logs confirm these versions;
+no measured job used Ubuntu 26. Both fully same-image pairs still became
+slower with sharing (+54 and +34 seconds).
+There are two clean matched-image pairs, not three; a strict three-pair
+controlled confidence target remains unmet, and the causal magnitude is
+inconclusive.
+
+The descriptive three-repetition elapsed median increased from 167 to 221
+seconds (+32.3%); min/max were 157/176 and 210/227 seconds respectively.
+Runner-second medians decreased from 313 to 256 (-18.2%); min/max were
+312/340 and 239/259. Aggregate runner time decreased from 965 to 754 seconds
+(-21.9%). These summaries include the mixed-image repetition and are not an
+image-controlled estimate.
+
+Producer build phases took 136.81-140.39 seconds; archiving took 3.45-3.92
+seconds. Consumers spent 6.37-8.79 seconds bootstrapping the source-pinned SDK,
+4.82-9.63 seconds installing both exact runtime patches, and 0.47-0.60 seconds
+extracting output. Selected tests took 1.65-2.55 seconds. The measured lane
+spans also include job startup, checkout, transfer, scheduling and post-job
+work; script phases alone would undercount the added barrier.
+
+The full workflow took 12m58s because it ran three sequential comparisons and
+verification jobs. This is not a one-lane production CI estimate. Later
+repetitions' workflow-created intervals include earlier repetitions, not
+independent initial queue delays.
+
+The earlier [run 39342029624](https://github.com/microsoft/aspire/actions/runs/39342029624)
+is excluded: every consumer failed before tests because the repository's
+Arcade runtime installer wrapper requires `-runtime` and `-version`, not
+upstream double-dash options. The corrected run above passed.
+
+**Decision:** do not adopt a separate shared-build producer as a latency
+optimization for these two tiny parallel shards. It saves compute but adds
+elapsed time. This demonstrates transferable managed output, not equivalence
+for every Hosting test, native output, other platforms, or ten-minute CI.
+The PR remains a draft experiment with `NO-MERGE`; production CI is unchanged.
