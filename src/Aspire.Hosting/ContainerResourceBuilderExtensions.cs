@@ -48,7 +48,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     internal static IResourceBuilder<T> EnsureBuildAndPushPipelineAnnotations<T>(this IResourceBuilder<T> builder) where T : ContainerResource
     {
-        builder.WithAnnotation(new PipelineStepAnnotation((factoryContext) =>
+        builder.WithAnnotation(new ContainerBuildAndPushPipelineStepAnnotation((factoryContext) =>
         {
             var steps = new List<PipelineStep>();
 
@@ -1904,3 +1904,8 @@ internal static class IListExtensions
         }
     }
 }
+
+// A dedicated type keeps ResourceAnnotationMutationBehavior.Replace scoped to the build/push registration.
+// Replacing by the PipelineStepAnnotation base type also matched unrelated step annotations that other callers
+// appended to the same resource, so it either removed them or threw once more than one was present.
+internal sealed class ContainerBuildAndPushPipelineStepAnnotation(Func<PipelineStepFactoryContext, IEnumerable<PipelineStep>> factory) : PipelineStepAnnotation(factory);

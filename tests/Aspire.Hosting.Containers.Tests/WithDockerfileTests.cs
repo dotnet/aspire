@@ -1026,4 +1026,61 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("push-test-container", pushStep.Name);
         Assert.Contains(WellKnownPipelineSteps.Push, pushStep.RequiredBySteps);
     }
+
+    [Fact]
+    public async Task WithDockerfile_KeepsPipelineStepAnnotationsAddedBeforeIt()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        using var tempDockerfileContext = await DockerfileUtils.CreateTemporaryDockerfileAsync(testOutputHelper);
+        var callerStep = CreateCallerPipelineStepAnnotation("caller-step");
+
+        var container = builder.AddContainer("test-container", "test-image")
+                               .WithAnnotation(callerStep)
+                               .WithDockerfile(tempDockerfileContext.ContextPath, tempDockerfileContext.DockerfilePath);
+
+        Assert.Contains(callerStep, container.Resource.Annotations);
+        Assert.Equal(
+            ["build-test-container", "caller-step", "push-test-container"],
+            await CreatePipelineStepNamesAsync(container.Resource));
+    }
+
+    [Fact]
+    public async Task WithDockerfile_CalledMultipleTimes_KeepsPipelineStepAnnotationsAddedBetweenCalls()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        using var tempDockerfileContext = await DockerfileUtils.CreateTemporaryDockerfileAsync(testOutputHelper);
+        var callerStep = CreateCallerPipelineStepAnnotation("caller-step");
+
+        var container = builder.AddContainer("test-container", "test-image")
+                               .WithDockerfile(tempDockerfileContext.ContextPath, tempDockerfileContext.DockerfilePath)
+                               .WithAnnotation(callerStep)
+                               .WithDockerfile(tempDockerfileContext.ContextPath, tempDockerfileContext.DockerfilePath);
+
+        Assert.Contains(callerStep, container.Resource.Annotations);
+        Assert.Equal(
+            ["build-test-container", "caller-step", "push-test-container"],
+            await CreatePipelineStepNamesAsync(container.Resource));
+    }
+
+    private static PipelineStepAnnotation CreateCallerPipelineStepAnnotation(string name) =>
+        new(_ => new PipelineStep { Name = name, Action = _ => Task.CompletedTask });
+
+    private static async Task<string[]> CreatePipelineStepNamesAsync(IResource resource)
+    {
+        var factoryContext = new PipelineStepFactoryContext
+        {
+            PipelineContext = null!, // Not needed for these tests
+            Resource = resource
+        };
+
+        var stepNames = new List<string>();
+        foreach (var annotation in resource.Annotations.OfType<PipelineStepAnnotation>())
+        {
+            stepNames.AddRange((await annotation.CreateStepsAsync(factoryContext)).Select(step => step.Name));
+        }
+
+        return [.. stepNames.Order(StringComparer.Ordinal)];
+    }
 }
