@@ -44,16 +44,17 @@ public sealed class GoSecretAppHostTests(ITestOutputHelper output)
         await auto.WaitUntilTextAsync("set successfully", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForSuccessPromptAsync(counter);
 
-        // Get
-        await auto.TypeAsync("aspire secret get MyConfig:ApiKey --apphost apphost.go");
+        // Get and list are checked with grep because the secret keys and values also appear in the earlier
+        // `secret set` command lines that are still on screen, so waiting for that text would pass without
+        // any output. The numbered prompt reports grep's exit status, which is what validates the output.
+        await auto.TypeAsync("aspire secret get MyConfig:ApiKey --apphost apphost.go | grep -qx 'test-key-123' && echo E2E_GO_SECRET_GET_OK");
         await auto.EnterAsync();
-        await auto.WaitUntilTextAsync("test-key-123", timeout: TimeSpan.FromSeconds(30));
+        await auto.WaitUntilTextAsync("E2E_GO_SECRET_GET_OK", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForSuccessPromptAsync(counter);
 
-        // List
-        await auto.TypeAsync("aspire secret list --apphost apphost.go");
+        await auto.TypeAsync("aspire secret list --apphost apphost.go | grep 'ConnectionStrings:Db' | grep 'Server=localhost' >/dev/null && echo E2E_GO_SECRET_LIST_OK");
         await auto.EnterAsync();
-        await auto.WaitUntilTextAsync("ConnectionStrings:Db", timeout: TimeSpan.FromSeconds(30));
+        await auto.WaitUntilTextAsync("E2E_GO_SECRET_LIST_OK", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForSuccessPromptAsync(counter);
 
         // Delete
