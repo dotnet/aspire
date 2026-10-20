@@ -97,6 +97,60 @@ public sealed class GoAppHostToolingCheckTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task CheckAsync_Skips_WhenConfiguredAppHostIsNotGoAndGoAppHostIsDiscoverable()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        CreateGoAppHost(workspace);
+
+        // Settings select a TypeScript AppHost outside the working directory, as in `../ts/apphost.mts`.
+        var configuredAppHost = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "..", "ts", "apphost.mts"));
+        var check = CreateCheck(
+            workspace,
+            configuredAppHost,
+            commandResolver: _ => null,
+            languageDiscovery: CreateLanguageDiscovery(goEnabled: true));
+
+        var results = await check.CheckAsync().DefaultTimeout();
+
+        Assert.Empty(results);
+    }
+
+    [Fact]
+    public async Task CheckAsync_ReturnsFail_WhenGoAppHostSitsBesideCSharpProjectAndGoIsMissing()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var appHostFile = CreateGoAppHostBesideCSharpProject(workspace);
+        var check = CreateCheck(
+            workspace,
+            appHostFile: null,
+            commandResolver: _ => null,
+            languageDiscovery: CreateLanguageDiscovery(goEnabled: true));
+
+        var result = Assert.Single(await check.CheckAsync().DefaultTimeout());
+
+        Assert.Equal(EnvironmentCheckStatus.Fail, result.Status);
+        Assert.Equal(GoAppHostToolingCheck.GoCommandCheckName, result.Name);
+        Assert.NotNull(result.Metadata);
+        Assert.Equal(appHostFile.FullName, result.Metadata["appHostPath"]?.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task CheckAsync_Skips_WhenGoFeatureIsDisabled()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        CreateGoAppHostBesideCSharpProject(workspace);
+        var check = CreateCheck(
+            workspace,
+            appHostFile: null,
+            commandResolver: _ => null,
+            languageDiscovery: CreateLanguageDiscovery(goEnabled: false));
+
+        var results = await check.CheckAsync().DefaultTimeout();
+
+        Assert.Empty(results);
+    }
+
+    [Fact]
     public async Task CheckAsync_ReturnsFail_WhenGoIsMissing()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
@@ -342,13 +396,25 @@ public sealed class GoAppHostToolingCheckTests(ITestOutputHelper outputHelper)
         return new FileInfo(appHostPath);
     }
 
+    // DefaultLanguageDiscovery detects any *.csproj as C#, including an ordinary service project.
+    private static FileInfo CreateGoAppHostBesideCSharpProject(TemporaryWorkspace workspace)
+    {
+        var serviceDirectory = workspace.WorkspaceRoot.CreateSubdirectory("api");
+        File.WriteAllText(Path.Combine(serviceDirectory.FullName, "Api.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk.Web\" />");
+        return CreateGoAppHost(workspace);
+    }
+
+    private static DefaultLanguageDiscovery CreateLanguageDiscovery(bool goEnabled) =>
+        new(new TestFeatures().SetFeature(KnownFeatures.ExperimentalPolyglotGo, goEnabled));
+
     private static GoAppHostToolingCheck CreateCheck(
         TemporaryWorkspace workspace,
         FileInfo? appHostFile,
         Func<string, string?>? commandResolver = null,
         Func<string, CancellationToken, Task<string?>>? versionResolver = null,
         IReadOnlyDictionary<string, string?>? environment = null,
-        Func<string, string, CancellationToken, Task<string?>>? toolchainResolver = null)
+        Func<string, string, CancellationToken, Task<string?>>? toolchainResolver = null,
+        ILanguageDiscovery? languageDiscovery = null)
     {
         var projectLocator = new TestProjectLocator
         {
@@ -357,7 +423,7 @@ public sealed class GoAppHostToolingCheckTests(ITestOutputHelper outputHelper)
 
         return new GoAppHostToolingCheck(
             projectLocator,
-            new TestLanguageDiscovery(s_goLanguage),
+            languageDiscovery ?? new TestLanguageDiscovery(s_goLanguage),
             CreateExecutionContext(workspace),
             new TestEnvironment(environment),
             commandResolver ?? (command => $"/usr/bin/{command}"),

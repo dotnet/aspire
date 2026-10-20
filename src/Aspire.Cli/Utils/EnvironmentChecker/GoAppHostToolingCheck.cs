@@ -140,25 +140,20 @@ internal sealed partial class GoAppHostToolingCheck : IEnvironmentCheck
 
     private async Task<FileInfo?> ResolveGoAppHostAsync(CancellationToken cancellationToken)
     {
+        // A configured AppHost is authoritative: when settings select another language's AppHost, that one
+        // runs, so an unrelated apphost.go in the working directory must not require Go.
         var configuredAppHost = await _projectLocator.GetAppHostFromSettingsAsync(cancellationToken);
-        if (configuredAppHost is not null && IsGoLanguage(_languageDiscovery.GetLanguageByFile(configuredAppHost)))
+        if (configuredAppHost is not null)
         {
-            return configuredAppHost;
+            return IsGoLanguage(_languageDiscovery.GetLanguageByFile(configuredAppHost)) ? configuredAppHost : null;
         }
 
-        var detectedLanguageId = await _languageDiscovery.DetectLanguageRecursiveAsync(_executionContext.WorkingDirectory, cancellationToken);
-        if (detectedLanguageId is null)
-        {
-            return null;
-        }
-
-        var detectedLanguage = _languageDiscovery.GetLanguageById(detectedLanguageId.Value);
-        if (!IsGoLanguage(detectedLanguage))
-        {
-            return null;
-        }
-
-        var discoveredPath = detectedLanguage?.FindInDirectory(_executionContext.WorkingDirectory.FullName);
+        // Look for apphost.go directly. DetectLanguageRecursiveAsync returns only the first language that
+        // matches, and C# matches any *.csproj, so a Go AppHost beside an ordinary service project would be
+        // reported as C#. GetLanguageById returns null while experimentalPolyglotGo is off, which keeps the
+        // lookup gated on the flag.
+        var goLanguage = _languageDiscovery.GetLanguageById(new LanguageId(KnownLanguageId.Go));
+        var discoveredPath = goLanguage?.FindInDirectory(_executionContext.WorkingDirectory.FullName);
         return discoveredPath is not null ? new FileInfo(discoveredPath) : null;
     }
 
