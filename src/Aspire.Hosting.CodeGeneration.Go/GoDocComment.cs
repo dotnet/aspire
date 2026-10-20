@@ -519,9 +519,10 @@ internal sealed partial class GoDocComment
         return text.Length == 0 ? text : string.Concat(char.ToLowerInvariant(text[0]).ToString(), text.AsSpan(1));
     }
 
-    // gofmt rewrites a single-line paragraph that starts with a capital letter, ends with a letter or digit and
-    // has no punctuation other than commas and parentheses into a "# Heading" when it sits between two paragraphs
-    // (see isOldHeading in go/doc/comment). Ending it with a period keeps it a paragraph.
+    // gofmt rewrites a single-line paragraph into a "# Heading" when it sits between two paragraphs, starts with a
+    // capital letter, ends with a letter or digit and contains none of the characters below (see isOldHeading in
+    // go/doc/comment). A period followed by a non-space ("Requires Redis 7.2") and a possessive "'s" are allowed in
+    // a heading, so they do not exempt the text here. Ending the paragraph with a period keeps it a paragraph.
     private static string GuardImplicitHeading(string text)
     {
         if (text.Length == 0 ||
@@ -534,7 +535,7 @@ internal sealed partial class GoDocComment
 
         foreach (var c in text)
         {
-            if (";:!?+*/=[]{}_^°&§~%#@<\">\\'.".Contains(c))
+            if (";:!?+*/=[]{}_^°&§~%#@<\">\\".Contains(c))
             {
                 return text;
             }

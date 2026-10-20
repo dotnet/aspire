@@ -115,6 +115,32 @@ public class GoDocCommentTests
         Assert.All(lines, line => Assert.Matches(@"^//(?:[ \t][^\r\n\u0000\u2028\u2029\uFEFF]*)?\z", line));
     }
 
+    // A period followed by a non-space and a possessive 's are both allowed in a heading, so gofmt turns these
+    // one-line paragraphs into "# Heading" unless they end with a period.
+    [Theory]
+    [InlineData("Requires Redis 7.2")]
+    [InlineData("Used with the resource's name")]
+    public void Render_EndsHeadingLookingRemarksWithAPeriod(string remarks)
+    {
+        var lines = CreateDocComment().Render(new GoDocContent
+        {
+            GoName = "WithThing",
+            Summary = "Adds a thing.",
+            Remarks = remarks,
+            Returns = "The builder."
+        });
+
+        Assert.Equal(
+            [
+                "// WithThing adds a thing.",
+                "//",
+                $"// {remarks}.",
+                "//",
+                "// Returns: The builder."
+            ],
+            lines);
+    }
+
     [Fact]
     public void GeneratedSdk_DocCommentsFollowGodocConventions()
     {
