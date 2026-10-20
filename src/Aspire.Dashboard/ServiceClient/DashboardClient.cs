@@ -206,6 +206,9 @@ internal sealed class DashboardClient : IDashboardClient
                 channelOptions: new()
                 {
                     HttpHandler = httpHandler,
+                    // Transport backoff is independent of RPC retries and defaults to two minutes.
+                    // A persistent dashboard must reattach before the AppHost's startup gate expires.
+                    MaxReconnectBackoff = TimeSpan.FromSeconds(5),
                     ServiceConfig = new() { MethodConfigs = { methodConfig } },
                     LoggerFactory = _loggerFactory,
                     ThrowOperationCanceledOnCancellation = true,
