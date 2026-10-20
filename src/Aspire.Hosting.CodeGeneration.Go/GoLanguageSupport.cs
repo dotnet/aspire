@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Shared;
 using Aspire.TypeSystem;
 
 namespace Aspire.Hosting.CodeGeneration.Go;
@@ -93,19 +94,16 @@ internal sealed class GoLanguageSupport : ILanguageSupport
             ? new Random(request.PortSeed.Value)
             : Random.Shared;
 
-        var httpsPort = random.Next(10000, 65000);
-        var httpPort = random.Next(10000, 65000);
-        var otlpPort = random.Next(10000, 65000);
-        var resourceServicePort = random.Next(10000, 65000);
+        var ports = AppHostProfilePortGenerator.Generate(random);
 
         files["apphost.run.json"] = $$"""
             {
               "profiles": {
                 "https": {
-                  "applicationUrl": "https://localhost:{{httpsPort}};http://localhost:{{httpPort}}",
+                  "applicationUrl": "https://localhost:{{ports.DashboardHttpsPort}};http://localhost:{{ports.DashboardHttpPort}}",
                   "environmentVariables": {
-                    "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:{{otlpPort}}",
-                    "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "https://localhost:{{resourceServicePort}}"
+                    "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:{{ports.OtlpHttpsPort}}",
+                    "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "https://localhost:{{ports.ResourceServiceHttpsPort}}"
                   }
                 }
               }

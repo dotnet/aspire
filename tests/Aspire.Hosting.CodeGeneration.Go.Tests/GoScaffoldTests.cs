@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Text.Json.Nodes;
+using Aspire.Shared;
 using Aspire.TestUtilities;
 using Aspire.TypeSystem;
 
@@ -10,6 +11,10 @@ namespace Aspire.Hosting.CodeGeneration.Go.Tests;
 
 public class GoScaffoldTests(ITestOutputHelper outputHelper)
 {
+    // Windows hands out ports from 49152 up to outgoing connections, so a launch-profile port picked in that
+    // range can already be in use when the AppHost starts.
+    private const int WindowsEphemeralPortMin = 49152;
+
     private readonly GoLanguageSupport _languageSupport = new();
 
     [Fact]
@@ -61,18 +66,37 @@ public class GoScaffoldTests(ITestOutputHelper outputHelper)
         Assert.Contains($"\"{sdkModule}\"", files["apphost.go"], StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void Scaffold_WritesAnHttpsLaunchProfile()
+    [Theory]
+    [InlineData(null)]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(16626)]
+    [InlineData(55571)]
+    public void Scaffold_WritesAnHttpsLaunchProfileOutsideTheWindowsEphemeralPortRange(int? portSeed)
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
 
-        var files = Scaffold(workspace);
+        var files = _languageSupport.Scaffold(new ScaffoldRequest
+        {
+            TargetPath = workspace.Path,
+            ProjectName = "GoApp",
+            PortSeed = portSeed
+        });
 
         var profile = JsonNode.Parse(files["apphost.run.json"])!["profiles"]!["https"]!;
         var environmentVariables = profile["environmentVariables"]!;
-        Assert.StartsWith("https://localhost:", profile["applicationUrl"]!.GetValue<string>(), StringComparison.Ordinal);
-        Assert.StartsWith("https://localhost:", environmentVariables["ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL"]!.GetValue<string>(), StringComparison.Ordinal);
-        Assert.StartsWith("https://localhost:", environmentVariables["ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL"]!.GetValue<string>(), StringComparison.Ordinal);
+        var applicationUrls = profile["applicationUrl"]!.GetValue<string>().Split(';').Select(url => new Uri(url)).ToList();
+        var dashboardHttps = Assert.Single(applicationUrls, url => url.Scheme == Uri.UriSchemeHttps);
+        var dashboardHttp = Assert.Single(applicationUrls, url => url.Scheme == Uri.UriSchemeHttp);
+        var otlpHttps = new Uri(environmentVariables["ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL"]!.GetValue<string>());
+        var resourceServiceHttps = new Uri(environmentVariables["ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL"]!.GetValue<string>());
+
+        Assert.Equal(Uri.UriSchemeHttps, otlpHttps.Scheme);
+        Assert.Equal(Uri.UriSchemeHttps, resourceServiceHttps.Scheme);
+        AssertPortInRange(dashboardHttp.Port, AppHostProfilePortGenerator.DashboardHttpPortMin, AppHostProfilePortGenerator.DashboardHttpPortMaxExclusive);
+        AssertPortInRange(dashboardHttps.Port, AppHostProfilePortGenerator.DashboardHttpsPortMin, AppHostProfilePortGenerator.DashboardHttpsPortMaxExclusive);
+        AssertPortInRange(otlpHttps.Port, AppHostProfilePortGenerator.OtlpHttpsPortMin, AppHostProfilePortGenerator.OtlpHttpsPortMaxExclusive);
+        AssertPortInRange(resourceServiceHttps.Port, AppHostProfilePortGenerator.ResourceServiceHttpsPortMin, AppHostProfilePortGenerator.ResourceServiceHttpsPortMaxExclusive);
     }
 
     [Fact]
@@ -171,6 +195,12 @@ public class GoScaffoldTests(ITestOutputHelper outputHelper)
             .Single(candidate => candidate.StartsWith(directive + " ", StringComparison.Ordinal));
 
         return line[(directive.Length + 1)..].Trim();
+    }
+
+    private static void AssertPortInRange(int port, int minInclusive, int maxExclusive)
+    {
+        Assert.InRange(port, minInclusive, maxExclusive - 1);
+        Assert.True(port < WindowsEphemeralPortMin, $"Expected port {port} to be below the Windows ephemeral range.");
     }
 
     private static void WriteGoFile(string root, string relativePath, string content)
