@@ -318,6 +318,10 @@ public class GoApiExportTests
         var variables = s_everything.Value.Modules.Single().Items.Where(item => item.Kind == GoApiItemKind.Variable).ToList();
         var generated = s_generated.Value["aspire.go"].ReplaceLineEndings("\n");
 
+        // Exported declarations carry no comments (documentation is exported as member summaries), so they
+        // are compared with the comment lines of the generated code removed.
+        var generatedCode = string.Join('\n', generated.Split('\n').Where(line => !line.TrimStart().StartsWith("//", StringComparison.Ordinal)));
+
         // Variables are written as `var Name = struct {` at the start of a line.
         var generatedNames = generated.Split('\n')
             .Where(line => line.StartsWith("var ", StringComparison.Ordinal) && line.EndsWith(" = struct {", StringComparison.Ordinal))
@@ -325,7 +329,7 @@ public class GoApiExportTests
             .Order(StringComparer.Ordinal);
 
         Assert.Equal(generatedNames, variables.Select(variable => variable.Name).Order(StringComparer.Ordinal));
-        Assert.All(variables, variable => Assert.Contains(variable.Declaration, generated, StringComparison.Ordinal));
+        Assert.All(variables, variable => Assert.Contains(variable.Declaration, generatedCode, StringComparison.Ordinal));
         Assert.All(variables, variable => Assert.NotEmpty(variable.Members));
     }
 
