@@ -7,7 +7,9 @@ import { dcpServerNotInitialized } from '../loc/strings';
 
 /**
  * Callback invoked when a restart is requested on an app host debug session.
- * Return `true` to suppress VS Code's automatic child session restart.
+ * Return `true` to clear the `restart` flag of the outgoing disconnect or terminate request, so the
+ * adapter shuts down completely. That does not cancel VS Code's relaunch of the terminated child,
+ * which the handler has to stop itself.
  */
 export type AppHostRestartHandler = (debugSessionId: string) => boolean;
 export type AppHostTerminationRequestHandler = (debugSessionId: string) => void;
@@ -87,7 +89,9 @@ export function createDebugAdapterTracker(dcpServer: AspireDcpServer, debugAdapt
                         // restart: true, and only the disconnect reaches the ordered restart path in
                         // onWillReceiveMessage. The extension host passes this same message object on
                         // to VS Code after the tracker runs, so clearing the capability here makes the
-                        // toolbar restart take the disconnect route.
+                        // toolbar restart take the disconnect route. VS Code then terminates the child and
+                        // relaunches it itself, which AspireDebugSession stops while it restarts the
+                        // whole Aspire session.
                         // https://github.com/go-delve/delve/blob/master/service/dap/server.go
                         // https://github.com/microsoft/vscode/blob/main/src/vs/workbench/contrib/debug/browser/debugService.ts
                         message.body.supportsRestartRequest = false;

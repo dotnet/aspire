@@ -6013,6 +6013,220 @@ var builder = Aspire.Hosting.DistributedApplication.CreateBuilder(args);
         sinon.assert.calledOnceWithExactly(terminateCliProcessTree, { force: true });
     });
 
+    suite('AppHost restart relaunch', () => {
+        const appHostDebugSession = {
+            id: 'apphost-session',
+            type: 'coreclr',
+            name: 'AppHost',
+            configuration: {
+                runId: 'apphost-run',
+            },
+        } as unknown as vscode.DebugSession;
+
+        // When the adapter does not handle a restart itself, VS Code terminates the child session and
+        // relaunches the same session id with its old configuration about 300 ms later. These tests drive
+        // the events of that sequence by hand.
+        async function startRestartableAppHost() {
+            let restartHandler: ((debugSessionId: string) => boolean) | undefined;
+            let terminateSessionCallback: ((session: vscode.DebugSession) => unknown) | undefined;
+            let startSessionCallback: ((session: vscode.DebugSession) => unknown) | undefined;
+            const disposeStartListener = sinon.stub();
+            const parentDebugSession = {
+                id: 'aspire-session',
+                type: 'aspire',
+                name: 'Aspire',
+                workspaceFolder: undefined,
+                configuration: {
+                    type: 'aspire',
+                    request: 'launch',
+                    name: 'Aspire',
+                    program: '/workspace/apphost.cs',
+                    command: 'run',
+                },
+                customRequest: sinon.stub(),
+                getDebugProtocolBreakpoint: sinon.stub(),
+            };
+            sinon.stub(debuggerExtensionsModule, 'createDebugSessionConfiguration').resolves({
+                runId: 'apphost-run',
+                debugSessionId: 'debug-1',
+                type: 'coreclr',
+                name: 'AppHost',
+                request: 'launch',
+            });
+            sinon.stub(vscode.debug, 'onDidTerminateDebugSession').callsFake(callback => {
+                terminateSessionCallback = callback;
+                return { dispose: sinon.stub() };
+            });
+            sinon.stub(vscode.debug, 'onDidStartDebugSession').callsFake(callback => {
+                startSessionCallback = callback;
+                return { dispose: disposeStartListener };
+            });
+            sinon.stub(vscode.workspace, 'getWorkspaceFolder').returns(undefined);
+            const startReplacement = sinon.stub(vscode.debug, 'startDebugging').resolves(true);
+            const stopVsCodeSession = sinon.stub(vscode.debug, 'stopDebugging').resolves();
+            const aspireDebugSession = new AspireDebugSession(
+                parentDebugSession as unknown as vscode.DebugSession,
+                {} as any,
+                {} as any,
+                { isDebugConfigEnvironmentLoggingEnabled: () => false } as any,
+                () => { });
+            sinon.stub(aspireDebugSession, 'createDebugAdapterTrackerCore').callsFake((_debugAdapter, options) => {
+                restartHandler = options?.onRestartRequested;
+            });
+            sinon.stub(aspireDebugSession, 'startAndGetDebugSession').resolves({
+                id: appHostDebugSession.id,
+                session: appHostDebugSession,
+                stopSession: sinon.stub().resolves(),
+            });
+            const orderedStop = sinon.stub(aspireDebugSession, 'stopDebugging').resolves();
+
+            await aspireDebugSession.startAppHost('/workspace/AppHost.csproj', ['run'], [], true, { forceBuild: false });
+            // Installed after startup so only the timers created while handling the restart are fake.
+            const clock = sinon.useFakeTimers({ shouldClearNativeTimers: true });
+
+            return {
+                aspireDebugSession,
+                clock,
+                orderedStop,
+                startReplacement,
+                stopVsCodeSession,
+                disposeStartListener,
+                isWatchingForRelaunch: () => startSessionCallback !== undefined,
+                requestRestart: () => restartHandler?.(aspireDebugSession.debugSessionId),
+                terminateAppHost: () => terminateSessionCallback?.(appHostDebugSession),
+                startSession: (session: vscode.DebugSession) => startSessionCallback?.(session),
+            };
+        }
+
+        test('starts one replacement when the restarted child terminates again during the ordered shutdown', async () => {
+            const restart = await startRestartableAppHost();
+            let finishShutdown!: () => void;
+            restart.orderedStop.returns(new Promise<void>(resolve => {
+                finishShutdown = resolve;
+            }));
+
+            assert.strictEqual(restart.requestRestart(), true);
+            const firstTermination = restart.terminateAppHost();
+            // VS Code reports the child as terminated again when the relaunch it scheduled is canceled or stopped.
+            const repeatTermination = restart.terminateAppHost();
+            finishShutdown();
+            await Promise.all([firstTermination, repeatTermination]);
+
+            sinon.assert.calledOnce(restart.orderedStop);
+            sinon.assert.calledOnce(restart.startReplacement);
+            assert.strictEqual(restart.startReplacement.firstCall.args[0], undefined);
+        });
+
+        test('starts one replacement when the restarted child terminates again after the restart was handled', async () => {
+            const restart = await startRestartableAppHost();
+
+            restart.requestRestart();
+            await restart.terminateAppHost();
+            await restart.terminateAppHost();
+
+            sinon.assert.calledOnce(restart.orderedStop);
+            sinon.assert.calledOnce(restart.startReplacement);
+        });
+
+        test('does not start a replacement when the restarted child terminates again after the restart was aborted', async () => {
+            const restart = await startRestartableAppHost();
+            const cliStop = sinon.stub().resolves();
+            (restart.aspireDebugSession as any)._rpcClient = { stopCli: cliStop };
+            sinon.stub(restart.aspireDebugSession, 'terminateCliProcessTree').resolves();
+            restart.orderedStop.rejects(new Error('Resource stop failed'));
+
+            restart.requestRestart();
+            await restart.terminateAppHost();
+            // The aborted restart leaves the session subscribed so the stop can be retried.
+            await restart.terminateAppHost();
+
+            sinon.assert.calledOnce(restart.orderedStop);
+            sinon.assert.notCalled(restart.startReplacement);
+        });
+
+        test('stops the child that VS Code relaunches while the ordered shutdown is running', async () => {
+            const restart = await startRestartableAppHost();
+            let finishShutdown!: () => void;
+            restart.orderedStop.returns(new Promise<void>(resolve => {
+                finishShutdown = resolve;
+            }));
+            const relaunched = { ...appHostDebugSession } as vscode.DebugSession;
+
+            restart.requestRestart();
+            const termination = restart.terminateAppHost();
+            restart.startSession(relaunched);
+            finishShutdown();
+            await termination;
+
+            sinon.assert.calledOnceWithExactly(restart.stopVsCodeSession, relaunched);
+            sinon.assert.calledOnce(restart.disposeStartListener);
+            sinon.assert.calledOnce(restart.startReplacement);
+        });
+
+        test('stops the child that VS Code relaunches after the replacement session started', async () => {
+            const restart = await startRestartableAppHost();
+            const relaunched = { ...appHostDebugSession } as vscode.DebugSession;
+
+            restart.requestRestart();
+            await restart.terminateAppHost();
+            restart.startSession(relaunched);
+
+            sinon.assert.calledOnce(restart.startReplacement);
+            sinon.assert.calledOnceWithExactly(restart.stopVsCodeSession, relaunched);
+            sinon.assert.calledOnce(restart.disposeStartListener);
+        });
+
+        test('starts one replacement when a stopped relaunch reports its termination', async () => {
+            const restart = await startRestartableAppHost();
+            const relaunched = { ...appHostDebugSession } as vscode.DebugSession;
+
+            restart.requestRestart();
+            await restart.terminateAppHost();
+            restart.startSession(relaunched);
+            // Stopping the relaunched child ends the same session id that the restart began with.
+            await restart.terminateAppHost();
+
+            sinon.assert.calledOnce(restart.orderedStop);
+            sinon.assert.calledOnce(restart.startReplacement);
+            sinon.assert.calledOnceWithExactly(restart.stopVsCodeSession, relaunched);
+            sinon.assert.calledOnce(restart.disposeStartListener);
+        });
+
+        test('does not stop other sessions that start while it waits for a relaunch', async () => {
+            const restart = await startRestartableAppHost();
+
+            restart.requestRestart();
+            await restart.terminateAppHost();
+            assert.strictEqual(restart.isWatchingForRelaunch(), true);
+            restart.startSession({ ...appHostDebugSession, id: 'replacement-apphost-session' } as vscode.DebugSession);
+
+            sinon.assert.notCalled(restart.stopVsCodeSession);
+            sinon.assert.notCalled(restart.disposeStartListener);
+        });
+
+        test('stops waiting for a relaunch once the watch window passes', async () => {
+            const restart = await startRestartableAppHost();
+
+            restart.requestRestart();
+            await restart.terminateAppHost();
+            await restart.clock.tickAsync(9_999);
+            sinon.assert.notCalled(restart.disposeStartListener);
+            await restart.clock.tickAsync(1);
+
+            sinon.assert.calledOnce(restart.disposeStartListener);
+            sinon.assert.notCalled(restart.stopVsCodeSession);
+        });
+
+        test('does not wait for a relaunch when the AppHost stops without a restart request', async () => {
+            const restart = await startRestartableAppHost();
+
+            await restart.terminateAppHost();
+
+            assert.strictEqual(restart.isWatchingForRelaunch(), false);
+            sinon.assert.notCalled(restart.startReplacement);
+        });
+    });
+
     test('reports AppHost target version in end telemetry', async () => {
         const fake = new FakeTelemetryReporter();
         const restoreReporter = __setReporterForTests(fake as unknown as TelemetryReporter);

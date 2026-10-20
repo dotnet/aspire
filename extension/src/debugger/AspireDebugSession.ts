@@ -165,6 +165,14 @@ export class AspireDebugSession implements vscode.DebugAdapter, DashboardLaunche
    * enough that a wedged CLI does not keep the AppHost alive indefinitely.
    */
   private static readonly _cliCooperativeStopGraceMs = 10_000;
+  /**
+   * How long to watch for VS Code relaunching an AppHost child that terminated for a restart. VS Code
+   * schedules the relaunch about 300 ms after the termination, but the session start event is raised
+   * only once the launch request completes, which takes seconds when the adapter builds first (for
+   * example Delve building a Go AppHost). A relaunch that VS Code cancels never raises a start event,
+   * so the watch has to end on its own.
+   */
+  private static readonly _relaunchedAppHostWatchMs = 10_000;
   private readonly _onDidSendMessage = new EventEmitter<any>();
   private readonly _onDidSendDebugConsoleOutput = new EventEmitter<AspireDebugConsoleOutputEvent>();
   private _messageSeq = 1;
@@ -1514,9 +1522,10 @@ export class AspireDebugSession implements vscode.DebugAdapter, DashboardLaunche
       }
 
       // Register the adapter tracker with an app host restart handler.
-      // When the user clicks "restart" on the app host child session,
-      // we suppress VS Code's automatic child restart and restart the
-      // entire Aspire debug session instead.
+      // When the user clicks "restart" on the app host child session, the tracker clears the DAP
+      // `restart` flag of the request sent to the adapter so it shuts down completely, and we restart
+      // the entire Aspire debug session instead. VS Code relaunches the terminated child by itself,
+      // and stopRelaunchedAppHostSession stops that relaunch.
       //
       // The output filter is intentionally a positive opt-in for .NET AppHosts only.
       // The .NET debugger (`coreclr`) emits a lot of `console`-category chatter
@@ -1532,7 +1541,7 @@ export class AspireDebugSession implements vscode.DebugAdapter, DashboardLaunche
           onRestartRequested: () => {
             this._appHostRestartRequested = true;
             this.configuration[appHostRestartSourceSessionIdConfigKey] = this._session.id;
-            return true; // suppress VS Code's child restart
+            return true; // the whole Aspire session restarts, so the adapter must not prepare for a relaunch
           },
           onOutput: isDotNetAppHost
             ? (output, category) => this.sendAppHostMessage(output, category)
@@ -1642,8 +1651,17 @@ export class AspireDebugSession implements vscode.DebugAdapter, DashboardLaunche
       this._appHostDebugSession = appHostDebugSession;
       this._trackAppHostDebugSession(this, projectFile, appHostDebugSession);
 
+      // VS Code can report the restarted child as terminated more than once, for example when the
+      // relaunch it scheduled is canceled or stopped. Only the first termination restarts the Aspire
+      // session. An aborted restart leaves this listener subscribed, so the guard also keeps a later
+      // termination from retrying the stop and starting a replacement after the abort.
+      let restartHandled = false;
       const disposable = vscode.debug.onDidTerminateDebugSession(async session => {
         if (this._appHostDebugSession && session.id === this._appHostDebugSession.id) {
+          if (restartHandled) {
+            return;
+          }
+
           // Emit whatever was still being assembled before the banner, so a record the
           // AppHost logged on its way out is not lost and still reads in order.
           this.flushAppHostLogOutput();
@@ -1677,6 +1695,8 @@ export class AspireDebugSession implements vscode.DebugAdapter, DashboardLaunche
           // they are stopped before the AppHost entry and the Aspire parent, and so a resource that
           // refuses to stop is reported rather than silently dropped by dispose().
           if (shouldRestart) {
+            restartHandled = true;
+            this.stopRelaunchedAppHostSession(session);
             // The ordered shutdown finalizes this session before VS Code reuses its configuration
             // for the replacement. Keep the source ID long enough for the terminating parent to
             // suppress optimistic stopping without affecting the replacement session.
@@ -1754,6 +1774,37 @@ export class AspireDebugSession implements vscode.DebugAdapter, DashboardLaunche
       vscode.window.showErrorMessage(errorMessage);
       this.dispose();
     }
+  }
+
+  /**
+   * Stops the copy of an AppHost child that VS Code relaunches by itself after the child terminated
+   * for a restart.
+   *
+   * The adapter tracker only clears the DAP `restart` flag of the request sent to the adapter. VS Code
+   * terminates the child, waits about 300 ms and relaunches the same session id with its old
+   * configuration. It cancels that launch only when the parent session has already ended:
+   * https://github.com/microsoft/vscode/blob/main/src/vs/workbench/contrib/debug/browser/debugService.ts
+   * https://github.com/microsoft/vscode/blob/main/src/vs/workbench/contrib/debug/browser/debugSession.ts
+   * Without this watch the relaunch would run with the previous configuration next to the replacement
+   * session, and the ordered shutdown would not stop it because that shutdown skips an AppHost that
+   * has already terminated.
+   *
+   * Only the restarted child's own id is matched, so the replacement AppHost, which gets a new id, is
+   * never affected. The watch is not tied to the disposables of this session because the ordered
+   * shutdown disposes those before the relaunch can arrive.
+   */
+  private stopRelaunchedAppHostSession(restartedSession: vscode.DebugSession): void {
+    const watch = vscode.debug.onDidStartDebugSession(started => {
+      if (started.id !== restartedSession.id) {
+        return;
+      }
+
+      clearTimeout(timer);
+      watch.dispose();
+      extensionLogOutputChannel.info(`Stopping AppHost session ${started.name} that VS Code relaunched during a restart`);
+      stopSessionInBackground(() => vscode.debug.stopDebugging(started), `relaunched AppHost session ${started.name}`);
+    });
+    const timer = setTimeout(() => watch.dispose(), AspireDebugSession._relaunchedAppHostWatchMs);
   }
 
   trackAlreadyStartedResourceSession(debugConfig: AspireResourceExtendedDebugConfiguration, resourceDebugSession: AlreadyStartedResourceDebugSession): AspireResourceDebugSession | undefined {
