@@ -165,14 +165,6 @@ export class AspireDebugSession implements vscode.DebugAdapter, DashboardLaunche
    * enough that a wedged CLI does not keep the AppHost alive indefinitely.
    */
   private static readonly _cliCooperativeStopGraceMs = 10_000;
-  /**
-   * How long to watch for VS Code relaunching an AppHost child that terminated for a restart. VS Code
-   * schedules the relaunch about 300 ms after the termination, but the session start event is raised
-   * only once the launch request completes, which takes seconds when the adapter builds first (for
-   * example Delve building a Go AppHost). A relaunch that VS Code cancels never raises a start event,
-   * so the watch has to end on its own.
-   */
-  private static readonly _relaunchedAppHostWatchMs = 10_000;
   private readonly _onDidSendMessage = new EventEmitter<any>();
   private readonly _onDidSendDebugConsoleOutput = new EventEmitter<AspireDebugConsoleOutputEvent>();
   private _messageSeq = 1;
@@ -1789,22 +1781,35 @@ export class AspireDebugSession implements vscode.DebugAdapter, DashboardLaunche
    * session, and the ordered shutdown would not stop it because that shutdown skips an AppHost that
    * has already terminated.
    *
+   * VS Code raises the start event only once the relaunch's launch request has completed, which takes
+   * seconds when the adapter builds first (for example Delve building a Go AppHost), so no deadline
+   * can tell a slow relaunch from one that never arrives. The watch ends on what VS Code reports
+   * instead: a start event for the same id (the relaunch is stopped here), or another termination of
+   * that id (the relaunch failed, was canceled or was stopped, which VS Code reports as a further end
+   * of the session). A listener subscribed while an event is being raised does not receive that event,
+   * so the termination that started the watch does not end it.
+   *
    * Only the restarted child's own id is matched, so the replacement AppHost, which gets a new id, is
-   * never affected. The watch is not tied to the disposables of this session because the ordered
-   * shutdown disposes those before the relaunch can arrive.
+   * never affected. The watch subscribes to termination events itself, rather than relying on the
+   * session's listener, because the ordered shutdown disposes the session's disposables before the
+   * relaunch can arrive.
    */
   private stopRelaunchedAppHostSession(restartedSession: vscode.DebugSession): void {
-    const watch = vscode.debug.onDidStartDebugSession(started => {
-      if (started.id !== restartedSession.id) {
-        return;
-      }
+    const watch = vscode.Disposable.from(
+      vscode.debug.onDidStartDebugSession(started => {
+        if (started.id !== restartedSession.id) {
+          return;
+        }
 
-      clearTimeout(timer);
-      watch.dispose();
-      extensionLogOutputChannel.info(`Stopping AppHost session ${started.name} that VS Code relaunched during a restart`);
-      stopSessionInBackground(() => vscode.debug.stopDebugging(started), `relaunched AppHost session ${started.name}`);
-    });
-    const timer = setTimeout(() => watch.dispose(), AspireDebugSession._relaunchedAppHostWatchMs);
+        watch.dispose();
+        extensionLogOutputChannel.info(`Stopping AppHost session ${started.name} that VS Code relaunched during a restart`);
+        stopSessionInBackground(() => vscode.debug.stopDebugging(started), `relaunched AppHost session ${started.name}`);
+      }),
+      vscode.debug.onDidTerminateDebugSession(terminated => {
+        if (terminated.id === restartedSession.id) {
+          watch.dispose();
+        }
+      }));
   }
 
   trackAlreadyStartedResourceSession(debugConfig: AspireResourceExtendedDebugConfiguration, resourceDebugSession: AlreadyStartedResourceDebugSession): AspireResourceDebugSession | undefined {

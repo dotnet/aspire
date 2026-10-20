@@ -6028,8 +6028,24 @@ var builder = Aspire.Hosting.DistributedApplication.CreateBuilder(args);
         // the events of that sequence by hand.
         async function startRestartableAppHost() {
             let restartHandler: ((debugSessionId: string) => boolean) | undefined;
-            let terminateSessionCallback: ((session: vscode.DebugSession) => unknown) | undefined;
-            let startSessionCallback: ((session: vscode.DebugSession) => unknown) | undefined;
+            // Like VS Code's emitters, a disposed listener receives no more events and an event reaches
+            // only the listeners that were subscribed when it was raised.
+            const terminateListeners: Array<(session: vscode.DebugSession) => unknown> = [];
+            const startListeners: Array<(session: vscode.DebugSession) => unknown> = [];
+            const subscribe = (listeners: Array<(session: vscode.DebugSession) => unknown>, listener: (session: vscode.DebugSession) => unknown, onDispose?: () => void) => {
+                listeners.push(listener);
+                return {
+                    dispose: () => {
+                        const index = listeners.indexOf(listener);
+                        if (index >= 0) {
+                            listeners.splice(index, 1);
+                            onDispose?.();
+                        }
+                    },
+                };
+            };
+            const raise = (listeners: Array<(session: vscode.DebugSession) => unknown>, session: vscode.DebugSession) =>
+                Promise.all([...listeners].map(listener => listeners.includes(listener) ? listener(session) : undefined));
             const disposeStartListener = sinon.stub();
             const parentDebugSession = {
                 id: 'aspire-session',
@@ -6053,14 +6069,8 @@ var builder = Aspire.Hosting.DistributedApplication.CreateBuilder(args);
                 name: 'AppHost',
                 request: 'launch',
             });
-            sinon.stub(vscode.debug, 'onDidTerminateDebugSession').callsFake(callback => {
-                terminateSessionCallback = callback;
-                return { dispose: sinon.stub() };
-            });
-            sinon.stub(vscode.debug, 'onDidStartDebugSession').callsFake(callback => {
-                startSessionCallback = callback;
-                return { dispose: disposeStartListener };
-            });
+            sinon.stub(vscode.debug, 'onDidTerminateDebugSession').callsFake(callback => subscribe(terminateListeners, callback));
+            sinon.stub(vscode.debug, 'onDidStartDebugSession').callsFake(callback => subscribe(startListeners, callback, disposeStartListener));
             sinon.stub(vscode.workspace, 'getWorkspaceFolder').returns(undefined);
             const startReplacement = sinon.stub(vscode.debug, 'startDebugging').resolves(true);
             const stopVsCodeSession = sinon.stub(vscode.debug, 'stopDebugging').resolves();
@@ -6081,6 +6091,8 @@ var builder = Aspire.Hosting.DistributedApplication.CreateBuilder(args);
             const orderedStop = sinon.stub(aspireDebugSession, 'stopDebugging').resolves();
 
             await aspireDebugSession.startAppHost('/workspace/AppHost.csproj', ['run'], [], true, { forceBuild: false });
+            // The listener that startAppHost itself keeps; anything above it belongs to a relaunch watch.
+            const startupTerminateListenerCount = terminateListeners.length;
             // Installed after startup so only the timers created while handling the restart are fake.
             const clock = sinon.useFakeTimers({ shouldClearNativeTimers: true });
 
@@ -6091,10 +6103,11 @@ var builder = Aspire.Hosting.DistributedApplication.CreateBuilder(args);
                 startReplacement,
                 stopVsCodeSession,
                 disposeStartListener,
-                isWatchingForRelaunch: () => startSessionCallback !== undefined,
+                isWatchingForRelaunch: () => startListeners.length > 0 || terminateListeners.length > startupTerminateListenerCount,
                 requestRestart: () => restartHandler?.(aspireDebugSession.debugSessionId),
-                terminateAppHost: () => terminateSessionCallback?.(appHostDebugSession),
-                startSession: (session: vscode.DebugSession) => startSessionCallback?.(session),
+                terminateSession: (session: vscode.DebugSession) => raise(terminateListeners, session),
+                terminateAppHost: () => raise(terminateListeners, appHostDebugSession),
+                startSession: (session: vscode.DebugSession) => raise(startListeners, session),
             };
         }
 
@@ -6154,7 +6167,7 @@ var builder = Aspire.Hosting.DistributedApplication.CreateBuilder(args);
 
             restart.requestRestart();
             const termination = restart.terminateAppHost();
-            restart.startSession(relaunched);
+            await restart.startSession(relaunched);
             finishShutdown();
             await termination;
 
@@ -6169,7 +6182,7 @@ var builder = Aspire.Hosting.DistributedApplication.CreateBuilder(args);
 
             restart.requestRestart();
             await restart.terminateAppHost();
-            restart.startSession(relaunched);
+            await restart.startSession(relaunched);
 
             sinon.assert.calledOnce(restart.startReplacement);
             sinon.assert.calledOnceWithExactly(restart.stopVsCodeSession, relaunched);
@@ -6182,7 +6195,7 @@ var builder = Aspire.Hosting.DistributedApplication.CreateBuilder(args);
 
             restart.requestRestart();
             await restart.terminateAppHost();
-            restart.startSession(relaunched);
+            await restart.startSession(relaunched);
             // Stopping the relaunched child ends the same session id that the restart began with.
             await restart.terminateAppHost();
 
@@ -6192,29 +6205,51 @@ var builder = Aspire.Hosting.DistributedApplication.CreateBuilder(args);
             sinon.assert.calledOnce(restart.disposeStartListener);
         });
 
-        test('does not stop other sessions that start while it waits for a relaunch', async () => {
+        test('keeps waiting for a relaunch while other sessions start and terminate', async () => {
+            const restart = await startRestartableAppHost();
+            const otherSession = { ...appHostDebugSession, id: 'replacement-apphost-session' } as vscode.DebugSession;
+
+            restart.requestRestart();
+            await restart.terminateAppHost();
+            assert.strictEqual(restart.isWatchingForRelaunch(), true);
+            await restart.startSession(otherSession);
+            await restart.terminateSession(otherSession);
+
+            assert.strictEqual(restart.isWatchingForRelaunch(), true);
+            sinon.assert.notCalled(restart.stopVsCodeSession);
+            sinon.assert.notCalled(restart.disposeStartListener);
+        });
+
+        test('stops the child that VS Code relaunches after a slow launch', async () => {
+            const restart = await startRestartableAppHost();
+            const relaunched = { ...appHostDebugSession } as vscode.DebugSession;
+
+            restart.requestRestart();
+            await restart.terminateAppHost();
+            // The adapter is still building, so VS Code has not raised the start event yet.
+            await restart.clock.tickAsync(60_000);
+            assert.strictEqual(restart.isWatchingForRelaunch(), true);
+            await restart.startSession(relaunched);
+
+            sinon.assert.calledOnceWithExactly(restart.stopVsCodeSession, relaunched);
+            sinon.assert.calledOnce(restart.disposeStartListener);
+            assert.strictEqual(restart.isWatchingForRelaunch(), false);
+        });
+
+        test('stops waiting for a relaunch that ends without starting', async () => {
             const restart = await startRestartableAppHost();
 
             restart.requestRestart();
             await restart.terminateAppHost();
             assert.strictEqual(restart.isWatchingForRelaunch(), true);
-            restart.startSession({ ...appHostDebugSession, id: 'replacement-apphost-session' } as vscode.DebugSession);
-
-            sinon.assert.notCalled(restart.stopVsCodeSession);
-            sinon.assert.notCalled(restart.disposeStartListener);
-        });
-
-        test('stops waiting for a relaunch once the watch window passes', async () => {
-            const restart = await startRestartableAppHost();
-
-            restart.requestRestart();
+            // A relaunch that fails or is canceled is reported as another termination of the same session id.
             await restart.terminateAppHost();
-            await restart.clock.tickAsync(9_999);
-            sinon.assert.notCalled(restart.disposeStartListener);
-            await restart.clock.tickAsync(1);
+            assert.strictEqual(restart.isWatchingForRelaunch(), false);
+            await restart.startSession({ ...appHostDebugSession } as vscode.DebugSession);
 
             sinon.assert.calledOnce(restart.disposeStartListener);
             sinon.assert.notCalled(restart.stopVsCodeSession);
+            sinon.assert.calledOnce(restart.startReplacement);
         });
 
         test('does not wait for a relaunch when the AppHost stops without a restart request', async () => {
