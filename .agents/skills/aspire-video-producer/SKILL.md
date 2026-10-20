@@ -1,6 +1,6 @@
 ---
 name: aspire-video-producer
-description: Produces narrated Aspire videos (feature walkthroughs, dashboard tours, integration overviews, pull request demos) with one unified look and specification - 1080p, the Aspire logo, purple palette and Poppins font from aspire.dev, a neural voice picked from a shortlist, captions, slight dynamic zooms on demos, and renditions for GitHub, aspire.dev, YouTube or chat apps. Use when asked to record, narrate, or produce a video of Aspire, its dashboard or its CLI: narrated and branded by default, or silent, unbranded, or a side-by-side comparison (such as before and after a performance fix) when the user asks for a simpler video. Not for a GIF or a raw screen capture.
+description: Produces narrated Aspire videos (feature walkthroughs, dashboard tours, integration overviews, pull request demos) with one unified look and specification - 1080p, the Aspire logo, purple palette and Poppins font from aspire.dev, a neural voice picked from a shortlist, captions, slight dynamic zooms on demos, and renditions for GitHub, aspire.dev, YouTube or chat apps. Use when asked to record, narrate, or produce a video of Aspire, its dashboard or its CLI: narrated and branded by default, or silent or unbranded when the user asks for a simpler video.
 ---
 
 # Aspire Video Producer
@@ -18,14 +18,13 @@ By default, a video is narrated and branded: walkthroughs, overviews, tours and 
 and slides. A simpler video turns those off, in the storyboard:
 
 - **No narration** (`"narration": false`): a silent video, without captions; each step lasts its `"seconds"`.
-- **No branding** (`"branding": false`): recordings fill the whole frame, and the cards are plain, without the logo
-  or the purple.
-- **A side-by-side comparison** (a `"compare"` clip): two runs started together, each with its label and, with
-  `"timer": true`, the time it takes; from recordings or from existing video files. See `examples/side-by-side/`.
+- **No branding** (`"branding": false`): no Aspire logo and no Aspire color. Recordings fill the whole frame, cards
+  are white text on black, and the recorder's highlight rings, click ripples and captions are white and black.
 
 For a simpler video, ask only what it needs (usually the renditions), skip the voice and chapter-card questions, and
-don't add cards, slides or narration the user didn't ask for. A GIF, or a raw screen capture with nothing added,
-doesn't need this skill: make it the way the user asks. When it isn't clear which one the user wants, ask.
+don't add cards, slides or narration the user didn't ask for. Any other layout, such as two runs side by side, comes
+from the user's request: build it for that video (for instance with ffmpeg, from recordings made with this skill's
+recorder), rather than from a preset. When it isn't clear what the user wants, ask.
 
 The worked example in `examples/dashboard-tour/` is the storyboard and slides of a short tour of the Aspire
 dashboard, matching the example clip in `scripts/recorder/Scenes.cs`. Read it before writing a new one.
@@ -254,7 +253,6 @@ user's agreement.
 - `scripts/voices.py`: a voice sample, to choose the narrator.
 - `assets/`: the Aspire logo (from aspire.dev) and the Poppins and Fira Code fonts (SIL Open Font License).
 - `examples/dashboard-tour/`: a complete storyboard and slides.
-- `examples/side-by-side/`: a silent, unbranded before-and-after comparison, with timers.
 - `examples/aspire-introduction/`: a video with no slides: the AppHost typed in VS Code with IntelliSense, `aspire run`
   in its terminal, the dashboard, and `aspire deploy`, in English and Spanish. **Start from it for any video
   that shows VS Code or a terminal.**

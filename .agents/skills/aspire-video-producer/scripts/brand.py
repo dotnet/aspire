@@ -156,12 +156,11 @@ def card(title, subtitle, label=None, big=False):
     return image
 
 
-# Unbranded videos ("branding": false): no logo, no frame, no purple; neutral colors and the same fonts.
+# Unbranded videos ("branding": false): no logo, no frame, no Aspire color; white and gray text on black.
 
-PLAIN_BACKGROUND = (17, 17, 19)
-PLAIN_TEXT = (245, 245, 245)
-PLAIN_MUTED = (165, 165, 172)
-PLAIN_BORDER = (64, 64, 70)
+PLAIN_BACKGROUND = (0, 0, 0)
+PLAIN_TEXT = (255, 255, 255)
+PLAIN_MUTED = (170, 170, 170)
 
 
 def plain_card(title, subtitle, label=None):
@@ -175,32 +174,6 @@ def plain_card(title, subtitle, label=None):
     if subtitle:
         draw.text((W // 2, y + 96), subtitle, font=font(38), fill=PLAIN_MUTED, anchor="mm")
     return image
-
-
-def compare_layout(labels, chapter_title=None, label=None, branded=True, timers=False):
-    """The side-by-side layout: two (or more) 16:9 panels in a row, each with its label above it, and room for its
-    timer below. Returns the background image, the panels (x, y, width, height), and the centers of the timers."""
-    count = len(labels)
-    if branded:
-        image, top, bottom, margin, gap = background(), 110, H - 40, MARGIN, 48
-        header(image, chapter_title, label)
-    else:
-        image, top, bottom, margin, gap = Image.new("RGB", (W, H), PLAIN_BACKGROUND), 0, H, 48, 32
-    width = (W - 2 * margin - (count - 1) * gap) // count // 2 * 2
-    height = width * 9 // 16 // 2 * 2
-    block = 60 + height + (100 if timers else 0)
-    y = top + (bottom - top - block) // 2 + 60
-    draw = ImageDraw.Draw(image)
-    panels, timer_centers = [], []
-    for index, text in enumerate(labels):
-        x = margin + index * (width + gap)
-        draw.rounded_rectangle((x - 3, y - 3, x + width + 2, y + height + 2), radius=8,
-                               outline=PRIMARY if branded else PLAIN_BORDER, width=3 if branded else 2)
-        draw.text((x + width // 2, y - 34), text, font=font(34, "SemiBold"), fill=TEXT if branded else PLAIN_TEXT,
-                  anchor="mm")
-        panels.append((x, y, width, height))
-        timer_centers.append((x + width // 2, y + height + 56))
-    return image, panels, timer_centers
 
 
 # Slides.

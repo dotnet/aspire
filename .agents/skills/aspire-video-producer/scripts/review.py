@@ -1,6 +1,5 @@
 """Writes a contact sheet of a recorded clip, to check it without watching it: the frame 2 seconds into each step,
-the frame at the end of its narration, the frame at each mark (and 1.5 s after the "end" mark, the result a comparison
-shows), and the frames at the given times. A clip with none of these, such as a side without marks, shows its first
+the frame at the end of its narration, and the frames at the given times. A clip with none of these shows its first
 and last frames.
 
 Usage: python review.py <workspace> <clip> [seconds...]
@@ -34,10 +33,6 @@ times = []
 for step in timeline["steps"]:
     times.append((f"{step['id']} +2s", step["t"] + 2))
     times.append((f"{step['id']} end", step["t"] + durations.get(step["id"], 2)))
-for mark in timeline.get("marks", []):
-    times.append((f"mark {mark['name']}", mark["t"]))
-    if mark["name"] == "end":
-        times.append(("end +1.5s", mark["t"] + 1.5))
 times += [(f"t={t}", t) for t in extra]
 if not times:
     times = [("first frame", frames[0]["t"]), ("last frame", frames[-1]["t"])]

@@ -19,7 +19,6 @@ from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import brand  # noqa: E402
-from narrate import duration as media_duration  # noqa: E402
 
 FFMPEG = imageio_ffmpeg.get_ffmpeg_exe()
 FPS = brand.FPS
@@ -42,7 +41,6 @@ CHAPTER_CARD_SECONDS = 2.6
 CARD_LEAD, CARD_TAIL = 1.0, 1.4
 SLIDE_LEAD, SLIDE_GAP, SLIDE_TAIL = 0.6, 0.5, 1.0
 CLIP_LEAD, CLIP_TAIL = 0.7, 1.0
-COMPARE_LEAD, COMPARE_TAIL, COMPARE_GAP = 0.7, 1.5, 0.3
 
 # Zooms in recordings (see references/specs.md): slight, eased, and never so large the element loses its context.
 ZOOM_SECONDS = 0.8        # the length of a zoom in, out, or from one element to another
@@ -264,69 +262,6 @@ class Assembler:
         run(args + master_video() + master_audio() + ["-t", f"{seconds:.3f}", str(output)])
         return seconds, offsets
 
-    def side(self, side, name):
-        """The ffmpeg input of one side of a comparison, and the length of its run: a recorded clip ("clip"), from
-        its "start" mark to its "end" mark, or a video file ("file"), from its "start" to its "end" second. The side
-        keeps playing up to COMPARE_TAIL after its end, so the result shows, but its timer stops at the end."""
-        if "file" in side:
-            path = (self.workspace / side["file"]).resolve()
-            total = media_duration(path)
-            start = float(side.get("start", 0))
-            end = float(side.get("end", total))
-            shown = min(total, end + COMPARE_TAIL) - start
-            return ["-ss", f"{start:.3f}", "-t", f"{shown:.3f}", "-i", str(path)], end - start
-        directory = self.workspace / "clips" / side["clip"]
-        timeline = json.loads((directory / "timeline.json").read_text())
-        marks = {mark["name"]: mark["t"] for mark in timeline.get("marks", [])}
-        start, end = marks.get("start", 0.0), marks.get("end", timeline["end"])
-        entries = self.frame_entries(directory, timeline["frames"], start, min(timeline["end"], end + COMPARE_TAIL))
-        if not entries:
-            raise SystemExit(f"{side['clip']}: no frames between its start and end marks")
-        return ["-f", "concat", "-safe", "0", "-i", str(self.write_concat(name, entries))], end - start
-
-    def compare(self, clip, chapter_title, label, output):
-        """Side-by-side runs ("sides"), started together, each with its label and, with "timer", the time it takes.
-        The narration of the clip's steps, if any, plays one step after the other."""
-        sides, steps = clip["sides"], clip.get("steps", [])
-        timers = clip.get("timer", False)
-        image, panels, centers = brand.compare_layout([side.get("label", "") for side in sides], chapter_title, label,
-                                                      self.branded, timers)
-        png = self.build / f"{clip['id']}.compare.png"
-        image.save(png)
-        inputs = [self.side(side, f"{clip['id']}-{index}") for index, side in enumerate(sides)]
-
-        offsets, t = [], COMPARE_LEAD
-        for step in steps:
-            offsets.append((step, t))
-            t += self.durations[step["id"]] + COMPARE_GAP
-        seconds = max(COMPARE_LEAD + max(length for _, length in inputs), t) + COMPARE_TAIL
-
-        args = ["-loop", "1", "-framerate", str(FPS), "-t", f"{seconds:.3f}", "-i", str(png)]
-        filters, chain = [], "[0:v]"
-        for index, ((side_args, length), (x, y, w, h)) in enumerate(zip(inputs, panels)):
-            args += side_args
-            filters.append(f"[{index + 1}:v]fps={FPS},scale={w}:{h}:force_original_aspect_ratio=decrease:flags=lanczos,"
-                           f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:color=black,setpts=PTS-STARTPTS,"
-                           f"tpad=start_mode=clone:start_duration={COMPARE_LEAD}:stop_mode=clone:stop_duration={seconds:.3f}[side{index}]")
-            filters.append(f"{chain}[side{index}]overlay={x}:{y}:shortest=0[base{index}]")
-            chain = f"[base{index}]"
-        texts = []
-        if timers:
-            font = (brand.FONTS / "FiraCode-Variable.ttf").as_posix().replace(":", "\\:")
-            color = "#F6F3FF" if self.branded else "#F5F5F5"
-            for (_, length), (cx, cy) in zip(inputs, centers):
-                elapsed = f"min(max(t-{COMPARE_LEAD}\\,0)\\,{length:.3f})"
-                text = f"%{{eif\\:trunc({elapsed})\\:d}}.%{{eif\\:mod(trunc({elapsed}*10)\\,10)\\:d}} s"
-                texts.append(f"drawtext=fontfile='{font}':fontsize=44:fontcolor={color}:"
-                             f"x={cx}-text_w/2:y={cy}-text_h/2:text='{text}'")
-        filters.append(f"{chain}{','.join(texts + [''])}trim=0:{seconds:.3f},"
-                       f"fade=t=in:st=0:d=0.35,fade=t=out:st={seconds - 0.35:.3f}:d=0.35,format=yuv420p[vout]")
-        sounds = [(self.audio(step["id"]), offset) for step, offset in offsets] if self.narrated else []
-        audio_args, audio_filters = self.mix(sounds, 1 + len(sides), seconds)
-        args += audio_args + ["-filter_complex", ";".join(filters + audio_filters), "-map", "[vout]", "-map", "[aout]"]
-        run(args + master_video() + master_audio() + ["-t", f"{seconds:.3f}", str(output)])
-        return seconds, offsets
-
     def run(self):
         segments, captions, clock = [], [], 0.0
 
@@ -378,10 +313,7 @@ class Assembler:
                         clock += seconds
                 else:
                     path = self.build / f"{clip['id']}.mp4"
-                    if clip["kind"] == "compare":
-                        seconds, offsets = self.compare(clip, title, label, path)
-                    else:
-                        seconds, offsets = self.recording(clip["id"], title, label, steps, path)
+                    seconds, offsets = self.recording(clip["id"], title, label, steps, path)
                     for step, offset in offsets:
                         caption(step.get("text"), offset, self.durations[step["id"]])
                     segments.append(path)

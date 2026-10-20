@@ -39,8 +39,9 @@ clip. `narrate.py`, the recorder and `assemble.py` all read it.
 - `zoom` (optional): `false` to render the recordings without their dynamic zooms. The default is `true`.
 - `narration` (optional): `false` for a silent video, without voice or captions. Each step then lasts its `"seconds"`
   (3 by default), and its `"text"` is optional. `narrate.py` still runs: it writes `durations.json` from them.
-- `branding` (optional): `false` for a video without the Aspire look: recordings fill the whole frame, with no header
-  or border, and cards are plain (no logo, no purple). Slides still use `brand.py`: leave them out, or draw plain ones.
+- `branding` (optional): `false` for a video without the Aspire look: no logo and no Aspire color. Recordings fill the
+  whole frame, with no header or border; cards are white text on black; the recorder's highlights are white and
+  black. Slides use `brand.py`, which is branded: leave them out, or draw plain ones.
 - `chapter` (optional): the word for "Chapter" on chapter cards and pills, in the language of the video ("Capítulo").
 - `chapterCardSeconds` (optional): how long each chapter card stays on screen, when the user wants quicker (or
   slower) transitions than the default 2.6 s of `references/specs.md`, such as `1.2`.
@@ -50,12 +51,6 @@ clip. `narrate.py`, the recorder and `assemble.py` all read it.
   - `card`: the opening or closing card, with the chapter's title and subtitle, and one narrated step.
   - `slide`: one image per step, drawn by `slide(step_id, chapter_title, label)` in the workspace's `slides.py`.
   - `clip`: a recording, made by the method of the same name in `recorder/Scenes.cs`.
-  - `compare`: runs side by side, started together. `"sides"`: two (or more) of `{ "clip": "<recorded clip>",
-    "label": "Before" }`, trimmed to its `start` and `end` marks (`scene.Mark`), or `{ "file": "<video, relative to
-    the workspace>", "label": "After", "start": 0.5, "end": 4.2 }` (seconds). `"timer": true` shows under each side
-    the time from its start to its end, then stops. Each side keeps playing 1.5 s after its end, so the result shows.
-    `"steps"` (optional) are narrated one after the other over the comparison, from 0.7 s. The clip lasts as long as
-    the slowest side, or the narration.
 - Step `id`: unique in the video; the recorder marks the time each one starts.
 
 ## Structure
