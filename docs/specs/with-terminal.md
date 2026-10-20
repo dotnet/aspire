@@ -16,7 +16,8 @@ builder.AddProject<Projects.MyAgent>("agent")
 ```
 
 The dashboard then renders a Hex1b web terminal per replica, and the CLI
-exposes the same session as `aspire terminal agent --replica 0`.
+exposes the same session as `aspire terminal attach agent-abc123`, using the
+exact resource instance ID.
 
 All terminal APIs share the experimental diagnostic `ASPIRETERMINAL001`,
 including `WithTerminal()`, AppHost-owned terminals, and terminal interactions.
@@ -647,12 +648,30 @@ Console logs page non-empty for a `WithTerminal()` resource.
 
 ## CLI
 
-`aspire terminal attach <resource> [--replica N]` (`Aspire.Cli/Commands/TerminalAttachCommand.cs`)
+`aspire terminal attach <resource>` (`Aspire.Cli/Commands/TerminalAttachCommand.cs`)
 opens its own `Hmp1WorkloadAdapter` against the consumer UDS path
-returned by `IBackchannel.GetTerminalInfoAsync(resource, replica)` and
-renders frames into the host terminal via Hex1b's `Hex1bTerminal`. When the
-resource has more than one replica and the CLI is interactive, it prompts
-for a selection; in non-interactive mode the `--replica` flag is required.
+returned by terminal discovery and renders frames into the host terminal via
+Hex1b's `Hex1bTerminal`. A singleton accepts its display name or exact instance
+ID. For a replicated resource, pass the exact instance ID, as shown by
+`aspire ps` or `aspire describe`. Without a legacy numeric option, an ambiguous
+display name fails with a non-zero exit code and lists the available instance IDs
+in both interactive and non-interactive execution; it never prompts for a replica
+or picks a default.
+The legacy `--replica` option and its `-r` alias are hidden from help but retain
+numeric replica selection for compatibility with older callers, including VS Code
+extensions. When supplied, the index explicitly selects the endpoint, including
+when the resource argument is an ambiguous display name. New callers should use
+exact instance IDs instead.
+
+Without a legacy numeric option, the CLI retains the selected resource snapshot
+and uses its `terminal.replicaIndex` metadata to select the corresponding discovered endpoint.
+Missing or invalid metadata fails explicitly when the instance cannot otherwise
+be mapped unambiguously. Internal replica indices and the discovery protocol
+are unchanged.
+
+The CLI advertises `terminal-instance-selection.v1` through `aspire config info`.
+The VS Code resource tree uses this capability to omit the legacy replica option
+with current CLIs while continuing to supply it to older CLIs.
 
 `aspire terminal ps` lists both resource-owned and AppHost-owned terminals. Its
 backchannel response has required `resourceTerminals` and `appHostTerminals`
@@ -666,11 +685,12 @@ their experimental backchannel contract can change between builds.
 
 `aspire terminal tape play <resource> --tape-file <path>` uses Hex1b's
 `TapeParser` and `TapePlayer` to execute a VHS `.tape` script against an
-existing resource terminal.
+existing resource terminal. It uses the same singleton-name/exact-instance-ID
+selection contract as `terminal attach`.
 
 ```sh
 aspire terminal tape play shell --tape-file ./probe.tape
-aspire terminal tape play shell --tape-file ./probe.tape --replica 1 --apphost ./AppHost/AppHost.csproj --timeout 30
+aspire terminal tape play shell-abc123 --tape-file ./probe.tape --apphost ./AppHost/AppHost.csproj --timeout 30
 ```
 
 For example, against an idle Bash shell:

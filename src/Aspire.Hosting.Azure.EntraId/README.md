@@ -79,7 +79,15 @@ Changing the name or suffix targets another registration and leaves the previous
 Existing registrations with different `uniqueName` values are not automatically adopted: reference their IDs with
 `AddExistingEntraApplication` or explicitly clean them up when migrating.
 
-Configure callback URIs with `WithRedirectUris`; Aspire does not discover them automatically.
+Configure callback URIs with `WithRedirectUris`; Aspire does not discover them automatically. To supply the externally visible
+URIs per environment at deployment time (for example, behind a gateway or custom domain), pass parameters instead of literals.
+Each parameter value may contain several URIs separated by commas (split in the generated Bicep, so URIs can't contain commas
+and entries must not have surrounding whitespace). Literal and parameter-backed URIs can be mixed and are registered in call order:
+
+```csharp
+var redirectUris = builder.AddParameter("web-redirect-uris");
+entraWeb.WithRedirectUris(redirectUris);
+```
 
 For OpenID Connect sign-in flows that request an ID token directly from the authorization endpoint, explicitly enable ID-token issuance:
 
@@ -90,6 +98,21 @@ entraWeb.WithIdTokenIssuance();
 ID-token issuance through implicit or hybrid flows is disabled by default. `WithIdTokenIssuance` enables only ID-token issuance, not implicit access-token issuance, and only affects registrations created by Aspire. For existing registrations, enable **ID tokens (used for implicit and hybrid flows)** in their **Authentication** settings instead. It is not needed for authorization-code-only flows. For new production applications, prefer authorization code flow with PKCE and configure a confidential-client credential when the application redeems codes.
 
 Creating a registration does not protect a workload's routes or authorize API requests. Configure authentication and authorization in the consuming application using Microsoft.Identity.Web or the corresponding library for that language. A web-to-API flow additionally requires an API identifier URI, exposed scopes, client permissions/consent, a client credential, and scope or role validation in the API. These are not provisioned by this initial increment.
+
+### Assign explicit owners
+
+By default Aspire assigns no owners, so Microsoft Entra's default ownership behavior applies. To opt in, pass directory object IDs (users or service principals) as literals or parameters. Application and service principal ownership are configured separately:
+
+```csharp
+var ownerId = builder.AddParameter("entra-owner-id");
+
+var entraWeb = builder.AddEntraIdApplication("entra-web")
+                      .WithOwners(ownerId);
+```
+
+`WithOwners` sets both; use `WithApplicationOwners` / `WithServicePrincipalOwners` to configure them independently.
+
+Owners are appended; existing owners are never removed. Owners can manage the registration, and the deploying identity needs permission to manage owners (for example `Application.ReadWrite.All`). Existing registrations are not modified.
 
 ### Clean up created registrations
 

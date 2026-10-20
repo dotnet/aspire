@@ -119,7 +119,10 @@
                                         </AspireTemplateColumn>
                                     </ChildContent>
                                     <EmptyContent>
-                                        <FluentIcon Icon="Icons.Regular.Size24.SlideTextSparkle" Color="Color.Primary" />&nbsp;@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsNoLogsFound)]
+                                        <TelemetryEmptyContent>
+                                            <FluentIcon Icon="Icons.Regular.Size24.SlideTextSparkle" Color="Color.Primary" />
+                                            @Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsNoLogsFound)]
+                                        </TelemetryEmptyContent>
                                     </EmptyContent>
                                 </AspireFluentDataGrid>
                             </GridColumnManager>

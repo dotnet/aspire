@@ -25,6 +25,66 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
     private const string ClientId = "00001111-aaaa-2222-bbbb-3333cccc4444";
 
     [Fact]
+    public async Task WithOwners_GeneratesOwnerRelationships()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var spOwner = builder.AddParameter("sp-owner");
+        var entra = builder.AddEntraIdApplication("entra-web")
+            .WithApplicationOwners("00001111-aaaa-2222-bbbb-3333cccc4444", "00001111-AAAA-2222-bbbb-3333cccc4444")
+            .WithServicePrincipalOwners("11112222-aaaa-3333-bbbb-4444cccc5555")
+            .WithServicePrincipalOwners(spOwner);
+
+        await Verify(entra.Resource.GetBicepTemplateString(), "bicep");
+    }
+
+    [Fact]
+    public void WithOwners_ValidatesIds()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var entra = builder.AddEntraIdApplication("entra-web");
+
+        Assert.Throws<ArgumentException>(() => entra.WithApplicationOwners("not-a-guid"));
+        Assert.Throws<ArgumentException>(() => entra.WithServicePrincipalOwners(" "));
+        Assert.Empty(entra.Resource.ApplicationOwners);
+    }
+
+    [Fact]
+    public async Task WithOwners_SetsApplicationAndServicePrincipalOwners()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var param = builder.AddParameter("owner");
+        var entra = builder.AddEntraIdApplication("entra-web")
+            .WithOwners("00001111-aaaa-2222-bbbb-3333cccc4444")
+            .WithOwners(param);
+
+        Assert.Equal(2, entra.Resource.ApplicationOwners.Count);
+        Assert.Equal(entra.Resource.ApplicationOwners, entra.Resource.ServicePrincipalOwners);
+        await Verify(entra.Resource.GetBicepTemplateString(), "bicep");
+    }
+
+    [Fact]
+    public void WithOwners_NormalizesAndDeduplicatesGuidFormats()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var entra = builder.AddEntraIdApplication("entra-web")
+            .WithApplicationOwners(
+                "00001111-AAAA-2222-bbbb-3333cccc4444",
+                "00001111aaaa2222bbbb3333cccc4444",
+                "{00001111-aaaa-2222-bbbb-3333cccc4444}");
+
+        Assert.Equal(["00001111-aaaa-2222-bbbb-3333cccc4444"], entra.Resource.ApplicationOwners);
+    }
+
+    [Fact]
+    public void DefaultProvisioning_HasNoOwners()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var entra = builder.AddEntraIdApplication("entra-web");
+
+        Assert.DoesNotContain("owners", entra.Resource.GetBicepTemplateString());
+    }
+
+    [Fact]
     public async Task AddEntraIdApplication_GeneratesGraphBicep()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -282,9 +342,47 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         Assert.Same(entra, entra.WithRedirectUris("https://localhost:7123/signin-oidc"));
         entra.WithRedirectUris("https://localhost:7123/signout-callback-oidc");
         Assert.Throws<ArgumentNullException>(() => EntraIdResourceExtensions.WithRedirectUris(null!, "https://localhost:7123/signin-oidc"));
-        Assert.Throws<ArgumentNullException>(() => entra.WithRedirectUris(null!));
+        Assert.Throws<ArgumentNullException>(() => entra.WithRedirectUris((string[])null!));
         Assert.Throws<ArgumentException>(() => entra.WithRedirectUris("https://localhost:7252/callback", ""));
         Assert.Equal(new[] { "https://localhost:7123/signin-oidc", "https://localhost:7123/signout-callback-oidc" }, entra.Resource.RedirectUris);
+    }
+
+    [Fact]
+    public void WithRedirectUris_Parameters_ValidatesAndAccumulates()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var entra = builder.AddEntraIdApplication("entra-web");
+        var signIn = builder.AddParameter("signin");
+        var signOut = builder.AddParameter("signout");
+
+        Assert.Same(entra, entra.WithRedirectUris(signIn, signOut));
+        Assert.Throws<ArgumentNullException>(() => EntraIdResourceExtensions.WithRedirectUris(null!, signIn));
+        Assert.Throws<ArgumentNullException>(() => entra.WithRedirectUris((IResourceBuilder<ParameterResource>[])null!));
+        Assert.Throws<ArgumentNullException>(() => entra.WithRedirectUris(signIn, null!));
+        Assert.Equal(new[] { signIn.Resource, signOut.Resource }, entra.Resource.RedirectUriParameters);
+    }
+
+    [Fact]
+    public async Task WithRedirectUris_Parameters_WritesSplitParameterValues()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var entra = builder.AddEntraIdApplication("entra-web")
+            .WithRedirectUris(builder.AddParameter("web-redirect-uris"))
+            .WithRedirectUris("https://localhost:7123/signin-oidc")
+            .WithRedirectUris(builder.AddParameter("extra-redirect-uris"));
+
+        await Verify(entra.Resource.GetBicepTemplateString(), "bicep");
+        Assert.Equal(new[] { "tenantResourceSuffix", "web_redirect_uris", "extra_redirect_uris" }, entra.Resource.Parameters.Keys);
+    }
+
+    [Fact]
+    public async Task WithRedirectUris_SingleParameter_WritesSplitParameterValue()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var entra = builder.AddEntraIdApplication("entra-web")
+            .WithRedirectUris(builder.AddParameter("web-redirect-uris"));
+
+        await Verify(entra.Resource.GetBicepTemplateString(), "bicep");
     }
 
     [Fact]
@@ -293,7 +391,7 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create();
         var entra = builder.AddEntraIdApplication("entra-web");
         entra.Resource.SignInAudience = EntraIdSignInAudience.AzureADMultipleOrgs;
-        entra.Resource.RedirectUris.Add("https://localhost:7123/signin-oidc");
+        entra.Resource.AddRedirectUri("https://localhost:7123/signin-oidc");
         entra.Resource.EnableIdTokenIssuance = true;
 
         await Verify(entra.Resource.GetBicepTemplateString(), "bicep");
