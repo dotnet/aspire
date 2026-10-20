@@ -29,6 +29,9 @@ export interface AppHostTrackerOptions {
     onRestartRequested?: AppHostRestartHandler;
     onOutput?: AppHostOutputHandler;
     onTerminationRequested?: AppHostTerminationRequestHandler;
+    // Hides the adapter's `supportsRestartRequest` capability from VS Code for the AppHost session, so
+    // the toolbar restart arrives as disconnect with `restart: true` and reaches onRestartRequested.
+    disableDirectRestart?: boolean;
 }
 
 export function createDebugAdapterTracker(dcpServer: AspireDcpServer, debugAdapter: string, appHostTracker?: AppHostTrackerOptions): vscode.Disposable {
@@ -74,6 +77,22 @@ export function createDebugAdapterTracker(dcpServer: AspireDcpServer, debugAdapt
                     }
                 },
                 onDidSendMessage: message => {
+                    if (isOwnedAppHostSession
+                        && appHostTracker?.disableDirectRestart
+                        && message.type === 'response'
+                        && message.command === 'initialize'
+                        && message.body) {
+                        // Delve advertises supportsRestartRequest. With that capability VS Code restarts
+                        // the session with a DAP restart request instead of disconnect with
+                        // restart: true, and only the disconnect reaches the ordered restart path in
+                        // onWillReceiveMessage. The extension host passes this same message object on
+                        // to VS Code after the tracker runs, so clearing the capability here makes the
+                        // toolbar restart take the disconnect route.
+                        // https://github.com/go-delve/delve/blob/master/service/dap/server.go
+                        // https://github.com/microsoft/vscode/blob/main/src/vs/workbench/contrib/debug/browser/debugService.ts
+                        message.body.supportsRestartRequest = false;
+                    }
+
                     if (message.type === 'event' && message.event === 'process') {
                         // A new debuggee process invalidates exit state captured from a prior run.
                         // Reset before the DCP-session guard: AppHost child sessions do not have a

@@ -328,6 +328,29 @@ suite('Go AppHost Launch Tests', () => {
         // restarted instead.
         assert.strictEqual(restartHandler(debugSession.debugSessionId), true);
     });
+
+    test('hides the Delve restart request capability so the toolbar restart reaches the tracker', async () => {
+        stubInstalledExtensions(['golang.go']);
+        const debugSession = createAppHostDebugSession();
+        const trackerStub = sinon.stub(debugSession, 'createDebugAdapterTrackerCore');
+        sinon.stub(debugSession, 'startAndGetDebugSession').resolves(undefined);
+
+        await debugSession.startAppHost(appHostPath, ['go', 'run', '.'], [], true, { forceBuild: false });
+
+        sinon.assert.calledOnce(trackerStub);
+        assert.strictEqual(trackerStub.firstCall.args[1]?.disableDirectRestart, true);
+    });
+
+    test('keeps the restart request capability of an AppHost in another language', async () => {
+        const debugSession = createAppHostDebugSession({ program: '/workspace/apphost.ts' });
+        const trackerStub = sinon.stub(debugSession, 'createDebugAdapterTrackerCore');
+        sinon.stub(debugSession, 'startAndGetDebugSession').resolves(undefined);
+
+        await debugSession.startAppHost('/workspace/apphost.ts', ['node', 'apphost.ts'], [], true, { forceBuild: false });
+
+        sinon.assert.calledOnce(trackerStub);
+        assert.ok(!trackerStub.firstCall.args[1]?.disableDirectRestart);
+    });
 });
 
 function stubInstalledExtensions(extensionIds: string[]): void {

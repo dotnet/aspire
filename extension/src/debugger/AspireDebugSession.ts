@@ -1541,7 +1541,9 @@ export class AspireDebugSession implements vscode.DebugAdapter, DashboardLaunche
             if (debugSessionId === this.debugSessionId) {
               this._appHostTerminationRequested = true;
             }
-          }
+          },
+          // Delve advertises supportsRestartRequest, which would bypass onRestartRequested (see the tracker).
+          disableDirectRestart: isGoAppHost
         }
       );
 
