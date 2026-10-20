@@ -473,10 +473,13 @@ public static class Scenes
     // Checks what was typed, once VS Code saved it.
     private static async Task ExpectAppHostAsync(string text, bool exact = false)
     {
+        // Compares with "\n" line endings: the files can have "\r\n" on Windows.
+        text = text.ReplaceLineEndings("\n");
+
         for (var attempt = 0; attempt < 20; attempt++)
         {
             await Task.Delay(250);
-            var content = File.ReadAllText(Path.Combine(App, "apphost.mts"));
+            var content = File.ReadAllText(Path.Combine(App, "apphost.mts")).ReplaceLineEndings("\n");
 
             if (exact ? content == text : content.Contains(text))
             {
