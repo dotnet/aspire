@@ -67,6 +67,12 @@ internal sealed class GoLanguageSupport : ILanguageSupport
             }
             """;
 
+        // .aspire/modules holds the generated SDK. It is regenerated from the AppHost's integrations
+        // and is large, so it should not be committed.
+        files[".gitignore"] = """
+            .aspire/
+            """;
+
         // Create go.mod with require and replace directives for local modules
         // Go requires both a `require` directive and a `replace` directive for local modules
         files["go.mod"] = """
