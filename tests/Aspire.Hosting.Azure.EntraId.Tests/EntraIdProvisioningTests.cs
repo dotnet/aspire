@@ -482,6 +482,59 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task WithRedirectUris_Endpoint_RunMode_RelativeDisplayUrlResolvesAgainstEndpoint()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var web = builder.AddContainer("web", "image")
+            .WithHttpsEndpoint(targetPort: 8080, name: "https")
+            .WithEndpoint("https", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 7081));
+        var entra = builder.AddEntraIdApplication("entra-web")
+            .WithRedirectUris(web.GetEndpoint("https"), "/signin-oidc");
+
+        _ = entra.Resource.GetBicepTemplateString();
+        var expression = Assert.IsType<ReferenceExpression>(entra.Resource.Parameters["redirectUri0"]);
+
+        // The orchestrator only makes relative URLs absolute after all callbacks have run.
+        var urls = new List<ResourceUrlAnnotation> { new() { Url = "/swagger", Endpoint = web.GetEndpoint("https") } };
+        var context = new ResourceUrlsCallbackContext(builder.ExecutionContext, web.Resource, urls);
+        foreach (var callback in web.Resource.Annotations.OfType<ResourceUrlsCallbackAnnotation>())
+        {
+            await callback.Callback(context);
+        }
+
+        Assert.Equal("https://localhost:7081/signin-oidc", await expression.GetValueAsync(new ValueProviderContext(), CancellationToken.None).AsTask().WaitAsync(TimeSpan.FromSeconds(10)));
+    }
+
+    [Fact]
+    public void WithRedirectUris_DerivedParameterNames_DoNotCollideWithUserParameters()
+    {
+        foreach (var derivedFirst in new[] { false, true })
+        {
+            using var builder = TestDistributedApplicationBuilder.Create();
+            var existing = builder.AddParameter("redirectUri0", "https://existing.contoso.com/callback");
+            var domain = builder.AddParameter("domain", "web.contoso.com");
+            var entra = builder.AddEntraIdApplication("entra");
+            if (derivedFirst)
+            {
+                entra.WithRedirectUris(domain, "/signin-oidc").WithRedirectUris(existing);
+            }
+            else
+            {
+                entra.WithRedirectUris(existing).WithRedirectUris(domain, "/signin-oidc");
+            }
+
+            var bicep = entra.Resource.GetBicepTemplateString();
+            Assert.Same(existing.Resource, entra.Resource.Parameters["redirectUri0"]);
+            Assert.IsType<ReferenceExpression>(entra.Resource.Parameters["redirectUri1"]);
+            Assert.Contains("split(redirectUri0, ',')", bicep);
+            Assert.Contains("redirectUri1", bicep);
+
+            // Generating again must give the same names.
+            Assert.Equal(bicep, entra.Resource.GetBicepTemplateString());
+        }
+    }
+
+    [Fact]
     public void WithRedirectUris_Endpoint_RequiresPathStartingWithSlash()
     {
         using var builder = TestDistributedApplicationBuilder.Create();

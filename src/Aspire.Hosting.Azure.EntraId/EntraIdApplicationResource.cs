@@ -157,7 +157,28 @@ public class EntraIdApplicationResource : AzureProvisioningResource
         //   concat(['https://literal', endpointRedirectUri0], split(redirectUris, ','), split(otherRedirectUris, ','))
         var arguments = new List<BicepExpression>();
         var literals = new List<BicepExpression>();
+
+        // Derived URIs get generated parameter names. Reserve the names of every user-supplied parameter first, in any
+        // call order, so a generated name never overwrites a parameter such as one named "redirectUri0".
+        var reservedNames = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var parameter in values.Concat(resource.ApplicationOwners).Concat(resource.ServicePrincipalOwners).OfType<ParameterResource>())
+        {
+            reservedNames.Add(Infrastructure.NormalizeBicepIdentifier(parameter.Name));
+        }
+
         var endpointIndex = 0;
+        string NextDerivedParameterName()
+        {
+            string name;
+            do
+            {
+                name = $"redirectUri{endpointIndex++}";
+            }
+            while (reservedNames.Contains(name));
+
+            return name;
+        }
+
         foreach (var value in values)
         {
             if (value is string literal)
@@ -172,7 +193,7 @@ public class EntraIdApplicationResource : AzureProvisioningResource
                 // locally, from the compute environment when deploying, or from the domain parameter's value.
                 var uriParameter = derivedRedirectUri
                     .CreateExpression()
-                    .AsProvisioningParameter(infrastructure, $"redirectUri{endpointIndex++}");
+                    .AsProvisioningParameter(infrastructure, NextDerivedParameterName());
                 literals.Add(uriParameter.Value.Compile());
                 continue;
             }

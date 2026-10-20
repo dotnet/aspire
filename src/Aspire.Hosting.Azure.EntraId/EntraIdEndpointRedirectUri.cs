@@ -96,8 +96,21 @@ internal sealed class EntraIdEndpointRedirectUri : IEntraIdDerivedRedirectUri
                 .Where(u => u.Endpoint is { } e && string.Equals(e.EndpointName, endpoint.EndpointName, StringComparison.OrdinalIgnoreCase))
                 .ToList();
             var primary = urls.FirstOrDefault(u => u.DisplayLocation != UrlDisplayLocation.DetailsOnly) ?? urls.FirstOrDefault();
+            if (primary is null)
+            {
+                return;
+            }
 
-            if (primary is not null && Uri.TryCreate(primary.Url, UriKind.Absolute, out var uri))
+            // The orchestrator turns relative URLs (for example, "/swagger" set by WithUrlForEndpoint) into absolute
+            // ones against the allocated endpoint only after every callback has run, so mirror that here. Parsing a
+            // relative URL directly would produce a file URI on some platforms.
+            var url = primary.Url;
+            if (url.StartsWith('/') && endpoint.EndpointAnnotation.AllocatedEndpoint is { } allocatedEndpoint)
+            {
+                url = allocatedEndpoint.UriString.TrimEnd('/') + url;
+            }
+
+            if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https")
             {
                 _origin.TrySetResult(uri.GetLeftPart(UriPartial.Authority));
             }
