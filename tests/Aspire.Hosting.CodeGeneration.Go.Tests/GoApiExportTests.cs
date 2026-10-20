@@ -456,6 +456,38 @@ public class GoApiExportTests
     }
 
     [Fact]
+    public void Scan_ReportsExportedDeclarationsWithNonAsciiUppercaseNames()
+    {
+        // U+00C9 and U+00DC are upper case letters outside ASCII, so Go exports the names they start;
+        // U+00E9 is lower case, so the names it starts stay unexported.
+        var source = string.Join(
+            '\n',
+            "type \u00C9tat struct {",
+            "\t\u00C9tage string",
+            "\t\u00E9tageCache string",
+            "}",
+            "",
+            "func (e *\u00C9tat) \u00C9crire() error { return nil }",
+            "",
+            "func \u00DCberFunc() {}",
+            "",
+            "func \u00E9teindre() {}",
+            "",
+            "type \u00E9tatPrive struct{}");
+
+        var declarations = GoDeclarationScanner.Scan(source, includeBodyDocs: false);
+
+        Assert.Equal(
+            [
+                (GoDeclarationKind.Type, "", "\u00C9tat", "type \u00C9tat struct"),
+                (GoDeclarationKind.Field, "\u00C9tat", "\u00C9tage", "\u00C9tage string"),
+                (GoDeclarationKind.Method, "\u00C9tat", "\u00C9crire", "\u00C9crire() error"),
+                (GoDeclarationKind.Function, "", "\u00DCberFunc", "func \u00DCberFunc()")
+            ],
+            declarations.Select(declaration => (declaration.Kind, declaration.Owner, declaration.Name, declaration.Signature)));
+    }
+
+    [Fact]
     public void Scan_OfGeneratedRuntime_ReportsTheErrMethodHandlesInherit()
     {
         var declarations = GoDeclarationScanner.Scan(s_generated.Value["base.go"], includeBodyDocs: false);

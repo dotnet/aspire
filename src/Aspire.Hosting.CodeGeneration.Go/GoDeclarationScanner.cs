@@ -383,7 +383,9 @@ internal static class GoDeclarationScanner
         return end;
     }
 
-    private static bool IsExported(string name) => name.Length > 0 && char.IsAsciiLetterUpper(name[0]);
+    // Go exports every identifier that starts with a Unicode upper case letter (category Lu), and the
+    // generator's naming can produce non-ASCII ones. A first letter outside the BMP is not recognized.
+    private static bool IsExported(string name) => name.Length > 0 && char.IsUpper(name[0]);
 
     // The first " {" ends a header: a one-line body follows it, and gofmt never puts a space before the
     // brace of the empty `struct{}` and `interface{}` types.
