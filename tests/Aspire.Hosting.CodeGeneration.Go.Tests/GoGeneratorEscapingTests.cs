@@ -95,6 +95,9 @@ public class GoGeneratorEscapingTests
         var tagsType = new AtsTypeRef { TypeId = "Tests/List<string>", Category = AtsTypeCategory.List, ElementType = stringType };
         var unionType = new AtsTypeRef { TypeId = "Tests/Union", Category = AtsTypeCategory.Union, UnionTypes = [stringType, numberType] };
         var callbackType = new AtsTypeRef { TypeId = "Tests/Callback", Category = AtsTypeCategory.Callback };
+        var enumType = new AtsTypeRef { TypeId = StatusTypeId, Category = AtsTypeCategory.Enum };
+        var lookupType = new AtsTypeRef { TypeId = "Tests/Dict<string,string>", Category = AtsTypeCategory.Dict, KeyType = stringType, ValueType = stringType, IsReadOnly = true };
+        var unknownType = new AtsTypeRef { TypeId = "Tests/Unknown", Category = AtsTypeCategory.Unknown };
         AtsCallbackParameterInfo[] callbackParameters = [new() { Name = "con\"text", Type = stringType }];
 
         return new AtsContext
@@ -170,10 +173,26 @@ public class GoGeneratorEscapingTests
                     Type = stringType,
                     Value = JsonValue.Create("primary"),
                     Description = InjectedText
-                }
+                },
+
+                // Characters outside the Basic Multilingual Plane (U+1F600 here) are written as UTF-8. A JSON string
+                // would spell them as the surrogate pair \uD83D\uDE00, which Go rejects in a string literal. The
+                // string, map key, enum and untyped values each take a different path through the renderer.
+                ExportedValue(["Emoji", "Greeting"], stringType, JsonValue.Create("hi \U0001F600")),
+                ExportedValue(["Emoji", "Lookup"], lookupType, new JsonObject { ["\U0001F600"] = "\U0001F600" }),
+                ExportedValue(["Emoji", "Status"], enumType, JsonValue.Create("Ready\U0001F600")),
+                ExportedValue(["Emoji", "Anything"], unknownType, JsonValue.Create("\U0001F600"))
             ]
         };
     }
+
+    private static AtsExportedValueInfo ExportedValue(IReadOnlyList<string> pathSegments, AtsTypeRef type, JsonNode value) => new()
+    {
+        OwningAssemblyName = "Tests",
+        PathSegments = pathSegments,
+        Type = type,
+        Value = value
+    };
 
     private static AtsTypeRef Primitive(string typeId) => new() { TypeId = typeId, Category = AtsTypeCategory.Primitive };
 

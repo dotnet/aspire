@@ -861,15 +861,15 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
 
         var renderedValue = typeRef.Category switch
         {
-            AtsTypeCategory.Primitive => value.ToRelaxedJsonString(),
-            AtsTypeCategory.Enum => $"{MapEnumType(typeRef.TypeId)}({value.ToRelaxedJsonString()})",
+            AtsTypeCategory.Primitive => RenderGoJsonValue(value),
+            AtsTypeCategory.Enum => $"{MapEnumType(typeRef.TypeId)}({RenderGoJsonValue(value)})",
             AtsTypeCategory.Dto when value is JsonObject obj && dtoTypesById.TryGetValue(typeRef.TypeId, out var dtoInfo)
                 => RenderGoDtoValue(obj, dtoInfo, dtoTypesById),
             AtsTypeCategory.Array or AtsTypeCategory.List when value is JsonArray arr
                 => $"[]{MapTypeRefToGo(typeRef.ElementType, isOptional: false)}{{{string.Join(", ", arr.Select(item => RenderGoExportedValue(item, typeRef.ElementType!, dtoTypesById)))}}}",
             AtsTypeCategory.Dict when value is JsonObject obj
-                => $"map[{MapTypeRefToGo(typeRef.KeyType, isOptional: false)}]{MapTypeRefToGo(typeRef.ValueType, isOptional: false)}{{{string.Join(", ", obj.Select(pair => $"{AtsJsonCodeWriter.ToRelaxedJsonString(pair.Key)}: {RenderGoExportedValue(pair.Value, typeRef.ValueType!, dtoTypesById)}"))}}}",
-            _ => value.ToRelaxedJsonString()
+                => $"map[{MapTypeRefToGo(typeRef.KeyType, isOptional: false)}]{MapTypeRefToGo(typeRef.ValueType, isOptional: false)}{{{string.Join(", ", obj.Select(pair => $"{GoStringLiteral(pair.Key)}: {RenderGoExportedValue(pair.Value, typeRef.ValueType!, dtoTypesById)}"))}}}",
+            _ => RenderGoJsonValue(value)
         };
 
         if (!ShouldApplyNullableType(typeRef))
@@ -882,6 +882,14 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
             : MapEnumType(typeRef.TypeId);
         return $"func(value {valueType}) *{valueType} {{ return &value }}({renderedValue})";
     }
+
+    // The relaxed JSON writer spells a character outside the Basic Multilingual Plane as a UTF-16 surrogate pair
+    // ("\uD83D\uDE00"), and Go rejects surrogate halves in a string literal. Strings are therefore quoted by
+    // GoStringLiteral; numbers and booleans are the same text in JSON and Go.
+    private static string RenderGoJsonValue(JsonNode value) =>
+        value is JsonValue jsonValue && jsonValue.TryGetValue<string>(out var text)
+            ? GoStringLiteral(text)
+            : value.ToRelaxedJsonString();
 
     private string RenderGoDtoValue(
         JsonObject value,

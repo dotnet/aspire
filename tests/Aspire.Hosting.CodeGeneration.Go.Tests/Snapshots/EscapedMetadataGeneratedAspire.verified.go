@@ -49,6 +49,19 @@ var Defaults_X = struct {
 	Pri_mary: "primary",
 }
 
+// Emoji groups related exported values.
+var Emoji = struct {
+	Anything any
+	Greeting string
+	Lookup map[string]string
+	Status EscapedStatus
+}{
+	Anything: "😀",
+	Greeting: "hi 😀",
+	Lookup: map[string]string{"😀": "😀"},
+	Status: EscapedStatus("Ready😀"),
+}
+
 // ============================================================================
 // Handle wrappers
 // ============================================================================
