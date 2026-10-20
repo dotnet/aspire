@@ -1,8 +1,8 @@
 # An introduction to Aspire (3 minutes, VS Code and live demo)
 
 A video with no slides: the AppHost in VS Code (typed with IntelliSense), `aspire run` in its terminal, the dashboard
-it opens, and `aspire deploy` to Docker Compose. Made in three versions from the same recordings' code: English
-(`en-US-AvaMultilingualNeural`), English with a French accent (`fr-FR-HenriNeural` reading English), and Spanish
+it opens, and `aspire deploy` to Docker Compose. Made in two versions from the same recordings' code: English
+(`en-US-AvaMultilingualNeural`) and Spanish
 (`es-ES-AlvaroNeural`, `storyboard.es.json`, rate `+6%`).
 
 **Start here for any video that shows VS Code or a terminal**, and read the VS Code section of

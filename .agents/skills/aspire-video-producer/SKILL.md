@@ -249,5 +249,5 @@ user's agreement.
 - `assets/`: the Aspire logo (from aspire.dev) and the Poppins and Fira Code fonts (SIL Open Font License).
 - `examples/dashboard-tour/`: a complete storyboard and slides.
 - `examples/aspire-introduction/`: a video with no slides: the AppHost typed in VS Code with IntelliSense, `aspire run`
-  in its terminal, the dashboard, and `aspire deploy`, in three voices and two languages. **Start from it for any video
+  in its terminal, the dashboard, and `aspire deploy`, in English and Spanish. **Start from it for any video
   that shows VS Code or a terminal.**

@@ -59,8 +59,7 @@ and the typing helpers) **and `examples/aspire-introduction/vscode-user-settings
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| A French multilingual voice (`fr-FR-RemyMultilingualNeural`) reads English with no French accent | Multilingual voices switch to a native accent for each language | Use a single-language voice reading English: `fr-FR-HenriNeural` |
-| Custom SSML (`rawToStream`, `<lang xml:lang="fr-FR">`) returns no audio | The free service rejects it | Only plain text with the prosody of `tts.mjs` |
+| Custom SSML (`rawToStream`, such as a `<lang>` element) returns no audio | The free service rejects it | Only plain text with the prosody of `tts.mjs` |
 | Every request fails with a 403 | The service's handshake changed | Update `msedge-tts` (see SKILL.md) |
 | Voice samples | | Send them to the user as files; never play them on the user's speakers |
 | A requested voice (`en-US-PhoebeMultilingualNeural`) fails with "Stream closed before the synthesis completed" | Azure-only voice: the free Edge service doesn't offer it | List the available voices with `new MsEdgeTTS().getVoices()` and offer the closest one (`en-US-AvaMultilingualNeural`, `en-US-EmmaMultilingualNeural`) |

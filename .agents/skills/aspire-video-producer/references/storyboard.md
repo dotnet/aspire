@@ -31,9 +31,7 @@ clip. `narrate.py`, the recorder and `assemble.py` all read it.
 - `output`: the file name of the result, without extension: `<output>.mp4`, `.vtt`, `.srt`.
 - `spoken`: pronunciation fixes for this video only (see `SPOKEN` in `scripts/narrate.py` for those of every video).
 - `voice`, `rate` (optional): the narrator the user picked (see "Voice" in `references/specs.md`), such as
-  `en-US-AvaMultilingualNeural`, or a voice for a video in another language (`es-ES-AlvaroNeural`). For English with a French accent, use a French
-  single-language voice, such as `fr-FR-HenriNeural`: a multilingual voice (`fr-FR-RemyMultilingualNeural`) switches
-  to a native accent in English. Without it, the
+  `en-US-AvaMultilingualNeural`, or a voice for a video in another language (`es-ES-AlvaroNeural`). Without it, the
   default voice.
 - `renditions` (optional): the renditions to encode, from the table of `references/specs.md`: `"web"`, `"hd"`,
   `"light"`. The default is `["web"]`.
