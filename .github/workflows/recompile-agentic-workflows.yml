@@ -56,6 +56,9 @@ jobs:
           printf '%s\n' "$installed"
           [[ "$installed" == "gh aw version $GH_AW_VERSION" ]]
           gh aw compile --no-check-update --schedule-seed microsoft/aspire
+          # Compilation replaces auto-sec.lock.yml with raw output. Reapply its publication
+          # gates before linting, as validate-agentic-workflows.yml does.
+          node .github/workflows/auto-sec/publication-guard.js
           gh aw lint --shellcheck
 
       - name: Check complete recompilation changes
@@ -97,7 +100,7 @@ jobs:
 
             Compiler: https://github.com/github/gh-aw/releases/tag/${{ steps.detect.outputs.version }}
 
-            Validation passed: `gh aw version`, `gh aw compile --no-check-update --schedule-seed microsoft/aspire`, and `gh aw lint --shellcheck`.
+            Validation passed: `gh aw version`, `gh aw compile --no-check-update --schedule-seed microsoft/aspire`, `node .github/workflows/auto-sec/publication-guard.js`, and `gh aw lint --shellcheck`.
 
             ## Checklist
 

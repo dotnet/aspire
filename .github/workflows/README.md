@@ -48,16 +48,20 @@ aligns both `setup-cli` pins and version inputs, and runs:
 gh extension install github/gh-aw --pin <detected-version> --force
 gh aw version
 gh aw compile --no-check-update --schedule-seed microsoft/aspire
+node .github/workflows/auto-sec/publication-guard.js
 gh aw lint --shellcheck
 ```
 
-It does not run `gh aw upgrade` or refresh authoring scaffolding. Compilation or
-lint failures prevent publication, unexpected changed paths fail the run, and an
-empty diff opens no PR. Aspirey creates or updates a stable branch per source PR;
-reruns do not reopen a closed follow-up PR. Runs sharing a follow-up branch are
-serialized: each source PR gets its own concurrency group, and manual dispatches
-share a separate group. Unrelated PR closures cannot replace a queued gh-aw update;
-a pending rerun can only be replaced by another run for the same source.
+It does not run `gh aw upgrade` or refresh authoring scaffolding. Compilation
+replaces `auto-sec.lock.yml` with raw output, so the publication guard reapplies
+its gates before linting. Compilation, guard, or lint failures prevent publication
+(the guard fails on compiler output it does not recognize), unexpected changed
+paths fail the run, and an empty diff opens no PR. Aspirey creates or updates a
+stable branch per source PR; reruns do not reopen a closed follow-up PR. Runs
+sharing a follow-up branch are serialized: each source PR gets its own concurrency
+group, and manual dispatches share a separate group. Unrelated PR closures cannot
+replace a queued gh-aw update; a pending rerun can only be replaced by another run
+for the same source.
 Version verification captures both stdout and stderr
 because older gh-aw releases print their version to stderr.
 The existing `ASPIRE_BOT_APP_ID` and `ASPIRE_BOT_PRIVATE_KEY` secrets are
