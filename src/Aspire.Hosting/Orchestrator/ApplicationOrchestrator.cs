@@ -468,14 +468,19 @@ internal sealed class ApplicationOrchestrator
                 return;
             }
 
+            var startupTask = WaitForStartupAttemptToFinishAsync();
             var waitTask = Task.WhenAll(parameterValueTasks.Values.Select(WaitForParameterAsync));
-            if (await Task.WhenAny(waitTask, superseded.Task).ConfigureAwait(false) == superseded.Task)
+            try
+            {
+                await Task.WhenAny(waitTask, superseded.Task, startupTask).ConfigureAwait(false);
+            }
+            finally
             {
                 // Cancel only this monitor's waits; shared parameter tasks still gate startup.
+                // Await both observers so their subscriptions are removed before the monitor completes.
                 await monitorCancellation.CancelAsync().ConfigureAwait(false);
+                await Task.WhenAll(waitTask, startupTask).ConfigureAwait(false);
             }
-
-            await waitTask.ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (monitorToken.IsCancellationRequested)
         {
@@ -491,6 +496,35 @@ internal sealed class ApplicationOrchestrator
                 parameter.ValueChanged -= OnParameterValueChangedAsync;
             }
         }
+
+        async Task WaitForStartupAttemptToFinishAsync()
+        {
+            string[] resourceIds = resourceId is not null ? [resourceId] : resource.GetResolvedResourceNames();
+            var startingInstances = resourceIds.Where(id =>
+                _notificationService.TryGetCurrentState(id, out var currentState) &&
+                IsStartupState(currentState.Snapshot.State?.Text)).ToHashSet(StringComparers.ResourceName);
+            if (startingInstances.Count == 0)
+            {
+                return;
+            }
+
+            await foreach (var resourceEvent in _notificationService.WatchAsync(monitorToken).ConfigureAwait(false))
+            {
+                // A model-scoped monitor can cover several replicas. Once an instance finishes this
+                // attempt, a later restart must not add it back while another replica is still starting.
+                if (!IsStartupState(resourceEvent.Snapshot.State?.Text) &&
+                    startingInstances.Remove(resourceEvent.ResourceId) &&
+                    startingInstances.Count == 0)
+                {
+                    return;
+                }
+            }
+        }
+
+        static bool IsStartupState(string? state) =>
+            string.Equals(state, KnownResourceStates.Starting, StringComparisons.ResourceState) ||
+            string.Equals(state, KnownResourceStates.Waiting, StringComparisons.ResourceState) ||
+            string.Equals(state, KnownResourceStates.UnresolvedParameters, StringComparisons.ResourceState);
 
         Task OnParameterValueChangedAsync(ParameterResource parameter, ParameterResourceValueChangedEventArgs eventArgs, CancellationToken token)
         {
