@@ -122,7 +122,7 @@ public sealed class KubernetesDeployWithCertManagerTests(ITestOutputHelper outpu
                 : ".WithExternalAccountBinding(keyId, invalidHmac)";
             var foreignBindingToRemove = typeScript
                 ? "await foreign.withExternalAccountBinding(keyId, hmac);"
-                : ".WithExternalAccountBinding(keyId, hmac)";
+                : "foreign.WithExternalAccountBinding(keyId, hmac);";
             Assert.Contains(bindingToRemove, content);
             Assert.Contains(foreignBindingToRemove, content);
             await File.WriteAllTextAsync(
@@ -239,10 +239,10 @@ public sealed class KubernetesDeployWithCertManagerTests(ITestOutputHelper outpu
             .WithAcmeServer(server, email)
             .WithExternalAccountBinding(keyId, invalidHmac)
             .WithHttp01Solver();
-        certManager.AddIssuer("pebble-foreign")
+        var foreign = certManager.AddIssuer("pebble-foreign")
             .WithAcmeServer(server, email)
-            .WithExternalAccountBinding(keyId, hmac)
             .WithHttp01Solver();
+        foreign.WithExternalAccountBinding(keyId, hmac);
         """;
 
     private const string TypeScriptIssuers = """
