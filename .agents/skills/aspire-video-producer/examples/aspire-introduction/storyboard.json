@@ -1,0 +1,146 @@
+{
+  "title": "An introduction to Aspire",
+  "output": "aspire-introduction-ava",
+  "voice": "en-US-AvaMultilingualNeural",
+  "rate": "+2%",
+  "language": "en",
+  "spoken": {
+    "CACHE_URI": "cache U.R.I.",
+    "Vite": "Veet"
+  },
+  "chapters": [
+    {
+      "id": "00",
+      "title": "An introduction to Aspire",
+      "subtitle": "Compose distributed apps in code",
+      "clips": [
+        {
+          "id": "00-intro",
+          "kind": "card",
+          "steps": [
+            {
+              "id": "intro",
+              "text": "Aspire is an agent-ready, code-first tool for composing, debugging, and deploying distributed applications. In this video, we describe an app in a TypeScript AppHost, run it, explore it in the dashboard, and deploy it with Docker Compose."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "01",
+      "title": "The AppHost",
+      "subtitle": "The AppHost defines how your resources connect",
+      "clips": [
+        {
+          "id": "01-apphost",
+          "kind": "clip",
+          "steps": [
+            {
+              "id": "apphost-1",
+              "text": "The AppHost defines how your resources connect. This one is written in TypeScript. It starts with a Redis cache, and a PostgreSQL server with a database, which has a custom Reset data command."
+            },
+            {
+              "id": "apphost-2",
+              "text": "Then a catalog service in Node.js, a business API in .NET, and a React frontend, built with Vite."
+            },
+            {
+              "id": "apphost-3",
+              "text": "Let's connect the catalog to the cache. IntelliSense lists what each resource supports. With Reference passes the cache's connection to the catalog, and Wait For starts the catalog once Redis is healthy."
+            },
+            {
+              "id": "apphost-4",
+              "text": "The API references the database and the catalog, and the frontend references the API. Each reference is a relationship, and it carries how to connect."
+            },
+            {
+              "id": "apphost-5",
+              "text": "So nothing is hard-coded in the services: no address, no port, no connection string, no password. Aspire injects them as environment variables, here CACHE_URI."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "02",
+      "title": "Run and observe",
+      "subtitle": "One command, every resource",
+      "clips": [
+        {
+          "id": "02-run",
+          "kind": "clip",
+          "steps": [
+            {
+              "id": "run-1",
+              "text": "Let's start everything with one command: aspire run. It starts the containers, the services, and the dashboard, and prints the dashboard's link."
+            },
+            {
+              "id": "run-2",
+              "text": "The Resources page lists every resource with its state. Each one starts once its dependencies are ready, and turns healthy when its health check passes."
+            },
+            {
+              "id": "run-3",
+              "text": "The Graph shows the relationships declared in the AppHost."
+            },
+            {
+              "id": "run-4",
+              "text": "Structured logs gathers the logs of every service. Let's filter them: each entry keeps its properties, such as the order ID."
+            },
+            {
+              "id": "run-5",
+              "text": "Traces follow a request across services: from the API, to the catalog, and to Redis."
+            },
+            {
+              "id": "run-6",
+              "text": "Metrics charts what each service measures, such as the duration of its HTTP requests."
+            },
+            {
+              "id": "run-7",
+              "text": "And the custom command from the AppHost is on the database: Reset data, with its confirmation."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03",
+      "title": "Deploy",
+      "subtitle": "Deploy with the same application model",
+      "clips": [
+        {
+          "id": "03-deploy",
+          "kind": "clip",
+          "steps": [
+            {
+              "id": "deploy-1",
+              "text": "To deploy, the AppHost needs a target. Add Docker Compose Environment adds one, and the resources stay the same."
+            },
+            {
+              "id": "deploy-2",
+              "text": "Then run aspire deploy. It builds a container image for each service, and writes a Compose file, with the connections and passwords that Aspire generates."
+            },
+            {
+              "id": "deploy-3",
+              "text": "Then it starts the whole app with Docker Compose, along with an Aspire dashboard, from the same application model as on your machine."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "99",
+      "title": "An introduction to Aspire",
+      "subtitle": "aspire.dev",
+      "clips": [
+        {
+          "id": "99-outro",
+          "kind": "card",
+          "steps": [
+            {
+              "id": "outro",
+              "text": "Development, testing, and deployment stay connected to one application model. That's Aspire. Get started at aspire.dev. Thanks for watching."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

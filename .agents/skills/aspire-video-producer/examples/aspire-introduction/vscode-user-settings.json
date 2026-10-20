@@ -1,0 +1,80 @@
+{
+  "workbench.colorTheme": "Default Dark Modern",
+  "workbench.startupEditor": "none",
+  "workbench.tips.enabled": false,
+  "workbench.activityBar.location": "hidden",
+  "workbench.layoutControl.enabled": false,
+  "workbench.editor.showTabs": "single",
+  "window.commandCenter": false,
+  "chat.commandCenter.enabled": false,
+  "chat.disableAIFeatures": true,
+  "editor.fontSize": 17,
+  "editor.lineHeight": 24,
+  "editor.minimap.enabled": false,
+  "editor.stickyScroll.enabled": false,
+  "editor.renderWhitespace": "none",
+  "editor.guides.indentation": false,
+  "editor.occurrencesHighlight": "off",
+  "editor.lightbulb.enabled": "off",
+  "editor.inlayHints.enabled": "off",
+  "editor.codeLens": false,
+  "editor.hover.enabled": "off",
+  "editor.parameterHints.enabled": false,
+  "editor.suggest.preview": false,
+  "editor.acceptSuggestionOnCommitCharacter": false,
+  "files.autoSave": "afterDelay",
+  "breadcrumbs.enabled": false,
+  "git.enabled": false,
+  "problems.decorations.enabled": false,
+  "terminal.integrated.fontSize": 15,
+  "terminal.integrated.defaultProfile.osx": "demo",
+  "terminal.integrated.profiles.osx": {
+    "demo": {
+      "path": "/bin/zsh",
+      "args": [
+        "-f"
+      ],
+      "env": {
+        "PS1": "%F{141}contoso%f %F{245}$%f ",
+        "ASPIRE_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS": "true"
+      }
+    }
+  },
+  "terminal.integrated.shellIntegration.enabled": false,
+  "terminal.integrated.enablePersistentSessions": false,
+  "terminal.integrated.tabs.enabled": false,
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/.aspire": true,
+    "**/bin": true,
+    "**/obj": true,
+    "**/.gitignore": true,
+    "**/eslint.config.*": true,
+    "**/tsconfig*.json": true,
+    "**/package-lock.json": true,
+    "**/.dockerignore": true,
+    "frontend/public": true,
+    "**/*.d.ts": true,
+    "aspire-output": true,
+    "**/.vscode": true
+  },
+  "security.workspace.trust.enabled": false,
+  "extensions.ignoreRecommendations": true,
+  "workbench.welcomePage.walkthroughs.openOnInstall": false,
+  "workbench.statusBar.visible": false,
+  "update.mode": "none",
+  "extensions.autoCheckUpdates": false,
+  "workbench.enableExperiments": false,
+  "telemetry.telemetryLevel": "off",
+  "workbench.secondarySideBar.defaultVisibility": "hidden",
+  "typescript.tsserver.web.typeAcquisition.enabled": false,
+  "terminal.integrated.gpuAcceleration": "off",
+  "workbench.editor.empty.hint": "hidden",
+  "files.autoSaveDelay": 400,
+  "remote.extensionKind": {
+    "vscode.typescript-language-features": [
+      "workspace"
+    ]
+  },
+  "typescript.tsserver.web.projectWideIntellisense.enabled": true
+}
