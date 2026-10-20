@@ -2478,11 +2478,12 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
 
     private static string GetLocalIdentifier(string name) => SanitizeIdentifier(ToCamelCase(name));
 
-    // Quotes ATS metadata (capability ids, parameter and property names) as a Go interpreted string
-    // literal so a quote, backslash or line break in the metadata cannot end the literal or the line.
-    // Control characters, U+2028/U+2029 and the byte-order mark are written as \uXXXX escapes because
-    // Go rejects some of them in source files and editors treat the others as line breaks. The backtick
-    // is escaped as well so the same literal can sit inside a raw-string struct tag.
+    // Quotes ATS metadata (capability ids, parameter and property names, exported string values) as a Go
+    // interpreted string literal so a quote, backslash or line break in the metadata cannot end the literal or
+    // the line. Control characters, U+2028/U+2029 and the byte-order mark are written as \uXXXX escapes because
+    // Go rejects some of them in source files and editors treat the others as line breaks. The backtick is
+    // escaped as well so the same literal can sit inside a raw-string struct tag. Other characters, including
+    // surrogate pairs, are copied as they are: the file is UTF-8 and Go rejects a \uXXXX escape for a surrogate.
     private static string GoStringLiteral(string value)
     {
         var builder = new StringBuilder(value.Length + 2).Append('"');
@@ -2516,7 +2517,7 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
     }
 
     // The capability id is part of the fmt.Errorf format string. Doubling '%' keeps an id such as
-    // "Tests/with%dPercent" from being read as a verb, while ordinary ids render exactly as before.
+    // "Tests/with%dPercent" from being read as a verb; ids without '%' pass through unchanged.
     private static string GoUnexpectedTypeFormat(string capabilityId) =>
         GoStringLiteral($"aspire: {capabilityId.Replace("%", "%%", StringComparison.Ordinal)} returned unexpected type %T");
 
@@ -2527,7 +2528,7 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
             return name;
         }
 
-        // Every caller emits the result as a Go identifier, so sanitize it once here instead of at each call site.
+        // Every caller emits the result as a Go identifier, so it is sanitized here for all of them.
         return SanitizeIdentifier(char.IsUpper(name[0]) ? name : char.ToUpperInvariant(name[0]) + name[1..]);
     }
 

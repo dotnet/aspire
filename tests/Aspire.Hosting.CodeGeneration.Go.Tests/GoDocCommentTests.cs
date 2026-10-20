@@ -235,8 +235,11 @@ public class GoDocCommentTests
             var vet = await RunAsync("go", directory.FullName, timeout.Token, "vet", "./...");
             Assert.True(vet.ExitCode == 0, $"go vet failed:{Environment.NewLine}{vet.Output}");
 
-            // gofmt rewrites a doc comment that is not in canonical form, so unchanged comment lines prove the
-            // generated comments already are. The code itself is not gofmt-formatted, only the comments are checked.
+            // gofmt rewrites a doc comment that is not in canonical form, so an unchanged comment line proves the
+            // generated comment already is. go/printer only reformats doc comments that start in column 1, so this
+            // covers top-level declarations. Tab-indented interface-method and struct-field comments are never
+            // reformatted; Render_EndsHeadingLookingRemarksWithAPeriod covers the heading rule they depend on.
+            // The code itself is not gofmt-formatted, only the comments are checked.
             var formatted = await RunAsync("gofmt", directory.FullName, timeout.Token, "aspire.go");
             Assert.True(formatted.ExitCode == 0, $"gofmt failed:{Environment.NewLine}{formatted.Output}");
 
