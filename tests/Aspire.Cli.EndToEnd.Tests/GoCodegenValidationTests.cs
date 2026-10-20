@@ -38,22 +38,30 @@ public sealed class GoCodegenValidationTests(ITestOutputHelper output)
         var modulesDir = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "modules");
         Assert.True(Directory.Exists(modulesDir), $".aspire/modules directory was not created at {modulesDir}");
 
-        // The second integration is added only after `.aspire/modules` is already populated. A
-        // restore that treats a non-empty modules directory as up to date would leave the stale
-        // SDK in place and still report success, so the SqlServer assertions below are what
-        // actually prove the refresh. Adding both integrations before the first restore would
-        // generate everything in one pass and never exercise that path.
-        var codegenHashPath = Path.Combine(modulesDir, ".codegen-hash");
-        var initialCodegenHash = File.Exists(codegenHashPath) ? File.ReadAllText(codegenHashPath) : null;
-
         // aspire.go is the whole generated SDK in one file, so assert on substrings and keep it out of failure messages.
         var sdkPath = Path.Combine(modulesDir, "aspire.go");
+        var codegenHashPath = Path.Combine(modulesDir, ".codegen-hash");
         Assert.True(File.Exists(sdkPath), $"Expected generated file not found: {sdkPath}");
+        Assert.True(File.Exists(codegenHashPath), $"Expected generated file not found: {codegenHashPath}");
         Assert.False(
             File.ReadAllText(sdkPath).Contains("AddSqlServer", StringComparison.Ordinal),
             "Baseline SDK already exposes AddSqlServer; test cannot verify refresh behavior after adding Aspire.Hosting.SqlServer.");
+        var initialCodegenHash = File.ReadAllText(codegenHashPath);
 
+        // `aspire add` regenerates the SDK itself, so once it returns aspire.go already exposes AddSqlServer and
+        // .codegen-hash has already changed, and the restore below would have nothing left to prove. Putting the
+        // baseline copies back leaves a stale SDK next to an aspire.config.json that lists SqlServer, which is
+        // the state a restore has to refresh. The copies run inside the container: the workspace is bind-mounted
+        // and its files belong to the container's root user, so a write from the host can fail on Linux.
+        await auto.RunCommandAsync("mkdir -p ~/sdk-baseline && cp .aspire/modules/aspire.go .aspire/modules/.codegen-hash ~/sdk-baseline/", counter);
         await auto.AspireAddPackageAsync("Aspire.Hosting.SqlServer", counter);
+        await auto.RunCommandAsync("cp ~/sdk-baseline/aspire.go ~/sdk-baseline/.codegen-hash .aspire/modules/", counter);
+
+        Assert.False(
+            File.ReadAllText(sdkPath).Contains("AddSqlServer", StringComparison.Ordinal),
+            "The baseline SDK was not put back after aspire add, so restore would have nothing to refresh.");
+        Assert.Equal(initialCodegenHash, File.ReadAllText(codegenHashPath));
+
         await auto.RunCommandAsync("aspire restore --non-interactive", counter, TimeSpan.FromMinutes(3));
 
         var expectedFiles = new[] { "aspire.go", "base.go", "transport.go", "go.mod" };
@@ -71,7 +79,6 @@ public sealed class GoCodegenValidationTests(ITestOutputHelper output)
             sdk.Contains("AddSqlServer", StringComparison.Ordinal),
             "aspire.go does not contain AddSqlServer from Aspire.Hosting.SqlServer; restore did not refresh an already-populated .aspire/modules");
 
-        var restoredCodegenHash = File.Exists(codegenHashPath) ? File.ReadAllText(codegenHashPath) : null;
-        Assert.NotEqual(initialCodegenHash, restoredCodegenHash);
+        Assert.NotEqual(initialCodegenHash, File.ReadAllText(codegenHashPath));
     }
 }
