@@ -622,6 +622,30 @@ internal static class Hex1bAutomatorTestHelpers
                 await auto.EnterAsync();
                 break;
 
+            case AspireTemplate.GoStarter:
+                // The Go starter sorts directly after the FastAPI starter in the template list.
+                await auto.DownAsync();
+                await auto.DownAsync();
+                await auto.DownAsync();
+                await auto.DownAsync();
+                await auto.WaitUntilAsync(
+                    s => new CellPatternSearcher().Find("> Starter App (Go API + Redis, Go AppHost)").Search(s).Count > 0,
+                    timeout: TimeSpan.FromSeconds(5),
+                    description: "Go starter template selected");
+                await auto.EnterAsync();
+                break;
+
+            case AspireTemplate.GoEmptyAppHost:
+                await auto.TypeAsync("Empty AppHost");
+                await auto.EnterAsync();
+                await auto.WaitUntilAsync(
+                    s => new CellPatternSearcher().Find("Which language would you like to use?").Search(s).Count > 0,
+                    timeout: TimeSpan.FromSeconds(10),
+                    description: "AppHost language prompt");
+                await auto.TypeAsync("Go");
+                await auto.EnterAsync();
+                break;
+
             default:
                 throw new ArgumentOutOfRangeException(nameof(template), template, $"Unsupported template: {template}");
         }
