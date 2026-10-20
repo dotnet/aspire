@@ -1,0 +1,6 @@
+main { max-width: 960px; margin: 0 auto; padding: 2rem; font-family: system-ui, sans-serif; }
+h1 { color: #7455dd; }
+.products { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+article { border: 1px solid #3b3a5e; border-radius: 12px; padding: 1rem; }
+button { background: #512bd4; color: white; border: 0; border-radius: 8px; padding: .5rem 1rem; cursor: pointer; }
+.orders { line-height: 1.8; }

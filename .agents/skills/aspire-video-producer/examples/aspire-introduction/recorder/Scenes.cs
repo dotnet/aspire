@@ -144,9 +144,10 @@ public static class Scenes
             await scene.MoveToAsync(link);
             await scene.PauseAsync(500);
             var popup = vsCode.Context.WaitForPageAsync();
-            await vsCode.Keyboard.DownAsync("Meta");
+            // A terminal link opens with Cmd+click on macOS, Ctrl+click elsewhere.
+            await vsCode.Keyboard.DownAsync("ControlOrMeta");
             await vsCode.Mouse.ClickAsync((float)(await scene.CenterOfAsync(link)).X, (float)(await scene.CenterOfAsync(link)).Y);
-            await vsCode.Keyboard.UpAsync("Meta");
+            await vsCode.Keyboard.UpAsync("ControlOrMeta");
             await AcceptOpenLinkAsync(vsCode);
             var dashboard = await popup;
             await scene.SwitchToAsync(dashboard);
@@ -239,11 +240,14 @@ public static class Scenes
             await OpenTerminalAsync(scene);
             await RunCommandAsync(scene.Page, "View: Toggle Maximized Panel");
             await TypeInTerminalAsync(scene, "aspire deploy");
+
+            // Waits here, so the last step starts once the deployment is over: the assembly ends the clip with the
+            // last step's narration.
+            await scene.Page.Locator(".xterm-rows").GetByText("Pipeline succeeded").First.WaitForAsync(new() { Timeout = 240_000 });
         });
 
         await scene.StepAsync("deploy-3", async () =>
         {
-            await scene.Page.Locator(".xterm-rows").GetByText("Pipeline succeeded").First.WaitForAsync(new() { Timeout = 240_000 });
             await scene.PauseAsync(1200);
             await scene.HighlightAsync(scene.Page.Locator(".xterm-rows > div").Filter(new() { HasTextRegex = new Regex("^\\s*frontend: http") }).Last, null);
         });
@@ -426,7 +430,8 @@ public static class Scenes
     private static ILocator Row(Scene scene, string resource)
         => scene.Page.GetByRole(AriaRole.Row).Filter(new() { Has = scene.Page.GetByRole(AriaRole.Gridcell).First.Filter(new() { HasTextRegex = new Regex($"^\\s*{resource}\\b") }) }).First;
 
-    private static ILocator StateCell(Scene scene, string resource) => Row(scene, resource).GetByRole(AriaRole.Gridcell).Nth(2);
+    // The columns of the Resources page: Name, State, Start time...
+    private static ILocator StateCell(Scene scene, string resource) => Row(scene, resource).GetByRole(AriaRole.Gridcell).Nth(1);
 
     private static async Task WaitForHealthyAsync(Scene scene, int seconds)
     {
@@ -494,8 +499,11 @@ public static class Scenes
             RedirectStandardError = true,
         };
         using var process = Process.Start(info)!;
-        var output = await process.StandardOutput.ReadToEndAsync();
-        await process.WaitForExitAsync();
-        return output;
+
+        // Reads both streams at once: a full stderr pipe would block the process while stdout is read.
+        var output = process.StandardOutput.ReadToEndAsync();
+        var error = process.StandardError.ReadToEndAsync();
+        await Task.WhenAll(output, error, process.WaitForExitAsync());
+        return output.Result;
     }
 }

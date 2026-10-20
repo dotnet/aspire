@@ -120,10 +120,11 @@ generated again. **Record after narrating**, since the recorder holds each step 
 If the voice mispronounces a word, add it to `SPOKEN` in `scripts/narrate.py` (for every video) or to `"spoken"` in
 the storyboard (for this one). The captions keep the written form. **Have a person confirm a new spelling before
 using it**: make a pronunciation sample, a few seconds per candidate spelling, and ask which option sounds right.
-Rebuilding a whole video to try a spelling wastes minutes per attempt.
+Rebuilding a whole video to try a spelling wastes minutes per attempt. Pass the storyboard, so the sample uses the
+video's voice and rate (or `--voice` and `--rate`): a spelling that works for one voice can fail with another.
 
 ```bash
-python <skill>/scripts/pronounce.py otlp.mp4 "The dashboard receives {} telemetry from every resource." "OTLP" "O.T.L.P." "O-T-L-P" "O T L P"
+python <skill>/scripts/pronounce.py --storyboard <workspace>/storyboard.json otlp.mp4 "The dashboard receives {} telemetry from every resource." "OTLP" "O.T.L.P." "O-T-L-P" "O T L P"
 ```
 
 Letters said one by one are written as an abbreviation with periods, such as "A.S.P.": the voice spells it at an
