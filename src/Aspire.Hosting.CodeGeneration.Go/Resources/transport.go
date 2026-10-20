@@ -654,7 +654,11 @@ func (c *client) registerCancellation(token *CancellationToken) string {
 	// that is never canceled does not park one goroutine per registration.
 	stop := context.AfterFunc(token.ctx, func() { c.cancelToken(id) })
 	c.cancellationsMu.Lock()
-	c.cancellations[id] = stop
+	// Canceling a context closes its Done channel before it starts the AfterFunc
+	// goroutine, so a call that returns because of this very cancel can get here
+	// first. Stopping the watcher then would drop the cancelToken request, so
+	// only a token that is still live is stopped.
+	c.cancellations[id] = func() bool { return token.ctx.Err() == nil && stop() }
 	c.cancellationsMu.Unlock()
 	return id
 }

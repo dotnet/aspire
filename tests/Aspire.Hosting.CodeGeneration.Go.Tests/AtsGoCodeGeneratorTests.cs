@@ -419,54 +419,53 @@ public class AtsGoCodeGeneratorTests
                 func TestCancellationDuringCallReturnsNotifiesHostAndReleasesRegistration(t *testing.T) {
                     c, host := newFakeHost(t)
 
-                    // Like generated code, the call uses the token's own context. The host never
-                    // answers the capability request, so only the cancellation can end the call.
-                    token := NewCancellationToken()
-                    id := c.registerCancellation(token)
-                    done := make(chan error, 1)
-                    go func() {
-                        _, err := c.invokeCapability(token.Context(), "Test/capability", map[string]any{"cancellationToken": id})
-                        done <- err
-                    }()
-                    request := host.read()
-                    if request["method"] != "invokeCapability" {
-                        t.Fatalf("got %v, want an invokeCapability request", request)
-                    }
-
-                    // Cancel under the registry lock: the returning call must not stop the watcher
-                    // before the cancellation has started it, or the host could miss the notification.
-                    c.cancellationsMu.Lock()
-                    token.Cancel()
-                    c.cancellationsMu.Unlock()
-                    select {
-                    case err := <-done:
-                        if !errors.Is(err, context.Canceled) {
-                            t.Fatalf("got %v, want context.Canceled", err)
+                    // Like generated code, every call uses its token's own context, and the host
+                    // never answers the capability request, so only the cancellation can end a call.
+                    // The returning call races the watcher that notifies the host and only some
+                    // interleavings lose the notification, hence the repetitions.
+                    for i := range 2000 {
+                        token := NewCancellationToken()
+                        id := c.registerCancellation(token)
+                        done := make(chan error, 1)
+                        go func() {
+                            _, err := c.invokeCapability(token.Context(), "Test/capability", map[string]any{"cancellationToken": id})
+                            done <- err
+                        }()
+                        request := host.read()
+                        if request["method"] != "invokeCapability" {
+                            t.Fatalf("pass %d: got %v, want an invokeCapability request", i, request)
                         }
-                    case <-time.After(5 * time.Second):
-                        t.Fatal("the call did not return after the token was canceled")
-                    }
 
-                    // The watcher has already fired by now, so only the registry entry is left to remove.
-                    c.cancellationsMu.Lock()
-                    registered := len(c.cancellations)
-                    c.cancellationsMu.Unlock()
-                    if registered != 0 {
-                        t.Fatalf("%d cancellation registrations outlived the call", registered)
-                    }
+                        token.Cancel()
+                        select {
+                        case err := <-done:
+                            if !errors.Is(err, context.Canceled) {
+                                t.Fatalf("pass %d: got %v, want context.Canceled", i, err)
+                            }
+                        case <-time.After(5 * time.Second):
+                            t.Fatalf("pass %d: the call did not return after the token was canceled", i)
+                        }
 
-                    if err := host.peer.SetReadDeadline(time.Now().Add(5 * time.Second)); err != nil {
-                        t.Fatal(err)
+                        c.cancellationsMu.Lock()
+                        registered := len(c.cancellations)
+                        c.cancellationsMu.Unlock()
+                        if registered != 0 {
+                            t.Fatalf("pass %d: %d cancellation registrations outlived the call", i, registered)
+                        }
+
+                        if err := host.peer.SetReadDeadline(time.Now().Add(5 * time.Second)); err != nil {
+                            t.Fatal(err)
+                        }
+                        request, err := readMessage(host.reader)
+                        if err != nil {
+                            t.Fatalf("pass %d: the host was not told about the cancellation: %v", i, err)
+                        }
+                        params, _ := request["params"].([]any)
+                        if request["method"] != "cancelToken" || len(params) != 1 || params[0] != id {
+                            t.Fatalf("pass %d: got %v, want a cancelToken request for %s", i, request, id)
+                        }
+                        host.write(map[string]any{"jsonrpc": "2.0", "id": request["id"], "result": true})
                     }
-                    request, err := readMessage(host.reader)
-                    if err != nil {
-                        t.Fatalf("the host was not told about the cancellation: %v", err)
-                    }
-                    params, _ := request["params"].([]any)
-                    if request["method"] != "cancelToken" || len(params) != 1 || params[0] != id {
-                        t.Fatalf("got %v, want a cancelToken request for %s", request, id)
-                    }
-                    host.write(map[string]any{"jsonrpc": "2.0", "id": request["id"], "result": true})
                 }
 
                 func TestReadMessageRejectsInvalidContentLength(t *testing.T) {
