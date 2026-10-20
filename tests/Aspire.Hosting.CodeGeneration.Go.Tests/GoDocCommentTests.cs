@@ -258,7 +258,7 @@ public class GoDocCommentTests
         return source.ReplaceLineEndings("\n").Split('\n').Select(line => line.Trim()).Where(line => line.StartsWith("//", StringComparison.Ordinal)).ToList();
     }
 
-    private static async Task<(int ExitCode, string Output)> RunAsync(string fileName, string workingDirectory, CancellationToken cancellationToken, params string[] arguments)
+    internal static async Task<(int ExitCode, string Output)> RunAsync(string fileName, string workingDirectory, CancellationToken cancellationToken, params string[] arguments)
     {
         using var process = new Process();
         process.StartInfo = new ProcessStartInfo(fileName)

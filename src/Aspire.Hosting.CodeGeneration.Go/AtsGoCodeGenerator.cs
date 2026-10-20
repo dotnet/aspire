@@ -648,7 +648,7 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
                     }), "\t");
                 }
 
-                WriteLine($"\t{memberName} {enumName} = \"{member}\"");
+                WriteLine($"\t{memberName} {enumName} = {GoStringLiteral(member)}");
             }
             WriteLine(")");
             WriteLine();
@@ -703,7 +703,7 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
                 var propertyType = property.IsCallback
                     ? RenderCallbackType(DtoPropertyToParameterInfo(property))
                     : MapDtoPropertyTypeToGo(property.Type, property.IsOptional);
-                var jsonTag = $"`json:\"{JsonNamingPolicy.CamelCase.ConvertName(property.Name)},omitempty\"`";
+                var jsonTag = $"`json:{GoStringLiteral(JsonNamingPolicy.CamelCase.ConvertName(property.Name) + ",omitempty")}`";
                 WriteDocLines(_docs.Render(new GoDocContent
                 {
                     GoName = propertyName,
@@ -730,11 +730,11 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
                 var propertyType = MapDtoPropertyTypeToGo(property.Type, property.IsOptional);
                 if (IsNilableGoType(propertyType))
                 {
-                    WriteLine($"\tif d.{propertyName} != nil {{ m[\"{JsonNamingPolicy.CamelCase.ConvertName(property.Name)}\"] = serializeValue(d.{propertyName}) }}");
+                    WriteLine($"\tif d.{propertyName} != nil {{ m[{GoStringLiteral(JsonNamingPolicy.CamelCase.ConvertName(property.Name))}] = serializeValue(d.{propertyName}) }}");
                 }
                 else
                 {
-                    WriteLine($"\tm[\"{JsonNamingPolicy.CamelCase.ConvertName(property.Name)}\"] = serializeValue(d.{propertyName})");
+                    WriteLine($"\tm[{GoStringLiteral(JsonNamingPolicy.CamelCase.ConvertName(property.Name))}] = serializeValue(d.{propertyName})");
                 }
             }
             WriteLine("\treturn m");
@@ -915,7 +915,7 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
         foreach (var exportedValue in exportedValues)
         {
             var current = root;
-            foreach (var segment in exportedValue.PathSegments)
+            foreach (var segment in exportedValue.PathSegments.Select(SanitizeIdentifier))
             {
                 if (!current.Children.TryGetValue(segment, out var child))
                 {
@@ -1492,7 +1492,7 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
             EmitHandleParamErrorChecks("\t", capability, "s.setErr(err); return s");
             EmitUnionTypeChecks("\t", capability, methodName, new[] { "s.setErr(err); return s" });
             EmitArgsConstruction("\t", capability, requiredParams, optionalParams, targetParamName, "s.handle");
-                WriteLine($"\tif _, err := s.client.invokeCapability(ctx, \"{capability.CapabilityId}\", reqArgs); err != nil {{ s.setErr(err) }}");
+                WriteLine($"\tif _, err := s.client.invokeCapability(ctx, {GoStringLiteral(capability.CapabilityId)}, reqArgs); err != nil {{ s.setErr(err) }}");
             WriteLine("\treturn s");
             return;
         }
@@ -1512,11 +1512,11 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
             EmitHandleParamErrorChecks("\t", capability, "s.setErr(err); return nil");
             EmitUnionTypeChecks("\t", capability, methodName, new[] { "s.setErr(err); return nil" });
             EmitArgsConstruction("\t", capability, requiredParams, optionalParams, targetParamName, "s.handle");
-                WriteLine($"\tresult, err := s.client.invokeCapability(ctx, \"{capability.CapabilityId}\", reqArgs)");
+                WriteLine($"\tresult, err := s.client.invokeCapability(ctx, {GoStringLiteral(capability.CapabilityId)}, reqArgs)");
             WriteLine("\tif err != nil { s.setErr(err); return nil }");
             WriteLine($"\ttyped, ok := result.({returnGoType})");
             WriteLine("\tif !ok {");
-            WriteLine($"\t\ts.setErr(fmt.Errorf(\"aspire: {capability.CapabilityId} returned unexpected type %T\", result))");
+            WriteLine($"\t\ts.setErr(fmt.Errorf({GoUnexpectedTypeFormat(capability.CapabilityId)}, result))");
             WriteLine("\t\treturn nil");
             WriteLine("\t}");
             WriteLine("\treturn typed");
@@ -1532,13 +1532,13 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
             $"return &{childImplName}{{resourceBuilderBase: newErroredResourceBuilder(err, s.client)}}",
         });
         EmitArgsConstruction("\t", capability, requiredParams, optionalParams, targetParamName, "s.handle");
-        WriteLine($"\tresult, err := s.client.invokeCapability(ctx, \"{capability.CapabilityId}\", reqArgs)");
+        WriteLine($"\tresult, err := s.client.invokeCapability(ctx, {GoStringLiteral(capability.CapabilityId)}, reqArgs)");
         WriteLine("\tif err != nil {");
         WriteLine($"\t\treturn &{childImplName}{{resourceBuilderBase: newErroredResourceBuilder(err, s.client)}}");
         WriteLine("\t}");
         WriteLine("\thref, ok := result.(handleReference)");
         WriteLine("\tif !ok {");
-        WriteLine($"\t\terr := fmt.Errorf(\"aspire: {capability.CapabilityId} returned unexpected type %T\", result)");
+        WriteLine($"\t\terr := fmt.Errorf({GoUnexpectedTypeFormat(capability.CapabilityId)}, result)");
         WriteLine($"\t\treturn &{childImplName}{{resourceBuilderBase: newErroredResourceBuilder(err, s.client)}}");
         WriteLine("\t}");
         WriteLine($"\treturn &{childImplName}{{resourceBuilderBase: newResourceBuilderBase(href.getHandle(), s.client)}}");
@@ -1562,7 +1562,7 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
         EmitHandleParamErrorChecks("\t", capability, $"var zero {returnGoType}; return zero, err");
         EmitUnionTypeChecks("\t", capability, methodName, new[] { $"var zero {returnGoType}", "return zero, err" });
         EmitArgsConstruction("\t", capability, requiredParams, optionalParams, targetParamName, "s.handle");
-        WriteLine($"\tresult, err := s.client.invokeCapability(ctx, \"{capability.CapabilityId}\", reqArgs)");
+        WriteLine($"\tresult, err := s.client.invokeCapability(ctx, {GoStringLiteral(capability.CapabilityId)}, reqArgs)");
         WriteLine("\tif err != nil {");
         WriteLine($"\t\tvar zero {returnGoType}");
         WriteLine("\t\treturn zero, err");
@@ -1584,7 +1584,7 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
         EmitHandleParamErrorChecks("\t", capability, "return err");
         EmitUnionTypeChecks("\t", capability, methodName, new[] { "return err" });
         EmitArgsConstruction("\t", capability, requiredParams, optionalParams, targetParamName, "s.handle");
-        WriteLine($"\t_, err := s.client.invokeCapability(ctx, \"{capability.CapabilityId}\", reqArgs)");
+        WriteLine($"\t_, err := s.client.invokeCapability(ctx, {GoStringLiteral(capability.CapabilityId)}, reqArgs)");
         WriteLine("\treturn err");
     }
 
@@ -1623,7 +1623,7 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
         // local Go RPC respects the user's cancellation.
         WriteLine($"{indent}ctx := context.Background()");
         WriteLine($"{indent}reqArgs := map[string]any{{");
-        WriteLine($"{indent}\t\"{targetParamName}\": {targetHandleVar}.ToJSON(),");
+        WriteLine($"{indent}\t{GoStringLiteral(targetParamName)}: {targetHandleVar}.ToJSON(),");
         WriteLine($"{indent}}}");
 
         foreach (var p in requiredParams)
@@ -1644,7 +1644,7 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
                 // state on the server for ops the user didn't ask to cancel.
                 WriteLine($"{indent}if {paramName} != nil {{");
                 WriteLine($"{indent}\tif id := s.client.registerCancellation({paramName}); id != \"\" {{");
-                WriteLine($"{indent}\t\treqArgs[\"{p.Name}\"] = id");
+                WriteLine($"{indent}\t\treqArgs[{GoStringLiteral(p.Name)}] = id");
                 WriteLine($"{indent}\t}}");
                 WriteLine($"{indent}}}");
                 continue;
@@ -1657,11 +1657,11 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
             if (IsNilableGoType(type) && (p.Type is null || !ShouldApplyNullableType(p.Type)))
             {
                 var nilGuard = type == "any" ? $"!isNil({paramName})" : $"{paramName} != nil";
-                WriteLine($"{indent}if {nilGuard} {{ reqArgs[\"{p.Name}\"] = serializeValue({paramName}) }}");
+                WriteLine($"{indent}if {nilGuard} {{ reqArgs[{GoStringLiteral(p.Name)}] = serializeValue({paramName}) }}");
             }
             else
             {
-                WriteLine($"{indent}reqArgs[\"{p.Name}\"] = serializeValue({paramName})");
+                WriteLine($"{indent}reqArgs[{GoStringLiteral(p.Name)}] = serializeValue({paramName})");
             }
         }
 
@@ -1679,7 +1679,7 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
                 WriteLine($"{indent}\tfor _, opt := range options {{");
                 WriteLine($"{indent}\t\tif opt != nil {{ merged = deepUpdate(merged, opt); applied = true }}");
                 WriteLine($"{indent}\t}}");
-                WriteLine($"{indent}\tif applied {{ reqArgs[\"{directOptionsParam.Name}\"] = serializeValue(merged) }}");
+                WriteLine($"{indent}\tif applied {{ reqArgs[{GoStringLiteral(directOptionsParam.Name)}] = serializeValue(merged) }}");
                 WriteLine($"{indent}}}");
                 return;
             }
@@ -1706,7 +1706,7 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
                 WriteLine($"{indent}\tif merged.{fieldName} != nil {{");
                 WriteLine($"{indent}\t\tctx = merged.{fieldName}.Context()");
                 WriteLine($"{indent}\t\tif id := s.client.registerCancellation(merged.{fieldName}); id != \"\" {{");
-                WriteLine($"{indent}\t\t\treqArgs[\"{p.Name}\"] = id");
+                WriteLine($"{indent}\t\t\treqArgs[{GoStringLiteral(p.Name)}] = id");
                 WriteLine($"{indent}\t\t}}");
                 WriteLine($"{indent}\t}}");
             }
@@ -1726,7 +1726,7 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
         WriteLine($"{indent}\tshim := func(args ...any) any {{");
         EmitGoCallbackShimBody($"{indent}\t\t", p);
         WriteLine($"{indent}\t}}");
-        WriteLine($"{indent}\treqArgs[\"{p.Name}\"] = s.client.registerCallback(shim)");
+        WriteLine($"{indent}\treqArgs[{GoStringLiteral(p.Name)}] = s.client.registerCallback(shim)");
         WriteLine($"{indent}}}");
     }
 
@@ -1741,7 +1741,7 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
         var p = DtoPropertyToParameterInfo(property);
         WriteLine($"\tif d.{propertyName} != nil {{");
         WriteLine($"\t\tcb := d.{propertyName}");
-        WriteLine($"\t\tm[\"{JsonNamingPolicy.CamelCase.ConvertName(property.Name)}\"] = func(args ...any) any {{");
+        WriteLine($"\t\tm[{GoStringLiteral(JsonNamingPolicy.CamelCase.ConvertName(property.Name))}] = func(args ...any) any {{");
         EmitGoCallbackShimBody("\t\t\t", p);
         WriteLine($"\t\t}}");
         WriteLine($"\t}}");
@@ -1832,7 +1832,7 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
         WriteDocLines(_docs.RenderSummary(CreateCapabilityDoc(capability)));
         WriteLine($"func (s *{implName}) {g.MethodName}() *{wrapperType}{typeArgs} {{");
         WriteLine($"\tif s.{g.Field} == nil {{");
-        WriteLine($"\t\ts.{g.Field} = {factory}{typeArgs}(s.handleWrapperBase, \"{g.CapabilityId}\")");
+        WriteLine($"\t\ts.{g.Field} = {factory}{typeArgs}(s.handleWrapperBase, {GoStringLiteral(g.CapabilityId)})");
         WriteLine("\t}");
         WriteLine($"\treturn s.{g.Field}");
         WriteLine("}");
@@ -1905,7 +1905,7 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
                 // accidental Marshal calls.
                 var jsonTag = (p.IsCallback || IsCancellationToken(p))
                     ? "`json:\"-\"`"
-                    : $"`json:\"{p.Name},omitempty\"`";
+                    : $"`json:{GoStringLiteral(p.Name + ",omitempty")}`";
                 WriteDocLines(_docs.Render(new GoDocContent
                 {
                     GoName = fieldName,
@@ -1932,11 +1932,11 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
                 var fieldType = MapTypeRefToGo(p.Type, isOptional: true);
                 if (IsNilableGoType(fieldType))
                 {
-                    WriteLine($"\tif o.{fieldName} != nil {{ m[\"{p.Name}\"] = serializeValue(o.{fieldName}) }}");
+                    WriteLine($"\tif o.{fieldName} != nil {{ m[{GoStringLiteral(p.Name)}] = serializeValue(o.{fieldName}) }}");
                 }
                 else
                 {
-                    WriteLine($"\tm[\"{p.Name}\"] = serializeValue(o.{fieldName})");
+                    WriteLine($"\tm[{GoStringLiteral(p.Name)}] = serializeValue(o.{fieldName})");
                 }
             }
             WriteLine("\treturn m");
@@ -1975,7 +1975,7 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
         var targetInterfaceName = capability.TargetTypeId is not null
             && _interfaceNames.TryGetValue(capability.TargetTypeId, out var ifName)
             ? ifName
-            : capability.TargetTypeId ?? "Unknown";
+            : SanitizeIdentifier(capability.TargetTypeId ?? "Unknown");
         return $"{targetInterfaceName}{simpleName}";
     }
 
@@ -2075,7 +2075,7 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
             WriteLine($"{indent}switch {paramName}.(type) {{");
             WriteLine($"{indent}case {allowed}:");
             WriteLine($"{indent}default:");
-            WriteLine($"{indent}\terr := fmt.Errorf(\"aspire: {methodName}: parameter %q must be one of [{allowed}], got %T\", \"{p.Name}\", {paramName})");
+            WriteLine($"{indent}\terr := fmt.Errorf(\"aspire: {methodName}: parameter %q must be one of [{allowed}], got %T\", {GoStringLiteral(p.Name)}, {paramName})");
             foreach (var line in errorActionLines)
             {
                 WriteLine($"{indent}\t{line}");
@@ -2154,7 +2154,7 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
         foreach (var (typeId, implName) in _implNames.OrderBy(kv => kv.Value, StringComparer.Ordinal))
         {
             var interfaceName = _interfaceNames[typeId];
-            WriteLine($"\tc.registerHandleWrapper(\"{typeId}\", func(h *handle, c *client) any {{");
+            WriteLine($"\tc.registerHandleWrapper({GoStringLiteral(typeId)}, func(h *handle, c *client) any {{");
             WriteLine($"\t\treturn new{interfaceName}FromHandle(h, c)");
             WriteLine("\t})");
         }
@@ -2470,17 +2470,57 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
 
     private static string GetLocalIdentifier(string name) => SanitizeIdentifier(ToCamelCase(name));
 
+    // Quotes ATS metadata (capability ids, parameter and property names) as a Go interpreted string
+    // literal so a quote, backslash or line break in the metadata cannot end the literal or the line.
+    // Control characters, U+2028/U+2029 and the byte-order mark are written as \uXXXX escapes because
+    // Go rejects some of them in source files and editors treat the others as line breaks. The backtick
+    // is escaped as well so the same literal can sit inside a raw-string struct tag.
+    private static string GoStringLiteral(string value)
+    {
+        var builder = new StringBuilder(value.Length + 2).Append('"');
+        foreach (var ch in value)
+        {
+            var escaped = ch switch
+            {
+                '"' => "\\\"",
+                '\\' => "\\\\",
+                '\n' => "\\n",
+                '\r' => "\\r",
+                '\t' => "\\t",
+                _ => null,
+            };
+
+            if (escaped is not null)
+            {
+                builder.Append(escaped);
+            }
+            else if (char.IsControl(ch) || ch is '`' or '\u2028' or '\u2029' or '\uFEFF')
+            {
+                builder.Append("\\u").Append(((int)ch).ToString("x4", CultureInfo.InvariantCulture));
+            }
+            else
+            {
+                builder.Append(ch);
+            }
+        }
+
+        return builder.Append('"').ToString();
+    }
+
+    // The capability id is part of the fmt.Errorf format string. Doubling '%' keeps an id such as
+    // "Tests/with%dPercent" from being read as a verb, while ordinary ids render exactly as before.
+    private static string GoUnexpectedTypeFormat(string capabilityId) =>
+        GoStringLiteral($"aspire: {capabilityId.Replace("%", "%%", StringComparison.Ordinal)} returned unexpected type %T");
+
     private static string ToPascalCase(string name)
     {
         if (string.IsNullOrEmpty(name))
         {
             return name;
         }
-        if (char.IsUpper(name[0]))
-        {
-            return name;
-        }
-        return char.ToUpperInvariant(name[0]) + name[1..];
+
+        // Every caller emits the result as a Go identifier, so sanitize it once here instead of at each call site.
+        return SanitizeIdentifier(char.IsUpper(name[0]) ? name : char.ToUpperInvariant(name[0]) + name[1..]);
     }
 
     private static string ToCamelCase(string name)
