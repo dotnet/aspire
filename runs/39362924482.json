@@ -1,0 +1,133 @@
+{
+  "run_id": 39362924482,
+  "run_attempt": 1,
+  "run_url": "https://github.com/microsoft/aspire/actions/runs/39362924482",
+  "run_scope": "main",
+  "analyzed_at": "2026-10-20T03:53:43Z",
+  "verdict": "mixed",
+  "pr": null,
+  "triggering_merge_pr": null,
+  "main_context": {
+    "last_successful_main_sha": "88ff9ba57c2841cce759adffa849373f9406b0f5",
+    "failed_sha": "bef0cd8f737e6c2899109f184dd17e8889625c6e",
+    "candidate_merge_history_state": "incomplete",
+    "candidate_merges": null
+  },
+  "failed_jobs": [
+    {
+      "name": "Tests / No-package tests (collection, Aspire.Hosting.Tests, Hosting-2, Hosting-2, tests/Aspire.Hosting.Te... / Hosting-2 (windows-latest)",
+      "id": 118433570584,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39362924482/job/118433570584",
+      "classification": "flaky-test",
+      "reason": "Single test ResourceCommandServiceTests.ExecuteCommandAsync_RebuildCommand_ReturnsBuildOutput failed with Assert.Equal Expected 2 Actual 3, matching a known recurring build-count race condition; all 982 other tests passed.",
+      "failed_steps": [
+        "Run tests (Windows)"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (regular, Aspire.TerminalHost.Tests, TerminalHost, TerminalHost, tests/Aspire.Te... / TerminalHost (ubuntu-latest)",
+      "id": 118433579339,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39362924482/job/118433579339",
+      "classification": "flaky-test",
+      "reason": "Single test TerminalHostControlJsonSerializerContextTests.CancellationReachesServer timed out after 30000ms, matching a known recurring timeout pattern; all other 60 tests passed.",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Hosting.Azure.Tests, Hosting.Azure, Hosting.Azure, tests/Aspire... / Hosting.Azure (ubuntu-latest)",
+      "id": 118433580205,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39362924482/job/118433580205",
+      "classification": "flaky-test",
+      "reason": "Single test AzureFunctionsTests.AddAzureFunctionsProject_WorksWithMultipleProjects failed with TaskCanceledException during DistributedApplication.StopAsync, matching a well-known recurring shutdown-timing flaky pattern; all other 2080 tests passed.",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x)",
+      "id": 118436427454,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39362924482/job/118436427454",
+      "classification": "main-repository-breakage",
+      "reason": "The 'Run TypeScript SDK validation' step fails deterministically after the 59 TypeScript validation AppHosts pass, during the Nuxt integration test's generated 'web' publish Docker image build (npm ci), matching a recurring repository-level breakage seen 47 times including hours earlier on main.",
+      "failed_steps": [
+        "Run TypeScript SDK validation"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, tree-actions)",
+      "id": 118438161855,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39362924482/job/118438161855",
+      "classification": "flaky-test",
+      "reason": "E2E test 'Aspire tree action command E2E lets the current CLI select and execute run and debug pipeline steps with exact final args' timed out after 121616ms waiting for a UI picker prompt, consistent with known timing-based VS Code extension E2E flakiness on Windows.",
+      "failed_steps": [
+        "Run extension E2E tests"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / Polyglot Validation Results",
+      "id": 118439559099,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39362924482/job/118439559099",
+      "classification": "main-repository-breakage",
+      "reason": "Downstream aggregation job deterministically reports failure because the TypeScript SDK Validation (Node 22.x) leg failed; same recurring Nuxt Docker-build root cause.",
+      "failed_steps": [
+        "Check validation results"
+      ]
+    }
+  ],
+  "failed_tests": [
+    {
+      "name": "Aspire.Hosting.Tests.ResourceCommandServiceTests.ExecuteCommandAsync_RebuildCommand_ReturnsBuildOutput",
+      "job": "Tests / No-package tests (collection, Aspire.Hosting.Tests, Hosting-2, Hosting-2, tests/Aspire.Hosting.Te... / Hosting-2 (windows-latest)",
+      "error": "Assert.Equal() Failure: Values differ\nExpected: 2\nActual:   3",
+      "stack_trace": "at Aspire.Hosting.Tests.ResourceCommandServiceTests.ExecuteCommandAsync_RebuildCommand_ReturnsBuildOutput() in D:\\a\\aspire\\aspire\\tests\\Aspire.Hosting.Tests\\ResourceCommandServiceTests.cs:line 1770\n--- End of stack trace from previous location ---",
+      "standard_output": "Temporary workspace created at: C:\\Users\\runneradmin\\AppData\\Local\\Temp\\Aspire.Hosting.TestUtilities\\Workspace\\i3k5ysfd.o1g\n| [2026-10-20T03:17:59] Aspire.Hosting.DistributedApplication Information: Aspire AppHost version: 17.0.0-ci\n| [2026-10-20T03:17:59] Aspire.Hosting.DistributedApplication Information: Distributed application starting.\n| [2026-10-20T03:17:59] Aspire.Hosting.DistributedApplication Information: Application host directory is: D:\\a\\aspire\\aspire\\tests\\Aspire.Hosting.TestUtilities\n| [2026-10-20T03:17:59] Aspire.Hosting.Cli.CliOrphanDetector Debug: No CLI process ID configured. Orphan detection disabled.\n| [2026-10-20T03:17:59] Aspire.Hosting.Cli.BackchannelService Debug: Backchannel socket path was not specified.\n| [2026-10-20T03:17:59] Aspire.Hosting.Devcontainers.Codespaces.CodespacesResourceUrlRewriterService Trace: Not running in Codespaces, skipping URL rewriting.\n| [2026-10-20T03:17:59] Aspire.Hosting.Backchannel.AuxiliaryBackchannelService Debug: Starting auxiliary backchannel service on socket path: C:\\Users\\runneradmin\\.aspire\\cli\\bch\\vygPxKePKFAaSmCN7Zk.1016\n| [2026-10-20T03:17:59] Aspire.Hosting.Backchannel.AuxiliaryBackchannelService Debug: Auxiliary backchannel listening on C:\\Users\\runneradmin\\.aspire\\cli\\bch\\vygPxKePKFAaSmCN7Zk.1016\n| [2026-10-20T03:17:59] Aspire.Hosting.Dcp.DcpHost Warning: No trusted Aspire development certificate was found. See https://aka.ms/aspire/devcerts for more information.\n| [2026-10-20T03:17:59] Aspire.Hosting.FileSystemService Debug: Allocated temporary directory: C:\\Users\\runneradmin\\AppData\\Local\\Temp\\aspire-dcpoxxvwq2y.1f3\n| [2026-10-20T03:17:59] Aspire.Hosting.Dcp.DcpHost Information: Starting DCP with arguments: start-apiserver --monitor 1016 --detach --kubeconfig \"C:\\Users\\runneradmin\\AppData\\Local\\Temp\\aspire-dcpoxxvwq2y.1f3\\kubeconfig\"\n| [2026-10-20T03:17:59] Aspire.Hosting.Dcp.DcpHost Debug: A complete bundled ConPTY provider was not found; DCP will use the inbox Windows provider.\n| [2026-10-20T03:18:00] Aspire.Hosting.Dcp.DcpExecutor Debug: Preparing services. Ports randomized: True\n| [2026-10-20T03:18:00] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Version: 1 Resource myProject/myProject-mvyghpyj update published: ResourceType = Project, CreationTimeStamp = (null), State = { Text = (null), Style = (null) }, IsHidden = False, HeathStatus = (null), ResourceReady = False, ExitCode = (null), Urls = {  }, EnvironmentVariables = {  }, Properties = {  }, HealthReports = {  }, Commands = { start (Start) = Disabled stop (Stop) = Hidden restart (Restart) = Disabled rebuild (Rebuild) = Disabled }\n| [2026-10-20T03:18:00] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Version: 1 Resource myProject-rebuilder/myProject-rebuilder-cxwwmjnt update published: ResourceType = Executable, CreationTimeStamp = (null), State = { Text = NotStarted, Style = (null) }, IsHidden = True, HeathStatus = (null), ResourceReady = False, ExitCode = (null), Urls = {  }, EnvironmentVariables = {  }, Properties = { resource.parentName = myProject-mvyghpyj }, HealthReports = {  }, Commands = {  }\n| [2026-10-20T03:18:00] Aspire.Hosting.Dcp.DcpExecutor Debug: Watching over DCP Endpoint resources.\n| [2026-10-20T03:18:00] Aspire.Hosting.Dcp.DcpExecutor Debug: Watching over DCP Executable resources.\n| [2026-10-20T03:18:00] Aspire.Hosting.Orchestrator.ApplicationOrchestrator Trace: Converting relative endpoint URLs to absolute URLs for resource 'myProject-rebuilder'.\n| [2026-10-20T03:18:00] Aspire.Hosting.Orchestrator.ApplicationOrchestrator Trace: Added total of 0 URLs to resource 'myProject-rebuilder'\n| [2026-10-20T03:18:00] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Resource myProject-rebuilder/myProject-rebuilder-cxwwmjnt update skipped because the snapshot is unchanged.\n| [2026-10-20T03:18:00] Aspire.Hosting.Orchestrator.ApplicationOrchestrator Trace: Converting relative endpoint URLs to absolute URLs for resource 'myProject'.\n| [20",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Matches a prior recorded flaky cause with an identical build-count race error pattern seen 10 times previously."
+    },
+    {
+      "name": "Aspire.TerminalHost.Tests.TerminalHostControlJsonSerializerContextTests.CancellationReachesServer",
+      "job": "Tests / No-package tests (regular, Aspire.TerminalHost.Tests, TerminalHost, TerminalHost, tests/Aspire.Te... / TerminalHost (ubuntu-latest)",
+      "error": "System.TimeoutException : The operation at /_/tests/Aspire.TerminalHost.Tests/TerminalHostControlJsonSerializerContextTests.cs:115 timed out after reaching the limit of 30000ms.",
+      "stack_trace": "at Microsoft.AspNetCore.InternalTesting.AsyncTestHelpers.TimeoutAfter(Task task, TimeSpan timeout, String filePath, Int32 lineNumber) in /_/tests/Shared/AsyncTestHelpers.cs:line 201\n   at Aspire.TerminalHost.Tests.TerminalHostControlJsonSerializerContextTests.CancellationReachesServer() in /_/tests/Aspire.TerminalHost.Tests/TerminalHostControlJsonSerializerContextTests.cs:line 115\n--- End of stack trace from previous location ---",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Matches a prior recorded flaky cause with an identical 30s timeout error pattern seen 2 times previously."
+    },
+    {
+      "name": "Aspire tree action command E2E lets the current CLI select and execute run and debug pipeline steps with exact final args",
+      "job": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, tree-actions)",
+      "error": "Timed out waiting for input '<any title>' / 'Select a pipeline step to execute'. Last prompt: <none>.\nWait timed out after 121616ms",
+      "stack_trace": "TimeoutError: Timed out waiting for input '<any title>' / 'Select a pipeline step to execute'. Last prompt: <none>.\nWait timed out after 121616ms\n    at D:\\a\\aspire\\aspire\\extension\\node_modules\\selenium-webdriver\\lib\\webdriver.js:929:22\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "UI-prompt wait timeout is a timing-related E2E flakiness pattern consistent with other known flaky VS Code extension E2E shards on Windows; no repository change on main explains this failure."
+    },
+    {
+      "name": "Aspire.Hosting.Azure.Tests.AzureFunctionsTests.AddAzureFunctionsProject_WorksWithMultipleProjects",
+      "job": "Tests / No-package tests (regular, Aspire.Hosting.Azure.Tests, Hosting.Azure, Hosting.Azure, tests/Aspire... / Hosting.Azure (ubuntu-latest)",
+      "error": "System.Threading.Tasks.TaskCanceledException : A task was canceled.",
+      "stack_trace": "at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)\n   at Microsoft.Extensions.Hosting.Internal.Host.StopAsync(CancellationToken cancellationToken)\n   at Aspire.Hosting.DistributedApplication.StopAsync(CancellationToken cancellationToken) in /_/src/Aspire.Hosting/DistributedApplication.cs:line 497\n   at Aspire.Hosting.Azure.Tests.AzureFunctionsTests.AddAzureFunctionsProject_WorksWithMultipleProjects() in /home/runner/work/aspire/aspire/tests/Aspire.Hosting.Azure.Tests/AzureFunctionsTests.cs:line 201\n--- End of stack trace from previous location ---",
+      "standard_output": "| [2026-10-20T03:17:11] Aspire.Hosting.DistributedApplication Information: Aspire AppHost version: 17.0.0-ci\n| [2026-10-20T03:17:11] Aspire.Hosting.DistributedApplication Information: Distributed application starting.\n| [2026-10-20T03:17:11] Aspire.Hosting.DistributedApplication Information: Application host directory is: /home/runner/work/aspire/aspire/tests/Aspire.Hosting.TestUtilities\n| [2026-10-20T03:17:11] Aspire.Hosting.Devcontainers.Codespaces.CodespacesResourceUrlRewriterService Trace: Not running in Codespaces, skipping URL rewriting.\n| [2026-10-20T03:17:11] Aspire.Hosting.Backchannel.AuxiliaryBackchannelService Debug: Starting auxiliary backchannel service on socket path: /home/runner/.aspire/cli/bch/KfshLkY6TmIZogme-2v.4725\n| [2026-10-20T03:17:11] Aspire.Hosting.Backchannel.AuxiliaryBackchannelService Debug: Auxiliary backchannel listening on /home/runner/.aspire/cli/bch/KfshLkY6TmIZogme-2v.4725\n| [2026-10-20T03:17:11] Aspire.Hosting.Cli.BackchannelService Debug: Backchannel socket path was not specified.\n| [2026-10-20T03:17:11] Aspire.Hosting.Cli.CliOrphanDetector Debug: No CLI process ID configured. Orphan detection disabled.\n| [2026-10-20T03:17:12] Aspire.Hosting.Dcp.DcpHost Debug: Prepared DCP TLS certificate files for thumbprint FB7E4DFB54881CA029070EA64EC3A2EF68978833.\n| [2026-10-20T03:17:12] Aspire.Hosting.FileSystemService Debug: Allocated temporary directory: /tmp/aspire-dcpypMfi6\n| [2026-10-20T03:17:12] Aspire.Hosting.Dcp.DcpHost Information: Starting DCP with arguments: start-apiserver --monitor 4725 --detach --kubeconfig \"/tmp/aspire-dcpypMfi6/kubeconfig\" --tls-cert-thumbprint \"FB7E4DFB54881CA029070EA64EC3A2EF68978833\" --tls-cert-file \"/home/runner/.aspire/dev-certs/https/2E962E06BFDC5016B77F05EE9D95E8DAEFC0C08E16121B9F73F5093266D2ADE9.crt\" --tls-key-file \"/home/runner/.aspire/dev-certs/https/2E962E06BFDC5016B77F05EE9D95E8DAEFC0C08E16121B9F73F5093266D2ADE9.key\"\n| [2026-10-20T03:17:12] Aspire.Hosting.Dcp.DcpExecutor Debug: Preparing services. Ports randomized: True\n| [2026-10-20T03:17:12] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Version: 1 Resource azure-environment/azure-environment update published: ResourceType = AzureEnvironmentResource, CreationTimeStamp = 2026-10-20T03:17:11, State = { Text = NotStarted, Style = (null) }, IsHidden = True, HeathStatus = (null), ResourceReady = False, ExitCode = (null), Urls = {  }, EnvironmentVariables = {  }, Properties = {  }, HealthReports = {  }, Commands = { reset-provisioning-state (Reset provisioning state) = Enabled change-azure-context (Change Azure context) = Enabled reprovision-all (Reprovision all) = Enabled delete-azure-resources (Delete Azure resources) = Enabled }\n| [2026-10-20T03:17:12] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Version: 1 Resource funcstorage53c8d/funcstorage53c8d-dszwuxdg update published: ResourceType = AzureStorageResource, CreationTimeStamp = (null), State = { Text = (null), Style = (null) }, IsHidden = False, HeathStatus = (null), ResourceReady = False, ExitCode = (null), Urls = {  }, EnvironmentVariables = {  }, Properties = {  }, HealthReports = { funcstorage53c8d_check = (null) }, Commands = { start (Start) = Disabled stop (Stop) = Hidden restart (Restart) = Disabled }\n| [2026-10-20T03:17:12] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Version: 1 Resource funcapp/funcapp-adkmfjcw update published: ResourceType = Project, CreationTimeStamp = (null), State = { Text = (null), Style = (null) }, IsHidden = False, HeathStatus = (null), ResourceReady = False, ExitCode = (null), Urls = {  }, EnvironmentVariables = {  }, Properties = {  }, HealthReports = {  }, Commands = { start (Start) = Disabled stop (Stop) = Hidden restart (Restart) = Disabled rebuild (Rebuild) = Disabled }\n| [2026-10-20T03:17:12] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Version: 1 Resource funcapp2/funcapp2-vussnudd update published: ResourceType = Project, Creation",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Matches a prior recorded flaky cause with an identical TaskCanceledException-during-shutdown error pattern seen 17 times previously, most recently the day before this run."
+    }
+  ],
+  "causes": [
+    "aspire-hosting-resourcecommandservice-rebuild-buildcount-race",
+    "aspire-terminalhost-tests-cancellationreachesserver-timeout",
+    "aspire-hosting-azure-servicebus-stopasync-taskcanceled",
+    "typescript-sdk-nuxt-integration-npm-ci-docker-build-failure",
+    "vscode-e2e-windows-tree-actions-pipeline-step-timeout"
+  ]
+}

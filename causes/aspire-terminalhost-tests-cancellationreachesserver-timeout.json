@@ -18,6 +18,13 @@
       "job": "Tests / No-package tests (regular, Aspire.TerminalHost.Tests, TerminalHost, TerminalHost, tests/Aspire.Te... / TerminalHost (ubuntu-latest)",
       "pr_number": 0,
       "observed_at": "2026-10-12T17:17:41Z"
+    },
+    {
+      "run_id": 39362924482,
+      "run_url": "https://github.com/microsoft/aspire/actions/runs/39362924482",
+      "job": "Tests / No-package tests (regular, Aspire.TerminalHost.Tests, TerminalHost, TerminalHost, tests/Aspire.Te... / TerminalHost (ubuntu-latest)",
+      "pr_number": 0,
+      "observed_at": "2026-10-20T03:53:43Z"
     }
   ],
   "issue_url": "https://github.com/microsoft/aspire/issues/20903"

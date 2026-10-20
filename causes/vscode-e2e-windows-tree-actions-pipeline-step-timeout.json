@@ -1,0 +1,16 @@
+{
+  "id": "vscode-e2e-windows-tree-actions-pipeline-step-timeout",
+  "type": "flaky-test",
+  "title": "Flaky: VS Code extension E2E (Windows, tree-actions) 'select and execute run and debug pipeline steps' times out waiting for picker prompt",
+  "test_name": "Aspire tree action command E2E lets the current CLI select and execute run and debug pipeline steps with exact final args",
+  "error_pattern": "Timed out waiting for input '<any title>' / 'Select a pipeline step to execute'. Last prompt: <none>.\nWait timed out after 121616ms",
+  "occurrences": [
+    {
+      "run_id": 39362924482,
+      "run_url": "https://github.com/microsoft/aspire/actions/runs/39362924482",
+      "job": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Windows, tree-actions)",
+      "pr_number": 0,
+      "observed_at": "2026-10-20T03:53:43Z"
+    }
+  ]
+}
