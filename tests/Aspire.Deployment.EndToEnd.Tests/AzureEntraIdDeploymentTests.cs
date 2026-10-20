@@ -212,12 +212,12 @@ public sealed class AzureEntraIdDeploymentTests(ITestOutputHelper output)
             $"https://graph.microsoft.com/v1.0/applications(uniqueName='{registrationName}')",
             resource =>
             {
-                // The last URI is derived from the consumer's endpoint; its host name is verified below.
+                // Graph can reorder redirect URIs. The endpoint-derived URI's host name is verified below.
                 var registered = resource.GetProperty("web").GetProperty("redirectUris").EnumerateArray()
                     .Select(uri => uri.GetString()).ToArray();
                 return registered.Length == redirectUris.Length + 1
-                    && registered.Take(redirectUris.Length).SequenceEqual(redirectUris)
-                    && registered[^1] is { } derived && derived.StartsWith("https://", StringComparison.Ordinal) && derived.EndsWith(EndpointCallbackPath, StringComparison.Ordinal);
+                    && redirectUris.All(uri => registered.Contains(uri, StringComparer.Ordinal))
+                    && registered.Any(uri => uri is not null && uri.StartsWith("https://", StringComparison.Ordinal) && uri.EndsWith(EndpointCallbackPath, StringComparison.Ordinal));
             },
             cancellationToken);
         Assert.Equal(registrationName, application.GetProperty("displayName").GetString());
@@ -245,7 +245,9 @@ public sealed class AzureEntraIdDeploymentTests(ITestOutputHelper output)
         var hostname = ingress.GetProperty("fqdn").GetString();
         Assert.Equal(UriHostNameType.Dns, Uri.CheckHostName(hostname));
         var registeredUris = application.GetProperty("web").GetProperty("redirectUris").EnumerateArray().Select(uri => uri.GetString()).ToArray();
-        Assert.Equal($"https://{hostname}{EndpointCallbackPath}", registeredUris[^1]);
+        Assert.Equal(
+            redirectUris.Append($"https://{hostname}{EndpointCallbackPath}").Order(StringComparer.Ordinal),
+            registeredUris.Order(StringComparer.Ordinal));
         var url = $"https://{hostname}";
         await DotnetProjectDeploymentHelpers.VerifyResponseAsync(url, $"{tenantId:D}/{clientId:D}", cancellationToken);
         deploymentUrls["Consumer"] = url;
@@ -284,13 +286,21 @@ public sealed class AzureEntraIdDeploymentTests(ITestOutputHelper output)
         var objectId = application.RootElement.GetProperty("id").GetGuid();
         var principalUrl = $"https://graph.microsoft.com/v1.0/servicePrincipals(appId='{clientId:D}')";
         using var principal = await ReadResourceAsync(client, credential, principalUrl, cleanup.Token);
-        // Attempt both deletes even if one fails, rather than relying on application's deletion cascade.
-        var deletePrincipal = principal is null
-            ? Task.CompletedTask
-            : DeleteResourceAsync(client, credential,
-                $"https://graph.microsoft.com/v1.0/servicePrincipals/{principal.RootElement.GetProperty("id").GetGuid():D}", cleanup.Token);
-        await Task.WhenAll(deletePrincipal,
-            DeleteResourceAsync(client, credential, $"https://graph.microsoft.com/v1.0/applications/{objectId:D}", cleanup.Token));
+        // Application deletion cascades to its service principal. Concurrent deletes can race that
+        // cascade and fail with DirectoryObjectNotFound, leaving the application behind.
+        try
+        {
+            if (principal is not null)
+            {
+                await DeleteResourceAsync(client, credential,
+                    $"https://graph.microsoft.com/v1.0/servicePrincipals/{principal.RootElement.GetProperty("id").GetGuid():D}", cleanup.Token);
+            }
+        }
+        finally
+        {
+            // Still attempt application cleanup if service principal deletion fails.
+            await DeleteResourceAsync(client, credential, $"https://graph.microsoft.com/v1.0/applications/{objectId:D}", cleanup.Token);
+        }
         await Task.WhenAll(
             WaitForDeletionAsync(client, credential, applicationUrl, cleanup.Token),
             WaitForDeletionAsync(client, credential, principalUrl, cleanup.Token));
