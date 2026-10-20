@@ -87,6 +87,10 @@ compute environment. The callback path can't be discovered, so it must match the
 entraWeb.WithRedirectUris(web.GetEndpoint("https"), "/signin-oidc", "/signout-callback-oidc");
 ```
 
+When running locally, the endpoint's primary URL is used, so a friendly `*.dev.localhost` name is registered when the dashboard uses one.
+That URL is read when the registration's URL callback runs, so a `WithUrlForEndpoint` or `WithUrls` callback added after this call that changes
+the endpoint's host isn't reflected. Add such callbacks before calling `WithRedirectUris`.
+
 When only the host name varies per environment (for example, a custom domain supplied at deployment time), pass a parameter for the host
 and the fixed callback paths. Each URI is `https://{host}{path}`:
 

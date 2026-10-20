@@ -890,6 +890,12 @@ public static class EntraIdResourceExtensions
     /// (gateway, reverse proxy, or custom domain), supply the full URL with <c>WithRedirectUris</c> instead.
     /// Existing registrations are not modified.
     /// </para>
+    /// <para>
+    /// When running locally, the URL shown as the endpoint's primary URL is used, so a friendly <c>*.dev.localhost</c> name
+    /// is registered when the dashboard uses one. That URL is read when this registration's URL callback runs, so a
+    /// <c>WithUrlForEndpoint</c> or <c>WithUrls</c> callback added after this call that changes the endpoint's host isn't
+    /// reflected. Add such callbacks before calling this method.
+    /// </para>
     /// </remarks>
     /// <example>
     /// <code lang="csharp">
