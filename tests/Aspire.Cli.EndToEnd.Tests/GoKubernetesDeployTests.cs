@@ -108,10 +108,17 @@ public sealed class GoKubernetesDeployTests(ITestOutputHelper output)
             // Phase 5: Verify the deployment
             // =====================================================================
 
-            // Verify pods are running in the namespace
-            await auto.TypeAsync($"kubectl get pods -n {k8sNamespace} --no-headers");
-            await auto.EnterAsync();
-            await auto.WaitForSuccessPromptAsync(counter, timeout: TimeSpan.FromSeconds(30));
+            // The publisher labels each workload and its pods with app.kubernetes.io/component=<AppHost resource name>.
+            // Selecting by that label makes a chart without the workload fail the test: "kubectl wait" exits 1 with
+            // "no matching resources found" when nothing matches, whereas "kubectl get pods" succeeds on an empty
+            // namespace and Helm's --wait only waits for workloads that are in the chart.
+            foreach (var resourceName in new[] { "api", "cache" })
+            {
+                await auto.RunCommandAsync(
+                    $"kubectl wait --for=condition=Ready pod -n {k8sNamespace} -l app.kubernetes.io/component={resourceName} --timeout=180s",
+                    counter,
+                    TimeSpan.FromMinutes(4));
+            }
 
             // =====================================================================
             // Phase 6: Cleanup
