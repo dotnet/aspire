@@ -206,7 +206,7 @@ public class AtsGoCodeGeneratorTests
 
     [Fact]
     [RequiresTools(["go"])]
-    public async Task GeneratedRuntime_MergesOptionsHoldingCallbacksAndCancellationTokens()
+    public async Task GeneratedRuntime_PassesGoTests()
     {
         var directory = Directory.CreateTempSubdirectory();
         using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(3));
@@ -218,11 +218,12 @@ public class AtsGoCodeGeneratorTests
                 await File.WriteAllTextAsync(Path.Combine(directory.FullName, name), content, timeout.Token);
             }
 
-            await File.WriteAllTextAsync(Path.Combine(directory.FullName, "deepupdate_test.go"), """
+            await File.WriteAllTextAsync(Path.Combine(directory.FullName, "runtime_test.go"), """
                 package aspire
 
                 import (
                     "reflect"
+                    "strings"
                     "testing"
                 )
 
@@ -302,6 +303,36 @@ public class AtsGoCodeGeneratorTests
                     merged.Progress.Work()
                     if !ran || *merged.Progress.Label != label || (*merged.Handle).Name() != "resource" {
                         t.Fatalf("nested callback or handle was lost: %+v", merged)
+                    }
+                }
+
+                // The client has no connection, so a value that passes the union guard fails later with
+                // a transport error, while a value that does not pass it fails with the guard's error.
+                func scalarFieldError(value any) error {
+                    resource := newTestRedisResourceFromHandle(&handle{HandleID: "1", TypeID: "type"}, newClient(""))
+                    resource.WithScalarField("spec.maxReplicaCount", value)
+                    return resource.Err()
+                }
+
+                func TestUnionGuardAcceptsEveryGoNumericType(t *testing.T) {
+                    values := []any{
+                        "text", true, 1.5, float32(1.5), 3, int8(3), int16(3), int32(3), int64(3),
+                        uint(3), uint8(3), uint16(3), uint32(3), uint64(3),
+                    }
+                    for _, value := range values {
+                        err := scalarFieldError(value)
+                        if err == nil || !strings.Contains(err.Error(), "not connected to AppHost") {
+                            t.Errorf("%T: got %v, want the transport error", value, err)
+                        }
+                    }
+                }
+
+                func TestUnionGuardRejectsOtherTypes(t *testing.T) {
+                    for _, value := range []any{nil, []string{"a"}, map[string]any{"a": 1}} {
+                        err := scalarFieldError(value)
+                        if err == nil || !strings.Contains(err.Error(), "must be one of [string, float64, bool]") {
+                            t.Errorf("%T: got %v, want the guard error", value, err)
+                        }
                     }
                 }
                 """, timeout.Token);
