@@ -39,9 +39,7 @@ internal static class DotnetProgramPublishing
 
             ValidatePrebuiltContainerImageConfiguration(stepResource);
 
-            // PublishAsDockerFile converts the program to a container that shares this annotation list.
-            // That container is built from its Dockerfile by the generic container build step, not by the SDK.
-            if (!stepResource.SupportsDotnetProgramPublishing() || !stepResource.RequiresImageBuild())
+            if (!stepResource.RequiresImageBuild())
             {
                 return steps;
             }

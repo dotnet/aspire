@@ -917,7 +917,7 @@ public class AddGoAppTests(ITestOutputHelper outputHelper)
         builder.AddGoApp("api", CreateGoAppDirectoryWithDockerfile(workspace), packagePath: "./cmd/server");
 
         using var app = builder.Build();
-        var pipeline = new DistributedApplicationPipeline();
+        var pipeline = app.Services.GetRequiredService<IDistributedApplicationPipeline>();
         var context = CreatePipelineContext(app);
 
         var exception = await Assert.ThrowsAsync<DistributedApplicationException>(() => pipeline.ExecuteAsync(context));
@@ -981,7 +981,7 @@ public class AddGoAppTests(ITestOutputHelper outputHelper)
         builder.AddGoApp("api", workspace.CreateDirectory("source").FullName, packagePath: "./cmd/server");
 
         using var app = builder.Build();
-        var pipeline = new DistributedApplicationPipeline();
+        var pipeline = app.Services.GetRequiredService<IDistributedApplicationPipeline>();
 
         await pipeline.ExecuteAsync(CreatePipelineContext(app));
     }
@@ -999,7 +999,7 @@ public class AddGoAppTests(ITestOutputHelper outputHelper)
             .PublishAsDockerFile(container => container.WithDockerfile(sourceDir, publishDockerfile));
 
         using var app = builder.Build();
-        var pipeline = new DistributedApplicationPipeline();
+        var pipeline = app.Services.GetRequiredService<IDistributedApplicationPipeline>();
         var context = CreatePipelineContext(app);
 
         var exception = await Assert.ThrowsAsync<DistributedApplicationException>(() => pipeline.ExecuteAsync(context));
@@ -1021,13 +1021,13 @@ public class AddGoAppTests(ITestOutputHelper outputHelper)
             .PublishAsDockerFile(container => container.WithDockerfile(sourceDir, publishDockerfile).WithEntrypoint("/app/server"));
 
         using var app = builder.Build();
-        var pipeline = new DistributedApplicationPipeline();
+        var pipeline = app.Services.GetRequiredService<IDistributedApplicationPipeline>();
 
         await pipeline.ExecuteAsync(CreatePipelineContext(app));
     }
 
     [Fact]
-    public async Task PublishPipelineSkipsValidationStepForResourceExcludedFromManifest()
+    public async Task PublishPipelineValidationStepIsNoOpForResourceExcludedFromManifest()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
@@ -1038,7 +1038,7 @@ public class AddGoAppTests(ITestOutputHelper outputHelper)
         builder.AddGoApp("sibling", sourceDir);
 
         using var app = builder.Build();
-        var pipeline = new DistributedApplicationPipeline();
+        var pipeline = (DistributedApplicationPipeline)app.Services.GetRequiredService<IDistributedApplicationPipeline>();
         var context = CreatePipelineContext(app);
 
         var validationStepNames = (await pipeline.ResolveStepsAsync(context))
@@ -1051,7 +1051,9 @@ public class AddGoAppTests(ITestOutputHelper outputHelper)
             await pipeline.ExecuteStepSequentiallyAsync(stepName, context);
         }
 
-        Assert.Equal(["validate-go-dockerfile-package-path-sibling"], validationStepNames);
+        Assert.Equal(
+            ["validate-go-dockerfile-package-path-excluded", "validate-go-dockerfile-package-path-sibling"],
+            validationStepNames.Order(StringComparer.Ordinal));
     }
 
     [Fact]
@@ -1064,7 +1066,7 @@ public class AddGoAppTests(ITestOutputHelper outputHelper)
         builder.AddGoApp("api", CreateGoAppDirectoryWithDockerfile(workspace), packagePath: "./cmd/server");
 
         using var app = builder.Build();
-        var pipeline = new DistributedApplicationPipeline();
+        var pipeline = (DistributedApplicationPipeline)app.Services.GetRequiredService<IDistributedApplicationPipeline>();
 
         var steps = (await pipeline.ResolveStepsAsync(CreatePipelineContext(app)))
             .ToDictionary(step => step.Name, StringComparer.Ordinal);

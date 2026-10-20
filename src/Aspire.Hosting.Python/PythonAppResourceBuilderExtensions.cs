@@ -489,30 +489,26 @@ public static class PythonAppResourceBuilderExtensions
 
             resourceBuilder.WithManifestPublishingCallback(WriteValidatedContainerAsync);
             containerBuilder.WithManifestPublishingCallback(WriteValidatedContainerAsync);
-            containerBuilder.WithAnnotation(new PipelineStepAnnotation(_ =>
+            // The step is added to the pipeline instead of as a PipelineStepAnnotation on the container because
+            // WithDockerfile replaces the container's step annotation, which would drop this step (or throw when
+            // more than one exists) if the Dockerfile is configured again after this point.
+            builder.Pipeline.AddStep(new PipelineStep
             {
-                // A resource excluded from the manifest is never published, so it must not fail the pipeline.
-                if (containerBuilder.Resource.IsExcludedFromPublish())
+                Name = validationStepName,
+                Description = $"Validates that Python app '{resource.Name}' does not publish an ignored entrypoint with an existing Dockerfile.",
+                RequiredBySteps = [WellKnownPipelineSteps.Build, WellKnownPipelineSteps.Publish],
+                Resource = containerBuilder.Resource,
+                Action = _ =>
                 {
-                    return [];
-                }
-
-                return
-                [
-                    new PipelineStep
+                    // A resource excluded from the manifest is never published, so it must not fail the pipeline.
+                    if (!containerBuilder.Resource.IsExcludedFromPublish())
                     {
-                        Name = validationStepName,
-                        Description = $"Validates that Python app '{resource.Name}' does not publish an ignored entrypoint with an existing Dockerfile.",
-                        RequiredBySteps = [WellKnownPipelineSteps.Build, WellKnownPipelineSteps.Publish],
-                        Resource = containerBuilder.Resource,
-                        Action = _ =>
-                        {
-                            ValidateExistingDockerfileEntrypoint(resource, containerBuilder.Resource, entrypointType, entrypoint);
-                            return Task.CompletedTask;
-                        }
+                        ValidateExistingDockerfileEntrypoint(resource, containerBuilder.Resource, entrypointType, entrypoint);
                     }
-                ];
-            }));
+
+                    return Task.CompletedTask;
+                }
+            });
 
             // Deploy environments such as Azure Container Apps run the image build step without the aggregate
             // Build step, so the image build must wait for the validation itself.

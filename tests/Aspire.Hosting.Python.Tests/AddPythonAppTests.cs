@@ -1288,7 +1288,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
             .WithEntrypoint(EntrypointType.Module, "mymodule");
 
         using var app = builder.Build();
-        var pipeline = new DistributedApplicationPipeline();
+        var pipeline = app.Services.GetRequiredService<IDistributedApplicationPipeline>();
         var context = CreatePipelineContext(app);
 
         var exception = await Assert.ThrowsAsync<DistributedApplicationException>(() => pipeline.ExecuteAsync(context));
@@ -1384,7 +1384,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
             .WithEntrypoint(EntrypointType.Module, "mymodule");
 
         using var app = builder.Build();
-        var pipeline = new DistributedApplicationPipeline();
+        var pipeline = app.Services.GetRequiredService<IDistributedApplicationPipeline>();
 
         await pipeline.ExecuteAsync(CreatePipelineContext(app));
     }
@@ -1403,7 +1403,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
             .PublishAsDockerFile(container => container.WithDockerfile(sourceDir, publishDockerfile));
 
         using var app = builder.Build();
-        var pipeline = new DistributedApplicationPipeline();
+        var pipeline = app.Services.GetRequiredService<IDistributedApplicationPipeline>();
         var context = CreatePipelineContext(app);
 
         var exception = await Assert.ThrowsAsync<DistributedApplicationException>(() => pipeline.ExecuteAsync(context));
@@ -1426,13 +1426,13 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
             .PublishAsDockerFile(container => container.WithDockerfile(sourceDir, publishDockerfile).WithEntrypoint("/app/run"));
 
         using var app = builder.Build();
-        var pipeline = new DistributedApplicationPipeline();
+        var pipeline = app.Services.GetRequiredService<IDistributedApplicationPipeline>();
 
         await pipeline.ExecuteAsync(CreatePipelineContext(app));
     }
 
     [Fact]
-    public async Task PublishPipelineSkipsValidationStepForResourceExcludedFromManifest()
+    public async Task PublishPipelineValidationStepIsNoOpForResourceExcludedFromManifest()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
@@ -1445,7 +1445,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         builder.AddPythonApp("sibling", sourceDir, "main.py");
 
         using var app = builder.Build();
-        var pipeline = new DistributedApplicationPipeline();
+        var pipeline = (DistributedApplicationPipeline)app.Services.GetRequiredService<IDistributedApplicationPipeline>();
         var context = CreatePipelineContext(app);
 
         var validationStepNames = (await pipeline.ResolveStepsAsync(context))
@@ -1458,7 +1458,9 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
             await pipeline.ExecuteStepSequentiallyAsync(stepName, context);
         }
 
-        Assert.Equal(["validate-python-dockerfile-entrypoint-sibling"], validationStepNames);
+        Assert.Equal(
+            ["validate-python-dockerfile-entrypoint-excluded", "validate-python-dockerfile-entrypoint-sibling"],
+            validationStepNames.Order(StringComparer.Ordinal));
     }
 
     [Fact]
@@ -1472,7 +1474,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
             .WithEntrypoint(EntrypointType.Module, "mymodule");
 
         using var app = builder.Build();
-        var pipeline = new DistributedApplicationPipeline();
+        var pipeline = (DistributedApplicationPipeline)app.Services.GetRequiredService<IDistributedApplicationPipeline>();
 
         var steps = (await pipeline.ResolveStepsAsync(CreatePipelineContext(app)))
             .ToDictionary(step => step.Name, StringComparer.Ordinal);
