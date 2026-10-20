@@ -418,9 +418,8 @@ internal static class CliE2EAutomatorHelpers
                 return;
 
             case AppHostLanguagePromptSelection.Go:
-                // Go follows TypeScript in the picker because Java and Python stay hidden until their own flags are on.
-                await auto.DownAsync();
-                await auto.DownAsync();
+                // Search by text so the selection does not depend on which other languages the picker lists.
+                await auto.TypeAsync("Go");
                 await auto.WaitUntilAsync(
                     s => new CellPatternSearcher().Find("> Go").Search(s).Count > 0,
                     timeout: TimeSpan.FromSeconds(5),

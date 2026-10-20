@@ -455,13 +455,10 @@ internal static class Hex1bTestHelpers
                 break;
 
             case AspireTemplate.GoStarter:
-                // The Go starter sorts directly after the FastAPI starter in the template list.
+                // The list omits the C# starters when the image has no .NET SDK, so search by text instead of counting Downs.
                 var goStarterSelected = new CellPatternSearcher()
                     .Find("> Starter App (Go API + Redis, Go AppHost)");
-                builder.Key(Hex1bKey.DownArrow)
-                    .Key(Hex1bKey.DownArrow)
-                    .Key(Hex1bKey.DownArrow)
-                    .Key(Hex1bKey.DownArrow)
+                builder.Type("Go API")
                     .WaitUntil(s => goStarterSelected.Search(s).Count > 0, TimeSpan.FromSeconds(5))
                     .Enter();
                 break;
