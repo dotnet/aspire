@@ -32,7 +32,8 @@ internal sealed class GoLanguageSupport : ILanguageSupport
     {
         var files = new Dictionary<string, string>();
 
-        // Create apphost.go
+        // Create apphost.go. The blank line before the closing quotes is intentional: a raw string literal
+        // drops the last newline, and gofmt requires the file to end with one.
         files["apphost.go"] = """
             // Aspire Go AppHost
             // For more information, see: https://aspire.dev
@@ -41,6 +42,7 @@ internal sealed class GoLanguageSupport : ILanguageSupport
 
             import (
             	"log"
+
             	"apphost/modules/aspire"
             )
 
@@ -65,6 +67,7 @@ internal sealed class GoLanguageSupport : ILanguageSupport
             		log.Fatal(aspire.FormatError(err))
             	}
             }
+
             """;
 
         // .aspire/modules holds the generated SDK. It is regenerated from the AppHost's integrations
