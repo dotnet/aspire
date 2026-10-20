@@ -160,6 +160,7 @@ Some regular PR-CI infrastructure is narrower than `ALL`:
 .github/actions/enumerate-tests/**      -> DOTNET_TESTS
 .github/actions/check-changed-files/**  -> test:Infrastructure.Tests
 .github/actions/select-tests/**         -> test:Infrastructure.Tests
+eng/github-ci/resolve-comparison-base.sh -> test:Infrastructure.Tests
 .github/actions/setup-deno/**           -> test:Aspire.Hosting.JavaScript.Tests + job:extension-e2e
 ```
 

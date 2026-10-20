@@ -510,6 +510,10 @@ public sealed class TestTriggerMapTests
     public static TheoryData<string, string[]> AuditedLoosePathCases => new()
     {
         {
+            "eng/github-ci/resolve-comparison-base.sh",
+            ["test:Infrastructure.Tests"]
+        },
+        {
             "eng/scripts/pack-cli-npm-package.ps1",
             ["test:Aspire.Cli.Tests", "test:Infrastructure.Tests"]
         },
@@ -872,6 +876,8 @@ public sealed class TestTriggerMapTests
     }
 
     [Theory]
+    [InlineData(".config/dotnet-tools.json")]
+    [InlineData(".mcp.json")]
     [InlineData("src/Aspire.Dashboard/Components/Controls/TerminalTitle.razor.js")]
     [InlineData("src/Aspire.Dashboard/Components/Layout/TerminalDock.razor.js")]
     [InlineData("src/Aspire.Dashboard/wwwroot/js/app-terminalwindow.js")]

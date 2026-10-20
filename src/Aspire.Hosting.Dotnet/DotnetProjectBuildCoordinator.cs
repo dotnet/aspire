@@ -246,7 +246,7 @@ internal static class DotnetProjectBuildCoordinator
             builder.Services.AddSingleton(_ => this);
             builder.Pipeline.AddPipelineConfiguration(context =>
             {
-                // Declaration-only groups still register this step; configuration alone does not enable support.
+                // Configuration-only definitions register this step at Build(), after this coordinator is created.
                 _hasLaunchGroupSupport = context.Steps.Any(step => step.Name == "configure-launch-groups");
                 return Task.CompletedTask;
             });
