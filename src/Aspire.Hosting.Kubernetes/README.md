@@ -199,7 +199,8 @@ application namespace. The default is the Helm installation namespace, normally
 Helm value rather than overriding `--cluster-resource-namespace` through `extraArgs`:
 
 ```csharp
-certManager.Resource.HelmChart.Values["clusterResourceNamespace"] = "certificate-accounts";
+builder.CreateResourceBuilder(certManager.Resource.HelmChart)
+    .WithHelmValue("clusterResourceNamespace", "certificate-accounts");
 ```
 
 Ensure a custom cluster resource namespace already exists and that cert-manager can
