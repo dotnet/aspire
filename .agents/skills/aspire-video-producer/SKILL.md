@@ -1,6 +1,6 @@
 ---
 name: aspire-video-producer
-description: Produces narrated Aspire videos (feature walkthroughs, dashboard tours, integration overviews, pull request demos) with one unified look and specification - 1080p, the Aspire logo, purple palette and Poppins font from aspire.dev, a neural voice picked from a shortlist, captions, slight dynamic zooms on demos, and renditions for GitHub, aspire.dev, YouTube or chat apps. Use when asked to record, narrate, or produce a video or screencast of Aspire, its dashboard or its CLI, or to add one to aspire.dev or a pull request.
+description: Produces narrated Aspire videos (feature walkthroughs, dashboard tours, integration overviews, pull request demos) with one unified look and specification - 1080p, the Aspire logo, purple palette and Poppins font from aspire.dev, a neural voice picked from a shortlist, captions, slight dynamic zooms on demos, and renditions for GitHub, aspire.dev, YouTube or chat apps. Use when asked for a narrated video of Aspire, its dashboard or its CLI, or for a branded video for aspire.dev or a pull request. Not for quick, unnarrated recordings, such as a side-by-side comparison, a GIF or a raw screen capture, unless the user asks for this skill or its branding.
 ---
 
 # Aspire Video Producer
@@ -11,6 +11,15 @@ This skill holds that specification and the scripts that apply it. It's adapted 
 skill (BSD 3-Clause License, see "Orchard Core" in the repository's `THIRD-PARTY-NOTICES.TXT`). **Don't change the specification for a single
 video.** If it must change, change it here, in `scripts/brand.py`, `scripts/narrate.py` and `scripts/assemble.py`,
 and in `references/specs.md`, so every later video follows.
+
+## When to use it
+
+Use this skill for narrated, branded videos: walkthroughs, overviews, tours and demos with a voice, captions, cards
+and slides. A simpler video doesn't need it, and must not get its workflow imposed: a side-by-side comparison (such as
+before and after a performance fix), a short GIF, or a raw screen recording for a pull request. Make those the way the
+user asks, without the questions of step 0, the storyboard, the narration or the branding. Use pieces of this skill
+for them only when the user asks, such as the recorder (`scripts/recorder`) to capture a browser, or a `light`
+rendition to make a file smaller. When it isn't clear which one the user wants, ask.
 
 The worked example in `examples/dashboard-tour/` is the storyboard and slides of a short tour of the Aspire
 dashboard, matching the example clip in `scripts/recorder/Scenes.cs`. Read it before writing a new one.
