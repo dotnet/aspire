@@ -49,6 +49,18 @@ the 1080p video scaled up). When a rendition is over its limit, raise its CRF on
   user chooses whether the video has chapter cards between sections (`"chapterCards"`, true by default); without
   them, the header's pill still numbers each chapter.
 
+### Simpler videos
+
+- **No narration** (`"narration": false`): silent audio, no captions; each step lasts its `"seconds"`.
+- **No branding** (`"branding": false`): recordings scaled to the full 1920x1080 frame, with no header, border or
+  shadow; plain cards on `#111113`, with the title in Poppins Bold 72 px (`#F5F5F5`), the subtitle in Poppins 38 px
+  and the label in Poppins SemiBold 30 px (`#A5A5AC`). No logo, no purple.
+- **Side by side** (`"compare"` clips): 16:9 panels in a row, the label above each one in Poppins SemiBold 34 px, and
+  the timer below it in Fira Code 44 px (seconds, one decimal), which stops at the side's end. Branded: under the
+  header, 96 px margins, 48 px between panels, `#7455DD` borders. Unbranded: 48 px margins, 32 px between panels,
+  `#404046` borders. The sides start together 0.7 s in, keep playing 1.5 s after their end, and then hold their last
+  frame; the clip ends 1.5 s after the slowest side, or after its narration.
+
 ## Branding
 
 All assets ship with the skill, in `assets/`, so it works outside the aspire.dev repository.

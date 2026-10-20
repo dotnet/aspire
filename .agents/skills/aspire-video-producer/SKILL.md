@@ -1,6 +1,6 @@
 ---
 name: aspire-video-producer
-description: Produces narrated Aspire videos (feature walkthroughs, dashboard tours, integration overviews, pull request demos) with one unified look and specification - 1080p, the Aspire logo, purple palette and Poppins font from aspire.dev, a neural voice picked from a shortlist, captions, slight dynamic zooms on demos, and renditions for GitHub, aspire.dev, YouTube or chat apps. Use when asked for a narrated video of Aspire, its dashboard or its CLI, or for a branded video for aspire.dev or a pull request. Not for quick, unnarrated recordings, such as a side-by-side comparison, a GIF or a raw screen capture, unless the user asks for this skill or its branding.
+description: Produces narrated Aspire videos (feature walkthroughs, dashboard tours, integration overviews, pull request demos) with one unified look and specification - 1080p, the Aspire logo, purple palette and Poppins font from aspire.dev, a neural voice picked from a shortlist, captions, slight dynamic zooms on demos, and renditions for GitHub, aspire.dev, YouTube or chat apps. Use when asked to record, narrate, or produce a video of Aspire, its dashboard or its CLI: narrated and branded by default, or silent, unbranded, or a side-by-side comparison (such as before and after a performance fix) when the user asks for a simpler video. Not for a GIF or a raw screen capture.
 ---
 
 # Aspire Video Producer
@@ -14,12 +14,18 @@ and in `references/specs.md`, so every later video follows.
 
 ## When to use it
 
-Use this skill for narrated, branded videos: walkthroughs, overviews, tours and demos with a voice, captions, cards
-and slides. A simpler video doesn't need it, and must not get its workflow imposed: a side-by-side comparison (such as
-before and after a performance fix), a short GIF, or a raw screen recording for a pull request. Make those the way the
-user asks, without the questions of step 0, the storyboard, the narration or the branding. Use pieces of this skill
-for them only when the user asks, such as the recorder (`scripts/recorder`) to capture a browser, or a `light`
-rendition to make a file smaller. When it isn't clear which one the user wants, ask.
+By default, a video is narrated and branded: walkthroughs, overviews, tours and demos with a voice, captions, cards
+and slides. A simpler video turns those off, in the storyboard:
+
+- **No narration** (`"narration": false`): a silent video, without captions; each step lasts its `"seconds"`.
+- **No branding** (`"branding": false`): recordings fill the whole frame, and the cards are plain, without the logo
+  or the purple.
+- **A side-by-side comparison** (a `"compare"` clip): two runs started together, each with its label and, with
+  `"timer": true`, the time it takes; from recordings or from existing video files. See `examples/side-by-side/`.
+
+For a simpler video, ask only what it needs (usually the renditions), skip the voice and chapter-card questions, and
+don't add cards, slides or narration the user didn't ask for. A GIF, or a raw screen capture with nothing added,
+doesn't need this skill: make it the way the user asks. When it isn't clear which one the user wants, ask.
 
 The worked example in `examples/dashboard-tour/` is the storyboard and slides of a short tour of the Aspire
 dashboard, matching the example clip in `scripts/recorder/Scenes.cs`. Read it before writing a new one.
@@ -248,6 +254,7 @@ user's agreement.
 - `scripts/voices.py`: a voice sample, to choose the narrator.
 - `assets/`: the Aspire logo (from aspire.dev) and the Poppins and Fira Code fonts (SIL Open Font License).
 - `examples/dashboard-tour/`: a complete storyboard and slides.
+- `examples/side-by-side/`: a silent, unbranded before-and-after comparison, with timers.
 - `examples/aspire-introduction/`: a video with no slides: the AppHost typed in VS Code with IntelliSense, `aspire run`
   in its terminal, the dashboard, and `aspire deploy`, in English and Spanish. **Start from it for any video
   that shows VS Code or a terminal.**

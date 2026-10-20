@@ -104,6 +104,24 @@ await scene.StepAsync("resources-2", async () =>
 | `AutoZoom` | `false` keeps a scene wide: `HighlightAsync` and `TypeAsync` don't zoom. |
 | `SwitchToAsync(page)` | Records another tab, such as an endpoint opened from the Resources page. |
 | `PauseAsync(ms)` / `HoldAsync(seconds)` | Waits, while frames keep coming. |
+| `Mark(name)` | Marks a moment: `Mark("start")` and `Mark("end")` around the run that one side of a `compare` clip shows. |
+
+### Recording one side of a comparison
+
+A side is a clip of its own in `Scenes.cs`, without steps: start the capture, mark the start, do the run, wait until
+its result shows, and mark the end. Record both sides the same way, on the same machine, so they compare fairly:
+
+```csharp
+await scene.StartCaptureAsync();
+scene.Mark("start");
+await scene.ClickAsync(scene.Page.GetByRole(AriaRole.Button, new() { Name = "Start" }));
+await scene.Page.GetByText("Running").First.WaitForAsync(new() { Timeout = 120_000 });
+scene.Mark("end");
+await scene.HoldAsync(1.5);
+```
+
+A side can also be an existing video, such as a terminal recorded with another tool: give its file, and the second
+its run starts and ends at.
 | `RequestAsync(url, count)` | Sends requests to the app over HTTP/1.1, before the capture, so the newest logs and traces are the ones the narration talks about. |
 | `BoxOfAsync(locator)` | The box of an element, scrolled into view, including rows with `display: contents`. |
 

@@ -3,7 +3,8 @@ durations.json, which the recorder and the assembly read. The voice is spoken by
 
 Usage: python narrate.py <workspace> [--force]
 
-Only the steps whose text changed are generated again.
+Only the steps whose text changed are generated again. A storyboard with "narration": false has no voice: it only
+writes durations.json, from each step's "seconds" (3 by default).
 """
 import asyncio
 import json
@@ -21,6 +22,9 @@ TTS = Path(__file__).resolve().parent / "tts.mjs"
 # The voice of every Aspire video. See references/specs.md.
 VOICE = "en-US-AndrewMultilingualNeural"
 RATE = "+2%"
+
+# How long a step lasts in a video without narration, unless it says ("seconds").
+SILENT_STEP_SECONDS = 3.0
 
 # How the voice must say words it misreads. The subtitles keep the written form. A storyboard can add its own in
 # "spoken"; add the ones that apply to every video here.
@@ -61,6 +65,12 @@ async def main():
     workspace = Path(sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].startswith("--") else ".").resolve()
     force = "--force" in sys.argv
     storyboard = json.loads((workspace / "storyboard.json").read_text(encoding="utf-8"))
+    if not storyboard.get("narration", True):
+        durations = {step["id"]: float(step.get("seconds", SILENT_STEP_SECONDS))
+                     for chapter in storyboard["chapters"] for clip in chapter["clips"] for step in clip.get("steps", [])}
+        (workspace / "durations.json").write_text(json.dumps(durations, indent=1), encoding="utf-8")
+        print(f"{len(durations)} steps, no narration, {sum(durations.values()) / 60:.1f} minutes")
+        return
     overrides = storyboard.get("spoken", {})
     # A video in another language, or with another voice, names it in the storyboard: "voice" and "rate".
     voice, rate = storyboard.get("voice", VOICE), storyboard.get("rate", RATE)
@@ -70,7 +80,7 @@ async def main():
 
     for chapter in storyboard["chapters"]:
         for clip in chapter["clips"]:
-            for step in clip["steps"]:
+            for step in clip.get("steps", []):
                 text = spoken(step["text"], overrides)
                 said = f"{voice} {rate}\n{text}"
                 path = audio / f"{step['id']}.mp3"

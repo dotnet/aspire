@@ -19,6 +19,7 @@ from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import brand  # noqa: E402
+from narrate import duration as media_duration  # noqa: E402
 
 FFMPEG = imageio_ffmpeg.get_ffmpeg_exe()
 FPS = brand.FPS
@@ -41,6 +42,7 @@ CHAPTER_CARD_SECONDS = 2.6
 CARD_LEAD, CARD_TAIL = 1.0, 1.4
 SLIDE_LEAD, SLIDE_GAP, SLIDE_TAIL = 0.6, 0.5, 1.0
 CLIP_LEAD, CLIP_TAIL = 0.7, 1.0
+COMPARE_LEAD, COMPARE_TAIL, COMPARE_GAP = 0.7, 1.5, 0.3
 
 # Zooms in recordings (see references/specs.md): slight, eased, and never so large the element loses its context.
 ZOOM_SECONDS = 0.8        # the length of a zoom in, out, or from one element to another
@@ -71,6 +73,9 @@ class Assembler:
         self.build.mkdir(exist_ok=True)
         self.storyboard = json.loads((workspace / "storyboard.json").read_text(encoding="utf-8"))
         self.durations = json.loads((workspace / "durations.json").read_text(encoding="utf-8"))
+        # "narration": false makes a silent video, without captions; "branding": false, one without the Aspire look.
+        self.narrated = self.storyboard.get("narration", True)
+        self.branded = self.storyboard.get("branding", True)
         self.slides = None
         if (workspace / "slides.py").exists():
             spec = importlib.util.spec_from_file_location("slides", workspace / "slides.py")
@@ -79,6 +84,50 @@ class Assembler:
 
     def audio(self, step_id):
         return str(self.workspace / "audio" / f"{step_id}.mp3")
+
+    def sounds(self, step, offset):
+        """The narration of a step at an offset, for still(); nothing in a video without narration."""
+        return [(self.audio(step["id"]), offset)] if self.narrated else []
+
+    def card(self, title, subtitle, label=None, big=False):
+        if self.branded:
+            return brand.card(title, subtitle, label=label, big=big)
+        return brand.plain_card(title, subtitle, label=label)
+
+    @staticmethod
+    def mix(sounds, first_input, seconds):
+        """The inputs and filters that mix narration, a list of (mp3, offset), into [aout]; or silence."""
+        if not sounds:
+            return (["-f", "lavfi", "-t", f"{seconds:.3f}", "-i", "anullsrc=r=48000:cl=stereo"],
+                    [f"[{first_input}:a]anull[aout]"])
+        args, filters = [], []
+        for index, (mp3, offset) in enumerate(sounds):
+            args += ["-i", mp3]
+            filters.append(f"[{first_input + index}:a]adelay={int(offset * 1000)}|{int(offset * 1000)}[a{index}]")
+        inputs = "".join(f"[a{i}]" for i in range(len(sounds)))
+        filters.append(f"{inputs}amix=inputs={len(sounds)}:normalize=0,apad,atrim=0:{seconds:.3f}[aout]")
+        return args, filters
+
+    @staticmethod
+    def frame_entries(directory, frames, start, end):
+        """The recorded frames between start and end, each shown until the next one: (path, seconds)."""
+        entries = []
+        for index, item in enumerate(frames):
+            next_t = frames[index + 1]["t"] if index + 1 < len(frames) else end
+            a, b = max(item["t"], start), min(next_t, end)
+            if b > a:
+                entries.append((directory / "frames" / item["file"], b - a))
+            elif item["t"] <= start < next_t:
+                entries.append((directory / "frames" / item["file"], 0.001))
+        return entries
+
+    def write_concat(self, name, entries):
+        concat = self.build / f"{name}.frames.txt"
+        with open(concat, "w", encoding="utf-8") as list_file:
+            for path, length in entries:
+                list_file.write(f"{brand.concat_entry(path)}\nduration {length:.4f}\n")
+            list_file.write(f"{brand.concat_entry(entries[-1][0])}\n")
+        return concat
 
     def still(self, image_path, seconds, sounds, output, fade_in=True, fade_out=True):
         """A still image with narration: a list of (mp3, offset in seconds)."""
@@ -187,40 +236,94 @@ class Assembler:
         if timeline.get("zooms") and self.storyboard.get("zoom", True):
             entries = self.zoomed_frames(clip_id, directory, timeline, start, end)
         else:
-            for index, item in enumerate(frames):
-                next_t = frames[index + 1]["t"] if index + 1 < len(frames) else end
-                a, b = max(item["t"], start), min(next_t, end)
-                if b > a:
-                    entries.append((directory / "frames" / item["file"], b - a))
-                elif item["t"] <= start < next_t:
-                    entries.append((directory / "frames" / item["file"], 0.001))
+            entries = self.frame_entries(directory, frames, start, end)
         if not entries:
             raise SystemExit(f"{clip_id}: no frames")
-        concat = self.build / f"{clip_id}.frames.txt"
-        with open(concat, "w", encoding="utf-8") as list_file:
-            for path, length in entries:
-                list_file.write(f"{brand.concat_entry(path)}\nduration {length:.4f}\n")
-            list_file.write(f"{brand.concat_entry(entries[-1][0])}\n")
+        concat = self.write_concat(clip_id, entries)
 
+        # The recording in the purple frame, under the header; or, without branding, filling the whole frame.
         frame_png = self.build / f"{clip_id}.frame.png"
-        brand.frame(chapter_title, label).save(frame_png)
+        if self.branded:
+            brand.frame(chapter_title, label).save(frame_png)
+            video_w, video_h, video_x, video_y = brand.VIDEO_W, brand.VIDEO_H, brand.VIDEO_X, brand.VIDEO_Y
+        else:
+            Image.new("RGB", (brand.W, brand.H), (0, 0, 0)).save(frame_png)
+            video_w, video_h, video_x, video_y = brand.W, brand.H, 0, 0
 
         args = ["-loop", "1", "-framerate", str(FPS), "-t", f"{seconds:.3f}", "-i", str(frame_png),
                 "-f", "concat", "-safe", "0", "-i", str(concat)]
         filters = [
-            f"[1:v]scale={brand.VIDEO_W}:{brand.VIDEO_H}:flags=lanczos,fps={FPS},setpts=PTS-STARTPTS[rec]",
-            f"[0:v][rec]overlay={brand.VIDEO_X}:{brand.VIDEO_Y}:shortest=0,trim=0:{seconds:.3f},"
+            f"[1:v]scale={video_w}:{video_h}:flags=lanczos,fps={FPS},setpts=PTS-STARTPTS[rec]",
+            f"[0:v][rec]overlay={video_x}:{video_y}:shortest=0,trim=0:{seconds:.3f},"
             f"fade=t=in:st=0:d=0.35,fade=t=out:st={seconds - 0.35:.3f}:d=0.35,format=yuv420p[vout]",
         ]
-        offsets = []
-        for index, step in enumerate(steps):
-            offset = recorded[step["id"]] - start
-            args += ["-i", self.audio(step["id"])]
-            filters.append(f"[{index + 2}:a]adelay={int(offset * 1000)}|{int(offset * 1000)}[a{index}]")
-            offsets.append((step, offset))
-        mix = "".join(f"[a{i}]" for i in range(len(steps)))
-        filters.append(f"{mix}amix=inputs={len(steps)}:normalize=0,apad,atrim=0:{seconds:.3f}[aout]")
-        args += ["-filter_complex", ";".join(filters), "-map", "[vout]", "-map", "[aout]"]
+        offsets = [(step, recorded[step["id"]] - start) for step in steps]
+        sounds = [(self.audio(step["id"]), offset) for step, offset in offsets] if self.narrated else []
+        audio_args, audio_filters = self.mix(sounds, 2, seconds)
+        args += audio_args + ["-filter_complex", ";".join(filters + audio_filters), "-map", "[vout]", "-map", "[aout]"]
+        run(args + master_video() + master_audio() + ["-t", f"{seconds:.3f}", str(output)])
+        return seconds, offsets
+
+    def side(self, side, name):
+        """The ffmpeg input of one side of a comparison, and the length of its run: a recorded clip ("clip"), from
+        its "start" mark to its "end" mark, or a video file ("file"), from its "start" to its "end" second. The side
+        keeps playing up to COMPARE_TAIL after its end, so the result shows, but its timer stops at the end."""
+        if "file" in side:
+            path = (self.workspace / side["file"]).resolve()
+            total = media_duration(path)
+            start = float(side.get("start", 0))
+            end = float(side.get("end", total))
+            shown = min(total, end + COMPARE_TAIL) - start
+            return ["-ss", f"{start:.3f}", "-t", f"{shown:.3f}", "-i", str(path)], end - start
+        directory = self.workspace / "clips" / side["clip"]
+        timeline = json.loads((directory / "timeline.json").read_text())
+        marks = {mark["name"]: mark["t"] for mark in timeline.get("marks", [])}
+        start, end = marks.get("start", 0.0), marks.get("end", timeline["end"])
+        entries = self.frame_entries(directory, timeline["frames"], start, min(timeline["end"], end + COMPARE_TAIL))
+        if not entries:
+            raise SystemExit(f"{side['clip']}: no frames between its start and end marks")
+        return ["-f", "concat", "-safe", "0", "-i", str(self.write_concat(name, entries))], end - start
+
+    def compare(self, clip, chapter_title, label, output):
+        """Side-by-side runs ("sides"), started together, each with its label and, with "timer", the time it takes.
+        The narration of the clip's steps, if any, plays one step after the other."""
+        sides, steps = clip["sides"], clip.get("steps", [])
+        timers = clip.get("timer", False)
+        image, panels, centers = brand.compare_layout([side.get("label", "") for side in sides], chapter_title, label,
+                                                      self.branded, timers)
+        png = self.build / f"{clip['id']}.compare.png"
+        image.save(png)
+        inputs = [self.side(side, f"{clip['id']}-{index}") for index, side in enumerate(sides)]
+
+        offsets, t = [], COMPARE_LEAD
+        for step in steps:
+            offsets.append((step, t))
+            t += self.durations[step["id"]] + COMPARE_GAP
+        seconds = max(COMPARE_LEAD + max(length for _, length in inputs), t) + COMPARE_TAIL
+
+        args = ["-loop", "1", "-framerate", str(FPS), "-t", f"{seconds:.3f}", "-i", str(png)]
+        filters, chain = [], "[0:v]"
+        for index, ((side_args, length), (x, y, w, h)) in enumerate(zip(inputs, panels)):
+            args += side_args
+            filters.append(f"[{index + 1}:v]fps={FPS},scale={w}:{h}:force_original_aspect_ratio=decrease:flags=lanczos,"
+                           f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:color=black,setpts=PTS-STARTPTS,"
+                           f"tpad=start_mode=clone:start_duration={COMPARE_LEAD}:stop_mode=clone:stop_duration={seconds:.3f}[side{index}]")
+            filters.append(f"{chain}[side{index}]overlay={x}:{y}:shortest=0[base{index}]")
+            chain = f"[base{index}]"
+        texts = []
+        if timers:
+            font = (brand.FONTS / "FiraCode-Variable.ttf").as_posix().replace(":", "\\:")
+            color = "#F6F3FF" if self.branded else "#F5F5F5"
+            for (_, length), (cx, cy) in zip(inputs, centers):
+                elapsed = f"min(max(t-{COMPARE_LEAD}\\,0)\\,{length:.3f})"
+                text = f"%{{eif\\:trunc({elapsed})\\:d}}.%{{eif\\:mod(trunc({elapsed}*10)\\,10)\\:d}} s"
+                texts.append(f"drawtext=fontfile='{font}':fontsize=44:fontcolor={color}:"
+                             f"x={cx}-text_w/2:y={cy}-text_h/2:text='{text}'")
+        filters.append(f"{chain}{','.join(texts + [''])}trim=0:{seconds:.3f},"
+                       f"fade=t=in:st=0:d=0.35,fade=t=out:st={seconds - 0.35:.3f}:d=0.35,format=yuv420p[vout]")
+        sounds = [(self.audio(step["id"]), offset) for step, offset in offsets] if self.narrated else []
+        audio_args, audio_filters = self.mix(sounds, 1 + len(sides), seconds)
+        args += audio_args + ["-filter_complex", ";".join(filters + audio_filters), "-map", "[vout]", "-map", "[aout]"]
         run(args + master_video() + master_audio() + ["-t", f"{seconds:.3f}", str(output)])
         return seconds, offsets
 
@@ -228,6 +331,8 @@ class Assembler:
         segments, captions, clock = [], [], 0.0
 
         def caption(text, start, length):
+            if not self.narrated or not text:
+                return
             captions.extend((clock + a, clock + b, c) for a, b, c in chunks(text, start, length))
 
         for chapter in self.storyboard["chapters"]:
@@ -239,7 +344,7 @@ class Assembler:
             # "chapterCards": false leaves out the chapter cards; the header's pill still numbers the chapter.
             if numbered and self.storyboard.get("chapterCards", True):
                 png, path = self.build / f"card-{chapter['id']}.png", self.build / f"card-{chapter['id']}.mp4"
-                brand.card(title, subtitle, label=label).save(png)
+                self.card(title, subtitle, label=label).save(png)
                 # "chapterCardSeconds": a shorter (or longer) chapter card for this video only.
                 card_seconds = float(self.storyboard.get("chapterCardSeconds", CHAPTER_CARD_SECONDS))
                 self.still(png, card_seconds, [], path)
@@ -248,14 +353,14 @@ class Assembler:
 
             for clip in chapter["clips"]:
                 print("encoding", clip["id"], flush=True)
-                steps = clip["steps"]
+                steps = clip.get("steps", [])
                 if clip["kind"] == "card":
                     png, path = self.build / f"{clip['id']}.png", self.build / f"{clip['id']}.mp4"
-                    brand.card(title, subtitle, big=True).save(png)
+                    self.card(title, subtitle, big=True).save(png)
                     step = steps[0]
                     seconds = CARD_LEAD + self.durations[step["id"]] + CARD_TAIL
-                    self.still(png, seconds, [(self.audio(step["id"]), CARD_LEAD)], path)
-                    caption(step["text"], CARD_LEAD, self.durations[step["id"]])
+                    self.still(png, seconds, self.sounds(step, CARD_LEAD), path)
+                    caption(step.get("text"), CARD_LEAD, self.durations[step["id"]])
                     segments.append(path)
                     clock += seconds
                 elif clip["kind"] == "slide":
@@ -267,15 +372,18 @@ class Assembler:
                         self.slides.slide(step["id"], title, label).save(png)
                         lead = SLIDE_LEAD if first else SLIDE_GAP / 2
                         seconds = lead + self.durations[step["id"]] + (SLIDE_TAIL if last else SLIDE_GAP)
-                        self.still(png, seconds, [(self.audio(step["id"]), lead)], path, fade_in=first, fade_out=last)
-                        caption(step["text"], lead, self.durations[step["id"]])
+                        self.still(png, seconds, self.sounds(step, lead), path, fade_in=first, fade_out=last)
+                        caption(step.get("text"), lead, self.durations[step["id"]])
                         segments.append(path)
                         clock += seconds
                 else:
                     path = self.build / f"{clip['id']}.mp4"
-                    seconds, offsets = self.recording(clip["id"], title, label, steps, path)
+                    if clip["kind"] == "compare":
+                        seconds, offsets = self.compare(clip, title, label, path)
+                    else:
+                        seconds, offsets = self.recording(clip["id"], title, label, steps, path)
                     for step, offset in offsets:
-                        caption(step["text"], offset, self.durations[step["id"]])
+                        caption(step.get("text"), offset, self.durations[step["id"]])
                     segments.append(path)
                     clock += seconds
 
@@ -295,16 +403,18 @@ class Assembler:
             publish(master, output, name)
             outputs.append((name, output))
 
+        # A video without narration has no captions.
         base = self.workspace / self.storyboard["output"]
-        with open(f"{base}.srt", "w", encoding="utf-8") as srt:
-            for index, (a, b, text) in enumerate(captions, 1):
-                srt.write(f"{index}\n{timestamp(a)} --> {timestamp(b)}\n{text}\n\n")
-        with open(f"{base}.vtt", "w", encoding="utf-8") as vtt:
-            vtt.write("WEBVTT\n\n")
-            for a, b, text in captions:
-                # WebVTT cues are markup: escape the text, so "List<T>" shows as written.
-                cue = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-                vtt.write(f"{timestamp(a, '.')} --> {timestamp(b, '.')}\n{cue}\n\n")
+        if self.narrated:
+            with open(f"{base}.srt", "w", encoding="utf-8") as srt:
+                for index, (a, b, text) in enumerate(captions, 1):
+                    srt.write(f"{index}\n{timestamp(a)} --> {timestamp(b)}\n{text}\n\n")
+            with open(f"{base}.vtt", "w", encoding="utf-8") as vtt:
+                vtt.write("WEBVTT\n\n")
+                for a, b, text in captions:
+                    # WebVTT cues are markup: escape the text, so "List<T>" shows as written.
+                    cue = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                    vtt.write(f"{timestamp(a, '.')} --> {timestamp(b, '.')}\n{cue}\n\n")
 
         print(f"{clock / 60:.1f} minutes, {len(segments)} segments")
         for name, output in outputs:

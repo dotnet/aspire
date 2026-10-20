@@ -66,6 +66,7 @@ public sealed class Scene : IAsyncDisposable
     private readonly List<(double Time, string File)> _frames = [];
     private readonly List<(string Id, double Time)> _steps = [];
     private readonly List<(double Time, double[] Box, double Scale)> _zooms = [];
+    private readonly List<(string Name, double Time)> _marks = [];
     private readonly string _directory;
     private readonly IReadOnlyDictionary<string, double> _durations;
     private ICDPSession _cdp;
@@ -277,6 +278,16 @@ public sealed class Scene : IAsyncDisposable
         {
             await HoldAsync(remaining);
         }
+    }
+
+    /// <summary>
+    /// Marks a moment of the recording, such as "start" and "end" around the run a side-by-side clip compares: the
+    /// assembly trims the side to them, and its timer counts from "start" to "end".
+    /// </summary>
+    public void Mark(string name)
+    {
+        _marks.Add((name, _clock.Elapsed.TotalSeconds));
+        Console.WriteLine($"  mark {name} at {_clock.Elapsed.TotalSeconds:F1}s");
     }
 
     // Keeps frames coming while nothing changes, so the screencast doesn't stall.
@@ -566,6 +577,7 @@ public sealed class Scene : IAsyncDisposable
             ["end"] = end - origin,
             ["frames"] = new JsonArray([.. frames.Select(frame => (JsonNode)new JsonObject { ["t"] = frame.Time - origin, ["file"] = Path.GetFileName(frame.File) })]),
             ["steps"] = new JsonArray([.. _steps.Select(step => (JsonNode)new JsonObject { ["id"] = step.Id, ["t"] = step.Time - origin })]),
+            ["marks"] = new JsonArray([.. _marks.Select(mark => (JsonNode)new JsonObject { ["name"] = mark.Name, ["t"] = mark.Time - origin })]),
             // The zooms, in CSS pixels of the viewport; a zoom without a box zooms back out.
             ["viewport"] = new JsonArray(Width, Height),
             ["zooms"] = new JsonArray([.. _zooms.Select(zoom => (JsonNode)new JsonObject
