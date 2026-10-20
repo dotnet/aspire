@@ -206,7 +206,7 @@ public class AtsGoCodeGeneratorTests
 
     [Fact]
     [RequiresTools(["go"])]
-    public async Task GeneratedRuntime_PassesGoTransportHardeningTests()
+    public async Task GeneratedRuntime_PassesGoRuntimeHardeningTests()
     {
         var directory = Directory.CreateTempSubdirectory();
         using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(3));
@@ -541,6 +541,334 @@ public class AtsGoCodeGeneratorTests
                 }
                 """, timeout.Token);
 
+            await File.WriteAllTextAsync(Path.Combine(directory.FullName, "decode_test.go"), """
+                package aspire
+
+                import (
+                    "encoding/json"
+                    "reflect"
+                    "strconv"
+                    "strings"
+                    "testing"
+                )
+
+                const decodeTestTypeID = "Aspire.Hosting/Aspire.Hosting.ApplicationModel.ContainerResource"
+
+                // decodeTestResource stands in for a generated handle interface such as Resource.
+                type decodeTestResource interface {
+                    handleReference
+                }
+
+                // decodeTestWrapper stands in for the generated wrapper registered for decodeTestTypeID.
+                type decodeTestWrapper struct{ *resourceBuilderBase }
+
+                type decodeTestKey string
+
+                type decodeTestDto struct {
+                    Name  string `json:"name"`
+                    Count int    `json:"count"`
+                }
+
+                func newDecodeTestClient() *client {
+                    c := newClient("")
+                    c.registerHandleWrapper(decodeTestTypeID, func(h *handle, c *client) any {
+                        return &decodeTestWrapper{newResourceBuilderBase(h, c)}
+                    })
+                    return c
+                }
+
+                func decodeTestHandle(id string) string {
+                    return `{"$handle":"` + id + `","$type":"` + decodeTestTypeID + `"}`
+                }
+
+                func decodeTestHandles(ids ...string) string {
+                    handles := make([]string, len(ids))
+                    for i, id := range ids {
+                        handles[i] = decodeTestHandle(id)
+                    }
+                    return "[" + strings.Join(handles, ",") + "]"
+                }
+
+                // decodeTestIDs lists the handle ids of items in order, with <nil> for a nil item.
+                func decodeTestIDs(items []decodeTestResource) string {
+                    ids := make([]string, len(items))
+                    for i, item := range items {
+                        if item == nil {
+                            ids[i] = "<nil>"
+                            continue
+                        }
+                        ids[i] = item.getHandle().HandleID
+                    }
+                    return strings.Join(ids, ",")
+                }
+
+                // decodeWire takes a JSON-RPC result through the steps a capability result takes:
+                // parse it, wrap its handles, decode it into T.
+                func decodeWire[T any](t *testing.T, c *client, payload string) (T, error) {
+                    t.Helper()
+                    var raw any
+                    if err := json.Unmarshal([]byte(payload), &raw); err != nil {
+                        t.Fatal(err)
+                    }
+                    wrapped, err := wrapIfHandle(raw, c)
+                    if err != nil {
+                        t.Fatal(err)
+                    }
+                    return decodeAs[T](wrapped)
+                }
+
+                func decodeTestExpectError(t *testing.T, name string, err error, want ...string) {
+                    t.Helper()
+                    if err == nil {
+                        t.Errorf("%s: got no error, want one mentioning %q", name, want)
+                        return
+                    }
+                    for _, fragment := range want {
+                        if !strings.Contains(err.Error(), fragment) {
+                            t.Errorf("%s: error %q does not mention %q", name, err, fragment)
+                        }
+                    }
+                }
+
+                func TestDecodeListOfHandles(t *testing.T) {
+                    c := newDecodeTestClient()
+                    cases := []struct{ name, payload, ids string }{
+                        {"one handle", decodeTestHandles("1"), "1"},
+                        {"several handles", decodeTestHandles("1", "2", "3"), "1,2,3"},
+                        {"null element", "[" + decodeTestHandle("1") + ",null]", "1,<nil>"},
+                    }
+                    for _, tc := range cases {
+                        got, err := decodeWire[[]decodeTestResource](t, c, tc.payload)
+                        if err != nil {
+                            t.Errorf("%s: %v", tc.name, err)
+                            continue
+                        }
+                        if ids := decodeTestIDs(got); ids != tc.ids {
+                            t.Errorf("%s: got handles %s, want %s", tc.name, ids, tc.ids)
+                        }
+                        if _, ok := got[0].(*decodeTestWrapper); !ok {
+                            t.Errorf("%s: first element is %T, want the registered wrapper", tc.name, got[0])
+                        }
+                    }
+                }
+
+                func TestDecodeListsOfValues(t *testing.T) {
+                    c := newDecodeTestClient()
+
+                    dtos, err := decodeWire[[]decodeTestDto](t, c, `[{"name":"a","count":1},{"name":"b","count":2}]`)
+                    if err != nil || !reflect.DeepEqual(dtos, []decodeTestDto{{"a", 1}, {"b", 2}}) {
+                        t.Errorf("DTOs: got %v, %v", dtos, err)
+                    }
+
+                    pointers, err := decodeWire[[]*decodeTestDto](t, c, `[{"name":"a","count":1},null]`)
+                    if err != nil || !reflect.DeepEqual(pointers, []*decodeTestDto{{"a", 1}, nil}) {
+                        t.Errorf("DTO pointers: got %v, %v", pointers, err)
+                    }
+
+                    names, err := decodeWire[[]string](t, c, `["a","b"]`)
+                    if err != nil || !reflect.DeepEqual(names, []string{"a", "b"}) {
+                        t.Errorf("strings: got %v, %v", names, err)
+                    }
+
+                    numbers, err := decodeWire[[]int](t, c, `[1,2,3]`)
+                    if err != nil || !reflect.DeepEqual(numbers, []int{1, 2, 3}) {
+                        t.Errorf("ints: got %v, %v", numbers, err)
+                    }
+
+                    floats, err := decodeWire[[]float64](t, c, `[1.5,2]`)
+                    if err != nil || !reflect.DeepEqual(floats, []float64{1.5, 2}) {
+                        t.Errorf("floats: got %v, %v", floats, err)
+                    }
+
+                    mixed, err := decodeWire[[]any](t, c, "["+decodeTestHandle("1")+`,{"name":"a"},7,"x",null]`)
+                    if err != nil || len(mixed) != 5 {
+                        t.Fatalf("mixed list: got %v, %v", mixed, err)
+                    }
+                    if _, ok := mixed[0].(*decodeTestWrapper); !ok {
+                        t.Errorf("mixed list: first element is %T, want the registered wrapper", mixed[0])
+                    }
+                    if want := []any{map[string]any{"name": "a"}, float64(7), "x", nil}; !reflect.DeepEqual(mixed[1:], want) {
+                        t.Errorf("mixed list: got %v, want %v", mixed[1:], want)
+                    }
+                }
+
+                func TestDecodeEmptyList(t *testing.T) {
+                    c := newDecodeTestClient()
+
+                    list, err := decodeWire[[]decodeTestResource](t, c, `[]`)
+                    if err != nil || list == nil || len(list) != 0 {
+                        t.Errorf("empty list: got %#v, %v, want an empty slice", list, err)
+                    }
+
+                    entries, err := decodeWire[map[string]decodeTestResource](t, c, `{}`)
+                    if err != nil || entries == nil || len(entries) != 0 {
+                        t.Errorf("empty map: got %#v, %v, want an empty map", entries, err)
+                    }
+                }
+
+                func TestDecodeNilResult(t *testing.T) {
+                    if got, err := decodeAs[[]decodeTestResource](nil); got != nil || err != nil {
+                        t.Errorf("nil list: got %#v, %v, want nil", got, err)
+                    }
+                    if got, err := decodeAs[map[string]decodeTestResource](nil); got != nil || err != nil {
+                        t.Errorf("nil map: got %#v, %v, want nil", got, err)
+                    }
+
+                    // Typed nils are not nil interfaces, so they reach the element loop and must not panic.
+                    if got, err := decodeAs[[]decodeTestResource]([]any(nil)); err != nil || len(got) != 0 {
+                        t.Errorf("nil []any: got %#v, %v, want an empty list", got, err)
+                    }
+                    if got, err := decodeAs[map[string]decodeTestResource](map[string]any(nil)); err != nil || len(got) != 0 {
+                        t.Errorf("nil map[string]any: got %#v, %v, want an empty map", got, err)
+                    }
+                    if got, err := decodeAs[[]decodeTestResource]([]any{(*decodeTestWrapper)(nil)}); err != nil || len(got) != 1 {
+                        t.Errorf("nil wrapper element: got %#v, %v, want one element", got, err)
+                    }
+                }
+
+                func TestDecodeMapOfHandles(t *testing.T) {
+                    c := newDecodeTestClient()
+                    payload := `{"a":` + decodeTestHandle("1") + `,"b":` + decodeTestHandle("2") + `}`
+
+                    got, err := decodeWire[map[string]decodeTestResource](t, c, payload)
+                    if err != nil || len(got) != 2 {
+                        t.Fatalf("map of handles: got %v, %v", got, err)
+                    }
+                    for key, id := range map[string]string{"a": "1", "b": "2"} {
+                        if item, ok := got[key]; !ok || item.getHandle().HandleID != id {
+                            t.Errorf("map of handles: got %v for %q, want handle %s", item, key, id)
+                        }
+                    }
+
+                    named, err := decodeWire[map[decodeTestKey]decodeTestResource](t, c, payload)
+                    if err != nil || len(named) != 2 || named["a"] == nil || named["b"] == nil {
+                        t.Errorf("map with a named key type: got %v, %v", named, err)
+                    }
+
+                    dtos, err := decodeWire[map[string]decodeTestDto](t, c, `{"x":{"name":"a","count":1}}`)
+                    if err != nil || !reflect.DeepEqual(dtos, map[string]decodeTestDto{"x": {"a", 1}}) {
+                        t.Errorf("map of DTOs: got %v, %v", dtos, err)
+                    }
+
+                    counts, err := decodeWire[map[string]int](t, c, `{"x":1,"y":2}`)
+                    if err != nil || !reflect.DeepEqual(counts, map[string]int{"x": 1, "y": 2}) {
+                        t.Errorf("map of ints: got %v, %v", counts, err)
+                    }
+                }
+
+                func TestDecodeNestedLists(t *testing.T) {
+                    c := newDecodeTestClient()
+
+                    nested, err := decodeWire[[][]decodeTestResource](t, c, "["+decodeTestHandles("1", "2")+",[],"+decodeTestHandles("3")+"]")
+                    if err != nil || len(nested) != 3 || decodeTestIDs(nested[0]) != "1,2" || len(nested[1]) != 0 || decodeTestIDs(nested[2]) != "3" {
+                        t.Errorf("list of lists: got %v, %v", nested, err)
+                    }
+
+                    grouped, err := decodeWire[map[string][]decodeTestResource](t, c, `{"x":`+decodeTestHandles("1", "2")+`}`)
+                    if err != nil || decodeTestIDs(grouped["x"]) != "1,2" {
+                        t.Errorf("map of lists: got %v, %v", grouped, err)
+                    }
+
+                    maps, err := decodeWire[[]map[string]decodeTestResource](t, c, `[{"a":`+decodeTestHandle("1")+`}]`)
+                    if err != nil || len(maps) != 1 || maps[0]["a"] == nil {
+                        t.Errorf("list of maps: got %v, %v", maps, err)
+                    }
+                }
+
+                func TestDecodeNamesTheElementThatFailed(t *testing.T) {
+                    c := newDecodeTestClient()
+                    unregistered := `{"$handle":"9","$type":"Aspire.Hosting/Aspire.Hosting.Unregistered"}`
+
+                    _, err := decodeWire[[]decodeTestResource](t, c, "["+decodeTestHandle("1")+",7]")
+                    decodeTestExpectError(t, "number in a handle list", err, "element 1 of []aspire.decodeTestResource")
+
+                    _, err = decodeWire[[]decodeTestResource](t, c, "["+decodeTestHandle("1")+","+unregistered+"]")
+                    decodeTestExpectError(t, "handle without a wrapper", err, "element 1 of []aspire.decodeTestResource")
+
+                    _, err = decodeWire[[]string](t, c, `["a","b",3]`)
+                    decodeTestExpectError(t, "number in a string list", err, "element 2 of []string")
+
+                    _, err = decodeWire[map[string]decodeTestResource](t, c, `{"a":`+decodeTestHandle("1")+`,"b":7}`)
+                    decodeTestExpectError(t, "number in a handle map", err, `entry "b" of map[string]aspire.decodeTestResource`)
+
+                    _, err = decodeWire[[][]decodeTestResource](t, c, "["+decodeTestHandles("1")+",[7]]")
+                    decodeTestExpectError(t, "number in a nested list", err, "element 1 of [][]aspire.decodeTestResource", "element 0 of []aspire.decodeTestResource")
+
+                    _, err = decodeWire[[][]string](t, c, `[[["a"]]]`)
+                    decodeTestExpectError(t, "data nested deeper than the type", err, "element 0 of [][]string")
+                }
+
+                func TestDecodeSingleValuesAreUnchanged(t *testing.T) {
+                    c := newDecodeTestClient()
+
+                    resource, err := decodeWire[decodeTestResource](t, c, decodeTestHandle("1"))
+                    if err != nil || resource == nil || resource.getHandle().HandleID != "1" {
+                        t.Errorf("single handle: got %v, %v", resource, err)
+                    }
+
+                    dto, err := decodeWire[decodeTestDto](t, c, `{"name":"a","count":1}`)
+                    if err != nil || dto != (decodeTestDto{"a", 1}) {
+                        t.Errorf("DTO: got %v, %v", dto, err)
+                    }
+
+                    pointer, err := decodeWire[*decodeTestDto](t, c, `{"name":"a","count":1}`)
+                    if err != nil || pointer == nil || *pointer != (decodeTestDto{"a", 1}) {
+                        t.Errorf("DTO pointer: got %v, %v", pointer, err)
+                    }
+
+                    // A DTO field of the wrong type is skipped instead of failing the whole value.
+                    partial, err := decodeWire[decodeTestDto](t, c, `{"name":5,"count":3}`)
+                    if err != nil || partial != (decodeTestDto{"", 3}) {
+                        t.Errorf("DTO with a bad field: got %v, %v", partial, err)
+                    }
+
+                    // []byte arrives as a base64 string and a map with integer keys is not a string-keyed
+                    // map, so both keep the JSON round trip.
+                    data, err := decodeWire[[]byte](t, c, `"aGk="`)
+                    if err != nil || string(data) != "hi" {
+                        t.Errorf("bytes: got %q, %v", data, err)
+                    }
+                    byNumber, err := decodeWire[map[int]string](t, c, `{"1":"a"}`)
+                    if err != nil || !reflect.DeepEqual(byNumber, map[int]string{1: "a"}) {
+                        t.Errorf("map with integer keys: got %v, %v", byNumber, err)
+                    }
+
+                    if _, err := decodeWire[[]string](t, c, `"oops"`); err == nil {
+                        t.Error("a string decoded into a list without an error")
+                    }
+                    if _, err := decodeWire[map[string]string](t, c, `["a"]`); err == nil {
+                        t.Error("a list decoded into a map without an error")
+                    }
+                }
+
+                func TestDecodeListOfHandlesDoesNotRoundTripThroughJSON(t *testing.T) {
+                    c := newDecodeTestClient()
+                    ids := make([]string, 100)
+                    for i := range ids {
+                        ids[i] = strconv.Itoa(i)
+                    }
+                    var raw any
+                    if err := json.Unmarshal([]byte(decodeTestHandles(ids...)), &raw); err != nil {
+                        t.Fatal(err)
+                    }
+                    wrapped, err := wrapIfHandle(raw, c)
+                    if err != nil {
+                        t.Fatal(err)
+                    }
+
+                    allocs := testing.AllocsPerRun(10, func() {
+                        if _, err := decodeAs[[]decodeTestResource](wrapped); err != nil {
+                            t.Error(err)
+                        }
+                    })
+                    // Wrappers are assigned as they are, so the result slice is the only allocation that
+                    // grows with the list. Re-encoding each element would take hundreds.
+                    if allocs > 10 {
+                        t.Errorf("decoding 100 handles allocated %v times, want a handful", allocs)
+                    }
+                }
+                """, timeout.Token);
+
             using var process = Process.Start(new ProcessStartInfo("go")
             {
                 WorkingDirectory = directory.FullName,
@@ -554,7 +882,7 @@ public class AtsGoCodeGeneratorTests
             try
             {
                 await process.WaitForExitAsync(timeout.Token);
-                Assert.True(process.ExitCode == 0, $"Go transport hardening test failed:{Environment.NewLine}{await stdout}{await stderr}");
+                Assert.True(process.ExitCode == 0, $"Go runtime hardening test failed:{Environment.NewLine}{await stdout}{await stderr}");
             }
             finally
             {
