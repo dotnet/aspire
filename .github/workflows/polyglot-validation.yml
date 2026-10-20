@@ -248,7 +248,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: ${{ fromJson(github.event_name == 'pull_request' && '[24]' || '[22,24]') }}
+        node-version: [22, 24]
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -298,9 +298,19 @@ jobs:
         run: |
           docker run --rm \
             -e ASPIRE_CLI_CHANNEL="${POLYGLOT_ASPIRE_CLI_CHANNEL}" \
+            -e NUXT_DIAGNOSTICS_DIR="/workspace/artifacts/nuxt-validation/node-${{ matrix.node-version }}" \
             -v "${{ github.workspace }}:/workspace" \
             -v /var/run/docker.sock:/var/run/docker.sock \
             polyglot-typescript-node-${{ matrix.node-version }}
+
+      - name: Upload Nuxt validation diagnostics
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: nuxt-validation-node-${{ matrix.node-version }}
+          path: ${{ github.workspace }}/artifacts/nuxt-validation/node-${{ matrix.node-version }}
+          if-no-files-found: ignore
+          retention-days: 7
 
   results:
     if: ${{ always() && github.repository == 'microsoft/aspire' }}

@@ -8,26 +8,105 @@ APPHOST="$WORK_ROOT/playground/NuxtApp/apphost.mts"
 START_ATTEMPTED=false
 API_IMAGE="$TEST_NAME-api"
 WEB_IMAGE="$TEST_NAME-web"
+DIAGNOSTICS_DIR="${NUXT_DIAGNOSTICS_DIR:-}"
+DETACHED_LOG_BASELINE=""
+
+collect_diagnostics() {
+    if [ -z "$DIAGNOSTICS_DIR" ]; then
+        return
+    fi
+
+    mkdir -p "$DIAGNOSTICS_DIR"
+
+    # The validation container installs Aspire under $HOME/.aspire. Read the child
+    # log directly so startup failures do not require a working backchannel.
+    if [ -n "$DETACHED_LOG_BASELINE" ]; then
+        for log in "$HOME/.aspire/logs"/cli_*_detach-child_*.log; do
+            [ -f "$log" ] || continue
+            if ! grep -Fxq -- "$log" "$DETACHED_LOG_BASELINE"; then
+                mkdir -p "$DIAGNOSTICS_DIR/apphost-logs"
+                sed -E 's#(/login\?t=)[^[:space:]"]+#\1<redacted>#g' "$log" \
+                    > "$DIAGNOSTICS_DIR/apphost-logs/$(basename "$log")"
+            fi
+        done
+    fi
+
+    {
+        printf 'node: '
+        node --version
+        printf 'npm: '
+        npm --version
+        printf 'aspire: '
+        aspire --version
+    } > "$DIAGNOSTICS_DIR/versions.txt" 2>&1 || true
+
+    for directory in "$WORK_ROOT/playground/NuxtApp" "$WORK_ROOT/playground/NuxtApp/api" "$WORK_ROOT/playground/NuxtApp/web"; do
+        if [ -f "$directory/package.json" ]; then
+            package_name="$(basename "$directory")"
+            cp "$directory/package.json" "$DIAGNOSTICS_DIR/$package_name-package.json"
+            [ ! -f "$directory/package-lock.json" ] || cp "$directory/package-lock.json" "$DIAGNOSTICS_DIR/$package_name-package-lock.json"
+            (cd "$directory" && npm ls --all --json) > "$DIAGNOSTICS_DIR/$package_name-dependencies.json" 2>&1 || true
+        fi
+    done
+
+    if [ -d "$WORK_ROOT/publish" ]; then
+        cp -R "$WORK_ROOT/publish" "$DIAGNOSTICS_DIR/publish"
+    fi
+
+    if [ "$START_ATTEMPTED" = true ]; then
+        resource_snapshot="$DIAGNOSTICS_DIR/resource-snapshot.json"
+        resource_snapshot_full="$WORK_ROOT/resource-snapshot.full.json"
+        if aspire describe --apphost "$APPHOST" --format Json --nologo > "$resource_snapshot_full" 2> "$DIAGNOSTICS_DIR/describe-error.txt"; then
+            # Environment, properties, commands, and dashboard URLs can carry credentials. Keep only
+            # lifecycle and health fields needed to explain why the fixture failed to start.
+            jq '{ resources: [.resources[] | {
+                name,
+                displayName,
+                resourceType,
+                state,
+                exitCode,
+                healthStatus,
+                source
+            }] }' "$resource_snapshot_full" > "$resource_snapshot"
+            rm "$DIAGNOSTICS_DIR/describe-error.txt"
+        fi
+
+        for resource in api web api-installer web-installer; do
+            aspire logs "$resource" --apphost "$APPHOST" --tail 500 --timestamps --nologo 2>&1 \
+                | sed -E 's#(/login\?t=)[^[:space:]"]+#\1<redacted>#g' \
+                > "$DIAGNOSTICS_DIR/$resource.log" || true
+        done
+    fi
+
+    for name in "$TEST_NAME-web" "$TEST_NAME-api"; do
+        if docker container inspect "$name" > /dev/null 2>&1; then
+            docker logs "$name" > "$DIAGNOSTICS_DIR/$name.log" 2>&1 || true
+        fi
+    done
+}
 
 cleanup() {
     local result=$?
+    if [ "$result" -ne 0 ]; then
+        collect_diagnostics || true
+    fi
     if [ "$START_ATTEMPTED" = true ]; then
-        aspire stop --apphost "$APPHOST" --non-interactive --nologo || result=1
+        aspire stop --apphost "$APPHOST" --non-interactive --nologo || { [ "$result" -ne 0 ] || result=1; }
     fi
     for name in "$TEST_NAME-web" "$TEST_NAME-api"; do
         if docker container inspect "$name" > /dev/null 2>&1; then
             if [ "$result" -ne 0 ]; then
-                docker logs "$name" || result=1
+                docker logs "$name" || { [ "$result" -ne 0 ] || result=1; }
             fi
-            docker rm --force "$name" > /dev/null || result=1
+            docker rm --force "$name" > /dev/null || { [ "$result" -ne 0 ] || result=1; }
         fi
     done
     if docker network inspect "$TEST_NAME" > /dev/null 2>&1; then
-        docker network rm "$TEST_NAME" > /dev/null || result=1
+        docker network rm "$TEST_NAME" > /dev/null || { [ "$result" -ne 0 ] || result=1; }
     fi
     for image in "$WEB_IMAGE" "$API_IMAGE"; do
         if docker image inspect "$image" > /dev/null 2>&1; then
-            docker image rm "$image" > /dev/null || result=1
+            docker image rm "$image" > /dev/null || { [ "$result" -ne 0 ] || result=1; }
         fi
     done
     rm -rf -- "$WORK_ROOT"
@@ -62,6 +141,13 @@ PACKAGE_FILE="$(node -e 'process.stdout.write(JSON.parse(require("node:fs").read
 )
 
 echo "=== Run the installed preview package and verify real Nuxt SSR ==="
+# Exclude child logs from earlier validation fixtures, including when this
+# invocation fails before it can report its log path.
+DETACHED_LOG_BASELINE="$WORK_ROOT/detached-logs.before"
+: > "$DETACHED_LOG_BASELINE"
+for log in "$HOME/.aspire/logs"/cli_*_detach-child_*.log; do
+    [ ! -f "$log" ] || printf '%s\n' "$log" >> "$DETACHED_LOG_BASELINE"
+done
 START_ATTEMPTED=true
 aspire start --apphost "$APPHOST" --isolated --non-interactive --nologo
 node "$WORK_ROOT/playground/NuxtApp/verify.mjs" apphost "$APPHOST"
@@ -70,8 +156,8 @@ START_ATTEMPTED=false
 
 echo "=== Publish and run the generated production images ==="
 aspire publish --apphost "$APPHOST" --output-path "$WORK_ROOT/publish" --non-interactive --nologo
-docker build --quiet --tag "$API_IMAGE" --file "$WORK_ROOT/publish/api.Dockerfile" "$WORK_ROOT/playground/NuxtApp/api"
-docker build --quiet --tag "$WEB_IMAGE" --file "$WORK_ROOT/publish/web.Dockerfile" "$WORK_ROOT/playground/NuxtApp/web"
+docker build --tag "$API_IMAGE" --file "$WORK_ROOT/publish/api.Dockerfile" "$WORK_ROOT/playground/NuxtApp/api"
+docker build --tag "$WEB_IMAGE" --file "$WORK_ROOT/publish/web.Dockerfile" "$WORK_ROOT/playground/NuxtApp/web"
 docker network create "$TEST_NAME" > /dev/null
 docker run --detach --name "$TEST_NAME-api" --network "$TEST_NAME" --network-alias api \
     --env PORT=8000 --env HOST=0.0.0.0 "$API_IMAGE" > /dev/null
