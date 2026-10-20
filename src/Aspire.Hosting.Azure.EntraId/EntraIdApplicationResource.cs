@@ -142,6 +142,61 @@ public class EntraIdApplicationResource : AzureProvisioningResource
         {
             _ = credential.SourceType;
         }
+
+        if (ClientCredentials.OfType<EntraIdFederatedIdentityCredential>().Any(c => c.IsResourceBacked) &&
+            EntraIdFederation.GetTokenExchangeAudience(Instance) is null)
+        {
+            throw new InvalidOperationException(
+                $"The instance '{Instance}' has no known managed identity token exchange audience. " +
+                "Managed identity federation is supported for the Azure public, US Government and China clouds.");
+        }
+    }
+
+    // Consumers are recorded as they reference the registration so that each one's own identity can be trusted.
+    internal List<IResource> Consumers { get; } = [];
+
+    internal bool TargetValidationSubscribed { get; set; }
+
+    internal void ValidateComputeTargets()
+    {
+        foreach (var target in ClientCredentials.OfType<EntraIdFederatedIdentityCredential>().Select(c => c.ComputeTarget).OfType<IResource>())
+        {
+            if (!Consumers.Contains(target))
+            {
+                throw new InvalidOperationException(
+                    $"Resource '{target.Name}' is trusted by Entra ID application '{Name}' but does not reference it, so it would not receive the configuration. " +
+                    $"Call WithReference on '{target.Name}' with the Entra ID application.");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets the distinct user-assigned identities that the registration trusts.
+    /// </summary>
+    internal IReadOnlyList<AzureUserAssignedIdentityResource> GetFederatedIdentities()
+    {
+        var identities = new List<AzureUserAssignedIdentityResource>();
+        foreach (var credential in ClientCredentials.OfType<EntraIdFederatedIdentityCredential>())
+        {
+            if (credential.ManagedIdentity is { } explicitIdentity)
+            {
+                identities.Add(explicitIdentity);
+            }
+            else if (credential.ComputeTarget is { } target)
+            {
+                // Resolved after the Azure resource preparer has attached the target's identity. It is absent when running locally.
+                if (EntraIdFederatedIdentityCredential.GetConsumerIdentity(target) is { } targetIdentity)
+                {
+                    identities.Add(targetIdentity);
+                }
+            }
+            else if (credential.UsesConsumerIdentity)
+            {
+                identities.AddRange(Consumers.Select(EntraIdFederatedIdentityCredential.GetConsumerIdentity).OfType<AzureUserAssignedIdentityResource>());
+            }
+        }
+
+        return [.. identities.Distinct()];
     }
 
     private static void ConfigureApplicationInfrastructure(AzureResourceInfrastructure infrastructure)
@@ -187,6 +242,24 @@ public class EntraIdApplicationResource : AzureProvisioningResource
             servicePrincipal.Owners = CreateOwnerList(infrastructure, resource.ServicePrincipalOwners, "servicePrincipalOwner");
         }
         infrastructure.Add(servicePrincipal);
+
+        foreach (var identity in resource.GetFederatedIdentities())
+        {
+            // The subject is the identity's object (principal) ID; the client ID is what consumers pass to Microsoft.Identity.Web.
+            var identifier = Infrastructure.NormalizeBicepIdentifier(identity.Name);
+            var principalId = identity.PrincipalId.AsProvisioningParameter(infrastructure, $"{identifier}_principalId");
+            var credentialName = $"{resource.Name}-{identity.Name}";
+            // The Graph extension names a child as '{applicationUniqueName}/{credentialName}'. Referencing the
+            // application's property, rather than reusing its name expression, makes the child depend on the application.
+            BicepValue<string> applicationUniqueName = application.UniqueName.ToBicepExpression();
+            infrastructure.Add(new FederatedIdentityCredential($"federatedCredential_{identifier}")
+            {
+                Name = BicepFunction.Interpolate($"{applicationUniqueName}/{credentialName}").Compile(),
+                Issuer = BicepFunction.Interpolate($"{resource.Instance.TrimEnd('/')}/{BicepFunction.GetTenant().TenantId}/v2.0").Compile(),
+                Subject = principalId,
+                Audiences = [EntraIdFederation.GetTokenExchangeAudience(resource.Instance)!]
+            });
+        }
 
         infrastructure.Add(new ProvisioningOutput(EntraIdBicepConstants.ClientIdOutputName, typeof(string)) { Value = application.AppId.ToBicepExpression() });
         // Compile the scope-function property directly; ToBicepExpression would reference an undeclared "tenant" resource.
@@ -403,6 +476,17 @@ public abstract class EntraIdClientCredential
     {
         envVars[$"{prefix}{separator}SourceType"] = SourceType;
     }
+
+    /// <summary>
+    /// Determines whether this credential applies to the consumer in the current execution context.
+    /// </summary>
+    internal virtual bool AppliesTo(IResource consumer, DistributedApplicationExecutionContext executionContext) => true;
+
+    /// <summary>
+    /// Emits environment variables for this credential, which can depend on the application and the consuming resource.
+    /// </summary>
+    internal virtual void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator, EntraIdApplicationResource application, IResource consumer)
+        => EmitEnvironmentVariables(envVars, prefix, separator);
 }
 
 /// <summary>
@@ -462,15 +546,16 @@ public sealed class EntraIdFederatedIdentityCredential : EntraIdClientCredential
     /// <remarks>
     /// Use the identity's client ID, not the object (principal) ID used as the federated credential's subject.
     /// Microsoft Entra's managed-identity federation scenario supports user-assigned identities only.
+    /// When neither this value nor <see cref="ManagedIdentity"/> is set, each consuming resource uses its own
+    /// user-assigned managed identity.
     /// </remarks>
     /// <exception cref="ArgumentException">Thrown when the value is empty or is not a GUID.</exception>
-    public required string ManagedIdentityClientId
+    public string? ManagedIdentityClientId
     {
         get;
         set
         {
-            ArgumentNullException.ThrowIfNull(value);
-            if (EntraIdValidation.ValidateManagedIdentityClientId(value) is { } error)
+            if (value is not null && EntraIdValidation.ValidateManagedIdentityClientId(value) is { } error)
             {
                 throw new ArgumentException(error, nameof(ManagedIdentityClientId));
             }
@@ -480,10 +565,20 @@ public sealed class EntraIdFederatedIdentityCredential : EntraIdClientCredential
     }
 
     /// <summary>
+    /// Gets or sets the user-assigned managed identity resource that supplies the signed assertion.
+    /// </summary>
+    /// <remarks>
+    /// The identity's principal ID is the federated credential's subject, and its client ID is the
+    /// <c>ManagedIdentityClientId</c> that consumers receive. Consuming resources must have this identity attached.
+    /// </remarks>
+    public AzureUserAssignedIdentityResource? ManagedIdentity { get; set; }
+
+    /// <summary>
     /// Gets or sets the token exchange URL for federated identity credential scenarios.
     /// </summary>
     /// <remarks>
-    /// If not specified, defaults to <c>api://AzureADTokenExchange</c>.
+    /// If not specified, defaults to <c>api://AzureADTokenExchange</c>, or the audience of the application's cloud
+    /// when the credential is backed by a managed identity resource.
     /// </remarks>
     public string? TokenExchangeUrl { get; set; }
 
@@ -495,16 +590,93 @@ public sealed class EntraIdFederatedIdentityCredential : EntraIdClientCredential
     /// </remarks>
     public string? TokenExchangeAuthority { get; set; }
 
+    // When set, the credential trusts and applies to only this compute resource, using the identity it has when published.
+    internal IResource? ComputeTarget { get; set; }
+
+    // No client ID, identity resource or compute resource was supplied, so each consumer's own identity is used.
+    internal bool UsesConsumerIdentity => ManagedIdentityClientId is null && ManagedIdentity is null && ComputeTarget is null;
+
+    // The credential trusts an Aspire-modeled identity, so Aspire can provision the trust.
+    internal bool IsResourceBacked => ManagedIdentity is not null || ComputeTarget is not null || UsesConsumerIdentity;
+
+    internal static AzureUserAssignedIdentityResource? GetConsumerIdentity(IResource consumer)
+        => consumer.TryGetLastAnnotation<AppIdentityAnnotation>(out var annotation)
+            ? annotation.IdentityResource as AzureUserAssignedIdentityResource
+            : null;
+
+    /// <inheritdoc />
+    internal override bool AppliesTo(IResource consumer, DistributedApplicationExecutionContext executionContext)
+    {
+        if (ComputeTarget is not null && !ReferenceEquals(ComputeTarget, consumer))
+        {
+            return false;
+        }
+
+        // Managed identities exist only in Azure. Locally the credential has nothing to assert, so a
+        // resource-backed credential is skipped and another credential, such as a client secret, is used.
+        return !IsResourceBacked || !executionContext.IsRunMode;
+    }
+
     /// <inheritdoc />
     internal override void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator)
     {
         base.EmitEnvironmentVariables(envVars, prefix, separator);
+
+        if (ManagedIdentityClientId is null)
+        {
+            throw new InvalidOperationException("A managed identity client ID is required.");
+        }
 
         envVars[$"{prefix}{separator}ManagedIdentityClientId"] = ManagedIdentityClientId;
 
         if (TokenExchangeUrl is not null)
         {
             envVars[$"{prefix}{separator}TokenExchangeUrl"] = TokenExchangeUrl;
+        }
+
+        if (TokenExchangeAuthority is not null)
+        {
+            envVars[$"{prefix}{separator}TokenExchangeAuthority"] = TokenExchangeAuthority;
+        }
+    }
+
+    /// <inheritdoc />
+    internal override void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator, EntraIdApplicationResource application, IResource consumer)
+    {
+        if (!IsResourceBacked)
+        {
+            EmitEnvironmentVariables(envVars, prefix, separator);
+            return;
+        }
+
+        var consumerIdentity = GetConsumerIdentity(consumer);
+        var identity = ManagedIdentity ?? consumerIdentity
+            ?? throw new InvalidOperationException(
+                $"Resource '{consumer.Name}' references Entra ID application '{application.Name}', which uses a managed identity credential, " +
+                "but the resource has no user-assigned managed identity. Use a compute environment that supports managed identities, such as AddAzureContainerAppEnvironment, or call WithAzureUserAssignedIdentity.");
+
+        if (ManagedIdentity is not null && !ReferenceEquals(consumerIdentity, ManagedIdentity))
+        {
+            throw new InvalidOperationException(
+                $"Resource '{consumer.Name}' references Entra ID application '{application.Name}', which trusts managed identity '{ManagedIdentity.Name}', " +
+                $"but the resource does not use that identity. Call WithAzureUserAssignedIdentity on '{consumer.Name}' with that identity.");
+        }
+
+        envVars[$"{prefix}{separator}SourceType"] = SourceType;
+        envVars[$"{prefix}{separator}ManagedIdentityClientId"] = identity.ClientId;
+
+        // Sovereign clouds use their own token exchange audience, which Microsoft.Identity.Web reads from TokenExchangeUrl.
+        var tokenExchangeUrl = TokenExchangeUrl;
+        if (tokenExchangeUrl is null &&
+            EntraIdFederation.GetTokenExchangeAudience(application.Instance) is { } audience &&
+            audience != EntraIdFederation.DefaultTokenExchangeAudience)
+        {
+            tokenExchangeUrl = audience;
+        }
+
+        if (tokenExchangeUrl is not null)
+        {
+            envVars[$"{prefix}{separator}TokenExchangeUrl"] = tokenExchangeUrl;
         }
 
         if (TokenExchangeAuthority is not null)

@@ -29,6 +29,9 @@ internal static class EntraIdBicepConstants
     /// <summary>The Microsoft Graph service principal resource type.</summary>
     internal const string ServicePrincipalResourceType = "Microsoft.Graph/servicePrincipals";
 
+    /// <summary>The Microsoft Graph federated identity credential resource type.</summary>
+    internal const string FederatedIdentityCredentialResourceType = "Microsoft.Graph/applications/federatedIdentityCredentials";
+
     /// <summary>The Microsoft Graph resource API version.</summary>
     internal const string GraphApiVersion = "v1.0";
 }

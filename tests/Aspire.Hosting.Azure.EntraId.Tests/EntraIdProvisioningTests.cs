@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREAZURE001 // Azure environment resources are experimental.
-#pragma warning disable ASPIREAZURE003 // Tenant-scoped resource annotations are experimental.
+#pragma warning disable ASPIREAZURE003 // Tenant-scoped resource and managed identity annotations are experimental.
 #pragma warning disable ASPIREPIPELINES001 // Verifies provisioning annotations on existing resources.
 #pragma warning disable ASPIREPIPELINES003 // Exercises the deployment pipeline for existing registrations.
 
@@ -82,6 +82,167 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         var entra = builder.AddEntraIdApplication("entra-web");
 
         Assert.DoesNotContain("owners", entra.Resource.GetBicepTemplateString());
+    }
+
+    [Fact]
+    public async Task WithFederatedManagedIdentityCredential_Identity_GeneratesFederatedCredential()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var identity = builder.AddAzureUserAssignedIdentity("web-identity");
+        var entra = builder.AddEntraIdApplication("entra-web")
+            .PublishWithFederatedManagedIdentityCredential(identity);
+
+        await Verify(entra.Resource.GetBicepTemplateString(), "bicep");
+    }
+
+    [Fact]
+    public async Task WithFederatedManagedIdentityCredential_ConsumerIdentity_GeneratesCredentialPerConsumer()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var webIdentity = builder.AddAzureUserAssignedIdentity("web-identity");
+        var apiIdentity = builder.AddAzureUserAssignedIdentity("api-identity");
+        var entra = builder.AddEntraIdApplication("entra-web")
+            .PublishWithFederatedManagedIdentityCredential();
+        builder.AddResource(new ProjectResource("web")).WithAzureUserAssignedIdentity(webIdentity).WithReference(entra);
+        builder.AddResource(new ProjectResource("api")).WithAzureUserAssignedIdentity(apiIdentity).WithReference(entra);
+
+        await Verify(entra.Resource.GetBicepTemplateString(), "bicep");
+    }
+
+    [Fact]
+    public async Task WithFederatedManagedIdentityCredential_ConsumerIdentity_EmitsClientIdOutputInPublishMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var identity = builder.AddAzureUserAssignedIdentity("web-identity");
+        var entra = builder.AddEntraIdApplication("entra-web")
+            .PublishWithFederatedManagedIdentityCredential();
+        var web = builder.AddResource(new ProjectResource("web")).WithAzureUserAssignedIdentity(identity).WithReference(entra);
+
+        var env = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+            web.Resource, DistributedApplicationOperation.Publish, TestServiceProvider.Instance);
+
+        Assert.Equal("{web-identity.outputs.clientId}", env["AzureAd__ClientCredentials__0__ManagedIdentityClientId"]);
+        Assert.Equal("SignedAssertionFromManagedIdentity", env["AzureAd__ClientCredentials__0__SourceType"]);
+    }
+
+    [Fact]
+    public async Task WithFederatedManagedIdentityCredential_Identity_RequiresConsumerToUseIdentity()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var identity = builder.AddAzureUserAssignedIdentity("web-identity");
+        var entra = builder.AddEntraIdApplication("entra-web")
+            .PublishWithFederatedManagedIdentityCredential(identity);
+        var web = builder.AddResource(new ProjectResource("web")).WithReference(entra);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+            web.Resource, DistributedApplicationOperation.Publish, TestServiceProvider.Instance));
+        Assert.Contains("WithAzureUserAssignedIdentity", exception.Message);
+    }
+
+    [Fact]
+    public void PublishWithFederatedManagedIdentityCredential_RequestsManagedIdentityForConsumers()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var entra = builder.AddEntraIdApplication("entra-web");
+        var early = builder.AddResource(new ProjectResource("early")).WithReference(entra);
+        entra.PublishWithFederatedManagedIdentityCredential();
+        var late = builder.AddResource(new ProjectResource("late")).WithReference(entra);
+        var unrelated = builder.AddResource(new ProjectResource("unrelated"));
+
+        Assert.True(early.Resource.HasAnnotationOfType<ManagedIdentityRequiredAnnotation>());
+        Assert.True(late.Resource.HasAnnotationOfType<ManagedIdentityRequiredAnnotation>());
+        Assert.False(unrelated.Resource.HasAnnotationOfType<ManagedIdentityRequiredAnnotation>());
+    }
+
+    [Fact]
+    public async Task PublishWithFederatedManagedIdentityCredential_ComputeResource_TrustsOnlyThatResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var webIdentity = builder.AddAzureUserAssignedIdentity("web-identity");
+        var apiIdentity = builder.AddAzureUserAssignedIdentity("api-identity");
+        var entra = builder.AddEntraIdApplication("entra-web");
+        var web = builder.AddResource(new ProjectResource("web")).WithAzureUserAssignedIdentity(webIdentity).WithReference(entra);
+        var api = builder.AddResource(new ProjectResource("api")).WithAzureUserAssignedIdentity(apiIdentity).WithReference(entra);
+        entra.PublishWithFederatedManagedIdentityCredential(web);
+
+        Assert.True(web.Resource.HasAnnotationOfType<ManagedIdentityRequiredAnnotation>());
+        Assert.False(api.Resource.HasAnnotationOfType<ManagedIdentityRequiredAnnotation>());
+
+        var webEnv = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+            web.Resource, DistributedApplicationOperation.Publish, TestServiceProvider.Instance);
+        var apiEnv = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+            api.Resource, DistributedApplicationOperation.Publish, TestServiceProvider.Instance);
+
+        Assert.Equal("{web-identity.outputs.clientId}", webEnv["AzureAd__ClientCredentials__0__ManagedIdentityClientId"]);
+        Assert.DoesNotContain(apiEnv.Keys, key => key.Contains("ClientCredentials", StringComparison.Ordinal));
+
+        var bicep = entra.Resource.GetBicepTemplateString();
+        Assert.Contains("param web_identity_principalId string", bicep);
+        Assert.DoesNotContain("api_identity", bicep);
+    }
+
+    [Fact]
+    public void ValidateComputeTargets_RejectsResourceThatDoesNotReferenceApplication()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var entra = builder.AddEntraIdApplication("entra-web");
+        var web = builder.AddResource(new ProjectResource("web"));
+        entra.PublishWithFederatedManagedIdentityCredential(web);
+
+        var exception = Assert.Throws<InvalidOperationException>(entra.Resource.ValidateComputeTargets);
+        Assert.Contains("WithReference", exception.Message);
+
+        web.WithReference(entra);
+        entra.Resource.ValidateComputeTargets();
+    }
+
+    [Fact]
+    public async Task WithFederatedManagedIdentityCredential_Identity_IsSkippedInRunMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var identity = builder.AddAzureUserAssignedIdentity("web-identity");
+        var entra = builder.AddExistingEntraApplication("entra-web", tenantId: TenantId, clientId: ClientId)
+            .PublishWithFederatedManagedIdentityCredential(identity);
+        var web = builder.AddResource(new ProjectResource("web")).WithReference(entra);
+
+        var env = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+            web.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+
+        Assert.DoesNotContain(env.Keys, key => key.Contains("ClientCredentials", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("https://login.microsoftonline.com/", "api://AzureADTokenExchange")]
+    [InlineData("https://login.microsoftonline.us/", "api://AzureADTokenExchangeUSGov")]
+    [InlineData("https://login.partner.microsoftonline.cn/", "api://AzureADTokenExchangeChina")]
+    public void GetTokenExchangeAudience_MapsSupportedClouds(string instance, string expected)
+    {
+        Assert.Equal(expected, EntraIdFederation.GetTokenExchangeAudience(instance));
+    }
+
+    [Fact]
+    public void WithFederatedManagedIdentityCredential_Identity_RejectsUnsupportedCloud()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var identity = builder.AddAzureUserAssignedIdentity("web-identity");
+        var entra = builder.AddEntraIdApplication("entra-web")
+            .PublishWithFederatedManagedIdentityCredential(identity);
+        entra.Resource.Instance = "https://login.contoso.example/";
+
+        var exception = Assert.Throws<InvalidOperationException>(entra.Resource.GetBicepTemplateString);
+        Assert.Contains("no known managed identity token exchange audience", exception.Message);
+    }
+
+    [Fact]
+    public void WithFederatedManagedIdentityCredential_ExistingRegistration_DoesNotProvision()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var identity = builder.AddAzureUserAssignedIdentity("web-identity");
+        var entra = builder.AddExistingEntraApplication("existing", tenantId: TenantId, clientId: ClientId)
+            .PublishWithFederatedManagedIdentityCredential(identity);
+
+        Assert.True(entra.Resource.IsExistingApplication);
+        Assert.False(entra.Resource.TryGetAnnotationsOfType<PipelineStepAnnotation>(out _));
     }
 
     [Fact]
