@@ -754,8 +754,8 @@ For more information about using AI agents with the dashboard, including setting
         <note />
       </trans-unit>
       <trans-unit id="TelemetryHelpButtonText">
-        <source>here</source>
-        <target state="new">here</target>
+        <source>Add telemetry</source>
+        <target state="new">Add telemetry</target>
         <note>Inline link following TelemetryHelpMoreInformation. Opens the telemetry setup dialog.</note>
       </trans-unit>
       <trans-unit id="TelemetryHelpCertificateDescription">
@@ -811,8 +811,8 @@ Configure your app to export logs, traces, and metrics using [OTLP]({0}).</targe
         <note />
       </trans-unit>
       <trans-unit id="TelemetryHelpMoreInformation">
-        <source>For setup instructions, click</source>
-        <target state="new">For setup instructions, click</target>
+        <source>For setup instructions, see</source>
+        <target state="new">For setup instructions, see</target>
         <note>Followed by the TelemetryHelpButtonText inline link and a period.</note>
       </trans-unit>
       <trans-unit id="TelemetryHelpNoEndpointsDescription">
