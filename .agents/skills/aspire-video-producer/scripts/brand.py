@@ -39,6 +39,12 @@ TEXT = (246, 243, 255)        # #F6F3FF, dark text
 MUTED = (205, 199, 232)       # #CDC7E8, dark text muted
 DIM = (107, 105, 134)         # #6B6986, ink subtle
 
+def concat_entry(path):
+    """A "file" line of an ffmpeg concat list. Quoted by the concat format's rules, so a path with an apostrophe,
+    such as C:/Users/O'Neil, still works ("-safe 0" doesn't escape anything)."""
+    return "file '" + Path(path).as_posix().replace("'", "'\\''") + "'"
+
+
 # Where a recording sits in the frame: 1728 x 972 (90%), centered, under the header.
 VIDEO_W, VIDEO_H = 1728, 972
 VIDEO_X, VIDEO_Y = (W - VIDEO_W) // 2, H - VIDEO_H - 14

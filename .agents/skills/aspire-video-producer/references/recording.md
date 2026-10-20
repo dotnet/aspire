@@ -8,8 +8,10 @@ Record a throwaway sample app, never an app with real data or real cloud resourc
   `aspire new aspire-starter --name VideoDemo --output <workspace>/app --use-redis-cache --test-framework None
   --localhost-tld false --suppress-agent-init --skill-locations none --non-interactive`. Its resources are
   `apiservice`, `webfrontend` and, with `--use-redis-cache`, `cache`. Add the integrations the subject needs to its
-  AppHost. The project resources keep the ports of their own `launchSettings.json` between runs (the web frontend of
-  the starter app is on `https://localhost:7027`).
+  AppHost. The project resources keep the ports of their own `launchSettings.json` between runs, but the template
+  picks the web frontend's HTTPS port at random (7000 to 7300): pin it, so the commands below reach it. In
+  `VideoDemo.Web/Properties/launchSettings.json`, set the `https` profile's `applicationUrl` to
+  `https://localhost:7027;http://localhost:5027`.
 - Give the dashboard a fixed port, so `VIDEO_BASE_URL` stays the same between runs: in the AppHost's
   `Properties/launchSettings.json`, set the `https` profile's `applicationUrl` to
   `https://localhost:17010;http://localhost:15010`.

@@ -7,7 +7,8 @@ description: Produces narrated Aspire videos (feature walkthroughs, dashboard to
 
 Every Aspire video looks the same: the same branding, layout, captions, zooms, and encodings. The user picks the
 narrator, the renditions, and whether sections get chapter cards (step 0).
-This skill holds that specification and the scripts that apply it. **Don't change the specification for a single
+This skill holds that specification and the scripts that apply it. It's adapted from the Orchard Core video producer
+skill (BSD 3-Clause License, see "Orchard Core" in the repository's `THIRD-PARTY-NOTICES.TXT`). **Don't change the specification for a single
 video.** If it must change, change it here, in `scripts/brand.py`, `scripts/narrate.py` and `scripts/assemble.py`,
 and in `references/specs.md`, so every later video follows.
 

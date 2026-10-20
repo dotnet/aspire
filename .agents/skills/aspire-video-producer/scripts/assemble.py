@@ -199,8 +199,8 @@ class Assembler:
         concat = self.build / f"{clip_id}.frames.txt"
         with open(concat, "w", encoding="utf-8") as list_file:
             for path, length in entries:
-                list_file.write(f"file '{Path(path).as_posix()}'\nduration {length:.4f}\n")
-            list_file.write(f"file '{Path(entries[-1][0]).as_posix()}'\n")
+                list_file.write(f"{brand.concat_entry(path)}\nduration {length:.4f}\n")
+            list_file.write(f"{brand.concat_entry(entries[-1][0])}\n")
 
         frame_png = self.build / f"{clip_id}.frame.png"
         brand.frame(chapter_title, label).save(frame_png)
@@ -280,7 +280,7 @@ class Assembler:
                     clock += seconds
 
         concat = self.build / "segments.txt"
-        concat.write_text("".join(f"file '{path.as_posix()}'\n" for path in segments), encoding="utf-8")
+        concat.write_text("".join(f"{brand.concat_entry(path)}\n" for path in segments), encoding="utf-8")
         master = self.build / "master.mp4"
         run(["-f", "concat", "-safe", "0", "-i", str(concat), "-c", "copy", str(master)])
 

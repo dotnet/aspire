@@ -69,7 +69,7 @@ async def main():
         directory = Path(temp)
         parts = [await option(directory, index, line, spelling, caption, voice, rate) for index, spelling in enumerate(spellings, 1)]
         concat = directory / "list.txt"
-        concat.write_text("".join(f"file '{part.as_posix()}'\n" for part in parts), encoding="utf-8")
+        concat.write_text("".join(f"{brand.concat_entry(part)}\n" for part in parts), encoding="utf-8")
         subprocess.run([FFMPEG, "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(concat), "-c", "copy", str(output)], check=True)
     print(output)
 
