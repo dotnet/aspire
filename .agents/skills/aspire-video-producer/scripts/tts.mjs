@@ -29,6 +29,8 @@ if (process.argv[2] === "--voices") {
 const [voice, rate, output, ...flags] = process.argv.slice(2);
 const words = flags.includes("--words");
 
+// Decodes stdin as UTF-8 across chunks, so a character split between two chunks stays whole.
+process.stdin.setEncoding("utf8");
 let text = "";
 for await (const chunk of process.stdin) {
   text += chunk;
