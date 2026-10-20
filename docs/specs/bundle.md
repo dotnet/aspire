@@ -331,7 +331,7 @@ dotnet msbuild eng/Bundle.proj /t:Build /p:TargetRid=osx-arm64 /p:Configuration=
 The build sequence is:
 
 1. Publish `Aspire.Managed` as a self-contained single-file executable.
-2. Publish `Aspire.Dashboard` and `Aspire.TerminalHost` with Native AOT for the same RID and configuration.
+2. Publish `Aspire.TerminalHost`, then `Aspire.Dashboard`, with Native AOT for the same RID and configuration.
 3. Publish the native tray payload on macOS or Windows, before signing bundle components.
 4. Restore the matching DCP package, using the target OS/architecture rather than the build machine's defaults.
 5. Run `CreateLayout` to assemble the payload and create its `.tar.gz` archive.
@@ -340,6 +340,10 @@ The build sequence is:
 The assembled directories are under `artifacts/bundle/{rid}/`; the payload archive is `artifacts/bundle/aspire-{version}-{rid}.tar.gz`. The self-extracting CLI is in the CLI project's publish output, not in the payload directory.
 
 `Configuration` defaults to Debug for local bundle builds. The GitHub Actions native-archive workflow defaults to Release and passes it explicitly; CI bundle creation rejects non-Release configurations so distributed payloads use Native AOT optimizations. `SkipManagedBuild=true` reuses existing Managed, Dashboard, and TerminalHost publishes; `SkipNativeBuild=true` skips the final CLI publish. They do not make missing payload components optional.
+
+Dashboard publishing can reuse prepared output with `SkipDashboardPublish=true`; the executable is checked before layout assembly, and a missing executable reports how to build the RID-specific Dashboard package. `SkipManagedBuild=true` skips publishing and this early check, but CreateLayout still validates the payload.
+
+The bundle build passes its RID- and configuration-specific Dashboard publish directory to CreateLayout, including when publishing is skipped or layout assembly is invoked directly. CreateLayout accepts a publish directory, not an executable path.
 
 ### CreateLayout
 
@@ -356,6 +360,10 @@ dotnet run --project tools/CreateLayout -- \
 ```
 
 `--output`, `--artifacts`, `--rid`, and `--configuration` are required. `--bundle-version`, `--archive`, and `--verbose` are optional. The output directory is cleaned before assembly. There is no `--embed-in-cli`, `--runtime`, or runtime-download option; embedding happens in the subsequent CLI publish.
+
+Use `--dashboard "/path/to/prepared/publish"` to select an exact Dashboard **publish directory**, including one outside conventional artifact paths. Explicit input takes precedence over discoverable output. An empty argument, invalid directory, or missing required asset fails without falling back to discovery.
+
+Only omitting `--dashboard` enables the existing RID-specific `net11.0` discovery, in order: the platform-scoped publish directory, the configuration/RID publish directory, then the configuration/RID native directory. Both explicit and discovered sources must contain the executable, `wwwroot`, a nonempty Blazor script, and a nonempty platform-specific SQLite library. Both exclude `.pdb`, `.dbg`, and `.dSYM` symbols. Managed, TerminalHost, and tray path requirements are unchanged.
 
 For the complete tool contract, see [CreateLayout](../../tools/CreateLayout/README.md). CI packaging additionally uses [dashboardpack](../../eng/dashboardpack/Common.projitems), [clipack](../../eng/clipack/Common.projitems), signing targets, and the native-archive workflows.
 
