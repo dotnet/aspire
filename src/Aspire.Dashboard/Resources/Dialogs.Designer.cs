@@ -1371,7 +1371,7 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to For setup instructions, click.
+        ///   Looks up a localized string similar to For setup instructions, see.
         /// </summary>
         public static string TelemetryHelpMoreInformation {
             get {
@@ -1380,7 +1380,7 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to here.
+        ///   Looks up a localized string similar to Add telemetry.
         /// </summary>
         public static string TelemetryHelpButtonText {
             get {
