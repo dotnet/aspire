@@ -335,9 +335,13 @@ class Assembler:
             publish(master, output, name)
             outputs.append((name, output))
 
-        # A video without narration has no captions.
+        # A video without narration has no captions: remove those of an earlier, narrated build, so they don't
+        # get delivered with the silent video.
         base = self.workspace / self.storyboard["output"]
-        if self.narrated:
+        if not self.narrated:
+            for suffix in (".srt", ".vtt"):
+                Path(f"{base}{suffix}").unlink(missing_ok=True)
+        else:
             with open(f"{base}.srt", "w", encoding="utf-8") as srt:
                 for index, (a, b, text) in enumerate(captions, 1):
                     srt.write(f"{index}\n{timestamp(a)} --> {timestamp(b)}\n{text}\n\n")
