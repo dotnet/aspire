@@ -320,17 +320,29 @@ public static class GoHostingExtensions
 
             rb.WithManifestPublishingCallback(WriteValidatedContainerAsync);
             containerBuilder.WithManifestPublishingCallback(WriteValidatedContainerAsync);
-            containerBuilder.WithAnnotation(new PipelineStepAnnotation(_ => new PipelineStep
+            containerBuilder.WithAnnotation(new PipelineStepAnnotation(_ =>
             {
-                Name = $"validate-go-dockerfile-package-path-{resource.Name}",
-                Description = $"Validates that Go app '{resource.Name}' does not publish an ignored package path with an existing Dockerfile.",
-                RequiredBySteps = [WellKnownPipelineSteps.Build, WellKnownPipelineSteps.Publish],
-                Resource = containerBuilder.Resource,
-                Action = _ =>
+                // A resource excluded from the manifest is never published, so it must not fail the pipeline.
+                if (containerBuilder.Resource.IsExcludedFromPublish())
                 {
-                    ValidateExistingDockerfilePackagePath(resource, containerBuilder.Resource);
-                    return Task.CompletedTask;
+                    return [];
                 }
+
+                return
+                [
+                    new PipelineStep
+                    {
+                        Name = $"validate-go-dockerfile-package-path-{resource.Name}",
+                        Description = $"Validates that Go app '{resource.Name}' does not publish an ignored package path with an existing Dockerfile.",
+                        RequiredBySteps = [WellKnownPipelineSteps.Build, WellKnownPipelineSteps.Publish],
+                        Resource = containerBuilder.Resource,
+                        Action = _ =>
+                        {
+                            ValidateExistingDockerfilePackagePath(resource, containerBuilder.Resource);
+                            return Task.CompletedTask;
+                        }
+                    }
+                ];
             }));
         }
 

@@ -1390,6 +1390,98 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task PublishAsDockerFileWithDockerfileThrowsFromValidationStepWhenEntrypointIsChanged()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: "validate-python-dockerfile-entrypoint-api");
+        builder.Services.AddSingleton<IPipelineActivityReporter, NullPublishingActivityReporter>();
+
+        var sourceDir = CreatePythonAppDirectoryWithDockerfile(workspace);
+        var publishDockerfile = CreateDockerfile(sourceDir, "Dockerfile.prod");
+        builder.AddPythonApp("api", sourceDir, "main.py")
+            .WithEntrypoint(EntrypointType.Module, "mymodule")
+            .PublishAsDockerFile(container => container.WithDockerfile(sourceDir, publishDockerfile));
+
+        using var app = builder.Build();
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreatePipelineContext(app);
+
+        var exception = await Assert.ThrowsAsync<DistributedApplicationException>(() => pipeline.ExecuteAsync(context));
+
+        Assert.Contains("module 'mymodule'", exception.Message);
+        Assert.Contains(publishDockerfile, exception.Message);
+    }
+
+    [Fact]
+    public async Task PublishAsDockerFileWithDockerfileAndExplicitEntrypointPassesValidationStep()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: "validate-python-dockerfile-entrypoint-api");
+        builder.Services.AddSingleton<IPipelineActivityReporter, NullPublishingActivityReporter>();
+
+        var sourceDir = CreatePythonAppDirectoryWithDockerfile(workspace);
+        var publishDockerfile = CreateDockerfile(sourceDir, "Dockerfile.prod");
+        builder.AddPythonApp("api", sourceDir, "main.py")
+            .WithEntrypoint(EntrypointType.Module, "mymodule")
+            .PublishAsDockerFile(container => container.WithDockerfile(sourceDir, publishDockerfile).WithEntrypoint("/app/run"));
+
+        using var app = builder.Build();
+        var pipeline = new DistributedApplicationPipeline();
+
+        await pipeline.ExecuteAsync(CreatePipelineContext(app));
+    }
+
+    [Fact]
+    public async Task PublishPipelineSkipsValidationStepForResourceExcludedFromManifest()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.Services.AddSingleton<IPipelineActivityReporter, NullPublishingActivityReporter>();
+
+        var sourceDir = CreatePythonAppDirectoryWithDockerfile(workspace);
+        builder.AddPythonApp("excluded", sourceDir, "main.py")
+            .WithEntrypoint(EntrypointType.Module, "mymodule")
+            .ExcludeFromManifest();
+        builder.AddPythonApp("sibling", sourceDir, "main.py");
+
+        using var app = builder.Build();
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreatePipelineContext(app);
+
+        var validationStepNames = (await pipeline.ResolveStepsAsync(context))
+            .Select(step => step.Name)
+            .Where(name => name.StartsWith("validate-python-dockerfile-entrypoint-", StringComparison.Ordinal))
+            .ToList();
+
+        foreach (var stepName in validationStepNames)
+        {
+            await pipeline.ExecuteStepSequentiallyAsync(stepName, context);
+        }
+
+        Assert.Equal(["validate-python-dockerfile-entrypoint-sibling"], validationStepNames);
+    }
+
+    [Fact]
+    public async Task PublishManifestOmitsResourceExcludedFromManifestWithExistingDockerfileAndChangedEntrypoint()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: workspace.Path);
+
+        var sourceDir = CreatePythonAppDirectoryWithDockerfile(workspace);
+        builder.AddPythonApp("excluded", sourceDir, "main.py")
+            .WithEntrypoint(EntrypointType.Module, "mymodule")
+            .ExcludeFromManifest();
+        builder.AddPythonApp("sibling", sourceDir, "main.py");
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var manifest = await ManifestUtils.GetManifestForModel(appModel, workspace.Path);
+
+        Assert.Equal(["sibling"], manifest["resources"]!.AsObject().Select(resource => resource.Key));
+    }
+
+    [Fact]
     public async Task WithUv_GeneratesDockerfileInPublishMode()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
@@ -2742,6 +2834,15 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         File.WriteAllText(Path.Combine(sourceDir.FullName, "Dockerfile"), "FROM scratch\nENTRYPOINT [\"python\", \"main.py\"]\n");
 
         return sourceDir.FullName;
+    }
+
+    private static string CreateDockerfile(string directory, string fileName)
+    {
+        var dockerfilePath = Path.Combine(directory, fileName);
+
+        File.WriteAllText(dockerfilePath, "FROM scratch\nENTRYPOINT [\"python\", \"main.py\"]\n");
+
+        return dockerfilePath;
     }
 
     private static PipelineContext CreatePipelineContext(DistributedApplication app) => new(

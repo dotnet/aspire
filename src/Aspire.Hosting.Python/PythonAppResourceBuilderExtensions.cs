@@ -487,17 +487,29 @@ public static class PythonAppResourceBuilderExtensions
 
             resourceBuilder.WithManifestPublishingCallback(WriteValidatedContainerAsync);
             containerBuilder.WithManifestPublishingCallback(WriteValidatedContainerAsync);
-            containerBuilder.WithAnnotation(new PipelineStepAnnotation(_ => new PipelineStep
+            containerBuilder.WithAnnotation(new PipelineStepAnnotation(_ =>
             {
-                Name = $"validate-python-dockerfile-entrypoint-{resource.Name}",
-                Description = $"Validates that Python app '{resource.Name}' does not publish an ignored entrypoint with an existing Dockerfile.",
-                RequiredBySteps = [WellKnownPipelineSteps.Build, WellKnownPipelineSteps.Publish],
-                Resource = containerBuilder.Resource,
-                Action = _ =>
+                // A resource excluded from the manifest is never published, so it must not fail the pipeline.
+                if (containerBuilder.Resource.IsExcludedFromPublish())
                 {
-                    ValidateExistingDockerfileEntrypoint(resource, containerBuilder.Resource, entrypointType, entrypoint);
-                    return Task.CompletedTask;
+                    return [];
                 }
+
+                return
+                [
+                    new PipelineStep
+                    {
+                        Name = $"validate-python-dockerfile-entrypoint-{resource.Name}",
+                        Description = $"Validates that Python app '{resource.Name}' does not publish an ignored entrypoint with an existing Dockerfile.",
+                        RequiredBySteps = [WellKnownPipelineSteps.Build, WellKnownPipelineSteps.Publish],
+                        Resource = containerBuilder.Resource,
+                        Action = _ =>
+                        {
+                            ValidateExistingDockerfileEntrypoint(resource, containerBuilder.Resource, entrypointType, entrypoint);
+                            return Task.CompletedTask;
+                        }
+                    }
+                ];
             }));
         }
 
