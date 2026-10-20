@@ -257,7 +257,8 @@ public class EntraIdApplicationResource : AzureProvisioningResource
 
         var servicePrincipal = new MicrosoftGraphServicePrincipal("servicePrincipal")
         {
-            AppId = application.AppId
+            AppId = application.AppId,
+            Tags = [EntraIdBicepConstants.IntegratedAppTag]
         };
         if (resource.ServicePrincipalOwners.Count > 0)
         {
