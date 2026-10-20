@@ -102,6 +102,7 @@ public class ReleaseScriptPowerShellTests(ITestOutputHelper testOutput)
                 New-Item -ItemType Directory -Path $DestinationPath -Force | Out-Null
                 Set-Content -Path (Join-Path $DestinationPath 'aspire') -Value ''
             }
+            function Invoke-AspireCliBundleSetup {}
             Install-AspireCli -InstallPath '{{installPath}}' -Quality 'release' -OS 'linux' -Architecture 'x64' | Out-Null
             """,
             env,
@@ -150,6 +151,7 @@ public class ReleaseScriptPowerShellTests(ITestOutputHelper testOutput)
                 New-Item -ItemType Directory -Path $DestinationPath -Force | Out-Null
                 Set-Content -Path (Join-Path $DestinationPath 'aspire') -Value ''
             }
+            function Invoke-AspireCliBundleSetup {}
             Install-AspireCli -InstallPath '{{installPath}}' -Quality 'release' -OS 'linux' -Architecture 'x64' | Out-Null
             """,
             env,
@@ -200,6 +202,7 @@ public class ReleaseScriptPowerShellTests(ITestOutputHelper testOutput)
                 New-Item -ItemType Directory -Path $DestinationPath -Force | Out-Null
                 Set-Content -Path (Join-Path $DestinationPath 'aspire') -Value ''
             }
+            function Invoke-AspireCliBundleSetup {}
             Install-AspireCli -InstallPath '{{installPath}}' -Version '13.5.3' -Quality 'release' -OS 'linux' -Architecture 'x64' | Out-Null
             """,
             env,
@@ -254,6 +257,7 @@ public class ReleaseScriptPowerShellTests(ITestOutputHelper testOutput)
                 New-Item -ItemType Directory -Path $DestinationPath -Force | Out-Null
                 Set-Content -Path (Join-Path $DestinationPath 'aspire') -Value ''
             }
+            function Invoke-AspireCliBundleSetup {}
             Install-AspireCli -InstallPath '{{installPath}}' -Quality '{{quality}}' -OS 'linux' -Architecture 'x64' | Out-Null
             """,
             env,
