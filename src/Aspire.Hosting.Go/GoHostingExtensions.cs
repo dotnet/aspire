@@ -318,6 +318,8 @@ public static class GoHostingExtensions
                 return context.WriteContainerAsync(containerBuilder.Resource);
             }
 
+            var validationStepName = $"validate-go-dockerfile-package-path-{resource.Name}";
+
             rb.WithManifestPublishingCallback(WriteValidatedContainerAsync);
             containerBuilder.WithManifestPublishingCallback(WriteValidatedContainerAsync);
             containerBuilder.WithAnnotation(new PipelineStepAnnotation(_ =>
@@ -332,7 +334,7 @@ public static class GoHostingExtensions
                 [
                     new PipelineStep
                     {
-                        Name = $"validate-go-dockerfile-package-path-{resource.Name}",
+                        Name = validationStepName,
                         Description = $"Validates that Go app '{resource.Name}' does not publish an ignored package path with an existing Dockerfile.",
                         RequiredBySteps = [WellKnownPipelineSteps.Build, WellKnownPipelineSteps.Publish],
                         Resource = containerBuilder.Resource,
@@ -344,6 +346,15 @@ public static class GoHostingExtensions
                     }
                 ];
             }));
+
+            // Deploy environments such as Azure Container Apps run the image build step without the aggregate
+            // Build step, so the image build must wait for the validation itself.
+            containerBuilder.WithPipelineConfiguration(context =>
+            {
+                var validationStep = context.GetSteps(containerBuilder.Resource).FirstOrDefault(step => step.Name == validationStepName);
+
+                context.GetSteps(containerBuilder.Resource, WellKnownPipelineTags.BuildCompute).DependsOn(validationStep);
+            });
         }
 
         // Ensure source resources (that provide container files) build before this Go image.

@@ -1462,6 +1462,28 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task PublishPipelineRunsValidationStepBeforeImageBuildStep()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.Services.AddSingleton<IPipelineActivityReporter, NullPublishingActivityReporter>();
+
+        builder.AddPythonApp("api", CreatePythonAppDirectoryWithDockerfile(workspace), "main.py")
+            .WithEntrypoint(EntrypointType.Module, "mymodule");
+
+        using var app = builder.Build();
+        var pipeline = new DistributedApplicationPipeline();
+
+        var steps = (await pipeline.ResolveStepsAsync(CreatePipelineContext(app)))
+            .ToDictionary(step => step.Name, StringComparer.Ordinal);
+
+        // Compute environments such as Azure Container Apps depend on the image build step without the aggregate Build step.
+        var buildStepClosure = DistributedApplicationPipeline.ComputeTransitiveDependencies(steps["build-api"], steps);
+
+        Assert.Contains(buildStepClosure, step => step.Name == "validate-python-dockerfile-entrypoint-api");
+    }
+
+    [Fact]
     public async Task PublishManifestOmitsResourceExcludedFromManifestWithExistingDockerfileAndChangedEntrypoint()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);

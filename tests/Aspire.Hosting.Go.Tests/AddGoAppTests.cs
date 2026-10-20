@@ -1055,6 +1055,27 @@ public class AddGoAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task PublishPipelineRunsValidationStepBeforeImageBuildStep()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.Services.AddSingleton<IPipelineActivityReporter, NullPublishingActivityReporter>();
+
+        builder.AddGoApp("api", CreateGoAppDirectoryWithDockerfile(workspace), packagePath: "./cmd/server");
+
+        using var app = builder.Build();
+        var pipeline = new DistributedApplicationPipeline();
+
+        var steps = (await pipeline.ResolveStepsAsync(CreatePipelineContext(app)))
+            .ToDictionary(step => step.Name, StringComparer.Ordinal);
+
+        // Compute environments such as Azure Container Apps depend on the image build step without the aggregate Build step.
+        var buildStepClosure = DistributedApplicationPipeline.ComputeTransitiveDependencies(steps["build-api"], steps);
+
+        Assert.Contains(buildStepClosure, step => step.Name == "validate-go-dockerfile-package-path-api");
+    }
+
+    [Fact]
     public async Task PublishManifestOmitsResourceExcludedFromManifestWithExistingDockerfileAndNonDefaultPackagePath()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);

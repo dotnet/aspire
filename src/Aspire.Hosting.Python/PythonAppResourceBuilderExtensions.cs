@@ -485,6 +485,8 @@ public static class PythonAppResourceBuilderExtensions
                 return context.WriteContainerAsync(containerBuilder.Resource);
             }
 
+            var validationStepName = $"validate-python-dockerfile-entrypoint-{resource.Name}";
+
             resourceBuilder.WithManifestPublishingCallback(WriteValidatedContainerAsync);
             containerBuilder.WithManifestPublishingCallback(WriteValidatedContainerAsync);
             containerBuilder.WithAnnotation(new PipelineStepAnnotation(_ =>
@@ -499,7 +501,7 @@ public static class PythonAppResourceBuilderExtensions
                 [
                     new PipelineStep
                     {
-                        Name = $"validate-python-dockerfile-entrypoint-{resource.Name}",
+                        Name = validationStepName,
                         Description = $"Validates that Python app '{resource.Name}' does not publish an ignored entrypoint with an existing Dockerfile.",
                         RequiredBySteps = [WellKnownPipelineSteps.Build, WellKnownPipelineSteps.Publish],
                         Resource = containerBuilder.Resource,
@@ -511,6 +513,15 @@ public static class PythonAppResourceBuilderExtensions
                     }
                 ];
             }));
+
+            // Deploy environments such as Azure Container Apps run the image build step without the aggregate
+            // Build step, so the image build must wait for the validation itself.
+            containerBuilder.WithPipelineConfiguration(context =>
+            {
+                var validationStep = context.GetSteps(containerBuilder.Resource).FirstOrDefault(step => step.Name == validationStepName);
+
+                context.GetSteps(containerBuilder.Resource, WellKnownPipelineTags.BuildCompute).DependsOn(validationStep);
+            });
         }
 
         resourceBuilder.WithPipelineConfiguration(context =>
