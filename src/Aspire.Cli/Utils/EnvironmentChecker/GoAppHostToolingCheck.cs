@@ -180,14 +180,28 @@ internal sealed partial class GoAppHostToolingCheck : IEnvironmentCheck
         }
 
         var toolchain = await GetEffectiveToolchainAsync(goPath, cancellationToken);
-        if (PreventsToolchainDownload(toolchain))
+
+        // `local` always runs the Go on PATH and never switches, so an older Go cannot satisfy the AppHost's
+        // go.mod.
+        if (toolchain is "local")
         {
             return CreateVersionResult(
                 appHostFile,
                 version,
                 EnvironmentCheckStatus.Fail,
-                $"Go {version} is installed, and GOTOOLCHAIN={toolchain} prevents Go from downloading a newer toolchain.",
+                $"Go {version} is installed, and GOTOOLCHAIN=local prevents Go from switching to a newer toolchain.",
                 $"Install Go {MinimumGoVersion} or later, or change GOTOOLCHAIN to auto, then rerun 'aspire doctor'.");
+        }
+
+        if (OnlySwitchesToPathToolchain(toolchain))
+        {
+            var requiredToolchain = $"go{MinimumGoVersion}.0";
+            return CreateVersionResult(
+                appHostFile,
+                version,
+                EnvironmentCheckStatus.Warning,
+                $"Go {version} is installed, and GOTOOLCHAIN={toolchain} only lets Go switch to a newer toolchain that is already on PATH (for example {requiredToolchain}).",
+                $"Install Go {MinimumGoVersion} or later, or put the {requiredToolchain} toolchain on PATH, then rerun 'aspire doctor'.");
         }
 
         // With the default GOTOOLCHAIN=auto, `go run` downloads the toolchain that go.mod requires.
@@ -234,11 +248,14 @@ internal sealed partial class GoAppHostToolingCheck : IEnvironmentCheck
         }
     }
 
-    // `local`, `path`, `local+path` and `<name>+path` never download a toolchain (`path` is shorthand for
-    // `local+path`). The values are case-sensitive in the go command, so match them exactly.
-    private static bool PreventsToolchainDownload(string toolchain)
+    // `path` is shorthand for `local+path`. The path modes never download, but they can switch to a
+    // toolchain that is already installed: the go command looks in PATH for the exact toolchain that go.mod
+    // names (the go line `go 1.26` becomes go1.26.0) and fails only when that executable is missing
+    // (cmd/go/internal/toolchain/select.go, https://go.dev/doc/toolchain). Doctor does not read go.mod, so
+    // these settings are inconclusive. The values are case-sensitive in the go command, so match them exactly.
+    private static bool OnlySwitchesToPathToolchain(string toolchain)
     {
-        return toolchain is "local" or "path" || toolchain.EndsWith("+path", StringComparison.Ordinal);
+        return toolchain is "path" || toolchain.EndsWith("+path", StringComparison.Ordinal);
     }
 
     private static EnvironmentCheckResult CreateVersionResult(
