@@ -134,9 +134,28 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
             .PublishWithFederatedManagedIdentityCredential(identity);
         var web = builder.AddResource(new ProjectResource("web")).WithReference(entra);
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+        var exception = await Assert.ThrowsAsync<AggregateException>(async () => await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
             web.Resource, DistributedApplicationOperation.Publish, TestServiceProvider.Instance));
         Assert.Contains("WithAzureUserAssignedIdentity", exception.Message);
+    }
+
+    [Fact]
+    public async Task PublishWithFederatedManagedIdentityCredential_ConsumerWithoutIdentity_DoesNotThrowUntilValueIsResolved()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var entra = builder.AddEntraIdApplication("entra-web")
+            .PublishWithFederatedManagedIdentityCredential();
+        var web = builder.AddResource(new ProjectResource("web")).WithReference(entra);
+
+        // The Azure resource preparer gathers environment values to discover dependencies before it attaches identities.
+        var dependencies = await web.Resource.GetResourceDependenciesAsync(builder.ExecutionContext, ResourceDependencyDiscoveryMode.DirectOnly);
+        Assert.Contains(entra.Resource, dependencies);
+
+        var identity = builder.AddAzureUserAssignedIdentity("web-identity");
+        web.WithAnnotation(new AppIdentityAnnotation(identity.Resource));
+        var env = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+            web.Resource, DistributedApplicationOperation.Publish, TestServiceProvider.Instance);
+        Assert.Equal("{web-identity.outputs.clientId}", env["AzureAd__ClientCredentials__0__ManagedIdentityClientId"]);
     }
 
     [Fact]

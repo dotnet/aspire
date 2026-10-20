@@ -604,6 +604,42 @@ public sealed class EntraIdFederatedIdentityCredential : EntraIdClientCredential
             ? annotation.IdentityResource as AzureUserAssignedIdentityResource
             : null;
 
+    private AzureUserAssignedIdentityResource ResolveIdentity(EntraIdApplicationResource application, IResource consumer)
+    {
+        var consumerIdentity = GetConsumerIdentity(consumer);
+        var identity = ManagedIdentity ?? consumerIdentity
+            ?? throw new InvalidOperationException(
+                $"Resource '{consumer.Name}' references Entra ID application '{application.Name}', which uses a managed identity credential, " +
+                "but the resource has no user-assigned managed identity. Use a compute environment that supports managed identities, such as AddAzureContainerAppEnvironment, or call WithAzureUserAssignedIdentity.");
+
+        if (ManagedIdentity is not null && !ReferenceEquals(consumerIdentity, ManagedIdentity))
+        {
+            throw new InvalidOperationException(
+                $"Resource '{consumer.Name}' references Entra ID application '{application.Name}', which trusts managed identity '{ManagedIdentity.Name}', " +
+                $"but the resource does not use that identity. Call WithAzureUserAssignedIdentity on '{consumer.Name}' with that identity.");
+        }
+
+        return identity;
+    }
+
+    private sealed class ManagedIdentityClientIdValue(
+        EntraIdFederatedIdentityCredential credential,
+        EntraIdApplicationResource application,
+        IResource consumer) : IValueProvider, IManifestExpressionProvider, IValueWithReferences
+    {
+        private AzureUserAssignedIdentityResource Identity => credential.ResolveIdentity(application, consumer);
+
+        public string ValueExpression => Identity.ClientId.ValueExpression;
+
+        // Before the identity exists, the preparer is still discovering dependencies and the identity is not one yet.
+        public IEnumerable<object> References => credential.ManagedIdentity is not null || GetConsumerIdentity(consumer) is not null
+            ? [Identity.ClientId]
+            : [];
+
+        public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default)
+            => ((IValueProvider)Identity.ClientId).GetValueAsync(cancellationToken);
+    }
+
     /// <inheritdoc />
     internal override bool AppliesTo(IResource consumer, DistributedApplicationExecutionContext executionContext)
     {
@@ -649,22 +685,11 @@ public sealed class EntraIdFederatedIdentityCredential : EntraIdClientCredential
             return;
         }
 
-        var consumerIdentity = GetConsumerIdentity(consumer);
-        var identity = ManagedIdentity ?? consumerIdentity
-            ?? throw new InvalidOperationException(
-                $"Resource '{consumer.Name}' references Entra ID application '{application.Name}', which uses a managed identity credential, " +
-                "but the resource has no user-assigned managed identity. Use a compute environment that supports managed identities, such as AddAzureContainerAppEnvironment, or call WithAzureUserAssignedIdentity.");
-
-        if (ManagedIdentity is not null && !ReferenceEquals(consumerIdentity, ManagedIdentity))
-        {
-            throw new InvalidOperationException(
-                $"Resource '{consumer.Name}' references Entra ID application '{application.Name}', which trusts managed identity '{ManagedIdentity.Name}', " +
-                $"but the resource does not use that identity. Call WithAzureUserAssignedIdentity on '{consumer.Name}' with that identity.");
-        }
-
         envVars[$"{prefix}{separator}SourceType"] = SourceType;
-        envVars[$"{prefix}{separator}ManagedIdentityClientId"] = identity.ClientId;
 
+        // The Azure resource preparer evaluates environment callbacks to discover dependencies before it has
+        // attached each resource's identity, so resolve the identity only when the value is actually needed.
+        envVars[$"{prefix}{separator}ManagedIdentityClientId"] = new ManagedIdentityClientIdValue(this, application, consumer);
         // Sovereign clouds use their own token exchange audience, which Microsoft.Identity.Web reads from TokenExchangeUrl.
         var tokenExchangeUrl = TokenExchangeUrl;
         if (tokenExchangeUrl is null &&
