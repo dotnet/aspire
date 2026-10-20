@@ -7,7 +7,8 @@
   "communityContributors": [],
   "description": "`aspire doctor` now recognizes WSLc as a supported container runtime on Windows and only checks the runtime you've configured via the environment variable, instead of reporting unrelated problems from runtimes you aren't using. Auto-detection lists all installed runtimes (Docker, Podman, WSLc) in priority order and marks the active one.",
   "docsPrs": [
-    1898
+    1898,
+    1903
   ],
   "docsRequired": true,
   "emoji": "🩺",

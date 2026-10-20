@@ -1,0 +1,9 @@
+{
+  "author": "mitchdenny",
+  "comment": "README-only removal of inaccurate advanced guidance; no runtime behavior change",
+  "mergedAt": "2026-10-20T05:24:24Z",
+  "number": 21178,
+  "runDate": "2026-10-20T06:10:40Z",
+  "status": "excluded",
+  "title": "Remove advanced cert-manager namespace guidance from README"
+}

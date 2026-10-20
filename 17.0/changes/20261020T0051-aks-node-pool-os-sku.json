@@ -1,0 +1,19 @@
+{
+  "area": "Integrations",
+  "areaEmoji": "🔌",
+  "backport": false,
+  "breaking": true,
+  "changeType": "New features",
+  "communityContributors": [],
+  "description": "AKS node pools now support a configurable OS SKU (such as `AzureLinux`) via a mutable `AksNodePoolConfig` passed to `WithSystemNodePool` and `AddNodePool` callbacks, without needing to edit generated Bicep that deployment would later regenerate. Polyglot (TypeScript, Python, Java) node-pool configuration now uses a configuration callback instead of a scalar options object or keyword arguments.",
+  "docsPrs": [],
+  "docsRequired": true,
+  "emoji": "🐧",
+  "firstMergedAt": "2026-10-20T00:51:00Z",
+  "lastMergedAt": "2026-10-20T00:51:00Z",
+  "name": "Configurable AKS node pool OS SKU",
+  "owner": "mitchdenny",
+  "prs": [
+    21118
+  ]
+}

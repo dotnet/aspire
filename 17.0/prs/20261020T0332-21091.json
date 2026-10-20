@@ -1,0 +1,9 @@
+{
+  "author": "eerhardt",
+  "comment": "New WithRedirectUris API for Entra ID parameter-backed callback URIs",
+  "mergedAt": "2026-10-20T03:32:53Z",
+  "number": 21091,
+  "runDate": "2026-10-20T06:10:40Z",
+  "status": "included",
+  "title": "Support parameter-backed redirect URIs in the Entra ID integration"
+}

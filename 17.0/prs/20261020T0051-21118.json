@@ -1,0 +1,9 @@
+{
+  "author": "mitchdenny",
+  "comment": "Configurable AKS node pool OS SKU (breaking change to polyglot callback shape)",
+  "mergedAt": "2026-10-20T00:51:00Z",
+  "number": 21118,
+  "runDate": "2026-10-20T06:10:40Z",
+  "status": "included",
+  "title": "Make AKS node pool OS SKU configurable"
+}

@@ -1,0 +1,9 @@
+{
+  "author": "eerhardt",
+  "comment": "Internal Azure.Provisioning.Storage SDK update (API version bump, enum rename); no observable behavior change",
+  "mergedAt": "2026-10-19T19:33:08Z",
+  "number": 20856,
+  "runDate": "2026-10-20T06:10:40Z",
+  "status": "excluded",
+  "title": "Update Azure.Provisioning.Storage to 1.2.0"
+}

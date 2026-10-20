@@ -1,0 +1,9 @@
+{
+  "author": "mitchdenny",
+  "comment": "Terminal commands now resolve exact resource instance IDs",
+  "mergedAt": "2026-10-19T22:08:48Z",
+  "number": 21120,
+  "runDate": "2026-10-20T06:10:40Z",
+  "status": "included",
+  "title": "Select CLI terminal replicas by resource instance ID"
+}

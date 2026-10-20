@@ -1,0 +1,19 @@
+{
+  "area": "Integrations",
+  "areaEmoji": "🔌",
+  "backport": false,
+  "breaking": true,
+  "changeType": "New features",
+  "communityContributors": [],
+  "description": "The cert-manager integration now supports provider-neutral ACME External Account Binding (EAB) via `WithExternalAccountBinding`, enabling certificate authorities that require it (such as ZeroSSL and Google Trust Services) in addition to Let's Encrypt. `WithLetsEncryptProduction`/`WithLetsEncryptStaging` and the mixed literal/parameter `WithAcmeServer` overload were removed in favor of an explicit ACME directory URL with `WithAcmeServer`.",
+  "docsPrs": [],
+  "docsRequired": true,
+  "emoji": "🔏",
+  "firstMergedAt": "2026-10-20T03:10:47Z",
+  "lastMergedAt": "2026-10-20T03:10:47Z",
+  "name": "ACME External Account Binding support for cert-manager",
+  "owner": "mitchdenny",
+  "prs": [
+    20918
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "area": "AppHost",
+  "areaEmoji": "🏠",
+  "backport": false,
+  "breaking": false,
+  "changeType": "New features",
+  "communityContributors": [],
+  "description": "Added `WithOwners`, `WithApplicationOwners`, and `WithServicePrincipalOwners` to the Entra ID hosting integration, letting AppHosts assign explicit owners to the application registrations and service principals Aspire provisions, without ever removing existing owners.",
+  "docsPrs": [],
+  "docsRequired": true,
+  "emoji": "👥",
+  "firstMergedAt": "2026-10-19T20:22:15Z",
+  "lastMergedAt": "2026-10-19T20:22:15Z",
+  "name": "Explicit owners for Entra ID app registrations",
+  "owner": "eerhardt",
+  "prs": [
+    21089
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "author": "eerhardt",
+  "comment": "New WithOwners/WithApplicationOwners/WithServicePrincipalOwners APIs for Entra ID",
+  "mergedAt": "2026-10-19T20:22:15Z",
+  "number": 21089,
+  "runDate": "2026-10-20T06:10:40Z",
+  "status": "included",
+  "title": "Support explicit owners for provisioned Entra registrations"
+}

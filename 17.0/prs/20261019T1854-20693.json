@@ -1,0 +1,9 @@
+{
+  "author": "IEvangelist",
+  "comment": "Agentic workflow (auto-sec) infrastructure change with no user-facing product impact",
+  "mergedAt": "2026-10-19T18:54:19Z",
+  "number": 20693,
+  "runDate": "2026-10-20T06:10:40Z",
+  "status": "excluded",
+  "title": "Add auto-sec agentic workflow for dependency security reconciliation"
+}

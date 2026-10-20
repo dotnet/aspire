@@ -1,0 +1,19 @@
+{
+  "area": "AppHost",
+  "areaEmoji": "🏠",
+  "backport": false,
+  "breaking": false,
+  "changeType": "New features",
+  "communityContributors": [],
+  "description": "Added `WithRedirectUris` to the Entra ID hosting integration so externally visible OAuth callback URIs (behind a gateway, reverse proxy, or custom domain) can be supplied per environment at deployment time via parameters, instead of being hardcoded. Literal and parameter-backed URIs can be mixed.",
+  "docsPrs": [],
+  "docsRequired": true,
+  "emoji": "🔗",
+  "firstMergedAt": "2026-10-20T03:32:53Z",
+  "lastMergedAt": "2026-10-20T03:32:53Z",
+  "name": "Parameter-backed redirect URIs for Entra ID",
+  "owner": "eerhardt",
+  "prs": [
+    21091
+  ]
+}

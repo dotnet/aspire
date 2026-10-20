@@ -1,0 +1,19 @@
+{
+  "area": "Engineering",
+  "areaEmoji": "🔧",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Bug fixes",
+  "communityContributors": [],
+  "description": "Updates Next.js, multidict, and PyJWT in the CLI's JavaScript E2E publish fixture and Python playground samples to address published security advisories (SSRF, cache poisoning, reference leaks, and JWT verification flaws), so new scaffolds based on these samples don't start from vulnerable dependency versions.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "🔒",
+  "firstMergedAt": "2026-10-19T21:55:10Z",
+  "lastMergedAt": "2026-10-19T21:55:10Z",
+  "name": "Fix Next.js, multidict, and PyJWT security advisories",
+  "owner": "radical",
+  "prs": [
+    20829
+  ]
+}

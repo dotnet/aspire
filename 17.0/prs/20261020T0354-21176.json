@@ -1,0 +1,9 @@
+{
+  "author": "mitchdenny",
+  "comment": "Test-only fixture fix for #20918; no user-facing change",
+  "mergedAt": "2026-10-20T03:54:25Z",
+  "number": 21176,
+  "runDate": "2026-10-20T06:10:40Z",
+  "status": "excluded",
+  "title": "Preserve valid EAB coverage in the C# cert-manager E2E fixture"
+}

@@ -1,0 +1,9 @@
+{
+  "author": "mitchdenny",
+  "comment": "New ACME External Account Binding support for cert-manager (breaking: removed WithLetsEncrypt* overloads)",
+  "mergedAt": "2026-10-20T03:10:47Z",
+  "number": 20918,
+  "runDate": "2026-10-20T06:10:40Z",
+  "status": "included",
+  "title": "Support ACME External Account Binding in cert-manager"
+}

@@ -1,0 +1,9 @@
+{
+  "author": "danegsta",
+  "comment": "Documents WSLc as a supported local-dev container runtime, matching the existing aspire-doctor-WSLc-support changelog entry",
+  "mergedAt": "2026-10-19T18:17:53Z",
+  "number": 1903,
+  "runDate": "2026-10-20T06:10:40Z",
+  "status": "included",
+  "title": "Document WSLc support for Windows local development"
+}
