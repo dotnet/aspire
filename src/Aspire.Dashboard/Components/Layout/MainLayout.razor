@@ -24,6 +24,11 @@
             <div class="header-context">
                 <SectionOutlet SectionName="@HeaderContextSectionName" />
             </div>
+            @if (RunStore.SupportsRunSelection && !RunSelection.SelectedRun.IsCurrent)
+            {
+                <DashboardRunPill SelectedRunStartedAtUtc="@RunSelection.SelectedRun.StartedAtUtc"
+                                  OnClick="@LaunchRecordingsAsync" />
+            }
             <a class="header-button"
                           href="https://aka.ms/aspire/repo" target="_blank" rel="noreferrer noopener"
                           data-tooltip="@Loc[nameof(Layout.MainLayoutAspireRepoLink)]" aria-label="@Loc[nameof(Layout.MainLayoutAspireRepoLink)]">

@@ -17,12 +17,11 @@ public partial class DashboardRunSelect : ComponentBase
 {
     private static readonly Icon s_historyIcon = new Icons.Regular.Size24.History();
 
-    // The button is icon-only while the live view is shown, and shows how long ago the recording started
-    // otherwise, with the full date in its tooltip. The accessible label always states what is being viewed.
+    // The button is icon-only: a dot shows whether the live view or a recording is displayed, and the header pill
+    // names the recording. The tooltip and accessible label state what is being viewed.
     private string RunSelectTitle => SelectedRunIsCurrent
         ? Loc[nameof(LayoutResources.DashboardRunSelectTitle)]
         : FormatRunDate(SelectedRunStartedAtUtc);
-    private string? ButtonText => SelectedRunIsCurrent ? null : FormatRunAge(SelectedRunStartedAtUtc);
     private string RunSelectAccessibleLabel => Loc[nameof(LayoutResources.DashboardRunSelectAccessibleLabel), SelectedRunText];
     private string SelectedRunText => SelectedRunIsCurrent
         ? Loc[nameof(LayoutResources.DashboardRunSelectCurrent)]
@@ -81,8 +80,6 @@ public partial class DashboardRunSelect : ComponentBase
     }
 
     private string FormatRunDate(DateTimeOffset startedAtUtc) => FormatHelpers.FormatDateTime(TimeProvider, startedAtUtc.UtcDateTime);
-
-    private string FormatRunAge(DateTimeOffset startedAtUtc) => FormatRunAge(startedAtUtc, TimeProvider.GetUtcNow(), Loc);
 
     internal static string FormatRunAge(DateTimeOffset startedAtUtc, DateTimeOffset utcNow, IStringLocalizer<LayoutResources> loc)
     {

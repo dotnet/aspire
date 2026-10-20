@@ -73,8 +73,8 @@
         <note />
       </trans-unit>
       <trans-unit id="DashboardRunSelectTitle">
-        <source>Live view and recordings</source>
-        <target state="new">Live view and recordings</target>
+        <source>Recordings</source>
+        <target state="new">Recordings</target>
         <note />
       </trans-unit>
       <trans-unit id="DashboardRunSelectUnpin">
@@ -245,11 +245,6 @@
       <trans-unit id="ResourceHeaderAllResources">
         <source>All resources</source>
         <target state="new">All resources</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourceHeaderAllResourcesDescription">
-        <source>No resource is selected, so data from every resource is shown. Select resources in the list to filter it.</source>
-        <target state="new">No resource is selected, so data from every resource is shown. Select resources in the list to filter it.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceHeaderNotFound">
@@ -440,11 +435,6 @@
       <trans-unit id="TelemetryHeaderAllSources">
         <source>All sources</source>
         <target state="new">All sources</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="TelemetryHeaderAllSourcesDescription">
-        <source>Data from every telemetry source is shown. Select sources in the list to filter it.</source>
-        <target state="new">Data from every telemetry source is shown. Select sources in the list to filter it.</target>
         <note />
       </trans-unit>
       <trans-unit id="TelemetryHeaderSelectedSources">

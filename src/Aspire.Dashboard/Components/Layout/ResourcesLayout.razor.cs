@@ -310,6 +310,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
 
         _isLoaded = true;
         UpdateTelemetryOnlyResources();
+        CarrySelectionAcrossRuns();
         UpdateSelection();
         UpdatePaneMenuItems();
         await TryRedirectLandingAsync();
@@ -633,6 +634,14 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
 
         SelectedResource = _selectedItems is [{ Resource: { } selected }] ? selected : null;
 
+        if (_isLoaded)
+        {
+            PaneState.SelectionRunId = DataSource.SelectedRun.RunId;
+            PaneState.SelectionPersistentKeys = _selectedItems
+                .Where(i => i.Resource is not null)
+                .ToDictionary(i => i.Name, i => i.Resource!.PersistentKey, StringComparers.ResourceName);
+        }
+
         if (DashboardClient.IsEnabled && _selectedItems.Any(i => i.TelemetryOnly is not null) &&
             ParsePaneMode(NavigationManager.ToBaseRelativePath(NavigationManager.Uri)) is null)
         {
@@ -640,6 +649,47 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
         }
 
         UpdateResourceMenuItems();
+    }
+
+    /// <summary>
+    /// After switching between the live view and a recording, replaces selected resources that don't exist in the
+    /// new run with the same resource in it, matched by persistent key: replica names end with a random suffix that
+    /// differs between runs. Resources with no match are dropped, which shows every resource when none is left.
+    /// </summary>
+    private void CarrySelectionAcrossRuns()
+    {
+        var previousRunId = PaneState.SelectionRunId;
+        if (previousRunId is null || string.Equals(previousRunId, DataSource.SelectedRun.RunId, StringComparison.Ordinal) || _selectedResourceNames.Count == 0)
+        {
+            return;
+        }
+
+        var selection = new List<string>();
+        foreach (var name in _selectedResourceNames)
+        {
+            string? match = null;
+            if (IsKnownResourceName(name) || _telemetryOnlyResources.Any(r => string.Equals(r.Name, name, StringComparisons.ResourceName)))
+            {
+                match = name;
+            }
+            else if (PaneState.SelectionPersistentKeys.TryGetValue(name, out var persistentKey))
+            {
+                match = _resourceByName.Values
+                    .Where(r => string.Equals(r.PersistentKey, persistentKey, StringComparisons.ResourceName))
+                    .Select(r => r.Name)
+                    .FirstOrDefault();
+            }
+
+            if (match is not null && !selection.Contains(match, StringComparers.ResourceName))
+            {
+                selection.Add(match);
+            }
+        }
+
+        if (!selection.SequenceEqual(_selectedResourceNames, StringComparers.ResourceName))
+        {
+            NavigationManager.NavigateTo(GetSelectionUrl(selection), new NavigationOptions { ReplaceHistoryEntry = true });
+        }
     }
 
     private async Task TryRedirectLandingAsync()

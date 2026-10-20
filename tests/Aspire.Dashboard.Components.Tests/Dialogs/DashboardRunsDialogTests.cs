@@ -42,8 +42,7 @@ public class DashboardRunsDialogTests : DashboardTestContext
                 Assert.Equal("radio", select.GetAttribute("role"));
                 Assert.Equal("true", select.GetAttribute("aria-checked"));
                 Assert.Equal("Live view", row.QuerySelector(".run-label")!.TextContent);
-                Assert.NotNull(row.QuerySelector(".run-live-icon"));
-                Assert.NotNull(row.QuerySelector(".run-check"));
+                Assert.Single(row.QuerySelectorAll(".run-indicator-slot .dashboard-run-indicator.live"));
                 Assert.Null(row.QuerySelector(".run-description"));
                 Assert.Equal("Protect from deletion", row.QuerySelector(".run-pin")!.GetAttribute("aria-label"));
                 Assert.Equal("false", row.QuerySelector(".run-pin")!.GetAttribute("aria-pressed"));
@@ -56,8 +55,7 @@ public class DashboardRunsDialogTests : DashboardTestContext
                 Assert.Equal(expectedTooltip, select.GetAttribute("data-tooltip"));
                 Assert.Equal("352 days ago", row.QuerySelector(".run-label")!.TextContent);
                 Assert.Equal("(1h)", row.QuerySelector(".run-description")!.TextContent);
-                Assert.Null(row.QuerySelector(".run-live-icon"));
-                Assert.Null(row.QuerySelector(".run-check"));
+                Assert.Null(row.QuerySelector(".dashboard-run-indicator"));
             });
         var helpLink = cut.Find(".runs-help-link");
         Assert.Equal("Learn about recordings", helpLink.TextContent.Trim());
@@ -110,6 +108,8 @@ public class DashboardRunsDialogTests : DashboardTestContext
 
         var cut = RenderDialog([s_currentRun, historicalRun], selectedRunId: "historical", onSelect: selections.Add);
         Assert.Equal("true", cut.Find(".run-row[data-run-id='historical'] .run-select").GetAttribute("aria-checked"));
+        Assert.Single(cut.FindAll(".run-row[data-run-id='historical'] .dashboard-run-indicator.recording"));
+        Assert.Empty(cut.FindAll(".run-row[data-run-id='current'] .dashboard-run-indicator"));
 
         cut.Find(".run-row[data-run-id='historical'] .run-select").Click();
         cut.Find(".run-row[data-run-id='current'] .run-select").Click();

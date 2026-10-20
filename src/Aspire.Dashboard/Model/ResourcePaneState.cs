@@ -41,6 +41,22 @@ public sealed class ResourcePaneState
     public event Action? Changed;
 
     /// <summary>
+    /// Gets or sets the dashboard run the resource selection was last resolved in.
+    /// </summary>
+    /// <remarks>
+    /// Switching between the live view and a recording re-creates the resources layout. Remembering the run, and
+    /// the run-independent keys of the selected resources, lets the new layout carry the selection over even when
+    /// resource names differ, such as replicas whose names end with a random suffix.
+    /// </remarks>
+    internal string? SelectionRunId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the persistent keys (<see cref="ResourceViewModel.PersistentKey"/>) of the selected resources in
+    /// <see cref="SelectionRunId"/>, by resource name.
+    /// </summary>
+    internal IReadOnlyDictionary<string, string> SelectionPersistentKeys { get; set; } = new Dictionary<string, string>();
+
+    /// <summary>
     /// Sets the resource list's mode.
     /// </summary>
     public void SetMode(ResourcePaneMode mode)

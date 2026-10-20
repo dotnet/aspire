@@ -55,18 +55,18 @@
                     disabled="@(!run.IsCompatible)"
                     data-tooltip="@tooltip"
                     @onclick="@(() => SelectRunAsync(run))">
-                @if (run.IsCurrent)
-                {
-                    <FluentIcon Value="@(new Icons.Filled.Size12.Play())" Color="Color.Success" Class="run-live-icon" />
-                }
+                @* The same dot as the header button marks the run being viewed: green for live, orange for a
+                   recording. The slot keeps every row's label aligned. *@
+                <span class="run-indicator-slot">
+                    @if (isSelected)
+                    {
+                        <DashboardRunIndicator IsLive="@run.IsCurrent" />
+                    }
+                </span>
                 <span class="run-label">@FormatRunOption(run)</span>
                 @if (description is not null)
                 {
                     <span class="run-description">@description</span>
-                }
-                @if (isSelected)
-                {
-                    <FluentIcon Value="@(new Icons.Regular.Size16.Checkmark())" Color="Color.Custom" CustomColor="currentColor" Class="run-check" />
                 }
             </button>
             <button type="button"
@@ -78,11 +78,11 @@
                     @onclick="@(() => SetRunPinned(run, !run.IsPinned))">
                 @if (run.IsPinned)
                 {
-                    <FluentIcon Value="@(new Icons.Filled.Size16.LockClosed())" Color="Color.Custom" CustomColor="currentColor" />
+                    <FluentIcon Value="@(new Icons.Filled.Size16.Pin())" Color="Color.Custom" CustomColor="currentColor" />
                 }
                 else
                 {
-                    <FluentIcon Value="@(new Icons.Regular.Size16.LockClosed())" Color="Color.Custom" CustomColor="currentColor" />
+                    <FluentIcon Value="@(new Icons.Regular.Size16.Pin())" Color="Color.Custom" CustomColor="currentColor" />
                 }
             </button>
         </div>

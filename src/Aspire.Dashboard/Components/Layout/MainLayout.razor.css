@@ -1,4 +1,6 @@
 ﻿::deep.layout > header {
+    /* The recording pill is centered on the header. */
+    position: relative;
     display: flex;
     align-items: center;
     min-width: 0;

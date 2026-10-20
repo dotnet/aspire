@@ -276,6 +276,39 @@ public class ResourcesLayoutTests : DashboardTestContext
         string?[] GetNames() => cut.FindAll("[data-resource-name]").Select(row => row.GetAttribute("data-resource-name")).ToArray();
     }
 
+    [Theory]
+    [InlineData("/resources/catalogservice-old", "resources/catalogservice-new")]
+    [InlineData("/resources?resource=catalogservice-old&resource=gone-old&resource=cache", "resources?resource=catalogservice-new&resource=cache")]
+    // Nothing carries over, so the overview lands on a resource as it does when opened without a selection.
+    [InlineData("/resources/gone-old", "resources/cache")]
+    public void RunSwitch_CarriesSelectionToTheSameResourcesInTheNewRun(string url, string expectedUrl)
+    {
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        var channel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        ResourceSetupHelpers.SetupResourcesLayout(this, viewport, new TestDashboardClient(isEnabled: true,
+            initialResources:
+            [
+                ModelTestHelpers.CreateResource("catalogservice-new", displayName: "catalogservice"),
+                ModelTestHelpers.CreateResource("cache")
+            ], resourceChannelProvider: () => channel));
+        // The selection was made in another run, where the replica had a different random suffix.
+        var paneState = Services.GetRequiredService<ResourcePaneState>();
+        paneState.SelectionRunId = "previous-run";
+        paneState.SelectionPersistentKeys = new Dictionary<string, string>
+        {
+            ["catalogservice-old"] = "catalogservice_0",
+            ["gone-old"] = "gone_0",
+            ["cache"] = "cache_0"
+        };
+        var navigationManager = Services.GetRequiredService<NavigationManager>();
+        navigationManager.NavigateTo(url);
+
+        var cut = Render<ResourcesLayout>(builder => builder.AddCascadingValue(viewport));
+
+        cut.WaitForAssertion(() => Assert.Equal(expectedUrl, navigationManager.ToBaseRelativePath(navigationManager.Uri)));
+        Assert.Equal(Services.GetRequiredService<DashboardDataSource>().SelectedRun.RunId, paneState.SelectionRunId);
+    }
+
     [Fact]
     public async Task AppHost_NewResourcesAppendAndRunSpecificNamesKeepTheirPosition()
     {

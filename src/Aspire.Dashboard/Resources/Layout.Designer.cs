@@ -187,7 +187,7 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Live view and recordings.
+        ///   Looks up a localized string similar to Recordings.
         /// </summary>
         public static string DashboardRunSelectTitle {
             get {
@@ -511,15 +511,6 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Data from every telemetry source is shown. Select sources in the list to filter it..
-        /// </summary>
-        public static string TelemetryHeaderAllSourcesDescription {
-            get {
-                return ResourceManager.GetString("TelemetryHeaderAllSourcesDescription", resourceCulture);
-            }
-        }
-
-        /// <summary>
         ///   Looks up a localized string similar to {0} sources selected.
         /// </summary>
         public static string TelemetryHeaderSelectedSources {
@@ -552,15 +543,6 @@ namespace Aspire.Dashboard.Resources {
         public static string TelemetryPaneNoSources {
             get {
                 return ResourceManager.GetString("TelemetryPaneNoSources", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to No resource is selected, so data from every resource is shown. Select resources in the list to filter it..
-        /// </summary>
-        public static string ResourceHeaderAllResourcesDescription {
-            get {
-                return ResourceManager.GetString("ResourceHeaderAllResourcesDescription", resourceCulture);
             }
         }
 

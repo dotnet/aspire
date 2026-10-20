@@ -65,6 +65,14 @@
     cursor: not-allowed;
 }
 
+.run-indicator-slot {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 12px;
+}
+
 .run-label {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -74,11 +82,6 @@
 .run-description {
     color: var(--colorNeutralForeground3);
     white-space: nowrap;
-}
-
-.run-select ::deep .run-check {
-    margin-inline-start: auto;
-    flex-shrink: 0;
 }
 
 .run-pin {

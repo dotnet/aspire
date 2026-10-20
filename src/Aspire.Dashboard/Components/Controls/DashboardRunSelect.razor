@@ -1,19 +1,16 @@
 @* The header button of the live view and recordings. It opens the recordings panel, like the notifications and
-   settings buttons open theirs. *@
+   settings buttons open theirs. A dot on the icon shows whether the live view or a recording is displayed. *@
 <div class="application-run-select">
     <FluentButton Id="@ButtonId"
-                  Class="@($"header-button application-run-select-button{(SelectedRunIsCurrent ? string.Empty : " historical")}")"
+                  Class="header-button application-run-select-button"
                   Appearance="ButtonAppearance.Default"
                   OnClick="@OnClick"
                   data-tooltip="@RunSelectTitle"
                   aria-label="@RunSelectAccessibleLabel"
                   aria-haspopup="dialog">
-        <FluentIcon Value="@s_historyIcon"
-                    Class="@(SelectedRunIsCurrent ? null : "application-run-status")"
-                    Color="@(SelectedRunIsCurrent ? Color.Default : Color.Warning)" />
-        @if (ButtonText is { } text)
-        {
-            <span class="application-run-select-text">@text</span>
-        }
+        <span class="application-run-icon">
+            <FluentIcon Value="@s_historyIcon" Color="Color.Default" />
+            <DashboardRunIndicator IsLive="@SelectedRunIsCurrent" />
+        </span>
     </FluentButton>
 </div>
