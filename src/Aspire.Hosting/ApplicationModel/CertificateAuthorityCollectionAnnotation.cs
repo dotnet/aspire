@@ -18,7 +18,7 @@ public enum CertificateTrustScope
     /// Append the specified certificate authorities to the default set of trusted CAs for a resource. Not all
     /// resources support this mode, in which case custom certificate authorities may not be applied. In that case,
     /// consider using <see cref="Override"/> or <see cref="System"/> instead. This is the default mode unless
-    /// otherwise specified, except for .NET projects on Windows and macOS, which default to <see cref="None"/>.
+    /// otherwise specified.
     /// </summary>
     Append,
     /// <summary>

@@ -6219,21 +6219,125 @@ public class DcpExecutorTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task ProjectResource_DefaultCertificateTrustScope_DoesNotSetSslCertDirOnMacOS()
+    public async Task PlainExecutable_AppendScope_SetsSslCertFileWithSystemRootsOnMacOSAndWindows()
     {
         // https://github.com/microsoft/aspire/issues/21198
+        Assert.SkipUnless(OperatingSystem.IsMacOS() || OperatingSystem.IsWindows(), "Verifies the macOS and Windows Append behavior.");
+
+        var builder = DistributedApplication.CreateBuilder();
+        using var certificate = CreateTestCertificate();
+        var certificateAuthorities = builder.AddCertificateAuthorityCollection("certificates")
+            .WithCertificate(certificate);
+
+        var executable = new TestExecutableResource("test-working-directory");
+        builder.AddResource(executable)
+            .WithCertificateAuthorityCollection(certificateAuthorities);
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
+
+        await appExecutor.RunApplicationAsync();
+
+        var exe = Assert.Single(kubernetesService.CreatedResources.OfType<Executable>(), e => e.AppModelResourceName == "TestExecutable");
+        var sslCertDir = Assert.Single(exe.Spec.Env!, e => e.Name == "SSL_CERT_DIR").Value;
+        var sslCertFile = Assert.Single(exe.Spec.Env!, e => e.Name == "SSL_CERT_FILE").Value;
+        Assert.NotNull(sslCertDir);
+        var certificatesRoot = Path.GetDirectoryName(sslCertDir.Split(Path.PathSeparator)[0]);
+        Assert.Equal(Path.Join(certificatesRoot, "cert.pem"), sslCertFile);
+
+        using var systemRoots = new X509Store(StoreName.Root, StoreLocation.LocalMachine);
+        systemRoots.Open(OpenFlags.ReadOnly);
+        var systemRootThumbprint = Assert.IsType<X509Certificate2>(systemRoots.Certificates.FirstOrDefault()).Thumbprint;
+
+        var bundleThumbprints = exe.Spec.PemCertificates!.Certificates!.Select(c => c.Thumbprint).ToList();
+        Assert.Contains(certificate.Thumbprint, bundleThumbprints);
+        Assert.Contains(systemRootThumbprint, bundleThumbprints);
+    }
+
+    [Fact]
+    public async Task PlainExecutable_AppendScope_KeepsResourceSslCertFileOnMacOSAndWindows()
+    {
+        Assert.SkipUnless(OperatingSystem.IsMacOS() || OperatingSystem.IsWindows(), "Verifies the macOS and Windows Append behavior.");
+
+        var builder = DistributedApplication.CreateBuilder();
+        using var certificate = CreateTestCertificate();
+        var certificateAuthorities = builder.AddCertificateAuthorityCollection("certificates")
+            .WithCertificate(certificate);
+
+        var executable = new TestExecutableResource("test-working-directory");
+        builder.AddResource(executable)
+            .WithCertificateAuthorityCollection(certificateAuthorities)
+            .WithEnvironment("SSL_CERT_FILE", "/custom/cert.pem");
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
+
+        await appExecutor.RunApplicationAsync();
+
+        var exe = Assert.Single(kubernetesService.CreatedResources.OfType<Executable>(), e => e.AppModelResourceName == "TestExecutable");
+        Assert.Equal("/custom/cert.pem", Assert.Single(exe.Spec.Env!, e => e.Name == "SSL_CERT_FILE").Value);
+        Assert.Single(exe.Spec.Env!, e => e.Name == "SSL_CERT_DIR");
+    }
+
+    [Fact]
+    public void PlainExecutable_AppendScope_DoesNotSetSslCertFileWhenAppHostHasOneOnMacOSAndWindows()
+    {
+        Assert.SkipUnless(OperatingSystem.IsMacOS() || OperatingSystem.IsWindows(), "Verifies the macOS and Windows Append behavior.");
+
+        var options = new RemoteInvokeOptions();
+        options.StartInfo.Environment["SSL_CERT_FILE"] = "/apphost/cert.pem";
+
+        RemoteExecutor.Invoke(static async () =>
+        {
+            Environment.SetEnvironmentVariable("SSL_CERT_FILE", "/apphost/cert.pem");
+
+            var builder = DistributedApplication.CreateBuilder();
+            using var certificate = CreateTestCertificate();
+            var certificateAuthorities = builder.AddCertificateAuthorityCollection("certificates")
+                .WithCertificate(certificate);
+
+            var executable = new TestExecutableResource("test-working-directory");
+            builder.AddResource(executable)
+                .WithCertificateAuthorityCollection(certificateAuthorities);
+
+            var kubernetesService = new TestKubernetesService();
+            using var app = builder.Build();
+            var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+            var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
+
+            await appExecutor.RunApplicationAsync();
+
+            // The resource inherits the AppHost's SSL_CERT_FILE, which Go combines with SSL_CERT_DIR.
+            var exe = Assert.Single(kubernetesService.CreatedResources.OfType<Executable>(), e => e.AppModelResourceName == "TestExecutable");
+            Assert.DoesNotContain(exe.Spec.Env!, e => e.Name == "SSL_CERT_FILE");
+            Assert.Single(exe.Spec.Env!, e => e.Name == "SSL_CERT_DIR");
+        }, options).Dispose();
+    }
+
+    [Fact]
+    public async Task ProjectResource_DefaultCertificateTrustScope_SetsSslCertFileOnMacOS()
+    {
+        // https://github.com/microsoft/aspire/issues/21198
+        // .NET projects on Windows default to CertificateTrustScope.None, so this only applies on macOS.
         Assert.SkipUnless(OperatingSystem.IsMacOS(), "Verifies the macOS default for .NET projects.");
 
         var env = await GetProjectWithCertificateAuthoritiesEnvAsync();
 
-        Assert.DoesNotContain(env, e => e.Name is "SSL_CERT_DIR" or "SSL_CERT_FILE");
+        var sslCertDir = Assert.Single(env, e => e.Name == "SSL_CERT_DIR").Value;
+        Assert.NotNull(sslCertDir);
+        var certificatesRoot = Path.GetDirectoryName(sslCertDir.Split(Path.PathSeparator)[0]);
+        Assert.Equal(Path.Join(certificatesRoot, "cert.pem"), Assert.Single(env, e => e.Name == "SSL_CERT_FILE").Value);
     }
 
     [Fact]
     public async Task ProjectResource_DefaultCertificateTrustScope_SetsSslCertDirOnLinux()
     {
-        // Counterpart to the macOS test above: keeps the macOS-only default from spreading to Linux,
-        // and runs in CI, where Aspire.Hosting.Tests does not run on macOS.
+        // Counterpart to the macOS test: on Linux, Append keeps relying on the default bundle file, so
+        // SSL_CERT_FILE stays unset. Unlike the macOS tests, this runs in GitHub Actions CI.
         Assert.SkipUnless(OperatingSystem.IsLinux(), "Verifies the Linux default for .NET projects.");
 
         var env = await GetProjectWithCertificateAuthoritiesEnvAsync();
