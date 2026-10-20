@@ -30,8 +30,8 @@ public class AtsGoDerivedBuilderTests
             .Order(StringComparer.Ordinal)
             .ToArray();
 
-        // SpotPoolResource, WorkloadResource, QueueResource and the builder have no derived type.
-        Assert.Equal(["AnyAksPoolResource", "AnyPoolResource"], acceptingInterfaces);
+        // GpuSpotPoolResource, WorkloadResource, QueueResource and the builder have no derived type.
+        Assert.Equal(["AnyAksPoolResource", "AnyPoolResource", "AnySpotPoolResource"], acceptingInterfaces);
         Assert.Matches(
             @"// AnyPoolResource [^\r\n]*\r?\n(// [^\r\n]*\r?\n)*type AnyPoolResource interface \{",
             generated);
@@ -42,40 +42,61 @@ public class AtsGoDerivedBuilderTests
     {
         var generated = GenerateFixtureSdk();
 
-        Assert.Matches(
-            @"type AnyPoolResource interface \{\r?\n\thandleReference\r?\n\tisPoolResource\(\)\r?\n\}",
-            generated);
+        // Go converts one interface type to another only when the source declares every method of the target.
+        // An accepting interface therefore declares the marker of its own type and of every ancestor that has an
+        // accepting interface: a value typed AnySpotPoolResource converts to AnyAksPoolResource and AnyPoolResource,
+        // but never the reverse. The ancestors are listed as markers, not embedded.
+        Assert.Equal(["handleReference", "isPoolResource()"], GetInterfaceMembers(generated, "AnyPoolResource"));
+        Assert.Equal(
+            ["handleReference", "isAksPoolResource()", "isPoolResource()"],
+            GetInterfaceMembers(generated, "AnyAksPoolResource"));
+        Assert.Equal(
+            ["handleReference", "isAksPoolResource()", "isPoolResource()", "isSpotPoolResource()"],
+            GetInterfaceMembers(generated, "AnySpotPoolResource"));
 
         // Each concrete interface declares the marker of every ancestor-or-self that has an accepting interface,
         // so a value of a handle interface type is assignable to the accepting interface of its base types.
-        var interfaceMarkers = new[] { "AksPoolResource", "PoolResource", "QueueResource", "SpotPoolResource", "WorkloadResource" }
+        var interfaceMarkers = new[] { "AksPoolResource", "GpuSpotPoolResource", "PoolResource", "QueueResource", "SpotPoolResource", "WorkloadResource" }
             .Select(name => $"{name}: {string.Join(", ", GetInterfaceMarkers(generated, name))}")
             .ToArray();
 
         Assert.Equal(
             [
                 "AksPoolResource: isAksPoolResource, isPoolResource",
+                "GpuSpotPoolResource: isAksPoolResource, isPoolResource, isSpotPoolResource",
                 "PoolResource: isPoolResource",
                 "QueueResource: ",
-                "SpotPoolResource: isAksPoolResource, isPoolResource",
+                "SpotPoolResource: isAksPoolResource, isPoolResource, isSpotPoolResource",
                 "WorkloadResource: "
             ],
             interfaceMarkers);
-
-        var implMarkers = Regex.Matches(generated, @"^func \(\*(\w+)\) (is\w+)\(\) \{\}", RegexOptions.Multiline)
-            .Select(match => $"{match.Groups[1].Value}.{match.Groups[2].Value}")
-            .Order(StringComparer.Ordinal)
-            .ToArray();
 
         Assert.Equal(
             [
                 "aksPoolResource.isAksPoolResource",
                 "aksPoolResource.isPoolResource",
+                "gpuSpotPoolResource.isAksPoolResource",
+                "gpuSpotPoolResource.isPoolResource",
+                "gpuSpotPoolResource.isSpotPoolResource",
                 "poolResource.isPoolResource",
                 "spotPoolResource.isAksPoolResource",
-                "spotPoolResource.isPoolResource"
+                "spotPoolResource.isPoolResource",
+                "spotPoolResource.isSpotPoolResource"
             ],
-            implMarkers);
+            GetImplMarkers(generated));
+    }
+
+    [Fact]
+    public void GeneratedCode_BaseTypeMissingFromHandleTypesStillSatisfiesItsAcceptingInterface()
+    {
+        // A type that capabilities reference is emitted even when HandleTypes does not list it. Its own
+        // hierarchy is then unknown, but it can still be the base of a listed type, so it must declare and
+        // implement its own marker or no PoolResource value could be passed to an AnyPoolResource parameter.
+        var generated = _generator.GenerateDistributedApplication(DerivedBuilderFixture.CreateContextWithoutPoolHandleType())["aspire.go"];
+
+        Assert.Equal(["handleReference", "isPoolResource()"], GetInterfaceMembers(generated, "AnyPoolResource"));
+        Assert.Equal(["isPoolResource"], GetInterfaceMarkers(generated, "PoolResource"));
+        Assert.Contains("poolResource.isPoolResource", GetImplMarkers(generated));
     }
 
     [Fact]
@@ -88,6 +109,7 @@ public class AtsGoDerivedBuilderTests
         Assert.Equal(
             [
                 "WithAksPool(pool AnyAksPoolResource) WorkloadResource",
+                "WithGpuSpotPool(pool GpuSpotPoolResource) WorkloadResource",
                 "WithOptionalPool(name string, options ...*WithOptionalPoolOptions) WorkloadResource",
                 "WithPool(pool AnyPoolResource) WorkloadResource",
                 "WithPoolCallback(configure func(pool PoolResource)) WorkloadResource",
@@ -97,7 +119,7 @@ public class AtsGoDerivedBuilderTests
                 "WithPoolSettings(settings *PoolSettings) WorkloadResource",
                 "WithPools(pools []AnyPoolResource) WorkloadResource",
                 "WithQueue(queue QueueResource) WorkloadResource",
-                "WithSpotPool(pool SpotPoolResource) WorkloadResource"
+                "WithSpotPool(pool AnySpotPoolResource) WorkloadResource"
             ],
             GetMethodSignatures(generated, "workloadResource", "With"));
 
@@ -119,6 +141,7 @@ public class AtsGoDerivedBuilderTests
         Assert.Equal(
             [
                 "AddAksPool(name string) AksPoolResource",
+                "AddGpuSpotPool(name string) GpuSpotPoolResource",
                 "AddPool(name string) PoolResource",
                 "AddQueue(name string) QueueResource",
                 "AddSpotPool(name string) SpotPoolResource",
@@ -133,6 +156,9 @@ public class AtsGoDerivedBuilderTests
         Assert.Equal(
             ["WithPoolPeer(peer AnyPoolResource) SpotPoolResource"],
             GetMethodSignatures(generated, "spotPoolResource", "With"));
+        Assert.Equal(
+            ["WithPoolPeer(peer AnyPoolResource) GpuSpotPoolResource"],
+            GetMethodSignatures(generated, "gpuSpotPoolResource", "With"));
     }
 
     [Fact]
@@ -190,14 +216,20 @@ public class AtsGoDerivedBuilderTests
 
             Assert.NotEqual(0, exitCode);
 
-            // A resource of another kind, and a base builder where a derived one is required, are both rejected.
+            // A resource of another kind, a base builder where a derived one is required, and an accepting-interface
+            // value converted down to a derived accepting interface are all rejected.
             var errors = Regex.Matches(output, @"negative\.go:\d+:\d+: [^\r\n]+")
                 .Select(match => match.Value)
                 .ToArray();
             Assert.Collection(
                 errors,
                 error => Assert.Contains("aspire.AnyPoolResource", error, StringComparison.Ordinal),
-                error => Assert.Contains("aspire.AnyAksPoolResource", error, StringComparison.Ordinal));
+                error => Assert.Contains("aspire.AnyAksPoolResource", error, StringComparison.Ordinal),
+                error =>
+                {
+                    Assert.Contains("aspire.AnyPoolResource", error, StringComparison.Ordinal);
+                    Assert.Contains("aspire.AnyAksPoolResource", error, StringComparison.Ordinal);
+                });
         }
         finally
         {
@@ -214,24 +246,46 @@ public class AtsGoDerivedBuilderTests
             pool := builder.AddPool("pool")
             aks := builder.AddAksPool("aks")
             spot := builder.AddSpotPool("spot")
+            gpu := builder.AddGpuSpotPool("gpu")
             queue := builder.AddQueue("queue")
             workload := builder.AddWorkload("api")
 
             // A builder of a derived type is accepted wherever the base type is expected.
-            workload.WithPool(pool).WithPool(aks).WithPool(spot)
-            workload.WithAksPool(aks).WithAksPool(spot)
-            workload.WithSpotPool(spot)
+            workload.WithPool(pool).WithPool(aks).WithPool(spot).WithPool(gpu)
+            workload.WithAksPool(aks).WithAksPool(spot).WithAksPool(gpu)
+            workload.WithSpotPool(spot).WithSpotPool(gpu)
+            workload.WithGpuSpotPool(gpu)
             workload.WithQueue(queue)
-            workload.WithPools([]aspire.AnyPoolResource{pool, aks, spot})
+            workload.WithPools([]aspire.AnyPoolResource{pool, aks, spot, gpu})
             workload.WithPoolMap(map[string]aspire.AnyPoolResource{"aks": aks})
             workload.WithPoolSettings(&aspire.PoolSettings{Pool: spot, Label: "spot"})
             workload.WithPoolOrName(spot)
 
             // The fluent API of every type is unchanged: calls keep returning the receiver's own type.
+            var _ aspire.GpuSpotPoolResource = gpu.WithPoolPeer(spot).WithPoolPeer(pool)
             var _ aspire.SpotPoolResource = spot.WithPoolPeer(aks).WithPoolPeer(pool)
             var _ aspire.AksPoolResource = aks.WithPoolPeer(spot)
             var _ aspire.PoolResource = pool.WithPoolPeer(spot)
             workload.WithPool(spot.WithPoolPeer(pool))
+
+            ForwardAks(workload, aks)
+            ForwardAks(workload, gpu)
+            ForwardSpot(workload, spot)
+            ForwardSpot(workload, gpu)
+        }
+
+        // A function written over a family of builders receives an accepting-interface value. That value
+        // must reach the parameters typed with the accepting interface of each ancestor.
+        func ForwardAks(workload aspire.WorkloadResource, p aspire.AnyAksPoolResource) {
+            workload.WithPool(p)
+            workload.WithAksPool(p)
+        }
+
+        func ForwardSpot(workload aspire.WorkloadResource, p aspire.AnySpotPoolResource) {
+            workload.WithPool(p)
+            workload.WithAksPool(p)
+            workload.WithSpotPool(p)
+            ForwardAks(workload, p)
         }
         """;
 
@@ -247,6 +301,11 @@ public class AtsGoDerivedBuilderTests
 
             workload.WithPool(queue)
             workload.WithAksPool(pool)
+        }
+
+        // The ancestor markers only widen an accepting interface toward its base types.
+        func RejectDownward(workload aspire.WorkloadResource, p aspire.AnyPoolResource) {
+            workload.WithAksPool(p)
         }
         """;
 
@@ -300,15 +359,25 @@ public class AtsGoDerivedBuilderTests
         }
     }
 
-    private static string[] GetInterfaceMarkers(string generated, string interfaceName)
+    private static string[] GetInterfaceMembers(string generated, string interfaceName)
     {
         var declaration = Regex.Match(generated, $@"^type {interfaceName} interface \{{\r?\n(?<body>.*?)^\}}", RegexOptions.Multiline | RegexOptions.Singleline);
         Assert.True(declaration.Success, $"Interface not found: {interfaceName}");
 
-        return Regex.Matches(declaration.Groups["body"].Value, @"^\t(is\w+)\(\)", RegexOptions.Multiline)
-            .Select(match => match.Groups[1].Value)
-            .ToArray();
+        return declaration.Groups["body"].Value.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     }
+
+    private static string[] GetInterfaceMarkers(string generated, string interfaceName) =>
+        GetInterfaceMembers(generated, interfaceName)
+            .Where(member => Regex.IsMatch(member, @"^is\w+\(\)$"))
+            .Select(member => member[..^2])
+            .ToArray();
+
+    private static string[] GetImplMarkers(string generated) =>
+        Regex.Matches(generated, @"^func \(\*(\w+)\) (is\w+)\(\) \{\}", RegexOptions.Multiline)
+            .Select(match => $"{match.Groups[1].Value}.{match.Groups[2].Value}")
+            .Order(StringComparer.Ordinal)
+            .ToArray();
 
     private static string[] GetMethodSignatures(string generated, string implName, string methodPrefix) =>
         Regex.Matches(generated, $@"^func \(s \*{implName}\) ({methodPrefix}[^\r\n]*) \{{\r?$", RegexOptions.Multiline)
@@ -321,6 +390,7 @@ public class AtsGoDerivedBuilderTests
         private const string PoolId = "Tests.Derived/Tests.Derived.PoolResource";
         private const string AksPoolId = "Tests.Derived/Tests.Derived.AksPoolResource";
         private const string SpotPoolId = "Tests.Derived/Tests.Derived.SpotPoolResource";
+        private const string GpuSpotPoolId = "Tests.Derived/Tests.Derived.GpuSpotPoolResource";
         private const string WorkloadId = "Tests.Derived/Tests.Derived.WorkloadResource";
         private const string QueueId = "Tests.Derived/Tests.Derived.QueueResource";
         private const string PoolSettingsId = "Tests.Derived/Tests.Derived.PoolSettings";
@@ -329,13 +399,15 @@ public class AtsGoDerivedBuilderTests
         private static readonly AtsTypeRef s_pool = Handle(PoolId);
         private static readonly AtsTypeRef s_aksPool = Handle(AksPoolId);
         private static readonly AtsTypeRef s_spotPool = Handle(SpotPoolId);
+        private static readonly AtsTypeRef s_gpuSpotPool = Handle(GpuSpotPoolId);
         private static readonly AtsTypeRef s_workload = Handle(WorkloadId);
         private static readonly AtsTypeRef s_queue = Handle(QueueId);
         private static readonly AtsTypeRef s_string = new() { TypeId = AtsConstants.String, Category = AtsTypeCategory.Primitive };
         private static readonly AtsTypeRef s_poolSettings = new() { TypeId = PoolSettingsId, Category = AtsTypeCategory.Dto };
 
-        // Pool is the base type; AksPool derives from Pool and SpotPool derives from AksPool.
-        // Workload consumes pools and Queue is an unrelated resource type.
+        // Pool is the base type; AksPool derives from Pool, SpotPool from AksPool and GpuSpotPool from SpotPool,
+        // so the accepting interface of a type has to cover more than one ancestor. Workload consumes pools and
+        // Queue is an unrelated resource type.
         public static AtsContext CreateContext() => new()
         {
             Capabilities =
@@ -343,15 +415,17 @@ public class AtsGoDerivedBuilderTests
                 Factory("addPool", s_pool),
                 Factory("addAksPool", s_aksPool),
                 Factory("addSpotPool", s_spotPool),
+                Factory("addGpuSpotPool", s_gpuSpotPool),
                 Factory("addWorkload", s_workload),
                 Factory("addQueue", s_queue),
 
                 // Declared on the base type, so each derived type carries it and keeps returning its own type.
-                Method("withPoolPeer", s_pool, [s_pool, s_aksPool, s_spotPool], [Required("peer", s_pool)], s_pool),
+                Method("withPoolPeer", s_pool, [s_pool, s_aksPool, s_spotPool, s_gpuSpotPool], [Required("peer", s_pool)], s_pool),
 
                 Consumer("withPool", Required("pool", s_pool)),
                 Consumer("withAksPool", Required("pool", s_aksPool)),
                 Consumer("withSpotPool", Required("pool", s_spotPool)),
+                Consumer("withGpuSpotPool", Required("pool", s_gpuSpotPool)),
                 Consumer("withQueue", Required("queue", s_queue)),
                 Consumer("withPools", Required("pools", ArrayOf(s_pool))),
                 Consumer("withPoolMap", Required("pools", ReadOnlyDictOf(s_string, s_pool))),
@@ -367,6 +441,7 @@ public class AtsGoDerivedBuilderTests
                 new AtsTypeInfo { AtsTypeId = PoolId },
                 new AtsTypeInfo { AtsTypeId = AksPoolId, BaseTypeHierarchy = [s_pool] },
                 new AtsTypeInfo { AtsTypeId = SpotPoolId, BaseTypeHierarchy = [s_aksPool, s_pool] },
+                new AtsTypeInfo { AtsTypeId = GpuSpotPoolId, BaseTypeHierarchy = [s_spotPool, s_aksPool, s_pool] },
                 new AtsTypeInfo { AtsTypeId = WorkloadId },
                 new AtsTypeInfo { AtsTypeId = QueueId }
             ],
@@ -385,6 +460,19 @@ public class AtsGoDerivedBuilderTests
                 }
             ]
         };
+
+        // Pool stays referenced by capabilities but is not listed in HandleTypes.
+        public static AtsContext CreateContextWithoutPoolHandleType()
+        {
+            var context = CreateContext();
+            return new AtsContext
+            {
+                Capabilities = context.Capabilities,
+                HandleTypes = context.HandleTypes.Where(type => type.AtsTypeId != PoolId).ToList(),
+                EnumTypes = context.EnumTypes,
+                DtoTypes = context.DtoTypes
+            };
+        }
 
         private static AtsTypeRef Handle(string typeId) => new() { TypeId = typeId, Category = AtsTypeCategory.Handle };
 

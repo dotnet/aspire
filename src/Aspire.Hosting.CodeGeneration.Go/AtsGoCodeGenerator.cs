@@ -70,6 +70,7 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
 
     // typeId → marker method names (e.g., "isKubernetesNodePoolResource") that the concrete type
     // declares and implements: one per accepting interface of the type itself or of a base type.
+    // The accepting interface of the type declares the same set.
     private readonly Dictionary<string, List<string>> _acceptingMarkers = new(StringComparer.Ordinal);
 
     /// <inheritdoc />
@@ -326,10 +327,13 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
     // reject the derived builder AddNodePool returns (AksNodePoolResource).
     //
     // Every concrete handle type that another concrete handle type derives from gets an accepting
-    // interface, Any<Type>, used only where a caller supplies a value. It embeds handleReference and one
-    // unexported marker method that the type and each of its derived types implement. That keeps the
-    // check at compile time (a builder outside the family lacks the marker) without changing the fluent
-    // interface of any type.
+    // interface, Any<Type>, used only where a caller supplies a value. It embeds handleReference and
+    // declares unexported marker methods: the marker of the type itself and of each base type that has
+    // an accepting interface too. The type and each of its derived types implement all of them. That
+    // keeps the check at compile time (a builder outside the family lacks the marker) without changing
+    // the fluent interface of any type. The base-type markers are what let an Any<Type> value be
+    // passed where the Any<Base> of one of its base types is expected, because Go converts an
+    // interface value to another interface only when its method set has every method of the target.
     private void BuildAcceptingInterfaces(AtsContext context)
     {
         var ancestorIdsByType = new Dictionary<string, List<string>>(StringComparer.Ordinal);
@@ -366,9 +370,12 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
             _acceptingNames[typeId] = ReserveName($"Any{_interfaceNames[typeId]}", takenLowercase: false);
         }
 
-        foreach (var (typeId, ancestorIds) in ancestorIdsByType)
+        // Every type with an implementation takes part, including a base type that capabilities
+        // reference but HandleTypes does not list. It has no known ancestors, yet it still has an
+        // accepting interface and must implement that interface's own marker.
+        foreach (var typeId in _implNames.Keys)
         {
-            var markers = ancestorIds
+            var markers = (ancestorIdsByType.GetValueOrDefault(typeId) ?? [])
                 .Append(typeId)
                 .Where(_acceptingNames.ContainsKey)
                 .Select(GetAcceptingMarkerName)
@@ -907,7 +914,7 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
         WriteLine("// Go has no return-type covariance, so the interface of a derived handle type does not");
         WriteLine("// satisfy the interface of its base type. Each Any<Type> below accepts <Type> or a handle");
         WriteLine("// of any type derived from it, and is used wherever a method, options struct, or DTO takes");
-        WriteLine("// a <Type> as input. The unexported marker method restricts it to that family of types.");
+        WriteLine("// a <Type> as input. The unexported marker methods restrict it to that family of types.");
         WriteLine();
 
         foreach (var (typeId, name) in _acceptingNames.OrderBy(kv => kv.Value, StringComparer.Ordinal))
@@ -916,7 +923,18 @@ internal sealed class AtsGoCodeGenerator : ICodeGenerator
             WriteLine($"// {name} accepts {interfaceName} or a handle of any type derived from it.");
             WriteLine($"type {name} interface {{");
             WriteLine("\thandleReference");
-            WriteLine($"\t{GetAcceptingMarkerName(typeId)}()");
+
+            // The markers of the base types are declared too: Go converts an interface value to another
+            // interface only when its method set has every method of the target, so without them an
+            // Any<Type> value could not be passed where the Any<Base> of a base type is expected. That
+            // admits nothing the base type rejects, since every handle of this family belongs to the
+            // family of each base type. BaseTypeHierarchy lists the whole base chain, so each derived
+            // type implements every marker declared here.
+            foreach (var marker in _acceptingMarkers[typeId])
+            {
+                WriteLine($"\t{marker}()");
+            }
+
             WriteLine("}");
             WriteLine();
         }

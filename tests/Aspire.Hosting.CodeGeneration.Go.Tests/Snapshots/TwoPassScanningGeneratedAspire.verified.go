@@ -1279,7 +1279,7 @@ type TestVaultResource interface {
 // Go has no return-type covariance, so the interface of a derived handle type does not
 // satisfy the interface of its base type. Each Any<Type> below accepts <Type> or a handle
 // of any type derived from it, and is used wherever a method, options struct, or DTO takes
-// a <Type> as input. The unexported marker method restricts it to that family of types.
+// a <Type> as input. The unexported marker methods restrict it to that family of types.
 
 // AnyContainerResource accepts ContainerResource or a handle of any type derived from it.
 type AnyContainerResource interface {
