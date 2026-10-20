@@ -1040,7 +1040,7 @@ public class TrayPanelTests
     {
         // Section labels (TextTertiary), subtitles (TextSecondary) and error lines (Danger) are
         // 11 and 12 px, so they need 4.5:1 on the panel background and on the hover and pressed
-        // tints drawn over it; the unhealthy disc is filled so its white glyph keeps 4.5:1 too.
+        // tints drawn over it; the unhealthy disc is filled so its white cross keeps 4.5:1 too.
         var palette = name == "dark" ? TrayPanelPalette.Dark : TrayPanelPalette.Light;
         var backgrounds = new[] { palette.Background, palette.Hover.Over(palette.Background), palette.Pressed.Over(palette.Background) };
 
@@ -1053,6 +1053,74 @@ public class TrayPanelTests
         var commands = new List<PanelCommand>();
         TrayPanelGlyphs.AddStatus(commands, PanelStatusGlyph.Unhealthy, new(0, 0, 20, 20), palette);
         Assert.Equal(palette.DangerFill, commands.OfType<FillPathCommand>().First().Color);
+    }
+
+    public static TheoryData<string> ContrastPaletteNames => new(
+        "light", "dark", "light-contrast", "dark-contrast", "hc-black", "hc-white", "hc-aquatic", "hc-desert", "hc-low-gray");
+
+    /// <summary>
+    /// Palettes to check status marks in. The high-contrast ones use the Windows 11 contrast
+    /// themes' window, window text, highlight and gray text colors, plus a theme whose gray text
+    /// is too close to its window color for the window color alone to work as a mark.
+    /// </summary>
+    private static TrayPanelPalette ContrastPalette(string name) => name switch
+    {
+        "light" => TrayPanelPalette.Light,
+        "dark" => TrayPanelPalette.Dark,
+        "light-contrast" => TrayPanelPalette.Light.WithIncreasedContrast(),
+        "dark-contrast" => TrayPanelPalette.Dark.WithIncreasedContrast(),
+        "hc-black" => TrayPanelPalette.FromSystemColors(new(0, 0, 0), new(255, 255, 255), new(26, 235, 255), new(63, 242, 63)),
+        "hc-white" => TrayPanelPalette.FromSystemColors(new(255, 255, 255), new(0, 0, 0), new(55, 0, 110), new(96, 0, 0)),
+        "hc-aquatic" => TrayPanelPalette.FromSystemColors(new(32, 32, 32), new(255, 255, 255), new(142, 227, 240), new(167, 167, 167)),
+        "hc-desert" => TrayPanelPalette.FromSystemColors(new(255, 250, 239), new(61, 61, 61), new(144, 57, 4), new(103, 103, 103)),
+        _ => TrayPanelPalette.FromSystemColors(new(0, 0, 0), new(255, 255, 255), new(26, 235, 255), new(40, 40, 40))
+    };
+
+    [Theory]
+    [MemberData(nameof(ContrastPaletteNames))]
+    public void StatusMarksKeepThreeToOneAgainstTheirDisc(string name)
+    {
+        // The check, "!", cross and "?" are what tell the states apart without color, so each
+        // needs 3:1 against its disc (WCAG 1.4.11, non-text contrast).
+        var palette = ContrastPalette(name);
+        foreach (var (glyph, disc, mark) in new[]
+        {
+            (PanelStatusGlyph.Healthy, palette.Success, palette.SuccessMark),
+            (PanelStatusGlyph.Warning, palette.Warning, palette.WarningMark),
+            (PanelStatusGlyph.Unhealthy, palette.DangerFill, palette.DangerMark),
+            (PanelStatusGlyph.Unknown, palette.Neutral, palette.NeutralMark)
+        })
+        {
+            var ratio = TrayPanelPalette.ContrastRatio(mark, disc);
+            Assert.True(ratio >= TrayPanelPalette.MinimumMarkContrast, $"{name} {glyph}: {mark.ToHex()} on {disc.ToHex()} is {ratio:F2}:1");
+
+            // The glyph draws exactly those colors: the disc first, then only the mark.
+            var commands = new List<PanelCommand>();
+            TrayPanelGlyphs.AddStatus(commands, glyph, new(0, 0, 20, 20), palette);
+            Assert.Equal(disc, Assert.IsType<FillPathCommand>(commands[0]).Color);
+            Assert.All(commands.Skip(1), command => Assert.Equal(mark, command switch
+            {
+                FillPathCommand fill => fill.Color,
+                StrokePathCommand stroke => stroke.Color,
+                _ => throw new InvalidOperationException()
+            }));
+        }
+    }
+
+    [Fact]
+    public void StatusMarksStayWhiteWhereWhitePassesAndDarkenOnlyWhereItFails()
+    {
+        var white = PanelColor.FromHex("#FFFFFF");
+        var dark = PanelColor.FromHex("#1C1C1E");
+
+        Assert.Equal([white, dark, white, white], Marks(TrayPanelPalette.Light));
+        Assert.Equal([dark, dark, white, white], Marks(TrayPanelPalette.Dark));
+        // The switch knob and the danger button keep their white label color.
+        Assert.Equal(white, TrayPanelPalette.Light.OnColor);
+        Assert.Equal(white, TrayPanelPalette.Dark.OnColor);
+
+        static PanelColor[] Marks(TrayPanelPalette palette)
+            => [palette.SuccessMark, palette.WarningMark, palette.DangerMark, palette.NeutralMark];
     }
 
     [Fact]

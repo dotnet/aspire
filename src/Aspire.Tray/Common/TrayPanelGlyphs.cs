@@ -52,29 +52,29 @@ internal static class TrayPanelGlyphs
     public static void AddStatus(List<PanelCommand> commands, PanelStatusGlyph glyph, PanelRect bounds, TrayPanelPalette palette)
     {
         var scale = bounds.Width / StatusDesignSize;
-        var white = palette.OnColor;
+        // Each disc has its own mark color, chosen in the palette to keep 3:1 against it.
         switch (glyph)
         {
             case PanelStatusGlyph.Healthy:
                 Disc(palette.Success);
-                Stroke(new PanelPath().MoveTo(6.4, 10.3).LineTo(8.9, 12.7).LineTo(13.6, 7.6), white, 1.8);
+                Stroke(new PanelPath().MoveTo(6.4, 10.3).LineTo(8.9, 12.7).LineTo(13.6, 7.6), palette.SuccessMark, 1.8);
                 break;
             case PanelStatusGlyph.Warning:
                 Disc(palette.Warning);
-                Stroke(new PanelPath().MoveTo(10, 5.6).LineTo(10, 10.8), white, 2);
-                Fill(PanelPath.Circle(10, 14.1, 1.15), white);
+                Stroke(new PanelPath().MoveTo(10, 5.6).LineTo(10, 10.8), palette.WarningMark, 2);
+                Fill(PanelPath.Circle(10, 14.1, 1.15), palette.WarningMark);
                 break;
             case PanelStatusGlyph.Unhealthy:
                 Disc(palette.DangerFill);
-                Stroke(new PanelPath().MoveTo(7.1, 7.1).LineTo(12.9, 12.9).MoveTo(12.9, 7.1).LineTo(7.1, 12.9), white, 1.8);
+                Stroke(new PanelPath().MoveTo(7.1, 7.1).LineTo(12.9, 12.9).MoveTo(12.9, 7.1).LineTo(7.1, 12.9), palette.DangerMark, 1.8);
                 break;
             case PanelStatusGlyph.Unknown:
                 Disc(palette.Neutral);
                 Stroke(new PanelPath().MoveTo(7.7, 7.9)
                     .CubicTo(7.7, 6.5, 8.7, 5.5, 10, 5.5)
                     .CubicTo(11.4, 5.5, 12.4, 6.4, 12.4, 7.7)
-                    .CubicTo(12.4, 9.3, 10, 9.5, 10, 11.3), white, 1.6);
-                Fill(PanelPath.Circle(10, 14.1, 1.05), white);
+                    .CubicTo(12.4, 9.3, 10, 9.5, 10, 11.3), palette.NeutralMark, 1.6);
+                Fill(PanelPath.Circle(10, 14.1, 1.05), palette.NeutralMark);
                 break;
             case PanelStatusGlyph.Stopped:
                 Stroke(PanelPath.Circle(10, 10, 7.25), palette.Neutral, 1.5);

@@ -66,8 +66,24 @@ internal sealed record TrayPanelPalette(
     PanelColor Neutral,
     PanelColor Banner,
     PanelColor BannerText,
-    PanelColor OnColor)
+    PanelColor OnColor,
+    PanelColor SuccessMark,
+    PanelColor WarningMark,
+    PanelColor DangerMark,
+    PanelColor NeutralMark)
 {
+    // The check, "!", cross and "?" drawn on the status discs (the *Mark colors) are what tells
+    // the states apart without color, so each keeps at least 3:1 against its disc, the WCAG
+    // minimum for graphical objects. White is kept where it reaches that; the lighter amber and
+    // dark-mode green discs get a dark mark instead. OnColor, used on the accent switch and the
+    // danger button, is unchanged.
+    // https://www.w3.org/TR/WCAG21/#non-text-contrast
+    private static readonly PanelColor s_white = PanelColor.FromHex("#FFFFFF");
+    private static readonly PanelColor s_darkMark = PanelColor.FromHex("#1C1C1E");
+
+    /// <summary>The minimum contrast of a status mark against its disc (WCAG 1.4.11).</summary>
+    public const double MinimumMarkContrast = 3;
+
     /// <summary>The color of the keyboard focus ring.</summary>
     public PanelColor Focus => Accent;
 
@@ -112,7 +128,13 @@ internal sealed record TrayPanelPalette(
         Neutral: PanelColor.FromHex("#8E8E96"),
         Banner: PanelColor.FromHex("#FFF4DB"),
         BannerText: PanelColor.FromHex("#6B4500"),
-        OnColor: PanelColor.FromHex("#FFFFFF"));
+        OnColor: s_white,
+        // White on #1E9E57 is 3.45:1, on #BC3030 5.83:1 and on #8E8E96 3.25:1. White on the
+        // amber is only 2.77:1, so its "!" is dark (5.3:1).
+        SuccessMark: s_white,
+        WarningMark: s_darkMark,
+        DangerMark: s_white,
+        NeutralMark: s_white);
 
     public static TrayPanelPalette Dark { get; } = new(
         "dark",
@@ -135,7 +157,13 @@ internal sealed record TrayPanelPalette(
         Neutral: PanelColor.FromHex("#8E8E96"),
         Banner: PanelColor.FromHex("#3A2F17"),
         BannerText: PanelColor.FromHex("#F7D9A0"),
-        OnColor: PanelColor.FromHex("#FFFFFF"));
+        OnColor: s_white,
+        // The brighter dark-mode green and amber leave white at 2.27:1 and 2.00:1, so their marks
+        // are dark (7.6:1 and 8.6:1). White stays on the deeper red (4.94:1) and the gray (3.25:1).
+        SuccessMark: s_darkMark,
+        WarningMark: s_darkMark,
+        DangerMark: s_white,
+        NeutralMark: s_white);
 
     /// <summary>
     /// Returns the palette for the macOS "Increase contrast" accessibility setting: secondary
@@ -178,10 +206,25 @@ internal sealed record TrayPanelPalette(
         Neutral: grayText,
         Banner: window,
         BannerText: windowText,
-        OnColor: window)
+        OnColor: window,
+        // The user's theme decides the colors, so pick, per disc, whichever of the window and
+        // window text colors reaches 3:1 against it (the window color when both do).
+        SuccessMark: MarkOn(windowText, window, windowText),
+        WarningMark: MarkOn(windowText, window, windowText),
+        DangerMark: MarkOn(windowText, window, windowText),
+        NeutralMark: MarkOn(grayText, window, windowText))
     {
         IsHighContrast = true
     };
+
+    /// <summary>
+    /// Returns <paramref name="preferred"/> when it keeps the minimum mark contrast against
+    /// <paramref name="fill"/>, otherwise whichever of the two colors contrasts more.
+    /// </summary>
+    private static PanelColor MarkOn(PanelColor fill, PanelColor preferred, PanelColor alternate)
+        => ContrastRatio(preferred, fill) >= MinimumMarkContrast || ContrastRatio(preferred, fill) >= ContrastRatio(alternate, fill)
+            ? preferred
+            : alternate;
 
     /// <summary>True for a system high-contrast palette, where the banner also gets an outline.</summary>
     public bool IsHighContrast { get; init; }
