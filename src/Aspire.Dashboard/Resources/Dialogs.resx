@@ -600,11 +600,11 @@ For more information about using AI agents with Aspire, such as setting up skill
     <value>Configure your app to send telemetry to the dashboard.</value>
   </data>
   <data name="TelemetryHelpMoreInformation" xml:space="preserve">
-    <value>For setup instructions, click</value>
+    <value>For setup instructions, see</value>
     <comment>Followed by the TelemetryHelpButtonText inline link and a period.</comment>
   </data>
   <data name="TelemetryHelpButtonText" xml:space="preserve">
-    <value>here</value>
+    <value>Add telemetry</value>
     <comment>Inline link following TelemetryHelpMoreInformation. Opens the telemetry setup dialog.</comment>
   </data>
   <data name="TelemetryHelpDialogTitle" xml:space="preserve">
