@@ -137,26 +137,27 @@ var publicLb = aks.AddLoadBalancer("public", albSubnet);
 // Email registered with the staging ACME endpoint. Passed as a parameter so the test
 // supplies it via Parameters__acmeemail without burning it into AppHost source.
 var acmeEmail = builder.AddParameter("acmeemail");
+var acmeServer = builder.AddParameter("acmeserver");
 
 // Install cert-manager via the typed API and declare a Let's Encrypt STAGING ClusterIssuer.
 // Staging is intentional — production rate limits would block repeat E2E runs. The
 // staging endpoint exercises the same HTTP-01 + Gateway API solver flow end-to-end.
 var certManager = aks.AddCertManager("cert-manager");
 var letsEncrypt = certManager.AddIssuer("letsencrypt-staging")
-    .WithAcmeServer("https://acme-staging-v02.api.letsencrypt.org/directory", acmeEmail)
+    .WithAcmeServer(acmeServer, acmeEmail)
     .WithHttp01Solver();
 
-// Independent, fresh accounts test both EAB overloads without commercial-provider credentials.
+// Independent, fresh accounts test EAB registration and rejection without commercial-provider credentials.
 var pebbleHmac = builder.AddParameter("pebblehmac", secret: true);
 var pebbleInvalidHmac = builder.AddParameter("pebbleinvalidhmac", secret: true);
 var pebbleKeyId = builder.AddParameter("pebblekeyid");
 var pebbleServer = builder.AddParameter("pebbleserver");
 certManager.AddIssuer("pebble-valid")
     .WithAcmeServer(pebbleServer, acmeEmail)
-    .WithExternalAccountBinding("fixture-key-id", pebbleHmac)
+    .WithExternalAccountBinding(pebbleKeyId, pebbleHmac)
     .WithHttp01Solver();
 certManager.AddIssuer("pebble-invalid")
-    .WithAcmeServer(pebbleServer, "aspire-e2e-test@microsoft.com")
+    .WithAcmeServer(pebbleServer, acmeEmail)
     .WithExternalAccountBinding(pebbleKeyId, pebbleInvalidHmac)
     .WithHttp01Solver();
 
@@ -203,6 +204,7 @@ builder.Build().Run();
                 $"export AZURE__LOCATION=westus3 && " +
                 $"export AZURE__RESOURCEGROUP={resourceGroupName} && " +
                 $"export Parameters__acmeemail={acmeEmail} && " +
+                "export Parameters__acmeserver=https://acme-staging-v02.api.letsencrypt.org/directory && " +
                 $"export Parameters__pebblekeyid={PebbleAcmeFixture.KeyId} && " +
                 $"export Parameters__pebbleserver={PebbleAcmeFixture.DirectoryUrl} && " +
                 $"export Parameters__pebblehmac=$(cat \"{pebbleDirectory}/valid-key\") && " +

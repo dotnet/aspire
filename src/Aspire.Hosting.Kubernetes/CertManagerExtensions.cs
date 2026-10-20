@@ -191,37 +191,6 @@ public static class CertManagerExtensions
     }
 
     /// <summary>
-    /// Binds the ACME account to an existing certificate-provider account using External Account Binding (EAB).
-    /// </summary>
-    /// <param name="builder">The issuer resource builder.</param>
-    /// <param name="keyId">The key identifier supplied by the ACME provider.</param>
-    /// <param name="hmacKey">A secret parameter containing the provider's base64url-encoded HMAC key.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{CertManagerIssuerResource}"/> for chaining.</returns>
-    /// <ats-returns>The resource builder.</ats-returns>
-    /// <remarks>
-    /// Aspire applies an issuer-specific Kubernetes Secret in cert-manager's cluster resource namespace
-    /// at deploy time and deletes it on destroy. The HMAC key is not included in published artifacts.
-    /// EAB authorizes account registration, not domain ownership. Credential expiry and reuse depend
-    /// on the provider; preserve cert-manager's separate account-key Secret across deployments.
-    /// See <see href="https://www.rfc-editor.org/rfc/rfc8555.html#section-7.3.4"/> and
-    /// <see href="https://cert-manager.io/docs/configuration/acme/#external-account-bindings"/>.
-    /// </remarks>
-    /// <exception cref="ArgumentNullException">A required argument is null.</exception>
-    /// <exception cref="ArgumentException">The key identifier is empty or the HMAC parameter is not secret.</exception>
-    [AspireExportIgnore(Reason = "Handled by the withExternalAccountBinding union export.")]
-    public static IResourceBuilder<CertManagerIssuerResource> WithExternalAccountBinding(
-        this IResourceBuilder<CertManagerIssuerResource> builder,
-        string keyId,
-        IResourceBuilder<ParameterResource> hmacKey)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(keyId);
-        ArgumentNullException.ThrowIfNull(hmacKey);
-
-        return WithExternalAccountBindingCore(builder, ReferenceExpression.Create($"{keyId}"), hmacKey);
-    }
-
-    /// <summary>
     /// Configures External Account Binding (EAB) with a key identifier and secret HMAC key resolved at deploy time.
     /// </summary>
     /// <param name="builder">The issuer resource builder.</param>
@@ -230,13 +199,18 @@ public static class CertManagerExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{CertManagerIssuerResource}"/> for chaining.</returns>
     /// <ats-returns>The resource builder.</ats-returns>
     /// <remarks>
+    /// Aspire applies an issuer-specific Kubernetes Secret in cert-manager's cluster resource namespace
+    /// at deploy time and attempts to delete it on destroy. The HMAC key is not included in published artifacts.
+    /// EAB authorizes account registration, not domain ownership. Preserve cert-manager's separate account-key Secret.
+    /// See <see href="https://www.rfc-editor.org/rfc/rfc8555.html#section-7.3.4"/> and
+    /// <see href="https://cert-manager.io/docs/configuration/acme/#external-account-bindings"/>.
     /// Supply fresh credential pairs from a deployment pipeline when registering a new account with
     /// a provider that uses expiring or single-use EAB credentials. Aspire does not acquire or refresh
     /// provider credentials. Existing ACME accounts are reused by cert-manager.
     /// </remarks>
     /// <exception cref="ArgumentNullException">A required argument is null.</exception>
     /// <exception cref="ArgumentException">The HMAC parameter is not secret.</exception>
-    [AspireExportIgnore(Reason = "Handled by the withExternalAccountBinding union export.")]
+    [AspireExport]
     public static IResourceBuilder<CertManagerIssuerResource> WithExternalAccountBinding(
         this IResourceBuilder<CertManagerIssuerResource> builder,
         IResourceBuilder<ParameterResource> keyId,
@@ -246,91 +220,12 @@ public static class CertManagerExtensions
         ArgumentNullException.ThrowIfNull(keyId);
         ArgumentNullException.ThrowIfNull(hmacKey);
 
-        return WithExternalAccountBindingCore(builder, ReferenceExpression.Create($"{keyId.Resource}"), hmacKey);
-    }
-
-    /// <summary>
-    /// Configures External Account Binding with a literal or parameterized key identifier and a secret HMAC parameter.
-    /// </summary>
-    /// <param name="builder">The issuer resource builder.</param>
-    /// <param name="keyId">The provider's key identifier, as a string or parameter resource builder.</param>
-    /// <param name="hmacKey">A secret parameter containing the provider's base64url-encoded HMAC key.</param>
-    /// <returns>The resource builder.</returns>
-    [AspireExport("withExternalAccountBinding")]
-    internal static IResourceBuilder<CertManagerIssuerResource> WithExternalAccountBindingForPolyglot(
-        this IResourceBuilder<CertManagerIssuerResource> builder,
-        [AspireUnion(typeof(string), typeof(IResourceBuilder<ParameterResource>))] object keyId,
-        IResourceBuilder<ParameterResource> hmacKey)
-        => keyId switch
-        {
-            string value => builder.WithExternalAccountBinding(value, hmacKey),
-            IResourceBuilder<ParameterResource> parameter => builder.WithExternalAccountBinding(parameter, hmacKey),
-            _ => throw new ArgumentException("Key identifier must be a string or a parameter resource builder.", nameof(keyId))
-        };
-
-    private static IResourceBuilder<CertManagerIssuerResource> WithExternalAccountBindingCore(
-        IResourceBuilder<CertManagerIssuerResource> builder,
-        ReferenceExpression keyId,
-        IResourceBuilder<ParameterResource> hmacKey)
-    {
         if (!hmacKey.Resource.Secret)
         {
             throw new ArgumentException("The EAB HMAC key must be a secret parameter.", nameof(hmacKey));
         }
 
-        builder.Resource.ExternalAccountBinding = new CertManagerExternalAccountBinding(keyId, hmacKey.Resource);
-        return builder;
-    }
-
-    /// <summary>
-    /// Configures the issuer to use an ACME directory endpoint with a parameterized email.
-    /// </summary>
-    /// <param name="builder">The issuer resource builder.</param>
-    /// <param name="serverUrl">The ACME directory URL (e.g., <c>https://acme.example.com/directory</c>).</param>
-    /// <param name="email">A parameter resource builder whose value is the contact email registered with the ACME account.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{CertManagerIssuerResource}"/> for chaining.</returns>
-    /// <ats-returns>The resource builder.</ats-returns>
-    [AspireExportIgnore(Reason = "Handled by the withAcmeServer union export.")]
-    public static IResourceBuilder<CertManagerIssuerResource> WithAcmeServer(
-        this IResourceBuilder<CertManagerIssuerResource> builder,
-        string serverUrl,
-        IResourceBuilder<ParameterResource> email)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(serverUrl);
-        ArgumentNullException.ThrowIfNull(email);
-
-        builder.Resource.Spec = new CertManagerAcmeIssuerSpec(
-            ReferenceExpression.Create($"{serverUrl}"),
-            ReferenceExpression.Create($"{email.Resource}"));
-
-        return builder;
-    }
-
-    /// <summary>
-    /// Configures the issuer with an ACME directory URL resolved from a parameter at deploy time.
-    /// </summary>
-    /// <param name="builder">The issuer resource builder.</param>
-    /// <param name="serverUrl">A parameter containing the ACME directory URL.</param>
-    /// <param name="email">The contact email registered with the ACME account.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{CertManagerIssuerResource}"/> for chaining.</returns>
-    /// <ats-returns>The resource builder.</ats-returns>
-    /// <exception cref="ArgumentNullException">A required argument is null.</exception>
-    /// <exception cref="ArgumentException">The email is empty.</exception>
-    [AspireExportIgnore(Reason = "Handled by the withAcmeServer union export.")]
-    public static IResourceBuilder<CertManagerIssuerResource> WithAcmeServer(
-        this IResourceBuilder<CertManagerIssuerResource> builder,
-        IResourceBuilder<ParameterResource> serverUrl,
-        string email)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(serverUrl);
-        ArgumentException.ThrowIfNullOrEmpty(email);
-
-        builder.Resource.Spec = new CertManagerAcmeIssuerSpec(
-            ReferenceExpression.Create($"{serverUrl.Resource}"),
-            ReferenceExpression.Create($"{email}"));
-
+        builder.Resource.ExternalAccountBinding = new CertManagerExternalAccountBinding(ReferenceExpression.Create($"{keyId.Resource}"), hmacKey.Resource);
         return builder;
     }
 
@@ -361,7 +256,7 @@ public static class CertManagerExtensions
     }
 
     /// <summary>
-    /// Configures the ACME directory URL and contact email using strings or parameters.
+    /// Configures the ACME directory URL and contact email using either two strings or two parameters.
     /// </summary>
     /// <param name="builder">The issuer resource builder.</param>
     /// <param name="serverUrl">The ACME directory URL, as a string or parameter resource builder.</param>
@@ -375,10 +270,8 @@ public static class CertManagerExtensions
         => (serverUrl, email) switch
         {
             (string url, string contact) => builder.WithAcmeServer(url, contact),
-            (string url, IResourceBuilder<ParameterResource> contact) => builder.WithAcmeServer(url, contact),
-            (IResourceBuilder<ParameterResource> url, string contact) => builder.WithAcmeServer(url, contact),
             (IResourceBuilder<ParameterResource> url, IResourceBuilder<ParameterResource> contact) => builder.WithAcmeServer(url, contact),
-            _ => throw new ArgumentException("Server URL and email must each be a string or a parameter resource builder.")
+            _ => throw new ArgumentException("Server URL and email must both be strings or both be parameter resource builders.")
         };
 
     /// <summary>

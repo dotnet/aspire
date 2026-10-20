@@ -233,10 +233,10 @@ public sealed class KubernetesDeployWithCertManagerTests(ITestOutputHelper outpu
         var certManager = k8s.AddCertManager("cert-manager");
         certManager.AddIssuer("pebble-valid")
             .WithAcmeServer(server, email)
-            .WithExternalAccountBinding("fixture-key-id", hmac)
+            .WithExternalAccountBinding(keyId, hmac)
             .WithHttp01Solver();
         certManager.AddIssuer("pebble-invalid")
-            .WithAcmeServer(server, "aspire-e2e-test@microsoft.com")
+            .WithAcmeServer(server, email)
             .WithExternalAccountBinding(keyId, invalidHmac)
             .WithHttp01Solver();
         certManager.AddIssuer("pebble-foreign")
@@ -261,10 +261,10 @@ public sealed class KubernetesDeployWithCertManagerTests(ITestOutputHelper outpu
         const certManager = await k8s.addCertManager("cert-manager");
         const valid = await certManager.addIssuer("pebble-valid");
         await valid.withAcmeServer(server, email);
-        await valid.withExternalAccountBinding("fixture-key-id", hmac);
+        await valid.withExternalAccountBinding(keyId, hmac);
         await valid.withHttp01Solver();
         const invalid = await certManager.addIssuer("pebble-invalid");
-        await invalid.withAcmeServer(server, "aspire-e2e-test@microsoft.com");
+        await invalid.withAcmeServer(server, email);
         await invalid.withExternalAccountBinding(keyId, invalidHmac);
         await invalid.withHttp01Solver();
         const foreign = await certManager.addIssuer("pebble-foreign");

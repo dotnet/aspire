@@ -18,11 +18,9 @@ public class CertManagerTests
     private const string TestHmacKey = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh_-";
 
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(false, true)]
-    [InlineData(true, false)]
-    [InlineData(true, true)]
-    public async Task WithAcmeServerForPolyglot_ResolvesStringsAndParameters(bool parameterizedUrl, bool parameterizedEmail)
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task WithAcmeServerForPolyglot_ResolvesStringsAndParameters(bool parameterized)
     {
         var builder = TestDistributedApplicationBuilder.Create();
         builder.Configuration["Parameters:acmeurl"] = "https://acme.example.com/directory";
@@ -32,8 +30,8 @@ public class CertManagerTests
         var issuer = builder.AddKubernetesEnvironment("env").AddCertManager("cert-manager").AddIssuer("acme");
 
         var result = issuer.WithAcmeServerForPolyglot(
-            parameterizedUrl ? url : "https://acme.example.com/directory",
-            parameterizedEmail ? email : "ops@contoso.com");
+            parameterized ? url : "https://acme.example.com/directory",
+            parameterized ? email : "ops@contoso.com");
 
         Assert.Same(issuer, result);
         var spec = Assert.IsType<CertManagerAcmeIssuerSpec>(issuer.Resource.Spec);
@@ -41,10 +39,8 @@ public class CertManagerTests
         Assert.Equal("ops@contoso.com", await spec.Email.GetValueAsync(TestContext.Current.CancellationToken));
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task WithExternalAccountBindingForPolyglot_ResolvesStringsAndParameters(bool parameterizedKeyId)
+    [Fact]
+    public async Task WithExternalAccountBinding_ResolvesParameters()
     {
         var builder = TestDistributedApplicationBuilder.Create();
         builder.Configuration["Parameters:keyid"] = "account-123";
@@ -52,7 +48,7 @@ public class CertManagerTests
         var hmacKey = builder.AddParameter("hmac", secret: true);
         var issuer = builder.AddKubernetesEnvironment("env").AddCertManager("cert-manager").AddIssuer("acme");
 
-        var result = issuer.WithExternalAccountBindingForPolyglot(parameterizedKeyId ? keyId : "account-123", hmacKey);
+        var result = issuer.WithExternalAccountBinding(keyId, hmacKey);
 
         Assert.Same(issuer, result);
         var binding = Assert.IsType<CertManagerExternalAccountBinding>(issuer.Resource.ExternalAccountBinding);
@@ -64,15 +60,14 @@ public class CertManagerTests
     public void PolyglotAcmeConfiguration_RejectsUnsupportedUnionValues()
     {
         var builder = TestDistributedApplicationBuilder.Create();
-        var hmacKey = builder.AddParameter("hmac", secret: true);
+        var parameter = builder.AddParameter("parameter");
         var issuer = builder.AddKubernetesEnvironment("env").AddCertManager("cert-manager").AddIssuer("acme");
 
         Assert.Throws<ArgumentException>(() => issuer.WithAcmeServerForPolyglot(42, "ops@contoso.com"));
         Assert.Throws<ArgumentException>(() => issuer.WithAcmeServerForPolyglot("https://acme.example.com/directory", 42));
         Assert.Throws<ArgumentException>(() => issuer.WithAcmeServerForPolyglot(null!, "ops@contoso.com"));
-        Assert.Throws<ArgumentException>(() => issuer.WithExternalAccountBindingForPolyglot(42, hmacKey));
-        Assert.Throws<ArgumentException>(() => issuer.WithExternalAccountBindingForPolyglot(null!, hmacKey));
-        Assert.Throws<ArgumentException>(() => issuer.WithExternalAccountBindingForPolyglot("account-123", builder.AddParameter("nonsecret")));
+        Assert.Throws<ArgumentException>(() => issuer.WithAcmeServerForPolyglot(parameter, "ops@contoso.com"));
+        Assert.Throws<ArgumentException>(() => issuer.WithAcmeServerForPolyglot("https://acme.example.com/directory", parameter));
     }
 
     [Theory]
@@ -83,7 +78,7 @@ public class CertManagerTests
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         var certManager = builder.AddKubernetesEnvironment("env").AddCertManager("cert-manager");
         var issuer = certManager.AddIssuer("acme")
-            .WithExternalAccountBinding("account-123", builder.AddParameter("hmac", secret: true));
+            .WithExternalAccountBinding(builder.AddParameter("keyid"), builder.AddParameter("hmac", secret: true));
         if (ambiguousOverride)
         {
             certManager.Resource.HelmChart.Values["extraArgs[0]"] = "--cluster-resource-namespace=accounts";
@@ -113,10 +108,8 @@ public class CertManagerTests
         Assert.Contains("Continuing destroy", warning.Message);
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task WithAcmeServer_ParameterizedUrlResolvesAtDeployTime(bool parameterizedEmail)
+    [Fact]
+    public async Task WithAcmeServer_ParameterizedUrlResolvesAtDeployTime()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         var serverUrl = builder.AddParameter("acmeurl");
@@ -124,14 +117,7 @@ public class CertManagerTests
         var certManager = builder.AddKubernetesEnvironment("env").AddCertManager("cert-manager");
         var issuer = certManager.AddIssuer("parameterized-acme").WithHttp01Solver();
 
-        if (parameterizedEmail)
-        {
-            issuer.WithAcmeServer(serverUrl, email);
-        }
-        else
-        {
-            issuer.WithAcmeServer(serverUrl, "ops@contoso.com");
-        }
+        issuer.WithAcmeServer(serverUrl, email);
         var spec = Assert.IsType<CertManagerAcmeIssuerSpec>(issuer.Resource.Spec);
         Assert.Same(serverUrl.Resource, Assert.Single(spec.ServerUrl.ValueProviders));
 
@@ -142,7 +128,7 @@ public class CertManagerTests
             app.Services.GetRequiredService<DistributedApplicationModel>(), certManager.Resource, issuer.Resource,
             NullLogger.Instance, TestContext.Current.CancellationToken);
 
-        await Verify(yaml, "yaml").UseParameters(parameterizedEmail);
+        await Verify(yaml, "yaml");
     }
 
     [Fact]
@@ -153,53 +139,38 @@ public class CertManagerTests
         var email = builder.AddParameter("acmeemail");
         var issuer = builder.AddKubernetesEnvironment("env").AddCertManager("cert-manager").AddIssuer("acme");
 
-        Assert.Throws<ArgumentNullException>(() => CertManagerExtensions.WithAcmeServer(null!, serverUrl, "ops@contoso.com"));
         Assert.Throws<ArgumentNullException>(() => CertManagerExtensions.WithAcmeServer(null!, serverUrl, email));
-        Assert.Throws<ArgumentNullException>(() => issuer.WithAcmeServer((IResourceBuilder<ParameterResource>)null!, "ops@contoso.com"));
         Assert.Throws<ArgumentNullException>(() => issuer.WithAcmeServer((IResourceBuilder<ParameterResource>)null!, email));
-        Assert.Throws<ArgumentNullException>(() => issuer.WithAcmeServer(serverUrl, (string)null!));
-        Assert.Throws<ArgumentException>(() => issuer.WithAcmeServer(serverUrl, ""));
         Assert.Throws<ArgumentNullException>(() => issuer.WithAcmeServer(serverUrl, (IResourceBuilder<ParameterResource>)null!));
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void WithExternalAccountBinding_StoresCredentialsWithoutResolvingParameters(bool parameterizedKeyId)
+    [Fact]
+    public void WithExternalAccountBinding_StoresCredentialsWithoutResolvingParameters()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         var issuer = builder.AddKubernetesEnvironment("env").AddCertManager("cert-manager").AddIssuer("eab");
         var hmacKey = builder.AddParameter("eab-hmac", secret: true);
         var keyId = builder.AddParameter("eab-key-id");
 
-        var result = parameterizedKeyId
-            ? issuer.WithExternalAccountBinding(keyId, hmacKey)
-            : issuer.WithExternalAccountBinding("provider-key-id", hmacKey);
+        var result = issuer.WithExternalAccountBinding(keyId, hmacKey);
         issuer.WithAcmeServer("https://acme.example.com/directory", "ops@contoso.com");
 
         Assert.Same(issuer, result);
         var binding = Assert.IsType<CertManagerExternalAccountBinding>(issuer.Resource.ExternalAccountBinding);
         Assert.Same(hmacKey.Resource, binding.HmacKey);
-        Assert.Equal(parameterizedKeyId ? "{0}" : "provider-key-id", binding.KeyId.Format);
-        if (parameterizedKeyId)
-        {
-            Assert.Same(keyId.Resource, Assert.Single(binding.KeyId.ValueProviders));
-        }
+        Assert.Equal("{0}", binding.KeyId.Format);
+        Assert.Same(keyId.Resource, Assert.Single(binding.KeyId.ValueProviders));
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void WithExternalAccountBinding_RejectsNonSecretHmacKey(bool parameterizedKeyId)
+    [Fact]
+    public void WithExternalAccountBinding_RejectsNonSecretHmacKey()
     {
         var builder = TestDistributedApplicationBuilder.Create();
         var issuer = builder.AddKubernetesEnvironment("env").AddCertManager("cert-manager").AddIssuer("eab");
         var hmacKey = builder.AddParameter("eab-hmac");
         var keyId = builder.AddParameter("eab-key-id");
 
-        var exception = Assert.Throws<ArgumentException>(() => parameterizedKeyId
-            ? issuer.WithExternalAccountBinding(keyId, hmacKey)
-            : issuer.WithExternalAccountBinding("provider-key-id", hmacKey));
+        var exception = Assert.Throws<ArgumentException>(() => issuer.WithExternalAccountBinding(keyId, hmacKey));
         Assert.Equal("hmacKey", exception.ParamName);
         Assert.Null(issuer.Resource.ExternalAccountBinding);
     }
@@ -212,12 +183,8 @@ public class CertManagerTests
         var hmacKey = builder.AddParameter("eab-hmac", secret: true);
         var keyId = builder.AddParameter("eab-key-id");
 
-        Assert.Throws<ArgumentNullException>(() => CertManagerExtensions.WithExternalAccountBinding(null!, "key", hmacKey));
         Assert.Throws<ArgumentNullException>(() => CertManagerExtensions.WithExternalAccountBinding(null!, keyId, hmacKey));
-        Assert.Throws<ArgumentNullException>(() => issuer.WithExternalAccountBinding((string)null!, hmacKey));
-        Assert.Throws<ArgumentException>(() => issuer.WithExternalAccountBinding("", hmacKey));
         Assert.Throws<ArgumentNullException>(() => issuer.WithExternalAccountBinding((IResourceBuilder<ParameterResource>)null!, hmacKey));
-        Assert.Throws<ArgumentNullException>(() => issuer.WithExternalAccountBinding("key", null!));
         Assert.Throws<ArgumentNullException>(() => issuer.WithExternalAccountBinding(keyId, null!));
     }
 
@@ -308,7 +275,7 @@ public class CertManagerTests
         builder.Configuration["Parameters:eab-hmac"] = TestHmacKey;
         var hmacKey = builder.AddParameter("eab-hmac", secret: true);
         var issuer = builder.AddKubernetesEnvironment("env").AddCertManager("cert-manager").AddIssuer("Eab-Issuer")
-            .WithExternalAccountBinding("fixture-key-id", hmacKey);
+            .WithExternalAccountBinding(builder.AddParameter("eab-key-id"), hmacKey);
 
         var spec = await CertManagerExtensions.BuildExternalAccountBindingSecretApplySpecAsync(
             issuer.Resource, resourceVersion: null, TestContext.Current.CancellationToken);
@@ -332,7 +299,7 @@ public class CertManagerTests
         builder.Configuration["Parameters:eab-hmac"] = TestHmacKey;
         var hmacKey = builder.AddParameter("eab-hmac", secret: true);
         var issuer = builder.AddKubernetesEnvironment("env").AddCertManager("cert-manager").AddIssuer("eab")
-            .WithExternalAccountBinding("fixture-key-id", hmacKey);
+            .WithExternalAccountBinding(builder.AddParameter("eab-key-id"), hmacKey);
         var resourceVersion = CertManagerExtensions.ParseExternalAccountBindingSecretResourceVersion(
             "eab-eab", "eab-eab:aspire-cert-manager:12345");
 
@@ -367,10 +334,8 @@ public class CertManagerTests
             CertManagerExtensions.GetClusterResourceNamespace(certManager.Resource, validateEabConfiguration: false));
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task BuildClusterIssuerManifest_ExternalAccountBindingEscapesKeyId(bool parameterizedKeyId)
+    [Fact]
+    public async Task BuildClusterIssuerManifest_ExternalAccountBindingEscapesKeyId()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         const string keyIdValue = "fixture: \"account\"\n#key";
@@ -381,21 +346,14 @@ public class CertManagerTests
         var issuer = certManager.AddIssuer("eab")
             .WithAcmeServer("https://acme.example.com/directory", "ops@contoso.com")
             .WithHttp01Solver();
-        if (parameterizedKeyId)
-        {
-            issuer.WithExternalAccountBinding(keyId, hmacKey);
-        }
-        else
-        {
-            issuer.WithExternalAccountBinding(keyIdValue, hmacKey);
-        }
+        issuer.WithExternalAccountBinding(keyId, hmacKey);
 
         using var app = builder.Build();
         var yaml = await CertManagerExtensions.BuildClusterIssuerManifestAsync(
             app.Services.GetRequiredService<DistributedApplicationModel>(), certManager.Resource, issuer.Resource,
             NullLogger.Instance, TestContext.Current.CancellationToken);
 
-        await Verify(yaml, "yaml").UseParameters(parameterizedKeyId);
+        await Verify(yaml, "yaml");
     }
 
     [Fact]

@@ -96,11 +96,10 @@ Install cert-manager and configure an issuer with the provider's ACME directory 
 
 ```csharp
 var k8s = builder.AddKubernetesEnvironment("k8s");
-var email = builder.AddParameter("acmeemail");
 var certManager = k8s.AddCertManager("cert-manager");
 
 var letsEncrypt = certManager.AddIssuer("letsencrypt")
-    .WithAcmeServer("https://acme-v02.api.letsencrypt.org/directory", email)
+    .WithAcmeServer("https://acme-v02.api.letsencrypt.org/directory", "ops@contoso.com")
     .WithHttp01Solver();
 
 // api must expose an external HTTP endpoint; the Gateway must be publicly reachable on port 80.
@@ -120,15 +119,15 @@ per environment without changing source:
 
 ```csharp
 var serverUrl = builder.AddParameter("acmeserver");
+var email = builder.AddParameter("acmeemail");
 var issuer = certManager.AddIssuer("acme")
     .WithAcmeServer(serverUrl, email)
     .WithHttp01Solver();
 ```
 
-Set `Parameters__acmeserver` before deployment. Either the URL, email, or both can be
-parameterized. In TypeScript, use `withAcmeServer(serverUrl, "ops@contoso.com")`
-for a parameterized URL with a literal email, or `withAcmeServer(serverUrl, email)`
-when both are parameters.
+Set `Parameters__acmeserver` and `Parameters__acmeemail` before deployment.
+The URL and email must either both be literal strings or both be parameters.
+TypeScript uses the same `withAcmeServer(serverUrl, email)` method for both forms.
 
 | Provider | ACME directory | External Account Binding |
 |---|---|---|
@@ -156,24 +155,25 @@ var keyId = builder.AddParameter("acmeeabkeyid");
 var hmacKey = builder.AddParameter("acmeeabhmackey", secret: true);
 
 var zeroSsl = certManager.AddIssuer("zerossl")
-    .WithAcmeServer("https://acme.zerossl.com/v2/DV90", email)
+    .WithAcmeServer(serverUrl, email)
     .WithExternalAccountBinding(keyId, hmacKey)
     .WithHttp01Solver();
 ```
 
-A literal key identifier is also supported: `.WithExternalAccountBinding("provider-key-id", hmacKey)`.
+Both EAB arguments must be parameters; the HMAC parameter must be secret.
+Set `Parameters__acmeserver` to `https://acme.zerossl.com/v2/DV90` for ZeroSSL.
 In TypeScript:
 
 ```typescript
 const keyId = await builder.addParameter("acmeeabkeyid");
 const hmacKey = await builder.addParameter("acmeeabhmackey", { secret: true });
+const serverUrl = await builder.addParameter("acmeserver");
+const email = await builder.addParameter("acmeemail");
 const issuer = await certManager.addIssuer("zerossl");
-await issuer.withAcmeServer("https://acme.zerossl.com/v2/DV90", email);
+await issuer.withAcmeServer(serverUrl, email);
 await issuer.withExternalAccountBinding(keyId, hmacKey);
 await issuer.withHttp01Solver();
 ```
-
-Use `withExternalAccountBinding("provider-key-id", hmacKey)` for a literal identifier.
 
 Supply parameters using your pipeline's secure environment-variable mechanism, with
 `Parameters__acmeeabkeyid` and `Parameters__acmeeabhmackey` set before `aspire deploy`.

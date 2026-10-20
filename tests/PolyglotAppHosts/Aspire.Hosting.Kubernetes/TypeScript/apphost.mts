@@ -72,6 +72,7 @@ await parameterizedPersistentVolume.withCapacityParam(persistentVolumeCapacity);
 // addCertManager / addIssuer / withAcmeServer / withExternalAccountBinding / withHttp01Solver /
 // gateway.withGatewayTlsIssuer.
 const acmeEmail = await builder.addParameter('acme-email');
+const acmeUrl = await builder.addParameter('acme-url');
 
 const certManager = await kubernetes.addCertManager('cert-manager');
 
@@ -80,7 +81,7 @@ await prodIssuer.withAcmeServer('https://acme-v02.api.letsencrypt.org/directory'
 await prodIssuer.withHttp01Solver();
 
 const prodIssuerParam = await certManager.addIssuer('letsencrypt-prod-param');
-await prodIssuerParam.withAcmeServer('https://acme-v02.api.letsencrypt.org/directory', acmeEmail);
+await prodIssuerParam.withAcmeServer(acmeUrl, acmeEmail);
 await prodIssuerParam.withHttp01Solver();
 
 const stagingIssuer = await certManager.addIssuer('letsencrypt-staging');
@@ -88,24 +89,22 @@ await stagingIssuer.withAcmeServer('https://acme-staging-v02.api.letsencrypt.org
 await stagingIssuer.withHttp01Solver();
 
 const stagingIssuerParam = await certManager.addIssuer('letsencrypt-staging-param');
-await stagingIssuerParam.withAcmeServer('https://acme-staging-v02.api.letsencrypt.org/directory', acmeEmail);
+await stagingIssuerParam.withAcmeServer(acmeUrl, acmeEmail);
 await stagingIssuerParam.withHttp01Solver();
 
 const customIssuer = await certManager.addIssuer('custom-acme');
 await customIssuer.withAcmeServer('https://acme.example.com/directory', 'admin@example.com');
 const eabKey = await builder.addParameter('eab-key', { secret: true });
-await customIssuer.withExternalAccountBinding('provider-key-id', eabKey);
+const eabKeyId = await builder.addParameter('eab-key-id');
+await customIssuer.withExternalAccountBinding(eabKeyId, eabKey);
 await customIssuer.withHttp01Solver();
 
 const customIssuerParam = await certManager.addIssuer('custom-acme-param');
-await customIssuerParam.withAcmeServer('https://acme.example.com/directory', acmeEmail);
-const eabKeyId = await builder.addParameter('eab-key-id');
+await customIssuerParam.withAcmeServer(acmeUrl, acmeEmail);
 await customIssuerParam.withExternalAccountBinding(eabKeyId, eabKey);
 await customIssuerParam.withHttp01Solver();
 
-const acmeUrl = await builder.addParameter('acme-url');
 const parameterizedServerIssuer = await certManager.addIssuer('parameterized-server');
-await parameterizedServerIssuer.withAcmeServer(acmeUrl, 'admin@example.com');
 await parameterizedServerIssuer.withAcmeServer(acmeUrl, acmeEmail);
 await parameterizedServerIssuer.withHttp01Solver();
 

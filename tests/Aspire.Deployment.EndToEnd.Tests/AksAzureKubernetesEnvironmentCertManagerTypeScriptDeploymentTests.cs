@@ -156,11 +156,12 @@ const publicLb = await aks.addLoadBalancer("public", albSubnet);
 // Email registered with the ACME endpoint. Passed as a parameter so the test
 // supplies it via Parameters__acmeemail without burning it into apphost source.
 const acmeEmail = await builder.addParameter("acmeemail");
+const acmeServer = await builder.addParameter("acmeserver");
 
 // Install cert-manager via the typed API and declare a Let's Encrypt PRODUCTION ClusterIssuer.
 const certManager = await aks.addCertManager("cert-manager");
 const letsEncrypt = await certManager.addIssuer("letsencrypt-prod");
-await letsEncrypt.withAcmeServer("https://acme-v02.api.letsencrypt.org/directory", acmeEmail);
+await letsEncrypt.withAcmeServer(acmeServer, acmeEmail);
 await letsEncrypt.withHttp01Solver();
 
 // Gateway with HTTPS listener. withGatewayTlsIssuer(letsEncrypt) creates the listener AND
@@ -200,7 +201,8 @@ await builder.build().run();
                 $"unset ASPIRE_PLAYGROUND && unset Azure__Location && " +
                 $"export AZURE__LOCATION=westus3 && " +
                 $"export AZURE__RESOURCEGROUP={resourceGroupName} && " +
-                $"export Parameters__acmeemail={acmeEmail}");
+                $"export Parameters__acmeemail={acmeEmail} && " +
+                "export Parameters__acmeserver=https://acme-v02.api.letsencrypt.org/directory");
             await auto.EnterAsync();
             await auto.WaitForSuccessPromptAsync(counter);
 
