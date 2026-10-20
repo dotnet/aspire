@@ -36,8 +36,11 @@ static async Task SetupAsync(IBrowser browser)
     // Without it, the dashboard must allow anonymous access (see references/recording.md).
     var url = Scenes.LoginUrl ?? Scenes.BaseUrl + "/";
 
-    // Waits for the dashboard to start.
-    for (var attempt = 0; ; attempt++)
+    // Waits for the dashboard to start, for up to 2 minutes.
+    const int Attempts = 60;
+    string last = null;
+
+    for (var attempt = 1; ; attempt++)
     {
         try
         {
@@ -47,9 +50,17 @@ static async Task SetupAsync(IBrowser browser)
             {
                 break;
             }
+
+            last = response is null ? "no response" : $"HTTP {response.Status}";
         }
-        catch (PlaywrightException) when (attempt < 60)
+        catch (PlaywrightException ex)
         {
+            last = ex.Message.Split('\n')[0];
+        }
+
+        if (attempt == Attempts)
+        {
+            throw new InvalidOperationException($"The dashboard at {Scenes.BaseUrl} didn't respond after {Attempts} attempts: {last}.");
         }
 
         await Task.Delay(2000);

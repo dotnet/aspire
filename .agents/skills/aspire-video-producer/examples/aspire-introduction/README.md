@@ -25,7 +25,8 @@ the recorder.
 
 The app started from `aspire new aspire-ts-starter`, with `aspire add Aspire.Hosting.Redis`,
 `Aspire.Hosting.PostgreSQL` and `Aspire.Hosting.Docker`; `app/` holds its sources as recorded, without build outputs
-or lock files. Set it up outside any repository, so no repository's build settings apply:
+or lock files. It needs Node.js 22.18 or later: the AppHost starts the catalog with `node src/index.ts`, which relies
+on Node's built-in TypeScript support. Set it up outside any repository, so no repository's build settings apply:
 
 ```bash
 cp -R <skill>/examples/aspire-introduction <shared>

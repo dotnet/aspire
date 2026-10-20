@@ -2,6 +2,9 @@
   "name": "contoso-catalog",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": "^22.18.0 || >=24"
+  },
   "scripts": {
     "start": "tsx src/index.ts"
   },

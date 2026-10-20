@@ -302,7 +302,9 @@ class Assembler:
         with open(f"{base}.vtt", "w", encoding="utf-8") as vtt:
             vtt.write("WEBVTT\n\n")
             for a, b, text in captions:
-                vtt.write(f"{timestamp(a, '.')} --> {timestamp(b, '.')}\n{text}\n\n")
+                # WebVTT cues are markup: escape the text, so "List<T>" shows as written.
+                cue = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                vtt.write(f"{timestamp(a, '.')} --> {timestamp(b, '.')}\n{cue}\n\n")
 
         print(f"{clock / 60:.1f} minutes, {len(segments)} segments")
         for name, output in outputs:

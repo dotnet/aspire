@@ -193,7 +193,8 @@ and look at them: a recording, a slide with code, a card, and a recording while 
 
 Stop the app you recorded (`aspire stop` from `<workspace>/app`, or Ctrl+C in the terminal running `aspire run`).
 Its containers can outlive it: check `docker ps -a` and remove them (`docker rm -f <name>`, such as `cache-<suffix>`).
-Remove the throwaway project, and keep the workspace until the video is accepted, in case a step must be re-recorded.
+Keep the throwaway project and the workspace until step 8 has copied their sources and the user has accepted the
+video, in case a step must be re-recorded; remove the project after that.
 
 ### 8. Deliver
 
