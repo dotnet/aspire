@@ -58,9 +58,9 @@ function synchronizeCompiler(content, version, sha) {
 //   uses: github/gh-aw-actions/setup-cli@<40-character SHA> # v0.91.7
 //   with:
 //     version: v0.89.17
-// The older compiler regenerates the lock files with its own action pins, so validation cannot pass
-// until the recompile PR aligns them. A missing release comment, a pin that is not ahead of its
-// input, or any other shape is not pending, which keeps validation strict.
+// The older compiler regenerates the generated files with its own gh-aw action pins, which differ
+// from the committed ones until the recompile PR aligns the compiler. A missing release comment, a
+// pin that is not ahead of its input, or any other shape is not pending, which keeps validation strict.
 function compilerUpdatePending(content) {
     return [...content.matchAll(/^[ \t]*uses: github\/gh-aw-actions\/setup-cli@[a-f0-9]{40}[ \t]+#[ \t]*(v\d+\.\d+\.\d+)[ \t]*\r?\n[ \t]*with:\r?\n[ \t]*version: (v\d+\.\d+\.\d+)[ \t]*$/gm)]
         .some(([, pinned, installed]) => compareVersions(pinned, installed) > 0);
@@ -206,13 +206,87 @@ function checkCompilerUpdatePending(io = fs, log = console.log) {
     const pending = compilerFiles.some(file => compilerUpdatePending(io.readFileSync(file, 'utf8')));
     io.appendFileSync(process.env.GITHUB_OUTPUT, `pending=${pending}\n`);
     if (pending) {
-        log('::notice::A gh-aw update is pending: generated workflows are not regenerated or compared until the recompile PR aligns the compiler pins.');
+        log('::notice::A gh-aw update is pending: only gh-aw action pin differences are tolerated in the generated workflows until the recompile PR aligns the compiler pins.');
+    }
+}
+
+// Same pathspecs as the strict drift step in validate-agentic-workflows.yml.
+const generatedPathspecs = [
+    '.github/aw/actions-lock.json',
+    '.github/workflows/*.lock.yml',
+    '.github/workflows/agentics-maintenance*.yml',
+];
+const maxReportedDifferences = 20;
+
+function isGhAwActionPin(line) {
+    return actionReferences(line).length === 1;
+}
+
+// With --unified=0, a pin-only difference in one generated file reads:
+//   diff --git a/.github/workflows/x.lock.yml b/.github/workflows/x.lock.yml
+//   index 3b18e51..9f2c4a7 100644
+//   --- a/.github/workflows/x.lock.yml
+//   +++ b/.github/workflows/x.lock.yml
+//   @@ -42 +42 @@ jobs:
+//   -        uses: github/gh-aw-actions/setup@<SHA of the Dependabot update> # v0.91.7
+//   +        uses: github/gh-aw-actions/setup@<SHA of the pinned compiler> # v0.89.17
+// Only lines inside a hunk are content, so a removed line that starts with "--" is not mistaken for a
+// file header. Anything else before the first hunk, such as a mode change or a binary marker, and any
+// content line that is not a gh-aw action pin is not an expected difference.
+function nonPinChanges(diff) {
+    const changes = [];
+    let inHunk = false;
+    for (const line of diff.split('\n').filter(Boolean)) {
+        if (line.startsWith('@@')) {
+            inHunk = true;
+        } else if (!inHunk) {
+            if (!/^(?:diff --git|index|---|\+\+\+) /.test(line)) {
+                changes.push(line);
+            }
+        } else if (!line.startsWith('\\') && !(/^[+-]/.test(line) && isGhAwActionPin(line.slice(1)))) {
+            // A line starting with "\" is the "\ No newline at end of file" marker.
+            changes.push(line);
+        }
+    }
+    return changes;
+}
+
+// Validation compiles with the pinned compiler. While a Dependabot compiler update is pending that
+// compiler regenerates its own gh-aw action pins, so the committed files may differ from the output
+// by those pin lines only. Every other difference fails: Dependabot cannot keep a pin that the agentic
+// workflow sources or the compiler own, because recompilation reverts it, so a grouped update that
+// also edits such a pin must not pass and then be silently undone by the follow-up recompile PR.
+function checkGeneratedDrift(run = execFileSync, log = console.log) {
+    const git = args => run('git', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+    // Porcelain entries read " M <path>" for a modified tracked file and "?? <path>" for a new one.
+    const entries = git(['status', '--porcelain', '--untracked-files=all', '-z', '--', ...generatedPathspecs])
+        .split('\0').filter(Boolean);
+    const differences = [];
+    for (const entry of entries) {
+        const file = /^ M (.+)$/s.exec(entry)?.[1];
+        if (file === undefined) {
+            differences.push(entry);
+            continue;
+        }
+        const diff = git(['diff', '--unified=0', '--no-color', '--no-ext-diff', '--no-textconv', '--', file]);
+        differences.push(...nonPinChanges(diff).map(change => `${file}: ${change}`));
+    }
+    if (differences.length > 0) {
+        const hidden = differences.length - maxReportedDifferences;
+        throw new Error([
+            'Generated agentic workflow files are not up to date. While a compiler update is pending, only gh-aw action pin lines may differ:',
+            ...differences.slice(0, maxReportedDifferences),
+            ...(hidden > 0 ? [`... and ${hidden} more`] : []),
+        ].join('\n'));
+    }
+    if (entries.length > 0) {
+        log('::notice::The generated workflows differ only by gh-aw action pins, which the follow-up recompile PR regenerates.');
     }
 }
 
 module.exports = {
     actionReferences, resolveVersion, synchronizeCompiler, compilerUpdatePending, detect, allowedChange,
-    checkChanges, checkCompilerUpdatePending,
+    checkChanges, checkCompilerUpdatePending, checkGeneratedDrift,
 };
 
 if (require.main === module) {
@@ -223,7 +297,10 @@ if (require.main === module) {
         case 'compiler-update-pending':
             checkCompilerUpdatePending();
             break;
+        case 'generated-drift':
+            checkGeneratedDrift();
+            break;
         default:
-            throw new Error('Expected the changes or compiler-update-pending command.');
+            throw new Error('Expected the changes, compiler-update-pending or generated-drift command.');
     }
 }

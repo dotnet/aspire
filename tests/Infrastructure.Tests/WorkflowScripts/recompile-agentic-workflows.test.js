@@ -8,7 +8,7 @@ const path = require('node:path');
 const { test } = require('node:test');
 const {
     actionReferences, resolveVersion, synchronizeCompiler, compilerUpdatePending, detect, allowedChange,
-    checkChanges, checkCompilerUpdatePending,
+    checkChanges, checkCompilerUpdatePending, checkGeneratedDrift,
 } = require('../../../.github/workflows/recompile-agentic-workflows.js');
 
 const repoRoot = path.resolve(__dirname, '../../..');
@@ -345,8 +345,156 @@ test('the compiler-update-pending command writes the step output and rejects unk
             assert.equal(log.startsWith('::notice::'), expected === 'pending=true\n');
         }
         assert.throws(() => run('unknown'),
-            error => /Expected the changes or compiler-update-pending command/.test(error.stderr));
+            error => /Expected the changes, compiler-update-pending or generated-drift command/.test(error.stderr));
     } finally {
         fs.rmSync(workspace, { recursive: true, force: true });
     }
+});
+
+const generatedLock = '.github/workflows/example.lock.yml';
+const maintenanceWorkflow = '.github/workflows/agentics-maintenance-microsoft-aspire.dev.yml';
+const actionCache = '.github/aw/actions-lock.json';
+const actionPin = (action, sha, version) => `        uses: ${action}@${sha} # ${version}`;
+const setupPin = (sha, version) => actionPin('github/gh-aw-actions/setup', sha, version);
+const workflow = (...lines) => ['jobs:', '  activation:', '    steps:', ...lines, ''].join('\n');
+
+// Commits the files the way a Dependabot PR leaves them, then rewrites the working tree the way the
+// pinned compiler regenerates them. A null entry deletes the file.
+function withGeneratedRepo(committed, regenerated, body) {
+    const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'generated-drift-'));
+    try {
+        const git = (...args) => execFileSync('git', args, { cwd: workspace, stdio: 'pipe' });
+        const write = files => {
+            for (const [file, content] of Object.entries(files)) {
+                const target = path.join(workspace, file);
+                if (content === null) {
+                    fs.rmSync(target);
+                } else {
+                    fs.mkdirSync(path.dirname(target), { recursive: true });
+                    fs.writeFileSync(target, content);
+                }
+            }
+        };
+        git('init', '--quiet');
+        // Keep the files byte-for-byte whatever line ending conversion the machine configures.
+        git('config', 'core.autocrlf', 'false');
+        write(committed);
+        git('add', '--all');
+        git('-c', 'user.name=Test', '-c', 'user.email=test@example.com', '-c', 'commit.gpgsign=false',
+            'commit', '--quiet', '--no-verify', '--message', 'Committed files');
+        write(regenerated);
+        return body(workspace);
+    } finally {
+        fs.rmSync(workspace, { recursive: true, force: true });
+    }
+}
+
+function checkDrift(committed, regenerated) {
+    const messages = [];
+    withGeneratedRepo(committed, regenerated, workspace => checkGeneratedDrift(
+        (file, args, options) => execFileSync(file, args, { ...options, cwd: workspace }),
+        message => messages.push(message)));
+    return messages;
+}
+
+function rejectedDifferences(committed, regenerated) {
+    let differences;
+    assert.throws(() => checkDrift(committed, regenerated), error => {
+        const [header, ...lines] = error.message.split('\n');
+        assert.match(header, /not up to date/);
+        differences = lines;
+        return true;
+    });
+    return differences;
+}
+
+test('generated files that match the compiler output pass without a notice', () => {
+    assert.deepEqual(checkDrift({ [generatedLock]: workflow(setupPin(newSha, 'v0.91.7')) }, {}), []);
+});
+
+test('differences in gh-aw action pin lines alone are tolerated', () => {
+    const steps = (sha, version) => [setupPin(sha, version), '        with:', '          destination: /tmp/gh-aw', setupPin(sha, version)];
+    const maintenance = (sha, version) => workflow(`      - uses: github/gh-aw-actions/setup-cli@${sha} # ${version}`);
+    const messages = checkDrift(
+        { [generatedLock]: workflow(...steps(newSha, 'v0.91.7')), [maintenanceWorkflow]: maintenance(newSha, 'v0.91.7') },
+        { [generatedLock]: workflow(...steps(oldSha, 'v0.89.17')), [maintenanceWorkflow]: maintenance(oldSha, 'v0.89.17') });
+    assert.equal(messages.length, 1);
+    assert.match(messages[0], /^::notice::/);
+});
+
+test('a grouped update that also changes another action pin is rejected', () => {
+    // These are the companion bumps of a grouped Dependabot update. Recompilation reverts them because the
+    // compiler or the agentic workflow source defines those pins, so the follow-up PR would undo the update.
+    for (const [action, version, previous] of [
+        ['actions/checkout', 'v7.0.2', 'v7.0.1'],
+        ['actions/download-artifact', 'v8.0.2', 'v8.0.1'],
+        ['actions/setup-node', 'v7.1.0', 'v7.0.0'],
+        ['actions/upload-artifact', 'v7.0.2', 'v7.0.1'],
+    ]) {
+        assert.deepEqual(rejectedDifferences(
+            { [generatedLock]: workflow(setupPin(newSha, 'v0.91.7'), actionPin(action, newSha, version)) },
+            { [generatedLock]: workflow(setupPin(oldSha, 'v0.89.17'), actionPin(action, oldSha, previous)) }),
+        [
+            `${generatedLock}: -${actionPin(action, newSha, version)}`,
+            `${generatedLock}: +${actionPin(action, oldSha, previous)}`,
+        ]);
+    }
+});
+
+test('other differences beside a gh-aw action pin are rejected', () => {
+    const committed = { [generatedLock]: workflow(setupPin(newSha, 'v0.91.7'), '      - run: echo done') };
+    const regenerated = (...lines) => ({ [generatedLock]: workflow(setupPin(oldSha, 'v0.89.17'), ...lines) });
+    assert.deepEqual(rejectedDifferences(committed, regenerated('      - run: echo changed')),
+        [`${generatedLock}: -      - run: echo done`, `${generatedLock}: +      - run: echo changed`]);
+    assert.deepEqual(rejectedDifferences(committed, regenerated('      - run: echo done', '      - run: echo more')),
+        [`${generatedLock}: +      - run: echo more`]);
+    assert.deepEqual(rejectedDifferences(committed, regenerated()), [`${generatedLock}: -      - run: echo done`]);
+    assert.deepEqual(
+        rejectedDifferences(committed, { [generatedLock]: workflow('        uses: github/gh-aw-actions/setup@main', '      - run: echo done') }),
+        [`${generatedLock}: +        uses: github/gh-aw-actions/setup@main`]);
+});
+
+test('new, deleted and action cache changes are rejected', () => {
+    const committed = {
+        [generatedLock]: workflow(setupPin(newSha, 'v0.91.7')),
+        [actionCache]: '{\n  "version": 1\n}\n',
+    };
+    assert.deepEqual(rejectedDifferences(committed, { [maintenanceWorkflow]: workflow() }), [`?? ${maintenanceWorkflow}`]);
+    assert.deepEqual(rejectedDifferences(committed, { [generatedLock]: null }), [` D ${generatedLock}`]);
+    assert.deepEqual(rejectedDifferences(committed, { [actionCache]: '{\n  "version": 2\n}\n' }),
+        [`${actionCache}: -  "version": 1`, `${actionCache}: +  "version": 2`]);
+});
+
+test('mode changes and binary files are rejected', () => {
+    const header = `diff --git a/${generatedLock} b/${generatedLock}\n`;
+    for (const [change, expected] of [
+        ['old mode 100644\nnew mode 100755\n', ['old mode 100644', 'new mode 100755']],
+        ['Binary files a/x and b/x differ\n', ['Binary files a/x and b/x differ']],
+    ]) {
+        const run = (_, args) => args[0] === 'status' ? ` M ${generatedLock}\0` : `${header}${change}`;
+        assert.throws(() => checkGeneratedDrift(run, () => { }), error => {
+            assert.deepEqual(error.message.split('\n').slice(1), expected.map(line => `${generatedLock}: ${line}`));
+            return true;
+        });
+    }
+});
+
+test('long lists of differences are capped', () => {
+    const steps = text => Array.from({ length: 25 }, (_, index) => `      - run: ${text} ${index}`);
+    const differences = rejectedDifferences(
+        { [generatedLock]: workflow(...steps('echo')) },
+        { [generatedLock]: workflow(...steps('print')) });
+    assert.equal(differences.length, 21);
+    assert.equal(differences.at(-1), '... and 30 more');
+});
+
+test('the generated-drift command checks the working tree of the current repository', () => {
+    const script = path.join(repoRoot, '.github', 'workflows', 'recompile-agentic-workflows.js');
+    const committed = { [generatedLock]: workflow(setupPin(newSha, 'v0.91.7')) };
+    const run = regenerated => withGeneratedRepo(committed, regenerated, workspace =>
+        execFileSync(process.execPath, [script, 'generated-drift'], { cwd: workspace, encoding: 'utf8', stdio: 'pipe' }));
+    assert.equal(run({}), '');
+    assert.match(run({ [generatedLock]: workflow(setupPin(oldSha, 'v0.89.17')) }), /^::notice::/);
+    assert.throws(() => run({ [generatedLock]: workflow(actionPin('actions/checkout', oldSha, 'v7.0.1')) }),
+        error => /not up to date/.test(error.stderr));
 });

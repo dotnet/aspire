@@ -98,16 +98,20 @@ README-only changes do not trigger dedicated agentic validation; new Markdown
 workflow sources still trigger it even before their generated locks exist.
 
 Dependabot bumps the pinned `github/gh-aw-actions` SHAs but not the `version` input
-that selects the installed compiler, so recompiling with that older compiler would
-revert the new action pins and report drift. For a same-repo Dependabot PR whose
-`setup-cli` pin is ahead of its `version` input, validation therefore skips
-regenerating and comparing the generated files; lint and the contract tests still
-run against the committed files. The `recompile-agentic-workflows.yml` run after the
-merge aligns both compiler inputs and opens the follow-up PR that regenerates the
-lock files, and that PR is validated strictly. Until it merges, the default branch
-carries the new pins with the old compiler, so other PRs that touch agentic inputs
-report drift: merge the follow-up PR promptly. Pull requests from anyone else are
-always validated strictly.
+that selects the installed compiler, so recompiling with that older compiler reverts
+the new gh-aw action pins. For a same-repo Dependabot PR whose `setup-cli` pin is
+ahead of its `version` input, validation therefore still compiles with the pinned
+compiler but replaces the strict drift check with one that tolerates differences in
+gh-aw action pin lines only. Any other drift fails. A grouped update that also edits
+a pin owned by the compiler or an agentic workflow source, such as `actions/checkout`
+or `actions/upload-artifact` in a generated file, would be undone by recompilation,
+so reconcile it in that PR by aligning the compiler and regenerating the files as the
+recompile workflow does. The `recompile-agentic-workflows.yml` run after the merge
+aligns both compiler inputs and opens the follow-up PR that regenerates the lock
+files, and that PR is validated strictly. Until it merges, the default branch carries
+the new pins with the old compiler, so other PRs that touch agentic inputs report
+drift: merge the follow-up PR promptly. Pull requests from anyone else are always
+validated strictly.
 
 Compile-time lint diagnostics alone are not a blocking gate. The lint command
 owns the actionlint image and compatibility exceptions; `.github/actionlint.yaml`
