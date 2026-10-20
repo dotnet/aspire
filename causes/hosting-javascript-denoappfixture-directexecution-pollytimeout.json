@@ -1,0 +1,16 @@
+{
+  "id": "hosting-javascript-denoappfixture-directexecution-pollytimeout",
+  "type": "flaky-test",
+  "title": "Flaky: DenoFunctionalTests.VerifyDenoAppDirectExecutionWorks fixture InitializeAsync times out after 2 minutes via Polly.Timeout",
+  "test_name": "Aspire.Hosting.JavaScript.Tests.DenoFunctionalTests.VerifyDenoAppDirectExecutionWorks",
+  "error_pattern": "Class fixture type 'Aspire.Hosting.JavaScript.Tests.DenoAppFixture' threw in InitializeAsync\n---- Polly.Timeout.TimeoutRejectedException : The operation didn't complete within the allowed timeout of '00:02:00'.\n-------- System.OperationCanceledException : A task was canceled.\n   at Aspire.Hosting.Dcp.KubernetesService.<>c__DisplayClass20_0`1.<<CreateAsync>b__0>d.MoveNext() in KubernetesService.cs:line 183",
+  "occurrences": [
+    {
+      "run_id": 39366740926,
+      "run_url": "https://github.com/microsoft/aspire/actions/runs/39366740926",
+      "job": "Tests / No-package tests (regular, Aspire.Hosting.JavaScript.Tests, Hosting.JavaScript, Hosting.JavaScrip... / Hosting.JavaScript (windows-latest)",
+      "pr_number": 0,
+      "observed_at": "2026-10-20T05:00:35Z"
+    }
+  ]
+}
