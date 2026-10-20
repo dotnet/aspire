@@ -1,0 +1,89 @@
+{
+  "run_id": 39374723384,
+  "run_attempt": 1,
+  "run_url": "https://github.com/microsoft/aspire/actions/runs/39374723384",
+  "run_scope": "main",
+  "analyzed_at": "2026-10-20T06:09:25Z",
+  "verdict": "mixed",
+  "pr": null,
+  "triggering_merge_pr": null,
+  "main_context": {
+    "last_successful_main_sha": "88ff9ba57c2841cce759adffa849373f9406b0f5",
+    "failed_sha": "230d5ac2a8b2c76e65e139985c695e188c111ad6",
+    "candidate_merge_history_state": "incomplete",
+    "candidate_merges": null
+  },
+  "failed_jobs": [
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (macos-latest)",
+      "id": 118470777858,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39374723384/job/118470777858",
+      "classification": "flaky-test",
+      "reason": "Aspire.Cli.Tests.Commands.AgentInitCommandTests.AgentInitCommand_GlobalScope_InstallsTelemetryHook_ForSelectedDetectedEnvironment timed out after 30000ms, then the test host hung for ~10 minutes before being killed (exit 137); 6018/6019 other tests passed.",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (ubuntu-latest)",
+      "id": 118470779619,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39374723384/job/118470779619",
+      "classification": "flaky-test",
+      "reason": "Aspire.Cli.Tests.NuGet.NuGetPackagePrefetcherTests.PrefetchingCancellationDueToShutdownLogsCleanMessage timed out after 30000ms; matches a previously tracked recurring flaky-test cause (9 prior occurrences).",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / TypeScript SDK Validation (Node 22.x)",
+      "id": 118473458523,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39374723384/job/118473458523",
+      "classification": "main-repository-breakage",
+      "reason": "All 59 TypeScript validation AppHosts passed, then the Nuxt integration test's generated Docker publish build deterministically fails (exit code 1); matches a previously tracked recurring main-repository-breakage cause with 49 prior occurrences.",
+      "failed_steps": [
+        "Run TypeScript SDK validation"
+      ]
+    },
+    {
+      "name": "Tests / Polyglot SDK Validation / Polyglot Validation Results",
+      "id": 118476345845,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39374723384/job/118476345845",
+      "classification": "main-repository-breakage",
+      "reason": "This aggregation job fails solely because the TypeScript SDK Validation job it depends on failed; Python, Go, Java all succeeded.",
+      "failed_steps": [
+        "Check validation results"
+      ]
+    }
+  ],
+  "failed_tests": [
+    {
+      "name": "Aspire.Cli.Tests.NuGet.NuGetPackagePrefetcherTests.PrefetchingCancellationDueToShutdownLogsCleanMessage",
+      "job": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (ubuntu-latest)",
+      "error": "System.TimeoutException : The operation at /home/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/NuGet/NuGetPackagePrefetcherTests.cs:175 timed out after reaching the limit of 30000ms.",
+      "stack_trace": "at Microsoft.AspNetCore.InternalTesting.AsyncTestHelpers.TimeoutAfter(Task task, TimeSpan timeout, String filePath, Int32 lineNumber) in /home/runner/work/aspire/aspire/tests/Shared/AsyncTestHelpers.cs:line 201\n   at Aspire.Cli.Tests.NuGet.NuGetPackagePrefetcherTests.PrefetchingCancellationDueToShutdownLogsCleanMessage() in /home/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/NuGet/NuGetPackagePrefetcherTests.cs:line 175\n--- End of stack trace from previous location ---",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Matches a previously tracked recurring 30s timeout on this exact test (9 prior occurrences); timing-sensitive cancellation test, not caused by any main-branch code change evidence."
+    },
+    {
+      "name": "Aspire.Cli.Tests.Commands.AgentInitCommandTests.AgentInitCommand_GlobalScope_InstallsTelemetryHook_ForSelectedDetectedEnvironment(environmentName: \"CopilotApp\", displayName: \"GitHub Copilot App\")",
+      "job": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (macos-latest)",
+      "error": "System.TimeoutException : The operation at /Users/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/Commands/AgentInitCommandTests.cs:981 timed out after reaching the limit of 30000ms.",
+      "stack_trace": "at Microsoft.AspNetCore.InternalTesting.AsyncTestHelpers.TimeoutAfter[T](Task`1 task, TimeSpan timeout, String filePath, Int32 lineNumber) in /Users/runner/work/aspire/aspire/tests/Shared/AsyncTestHelpers.cs:line 180\n   at Aspire.Cli.Tests.Commands.AgentInitCommandTests.AgentInitCommand_GlobalScope_InstallsTelemetryHook_ForSelectedDetectedEnvironment(String environmentName, String displayName) in /Users/runner/work/aspire/aspire/tests/Aspire.Cli.Tests/Commands/AgentInitCommandTests.cs:line 981\n--- End of stack trace from previous location ---",
+      "standard_output": "Temporary workspace created at: /var/folders/n6/hn37q6pj7sj_9dmqqc2113800000gn/T/Aspire.Cli.Tests/Workspace/d5ilym40.0vj\n| [2026-10-20T05:30:31] Aspire.Cli.Configuration.Features Trace: Feature check: stagingChannelEnabled, ConfigKey: features:stagingChannelEnabled, Value: '(null)', DefaultValue: False\n| [2026-10-20T05:30:31] Aspire.Cli.Configuration.Features Trace: Feature stagingChannelEnabled using default value: False\n| [2026-10-20T05:30:31] Aspire.Cli.Configuration.Features Trace: Feature check: showAllTemplates, ConfigKey: features:showAllTemplates, Value: '(null)', DefaultValue: False\n| [2026-10-20T05:30:31] Aspire.Cli.Configuration.Features Trace: Feature showAllTemplates using default value: False\n| [2026-10-20T05:30:31] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotPython, ConfigKey: features:experimentalPolyglotPython, Value: '(null)', DefaultValue: False\n| [2026-10-20T05:30:31] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotPython using default value: False\n| [2026-10-20T05:30:31] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotGo, ConfigKey: features:experimentalPolyglotGo, Value: '(null)', DefaultValue: False\n| [2026-10-20T05:30:31] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotGo using default value: False\n| [2026-10-20T05:30:31] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotJava, ConfigKey: features:experimentalPolyglotJava, Value: '(null)', DefaultValue: False\n| [2026-10-20T05:30:31] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotJava using default value: False\n| [2026-10-20T05:30:31] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotRust, ConfigKey: features:experimentalPolyglotRust, Value: '(null)', DefaultValue: False\n| [2026-10-20T05:30:31] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotRust using default value: False\n| [2026-10-20T05:30:31] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotPython, ConfigKey: features:experimentalPolyglotPython, Value: '(null)', DefaultValue: False\n| [2026-10-20T05:30:31] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotPython using default value: False\n| [2026-10-20T05:30:31] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotJava, ConfigKey: features:experimentalPolyglotJava, Value: '(null)', DefaultValue: False\n| [2026-10-20T05:30:31] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotJava using default value: False\n| [2026-10-20T05:30:31] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotGo, ConfigKey: features:experimentalPolyglotGo, Value: '(null)', DefaultValue: False\n| [2026-10-20T05:30:31] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotGo using default value: False\n| [2026-10-20T05:30:31] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotRust, ConfigKey: features:experimentalPolyglotRust, Value: '(null)', DefaultValue: False\n| [2026-10-20T05:30:31] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotRust using default value: False\n| [2026-10-20T05:30:31] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotGo, ConfigKey: features:experimentalPolyglotGo, Value: '(null)', DefaultValue: False\n| [2026-10-20T05:30:31] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotGo using default value: False\n| [2026-10-20T05:30:31] Aspire.Cli.Configuration.Features Trace: Feature check: experimentalPolyglotJava, ConfigKey: features:experimentalPolyglotJava, Value: '(null)', DefaultValue: False\n| [2026-10-20T05:30:31] Aspire.Cli.Configuration.Features Trace: Feature experimentalPolyglotJava using default value: False\n| [2026-10-20T05:30:31] Aspire.Cli.Configuration.Features Trace: Feature check: stagingChannelEnabled, ConfigKey: features:stagingChannelEnabled, Valu",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Isolated 30s timeout in a telemetry-hook install test on macOS, with the surrounding 6018 tests passing; consistent with other known macOS CPU-contention timeouts in AgentInitCommandTests, and the subsequent host hang/kill (exit 137) further indicates a timing/environment issue rather than a code regression."
+    }
+  ],
+  "causes": [
+    "cli-nuget-prefetcher-shutdown-timeout",
+    "aspire-cli-tests-agentinitcommandtests-installstelemetryhook-globalscope-macos-timeout",
+    "typescript-sdk-nuxt-integration-npm-ci-docker-build-failure"
+  ]
+}
