@@ -31,7 +31,6 @@ internal static class KnownFeatures
     public static string ShowAllTemplates => "showAllTemplates";
     public static string ExperimentalPolyglotRust => "experimentalPolyglotRust";
     public static string ExperimentalPolyglotJava => "experimentalPolyglotJava";
-    public static string ExperimentalPolyglotGo => "experimentalPolyglotGo";
     public static string ExperimentalPolyglotPython => "experimentalPolyglotPython";
     public static string ExperimentalHostingIntegrations => "experimentalHostingIntegrations";
     public static string NuGetSignatureVerificationEnabled => "nugetSignatureVerificationEnabled";
@@ -73,11 +72,6 @@ internal static class KnownFeatures
         [ExperimentalPolyglotJava] = new(
             ExperimentalPolyglotJava,
             "Enable or disable experimental Java language support for polyglot Aspire applications",
-            DefaultValue: false),
-
-        [ExperimentalPolyglotGo] = new(
-            ExperimentalPolyglotGo,
-            "Enable or disable experimental Go language support for polyglot Aspire applications",
             DefaultValue: false),
 
         [ExperimentalPolyglotPython] = new(
