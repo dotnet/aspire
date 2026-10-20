@@ -11,10 +11,6 @@ namespace Aspire.Hosting.CodeGeneration.Go.Tests;
 
 public class GoScaffoldTests(ITestOutputHelper outputHelper)
 {
-    // Windows hands out ports from 49152 up to outgoing connections, so a launch-profile port picked in that
-    // range can already be in use when the AppHost starts.
-    private const int WindowsEphemeralPortMin = 49152;
-
     private readonly GoLanguageSupport _languageSupport = new();
 
     [Fact]
@@ -27,6 +23,18 @@ public class GoScaffoldTests(ITestOutputHelper outputHelper)
         Assert.Equal(
             [".gitignore", "apphost.go", "apphost.run.json", "go.mod"],
             files.Keys.Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void Scaffold_WritesFilesWithLfLineEndings()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var files = Scaffold(workspace);
+
+        // The scaffold is built from raw string literals, which take the line endings of the source file (CRLF in a
+        // Windows checkout), while gofmt reports CRLF as a formatting difference.
+        Assert.Empty(files.Where(file => file.Value.Contains('\r')).Select(file => file.Key));
     }
 
     [Fact]
@@ -164,7 +172,10 @@ public class GoScaffoldTests(ITestOutputHelper outputHelper)
 
         foreach (var starterFile in starterFiles)
         {
-            WriteGoFile(workspace.Path, Path.Combine("go-starter", Path.GetRelativePath(starterRoot, starterFile)), File.ReadAllText(starterFile));
+            // The go-starter sources are embedded resources whose line endings follow the checkout (CRLF on Windows
+            // with autocrlf), and gofmt reports CRLF as a formatting difference, so they are checked as LF.
+            var content = File.ReadAllText(starterFile).ReplaceLineEndings("\n");
+            WriteGoFile(workspace.Path, Path.Combine("go-starter", Path.GetRelativePath(starterRoot, starterFile)), content);
         }
 
         var gofmtOutput = await RunGofmtAsync(workspace.Path);
@@ -199,19 +210,16 @@ public class GoScaffoldTests(ITestOutputHelper outputHelper)
 
     private static void AssertPortInRange(int port, int minInclusive, int maxExclusive)
     {
+        // Every shared range lies below 49152, where Windows starts handing out ports to outgoing connections,
+        // so a port in range cannot clash with one of those.
         Assert.InRange(port, minInclusive, maxExclusive - 1);
-        Assert.True(port < WindowsEphemeralPortMin, $"Expected port {port} to be below the Windows ephemeral range.");
     }
 
     private static void WriteGoFile(string root, string relativePath, string content)
     {
         var path = Path.Combine(root, relativePath);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-
-        // gofmt reports CRLF as a formatting difference. The scaffold is a C# raw string and the starter is a
-        // checked-in file, so both carry the line endings of the checkout (CRLF on Windows with autocrlf)
-        // even though the repository stores LF.
-        File.WriteAllText(path, content.ReplaceLineEndings("\n"));
+        File.WriteAllText(path, content);
     }
 
     // `gofmt -l -d` prints the name and the diff of every file whose formatting differs and nothing otherwise.

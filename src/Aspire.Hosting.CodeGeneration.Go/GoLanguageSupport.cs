@@ -110,7 +110,8 @@ internal sealed class GoLanguageSupport : ILanguageSupport
             }
             """;
 
-        return files;
+        // The literals above take the line endings of this source file (CRLF in a Windows checkout), and gofmt requires LF.
+        return files.ToDictionary(file => file.Key, file => file.Value.ReplaceLineEndings("\n"));
     }
 
     /// <inheritdoc />
