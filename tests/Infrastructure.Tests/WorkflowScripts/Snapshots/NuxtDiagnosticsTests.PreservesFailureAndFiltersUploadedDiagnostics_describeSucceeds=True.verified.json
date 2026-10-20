@@ -1,0 +1,22 @@
+﻿{
+  "resources": [
+    {
+      "name": "api",
+      "displayName": "API",
+      "resourceType": "Executable",
+      "state": "Running",
+      "exitCode": null,
+      "healthStatus": "Healthy",
+      "source": "server.mjs"
+    },
+    {
+      "name": "web-installer",
+      "displayName": "Web installer",
+      "resourceType": "Executable",
+      "state": "Exited",
+      "exitCode": 1,
+      "healthStatus": "Unhealthy",
+      "source": "npm"
+    }
+  ]
+}
