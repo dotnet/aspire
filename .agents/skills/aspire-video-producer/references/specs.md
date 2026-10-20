@@ -117,8 +117,9 @@ All assets ship with the skill, in `assets/`, so it works outside the aspire.dev
 | `en-US-EmmaMultilingualNeural` | Female, cheerful and clear |
 | `en-US-JennyNeural` | Female, friendly and considerate |
 
-  Any other voice of the Voice Gallery (https://speech.microsoft.com/portal/voicegallery) works, except the "HD"
-  ones, which the free Edge voice service doesn't offer. Keep one voice across the videos of a series.
+  Another voice works only if the free Edge voice service offers it: list them with `python scripts/voices.py
+  --list en-` (or another language prefix). The Azure Voice Gallery has more voices, which the service rejects, such
+  as `en-US-PhoebeMultilingualNeural`. Keep one voice across the videos of a series.
 - Every voice at `+2%` rate, through the `msedge-tts` npm package (`scripts/tts.mjs`), as a 24 kHz 48 kbps mono mp3.
 - Pronunciation fixes in `SPOKEN` (`scripts/narrate.py`), such as "ASP.NET" spoken as "A.S.P. .NET". The
   captions keep the written form.

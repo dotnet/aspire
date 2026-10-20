@@ -70,7 +70,9 @@ question tool when the session has one), unless they already said:
    there is no vertical or 4K rendition.
 2. **Voice**: the shortlist of "Voice" in `references/specs.md`, Andrew (the default) first. Offer a sample before
    they choose: `python <skill>/scripts/voices.py <workspace>/voices.mp4` reads one line in each voice of the
-   shortlist (or in the voices given), on cards that name them. Send it, and use the voice they pick.
+   shortlist (or in the voices given), on cards that name them. Send it, and use the voice they pick. For another
+   voice or language, pick from `python <skill>/scripts/voices.py --list <prefix>` (such as `es-`): only the voices
+   it lists work.
 3. **Chapter cards**: a card between sections ("Chapter 2, The resources"), or none, for a quicker video. Recommend
    cards for overviews of 3 minutes or more, none for short videos and pull request demos.
 

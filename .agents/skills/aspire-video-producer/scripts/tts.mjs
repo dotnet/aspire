@@ -2,8 +2,10 @@
 // narrate.py and pronounce.py call it; they hold the voice and the rate of every video (see references/specs.md).
 //
 // Usage: node tts.mjs <voice> <rate> <output.mp3> [--words] < text
+//        node tts.mjs --voices
 //
 // --words prints the words the voice speaks, as a JSON array, for pronounce.py.
+// --voices prints the voices the service offers, as JSON, for voices.py --list: only these work.
 // msedge-tts is installed from the public npm registry in ~/.venvs/aspire-video/node (see SKILL.md), or in the
 // folder named by ASPIRE_VIDEO_NODE.
 import { createRequire } from "node:module";
@@ -13,6 +15,16 @@ import { join } from "node:path";
 
 const folder = process.env.ASPIRE_VIDEO_NODE ?? join(homedir(), ".venvs", "aspire-video", "node");
 const { MsEdgeTTS, OUTPUT_FORMAT } = createRequire(join(folder, "package.json"))("msedge-tts");
+
+if (process.argv[2] === "--voices") {
+  const voices = await new MsEdgeTTS().getVoices();
+  console.log(JSON.stringify(voices.map((v) => ({
+    name: v.ShortName,
+    gender: v.Gender,
+    personalities: v.VoiceTag?.VoicePersonalities ?? [],
+  }))));
+  process.exit(0);
+}
 
 const [voice, rate, output, ...flags] = process.argv.slice(2);
 const words = flags.includes("--words");

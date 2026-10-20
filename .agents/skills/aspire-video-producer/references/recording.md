@@ -6,7 +6,7 @@ Record a throwaway sample app, never an app with real data or real cloud resourc
 
 - Create it in the workspace with the Aspire CLI, from the starter template unless the subject needs another:
   `aspire new aspire-starter --name VideoDemo --output <workspace>/app --use-redis-cache --test-framework None
-  --localhost-tld false --suppress-agent-init --skill-locations none --non-interactive`. Its resources are
+  --localhost-tld false --suppress-agent-init --non-interactive`. Its resources are
   `apiservice`, `webfrontend` and, with `--use-redis-cache`, `cache`. Add the integrations the subject needs to its
   AppHost. The project resources keep the ports of their own `launchSettings.json` between runs, but the template
   picks the web frontend's HTTPS port at random (7000 to 7300): pin it, so the commands below reach it. In
@@ -54,7 +54,7 @@ re-record everything, stop the app, remove its containers and volumes, and start
 ## The recorder
 
 `scripts/recorder` is a Playwright for .NET console app. Copy it into the workspace, add your clips to `Scenes.cs`,
-and build it there (its output goes to a short temp path, as Playwright's files exceed `MAX_PATH` under deep folders
+and build it there (its output goes to a short path in the user's profile, `~/.aspire-video/recorder/<hash>/bin`, as Playwright's files exceed `MAX_PATH` under deep folders
 on Windows).
 
 ```bash

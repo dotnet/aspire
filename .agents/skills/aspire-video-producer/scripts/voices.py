@@ -2,15 +2,16 @@
 names the voice. A person listens to it and picks the narrator before any narration is generated.
 
 Usage: python voices.py <output.mp4> ["<line>"] [<voice>...]
+       python voices.py --list [<language prefix, such as en- or es-ES>]
 
 Without a line, it reads a line about Aspire; without voices, it uses VOICES, the shortlist of references/specs.md.
-The rate is the rate of every video (see narrate.py). Browse and hear every voice in the Voice Gallery,
-https://speech.microsoft.com/portal/voicegallery (only the voices without "HD" in their name work with the free
-Edge voice service), or list them on https://learn.microsoft.com/azure/ai-services/speech-service/language-support?tabs=tts
+The rate is the rate of every video (see narrate.py). --list prints the voices the free Edge voice service offers:
+only these work. The Azure Voice Gallery has more, which the service rejects, such as en-US-PhoebeMultilingualNeural.
 
 Example:
     python voices.py voices.mp4 "The dashboard shows every resource of your app." en-US-AndrewMultilingualNeural en-US-AvaMultilingualNeural
 """
+import json
 import subprocess
 import sys
 import tempfile
@@ -19,7 +20,7 @@ from pathlib import Path
 import imageio_ffmpeg
 
 import brand
-from narrate import RATE, VOICE, speak
+from narrate import RATE, TTS, VOICE, speak
 
 FFMPEG = imageio_ffmpeg.get_ffmpeg_exe()
 
@@ -44,12 +45,30 @@ def name(voice):
     return f"{short.removesuffix('Multilingual')} ({'multilingual, ' if multilingual else ''}{language})"
 
 
+def available(prefix=""):
+    """The voices the Edge voice service offers: (name, gender, personalities), whose name starts with prefix."""
+    result = subprocess.run(["node", str(TTS), "--voices"], capture_output=True, text=True, encoding="utf-8")
+    if result.returncode != 0:
+        raise SystemExit(f"Can't list the voices: {result.stderr.strip()[-600:]}")
+    return [(v["name"], v["gender"], ", ".join(v["personalities"])) for v in json.loads(result.stdout)
+            if v["name"].startswith(prefix)]
+
+
 def main():
+    if sys.argv[1] == "--list":
+        for voice, gender, personalities in available(sys.argv[2] if len(sys.argv) > 2 else ""):
+            print(f"{voice:<36} {gender:<7} {personalities}")
+        return
+
     output = Path(sys.argv[1]).resolve()
     rest = sys.argv[2:]
     line = rest.pop(0) if rest and "Neural" not in rest[0] else LINE
     descriptions = dict(VOICES)
     voices = rest or [voice for voice, _ in VOICES]
+    offered = {voice for voice, _, _ in available()}
+    missing = [voice for voice in voices if voice not in offered]
+    if missing:
+        raise SystemExit(f"The Edge voice service doesn't offer {missing}: pick from python voices.py --list")
 
     with tempfile.TemporaryDirectory() as temp:
         directory = Path(temp)

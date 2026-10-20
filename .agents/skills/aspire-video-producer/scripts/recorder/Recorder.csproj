@@ -6,10 +6,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
-    <!-- The Playwright driver files exceed MAX_PATH under deep folders on Windows: build into a short path. The hash of
-         the project folder keeps the recorders of different workspaces apart. "dotnet build" prints the path:
-         "Recorder -> <bin>/Recorder.dll". -->
-    <BaseOutputPath>$([System.IO.Path]::Combine($([System.IO.Path]::GetTempPath()), 'aspirevideo', $([MSBuild]::StableStringHash($(MSBuildProjectDirectory)).ToString('x8')), 'bin'))$([System.IO.Path]::DirectorySeparatorChar)</BaseOutputPath>
+    <!-- The Playwright driver files exceed MAX_PATH under deep folders on Windows: build into a short path, in the
+         user's own profile (a shared temporary folder, such as /tmp, would let other users replace what runs). The
+         hash of the project folder keeps the recorders of different workspaces apart. "dotnet build" prints the
+         path: "Recorder -> <bin>/Recorder.dll". -->
+    <BaseOutputPath>$([System.IO.Path]::Combine($([System.Environment]::GetFolderPath(SpecialFolder.UserProfile)), '.aspire-video', 'recorder', $([MSBuild]::StableStringHash($(MSBuildProjectDirectory)).ToString('x8')), 'bin'))$([System.IO.Path]::DirectorySeparatorChar)</BaseOutputPath>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Playwright" Version="1.62.0" />
