@@ -10076,7 +10076,6 @@ type DistributedApplicationBuilder interface {
 	AddExecutable(name string, command string, workingDirectory string, args []string) ExecutableResource
 	AddExternalService(name string, url any) ExternalServiceResource
 	AddHealthCheck(name string, check func(...any) *HealthCheckResult) error
-	AddLaunchGroups(launchGroupNames []string) DistributedApplicationBuilder
 	AddParameter(name string, options ...*AddParameterOptions) ParameterResource
 	AddParameterFromConfiguration(name string, configurationKey string, options ...*AddParameterFromConfigurationOptions) ParameterResource
 	AddParameterWithGeneratedValue(name string, value *GenerateParameterDefault, options ...*AddParameterWithGeneratedValueOptions) ParameterResource
@@ -10084,6 +10083,7 @@ type DistributedApplicationBuilder interface {
 	AddTestRedis(name string, options ...*AddTestRedisOptions) TestRedisResource
 	AddTestVault(name string) TestVaultResource
 	AppHostDirectory() (string, error)
+	DefineLaunchGroups(launchGroupNames []string) DistributedApplicationBuilder
 	Environment() HostEnvironment
 	Eventing() DistributedApplicationEventing
 	ExecutionContext() DistributedApplicationExecutionContext
@@ -10434,18 +10434,6 @@ func (s *distributedApplicationBuilder) AddHealthCheck(name string, check func(.
 	return err
 }
 
-// AddLaunchGroups adds launch group support and optionally declares the valid launch group names.
-func (s *distributedApplicationBuilder) AddLaunchGroups(launchGroupNames []string) DistributedApplicationBuilder {
-	if s.err != nil { return s }
-	ctx := context.Background()
-	reqArgs := map[string]any{
-		"builder": s.handle.ToJSON(),
-	}
-	if launchGroupNames != nil { reqArgs["launchGroupNames"] = serializeValue(launchGroupNames) }
-	if _, err := s.client.invokeCapability(ctx, "Aspire.Hosting/addLaunchGroups", reqArgs); err != nil { s.setErr(err) }
-	return s
-}
-
 // AddParameter adds a parameter resource
 func (s *distributedApplicationBuilder) AddParameter(name string, options ...*AddParameterOptions) ParameterResource {
 	if s.err != nil { return &parameterResource{resourceBuilderBase: newErroredResourceBuilder(s.err, s.client)} }
@@ -10615,6 +10603,18 @@ func (s *distributedApplicationBuilder) AppHostDirectory() (string, error) {
 		return zero, err
 	}
 	return decodeAs[string](result)
+}
+
+// DefineLaunchGroups defines the valid launch group names.
+func (s *distributedApplicationBuilder) DefineLaunchGroups(launchGroupNames []string) DistributedApplicationBuilder {
+	if s.err != nil { return s }
+	ctx := context.Background()
+	reqArgs := map[string]any{
+		"builder": s.handle.ToJSON(),
+	}
+	if launchGroupNames != nil { reqArgs["launchGroupNames"] = serializeValue(launchGroupNames) }
+	if _, err := s.client.invokeCapability(ctx, "Aspire.Hosting/defineLaunchGroups", reqArgs); err != nil { s.setErr(err) }
+	return s
 }
 
 // Environment gets the Environment property

@@ -902,6 +902,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             ValidateResourceName(resource);
         }
 
+        // Check after application code has configured the builder, while services can still be registered.
+        if (ExecutionContext.IsRunMode &&
+            Configuration.GetSection(LaunchGroupsOptions.ConfigurationSectionName).Exists())
+        {
+            LaunchGroupExtensions.EnsureSupport(this);
+        }
+
         var application = new DistributedApplication(_innerBuilder.Build());
 
         _executionContextOptions.Services = application.Services.GetRequiredService<IServiceProvider>();

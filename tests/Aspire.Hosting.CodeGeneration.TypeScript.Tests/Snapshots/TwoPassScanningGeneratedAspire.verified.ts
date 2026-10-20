@@ -9828,18 +9828,22 @@ export interface DistributedApplicationBuilder {
     /** Adds an external service resource */
     addExternalService(name: string, url: string | ParameterResource | Awaitable<ParameterResource>): ExternalServiceResourcePromise;
     /**
-     * Adds launch group support and optionally declares the valid launch group names.
+     * Defines the valid launch group names.
      *
-     * Select one group using the `LaunchGroup` configuration setting, for example an environment
-     * variable in an AppHost launch profile or `dotnet run -- LaunchGroup=catalog`.
-     * Names are case-insensitive. If no valid names are declared, resource membership defines the valid names.
+     * Select one group using the `Aspire:LaunchGroup` configuration setting, for example the
+     * `Aspire__LaunchGroup` environment variable in an AppHost launch profile or
+     * `dotnet run -- Aspire:LaunchGroup=catalog`.
+     * Names are case-insensitive. Calling this method is optional: defining groups in `Aspire:LaunchGroups`
+     * configuration or configuring resource membership with `WithLaunchGroup` or `WithLaunchGroups`
+     * also enables launch group support. Without explicit definitions in code or configuration,
+     * resource membership defines the valid names.
      * Without a selection, the full application runs normally. With a selection, ungrouped resources,
      * group members, and their dependencies start normally; other resources remain available for explicit
      * starts. Existing explicit-start settings are preserved. Launch groups do not affect publishing.
-     * @param launchGroupNames The valid group names, combined with the `LaunchGroups` configuration array.
+     * @param launchGroupNames One or more valid group names, combined with the `Aspire:LaunchGroups` configuration array.
      * @returns The application builder.
      */
-    addLaunchGroups(launchGroupNames: string[]): DistributedApplicationBuilderPromise;
+    defineLaunchGroups(launchGroupNames: string[]): DistributedApplicationBuilderPromise;
     /**
      * Adds a parameter resource
      * @param options Additional options.
@@ -10057,18 +10061,22 @@ export interface DistributedApplicationBuilderPromise extends PromiseLike<Distri
     /** Adds an external service resource */
     addExternalService(name: string, url: string | ParameterResource | Awaitable<ParameterResource>): ExternalServiceResourcePromise;
     /**
-     * Adds launch group support and optionally declares the valid launch group names.
+     * Defines the valid launch group names.
      *
-     * Select one group using the `LaunchGroup` configuration setting, for example an environment
-     * variable in an AppHost launch profile or `dotnet run -- LaunchGroup=catalog`.
-     * Names are case-insensitive. If no valid names are declared, resource membership defines the valid names.
+     * Select one group using the `Aspire:LaunchGroup` configuration setting, for example the
+     * `Aspire__LaunchGroup` environment variable in an AppHost launch profile or
+     * `dotnet run -- Aspire:LaunchGroup=catalog`.
+     * Names are case-insensitive. Calling this method is optional: defining groups in `Aspire:LaunchGroups`
+     * configuration or configuring resource membership with `WithLaunchGroup` or `WithLaunchGroups`
+     * also enables launch group support. Without explicit definitions in code or configuration,
+     * resource membership defines the valid names.
      * Without a selection, the full application runs normally. With a selection, ungrouped resources,
      * group members, and their dependencies start normally; other resources remain available for explicit
      * starts. Existing explicit-start settings are preserved. Launch groups do not affect publishing.
-     * @param launchGroupNames The valid group names, combined with the `LaunchGroups` configuration array.
+     * @param launchGroupNames One or more valid group names, combined with the `Aspire:LaunchGroups` configuration array.
      * @returns The application builder.
      */
-    addLaunchGroups(launchGroupNames: string[]): DistributedApplicationBuilderPromise;
+    defineLaunchGroups(launchGroupNames: string[]): DistributedApplicationBuilderPromise;
     /**
      * Adds a parameter resource
      * @param options Additional options.
@@ -10472,29 +10480,33 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
     }
 
     /** @internal */
-    async _addLaunchGroupsInternal(launchGroupNames: string[]): Promise<DistributedApplicationBuilder> {
+    async _defineLaunchGroupsInternal(launchGroupNames: string[]): Promise<DistributedApplicationBuilder> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, launchGroupNames };
         const result = await this._client.invokeCapability<IDistributedApplicationBuilderHandle>(
-            'Aspire.Hosting/addLaunchGroups',
+            'Aspire.Hosting/defineLaunchGroups',
             rpcArgs
         );
         return new DistributedApplicationBuilderImpl(result, this._client);
     }
 
     /**
-     * Adds launch group support and optionally declares the valid launch group names.
+     * Defines the valid launch group names.
      *
-     * Select one group using the `LaunchGroup` configuration setting, for example an environment
-     * variable in an AppHost launch profile or `dotnet run -- LaunchGroup=catalog`.
-     * Names are case-insensitive. If no valid names are declared, resource membership defines the valid names.
+     * Select one group using the `Aspire:LaunchGroup` configuration setting, for example the
+     * `Aspire__LaunchGroup` environment variable in an AppHost launch profile or
+     * `dotnet run -- Aspire:LaunchGroup=catalog`.
+     * Names are case-insensitive. Calling this method is optional: defining groups in `Aspire:LaunchGroups`
+     * configuration or configuring resource membership with `WithLaunchGroup` or `WithLaunchGroups`
+     * also enables launch group support. Without explicit definitions in code or configuration,
+     * resource membership defines the valid names.
      * Without a selection, the full application runs normally. With a selection, ungrouped resources,
      * group members, and their dependencies start normally; other resources remain available for explicit
      * starts. Existing explicit-start settings are preserved. Launch groups do not affect publishing.
-     * @param launchGroupNames The valid group names, combined with the `LaunchGroups` configuration array.
+     * @param launchGroupNames One or more valid group names, combined with the `Aspire:LaunchGroups` configuration array.
      * @returns The application builder.
      */
-    addLaunchGroups(launchGroupNames: string[]): DistributedApplicationBuilderPromise {
-        return new DistributedApplicationBuilderPromiseImpl(this._addLaunchGroupsInternal(launchGroupNames), this._client);
+    defineLaunchGroups(launchGroupNames: string[]): DistributedApplicationBuilderPromise {
+        return new DistributedApplicationBuilderPromiseImpl(this._defineLaunchGroupsInternal(launchGroupNames), this._client);
     }
 
     /** @internal */
@@ -10874,7 +10886,7 @@ const DistributedApplicationBuilderPromiseImpl = $aspireCreateFluentPromiseClass
     ["addDotnetTool"]: () => DotnetToolResourcePromiseImpl,
     ["addExecutable"]: () => ExecutableResourcePromiseImpl,
     ["addExternalService"]: () => ExternalServiceResourcePromiseImpl,
-    ["addLaunchGroups"]: () => DistributedApplicationBuilderPromiseImpl,
+    ["defineLaunchGroups"]: () => DistributedApplicationBuilderPromiseImpl,
     ["addParameter"]: () => ParameterResourcePromiseImpl,
     ["addParameterFromConfiguration"]: () => ParameterResourcePromiseImpl,
     ["addParameterWithGeneratedValue"]: () => ParameterResourcePromiseImpl,
@@ -13049,7 +13061,7 @@ export interface ContainerRegistryResource {
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -13407,7 +13419,7 @@ export interface ContainerRegistryResourcePromise extends PromiseLike<ContainerR
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -13814,7 +13826,7 @@ class ContainerRegistryResourceImpl extends ResourceBuilderBase<ContainerRegistr
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -15381,7 +15393,7 @@ export interface ContainerResource {
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -16235,7 +16247,7 @@ export interface ContainerResourcePromise extends PromiseLike<ContainerResource>
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -17437,7 +17449,7 @@ class ContainerResourceImpl extends ResourceBuilderBase<ContainerResourceHandle>
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -19899,7 +19911,7 @@ export interface CSharpAppResource {
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -20593,7 +20605,7 @@ export interface CSharpAppResourcePromise extends PromiseLike<CSharpAppResource>
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -21336,7 +21348,7 @@ class CSharpAppResourceImpl extends ResourceBuilderBase<CSharpAppResourceHandle>
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -23921,7 +23933,7 @@ export interface DotnetToolResource {
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -24651,7 +24663,7 @@ export interface DotnetToolResourcePromise extends PromiseLike<DotnetToolResourc
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -25552,7 +25564,7 @@ class DotnetToolResourceImpl extends ResourceBuilderBase<DotnetToolResourceHandl
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -28029,7 +28041,7 @@ export interface ExecutableResource {
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -28720,7 +28732,7 @@ export interface ExecutableResourcePromise extends PromiseLike<ExecutableResourc
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -29511,7 +29523,7 @@ class ExecutableResourceImpl extends ResourceBuilderBase<ExecutableResourceHandl
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -31958,7 +31970,7 @@ export interface ExternalServiceResource {
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -32321,7 +32333,7 @@ export interface ExternalServiceResourcePromise extends PromiseLike<ExternalServ
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -32752,7 +32764,7 @@ class ExternalServiceResourceImpl extends ResourceBuilderBase<ExternalServiceRes
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -34140,7 +34152,7 @@ export interface ParameterResource {
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -34545,7 +34557,7 @@ export interface ParameterResourcePromise extends PromiseLike<ParameterResource>
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -35000,7 +35012,7 @@ class ParameterResourceImpl extends ResourceBuilderBase<ParameterResourceHandle>
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -36514,7 +36526,7 @@ export interface ProjectResource {
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -37208,7 +37220,7 @@ export interface ProjectResourcePromise extends PromiseLike<ProjectResource> {
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -37952,7 +37964,7 @@ class ProjectResourceImpl extends ResourceBuilderBase<ProjectResourceHandle> imp
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -40656,7 +40668,7 @@ export interface TestDatabaseResource {
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -41510,7 +41522,7 @@ export interface TestDatabaseResourcePromise extends PromiseLike<TestDatabaseRes
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -42711,7 +42723,7 @@ class TestDatabaseResourceImpl extends ResourceBuilderBase<TestDatabaseResourceH
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -45353,7 +45365,7 @@ export interface TestRedisResource {
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -46291,7 +46303,7 @@ export interface TestRedisResourcePromise extends PromiseLike<TestRedisResource>
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -47576,7 +47588,7 @@ class TestRedisResourceImpl extends ResourceBuilderBase<TestRedisResourceHandle>
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -50547,7 +50559,7 @@ export interface TestVaultResource {
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -51403,7 +51415,7 @@ export interface TestVaultResourcePromise extends PromiseLike<TestVaultResource>
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -52606,7 +52618,7 @@ class TestVaultResourceImpl extends ResourceBuilderBase<TestVaultResourceHandle>
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -55368,7 +55380,7 @@ export interface Resource {
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -55726,7 +55738,7 @@ export interface ResourcePromise extends PromiseLike<Resource> {
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.
@@ -56134,7 +56146,7 @@ class ResourceImpl extends ResourceBuilderBase<IResourceHandle> implements Resou
     /**
      * Adds a resource to a launch group.
      *
-     * Membership is additive. Select one group with the `LaunchGroup` configuration setting.
+     * Membership is additive. Select one group with the `Aspire:LaunchGroup` configuration setting.
      * Dependencies of selected resources are included even if they belong to another group.
      * Ungrouped children inherit their parent's membership.
      * @param launchGroupName The case-insensitive launch group name.

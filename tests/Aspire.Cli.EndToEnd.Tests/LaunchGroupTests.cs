@@ -44,22 +44,22 @@ public sealed class LaunchGroupTests(ITestOutputHelper output)
         Assert.Contains(builderDeclaration, source);
         var resources = typeScript
             ? """
-              await builder.addLaunchGroups(["catalog", "basket"]);
+              await builder.defineLaunchGroups(["catalog", "basket"]);
               await builder.addExecutable("catalog", "sleep", ".", ["600"]).withLaunchGroup("catalog");
               await builder.addExecutable("basket", "sleep", ".", ["600"]).withLaunchGroup("basket");
               """
             : """
-              builder.AddLaunchGroups("catalog", "basket");
+              builder.DefineLaunchGroups("catalog", "basket");
               builder.AddExecutable("catalog", "sleep", ".", "600").WithLaunchGroup("catalog");
               builder.AddExecutable("basket", "sleep", ".", "600").WithLaunchGroup("basket");
               """;
         await File.WriteAllTextAsync(appHostPath, source.Replace(builderDeclaration, $"{builderDeclaration}\n{resources}", StringComparison.Ordinal),
             TestContext.Current.CancellationToken);
-        await File.WriteAllTextAsync(Path.Combine(directory, "appsettings.json"), """{ "LaunchGroup": "basket" }""",
+        await File.WriteAllTextAsync(Path.Combine(directory, "appsettings.json"), """{ "Aspire": { "LaunchGroup": "basket" } }""",
             TestContext.Current.CancellationToken);
 
         await auto.RunCommandAsync($"cd {projectName}", counter);
-        await auto.RunCommandAsync($"LaunchGroup=basket aspire {command} --launch-group catalog --isolated --non-interactive", counter,
+        await auto.RunCommandAsync($"Aspire__LaunchGroup=basket aspire {command} --launch-group catalog --isolated --non-interactive", counter,
             TimeSpan.FromMinutes(3));
         await auto.RunCommandAsync("aspire wait catalog --status up --timeout 60 --non-interactive", counter);
         await auto.RunCommandAsync("aspire describe --format json --non-interactive > resources.json", counter);

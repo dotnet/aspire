@@ -28,7 +28,7 @@ public class LaunchGroupTests(ITestOutputHelper output)
     public async Task TestShopPartialRunSupportsAdditionalResourceStarts()
     {
         var builder = await DistributedApplicationTestFactory.CreateAsync(typeof(Projects.TestShop_AppHost), output);
-        builder.Configuration["LaunchGroup"] = "catalog";
+        builder.Configuration["Aspire:LaunchGroup"] = "catalog";
         await using var app = await builder.BuildAsync();
 
         using (var startup = new CancellationTokenSource(TimeSpan.FromMinutes(3)))

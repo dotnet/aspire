@@ -25,11 +25,19 @@ internal sealed class LaunchGroupService(
         }
 
         var declaredGroups = new HashSet<string>(options.Value.LaunchGroups, StringComparer.OrdinalIgnoreCase);
-        foreach (var entry in configuration.GetSection("LaunchGroups").GetChildren())
+        var configuredGroups = configuration.GetSection(LaunchGroupsOptions.ConfigurationSectionName);
+        if (configuredGroups.Value is not null)
+        {
+            throw new DistributedApplicationException(
+                $"{LaunchGroupsOptions.ConfigurationSectionName} must be an array of group names.");
+        }
+
+        foreach (var entry in configuredGroups.GetChildren())
         {
             if (entry.Value is not { } name)
             {
-                throw new DistributedApplicationException($"LaunchGroups configuration entry '{entry.Key}' must be a group name.");
+                throw new DistributedApplicationException(
+                    $"{LaunchGroupsOptions.ConfigurationSectionName} configuration entry '{entry.Key}' must be a group name.");
             }
 
             declaredGroups.Add(LaunchGroupAnnotation.ValidateName(name, nameof(LaunchGroupsOptions.LaunchGroups)));
@@ -54,7 +62,7 @@ internal sealed class LaunchGroupService(
             declaredGroups.UnionWith(memberships.Select(annotation => annotation.LaunchGroupName));
         }
 
-        var selectedGroup = configuration["LaunchGroup"];
+        var selectedGroup = configuration["Aspire:LaunchGroup"];
         if (string.IsNullOrEmpty(selectedGroup))
         {
             return;

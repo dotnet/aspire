@@ -6,7 +6,7 @@ using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddLaunchGroups("catalog", "basket", "frontend", "orders");
+builder.DefineLaunchGroups("catalog", "basket", "frontend", "orders");
 
 var catalogDb = builder.AddPostgres("postgres")
                        .WithLaunchGroup("catalog")

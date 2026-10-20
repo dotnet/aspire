@@ -344,7 +344,7 @@ public class DotNetAppHostProjectTests(ITestOutputHelper outputHelper) : IDispos
             Assert.False(env.ContainsKey(KnownAspNetCoreConfigNames.Environment));
             Assert.Equal("https://localhost:17193;http://localhost:15069", env[KnownAspNetCoreConfigNames.Urls]);
             Assert.Equal(expectedWorkloadId, env[KnownConfigNames.DcpWorkloadId]);
-            Assert.Equal(launchGroup is null ? [] : new[] { "--LaunchGroup=catalog" }, args);
+            Assert.Equal(launchGroup is null ? [] : new[] { "--Aspire:LaunchGroup=catalog" }, args);
             return Task.FromResult(0);
         };
 
@@ -1164,7 +1164,7 @@ public class DotNetAppHostProjectTests(ITestOutputHelper outputHelper) : IDispos
                   "environmentVariables": {
                     "SELECTED_PROFILE": "E2E",
                     "PROFILE_ONLY": "E2E",
-                    "LaunchGroup": "basket"
+                    "Aspire__LaunchGroup": "basket"
                   }
                 }
               }
@@ -1197,12 +1197,13 @@ public class DotNetAppHostProjectTests(ITestOutputHelper outputHelper) : IDispos
         {
             Assert.Equal(appHostCommand.FullName, command);
             Assert.Equal("e2e", options.LaunchProfile);
-            Assert.Equal(launchGroup is null ? ["--from-profile", "E2E"] : ["--from-profile", "E2E", "--LaunchGroup=catalog"], args);
+            Assert.Equal(launchGroup is null ? ["--from-profile", "E2E"] : ["--from-profile", "E2E", "--Aspire:LaunchGroup=catalog"], args);
             Assert.NotNull(env);
             Assert.Equal("e2e", env["DOTNET_LAUNCH_PROFILE"]);
             Assert.Equal("http://localhost:16000", env[KnownAspNetCoreConfigNames.Urls]);
             Assert.Equal("from-context", env["SELECTED_PROFILE"]);
             Assert.Equal("E2E", env["PROFILE_ONLY"]);
+            Assert.Equal("basket", env["Aspire__LaunchGroup"]);
             return Task.FromResult(125);
         };
 
@@ -1688,8 +1689,8 @@ public class DotNetAppHostProjectTests(ITestOutputHelper outputHelper) : IDispos
               "profiles": {
                 "E2E": {
                   "commandName": "Project",
-                  "commandLineArgs": "--FeatureX=true --LaunchGroup=basket",
-                  "environmentVariables": { "LaunchGroup": "basket" }
+                  "commandLineArgs": "--FeatureX=true --Aspire:LaunchGroup=basket",
+                  "environmentVariables": { "Aspire__LaunchGroup": "basket" }
                 }
               }
             }
@@ -1708,8 +1709,8 @@ public class DotNetAppHostProjectTests(ITestOutputHelper outputHelper) : IDispos
             Assert.Equal(watch, actualWatch);
             Assert.Equal("E2E", options.LaunchProfile);
             Assert.Equal(explicitAppHostArguments
-                ? ["--UserOption=true", "--LaunchGroup=catalog"]
-                : ["--FeatureX=true", "--LaunchGroup=basket", "--LaunchGroup=catalog"], args);
+                ? ["--UserOption=true", "--Aspire:LaunchGroup=catalog"]
+                : ["--FeatureX=true", "--Aspire:LaunchGroup=basket", "--Aspire:LaunchGroup=catalog"], args);
             return Task.FromResult(0);
         };
 

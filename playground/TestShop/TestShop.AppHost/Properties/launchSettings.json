@@ -18,7 +18,7 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "DOTNET_ENVIRONMENT": "Development",
-        "LaunchGroup": "catalog"
+        "Aspire__LaunchGroup": "catalog"
       }
     },
     "https_basket": {
@@ -29,7 +29,7 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "DOTNET_ENVIRONMENT": "Development",
-        "LaunchGroup": "basket"
+        "Aspire__LaunchGroup": "basket"
       }
     },
     "https_frontend": {
@@ -40,7 +40,7 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "DOTNET_ENVIRONMENT": "Development",
-        "LaunchGroup": "frontend"
+        "Aspire__LaunchGroup": "frontend"
       }
     },
     "https (profiling)": {

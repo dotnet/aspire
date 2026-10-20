@@ -1633,7 +1633,7 @@ internal sealed partial class DotNetAppHostProject : IAppHostProject
                     directRun.Command,
                     directRun.WorkingDirectory,
                     context.LaunchGroup is { } directLaunchGroup
-                        ? [.. directRun.Arguments, $"--LaunchGroup={directLaunchGroup}"]
+                        ? [.. directRun.Arguments, $"--Aspire:LaunchGroup={directLaunchGroup}"]
                         : directRun.Arguments,
                     directRun.Environment,
                     backchannelCompletionSource,
@@ -1655,7 +1655,7 @@ internal sealed partial class DotNetAppHostProject : IAppHostProject
                         hasExplicitApplicationArgs: false, hasRunArguments: false);
                 }
 
-                appHostArguments.Add($"--LaunchGroup={launchGroup}");
+                appHostArguments.Add($"--Aspire:LaunchGroup={launchGroup}");
             }
 
             return await _runner.RunAsync(

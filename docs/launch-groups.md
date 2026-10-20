@@ -5,7 +5,7 @@ They work with containers, executables, .NET projects, and resources that honor
 `WithExplicitStart`. They do not change publishing or deployment.
 
 ```csharp
-builder.AddLaunchGroups("catalog", "basket", "frontend");
+builder.DefineLaunchGroups("catalog", "basket", "frontend");
 
 var database = builder.AddPostgres("database").WithLaunchGroup("catalog");
 var cache = builder.AddRedis("cache").WithLaunchGroup("basket");
@@ -16,10 +16,29 @@ var catalog = builder.AddDotnetProject("catalog", "../Catalog/Catalog.csproj")
 ```
 
 `WithLaunchGroup` and `WithLaunchGroups` are additive. Names are case-insensitive.
-Declare valid names with `AddLaunchGroups`, the root `LaunchGroups` configuration
-array, or both. Without an explicit list, membership defines the valid groups.
+Define valid names with `DefineLaunchGroups`, the `Aspire:LaunchGroups` configuration
+array, or both. `DefineLaunchGroups` requires at least one name. Configuration
+definitions enable launch group support automatically, without any launch group API
+calls. `WithLaunchGroup` and `WithLaunchGroups` also register the required support.
+Without explicit definitions, membership defines the valid groups.
 Undefined membership and invalid selections fail before resources start. Select
 exactly one name, not a comma- or semicolon-separated list.
+
+For example, define groups in the AppHost's `appsettings.json`:
+
+```json
+{
+  "Aspire": {
+    "LaunchGroups": ["catalog", "basket", "frontend"],
+    "LaunchGroup": "catalog"
+  }
+}
+```
+
+`Aspire:LaunchGroups` defines the valid names; resource membership is still configured
+with `WithLaunchGroup` or `WithLaunchGroups`. `Aspire:LaunchGroup` selects the active
+group. Definitions added to the builder's configuration before
+`Build()` are also supported. Configuration changes do not switch a running session.
 
 ## Selecting a group
 
@@ -31,16 +50,16 @@ aspire start --apphost playground\TestShop\TestShop.AppHost\TestShop.AppHost.csp
 aspire run --apphost .\apphost.mts --launch-group basket
 ```
 
-The option overrides the AppHost's root `LaunchGroup` configuration value from
+The option overrides the AppHost's `Aspire:LaunchGroup` configuration value from
 environment variables, JSON, and launch profiles. Without the option, standard
 AppHost configuration still applies:
 
 ```powershell
-$env:LaunchGroup = "catalog"
+$env:Aspire__LaunchGroup = "catalog"
 aspire start --apphost playground\TestShop\TestShop.AppHost\TestShop.AppHost.csproj --isolated
 ```
 
-For IDE run/debug, put `"LaunchGroup": "catalog"` in the AppHost launch profile's
+For IDE run/debug, put `"Aspire__LaunchGroup": "catalog"` in the AppHost launch profile's
 `environmentVariables`. TestShop provides `https_catalog`, `https_basket`, and
 `https_frontend` profiles. The same configuration contract applies regardless of
 whether the CLI, Visual Studio, or VS Code launches the AppHost. The CLI option is
@@ -95,5 +114,5 @@ and their database/cache/messaging dependencies, but not the order processor.
 The `orders` group starts messaging and the order processor.
 
 Start `basketservice` after a catalog-only run to exercise expansion into Redis
-and messaging and a deferred .NET build. Stop and clear `LaunchGroup` (or choose
+and messaging and a deferred .NET build. Stop and clear `Aspire:LaunchGroup` (or choose
 the ordinary `https` launch profile) for a full run.

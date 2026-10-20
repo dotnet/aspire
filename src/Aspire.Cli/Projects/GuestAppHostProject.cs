@@ -559,7 +559,7 @@ internal sealed class GuestAppHostProject : IAppHostProject, IGuestAppHostSdkGen
             // Apply the explicit CLI option last so it overrides JSON and profile configuration.
             if (context.LaunchGroup is { } launchGroup)
             {
-                launchSettingsEnvVars["LaunchGroup"] = launchGroup;
+                launchSettingsEnvVars["Aspire__LaunchGroup"] = launchGroup;
             }
             launchSettingsEnvVars[KnownConfigNames.DcpWorkloadId] = AppHostWorkloadId.Create(appHostFile);
 

@@ -2,16 +2,121 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using System.Text;
+using System.Text.Json;
 using Aspire.Hosting.Orchestrator;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Tests;
 
 [Trait("Partition", "2")]
-public class LaunchGroupTests
+public class LaunchGroupTests(ITestOutputHelper outputHelper)
 {
+    [Theory]
+    [InlineData(null)]
+    [InlineData("CATALOG")]
+    [InlineData("basket")]
+    public async Task AppSettingsDefinitionsEnableLaunchGroupsWithoutBuilderApis(string? selection)
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var settings = JsonSerializer.Serialize(new
+        {
+            Aspire = new
+            {
+                LaunchGroups = new[] { "catalog", "basket" },
+                LaunchGroup = selection
+            }
+        });
+        await File.WriteAllTextAsync(Path.Combine(workspace.Path, "appsettings.json"),
+            settings, TestContext.Current.CancellationToken);
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            ContentRootPath = workspace.Path,
+            DisableDashboard = true
+        });
+        var catalog = builder.AddExecutable("catalog", "unused", ".")
+            .WithAnnotation(new LaunchGroupAnnotation("catalog"));
+        var basket = builder.AddExecutable("basket", "unused", ".")
+            .WithAnnotation(new LaunchGroupAnnotation("basket"));
+        var ungrouped = builder.AddExecutable("ungrouped", "unused", ".");
+        var explicitResource = builder.AddExecutable("explicit", "unused", ".").WithExplicitStart();
+        await using var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken);
+
+        var service = Assert.Single(app.Services.GetServices<LaunchGroupService>());
+        Assert.Equal(selection is not null, service.IsActive);
+        Assert.Equal(selection == "basket", catalog.Resource.HasAnnotationOfType<ExplicitStartupAnnotation>());
+        Assert.Equal(selection == "CATALOG", basket.Resource.HasAnnotationOfType<ExplicitStartupAnnotation>());
+        Assert.False(ungrouped.Resource.HasAnnotationOfType<ExplicitStartupAnnotation>());
+        Assert.True(explicitResource.Resource.HasAnnotationOfType<ExplicitStartupAnnotation>());
+    }
+
+    [Fact]
+    public async Task ConfigurationDefinitionsAddedAfterBuilderCreationEnableLaunchGroups()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var resource = builder.AddExecutable("worker", "unused", ".")
+            .WithAnnotation(new LaunchGroupAnnotation("background"));
+        builder.Configuration["Aspire:LaunchGroups:0"] = "background";
+        builder.Configuration["Aspire:LaunchGroups:1"] = "empty";
+        builder.Configuration["Aspire:LaunchGroup"] = "empty";
+        await using var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken);
+
+        Assert.True(app.Services.GetRequiredService<LaunchGroupService>().IsActive);
+        Assert.True(resource.Resource.HasAnnotationOfType<ExplicitStartupAnnotation>());
+    }
+
+    [Fact]
+    public async Task ConfigurationOnlyInvalidSelectionFailsBeforeStarting()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration["Aspire:LaunchGroups:0"] = "local";
+        builder.Configuration["Aspire:LaunchGroup"] = "missing";
+        await using var app = builder.Build();
+
+        var exception = await Assert.ThrowsAsync<DistributedApplicationException>(
+            () => app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken));
+
+        Assert.Equal("Launch group 'missing' is invalid. Select one of: local.", exception.Message);
+    }
+
+    [Theory]
+    [InlineData("\"local\"")]
+    [InlineData("[null]")]
+    [InlineData("[[\"local\"]]")]
+    public async Task InvalidConfigurationDefinitionsFailBeforeStarting(string definitions)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        using var json = new MemoryStream(Encoding.UTF8.GetBytes(
+            $$$"""{"Aspire": {"LaunchGroups": {{{definitions}}}}}"""));
+        builder.Configuration.AddJsonStream(json);
+        await using var app = builder.Build();
+
+        await Assert.ThrowsAsync<DistributedApplicationException>(
+            () => app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task PublishingIgnoresConfigurationOnlyLaunchGroups()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.Configuration["Aspire:LaunchGroups:0"] = "local";
+        builder.Configuration["Aspire:LaunchGroup"] = "missing";
+        var resource = builder.AddExecutable("worker", "unused", ".");
+        await using var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken);
+
+        Assert.Null(app.Services.GetService<LaunchGroupService>());
+        Assert.False(resource.Resource.HasAnnotationOfType<ExplicitStartupAnnotation>());
+    }
+
     [Theory]
     [InlineData(false, false)]
     [InlineData(true, false)]
@@ -20,8 +125,8 @@ public class LaunchGroupTests
     public async Task ExecutableConstructorArgumentsIncludeReferencedResources(bool expression, bool lateStart)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.AddLaunchGroups("frontend", "backend", "empty");
-        builder.Configuration["LaunchGroup"] = lateStart ? "empty" : "frontend";
+        builder.DefineLaunchGroups("frontend", "backend", "empty");
+        builder.Configuration["Aspire:LaunchGroup"] = lateStart ? "empty" : "frontend";
         var dependency = builder.AddExecutable("backend", "unused", ".")
             .WithHttpEndpoint().WithLaunchGroup("backend");
         var endpoint = dependency.GetEndpoint("http");
@@ -67,8 +172,8 @@ public class LaunchGroupTests
     public async Task SelectionPreservesFullRunsAndUngroupedResources(string? selection)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Configuration["LaunchGroup"] = selection;
-        builder.AddLaunchGroups("catalog", "basket");
+        builder.Configuration["Aspire:LaunchGroup"] = selection;
+        builder.DefineLaunchGroups("catalog", "basket");
         var catalog = builder.AddContainer("catalog", "image").WithLaunchGroup("catalog");
         var basket = builder.AddExecutable("basket", "unused", ".").WithLaunchGroup("basket");
         var shared = builder.AddExecutable("shared", "unused", ".").WithLaunchGroups("basket", "catalog");
@@ -84,10 +189,22 @@ public class LaunchGroupTests
     }
 
     [Fact]
+    public void DefineLaunchGroupsRequiresNames()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var services = builder.Services.ToArray();
+
+        Assert.Throws<ArgumentException>("launchGroupNames", () => builder.DefineLaunchGroups());
+        Assert.Throws<ArgumentException>("launchGroupNames", () => builder.DefineLaunchGroups([]));
+        Assert.Throws<ArgumentNullException>("launchGroupNames", () => builder.DefineLaunchGroups(null!));
+        Assert.Equal(services, builder.Services);
+    }
+
+    [Fact]
     public async Task MembershipIsAdditiveAndImplicitlyDeclaresNames()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Configuration["LaunchGroup"] = "second";
+        builder.Configuration["Aspire:LaunchGroup"] = "second";
         var resource = builder.AddExecutable("worker", "unused", ".")
             .WithLaunchGroup("first")
             .WithLaunchGroups("FIRST", "second");
@@ -103,7 +220,7 @@ public class LaunchGroupTests
     public async Task IncludesTransitiveWaitReferenceAndParentDependencies()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Configuration["LaunchGroup"] = "frontend";
+        builder.Configuration["Aspire:LaunchGroup"] = "frontend";
         var database = builder.AddContainer("database", "image").WithLaunchGroup("backend");
         var child = builder.AddConnectionString("connection", ReferenceExpression.Create($"{database.GetEndpoint("tcp")}"));
         database.WithEndpoint(name: "tcp", scheme: "tcp", targetPort: 1234);
@@ -129,8 +246,8 @@ public class LaunchGroupTests
     public async Task UngroupedChildrenInheritMembershipAndKeepTheirOwnLifecycle()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Configuration["LaunchGroup"] = "catalog";
-        builder.AddLaunchGroups("catalog", "basket");
+        builder.Configuration["Aspire:LaunchGroup"] = "catalog";
+        builder.DefineLaunchGroups("catalog", "basket");
         var parent = builder.AddContainer("cache", "image").WithLaunchGroup("basket");
         var child = builder.AddExecutable("admin", "unused", ".").WithParentRelationship(parent);
         var overrideChild = builder.AddExecutable("other-admin", "unused", ".")
@@ -148,8 +265,8 @@ public class LaunchGroupTests
     public async Task ExplicitStartIsPreservedAndDoesNotSelectItsDependencies()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Configuration["LaunchGroup"] = "catalog";
-        builder.AddLaunchGroups("catalog", "basket");
+        builder.Configuration["Aspire:LaunchGroup"] = "catalog";
+        builder.DefineLaunchGroups("catalog", "basket");
         var dependency = builder.AddContainer("cache", "image").WithLaunchGroup("basket");
         var explicitResource = builder.AddExecutable("explicit", "unused", ".").WithExplicitStart().WaitFor(dependency);
         await using var app = builder.Build();
@@ -164,9 +281,9 @@ public class LaunchGroupTests
     public async Task ConfigurationAndCodeDeclarationsAreCombined()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Configuration["LaunchGroups:0"] = "catalog";
-        builder.Configuration["LaunchGroup"] = "BASKET";
-        builder.AddLaunchGroups("basket").AddLaunchGroups("BASKET");
+        builder.Configuration["Aspire:LaunchGroups:0"] = "catalog";
+        builder.Configuration["Aspire:LaunchGroup"] = "BASKET";
+        builder.DefineLaunchGroups("basket").DefineLaunchGroups("BASKET");
         var resource = builder.AddExecutable("catalog", "unused", ".").WithLaunchGroup("catalog");
         await using var app = builder.Build();
 
@@ -183,8 +300,8 @@ public class LaunchGroupTests
     public async Task InvalidSelectionsFailBeforeStarting(string selection)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Configuration["LaunchGroup"] = selection;
-        builder.AddLaunchGroups("catalog", "basket");
+        builder.Configuration["Aspire:LaunchGroup"] = selection;
+        builder.DefineLaunchGroups("catalog", "basket");
         var resource = builder.AddExecutable("catalog", "unused", ".").WithLaunchGroup("catalog");
         await using var app = builder.Build();
 
@@ -198,7 +315,7 @@ public class LaunchGroupTests
     public async Task UndefinedMembershipFailsEvenWithoutSelection()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.AddLaunchGroups("catalog");
+        builder.DefineLaunchGroups("catalog");
         builder.AddExecutable("basket", "unused", ".").WithLaunchGroup("basket");
         await using var app = builder.Build();
 
@@ -220,7 +337,7 @@ public class LaunchGroupTests
         var resource = builder.AddExecutable("worker", "unused", ".");
 
         var annotationException = Assert.ThrowsAny<ArgumentException>(() => new LaunchGroupAnnotation(name!));
-        var declarationException = Assert.ThrowsAny<ArgumentException>(() => builder.AddLaunchGroups("valid", name!));
+        var declarationException = Assert.ThrowsAny<ArgumentException>(() => builder.DefineLaunchGroups("valid", name!));
         var singleGroupException = Assert.ThrowsAny<ArgumentException>(() => resource.WithLaunchGroup(name!));
         var multipleGroupsException = Assert.ThrowsAny<ArgumentException>(() => resource.WithLaunchGroups("valid", name!));
 
@@ -237,8 +354,8 @@ public class LaunchGroupTests
     public async Task PublishingIgnoresLaunchGroupSelection()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        builder.Configuration["LaunchGroup"] = "invalid";
-        builder.AddLaunchGroups("catalog");
+        builder.Configuration["Aspire:LaunchGroup"] = "invalid";
+        builder.DefineLaunchGroups("catalog");
         var resource = builder.AddContainer("catalog", "image").WithLaunchGroup("catalog");
         await using var app = builder.Build();
 
@@ -263,8 +380,8 @@ public class LaunchGroupTests
     public async Task PartialRunsDeferPersistentExplicitResourceConfiguration()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Configuration["LaunchGroup"] = "catalog";
-        builder.AddLaunchGroups("catalog", "basket");
+        builder.Configuration["Aspire:LaunchGroup"] = "catalog";
+        builder.DefineLaunchGroups("catalog", "basket");
 #pragma warning disable ASPIREPERSISTENCE001
         var resource = builder.AddExecutable("worker", "unused", ".")
             .WithPersistentLifetime().WithLaunchGroup("basket");

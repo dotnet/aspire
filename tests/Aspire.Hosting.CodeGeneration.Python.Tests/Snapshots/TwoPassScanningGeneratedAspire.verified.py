@@ -2505,12 +2505,12 @@ class DistributedApplicationBuilder:
         )
         return typing.cast(ExternalServiceResource, result)
 
-    def add_launch_groups(self, launch_group_names: typing.Iterable[str]) -> typing.Self:
-        """Adds launch group support and optionally declares the valid launch group names."""
+    def define_launch_groups(self, launch_group_names: typing.Iterable[str]) -> typing.Self:
+        """Defines the valid launch group names."""
         rpc_args: dict[str, typing.Any] = {'builder': self._handle}
         rpc_args['launchGroupNames'] = launch_group_names
         self._client.invoke_capability(
-            'Aspire.Hosting/addLaunchGroups',
+            'Aspire.Hosting/defineLaunchGroups',
             rpc_args
         )
         return self

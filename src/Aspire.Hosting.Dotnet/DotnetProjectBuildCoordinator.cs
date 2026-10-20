@@ -487,7 +487,7 @@ internal static class DotnetProjectBuildCoordinator
             }
 
             // The launch-group step validates the selection before this BeforeStart final action.
-            var partialRun = _hasLaunchGroupSupport && !string.IsNullOrEmpty(_builder.Configuration["LaunchGroup"]);
+            var partialRun = _hasLaunchGroupSupport && !string.IsNullOrEmpty(_builder.Configuration["Aspire:LaunchGroup"]);
             // Validate duplicate project/output registrations across both initial and deferred batches.
             _ = CreateBuildSteps(buildEntries);
             var deferredEntries = partialRun
