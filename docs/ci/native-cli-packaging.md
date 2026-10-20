@@ -63,6 +63,69 @@ runner-minutes at the observed baseline, in addition to normal PR CI. Title
 edits and new pushes can trigger another trial; body-only edits do not.
 The concurrency group cancels superseded experiments.
 
+#### Upstream measurement: inconclusive, keep disabled
+
+[Run 39344699152, attempt 1](https://github.com/microsoft/aspire/actions/runs/39344699152/attempts/1)
+tested head `9aaefd64ac808d9a487f3b3f83bad9d50306dbb0` with three fresh
+macOS ARM64 jobs per setting. All six native jobs passed. The global
+two-job concurrency limit does not synchronize repetitions; candidate starts
+trailed the corresponding controls by 15, 57, and 276 seconds, from REST job
+timestamps. These are six independent jobs, not three synchronized pairs.
+
+All six used runner image `macos-26-arm64` version `20261013.0424.1`,
+macOS `26.6.2` build `25G83`, and .NET SDK `11.0.100-rc.2.26504.105`.
+CLI binlogs identify `Xcode_26.6.app` and `MacOSX26.5.sdk` in the native
+toolchain paths. No image or observed toolchain-path mismatch was found.
+Hardware CPU counts and compiler patch versions were not measured;
+`MSBuildNodeCount=3` is a build setting, not a hardware CPU measurement.
+
+Durations below are seconds from attempt-specific REST step/job timestamps.
+RID package and bundle work run before the experimental CLI packaging phase.
+
+| Repetition | Setting | RID packages | Bundle payload | CLI packages | Whole native job |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 1 | Control | 472 | 314 | 281 | 1140 |
+| 1 | Candidate | 416 | 347 | 277 | 1108 |
+| 2 | Control | 533 | 425 | 309 | 1330 |
+| 2 | Candidate | 340 | 393 | 228 | 1015 |
+| 3 | Control | 587 | 551 | 350 | 1578 |
+| 3 | Candidate | 462 | 400 | 293 | 1226 |
+
+| Metric | Control median (min-max), N=3 | Candidate median (min-max), N=3 |
+| --- | ---: | ---: |
+| CLI packages | 309 (281-350) | 277 (228-293) |
+| Whole native job | 1330 (1140-1578) | 1108 (1015-1226) |
+
+**No material wall-time improvement is established.** The CLI median is
+32 seconds lower, but the within-setting ranges are 69 and 65 seconds.
+The 222-second whole-job median difference cannot be attributed to the
+switch: substantial differences occur before it is applied. For repetition
+2, 225 of the 315 seconds of whole-job difference occur in RID/bundle steps.
+Artifact-upload totals are 28/26, 23/20, and 34/22 seconds for
+control/candidate, respectively; they are included in whole-job durations.
+
+The mechanism and macOS output correctness were verified: every control
+`BuildCli.binlog` has two main CLI `CoreCompile` Csc tasks, every candidate
+has one, and all six retain one CLI ILC execution. Satellite-assembly Csc
+tasks are excluded. All six pass tool/npm binary-to-archive checks, Dashboard
+warning verification, bundle/tray verification, and TerminalHost smoke.
+All eight uploaded package/archive filenames and their member inventories
+match across all six jobs; CLI archive executables are executable Mach-O
+files. Cross-job binary equality is not asserted. Other RIDs remain untested.
+
+The six native jobs consumed 123.28 runner-minutes; the workflow elapsed
+64 minutes 30 seconds including preparation, queueing, and finalization.
+Normal PR CI is additional. An earlier invalid setup run,
+[39342766702](https://github.com/microsoft/aspire/actions/runs/39342766702/attempts/1),
+was stopped after both first jobs failed before CLI packaging. Its full-SHA
+package version triggered NuGet `NU5123` at a 201-character installed path;
+the normal eight-character PR suffix reduces that example to 169 characters.
+Those failures are excluded from performance comparisons and the 123.28 figure.
+
+Keep the switch default-off; do not roll it out or repeat this expensive
+experiment without a new decision. Removing the activation title marker
+prevents results-only pushes from launching another native trial.
+
 ## Internal signed builds
 
 The internal Azure DevOps `build_sign_native` stage is responsible for producing signed native CLI artifacts. Windows and macOS native jobs run with code signing enabled so each OS/arch-specific native executable can be signed or notarized on the appropriate platform.
