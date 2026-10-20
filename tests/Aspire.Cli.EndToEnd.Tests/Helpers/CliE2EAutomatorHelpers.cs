@@ -472,6 +472,19 @@ internal static class CliE2EAutomatorHelpers
     }
 
     /// <summary>
+    /// Runs <c>aspire add &lt;packageName&gt;</c> and waits for it to finish, answering the version picker when it appears.
+    /// </summary>
+    internal static async Task AspireAddPackageAsync(
+        this Hex1bTerminalAutomator auto,
+        string packageName,
+        SequenceCounter counter)
+    {
+        await auto.TypeAsync($"aspire add {packageName}");
+        await auto.EnterAsync();
+        await auto.WaitForAspireAddSuccessAsync(counter, TimeSpan.FromMinutes(2));
+    }
+
+    /// <summary>
     /// Installs the Aspire CLI in a non-Docker shell using the given install strategy.
     /// </summary>
     internal static async Task InstallAspireCliInShellAsync(
@@ -805,6 +818,22 @@ internal static class CliE2EAutomatorHelpers
         await auto.TypeAsync("aspire config set features:experimentalPolyglotGo true --global --non-interactive");
         await auto.EnterAsync();
         await auto.WaitForSuccessPromptAsync(counter);
+    }
+
+    /// <summary>
+    /// Creates a Go AppHost in the current directory through the interactive <c>aspire init</c> language picker.
+    /// Requires <see cref="EnableExperimentalGoSupportAsync"/> to have run first.
+    /// </summary>
+    internal static async Task AspireInitGoAppHostAsync(
+        this Hex1bTerminalAutomator auto,
+        SequenceCounter counter)
+    {
+        await auto.TypeAsync("aspire init");
+        await auto.EnterAsync();
+        await auto.WaitUntilTextAsync("Which language would you like to use?", timeout: TimeSpan.FromSeconds(30));
+        await auto.SelectAppHostLanguageAsync(AppHostLanguagePromptSelection.Go);
+        await auto.WaitUntilTextAsync("Created apphost.go", timeout: TimeSpan.FromMinutes(2));
+        await auto.DeclineAgentInitPromptAsync(counter);
     }
 
     /// <summary>
