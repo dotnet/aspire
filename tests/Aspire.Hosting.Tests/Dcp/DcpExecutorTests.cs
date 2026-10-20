@@ -6219,6 +6219,32 @@ public class DcpExecutorTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task ProjectResource_DefaultCertificateTrustScope_DoesNotSetSslCertDirOnMacOS()
+    {
+        // https://github.com/microsoft/aspire/issues/21198
+        Assert.SkipUnless(OperatingSystem.IsMacOS(), "Verifies the macOS default for .NET projects.");
+
+        var env = await GetProjectWithCertificateAuthoritiesEnvAsync();
+
+        Assert.DoesNotContain(env, e => e.Name is "SSL_CERT_DIR" or "SSL_CERT_FILE");
+    }
+
+    [Fact]
+    public async Task ProjectResource_DefaultCertificateTrustScope_SetsSslCertDirOnLinux()
+    {
+        // Counterpart to the macOS test above: keeps the macOS-only default from spreading to Linux,
+        // and runs in CI, where Aspire.Hosting.Tests does not run on macOS.
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Verifies the Linux default for .NET projects.");
+
+        var env = await GetProjectWithCertificateAuthoritiesEnvAsync();
+
+        var sslCertDir = Assert.Single(env, e => e.Name == "SSL_CERT_DIR").Value;
+        Assert.NotNull(sslCertDir);
+        Assert.EndsWith($"{Path.DirectorySeparatorChar}certs", sslCertDir.Split(Path.PathSeparator)[0]);
+        Assert.DoesNotContain(env, e => e.Name == "SSL_CERT_FILE");
+    }
+
+    [Fact]
     public async Task SessionScopedExplicitStartPlainExecutable_DefersDcpObjectCreationUntilManualStart()
     {
         var builder = DistributedApplication.CreateBuilder();
@@ -11510,6 +11536,31 @@ public class DcpExecutorTests(ITestOutputHelper outputHelper)
 
         var exe = Assert.Single(kubernetesService.CreatedResources.OfType<Executable>(), e => e.AppModelResourceName == "TestExecutable");
         return Assert.Single(exe.Spec.Env!, e => e.Name == "SSL_CERT_DIR").Value;
+    }
+
+    private static async Task<List<EnvVar>> GetProjectWithCertificateAuthoritiesEnvAsync()
+    {
+        // Use a custom CA rather than the developer certificate so the result doesn't depend on
+        // whether the machine running the test has a dev cert.
+        var builder = DistributedApplication.CreateBuilder();
+        using var certificate = CreateTestCertificate();
+        var certificateAuthorities = builder.AddCertificateAuthorityCollection("certificates")
+            .WithCertificate(certificate);
+
+        builder.AddProject<TestProject>("proj", launchProfileName: null)
+            .WithCertificateAuthorityCollection(certificateAuthorities);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var kubernetes = new TestKubernetesService();
+        var executor = CreateAppExecutor(model, kubernetesService: kubernetes);
+
+        await executor.RunApplicationAsync();
+
+        var exe = GetCreatedExecutableForResource(kubernetes, "proj");
+        Assert.NotNull(exe.Spec.Env);
+        return exe.Spec.Env;
     }
 
     private static void AssertPortAllocatedFromProxylessEndpointAllocatorRange(int port)

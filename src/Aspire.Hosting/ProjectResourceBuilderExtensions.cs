@@ -576,9 +576,14 @@ public static class ProjectResourceBuilderExtensions
 
         builder.ConfigureConsoleLogs();
 
-        if (OperatingSystem.IsWindows())
+        if (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS())
         {
             // On Windows, the custom certificate trust feature is not supported for .NET projects, so disable it by default.
+            // On macOS, .NET uses the keychain and ignores SSL_CERT_DIR, so the variable only reaches child processes.
+            // Since Go 1.27, Go tools on macOS treat SSL_CERT_DIR as the complete set of trusted roots and stop trusting
+            // public CAs, so don't apply custom trust by default. Users can still opt in with WithCertificateTrustScope.
+            // https://github.com/microsoft/aspire/issues/21198
+            // https://go.dev/doc/go1.27
             builder.WithCertificateTrustScope(CertificateTrustScope.None);
         }
 

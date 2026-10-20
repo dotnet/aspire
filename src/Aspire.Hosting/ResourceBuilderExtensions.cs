@@ -4446,7 +4446,8 @@ public static class ResourceBuilderExtensions
     /// <ats-returns>The resource builder.</ats-returns>
     /// <remarks>
     /// The default scope if not overridden is <see cref="CertificateTrustScope.Append"/> which means that custom certificate
-    /// authorities should be appended to the default trusted certificate authorities for the resource. Setting the scope to
+    /// authorities should be appended to the default trusted certificate authorities for the resource. .NET projects on
+    /// Windows and macOS default to <see cref="CertificateTrustScope.None"/> instead. Setting the scope to
     /// <see cref="CertificateTrustScope.Override"/> indicates the set of certificates in referenced
     /// <see cref="CertificateAuthorityCollection"/> (and optionally Aspire developer certificiates) should be used as the
     /// exclusive source of trust for a resource.
