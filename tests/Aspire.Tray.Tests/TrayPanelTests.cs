@@ -817,14 +817,16 @@ public class TrayPanelTests
     public void RowDetailShowsStatusLocationAndPidOnlyForDuplicateNames()
     {
         var host = TrayPanelSamples.Running("/Users/dev/src/eShop/src/eShop.AppHost/eShop.AppHost.csproj", 48213, AppHostHealth.Warning);
+        // The location uses the platform's separator: "src/eShop.AppHost", or "src\eShop.AppHost" on Windows.
+        var location = Path.Combine("src", "eShop.AppHost");
 
-        Assert.Equal(("Needs attention · src/eShop.AppHost", false), TrayPanel.GetRowDetail(host, live: true, showPid: false));
-        Assert.Equal(("Needs attention · src/eShop.AppHost · PID 48213", false), TrayPanel.GetRowDetail(host, live: true, showPid: true));
-        Assert.Equal(("Status unavailable · src/eShop.AppHost", false), TrayPanel.GetRowDetail(host, live: false, showPid: false));
+        Assert.Equal(($"Needs attention · {location}", false), TrayPanel.GetRowDetail(host, live: true, showPid: false));
+        Assert.Equal(($"Needs attention · {location} · PID 48213", false), TrayPanel.GetRowDetail(host, live: true, showPid: true));
+        Assert.Equal(($"Status unavailable · {location}", false), TrayPanel.GetRowDetail(host, live: false, showPid: false));
         Assert.Equal(("Boom.", true), TrayPanel.GetRowDetail(host with { Error = "Boom." }, live: true, showPid: false));
 
         var scene = new TrayPanel(TrayPanelSamples.Errors(), TrayPanelPalette.Light).Scene;
-        Assert.Contains(scene.Commands.OfType<TextCommand>(), text => text.Text == "Unhealthy · src/eShop.AppHost · PID 48213");
+        Assert.Contains(scene.Commands.OfType<TextCommand>(), text => text.Text == $"Unhealthy · {location} · PID 48213");
     }
 
     [Theory]
