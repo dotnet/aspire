@@ -137,6 +137,13 @@ suite('Go AppHost Command Parsing Tests', () => {
         assert.strictEqual(parseGoAppHostCommand(['go', 'run', './cmd/apphost'])?.packagePath, './cmd/apphost');
     });
 
+    test('does not re-split arguments that contain spaces', () => {
+        // The CLI has already tokenized the command line, so a value with a space is still one argument.
+        assert.deepStrictEqual(
+            parseGoAppHostCommand(['C:\\Program Files\\Go\\bin\\go.exe', 'run', '.', '--name', 'my app']),
+            { packagePath: '.', appHostArgs: ['--name', 'my app'] });
+    });
+
     test('returns null when go run flags precede the package', () => {
         // The launch configuration has no place for them on this path, and the flag would otherwise be
         // taken as the program to debug.
