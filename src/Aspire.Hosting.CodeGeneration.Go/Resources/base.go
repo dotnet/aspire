@@ -27,6 +27,11 @@ import (
 // Callers retrieve the chain's error with Err() at any logical boundary
 // (typically once at the end of a builder chain or before using the result of
 // a value-returning method).
+//
+// Wrappers are not synchronized: err is read and written without a lock. The
+// AppHost runs each callback on its own goroutine, so a callback should use the
+// wrappers it receives as arguments, not a wrapper that the goroutine running
+// the builder chain (or another callback) uses at the same time.
 
 type handleWrapperBase struct {
 	handle *handle
