@@ -65,7 +65,7 @@ internal static class TrayPanelGlyphs
                 Fill(PanelPath.Circle(10, 14.1, 1.15), white);
                 break;
             case PanelStatusGlyph.Unhealthy:
-                Disc(palette.Danger);
+                Disc(palette.DangerFill);
                 Stroke(new PanelPath().MoveTo(7.1, 7.1).LineTo(12.9, 12.9).MoveTo(12.9, 7.1).LineTo(7.1, 12.9), white, 1.8);
                 break;
             case PanelStatusGlyph.Unknown:

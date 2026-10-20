@@ -97,16 +97,18 @@ internal sealed record TrayPanelPalette(
         Gutter: PanelColor.FromHex("#EFEFF3"),
         Separator: PanelColor.FromRgba(0, 0, 0, 0.08),
         Border: PanelColor.FromRgba(0, 0, 0, 0.12),
+        // Secondary and tertiary text and the danger text are 11 and 12 px: each keeps 4.5:1
+        // (WCAG AA for small text) on the background and on the hover and pressed tints over it.
         TextPrimary: PanelColor.FromHex("#1C1C1E"),
         TextSecondary: PanelColor.FromHex("#5F5F66"),
-        TextTertiary: PanelColor.FromHex("#77777F"),
+        TextTertiary: PanelColor.FromHex("#64646C"),
         Hover: PanelColor.FromRgba(0, 0, 0, 0.05),
         Pressed: PanelColor.FromRgba(0, 0, 0, 0.09),
         Accent: PanelColor.FromHex("#6A4BD6"),
         Success: PanelColor.FromHex("#1E9E57"),
         Warning: PanelColor.FromHex("#D98A00"),
-        Danger: PanelColor.FromHex("#D93A3A"),
-        DangerFill: PanelColor.FromHex("#D93A3A"),
+        Danger: PanelColor.FromHex("#BC3030"),
+        DangerFill: PanelColor.FromHex("#BC3030"),
         Neutral: PanelColor.FromHex("#8E8E96"),
         Banner: PanelColor.FromHex("#FFF4DB"),
         BannerText: PanelColor.FromHex("#6B4500"),
@@ -119,16 +121,16 @@ internal sealed record TrayPanelPalette(
         Separator: PanelColor.FromRgba(255, 255, 255, 0.08),
         Border: PanelColor.FromRgba(255, 255, 255, 0.12),
         TextPrimary: PanelColor.FromHex("#F2F2F5"),
-        TextSecondary: PanelColor.FromHex("#A8A8B0"),
-        TextTertiary: PanelColor.FromHex("#8C8C95"),
+        TextSecondary: PanelColor.FromHex("#B4B4BC"),
+        TextTertiary: PanelColor.FromHex("#A8A8B0"),
         Hover: PanelColor.FromRgba(255, 255, 255, 0.07),
         Pressed: PanelColor.FromRgba(255, 255, 255, 0.11),
         Accent: PanelColor.FromHex("#9C85F2"),
         Success: PanelColor.FromHex("#34C46E"),
         Warning: PanelColor.FromHex("#F2A93B"),
-        // Danger text and glyphs are lightened for the dark background; a filled button keeps a
-        // deeper red so its white label stays above 4.5:1.
-        Danger: PanelColor.FromHex("#F2645F"),
+        // Danger text is lightened for the dark background; filled danger shapes (the confirm
+        // button, the unhealthy status disc) keep a deeper red so white on them stays above 4.5:1.
+        Danger: PanelColor.FromHex("#FC8C87"),
         DangerFill: PanelColor.FromHex("#C8403C"),
         Neutral: PanelColor.FromHex("#8E8E96"),
         Banner: PanelColor.FromHex("#3A2F17"),

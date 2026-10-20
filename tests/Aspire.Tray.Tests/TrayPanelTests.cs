@@ -1033,6 +1033,28 @@ public class TrayPanelTests
         Assert.True(TrayPanelPalette.ContrastRatio(palette.OnColor, PanelColor.FromRgba(0, 0, 0, 0.22).Over(palette.DangerFill)) >= 4.5);
     }
 
+    [Theory]
+    [InlineData("light")]
+    [InlineData("dark")]
+    public void SmallTextKeepsContrastOnEveryListBackground(string name)
+    {
+        // Section labels (TextTertiary), subtitles (TextSecondary) and error lines (Danger) are
+        // 11 and 12 px, so they need 4.5:1 on the panel background and on the hover and pressed
+        // tints drawn over it; the unhealthy disc is filled so its white glyph keeps 4.5:1 too.
+        var palette = name == "dark" ? TrayPanelPalette.Dark : TrayPanelPalette.Light;
+        var backgrounds = new[] { palette.Background, palette.Hover.Over(palette.Background), palette.Pressed.Over(palette.Background) };
+
+        foreach (var text in new[] { palette.TextSecondary, palette.TextTertiary, palette.Danger })
+        {
+            Assert.All(backgrounds, background => Assert.True(TrayPanelPalette.ContrastRatio(text, background) >= 4.5,
+                $"{name}: {text.ToHex()} on {background.ToHex()} is {TrayPanelPalette.ContrastRatio(text, background):F2}:1"));
+        }
+        Assert.True(TrayPanelPalette.ContrastRatio(palette.OnColor, palette.DangerFill) >= 4.5);
+        var commands = new List<PanelCommand>();
+        TrayPanelGlyphs.AddStatus(commands, PanelStatusGlyph.Unhealthy, new(0, 0, 20, 20), palette);
+        Assert.Equal(palette.DangerFill, commands.OfType<FillPathCommand>().First().Color);
+    }
+
     [Fact]
     public void HighContrastPaletteUsesSystemColors()
     {

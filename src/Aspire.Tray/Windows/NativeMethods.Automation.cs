@@ -104,9 +104,11 @@ internal static unsafe partial class NativeMethods
         On = 1
     }
 
+    // StructureChangeType from uiautomationcore.h: ChildAdded 0, ChildRemoved 1,
+    // ChildrenInvalidated 2, ChildrenBulkAdded 3, ChildrenBulkRemoved 4, ChildrenReordered 5.
     internal enum StructureChangeType
     {
-        ChildrenInvalidated = 3
+        ChildrenInvalidated = 2
     }
 
     /// <summary>
