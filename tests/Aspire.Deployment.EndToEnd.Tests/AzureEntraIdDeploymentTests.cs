@@ -15,6 +15,8 @@ public sealed class AzureEntraIdDeploymentTests(ITestOutputHelper output)
 {
     private const string RedirectUri = "https://example.invalid/signin-oidc";
     private const string UpdatedRedirectUri = "https://example.invalid/updated-signin-oidc";
+    private const string ParameterRedirectUris = "https://example.invalid/signout-oidc,https://example.invalid/callback";
+    private const string UpdatedParameterRedirectUris = "https://example.invalid/updated-callback";
 
     [Fact]
     public async Task DeployEntraRegistrationAndRedeployWithStableIds()
@@ -82,18 +84,23 @@ public sealed class AzureEntraIdDeploymentTests(ITestOutputHelper output)
                     $"AZURE__TENANTID={tenantId:D} AZURE__TENANTRESOURCESUFFIX={suffix}",
                     counter);
 
+                await auto.RunCommandAsync(
+                    $"export Parameters__redirecturis={AspireCliShellCommandHelpers.QuoteBashArg(ParameterRedirectUris)}", counter);
+
                 deploymentAttempted = true;
                 await DeployAsync(auto, counter);
                 var firstIds = await VerifyDeploymentAsync(
-                    client, credential, subscriptionId, resourceGroupName, registrationName, tenantId, RedirectUri, deploymentUrls, cancellationToken);
+                    client, credential, subscriptionId, resourceGroupName, registrationName, tenantId, [RedirectUri, .. ParameterRedirectUris.Split(',')], deploymentUrls, cancellationToken);
 
-                // Change actual Graph settings so the second deployment must update the registration,
-                // rather than only demonstrating that a cached deployment preserves its IDs.
+                // Change actual Graph settings, including the deployment-supplied parameter, so the second deployment
+                // must update the registration rather than only demonstrating that a cached deployment preserves its IDs.
+                await auto.RunCommandAsync(
+                    $"export Parameters__redirecturis={AspireCliShellCommandHelpers.QuoteBashArg(UpdatedParameterRedirectUris)}", counter);
                 DotnetProjectDeploymentHelpers.ReplaceInFile(
                     Path.Combine(projectDirectory, "apphost.cs"), RedirectUri, UpdatedRedirectUri);
                 await DeployAsync(auto, counter);
                 var secondIds = await VerifyDeploymentAsync(
-                    client, credential, subscriptionId, resourceGroupName, registrationName, tenantId, UpdatedRedirectUri, deploymentUrls, cancellationToken);
+                    client, credential, subscriptionId, resourceGroupName, registrationName, tenantId, [UpdatedRedirectUri, .. UpdatedParameterRedirectUris.Split(',')], deploymentUrls, cancellationToken);
                 Assert.Equal(firstIds, secondIds);
 
                 await auto.TypeAsync("exit");
@@ -169,7 +176,8 @@ public sealed class AzureEntraIdDeploymentTests(ITestOutputHelper output)
             var builder = DistributedApplication.CreateBuilder(args);
             builder.AddAzureContainerAppEnvironment("env").AsExpress();
             var identity = builder.AddEntraIdApplication("identity")
-                .WithRedirectUris("{{RedirectUri}}");
+                .WithRedirectUris("{{RedirectUri}}")
+                .WithRedirectUris(builder.AddParameter("redirecturis"));
 
             builder.AddProject("consumer", "Consumer/Consumer.csproj")
                 .WithHttpEndpoint(targetPort: 8080)
@@ -193,13 +201,13 @@ public sealed class AzureEntraIdDeploymentTests(ITestOutputHelper output)
 
     private static async Task<(Guid ObjectId, Guid ClientId, Guid ServicePrincipalId)> VerifyDeploymentAsync(
         HttpClient client, TokenCredential credential, string subscriptionId, string resourceGroupName,
-        string registrationName, Guid tenantId, string redirectUri, Dictionary<string, string> deploymentUrls,
+        string registrationName, Guid tenantId, string[] redirectUris, Dictionary<string, string> deploymentUrls,
         CancellationToken cancellationToken)
     {
         var application = await WaitForResourceAsync(client, credential,
             $"https://graph.microsoft.com/v1.0/applications(uniqueName='{registrationName}')",
             resource => resource.GetProperty("web").GetProperty("redirectUris").EnumerateArray()
-                .Select(uri => uri.GetString()).SequenceEqual([redirectUri]),
+                .Select(uri => uri.GetString()).SequenceEqual(redirectUris),
             cancellationToken);
         Assert.Equal(registrationName, application.GetProperty("displayName").GetString());
         Assert.Equal(registrationName, application.GetProperty("uniqueName").GetString());
