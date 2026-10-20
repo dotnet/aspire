@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Reflection;
 using System.Text;
+using Aspire.Shared.CodeGeneration;
 using Aspire.TypeSystem;
 
 namespace Aspire.Hosting.CodeGeneration.Go;
