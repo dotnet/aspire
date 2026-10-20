@@ -160,8 +160,23 @@ public sealed class AzureEntraIdDeploymentTests(ITestOutputHelper output)
 
     private static Task DeployAsync(Hex1bTerminalAutomator auto, SequenceCounter counter)
     {
+        // Graph can reject service-principal creation immediately after creating its backing app
+        // in the same tenant. Retry only this observed consistency failure, preserving other errors.
+        // https://github.com/microsoftgraph/msgraph-bicep-types/issues/275
+        // The deployment error contains: "Authorization_RequestDenied: When using this permission,
+        // the backing application of the service principal being created must in the local tenant".
+        const string command =
+            "( log=$(mktemp) || exit; trap 'rm -f \"$log\"' EXIT; " +
+            "for attempt in 1 2 3; do " +
+            "aspire deploy --clear-cache --non-interactive 2>&1 | tee \"$log\"; status=${PIPESTATUS[0]}; " +
+            "if (( status == 0 )); then exit 0; fi; " +
+            "if (( attempt == 3 )) || ! grep -Fq 'the backing application of the service principal being created must in the' \"$log\"; " +
+            "then exit \"$status\"; fi; " +
+            "echo 'Retrying deployment after Graph could not resolve the newly created backing application in its tenant (30s).'; " +
+            "sleep 30; done )";
+
         // Match this command's exit prompt, not a previous deployment's success banner.
-        return auto.RunCommandAsync("aspire deploy --clear-cache --non-interactive", counter, TimeSpan.FromMinutes(25));
+        return auto.RunCommandAsync(command, counter, TimeSpan.FromMinutes(25));
     }
 
     private static void WriteApplication(string projectDirectory)
