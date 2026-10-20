@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json;
 using Aspire.Cli.EndToEnd.Tests.Helpers;
 using Hex1b.Automation;
 using Xunit;
@@ -61,11 +62,12 @@ public sealed class GoSecretAppHostTests(ITestOutputHelper output)
         await auto.WaitUntilTextAsync("deleted successfully", timeout: TimeSpan.FromSeconds(30));
         await auto.WaitForSuccessPromptAsync(counter);
 
-        // Verify deletion
-        await auto.TypeAsync("aspire secret list --apphost apphost.go");
-        await auto.EnterAsync();
-        await auto.WaitUntilTextAsync("ConnectionStrings:Db", timeout: TimeSpan.FromSeconds(30));
-        await auto.WaitForSuccessPromptAsync(counter);
+        // Verify deletion: waiting for screen text can only prove a secret is present, so list as JSON
+        // (keyed by secret name) and assert the whole collection.
+        await auto.RunCommandAsync("aspire secret list --apphost apphost.go --format json > listed-secrets.json", counter, TimeSpan.FromSeconds(30));
+        var listedSecrets = JsonSerializer.Deserialize<Dictionary<string, string>>(
+            await File.ReadAllTextAsync(Path.Combine(workspace.WorkspaceRoot.FullName, "listed-secrets.json"), TestContext.Current.CancellationToken));
+        Assert.Equal(new Dictionary<string, string> { ["ConnectionStrings:Db"] = "Server=localhost" }, listedSecrets);
 
         await auto.TypeAsync("aspire secret set MyConfig:ApiKey staging-go-secret --environment Staging --apphost apphost.go");
         await auto.EnterAsync();
