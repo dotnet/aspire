@@ -193,18 +193,6 @@ and infrastructure teardown. Remove any retained EAB Secret manually.
 Changing issuer names or namespaces after deployment requires manual cleanup of
 resources at their previous locations.
 
-ClusterIssuers read Secrets from cert-manager's **cluster resource namespace**, not the
-application namespace. The default is the Helm installation namespace, normally
-`cert-manager-chart`. If you customize it, use the chart's `clusterResourceNamespace`
-Helm value rather than overriding `--cluster-resource-namespace` through `extraArgs`:
-
-```csharp
-certManager.Resource.HelmChart.Values["clusterResourceNamespace"] = "certificate-accounts";
-```
-
-Ensure a custom cluster resource namespace already exists and that cert-manager can
-access Secrets there. Aspire also respects the chart's installation namespace override.
-
 #### Deployment pipelines and account lifecycle
 
 Credential lifetime and reuse are provider-specific. [ZeroSSL documents reusable EAB
