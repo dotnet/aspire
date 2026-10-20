@@ -205,6 +205,373 @@ public class AtsGoCodeGeneratorTests
     }
 
     [Fact]
+    [RequiresTools(["go"])]
+    public async Task GeneratedRuntime_PassesGoTransportHardeningTests()
+    {
+        var directory = Directory.CreateTempSubdirectory();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        try
+        {
+            // The tests only exercise transport.go and base.go, so an empty model is enough.
+            var files = _generator.GenerateDistributedApplication(new AtsContext
+            {
+                Capabilities = [],
+                HandleTypes = [],
+                EnumTypes = [],
+                DtoTypes = []
+            });
+            foreach (var (name, content) in files)
+            {
+                await File.WriteAllTextAsync(Path.Combine(directory.FullName, name), content, timeout.Token);
+            }
+
+            await File.WriteAllTextAsync(Path.Combine(directory.FullName, "transport_hardening_test.go"), """
+                package aspire
+
+                import (
+                    "bufio"
+                    "bytes"
+                    "context"
+                    "errors"
+                    "net"
+                    "runtime"
+                    "strconv"
+                    "strings"
+                    "sync"
+                    "testing"
+                    "time"
+                )
+
+                // fakeHost is the AppHost end of an in-memory connection to a client.
+                type fakeHost struct {
+                    t      *testing.T
+                    peer   net.Conn
+                    reader *bufio.Reader
+                }
+
+                func newFakeHost(t *testing.T) (*client, *fakeHost) {
+                    t.Helper()
+                    c := newClient("")
+                    server, peer := net.Pipe()
+                    // A stuck exchange fails quickly instead of waiting for the go test timeout.
+                    if err := peer.SetDeadline(time.Now().Add(10 * time.Second)); err != nil {
+                        t.Fatal(err)
+                    }
+                    conn := newConnection(server, c, c.onConnectionClose)
+                    c.conn = conn
+                    conn.start()
+                    t.Cleanup(func() {
+                        c.disconnect()
+                        peer.Close()
+                    })
+                    return c, &fakeHost{t: t, peer: peer, reader: bufio.NewReader(peer)}
+                }
+
+                func (h *fakeHost) read() map[string]any {
+                    h.t.Helper()
+                    msg, err := readMessage(h.reader)
+                    if err != nil {
+                        h.t.Fatalf("reading from the client: %v", err)
+                    }
+                    return msg
+                }
+
+                func (h *fakeHost) write(msg map[string]any) {
+                    h.t.Helper()
+                    if err := writeMessage(h.peer, msg); err != nil {
+                        h.t.Fatalf("writing to the client: %v", err)
+                    }
+                }
+
+                func callbackRequest(id int, callbackID string, args any) map[string]any {
+                    return map[string]any{"jsonrpc": "2.0", "id": id, "method": "invokeCallback", "params": []any{callbackID, args}}
+                }
+
+                func TestPanickingCallbackIsAnsweredWithError(t *testing.T) {
+                    c, host := newFakeHost(t)
+                    var nilMap map[string]int
+                    cases := []struct {
+                        name     string
+                        callback func(...any) any
+                        want     string
+                    }{
+                        {"string", func(...any) any { panic("boom") }, "Callback execution failed: boom"},
+                        {"error", func(...any) any { panic(errors.New("bad input")) }, "Callback execution failed: bad input"},
+                        {"runtime error", func(...any) any { nilMap["k"] = 1; return nil }, "Callback execution failed: assignment to entry in nil map"},
+                    }
+                    for i, tc := range cases {
+                        host.write(callbackRequest(i+1, c.registerCallback(tc.callback), nil))
+                        response := host.read()
+                        errObj, _ := response["error"].(map[string]any)
+                        if response["id"] != float64(i+1) || errObj == nil || response["result"] != nil {
+                            t.Fatalf("%s: got %v, want an error response", tc.name, response)
+                        }
+                        if errObj["code"] != float64(-32603) || errObj["message"] != tc.want {
+                            t.Errorf("%s: got error %v, want code -32603 and message %q", tc.name, errObj, tc.want)
+                        }
+                    }
+
+                    healthy := c.registerCallback(func(...any) any { return "still alive" })
+                    host.write(callbackRequest(100, healthy, nil))
+                    if response := host.read(); response["result"] != "still alive" {
+                        t.Fatalf("callback after a panic: got %v", response)
+                    }
+                }
+
+                func TestCallbackWithMalformedHandleArgumentIsAnsweredWithError(t *testing.T) {
+                    c, host := newFakeHost(t)
+                    called := false
+                    id := c.registerCallback(func(...any) any { called = true; return nil })
+
+                    host.write(callbackRequest(1, id, map[string]any{"p0": map[string]any{"$handle": 1, "$type": nil}}))
+                    response := host.read()
+                    errObj, _ := response["error"].(map[string]any)
+                    message, _ := errObj["message"].(string)
+                    if !strings.Contains(message, "malformed handle") {
+                        t.Fatalf("got %v, want a malformed handle error", response)
+                    }
+                    if called {
+                        t.Fatal("the callback ran with a malformed argument")
+                    }
+                }
+
+                func TestRegisterCancellationIDsAreUnique(t *testing.T) {
+                    c := newClient("")
+                    const count = 5000
+                    ids := make([]string, count)
+                    var wg sync.WaitGroup
+                    for i := range count {
+                        wg.Add(1)
+                        go func() {
+                            defer wg.Done()
+                            ids[i] = c.registerCancellation(NewCancellationToken())
+                        }()
+                    }
+                    wg.Wait()
+
+                    seen := make(map[string]bool, count)
+                    for _, id := range ids {
+                        if id == "" || seen[id] {
+                            t.Fatalf("cancellation ID %q is empty or was handed out twice", id)
+                        }
+                        seen[id] = true
+                    }
+                }
+
+                func TestRegisterCancellationDoesNotParkGoroutinePerToken(t *testing.T) {
+                    c := newClient("")
+                    before := runtime.NumGoroutine()
+                    for range 1000 {
+                        c.registerCancellation(NewCancellationToken())
+                    }
+                    if grown := runtime.NumGoroutine() - before; grown > 50 {
+                        t.Fatalf("registering 1000 tokens left %d more goroutines running", grown)
+                    }
+                }
+
+                func TestCancellationNotifiesHostUntilCallReturns(t *testing.T) {
+                    c, host := newFakeHost(t)
+
+                    token := NewCancellationToken()
+                    id := c.registerCancellation(token)
+                    token.Cancel()
+                    request := host.read()
+                    params, _ := request["params"].([]any)
+                    if request["method"] != "cancelToken" || len(params) != 1 || params[0] != id {
+                        t.Fatalf("got %v, want a cancelToken request for %s", request, id)
+                    }
+                    host.write(map[string]any{"jsonrpc": "2.0", "id": request["id"], "result": true})
+
+                    // Once the capability call that carried the ID has returned, canceling
+                    // the token must no longer notify the host.
+                    token = NewCancellationToken()
+                    id = c.registerCancellation(token)
+                    done := make(chan error, 1)
+                    go func() {
+                        _, err := c.invokeCapability(context.Background(), "Test/capability", map[string]any{"cancellationToken": id})
+                        done <- err
+                    }()
+                    request = host.read()
+                    if request["method"] != "invokeCapability" {
+                        t.Fatalf("got %v, want an invokeCapability request", request)
+                    }
+                    host.write(map[string]any{"jsonrpc": "2.0", "id": request["id"], "result": nil})
+                    if err := <-done; err != nil {
+                        t.Fatal(err)
+                    }
+
+                    c.cancellationsMu.Lock()
+                    _, watching := c.cancellations[id]
+                    c.cancellationsMu.Unlock()
+                    if watching {
+                        t.Fatal("the cancellation watcher outlived the call")
+                    }
+
+                    token.Cancel()
+                    if err := host.peer.SetReadDeadline(time.Now().Add(200 * time.Millisecond)); err != nil {
+                        t.Fatal(err)
+                    }
+                    if msg, err := readMessage(host.reader); err == nil {
+                        t.Fatalf("the host received %v after the call returned", msg)
+                    }
+                }
+
+                func TestReadMessageRejectsInvalidContentLength(t *testing.T) {
+                    for _, length := range []string{
+                        strconv.Itoa(maxMessageSize + 1),
+                        "9223372036854775807",
+                        "9223372036854775808",
+                        "-1",
+                        "0",
+                        "abc",
+                        "",
+                    } {
+                        var before, after runtime.MemStats
+                        runtime.ReadMemStats(&before)
+                        _, err := readMessage(bufio.NewReader(strings.NewReader("Content-Length: " + length + "\r\n\r\n{}")))
+                        runtime.ReadMemStats(&after)
+                        if err == nil {
+                            t.Errorf("Content-Length %q: expected an error", length)
+                        }
+                        if grown := after.TotalAlloc - before.TotalAlloc; grown > 1<<20 {
+                            t.Errorf("Content-Length %q: allocated %d bytes before rejecting the frame", length, grown)
+                        }
+                    }
+
+                    var frame bytes.Buffer
+                    if err := writeMessage(&frame, map[string]any{"jsonrpc": "2.0", "id": 1, "result": "ok"}); err != nil {
+                        t.Fatal(err)
+                    }
+                    msg, err := readMessage(bufio.NewReader(&frame))
+                    if err != nil || msg["result"] != "ok" {
+                        t.Fatalf("a valid frame: got %v, %v", msg, err)
+                    }
+                }
+
+                func TestWrapIfHandleRejectsMalformedHandle(t *testing.T) {
+                    c := newClient("")
+                    malformed := map[string]any{"$handle": float64(1), "$type": nil}
+                    for name, value := range map[string]any{
+                        "direct":   malformed,
+                        "in slice": []any{malformed},
+                        "in map":   map[string]any{"nested": malformed},
+                    } {
+                        if _, err := wrapIfHandle(value, c); err == nil {
+                            t.Errorf("%s: expected an error", name)
+                        }
+                    }
+
+                    wrapped, err := wrapIfHandle(map[string]any{"$handle": "h1", "$type": "Test/Type"}, c)
+                    if h, ok := wrapped.(*handle); err != nil || !ok || h.HandleID != "h1" || h.TypeID != "Test/Type" {
+                        t.Fatalf("a valid handle: got %v, %v", wrapped, err)
+                    }
+                }
+
+                func TestExtractResultKeepsErrorCodeAndData(t *testing.T) {
+                    // Decode through the wire format so the code arrives as float64, as it does from the host.
+                    var frame bytes.Buffer
+                    if err := writeMessage(&frame, map[string]any{
+                        "jsonrpc": "2.0",
+                        "id":      1,
+                        "error":   map[string]any{"code": -32601, "message": "Method not found", "data": map[string]any{"method": "nope"}},
+                    }); err != nil {
+                        t.Fatal(err)
+                    }
+                    response, err := readMessage(bufio.NewReader(&frame))
+                    if err != nil {
+                        t.Fatal(err)
+                    }
+
+                    _, err = extractResult(response)
+                    if err == nil || err.Error() != "Method not found" {
+                        t.Fatalf("got %v, want the message alone", err)
+                    }
+                    var coded interface{ Code() int }
+                    if !errors.As(err, &coded) || coded.Code() != -32601 {
+                        t.Fatalf("the code was not preserved: %v", err)
+                    }
+                    var withData interface{ Data() any }
+                    if !errors.As(err, &withData) {
+                        t.Fatalf("the data was not preserved: %v", err)
+                    }
+                    if data, _ := withData.Data().(map[string]any); data["method"] != "nope" {
+                        t.Fatalf("got data %v", withData.Data())
+                    }
+
+                    cases := []struct {
+                        name     string
+                        response map[string]any
+                        message  string
+                        code     int
+                    }{
+                        {"code from connection.close", map[string]any{"error": map[string]any{"code": -32000, "message": "connection closed"}}, "connection closed", -32000},
+                        {"missing message", map[string]any{"error": map[string]any{"code": float64(-32603)}}, "AppHost returned a JSON-RPC error (code -32603)", -32603},
+                        {"error is not an object", map[string]any{"error": "oops"}, "AppHost returned a JSON-RPC error (code 0)", 0},
+                    }
+                    for _, tc := range cases {
+                        _, err := extractResult(tc.response)
+                        if err == nil || err.Error() != tc.message {
+                            t.Errorf("%s: got %v, want %q", tc.name, err, tc.message)
+                        }
+                        if !errors.As(err, &coded) || coded.Code() != tc.code {
+                            t.Errorf("%s: got code %v, want %d", tc.name, coded, tc.code)
+                        }
+                    }
+
+                    if result, err := extractResult(map[string]any{"result": "ok"}); err != nil || result != "ok" {
+                        t.Errorf("success response: got %v, %v", result, err)
+                    }
+                }
+
+                func TestRequestErrorKeepsHostErrorCode(t *testing.T) {
+                    c, host := newFakeHost(t)
+                    done := make(chan error, 1)
+                    go func() {
+                        _, err := c.ping(context.Background())
+                        done <- err
+                    }()
+                    request := host.read()
+                    host.write(map[string]any{"jsonrpc": "2.0", "id": request["id"], "error": map[string]any{"code": -32601, "message": "Method not found"}})
+
+                    err := <-done
+                    var coded interface{ Code() int }
+                    if !errors.As(err, &coded) || coded.Code() != -32601 {
+                        t.Fatalf("got %v, want an error carrying code -32601", err)
+                    }
+                }
+                """, timeout.Token);
+
+            using var process = Process.Start(new ProcessStartInfo("go")
+            {
+                WorkingDirectory = directory.FullName,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                ArgumentList = { "test", "-timeout", "30s", "." }
+            })!;
+            var stdout = process.StandardOutput.ReadToEndAsync(timeout.Token);
+            var stderr = process.StandardError.ReadToEndAsync(timeout.Token);
+            try
+            {
+                await process.WaitForExitAsync(timeout.Token);
+                Assert.True(process.ExitCode == 0, $"Go transport hardening test failed:{Environment.NewLine}{await stdout}{await stderr}");
+            }
+            finally
+            {
+                if (!process.HasExited)
+                {
+                    process.Kill(entireProcessTree: true);
+                    await process.WaitForExitAsync();
+                }
+            }
+        }
+        finally
+        {
+            directory.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
     public void GenerateDistributedApplication_NullablePrimitiveArrayElementsUsePointers()
     {
         var nullableNumbers = Assert.IsType<AtsTypeRef>(AtsCapabilityScanner.CreateTypeRef(typeof(double?[])));
