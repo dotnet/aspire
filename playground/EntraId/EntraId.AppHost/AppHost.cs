@@ -5,8 +5,6 @@ using Aspire.Hosting.Azure;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddAzureContainerAppEnvironment("env");
-
 // Set to true to reference an existing registration. README.md describes the setup and cleanup for both modes.
 var useExistingApplication = false;
 
@@ -45,8 +43,20 @@ var nodeWeb = builder.AddNodeApp("nodefrontend", "../EntraId.NodeWeb", "server.m
     })
     .WithExternalHttpEndpoints()
     .WithReference(entraWeb);
+#pragma warning restore ASPIRECERTIFICATES001
 
-nodeWeb.WithEnvironment("NODE_WEB_BASE_URL", nodeWeb.GetEndpoint("https"));
+// The Node front end builds its callback URLs from this base URL, so it must be the same origin that is registered with
+// Entra ID: the endpoint's primary URL, which is a friendly *.dev.localhost URL when the dashboard uses one.
+nodeWeb.WithEnvironment(context =>
+{
+    var primaryUrl = nodeWeb.Resource.Annotations.OfType<ResourceUrlAnnotation>()
+        .Where(url => url.Endpoint?.EndpointName == "https" && url.DisplayLocation != UrlDisplayLocation.DetailsOnly)
+        .Select(url => url.Url)
+        .FirstOrDefault();
+    context.EnvironmentVariables["NODE_WEB_BASE_URL"] = primaryUrl is null
+        ? nodeWeb.GetEndpoint("https")
+        : new Uri(primaryUrl).GetLeftPart(UriPartial.Authority);
+});
 
 // The callback paths are configured by each front end, so they are declared here; the host and port follow the endpoints.
 if (!useExistingApplication)

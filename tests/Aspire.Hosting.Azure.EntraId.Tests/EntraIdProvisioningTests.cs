@@ -7,6 +7,7 @@
 #pragma warning disable ASPIREPIPELINES003 // Exercises the deployment pipeline for existing registrations.
 
 using Aspire.Hosting.ApplicationModel;
+using System.Runtime.CompilerServices;
 using Aspire.Hosting.Azure.EntraId.Provisioning;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Tests.Utils;
@@ -258,6 +259,37 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task Publish_EndpointRedirectUri_UsesContainerAppEnvironmentHostAndOutputs()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputHelper, workspace.Path);
+        builder.AddAzureContainerAppEnvironment("env");
+        var entra = builder.AddEntraIdApplication("entra-web");
+        var web = builder.AddContainer("web", "image")
+            .WithHttpEndpoint(targetPort: 8080)
+            .WithExternalHttpEndpoints()
+            .WithReference(entra);
+        entra.WithRedirectUris(web.GetEndpoint("http"), "/signin-oidc");
+
+        using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, default);
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var environment = model.Resources.OfType<AzureEnvironmentResource>().Single();
+        await using var step = await new TestPipelineActivityReporter(outputHelper).CreateStepAsync("Publishing endpoint redirect URI");
+        var context = new AzurePublishingContext(
+            workspace.Path,
+            app.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>().Value,
+            app.Services,
+            NullLogger<AzurePublishingContext>.Instance,
+            step);
+
+        await context.WriteModelAsync(model, environment);
+
+        await Verify(await File.ReadAllTextAsync(Path.Combine(workspace.Path, "main.bicep")), "bicep")
+            .AppendContentAsFile(await File.ReadAllTextAsync(Path.Combine(workspace.Path, "entra-web", "entra-web.bicep")), "bicep");
+    }
+
+    [Fact]
     public async Task Publish_CreatesSelfContainedGraphModulesAndOutputReferences()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
@@ -445,6 +477,9 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
 
         Assert.Equal("https://web-hashr.dev.localhost:7081/signin-oidc", await resolveTask.WaitAsync(TimeSpan.FromSeconds(10)));
     }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
+    private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 
     [Fact]
     public async Task WithRedirectUris_Domain_WritesDomainParameterWithPaths()
