@@ -2,17 +2,18 @@ import * as vscode from "vscode";
 import { EventEmitter } from "vscode";
 import { promises as fs } from "fs";
 import { createDebugAdapterTracker, AppHostTrackerOptions } from "./adapterTracker";
-import { AspireResourceExtendedDebugConfiguration, AspireResourceDebugSession, EnvVar, AspireExtendedDebugConfiguration, NodeLaunchConfiguration, ProcessRestartedNotification, ProjectLaunchConfiguration, JavaLaunchConfiguration, RustLaunchConfiguration, SessionTerminatedNotification, StartAppHostOptions, AspireOperationKind } from "../dcp/types";
+import { AspireResourceExtendedDebugConfiguration, AspireResourceDebugSession, EnvVar, AspireExtendedDebugConfiguration, GoLaunchConfiguration, NodeLaunchConfiguration, ProcessRestartedNotification, ProjectLaunchConfiguration, JavaLaunchConfiguration, RustLaunchConfiguration, SessionTerminatedNotification, StartAppHostOptions, AspireOperationKind } from "../dcp/types";
 import { extensionLogOutputChannel } from "../utils/logging";
 import AspireDcpServer, { generateDcpIdPrefix } from "../dcp/AspireDcpServer";
 import { redactCliArgsForLogging, spawnCliProcess, terminateCliProcess } from "../utils/process/cliProcess";
-import { disconnectingFromSession, launchingWithAppHost, launchingWithDirectory, processExceptionOccurred, processExitedWithCode, appHostSessionTerminated, debugSessionsFailedToStop, debugSessionStartTimedOut, debugSessionStopTimedOut, rustDebuggerExtensionNotInstalled, javaDebuggerExtensionNotInstalled, javaAppHostCommandNotRecognized } from "../loc/strings";
+import { disconnectingFromSession, launchingWithAppHost, launchingWithDirectory, processExceptionOccurred, processExitedWithCode, appHostSessionTerminated, debugSessionsFailedToStop, debugSessionStartTimedOut, debugSessionStopTimedOut, rustDebuggerExtensionNotInstalled, javaDebuggerExtensionNotInstalled, javaAppHostCommandNotRecognized, goDebuggerExtensionNotInstalled, goAppHostCommandNotRecognized } from "../loc/strings";
 import { isExtensionInstalled } from "../capabilities";
 import { projectDebuggerExtension } from "./languages/dotnet";
 import { AnsiColors } from "../utils/AspireTerminalProvider";
 import { applyTextStyle } from "../utils/strings";
 import { nodeDebuggerExtension } from "./languages/node";
 import { createDefaultRustDebuggerExtension } from "./languages/rust";
+import { goDebuggerExtension, parseGoAppHostCommand } from "./languages/go";
 import { javaDebuggerExtension, parseJavaAppHostCommand, resolveJavaClassPaths } from "./languages/java";
 import { cleanupRun } from "./runCleanupRegistry";
 import { BrowserDebugSessionTermination } from "./browserDebugSessionTermination";
@@ -1442,6 +1443,7 @@ export class AspireDebugSession implements vscode.DebugAdapter, DashboardLaunche
   private static readonly _dotnetAppHostExtensions = ['.cs', '.csproj', '.fsproj', '.vbproj'];
   private static readonly _rustAppHostExtensions = ['.rs'];
   private static readonly _javaAppHostExtensions = ['.java'];
+  private static readonly _goAppHostExtensions = ['.go'];
 
   private _appHostRestartRequested = false;
   private _appHostTerminationRequested = false;
@@ -1461,6 +1463,7 @@ export class AspireDebugSession implements vscode.DebugAdapter, DashboardLaunche
       const isDotNetAppHost = AspireDebugSession._dotnetAppHostExtensions.includes(fileExtension);
       const isRustAppHost = AspireDebugSession._rustAppHostExtensions.includes(fileExtension);
       const isJavaAppHost = AspireDebugSession._javaAppHostExtensions.includes(fileExtension);
+      const isGoAppHost = AspireDebugSession._goAppHostExtensions.includes(fileExtension);
 
       // The CLI only routes an AppHost here when the language declares ExtensionLaunchCapability, so
       // this is parsed before choosing a debugger: an unrecognised command means we cannot build a
@@ -1471,13 +1474,23 @@ export class AspireDebugSession implements vscode.DebugAdapter, DashboardLaunche
         throw new Error(javaAppHostCommandNotRecognized());
       }
 
+      // Parsed up front for the same reason as Java: a command that is not `go run <package>` cannot be
+      // turned into a launch configuration, and passing it through would debug the wrong program.
+      const goCommand = isGoAppHost ? parseGoAppHostCommand(args) : null;
+
+      if (isGoAppHost && !goCommand) {
+        throw new Error(goAppHostCommandNotRecognized());
+      }
+
       const debuggerExtension = isNodeAppHost
         ? nodeDebuggerExtension
         : isRustAppHost
           ? createDefaultRustDebuggerExtension()
           : isJavaAppHost
             ? javaDebuggerExtension
-            : projectDebuggerExtension;
+            : isGoAppHost
+              ? goDebuggerExtension
+              : projectDebuggerExtension;
 
       // Resource launches are gated by getResourceDebuggerExtensions, which omits Rust when no native
       // debugger extension is installed. This path builds the descriptor directly, so without the same
@@ -1494,6 +1507,12 @@ export class AspireDebugSession implements vscode.DebugAdapter, DashboardLaunche
         throw new Error(javaDebuggerExtensionNotInstalled(debuggerExtension.extensionId));
       }
 
+      // And for Go: the `go` debug type belongs to the Go extension, so without it VS Code would fail
+      // the session with the same raw "configured debug type is not supported" error.
+      if (isGoAppHost && debuggerExtension.extensionId && !isExtensionInstalled(debuggerExtension.extensionId)) {
+        throw new Error(goDebuggerExtensionNotInstalled(debuggerExtension.extensionId));
+      }
+
       // Register the adapter tracker with an app host restart handler.
       // When the user clicks "restart" on the app host child session,
       // we suppress VS Code's automatic child restart and restart the
@@ -1503,10 +1522,9 @@ export class AspireDebugSession implements vscode.DebugAdapter, DashboardLaunche
       // The .NET debugger (`coreclr`) emits a lot of `console`-category chatter
       // (module loads, exception-thrown notifications, the debugger banner, etc.)
       // into the parent debug console, and `Microsoft.Extensions.Logging` lines need
-      // correlation and severity styling. Other languages (Node, and future
-      // additions like Python/Go) use different debug adapters that don't produce
-      // that noise, so we pass their output through unmodified until/unless they
-      // explicitly opt in to filtering.
+      // correlation and severity styling. Other languages (Node, Rust, Java and Go) use different
+      // debug adapters that don't produce that noise, so we pass their output through unmodified
+      // until/unless they explicitly opt in to filtering.
       this.createDebugAdapterTrackerCore(
         debuggerExtension.debugAdapter,
         {
@@ -1568,6 +1586,17 @@ export class AspireDebugSession implements vscode.DebugAdapter, DashboardLaunche
           // and the classpath is sent explicitly here, so the launch never depends on one.
           ...(javaCommand!.vmArgs.length > 0 ? { vm_args: javaCommand!.vmArgs } : {})
         } as JavaLaunchConfiguration;
+      }
+      else if (isGoAppHost) {
+        // The program is the AppHost directory, not apphost.go: `go run .` compiles every file in the
+        // package, and a single-file program would leave out the AppHost's sibling .go files. A package
+        // path other than "." resolves against the same directory the CLI starts `go run` in.
+        appHostArgs = goCommand!.appHostArgs;
+        launchConfig = {
+          type: 'go',
+          program: path.resolve(path.dirname(projectFile), goCommand!.packagePath),
+          working_directory: path.dirname(projectFile)
+        } as GoLaunchConfiguration;
       }
       else {
         // The CLI sends the full dotnet CLI args (e.g., ["run", "--no-build", "--project", "...", "--", ...appHostArgs]).
