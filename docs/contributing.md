@@ -68,6 +68,9 @@ dotnet restore playground/TestShop/TestShop.AppHost/TestShop.AppHost.csproj
 dotnet run --project playground/TestShop/TestShop.AppHost/TestShop.AppHost.csproj
 ```
 
+`dotnet run` delegates to `aspire run` for local orchestration. To publish deployment
+artifacts, use `aspire publish` instead of passing `--operation publish` to `dotnet run`.
+
 Or, if you are using Visual Studio:
 
 1. Open `Aspire.slnx`
