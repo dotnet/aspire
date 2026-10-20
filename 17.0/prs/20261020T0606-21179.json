@@ -1,0 +1,9 @@
+{
+  "author": "mitchdenny",
+  "comment": "Test-only change: adds E2E regression coverage for EAB Secret cleanup; no production behavior changes",
+  "mergedAt": "2026-10-20T06:06:58Z",
+  "number": 21179,
+  "runDate": "2026-10-20T12:04:38Z",
+  "status": "excluded",
+  "title": "Cover managed EAB Secret cleanup after binding removal"
+}
