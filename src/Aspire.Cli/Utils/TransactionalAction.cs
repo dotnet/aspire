@@ -3,7 +3,6 @@
 
 // Based on dotnet/sdk src/Cli/dotnet/TransactionalAction.cs
 
-using System.Runtime.CompilerServices;
 using System.Transactions;
 
 namespace Aspire.Cli.Utils;
@@ -99,32 +98,11 @@ public sealed class TransactionalAction
     }
 
     /// <summary>
-    /// AOT-compatible accessor for TransactionManager.s_cachedMaxTimeout private field.
-    /// This is a workaround for https://github.com/dotnet/sdk/issues/21101.
-    /// Uses UnsafeAccessorType (.NET 10+) to access static fields on static classes.
-    /// </summary>
-    [UnsafeAccessor(UnsafeAccessorKind.StaticField, Name = "s_cachedMaxTimeout")]
-    private static extern ref bool CachedMaxTimeoutField(
-        [UnsafeAccessorType("System.Transactions.TransactionManager, System.Transactions.Local")] object? manager);
-
-    /// <summary>
-    /// AOT-compatible accessor for TransactionManager.s_maximumTimeout private field.
-    /// This is a workaround for https://github.com/dotnet/sdk/issues/21101.
-    /// Uses UnsafeAccessorType (.NET 10+) to access static fields on static classes.
-    /// </summary>
-    [UnsafeAccessor(UnsafeAccessorKind.StaticField, Name = "s_maximumTimeout")]
-    private static extern ref TimeSpan MaximumTimeoutField(
-        [UnsafeAccessorType("System.Transactions.TransactionManager, System.Transactions.Local")] object? manager);
-
-    /// <summary>
-    /// Disables the transaction timeout upper limit using AOT-compatible accessors.
-    /// This is a workaround for https://github.com/dotnet/sdk/issues/21101.
-    /// Use the proper API once available.
+    /// Disables the transaction timeout upper limit.
     /// </summary>
     public static void DisableTransactionTimeoutUpperLimit()
     {
-        CachedMaxTimeoutField(null) = true;
-        MaximumTimeoutField(null) = TimeSpan.Zero;
+        TransactionManager.MaximumTimeout = TimeSpan.Zero;
     }
 
     /// <summary>
