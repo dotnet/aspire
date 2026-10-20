@@ -1,0 +1,12 @@
+﻿{
+  "name": "same-name-runtime-id",
+  "displayName": "same-name",
+  "resourceType": "Container",
+  "relationships": [],
+  "urls": [],
+  "volumes": [],
+  "properties": {},
+  "environment": {},
+  "healthReports": {},
+  "commands": {}
+}

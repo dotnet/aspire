@@ -1073,12 +1073,30 @@ internal sealed class DashboardMcpConnectionInfo
 }
 
 /// <summary>
+/// Identifies the source invocation that registered a resource.
+/// </summary>
+internal sealed class ResourceSnapshotSourceLocation
+{
+    public required string FilePath { get; init; }
+    public required int LineNumber { get; init; }
+    public int? ColumnNumber { get; init; }
+    public required string DocumentHash { get; init; }
+    public string? MethodName { get; init; }
+}
+
+/// <summary>
 /// Represents a snapshot of a resource in the application model, suitable for RPC communication.
 /// Designed to be extensible - new fields can be added without breaking existing consumers.
 /// </summary>
 [DebuggerDisplay("Name = {Name}, ResourceType = {ResourceType}, State = {State}, Properties = {Properties.Count}")]
 internal sealed class ResourceSnapshot
 {
+    /// <summary>
+    /// Gets the source invocation that registered this resource, when available.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ResourceSnapshotSourceLocation? SourceLocation { get; init; }
+
     /// <summary>
     /// Gets the unique name of the resource.
     /// </summary>

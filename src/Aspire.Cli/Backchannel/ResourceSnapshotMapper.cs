@@ -146,6 +146,16 @@ internal static class ResourceSnapshotMapper
 
         return new ResourceJson
         {
+            SourceLocation = snapshot.SourceLocation is { } sourceLocation
+                ? new ResourceSourceLocationJson
+                {
+                    FilePath = sourceLocation.FilePath,
+                    LineNumber = sourceLocation.LineNumber,
+                    ColumnNumber = sourceLocation.ColumnNumber,
+                    DocumentHash = sourceLocation.DocumentHash,
+                    MethodName = sourceLocation.MethodName
+                }
+                : null,
             Name = snapshot.Name,
             DisplayName = snapshot.DisplayName,
             ResourceType = snapshot.ResourceType,

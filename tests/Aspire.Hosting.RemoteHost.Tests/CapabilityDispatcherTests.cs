@@ -87,6 +87,130 @@ public class CapabilityDispatcherTests
         Assert.Equal(42, result.GetValue<int>());
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Invoke_AttachesSourceToTheReturnedResource(bool returnBuilder)
+    {
+        var resource = new TestResourceWithProperties("same-name");
+        var handles = new HandleRegistry();
+        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), []);
+        dispatcher.Register("test/addResource", (args, registry) =>
+        {
+            Assert.Equal(["name"], args!.Select(pair => pair.Key));
+            object value = returnBuilder ? new TestResourceBuilder<TestResourceWithProperties>(resource) : resource;
+            return Task.FromResult<JsonNode?>(new JsonObject
+            {
+                ["$handle"] = registry.Register(value, "test/Resource"),
+                ["$type"] = "test/Resource"
+            });
+        });
+        var filePath = Path.GetFullPath("apphost.mts");
+        dispatcher.Invoke("test/addResource", new JsonObject
+        {
+            ["name"] = "same-name",
+            ["$source"] = new JsonObject
+            {
+                ["filePath"] = filePath,
+                ["lineNumber"] = 7,
+                ["columnNumber"] = 12,
+                ["documentHash"] = "fnv1a64:a430d84680aabd0b",
+                ["methodName"] = "addResource"
+            }
+        });
+
+        var annotation = Assert.Single(resource.Annotations.OfType<ResourceSourceLocationAnnotation>());
+        Assert.Equal(filePath, annotation.FilePath);
+        Assert.Equal(7, annotation.LineNumber);
+        Assert.Equal(12, annotation.ColumnNumber);
+        Assert.Equal("fnv1a64:a430d84680aabd0b", annotation.DocumentHash);
+        Assert.Equal("addResource", annotation.MethodName);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Invoke_PreservesExistingSourceAndAcceptsLegacyArguments(bool hasSource)
+    {
+        var resource = new TestResourceWithProperties("same-name");
+        var original = new ResourceSourceLocationAnnotation(Path.GetFullPath("original.mts"), 3, 4, "original");
+        resource.Annotations.Add(original);
+        var dispatcher = CreateDispatcher();
+        dispatcher.Register("test/addResource", (_, registry) => Task.FromResult<JsonNode?>(new JsonObject
+        {
+            ["$handle"] = registry.Register(new TestResourceBuilder<TestResourceWithProperties>(resource), "test/Resource"),
+            ["$type"] = "test/Resource"
+        }));
+        var args = new JsonObject();
+        if (hasSource)
+        {
+            args["$source"] = new JsonObject
+            {
+                ["filePath"] = Path.GetFullPath("other.mts"),
+                ["lineNumber"] = 9,
+                ["documentHash"] = "other"
+            };
+        }
+
+        dispatcher.Invoke("test/addResource", args);
+
+        Assert.Same(original, Assert.Single(resource.Annotations));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Invoke_DoesNotTreatResourceConfigurationAsCreation(bool returnNewResource)
+    {
+        var existing = new TestResourceWithProperties("existing");
+        var returned = returnNewResource ? new TestResourceWithProperties("new-resource") : existing;
+        var handles = new HandleRegistry();
+        var dispatcher = new CapabilityDispatcher(handles, CreateTestMarshaller(handles), []);
+        dispatcher.Register("test/addResource", (_, registry) => Task.FromResult<JsonNode?>(
+            registry.Marshal(new TestResourceBuilder<TestResourceWithProperties>(returned), "test/Resource")));
+
+        dispatcher.Invoke("test/addResource", new JsonObject
+        {
+            ["builder"] = handles.Marshal(new TestResourceBuilder<TestResourceWithProperties>(existing), "test/Resource"),
+            ["$source"] = new JsonObject
+            {
+                ["filePath"] = Path.GetFullPath("apphost.mts"),
+                ["lineNumber"] = 7,
+                ["documentHash"] = "hash"
+            }
+        });
+
+        Assert.Empty(existing.Annotations);
+        if (returnNewResource)
+        {
+            Assert.IsType<ResourceSourceLocationAnnotation>(Assert.Single(returned.Annotations));
+        }
+    }
+
+    [Theory]
+    [InlineData("null")]
+    [InlineData("{}")]
+    [InlineData("""{"filePath":"apphost.mts","lineNumber":0,"documentHash":"hash"}""")]
+    [InlineData("""{"filePath":"apphost.mts","lineNumber":2,"columnNumber":-1,"documentHash":"hash"}""")]
+    [InlineData("""{"filePath":"apphost.mts","lineNumber":2,"columnNumber":"3","documentHash":"hash"}""")]
+    [InlineData("""{"filePath":"apphost.mts","lineNumber":2,"methodName":4,"documentHash":"hash"}""")]
+    public void Invoke_RejectsMalformedSourceBeforeCallingTheHandler(string source)
+    {
+        var called = false;
+        var dispatcher = CreateDispatcher();
+        dispatcher.Register("test/addResource", (_, _) =>
+        {
+            called = true;
+            return Task.FromResult<JsonNode?>(null);
+        });
+
+        var error = Assert.Throws<CapabilityException>(() =>
+            dispatcher.Invoke("test/addResource", new JsonObject { ["$source"] = JsonNode.Parse(source) }));
+
+        Assert.Equal(AtsErrorCodes.InvalidArgument, error.Error.Code);
+        Assert.False(called);
+    }
+
     [Fact]
     public void Invoke_ThrowsCapabilityNotFoundForUnregisteredCapability()
     {

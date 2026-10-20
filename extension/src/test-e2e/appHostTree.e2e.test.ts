@@ -1,6 +1,9 @@
 import * as assert from 'assert';
 import * as fs from 'fs';
-import { findRunningAppHost, getCommandInvocationCount, getResources, getTreeAppHostLabel, isSamePath, waitForCommandOutcome, waitForDashboardUrl, waitForExtensionState, waitForNoDebugSessions, waitForNoRunningAppHost, waitForRepositoryIdle, waitForResource, waitForRunningAppHost, waitForWorkspaceAppHost } from './helpers/assertions';
+import * as path from 'path';
+import type { AspireExtensionE2ECodeLensProbeResult } from '../types/extensionApi';
+import { findRunningAppHost, getCommandInvocationCount, getResources, getTreeAppHostLabel, isSamePath, waitForCommandOutcome, waitForDashboardUrl, waitForExtensionState, waitForNoDebugSessions, waitForNoRunningAppHost, waitForRepositoryIdle, waitForResource, waitForResourceState, waitForRunningAppHost, waitForWorkspaceAppHost } from './helpers/assertions';
+import { VSBrowser } from './helpers/extester';
 import { assertClipboardMatchesLastExpectationForE2E, captureWorkspaceAppHostPathClipboardExpectationForE2E, executeE2eControlCommand, getCliWrapperInvocationCount, getCliWrapperInvocations, getPsFollowProcesses, getWorkspaceSettingsPath, isProcessAlive, reloadWorkspaceForE2E, restoreClipboardSnapshotForE2E, restoreE2eCliPathForE2E, restoreWorkspaceCliPath, runE2eTeardown, setCliUnavailableForE2E, setE2eCliPathForE2E, setTerminalCommandExecutionSuppressedForE2E, snapshotClipboardForE2E, stopAppHostIfRunning, stopPrimaryAppHostIfRunning, touchPrimaryAppHostProject, writeDelayedPsCliWrapper, writeGatedStreamingDiscoveryCliWrapper, writeStreamingDiscoveryCliWrapper, writeTrackedDelayedPsCliWrapper, writeTrackedStreamingDiscoveryCliWrapper, writeWorkspaceSetting } from './helpers/fixtures';
 import { getPrimaryAppHostProjectPath } from './helpers/paths';
 import { cancelActiveInput, cancelAppHostsSectionTextTransition, clickTreeItem, executeCommandFromPalette, getNotificationMessages, observeVisibleSideBarSectionTitles, openAspireView, startAppHostsSectionTextTransition, waitForAppHostsSectionTextAfterTransition, waitForAppHostsTreePath, waitForChildTreeItem, waitForNotificationMessage, waitForTreeItem, waitForTreeItemDescription, waitForWorkbenchText } from './helpers/vscode';
@@ -432,6 +435,62 @@ suite('Aspire AppHost tree E2E', function () {
             'e2e-worker',
             'Project · Running · AspireE2E.Worker.csproj');
         assert.strictEqual(await workerDescription.getDescription(), 'Project · Running · AspireE2E.Worker.csproj');
+
+        if (process.env.ASPIRE_EXTENSION_E2E_SKIP_CURRENT_CLI_REGRESSIONS !== 'true') {
+            const sourcePath = path.join(path.dirname(getPrimaryAppHostProjectPath()), 'AppHost.cs');
+            const sourceLines = fs.readFileSync(sourcePath, 'utf8').split('\n');
+            const workerDeclarationLines = sourceLines.flatMap((line, index) =>
+                line.includes('builder.AddProject<Projects.AspireE2E_Worker>("e2e-worker")') ? [index] : []);
+            assert.strictEqual(workerDeclarationLines.length, 2);
+            const activeDeclarationLine = workerDeclarationLines[process.env.ASPIRE_E2E_ALTERNATE_WORKER === 'true' ? 1 : 0];
+            const worker = getResources(workerState.state).find(resource => (resource.displayName ?? resource.name) === 'e2e-worker');
+            assert.ok(worker);
+            await executeE2eControlCommand({ name: 'openFile', filePath: sourcePath });
+
+            const waitForWorkerActionLens = async (action: string) => {
+                const probe = await VSBrowser.instance.driver.wait<AspireExtensionE2ECodeLensProbeResult>(async () => {
+                    const status = await executeE2eControlCommand({ name: 'getCodeLenses', filePath: sourcePath });
+                    const result = status.result as AspireExtensionE2ECodeLensProbeResult;
+                    return result.lenses.some(lens =>
+                        lens.commandId === 'aspire-vscode.codeLensResourceAction'
+                        && lens.stringArguments[0] === worker.name
+                        && lens.stringArguments[1] === action) ? result : false;
+                }, 60000, `Timed out waiting for the worker's ${action} CodeLens.`);
+                const lenses = probe.lenses.filter(lens =>
+                    lens.stringArguments[0] === worker.name || lens.stringArguments[0] === 'e2e-worker');
+                assert.deepStrictEqual([...new Set(lenses.map(lens => lens.line))], [activeDeclarationLine]);
+                const actionLens = lenses.find(lens =>
+                    lens.commandId === 'aspire-vscode.codeLensResourceAction'
+                    && lens.stringArguments[1] === action);
+                assert.ok(actionLens);
+                assert.deepStrictEqual(actionLens.stringArguments.slice(0, 2), [worker.name, action]);
+                assert.ok(isSamePath(actionLens.stringArguments[2], getPrimaryAppHostProjectPath()));
+                return actionLens;
+            };
+
+            const stopLens = await waitForWorkerActionLens('stop');
+            const beforeStop = getCommandInvocationCount('aspire-vscode.codeLensResourceAction');
+            await executeE2eControlCommand({
+                name: 'executeCodeLensResourceAction',
+                resourceName: stopLens.stringArguments[0],
+                commandName: stopLens.stringArguments[1],
+                appHostPath: stopLens.stringArguments[2],
+            }, { waitFor: 'started' });
+            await waitForCommandOutcome('aspire-vscode.codeLensResourceAction', 'success', 60000, beforeStop);
+            await waitForResourceState('e2e-worker', ['Finished', 'Exited']);
+
+            const startLens = await waitForWorkerActionLens('start');
+            const beforeStart = getCommandInvocationCount('aspire-vscode.codeLensResourceAction');
+            await executeE2eControlCommand({
+                name: 'executeCodeLensResourceAction',
+                resourceName: startLens.stringArguments[0],
+                commandName: startLens.stringArguments[1],
+                appHostPath: startLens.stringArguments[2],
+            }, { waitFor: 'started' });
+            await waitForCommandOutcome('aspire-vscode.codeLensResourceAction', 'success', 60000, beforeStart);
+            await waitForResourceState('e2e-worker', ['Running']);
+            await waitForWorkerActionLens('stop');
+        }
 
         await executeE2eControlCommand({ name: 'executeResourceCommand', resourceName: 'e2e-worker' }, { waitFor: 'started' });
         await cancelActiveInput();

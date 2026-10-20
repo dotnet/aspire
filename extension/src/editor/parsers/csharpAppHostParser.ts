@@ -57,6 +57,7 @@ class CSharpAppHostParser implements AppHostResourceParser {
                     name: resourceName,
                     methodName,
                     range: new vscode.Range(startPos, endPos),
+                    invocationRange: new vscode.Range(document.positionAt(node.startIndex), document.positionAt(node.endIndex)),
                     kind: methodName === 'AddStep' ? 'pipelineStep' : 'resource',
                     statementStartLine: findContainingStatementStartLine(node),
                 });

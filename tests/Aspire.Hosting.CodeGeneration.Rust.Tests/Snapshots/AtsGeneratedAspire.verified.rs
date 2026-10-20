@@ -196,9 +196,13 @@ impl IDistributedApplicationBuilder {
     }
 
     /// Adds a test Redis resource from ATS documentation.
+    #[track_caller]
     pub fn add_test_redis(&self, name: &str, port: Option<f64>) -> Result<TestRedisResource, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("builder".to_string(), self.handle.to_json());
+        if let Some(source) = super::transport::resource_source_location("add_test_redis") {
+            args.insert("$source".to_string(), source);
+        }
         args.insert("name".to_string(), serde_json::to_value(&name).unwrap_or(Value::Null));
         if let Some(ref v) = port {
             args.insert("port".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));
@@ -209,9 +213,13 @@ impl IDistributedApplicationBuilder {
     }
 
     /// Adds a test vault resource
+    #[track_caller]
     pub fn add_test_vault(&self, name: &str) -> Result<ITestVaultResource, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("builder".to_string(), self.handle.to_json());
+        if let Some(source) = super::transport::resource_source_location("add_test_vault") {
+            args.insert("$source".to_string(), source);
+        }
         args.insert("name".to_string(), serde_json::to_value(&name).unwrap_or(Value::Null));
         let result = self.client.invoke_capability("Aspire.Hosting.CodeGeneration.Rust.Tests/addTestVault", args)?;
         let handle: Handle = serde_json::from_value(result)?;
@@ -1060,9 +1068,13 @@ impl TestRedisResource {
     }
 
     /// Adds a child database to a test Redis resource
+    #[track_caller]
     pub fn add_test_child_database(&self, name: &str, database_name: Option<&str>) -> Result<TestDatabaseResource, Box<dyn std::error::Error>> {
         let mut args: HashMap<String, Value> = HashMap::new();
         args.insert("builder".to_string(), self.handle.to_json());
+        if let Some(source) = super::transport::resource_source_location("add_test_child_database") {
+            args.insert("$source".to_string(), source);
+        }
         args.insert("name".to_string(), serde_json::to_value(&name).unwrap_or(Value::Null));
         if let Some(ref v) = database_name {
             args.insert("databaseName".to_string(), serde_json::to_value(v).unwrap_or(Value::Null));

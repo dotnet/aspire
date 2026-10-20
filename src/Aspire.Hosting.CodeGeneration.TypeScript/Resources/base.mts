@@ -1,5 +1,5 @@
 // base.mts - Core Aspire types: base classes, ReferenceExpression
-import { Handle, AspireClient, MarshalledHandle, CancellationToken, registerCancellation, registerHandleWrapper, unregisterCancellation } from './transport.mjs';
+import { Handle, AspireClient, MarshalledHandle, CancellationToken, registerCancellation, registerHandleWrapper, unregisterCancellation, withResourceSource } from './transport.mjs';
 import type { AspireClientRpc } from './transport.mjs';
 
 // Re-export transport types for convenience
@@ -605,7 +605,7 @@ export class FluentPromise<T> implements PromiseLike<T> {
                     return undefined;
                 }
 
-                return (...args: unknown[]) => {
+                return (...args: unknown[]) => withResourceSource(property, () => {
                     const promise = target._promise.then(value => {
                         const member = (value as Record<string, unknown>)[property];
                         if (typeof member !== 'function') {
@@ -629,7 +629,7 @@ export class FluentPromise<T> implements PromiseLike<T> {
                         target._client,
                         target._trackTransitions && shouldTrack,
                         target._trackTransitions && shouldTrackTransitions);
-                };
+                }, true);
             }
         });
     }

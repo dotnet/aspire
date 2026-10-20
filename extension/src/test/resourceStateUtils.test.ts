@@ -2,11 +2,12 @@ import * as assert from 'assert';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { findResourceState, findWorkspaceResourceState, matchesAppHostPathOrDirectory } from '../editor/resourceStateUtils';
+import * as vscode from 'vscode';
+import { createWorkspaceResourceAppHost, matchResourceDeclarations, getResourceSourceDocumentHash, matchesAppHostPathOrDirectory } from '../editor/resourceStateUtils';
 import type { ResourceJson, AppHostDisplayInfo } from '../data/AppHostDataRepository';
-import { ResourceState } from '../editor/resourceConstants';
+import type { ParsedResource } from '../editor/parsers/AppHostResourceParser';
 
-import { removeDirectorySafely } from './testHelpers';
+import { createMockDocument, removeDirectorySafely } from './testHelpers';
 function makeResource(overrides: Partial<ResourceJson> = {}): ResourceJson {
     return {
         name: 'my-service',
@@ -55,149 +56,145 @@ function createSymlinkedWorkspace(): {
     };
 }
 
-suite('findResourceState', () => {
-    test('returns undefined when no appHosts provided', () => {
-        const result = findResourceState([], 'cache');
-        assert.strictEqual(result, undefined);
+suite('resource state matching', () => {
+    suite('matchResourceDeclarations', () => {
+        const text = 'builder.AddRedis("cache");\nbuilder.AddRedis("cache");';
+        const filePath = path.join(path.sep, 'repo', 'AppHost.cs');
+        const declarations: ParsedResource[] = [0, 1].map(line => ({
+            name: 'cache',
+            methodName: 'AddRedis',
+            range: new vscode.Range(line, 7, line, 24),
+            kind: 'resource',
+        }));
+
+        function locatedResource(overrides: Partial<ResourceJson> = {}): ResourceJson {
+            return makeResource({
+                name: 'runtime-id',
+                displayName: 'different-logical-name',
+                sourceLocation: {
+                    filePath,
+                    lineNumber: 2,
+                    columnNumber: 9,
+                    documentHash: getResourceSourceDocumentHash(text),
+                    methodName: 'AddRedis',
+                },
+                ...overrides,
+            });
+        }
+
+        test('uses the source association even when runtime and display names differ from the source literal', () => {
+            const resource = locatedResource();
+            const hosts = [makeAppHost({ resources: [resource] })];
+            const document = createMockDocument(text, filePath);
+            const matches = matchResourceDeclarations(hosts, declarations, document);
+            assert.strictEqual(matches.size, 1);
+            assert.strictEqual(matches.get(declarations[1])?.resource, resource);
+        });
+
+        test('preserves the first source match ahead of earlier legacy and later source matches', () => {
+            const first = locatedResource({ name: 'first-runtime-id' });
+            const second = locatedResource({ name: 'second-runtime-id' });
+            const hosts = [
+                makeAppHost({ resources: [makeResource({ displayName: 'cache' })] }),
+                makeAppHost({ resources: [first, second] }),
+            ];
+            const matches = matchResourceDeclarations(hosts, [declarations[1]], createMockDocument(text, filePath));
+            assert.strictEqual(matches.size, 1);
+            assert.strictEqual(matches.get(declarations[1])?.resource, first);
+        });
+
+        test('does not use a location for another file in the same directory', () => {
+            const resource = locatedResource();
+            resource.sourceLocation!.filePath = path.join(path.dirname(filePath), 'Other.cs');
+            assert.strictEqual(matchResourceDeclarations(
+                [makeAppHost({ resources: [resource] })], declarations,
+                createMockDocument(text, filePath)).size, 0);
+        });
+
+        test('does not guess by name when the source fingerprint is stale', () => {
+            const resource = locatedResource({ displayName: 'cache' });
+            assert.strictEqual(matchResourceDeclarations(
+                [makeAppHost({ resources: [resource] })], [declarations[1]],
+                createMockDocument('\n' + text, filePath)).size, 0);
+        });
+
+        test('rejects out-of-bounds coordinates even when they fall inside a multiline invocation range', () => {
+            const document = createMockDocument(text, filePath);
+            const declaration = { ...declarations[0], invocationRange: new vscode.Range(0, 0, 1, 25) };
+            for (const [lineNumber, columnNumber] of [[3, 1], [1, 1000]]) {
+                const resource = locatedResource({ displayName: 'cache' });
+                resource.sourceLocation!.lineNumber = lineNumber;
+                resource.sourceLocation!.columnNumber = columnNumber;
+                assert.strictEqual(matchResourceDeclarations(
+                    [makeAppHost({ resources: [resource] })], [declaration], document).size, 0);
+            }
+        });
+
+        test('invalidates the fingerprint cache when the document version changes', () => {
+            const resource = locatedResource();
+            const document = createMockDocument(text, filePath);
+            const hosts = [makeAppHost({ resources: [resource] })];
+            assert.ok(matchResourceDeclarations(hosts, declarations, document).has(declarations[1]));
+            Object.defineProperty(document, 'version', { value: 2 });
+            document.getText = () => '\n' + text;
+            assert.strictEqual(matchResourceDeclarations(hosts, declarations, document).size, 0);
+        });
+
+        test('retains unique-name fallback for older AppHosts', () => {
+            const resource = makeResource({ displayName: 'cache' });
+            const match = matchResourceDeclarations(
+                [makeAppHost({ resources: [resource] })], [declarations[0]],
+                createMockDocument(text, filePath)).get(declarations[0]);
+            assert.strictEqual(match?.resource, resource);
+        });
+
+        test('never selects the first same-name declaration for an older AppHost', () => {
+            const hosts = [makeAppHost({ resources: [makeResource({ displayName: 'cache' })] })];
+            const document = createMockDocument(text, filePath);
+            assert.strictEqual(matchResourceDeclarations(hosts, declarations, document).size, 0);
+        });
+
+        test('matches canonical source paths when the editor opened a symlink', () => {
+            const workspace = createSymlinkedWorkspace();
+            try {
+                const canonicalPath = path.join(workspace.canonicalDirectory, 'AppHost.cs');
+                fs.writeFileSync(canonicalPath, text);
+                const resource = locatedResource();
+                resource.sourceLocation!.filePath = canonicalPath;
+                const match = matchResourceDeclarations(
+                    [makeAppHost({ resources: [resource] })], declarations,
+                    createMockDocument(text, path.join(workspace.linkedDirectory, 'AppHost.cs'))).get(declarations[1]);
+                assert.strictEqual(match?.resource, resource);
+            } finally {
+                workspace.dispose();
+            }
+        });
     });
 
-    test('returns undefined when appHosts have no resources', () => {
-        const appHost = makeAppHost({ resources: null });
-        const result = findResourceState([appHost], 'cache');
-        assert.strictEqual(result, undefined);
+    suite('getResourceSourceDocumentHash', () => {
+        test('uses the shared FNV-1a UTF-8 format and ignores the encoding BOM', () => {
+            assert.deepStrictEqual(['', 'hello', '\uFEFFhello'].map(getResourceSourceDocumentHash),
+                ['fnv1a64:cbf29ce484222325', 'fnv1a64:a430d84680aabd0b', 'fnv1a64:a430d84680aabd0b']);
+        });
     });
 
-    test('returns undefined when appHosts have empty resources', () => {
-        const appHost = makeAppHost({ resources: [] });
-        const result = findResourceState([appHost], 'cache');
-        assert.strictEqual(result, undefined);
-    });
-
-    test('matches resource by name', () => {
-        const resource = makeResource({ name: 'cache', displayName: null });
-        const appHost = makeAppHost({ resources: [resource] });
-        const result = findResourceState([appHost], 'cache');
-        assert.ok(result);
-        assert.strictEqual(result!.resource, resource);
-        assert.strictEqual(result!.appHost, appHost);
-    });
-
-    test('matches resource by displayName', () => {
-        const resource = makeResource({ name: 'cache-abc123', displayName: 'cache' });
-        const appHost = makeAppHost({ resources: [resource] });
-        const result = findResourceState([appHost], 'cache');
-        assert.ok(result);
-        assert.strictEqual(result!.resource, resource);
-    });
-
-    test('prefers displayName match over name match', () => {
-        const resource = makeResource({ name: 'cache-abc123', displayName: 'cache' });
-        const appHost = makeAppHost({ resources: [resource] });
-        // Searching by displayName should find it
-        const result = findResourceState([appHost], 'cache');
-        assert.ok(result);
-        assert.strictEqual(result!.resource.displayName, 'cache');
-    });
-
-    test('returns undefined when resource name does not match', () => {
-        const resource = makeResource({ name: 'redis', displayName: 'redis' });
-        const appHost = makeAppHost({ resources: [resource] });
-        const result = findResourceState([appHost], 'cache');
-        assert.strictEqual(result, undefined);
-    });
-
-    test('searches across multiple appHosts', () => {
-        const resource1 = makeResource({ name: 'cache', displayName: 'cache' });
-        const resource2 = makeResource({ name: 'db', displayName: 'db' });
-        const appHost1 = makeAppHost({ appHostPid: 1, resources: [resource1] });
-        const appHost2 = makeAppHost({ appHostPid: 2, resources: [resource2] });
-
-        const result = findResourceState([appHost1, appHost2], 'db');
-        assert.ok(result);
-        assert.strictEqual(result!.resource, resource2);
-        assert.strictEqual(result!.appHost, appHost2);
-    });
-
-    test('returns first match when name exists in multiple appHosts', () => {
-        const resource1 = makeResource({ name: 'cache', state: ResourceState.Running });
-        const resource2 = makeResource({ name: 'cache', state: ResourceState.Stopped });
-        const appHost1 = makeAppHost({ appHostPid: 1, resources: [resource1] });
-        const appHost2 = makeAppHost({ appHostPid: 2, resources: [resource2] });
-
-        const result = findResourceState([appHost1, appHost2], 'cache');
-        assert.ok(result);
-        assert.strictEqual(result!.resource.state, ResourceState.Running);
-    });
-
-    test('skips appHosts with null resources', () => {
-        const resource = makeResource({ name: 'cache' });
-        const appHost1 = makeAppHost({ appHostPid: 1, resources: null });
-        const appHost2 = makeAppHost({ appHostPid: 2, resources: [resource] });
-
-        const result = findResourceState([appHost1, appHost2], 'cache');
-        assert.ok(result);
-        assert.strictEqual(result!.appHost, appHost2);
-    });
 });
 
-suite('findWorkspaceResourceState', () => {
-    test('returns undefined when no workspace resources', () => {
-        const finder = findWorkspaceResourceState([], '/test/path');
-        const result = finder('cache');
-        assert.strictEqual(result, undefined);
-    });
-
-    test('matches resource by name', () => {
+suite('createWorkspaceResourceAppHost', () => {
+    test('preserves the workspace AppHost metadata and command target', () => {
         const resource = makeResource({ name: 'cache' });
-        const finder = findWorkspaceResourceState([resource], '/test/AppHost.csproj');
-        const result = finder('cache');
-        assert.ok(result);
-        assert.strictEqual(result!.resource, resource);
-        assert.strictEqual(result!.appHost.appHostPath, '/test/AppHost.csproj');
+        const host = makeAppHost({ dashboardUrl: 'http://localhost:18888' });
+        const result = createWorkspaceResourceAppHost([resource], host.appHostPath, host);
+        assert.deepStrictEqual(result, { ...host, resources: [resource] });
     });
 
-    test('matches resource by displayName', () => {
-        const resource = makeResource({ name: 'cache-xyz', displayName: 'cache' });
-        const finder = findWorkspaceResourceState([resource], '/test/AppHost.csproj');
-        const result = finder('cache');
-        assert.ok(result);
-        assert.strictEqual(result!.resource, resource);
-    });
-
-    test('returns undefined when no match found', () => {
-        const resource = makeResource({ name: 'db' });
-        const finder = findWorkspaceResourceState([resource], '/test/AppHost.csproj');
-        const result = finder('cache');
-        assert.strictEqual(result, undefined);
-    });
-
-    test('returned appHost has expected default values', () => {
+    test('does not borrow metadata or command targets from a different AppHost', () => {
         const resource = makeResource({ name: 'cache' });
-        const finder = findWorkspaceResourceState([resource], '/test/AppHost.csproj');
-        const result = finder('cache');
-        assert.ok(result);
-        assert.strictEqual(result!.appHost.appHostPid, 0);
-        assert.strictEqual(result!.appHost.cliPid, null);
-        assert.strictEqual(result!.appHost.dashboardUrl, null);
-    });
-
-    test('returned appHost resources is a copy', () => {
-        const resource = makeResource({ name: 'cache' });
-        const resources = [resource];
-        const finder = findWorkspaceResourceState(resources, '/test/AppHost.csproj');
-        const result = finder('cache');
-        assert.ok(result);
-        assert.notStrictEqual(result!.appHost.resources, resources);
-        assert.deepStrictEqual(result!.appHost.resources, resources);
-    });
-
-    test('can be called multiple times with different names', () => {
-        const r1 = makeResource({ name: 'cache' });
-        const r2 = makeResource({ name: 'db' });
-        const finder = findWorkspaceResourceState([r1, r2], '/test/AppHost.csproj');
-        assert.ok(finder('cache'));
-        assert.ok(finder('db'));
-        assert.strictEqual(finder('nonexistent'), undefined);
+        const host = makeAppHost({ dashboardUrl: 'http://localhost:18888' });
+        const appHostPath = '/test/OtherAppHost.csproj';
+        const result = createWorkspaceResourceAppHost([resource], appHostPath, host);
+        assert.strictEqual(result.appHostPath, appHostPath);
+        assert.strictEqual(result.dashboardUrl, null);
     });
 });
 

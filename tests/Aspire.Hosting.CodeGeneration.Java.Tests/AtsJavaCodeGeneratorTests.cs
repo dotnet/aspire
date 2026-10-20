@@ -550,6 +550,134 @@ public class AtsJavaCodeGeneratorTests
     }
 
     [Fact]
+    public async Task GeneratedTransport_ResourceSourceIdentifiesTheExecutedCall()
+    {
+        var scannedContext = CreateContextFromTestAssembly();
+        var factory = scannedContext.Capabilities.Single(capability => capability.CapabilityId.EndsWith("/addTestRedis", StringComparison.Ordinal));
+        var context = new AtsContext
+        {
+            Capabilities =
+            [
+                factory,
+                CreateProbeCapability(factory.TargetType!, "addNonResource", new AtsTypeRef { TypeId = AtsConstants.Void, Category = AtsTypeCategory.Primitive })
+            ],
+            HandleTypes = scannedContext.HandleTypes,
+            DtoTypes = [],
+            EnumTypes = []
+        };
+        using var workspace = await CreateJavaProbeWorkspaceAsync(
+            context,
+            "aspire/IDistributedApplicationBuilder.java",
+            "aspire/ResourceBuilderBase.java",
+            "aspire/TestRedisResource.java");
+        workspace.EnvironmentVariables["ASPIRE_APPHOST_FILEPATH"] = Path.Combine(workspace.RootPath, "AppHost.java");
+        workspace.WriteSource("aspire/SourceFactory.java", """
+            package aspire;
+            import java.io.*;
+            import java.nio.charset.StandardCharsets;
+            import java.util.Map;
+            import java.util.function.Consumer;
+            public class SourceFactory {
+                public static String invoke(Consumer<IDistributedApplicationBuilder> action) throws Exception {
+                    AspireClient.registerHandleWrapper("TestRedisResource", TestRedisResource::new);
+                    var client = new AspireClient("unused");
+                    try (var serverOutput = new PipedOutputStream()) {
+                        var clientInput = new PipedInputStream(serverOutput);
+                        var clientOutput = new ByteArrayOutputStream() {
+                            @Override public synchronized void flush() throws IOException {
+                                byte[] body = "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"$handle\":\"redis\",\"$type\":\"TestRedisResource\"}}".getBytes(StandardCharsets.UTF_8);
+                                serverOutput.write(("Content-Length: " + body.length + "\r\n\r\n").getBytes(StandardCharsets.UTF_8));
+                                serverOutput.write(body);
+                                serverOutput.flush();
+                            }
+                        };
+                        for (var entry : Map.<String, Object>of("inputStream", clientInput, "outputStream", clientOutput).entrySet()) {
+                            var field = AspireClient.class.getDeclaredField(entry.getKey());
+                            field.setAccessible(true);
+                            field.set(client, entry.getValue());
+                        }
+                        action.accept(new IDistributedApplicationBuilder(new Handle("builder", "IDistributedApplicationBuilder"), client));
+                        // Requests use Content-Length: <bytes>\r\n\r\n<json>.
+                        String request = clientOutput.toString(StandardCharsets.UTF_8);
+                        return request.substring(request.indexOf("\r\n\r\n") + 4);
+                    }
+                }
+            }
+            """);
+        workspace.WriteSource("other/AppHost.java", """
+            package other;
+
+            import aspire.SourceFactory;
+
+            public class AppHost {
+                public static String add() throws Exception {
+                    return SourceFactory.invoke(builder ->
+                        builder.addTestRedis("from-helper"));
+                }
+            }
+            """.ReplaceLineEndings("\n"));
+        workspace.WriteSource("AppHost.java", """
+            import aspire.*;
+            import java.nio.file.*;
+            public class AppHost {
+                public static void main(String[] args) throws Exception {
+                    for (boolean flag : new boolean[] { true, false }) {
+                        String request;
+                        if (flag) {
+                            request = SourceFactory.invoke(builder -> builder.addTestRedis("same"));
+                        } else {
+                            request = SourceFactory.invoke(builder -> builder.addTestRedis("same"));
+                        }
+                        System.out.println(request);
+                    }
+                    System.out.println(SourceFactory.invoke(builder -> builder.addNonResource()));
+                    System.out.println(other.AppHost.add());
+                    Path rootHelper = Path.of("other", "AppHost.java");
+                    Path mavenHelper = Path.of("src", "main", "java", "other", "AppHost.java");
+                    Files.createDirectories(mavenHelper.getParent());
+                    Files.copy(rootHelper, mavenHelper, StandardCopyOption.COPY_ATTRIBUTES);
+                    System.out.println(other.AppHost.add());
+                    Files.delete(rootHelper);
+                    System.out.println(other.AppHost.add());
+                    Files.writeString(Path.of("AppHost.java"), "\n// Edited after compilation.", StandardOpenOption.APPEND);
+                    Files.setLastModifiedTime(Path.of("AppHost.java"),
+                        java.nio.file.attribute.FileTime.fromMillis(System.currentTimeMillis() + 60000));
+                    System.out.println(SourceFactory.invoke(builder -> builder.addTestRedis("same")));
+                }
+            }
+            """.ReplaceLineEndings("\n"));
+        await workspace.CompileAsync();
+
+        var result = await workspace.RunClassAsync("AppHost", TimeSpan.FromSeconds(15));
+
+        Assert.False(result.TimedOut);
+        Assert.True(result.ExitCode == 0, result.StdErr);
+        var requests = result.StdOut.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Select(line => JsonNode.Parse(line)!).ToArray();
+        Assert.Equal(7, requests.Length);
+        foreach (var (index, relativePath) in new[]
+        {
+            (0, "AppHost.java"),
+            (1, "AppHost.java"),
+            (3, "other/AppHost.java"),
+            (5, "src/main/java/other/AppHost.java")
+        })
+        {
+            var source = Assert.IsType<JsonObject>(requests[index]["params"]?["args"]?["$source"]);
+            Assert.Equal(Path.Combine(workspace.RootPath, relativePath.Replace('/', Path.DirectorySeparatorChar)), source["filePath"]!.GetValue<string>());
+            source["filePath"] = relativePath;
+        }
+        var nonResourceArguments = Assert.IsType<JsonObject>(requests[2]["params"]?["args"]);
+        Assert.Equal(["resource"], nonResourceArguments.Select(argument => argument.Key));
+        foreach (var request in new[] { requests[4], requests[6] })
+        {
+            var arguments = Assert.IsType<JsonObject>(request["params"]?["args"]);
+            Assert.Equal(["builder", "name"], arguments.Select(argument => argument.Key).Order(StringComparer.Ordinal));
+        }
+        await VerifyJson(new JsonArray(requests).ToJsonString());
+    }
+
+    [Fact]
     public async Task GeneratedTransport_ConcurrentCallsRouteReverseResponsesToTheCorrectCaller()
     {
         using var workspace = await CreateJavaProbeWorkspaceAsync();
@@ -3777,6 +3905,10 @@ public class AtsJavaCodeGeneratorTests
             _classes = Directory.CreateDirectory(Path.Combine(_root.FullName, "classes"));
         }
 
+        public string RootPath => _root.FullName;
+
+        public Dictionary<string, string> EnvironmentVariables { get; } = [];
+
         public void WriteSource(string relativePath, string content)
         {
             var path = Path.Combine(_root.FullName, relativePath.Replace('/', Path.DirectorySeparatorChar));
@@ -3832,6 +3964,11 @@ public class AtsJavaCodeGeneratorTests
                 RedirectStandardError = true,
                 UseShellExecute = false,
             };
+            startInfo.Environment["ASPIRE_PROJECT_DIRECTORY"] = _root.FullName;
+            foreach (var (name, value) in EnvironmentVariables)
+            {
+                startInfo.Environment[name] = value;
+            }
 
             foreach (var arg in arguments)
             {

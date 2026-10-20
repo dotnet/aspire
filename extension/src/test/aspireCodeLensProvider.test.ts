@@ -9,6 +9,7 @@ import { AspireCodeLensProvider } from '../editor/AspireCodeLensProvider';
 import { AspireGutterDecorationProvider } from '../editor/AspireGutterDecorationProvider';
 import * as AppHostResourceParser from '../editor/parsers/AppHostResourceParser';
 import { ParsedResource } from '../editor/parsers/AppHostResourceParser';
+import { getResourceSourceDocumentHash } from '../editor/resourceStateUtils';
 import { codeLensCommand, codeLensJavaAppHostAlreadyRunning, codeLensJavaAppHostAlreadyRunningTooltip, codeLensJavaAppHostUseAspire, codeLensJavaAppHostUseAspireTooltip, codeLensResourceValueMissing, codeLensRustAppHostUseAspire, codeLensSpringBootDashboardBypassesAspire, codeLensSpringBootDashboardBypassesAspireTooltip } from '../loc/strings';
 import { ResourceState, ResourceType } from '../editor/resourceConstants';
 import { AspireAppHostTreeProvider } from '../views/AspireAppHostTreeProvider';
@@ -19,6 +20,7 @@ import { launchConfigurationTypePropertyName } from '../debugger/debuggerInstall
 // Import parsers so they self-register before the provider consults them.
 import '../editor/parsers/csharpAppHostParser';
 import '../editor/parsers/jsTsAppHostParser';
+import '../editor/parsers/javaAppHostParser';
 import '../editor/parsers/rustAppHostParser';
 
 // Build platform-native paths so dirname comparison works on Windows too
@@ -474,6 +476,188 @@ suite('AspireGutterDecorationProvider resource decoration filtering', () => {
         getConfigStub.restore();
     });
 
+    const conditionalCSharp = [
+        'var builder = DistributedApplication.CreateBuilder(args);',
+        'if (DateTime.UtcNow.Ticks % 2 == 0)',
+        '{',
+        '    builder.AddContainer("registry", "registry", "2");',
+        '}',
+        'else',
+        '{',
+        '    builder.AddContainer("registry", "registry", "3");',
+        '}',
+    ].join('\n');
+    const conditionalTypeScript = [
+        'import { createBuilder } from "@aspire/sdk";',
+        'const builder = await createBuilder();',
+        'if (Math.random() > 0.5) {',
+        '    await builder.addContainer("registry", "registry", "2");',
+        '} else {',
+        '    await builder.addContainer("registry", "registry", "3");',
+        '}',
+    ].join('\n');
+    const programs = [
+        ['cs', conditionalCSharp],
+        ['switch.cs', [
+            'var builder = DistributedApplication.CreateBuilder(args);',
+            'var resource = flag switch {',
+            '    true => builder.AddContainer("registry", "registry", "2"),',
+            '    false => builder.AddContainer("registry", "registry", "3"),',
+            '};',
+        ].join('\n')],
+        ['ternary.cs', [
+            'var builder = DistributedApplication.CreateBuilder(args);',
+            'var resource = flag ? builder.AddContainer("registry", "registry", "2") : builder.AddContainer("registry", "registry", "3");',
+        ].join('\n')],
+        ...['ts', 'mts', 'cts', 'js', 'mjs', 'cjs'].map(extension => [extension, conditionalTypeScript]),
+        ['java', [
+            'import aspire.*;',
+            'class AppHost { public static void main(String[] args) {',
+            '    var builder = DistributedApplication.CreateBuilder(args);',
+            '    if (System.nanoTime() % 2 == 0) {',
+            '        builder.addContainer("registry", "registry", "2");',
+            '    } else {',
+            '        builder.addContainer("registry", "registry", "3");',
+            '    }',
+            '} }',
+        ].join('\n')],
+        ['rs', [
+            'use aspire::*;',
+            'fn main() -> Result<(), Box<dyn std::error::Error>> {',
+            '    let builder = create_builder()?;',
+            '    if feature_enabled() {',
+            '        builder.add_container("registry", "registry", "2")?;',
+            '    } else {',
+            '        builder.add_container("registry", "registry", "3")?;',
+            '    }',
+            '    Ok(())',
+            '}',
+        ].join('\n')],
+    ];
+    for (const view of ['global', 'workspace']) {
+        test(`matches all resources once per CodeLens and gutter refresh in ${view} view`, async () => {
+            const count = 400;
+            const hostPath = p('repo', 'AppHost', 'AppHost.csproj');
+            const host = makeAppHost(hostPath);
+            const text = [
+                'var builder = DistributedApplication.CreateBuilder(args);',
+                ...Array.from({ length: count }, (_, index) => `builder.AddContainer("resource-${index}", "nginx");`),
+            ].join('\n');
+            const document = createMockDocument(text, p('repo', 'AppHost', 'AppHost.cs'));
+            const documentHash = getResourceSourceDocumentHash(text);
+            let sourceReads = 0;
+            host.resources = Array.from({ length: count }, (_, index) => {
+                const resource = makeResource(`resource-${index}`);
+                const sourceLocation = {
+                    filePath: document.uri.fsPath,
+                    documentHash,
+                    lineNumber: index + 2,
+                    columnNumber: 9,
+                    methodName: 'AddContainer',
+                };
+                Object.defineProperty(resource, 'sourceLocation', {
+                    get: () => {
+                        sourceReads++;
+                        return sourceLocation;
+                    },
+                });
+                return resource;
+            });
+            const harness = createHarness(view === 'global'
+                ? { appHosts: [host] }
+                : { workspaceAppHostPath: hostPath, workspaceResources: host.resources });
+            const provider = new AspireGutterDecorationProvider(harness.treeProvider);
+            const editor = createMockEditor(document);
+            const expectedLines = Array.from({ length: count }, (_, index) => index + 1);
+
+            try {
+                const lenses = await harness.provider.provideCodeLenses(document, cancellationToken) as vscode.CodeLens[];
+                assert.deepStrictEqual(lenses
+                    .filter(lens => lens.command?.command === 'aspire-vscode.codeLensRevealResource')
+                    .map(lens => lens.range.start.line), expectedLines);
+                assert.ok(sourceReads <= count, `CodeLens read source metadata ${sourceReads} times for ${count} resources.`);
+
+                sourceReads = 0;
+                await applyGutterDecorations(provider, editor.editor);
+                assert.deepStrictEqual(getCurrentDecoratedLines(editor.decorationState), expectedLines);
+                assert.ok(sourceReads <= count, `Gutters read source metadata ${sourceReads} times for ${count} resources.`);
+            } finally {
+                provider.dispose();
+                harness.dispose();
+            }
+        });
+
+        for (const [extension, text] of programs) {
+            for (const activeIndex of [0, 1, undefined]) {
+                test(`${extension}: ${activeIndex === undefined ? 'hides ambiguous legacy state' : `matches executed declaration ${activeIndex + 1}`} in ${view} view`, async () => {
+                    const hostPath = p('repo', 'AppHost', 'AppHost.csproj');
+                    const host = makeAppHost(hostPath);
+                    const document = createMockDocument(text, p('repo', 'AppHost', `AppHost.${extension}`));
+                    const parser = await AppHostResourceParser.getParserForDocument(document);
+                    assert.ok(parser);
+                    const declarations = await parser.parseResources(document);
+                    assert.strictEqual(declarations.length, 2);
+                    const active = activeIndex === undefined ? undefined : declarations[activeIndex];
+                    const point = active && (extension === 'rs' ? active.invocationRange!.start : active.range.start.translate(0, 1));
+                    host.resources = [makeResource('registry-abc', {
+                        displayName: 'registry',
+                        sourceLocation: active && point ? {
+                            filePath: document.uri.fsPath,
+                            documentHash: getResourceSourceDocumentHash(text),
+                            lineNumber: point.line + 1,
+                            columnNumber: extension === 'java' ? null : point.character + 1,
+                            methodName: active.methodName,
+                        } : undefined,
+                        commands: {
+                            restart: { description: 'Restart', state: 'Enabled' },
+                            stop: { description: 'Stop', state: 'Enabled' },
+                        },
+                    })];
+                    const harness = createHarness(view === 'global'
+                        ? { appHosts: [host] }
+                        : { workspaceAppHostPath: hostPath, workspaceResources: host.resources });
+                    const workspaceHostStub = sinon.stub(harness.repository, 'workspaceAppHost').get(() => view === 'workspace' ? host : undefined);
+                    const provider = new AspireGutterDecorationProvider(harness.treeProvider);
+                    const editor = createMockEditor(document);
+
+                    try {
+                        const lenses = await harness.provider.provideCodeLenses(document, cancellationToken) as vscode.CodeLens[];
+                        const resourceLenses = lenses.filter(lens =>
+                            lens.command?.command === 'aspire-vscode.codeLensRevealResource'
+                            || lens.command?.command === 'aspire-vscode.codeLensResourceAction'
+                            || lens.command?.command === 'aspire-vscode.codeLensViewLogs');
+                        const expectedLines = active ? [active.range.start.line] : [];
+                        assert.deepStrictEqual([...new Set(resourceLenses.map(lens => lens.range.start.line))], expectedLines);
+                        if (active) {
+                            const stopLens = resourceLenses.find(lens =>
+                                lens.command?.command === 'aspire-vscode.codeLensResourceAction'
+                                && lens.command.arguments?.[1] === 'stop');
+                            assert.ok(stopLens);
+                            assert.deepStrictEqual(stopLens.command?.arguments?.slice(0, 3), ['registry-abc', 'stop', hostPath]);
+                        }
+
+                        await applyGutterDecorations(provider, editor.editor);
+                        assert.deepStrictEqual(getCurrentDecoratedLines(editor.decorationState), expectedLines);
+
+                        const editedDocument = createMockDocument(
+                            '\n' + document.getText(), document.uri.fsPath);
+                        const editedEditor = createMockEditor(editedDocument);
+                        const editedLenses = await harness.provider.provideCodeLenses(editedDocument, cancellationToken) as vscode.CodeLens[];
+                        assert.deepStrictEqual(editedLenses
+                            .filter(lens => lens.command?.command === 'aspire-vscode.codeLensRevealResource')
+                            .map(lens => lens.range.start.line), []);
+                        await applyGutterDecorations(provider, editedEditor.editor);
+                        assert.deepStrictEqual(getCurrentDecoratedLines(editedEditor.decorationState), []);
+                    } finally {
+                        provider.dispose();
+                        workspaceHostStub.restore();
+                        harness.dispose();
+                    }
+                });
+            }
+        }
+    }
+
     test('does not decorate commented or string resource calls in C# and JS/TS AppHosts', async () => {
         const hostPath = p('repo', 'AppHost', 'AppHost.csproj');
         const harness = createHarness({
@@ -804,6 +988,25 @@ suite('AspireCodeLensProvider resource lens anchoring', () => {
         assert.deepStrictEqual(pipelineLens.command?.arguments, ['publish']);
         assert.strictEqual(pipelineLens.range.start.line, 2);
         harness.dispose();
+    });
+
+    test('preserves pipeline Debug lenses inside a publish-only branch', async () => {
+        const document = createMockDocument([
+            'var builder = DistributedApplication.CreateBuilder(args);',
+            'if (builder.ExecutionContext.IsPublishMode)',
+            '{',
+            '    builder.Pipeline.AddStep("publish", context => Task.CompletedTask);',
+            '}',
+        ].join('\n'), p('repo', 'AppHost', 'AppHost.cs'));
+        const harness = createHarness({});
+        try {
+            const lenses = await harness.provider.provideCodeLenses(document, cancellationToken) as vscode.CodeLens[];
+            assert.deepStrictEqual(lenses
+                .filter(lens => lens.command?.command === 'aspire-vscode.codeLensDebugPipelineStep')
+                .map(lens => [lens.range.start.line, lens.command?.arguments]), [[3, ['publish']]]);
+        } finally {
+            harness.dispose();
+        }
     });
 
     test('does not emit resource state lenses for line-commented C# resource calls', async () => {

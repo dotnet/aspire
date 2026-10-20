@@ -1,7 +1,120 @@
 // transport.mts - ATS transport layer: RPC, Handle, errors, callbacks
 import * as net from 'net';
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { readFileSync, statSync } from 'node:fs';
+import { findSourceMap } from 'node:module';
+import { isAbsolute, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import * as util from 'node:util';
 import * as rpc from 'vscode-jsonrpc/node.js';
+
+interface ResourceSourceLocation {
+    filePath: string;
+    lineNumber: number;
+    columnNumber: number;
+    documentHash: string;
+    methodName: string;
+}
+
+interface ResourceSourceContext {
+    source: ResourceSourceLocation | undefined;
+    methodName: string;
+    forwardToPublicMethod: boolean;
+}
+
+// Separately restored SDKs can share a client and fluent builders. Share the scope
+// too, without adding nominal members to the structural AspireClientRpc contract.
+const resourceSourceKey = Symbol.for('aspire.resourceSourceLocation');
+const resourceSourceStorage = globalThis as typeof globalThis & {
+    [resourceSourceKey]?: AsyncLocalStorage<ResourceSourceContext>;
+};
+const resourceSourceScope = resourceSourceStorage[resourceSourceKey] ??= new AsyncLocalStorage<ResourceSourceContext>();
+const sourceDocumentHashes = new Map<string, { text: string; hash: string }>();
+
+/** @internal */
+export function getResourceSourceLocation(): ResourceSourceLocation | undefined {
+    return resourceSourceScope.getStore()?.source;
+}
+
+/** @internal */
+export function withResourceSource<T>(methodName: string, invoke: () => T, forwardToPublicMethod: boolean): T {
+    if (!/^add[A-Z_]/.test(methodName)) {
+        return invoke();
+    }
+
+    let source: ResourceSourceLocation | undefined;
+    const parent = resourceSourceScope.getStore();
+    if (!forwardToPublicMethod && parent?.forwardToPublicMethod && parent.methodName === methodName) {
+        return resourceSourceScope.run({ source: parent.source, methodName, forwardToPublicMethod: false }, invoke);
+    }
+    try {
+        // getCallSites is independent of Error.prepareStackTrace and resolves source maps.
+        // Frames are this helper, the public SDK method (or fluent proxy), then the caller.
+        // https://nodejs.org/api/util.html#utilgetcallsitesframecount-options
+        const getCallSites = (util as typeof util & {
+            getCallSites?: (count: number, options: { sourceMap: boolean }) => {
+                scriptName: string; lineNumber: number; columnNumber: number;
+            }[];
+        }).getCallSites;
+        const caller = getCallSites?.(4, { sourceMap: false })[2];
+        if (caller && caller.lineNumber > 0 && caller.columnNumber > 0) {
+            const sourceMap = findSourceMap(caller.scriptName);
+            const mapped = sourceMap?.findOrigin(caller.lineNumber, caller.columnNumber);
+            const origin = mapped && 'fileName' in mapped ? mapped : undefined;
+            const scriptName = origin?.fileName ?? caller.scriptName;
+            const scriptPath = scriptName.startsWith('file:') ? fileURLToPath(scriptName) : scriptName;
+            if (isAbsolute(scriptPath)) {
+                const filePath = resolve(scriptPath);
+                const sourceIndex = sourceMap?.payload.sources.indexOf(scriptName) ?? -1;
+                let text = sourceMap?.payload.sourcesContent?.[sourceIndex];
+                if (text == null) {
+                    // tsx supplies positions but omits sourcesContent. Only read an unchanged
+                    // source file; for precompiled JS, also reject source newer than its output.
+                    const executedPath = caller.scriptName.startsWith('file:') ? fileURLToPath(caller.scriptName) : caller.scriptName;
+                    const modified = statSync(filePath).mtimeMs;
+                    if ((sourceMap && !origin) || (!sourceMap && /\.[cm]?tsx?$/.test(filePath))
+                        || modified > performance.timeOrigin
+                        || (resolve(executedPath) !== filePath && modified > statSync(executedPath).mtimeMs)) {
+                        throw new Error('The executed source document revision is unavailable.');
+                    }
+                    text = readFileSync(filePath, 'utf8');
+                    if (statSync(filePath).mtimeMs !== modified) {
+                        throw new Error('The source document changed while capturing its location.');
+                    }
+                }
+                text = text.replace(/^\uFEFF+/, '');
+                let cached = sourceDocumentHashes.get(filePath);
+                if (cached?.text !== text) {
+                    let hash = 14695981039346656037n;
+                    for (const byte of Buffer.from(text, 'utf8')) {
+                        hash = BigInt.asUintN(64, (hash ^ BigInt(byte)) * 1099511628211n);
+                    }
+                    cached = { text, hash: `fnv1a64:${hash.toString(16).padStart(16, '0')}` };
+                    sourceDocumentHashes.set(filePath, cached);
+                }
+                source = {
+                    filePath,
+                    lineNumber: origin?.lineNumber ?? caller.lineNumber,
+                    columnNumber: origin?.columnNumber ?? caller.columnNumber,
+                    documentHash: cached.hash,
+                    methodName,
+                };
+            }
+        }
+        if (!source && process.env.ASPIRE_DEBUG) {
+            console.error('[ATS] Resource source location is unavailable in this Node.js runtime.');
+        }
+    } catch (error) {
+        // Source metadata is optional; an unavailable source file must not prevent
+        // resource creation. The editor will not guess between duplicate declarations.
+        if (process.env.ASPIRE_DEBUG) {
+            console.error('[ATS] Cannot capture resource source location:', error);
+        }
+    }
+    // Preserve a failed capture too: a deferred public method must not retry from
+    // inside the SDK, or inherit an unrelated enclosing factory's location.
+    return resourceSourceScope.run({ source, methodName, forwardToPublicMethod }, invoke);
+}
 
 // ============================================================================
 // Base Types

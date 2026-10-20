@@ -11,6 +11,41 @@ namespace Aspire.Cli.Tests.Backchannel;
 
 public class ResourceSnapshotMapperTests
 {
+    [Theory]
+    [InlineData(false, null)]
+    [InlineData(true, null)]
+    [InlineData(true, 12)]
+    public async Task MapToResourceJson_PreservesSourceLocationAcrossTheBackchannel(bool hasSource, int? columnNumber)
+    {
+        var snapshot = new ResourceSnapshot
+        {
+            Name = "same-name-runtime-id",
+            DisplayName = "same-name",
+            ResourceType = "Container",
+            SourceLocation = hasSource ? new ResourceSnapshotSourceLocation
+            {
+                FilePath = @"C:\AppHost\AppHost.cs",
+                LineNumber = 7,
+                ColumnNumber = columnNumber,
+                DocumentHash = "fnv1a64:a430d84680aabd0b",
+                MethodName = "AddContainer"
+            } : null
+        };
+        var wire = JsonSerializer.Serialize(snapshot, BackchannelJsonSerializerContext.Default.ResourceSnapshot);
+        var deserialized = JsonSerializer.Deserialize(wire, BackchannelJsonSerializerContext.Default.ResourceSnapshot)!;
+        var result = ResourceSnapshotMapper.MapToResourceJson(deserialized, [deserialized]);
+
+        Assert.Equal(snapshot.Name, result.Name);
+        Assert.Equal(snapshot.DisplayName, result.DisplayName);
+        Assert.Equal(snapshot.SourceLocation?.FilePath, result.SourceLocation?.FilePath);
+        Assert.Equal(snapshot.SourceLocation?.LineNumber, result.SourceLocation?.LineNumber);
+        Assert.Equal(snapshot.SourceLocation?.ColumnNumber, result.SourceLocation?.ColumnNumber);
+        Assert.Equal(snapshot.SourceLocation?.DocumentHash, result.SourceLocation?.DocumentHash);
+        Assert.Equal(snapshot.SourceLocation?.MethodName, result.SourceLocation?.MethodName);
+        var json = JsonSerializer.Serialize(result, ResourcesCommandJsonContext.RelaxedEscaping.ResourceJson);
+        await Verify(json, extension: "json").UseParameters(hasSource, columnNumber);
+    }
+
     [Fact]
     public void ResourceSnapshotDeserialization_WithNumericPropertyValue_PreservesJsonNumber()
     {

@@ -339,6 +339,8 @@ import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -555,6 +557,70 @@ public class AspireClient {
                 unregisterCancellation(cancellationId);
             }
         }
+    }
+
+    Map<String, Object> captureResourceSource() {
+        List<StackWalker.StackFrame> frames = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE)
+            .walk(stream -> stream.limit(32).toList());
+        for (int index = 1; index < frames.size(); index++) {
+            StackWalker.StackFrame frame = frames.get(index);
+            StackWalker.StackFrame previous = frames.get(index - 1);
+            if (!previous.getClassName().startsWith("aspire.") || frame.getClassName().startsWith("aspire.")
+                    || frame.getFileName() == null || frame.getLineNumber() <= 0) {
+                continue;
+            }
+            String projectDirectory = System.getenv("ASPIRE_PROJECT_DIRECTORY");
+            if (projectDirectory == null) {
+                debug("Cannot capture resource source without ASPIRE_PROJECT_DIRECTORY.");
+                return null;
+            }
+            // Stack frames report "AppHost.java" for both AppHost and other.AppHost.
+            // Resolve within the declaring package, not against the entry file's basename.
+            String className = frame.getClassName();
+            int packageEnd = className.lastIndexOf('.');
+            Path relative = Path.of(packageEnd < 0 ? "" : className.substring(0, packageEnd).replace('.', '/'))
+                .resolve(frame.getFileName());
+            Path projectPath = Path.of(projectDirectory);
+            Path rootSource = projectPath.resolve(relative);
+            Path mavenSource = projectPath.resolve("src").resolve("main").resolve("java").resolve(relative);
+            if (Files.isRegularFile(rootSource) == Files.isRegularFile(mavenSource)) {
+                debug("Cannot uniquely resolve resource source file " + frame.getFileName());
+                return null;
+            }
+            Path filePath = Files.isRegularFile(rootSource) ? rootSource : mavenSource;
+            try {
+                // Class files do not contain a source checksum. Reject source edited after
+                // compilation rather than associating old bytecode with a newer declaration.
+                var classFile = frame.getDeclaringClass().getResource("/" + frame.getClassName().replace('.', '/') + ".class");
+                long compiledAt = 0;
+                if (classFile != null && (classFile.getProtocol().equals("file") || classFile.getProtocol().equals("jar"))) {
+                    compiledAt = classFile.openConnection().getLastModified();
+                } else if (filePath.toAbsolutePath().normalize().toString().equals(System.getProperty("jdk.launcher.sourcefile"))) {
+                    compiledAt = ProcessHandle.current().info().startInstant().map(java.time.Instant::toEpochMilli).orElse(0L);
+                }
+                if (compiledAt == 0 || Files.getLastModifiedTime(filePath).toMillis() > compiledAt) {
+                    debug("Cannot associate resource source with the compiled document revision.");
+                    return null;
+                }
+                String text = Files.readString(filePath, StandardCharsets.UTF_8).replaceFirst("^\uFEFF+", "");
+                long hash = -3750763034362895579L;
+                for (byte value : text.getBytes(StandardCharsets.UTF_8)) {
+                    hash = (hash ^ (value & 0xff)) * 1099511628211L;
+                }
+                Map<String, Object> source = new HashMap<>();
+                source.put("filePath", filePath.toAbsolutePath().normalize().toString());
+                source.put("lineNumber", frame.getLineNumber());
+                source.put("columnNumber", null);
+                source.put("documentHash", "fnv1a64:" + String.format("%016x", hash));
+                source.put("methodName", previous.getMethodName());
+                return source;
+            } catch (IOException error) {
+                debug("Cannot read resource source location: " + error.getMessage());
+                return null;
+            }
+        }
+        debug("Cannot find the resource registration caller.");
+        return null;
     }
 
     private Object sendRequest(String method, Object params) {
@@ -15671,6 +15737,10 @@ public class IDistributedApplicationBuilder extends HandleWrapperBase {
         if (repository != null) {
             reqArgs.put("repository", AspireClient.serializeValue(repository));
         }
+        var $source = getClient().captureResourceSource();
+        if ($source != null) {
+            reqArgs.put("$source", $source);
+        }
         var result = getClient().invokeCapability("Aspire.Hosting/addContainerRegistry", reqArgs);
         return (ContainerRegistryResource) result;
     }
@@ -15689,6 +15759,10 @@ public class IDistributedApplicationBuilder extends HandleWrapperBase {
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("name", AspireClient.serializeValue(name));
         reqArgs.put("image", AspireClient.serializeValue(image));
+        var $source = getClient().captureResourceSource();
+        if ($source != null) {
+            reqArgs.put("$source", $source);
+        }
         var result = getClient().invokeCapability("Aspire.Hosting/addContainer", reqArgs);
         return (ContainerResource) result;
     }
@@ -15716,6 +15790,10 @@ public class IDistributedApplicationBuilder extends HandleWrapperBase {
         if (stage != null) {
             reqArgs.put("stage", AspireClient.serializeValue(stage));
         }
+        var $source = getClient().captureResourceSource();
+        if ($source != null) {
+            reqArgs.put("$source", $source);
+        }
         var result = getClient().invokeCapability("Aspire.Hosting/addDockerfile", reqArgs);
         return (ContainerResource) result;
     }
@@ -15739,6 +15817,10 @@ public class IDistributedApplicationBuilder extends HandleWrapperBase {
         }
         if (stage != null) {
             reqArgs.put("stage", AspireClient.serializeValue(stage));
+        }
+        var $source = getClient().captureResourceSource();
+        if ($source != null) {
+            reqArgs.put("$source", $source);
         }
         var result = getClient().invokeCapability("Aspire.Hosting/addDockerfileFactory", reqArgs);
         return (ContainerResource) result;
@@ -15767,6 +15849,10 @@ public class IDistributedApplicationBuilder extends HandleWrapperBase {
         if (stage != null) {
             reqArgs.put("stage", AspireClient.serializeValue(stage));
         }
+        var $source = getClient().captureResourceSource();
+        if ($source != null) {
+            reqArgs.put("$source", $source);
+        }
         var result = getClient().invokeCapability("Aspire.Hosting/addDockerfileBuilder", reqArgs);
         return (ContainerResource) result;
     }
@@ -15777,6 +15863,10 @@ public class IDistributedApplicationBuilder extends HandleWrapperBase {
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("name", AspireClient.serializeValue(name));
         reqArgs.put("packageId", AspireClient.serializeValue(packageId));
+        var $source = getClient().captureResourceSource();
+        if ($source != null) {
+            reqArgs.put("$source", $source);
+        }
         var result = getClient().invokeCapability("Aspire.Hosting/addDotnetTool", reqArgs);
         return (DotnetToolResource) result;
     }
@@ -15789,6 +15879,10 @@ public class IDistributedApplicationBuilder extends HandleWrapperBase {
         reqArgs.put("command", AspireClient.serializeValue(command));
         reqArgs.put("workingDirectory", AspireClient.serializeValue(workingDirectory));
         reqArgs.put("args", AspireClient.serializeValue(args));
+        var $source = getClient().captureResourceSource();
+        if ($source != null) {
+            reqArgs.put("$source", $source);
+        }
         var result = getClient().invokeCapability("Aspire.Hosting/addExecutable", reqArgs);
         return (ExecutableResource) result;
     }
@@ -15807,6 +15901,10 @@ public class IDistributedApplicationBuilder extends HandleWrapperBase {
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("name", AspireClient.serializeValue(name));
         reqArgs.put("url", AspireClient.serializeValue(url));
+        var $source = getClient().captureResourceSource();
+        if ($source != null) {
+            reqArgs.put("$source", $source);
+        }
         var result = getClient().invokeCapability("Aspire.Hosting/addExternalService", reqArgs);
         return (ExternalServiceResource) result;
     }
@@ -15893,6 +15991,10 @@ public class IDistributedApplicationBuilder extends HandleWrapperBase {
         if (secret != null) {
             reqArgs.put("secret", AspireClient.serializeValue(secret));
         }
+        var $source = getClient().captureResourceSource();
+        if ($source != null) {
+            reqArgs.put("$source", $source);
+        }
         var result = getClient().invokeCapability("Aspire.Hosting/addParameter", reqArgs);
         return (ParameterResource) result;
     }
@@ -15909,6 +16011,10 @@ public class IDistributedApplicationBuilder extends HandleWrapperBase {
         reqArgs.put("configurationKey", AspireClient.serializeValue(configurationKey));
         if (secret != null) {
             reqArgs.put("secret", AspireClient.serializeValue(secret));
+        }
+        var $source = getClient().captureResourceSource();
+        if ($source != null) {
+            reqArgs.put("$source", $source);
         }
         var result = getClient().invokeCapability("Aspire.Hosting/addParameterFromConfiguration", reqArgs);
         return (ParameterResource) result;
@@ -15937,6 +16043,10 @@ public class IDistributedApplicationBuilder extends HandleWrapperBase {
         if (persist != null) {
             reqArgs.put("persist", AspireClient.serializeValue(persist));
         }
+        var $source = getClient().captureResourceSource();
+        if ($source != null) {
+            reqArgs.put("$source", $source);
+        }
         var result = getClient().invokeCapability("Aspire.Hosting/addParameterWithGeneratedValue", reqArgs);
         return (ParameterResource) result;
     }
@@ -15960,6 +16070,10 @@ public class IDistributedApplicationBuilder extends HandleWrapperBase {
         reqArgs.put("name", AspireClient.serializeValue(name));
         if (environmentVariableNameOrExpression != null) {
             reqArgs.put("environmentVariableNameOrExpression", AspireClient.serializeValue(environmentVariableNameOrExpression));
+        }
+        var $source = getClient().captureResourceSource();
+        if ($source != null) {
+            reqArgs.put("$source", $source);
         }
         var result = getClient().invokeCapability("Aspire.Hosting/addConnectionString", reqArgs);
         return (IResourceWithConnectionString) result;
@@ -15986,6 +16100,10 @@ public class IDistributedApplicationBuilder extends HandleWrapperBase {
         if (launchProfileOrOptions != null) {
             reqArgs.put("launchProfileOrOptions", AspireClient.serializeValue(launchProfileOrOptions));
         }
+        var $source = getClient().captureResourceSource();
+        if ($source != null) {
+            reqArgs.put("$source", $source);
+        }
         var result = getClient().invokeCapability("Aspire.Hosting/addProject", reqArgs);
         return (ProjectResource) result;
     }
@@ -16002,6 +16120,10 @@ public class IDistributedApplicationBuilder extends HandleWrapperBase {
         reqArgs.put("path", AspireClient.serializeValue(path));
         if (options != null) {
             reqArgs.put("options", AspireClient.serializeValue(options));
+        }
+        var $source = getClient().captureResourceSource();
+        if ($source != null) {
+            reqArgs.put("$source", $source);
         }
         var result = getClient().invokeCapability("Aspire.Hosting/addCSharpApp", reqArgs);
         return (CSharpAppResource) result;
@@ -16147,6 +16269,10 @@ public class IDistributedApplicationBuilder extends HandleWrapperBase {
         if (port != null) {
             reqArgs.put("port", AspireClient.serializeValue(port));
         }
+        var $source = getClient().captureResourceSource();
+        if ($source != null) {
+            reqArgs.put("$source", $source);
+        }
         var result = getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/addTestRedis", reqArgs);
         return (TestRedisResource) result;
     }
@@ -16156,6 +16282,10 @@ public class IDistributedApplicationBuilder extends HandleWrapperBase {
         Map<String, Object> reqArgs = new HashMap<>();
         reqArgs.put("builder", AspireClient.serializeValue(getHandle()));
         reqArgs.put("name", AspireClient.serializeValue(name));
+        var $source = getClient().captureResourceSource();
+        if ($source != null) {
+            reqArgs.put("$source", $source);
+        }
         var result = getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/addTestVault", reqArgs);
         return (ITestVaultResource) result;
     }
@@ -27585,6 +27715,10 @@ public class TestRedisResource extends ContainerResource {
         reqArgs.put("name", AspireClient.serializeValue(name));
         if (databaseName != null) {
             reqArgs.put("databaseName", AspireClient.serializeValue(databaseName));
+        }
+        var $source = getClient().captureResourceSource();
+        if ($source != null) {
+            reqArgs.put("$source", $source);
         }
         var result = getClient().invokeCapability("Aspire.Hosting.CodeGeneration.Java.Tests/addTestChildDatabase", reqArgs);
         return (TestDatabaseResource) result;

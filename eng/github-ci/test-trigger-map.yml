@@ -358,6 +358,7 @@ path_rules:
       - src/Aspire.Cli/**
       - src/Aspire.Dashboard*/**
       - src/Aspire.Hosting/**
+      - src/Aspire.Hosting.Analyzers/**
       - src/Aspire.Hosting.AppHost/**
       - src/Aspire.Hosting.Azure.Functions/**
       - src/Aspire.Hosting.Blazor/**
@@ -718,6 +719,7 @@ affected_project_rules:
       - Aspire.Cli
       - Aspire.Dashboard*
       - Aspire.Hosting
+      - Aspire.Hosting.Analyzers
       - Aspire.Hosting.AppHost
       - Aspire.Hosting.Azure.Functions
       - Aspire.Hosting.Blazor

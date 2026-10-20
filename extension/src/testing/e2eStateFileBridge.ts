@@ -3033,6 +3033,11 @@ export async function getCodeLensesForFile(filePath: string): Promise<AspireExte
     commandTitles: (codeLenses ?? [])
       .map(codeLens => codeLens.command?.title)
       .filter((title): title is string => typeof title === 'string' && title.length > 0),
+    lenses: (codeLenses ?? []).map(codeLens => ({
+      line: codeLens.range.start.line,
+      commandId: codeLens.command?.command,
+      stringArguments: (codeLens.command?.arguments ?? []).filter((argument): argument is string => typeof argument === 'string'),
+    })),
   };
 }
 

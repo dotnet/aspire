@@ -55,6 +55,7 @@ class JavaAppHostParser implements AppHostResourceParser {
                 results.push({
                     name: resourceName,
                     methodName,
+                    invocationRange: new vscode.Range(document.positionAt(node.startIndex), document.positionAt(node.endIndex)),
                     range: new vscode.Range(
                         document.positionAt(getInvocationDotStart(node)),
                         document.positionAt(resourceNameNode.endIndex)),

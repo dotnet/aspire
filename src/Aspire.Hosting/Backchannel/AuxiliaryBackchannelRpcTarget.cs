@@ -1205,6 +1205,16 @@ internal sealed class AuxiliaryBackchannelRpcTarget(
 
         return new ResourceSnapshot
         {
+            SourceLocation = resource.TryGetLastAnnotation<ResourceSourceLocationAnnotation>(out var sourceLocation)
+                ? new ResourceSnapshotSourceLocation
+                {
+                    FilePath = sourceLocation.FilePath,
+                    LineNumber = sourceLocation.LineNumber,
+                    ColumnNumber = sourceLocation.ColumnNumber,
+                    DocumentHash = sourceLocation.DocumentHash,
+                    MethodName = sourceLocation.MethodName
+                }
+                : null,
             Name = resourceEvent.ResourceId,
             Version = snapshot.Version,
             DisplayName = resource.Name,

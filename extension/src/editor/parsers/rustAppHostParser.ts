@@ -47,6 +47,7 @@ class RustAppHostParser implements AppHostResourceParser {
                     name: resourceName,
                     methodName,
                     range: new vscode.Range(document.positionAt(memberStart), document.positionAt(resourceNameNode.endIndex)),
+                    invocationRange: new vscode.Range(document.positionAt(node.startIndex), document.positionAt(node.endIndex)),
                     kind: methodName === 'add_step' ? 'pipelineStep' : 'resource',
                     statementStartLine: findContainingStatementStartLine(node),
                 });

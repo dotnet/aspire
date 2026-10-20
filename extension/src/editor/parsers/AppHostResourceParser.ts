@@ -10,6 +10,8 @@ export interface ParsedResource {
     methodName: string;
     /** The range in the document covering the Add*("name") call. */
     range: vscode.Range;
+    /** The full invocation, including its receiver, for runtimes that report the start of a call expression. */
+    invocationRange?: vscode.Range;
     /** Whether this is a resource declaration or pipeline step. */
     kind: 'resource' | 'pipelineStep';
     /** The line number of the first line of the full statement chain (e.g. the variable declaration line for a multi-line fluent chain). */

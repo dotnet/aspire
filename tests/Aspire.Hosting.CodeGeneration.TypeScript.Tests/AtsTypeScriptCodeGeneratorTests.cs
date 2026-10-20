@@ -1507,13 +1507,15 @@ public class AtsTypeScriptCodeGeneratorTests
             """
                 async _addTestVaultInternal(name: string): Promise<TestVaultResource> {
                     const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
+                    const resourceSource = getResourceSourceLocation();
+                    if (resourceSource) { rpcArgs['$source'] = resourceSource; }
                     const result = await this._client.invokeCapability<TestVaultResourceHandle>(
                         'Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestVault',
                         rpcArgs
                     );
                     return new TestVaultResourceImpl(result, this._client);
                 }
-            """,
+            """.ReplaceLineEndings(Environment.NewLine),
             aspireTs);
         Assert.Equal(0, CountOccurrences(
             aspireTs,
