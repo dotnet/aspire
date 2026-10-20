@@ -92,27 +92,34 @@ internal sealed class EntraIdEndpointRedirectUri : IEntraIdDerivedRedirectUri
         public void CaptureUrl(ResourceUrlsCallbackContext context)
         {
             // The primary URL is the one shown in the summary; a *.localhost URL replaces the plain localhost one there.
+            // Endpoint names are only unique within a resource, and WithUrlForEndpoint can add another resource's
+            // endpoint link to this list, so match the owning resource as well.
             var urls = context.Urls
-                .Where(u => u.Endpoint is { } e && string.Equals(e.EndpointName, endpoint.EndpointName, StringComparison.OrdinalIgnoreCase))
+                .Where(u => u.Endpoint is { } e
+                    && string.Equals(e.Resource.Name, endpoint.Resource.Name, StringComparison.Ordinal)
+                    && string.Equals(e.EndpointName, endpoint.EndpointName, StringComparison.OrdinalIgnoreCase))
                 .ToList();
             var primary = urls.FirstOrDefault(u => u.DisplayLocation != UrlDisplayLocation.DetailsOnly) ?? urls.FirstOrDefault();
-            if (primary is null)
-            {
-                return;
-            }
 
             // The orchestrator turns relative URLs (for example, "/swagger" set by WithUrlForEndpoint) into absolute
             // ones against the allocated endpoint only after every callback has run, so mirror that here. Parsing a
             // relative URL directly would produce a file URI on some platforms.
-            var url = primary.Url;
-            if (url.StartsWith('/') && endpoint.EndpointAnnotation.AllocatedEndpoint is { } allocatedEndpoint)
+            var allocatedUrl = endpoint.EndpointAnnotation.AllocatedEndpoint?.UriString;
+            var url = primary?.Url;
+            if (url is not null && url.StartsWith('/') && allocatedUrl is not null)
             {
-                url = allocatedEndpoint.UriString.TrimEnd('/') + url;
+                url = allocatedUrl.TrimEnd('/') + url;
             }
 
-            if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https")
+            // A callback may have removed every displayed URL for this endpoint. The endpoint is still allocated, so
+            // complete with its allocated URL instead of leaving each resolution to wait for the fallback timeout.
+            if (url is not null && Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https")
             {
                 _origin.TrySetResult(uri.GetLeftPart(UriPartial.Authority));
+            }
+            else if (allocatedUrl is not null && Uri.TryCreate(allocatedUrl, UriKind.Absolute, out var allocatedUri))
+            {
+                _origin.TrySetResult(allocatedUri.GetLeftPart(UriPartial.Authority));
             }
         }
 
@@ -122,14 +129,14 @@ internal sealed class EntraIdEndpointRedirectUri : IEntraIdDerivedRedirectUri
             // endpoint (for example, a non-HTTP endpoint), so provisioning never waits indefinitely.
             var allocated = await endpoint.Property(EndpointProperty.Url).GetValueAsync(cancellationToken).ConfigureAwait(false);
 
-            var completed = await Task.WhenAny(_origin.Task, Task.Delay(TimeSpan.FromSeconds(30), cancellationToken)).ConfigureAwait(false);
-            if (completed == _origin.Task)
+            try
             {
-                return await _origin.Task.ConfigureAwait(false);
+                return await _origin.Task.WaitAsync(TimeSpan.FromSeconds(30), cancellationToken).ConfigureAwait(false);
             }
-
-            cancellationToken.ThrowIfCancellationRequested();
-            return allocated;
+            catch (TimeoutException)
+            {
+                return allocated;
+            }
         }
     }
 }
