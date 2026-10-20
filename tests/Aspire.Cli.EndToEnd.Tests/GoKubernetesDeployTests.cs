@@ -24,7 +24,7 @@ public sealed class GoKubernetesDeployTests(ITestOutputHelper output)
         using var workspace = TemporaryWorkspace.Create(output);
 
         var clusterName = KubernetesDeployTestHelpers.GenerateUniqueClusterName();
-        var k8sNamespace = $"test-{clusterName[..16]}";
+        const string k8sNamespace = "default";
 
         output.WriteLine($"Cluster name: {clusterName}");
         output.WriteLine($"Namespace: {k8sNamespace}");
@@ -78,6 +78,9 @@ public sealed class GoKubernetesDeployTests(ITestOutputHelper output)
 
             output.WriteLine($"Looking for apphost.go at: {appHostFilePath}");
 
+            // The AppHost passes no WithHelm callback: a Configure func inside the generated Go options
+            // struct panics the options merge (https://github.com/microsoft/aspire/issues/18080), so the
+            // Helm defaults apply (namespace "default", chart version 0.1.0).
             GoAppHostTestHelpers.InsertBeforeBuild(
                 appHostFilePath,
                 """
@@ -85,18 +88,8 @@ public sealed class GoKubernetesDeployTests(ITestOutputHelper output)
                 registryEndpoint := builder.AddParameter("registryendpoint")
                 builder.AddContainerRegistry("registry", registryEndpoint)
 
-                // Register parameters before using them in the Helm callback
-                k8sNamespace := builder.AddParameter("namespace")
-                chartVersion := builder.AddParameter("chartversion")
-
-                // Add Kubernetes environment with Helm deployment
-                k8sEnv := builder.AddKubernetesEnvironment("env")
-                k8sEnv.WithHelm(&aspire.WithHelmOptions{
-                    Configure: func(helm aspire.HelmChartOptions) {
-                        helm.WithNamespace(k8sNamespace)
-                        helm.WithChartVersion(chartVersion)
-                    },
-                })
+                // Add Kubernetes environment (Helm is the default deployment engine)
+                builder.AddKubernetesEnvironment("env")
                 """);
             output.WriteLine("Modified apphost.go with Kubernetes environment configuration");
 
@@ -109,8 +102,6 @@ public sealed class GoKubernetesDeployTests(ITestOutputHelper output)
                 parameterResponses:
                 [
                     ("registryendpoint", "localhost:5001"),
-                    ("namespace", k8sNamespace),
-                    ("chartversion", "0.1.0"),
                 ]);
 
             // =====================================================================
