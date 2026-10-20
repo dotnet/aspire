@@ -18,6 +18,7 @@ internal sealed partial class GoAppHostToolingCheck : IEnvironmentCheck
     internal const string ToolsCheckName = "go-apphost-tools";
 
     private const string GoCommand = "go";
+    private const string ToolchainVariable = "GOTOOLCHAIN";
 
     // The generated Go SDK and the scaffolded Go AppHost both declare `go 1.26` in their go.mod. The SDK's
     // Windows named-pipe transport relies on the overlapped I/O support that os.OpenFile gained in Go 1.26
@@ -30,7 +31,7 @@ internal sealed partial class GoAppHostToolingCheck : IEnvironmentCheck
     // download a newer toolchain, so they can never satisfy a go.mod that requires a later Go.
     private static readonly Version s_toolchainSwitchingVersion = new(1, 21);
 
-    private static readonly TimeSpan s_versionCheckTimeout = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan s_probeTimeout = TimeSpan.FromSeconds(5);
 
     private readonly IProjectLocator _projectLocator;
     private readonly ILanguageDiscovery _languageDiscovery;
@@ -38,6 +39,7 @@ internal sealed partial class GoAppHostToolingCheck : IEnvironmentCheck
     private readonly IEnvironment _environment;
     private readonly Func<string, string?> _commandResolver;
     private readonly Func<string, CancellationToken, Task<string?>> _versionResolver;
+    private readonly Func<string, string, CancellationToken, Task<string?>> _toolchainResolver;
 
     public GoAppHostToolingCheck(
         IProjectLocator projectLocator,
@@ -51,7 +53,8 @@ internal sealed partial class GoAppHostToolingCheck : IEnvironmentCheck
             executionContext,
             environment,
             PathLookupHelper.FindFullPathFromPath,
-            (path, cancellationToken) => GetGoVersionOutputAsync(path, logger, cancellationToken))
+            (path, cancellationToken) => RunProbeAsync(CreateVersionProbeStartInfo(path), logger, cancellationToken),
+            (path, workingDirectory, cancellationToken) => RunProbeAsync(CreateToolchainProbeStartInfo(path, workingDirectory), logger, cancellationToken))
     {
     }
 
@@ -61,7 +64,8 @@ internal sealed partial class GoAppHostToolingCheck : IEnvironmentCheck
         CliExecutionContext executionContext,
         IEnvironment environment,
         Func<string, string?> commandResolver,
-        Func<string, CancellationToken, Task<string?>> versionResolver)
+        Func<string, CancellationToken, Task<string?>> versionResolver,
+        Func<string, string, CancellationToken, Task<string?>> toolchainResolver)
     {
         _projectLocator = projectLocator;
         _languageDiscovery = languageDiscovery;
@@ -69,6 +73,7 @@ internal sealed partial class GoAppHostToolingCheck : IEnvironmentCheck
         _environment = environment;
         _commandResolver = commandResolver;
         _versionResolver = versionResolver;
+        _toolchainResolver = toolchainResolver;
     }
 
     public int Order => 33;
@@ -117,7 +122,7 @@ internal sealed partial class GoAppHostToolingCheck : IEnvironmentCheck
 
         if (version < MinimumGoVersion)
         {
-            return [CreateOutdatedGoResult(appHostFile, version)];
+            return [await CreateOutdatedGoResultAsync(appHostFile, goPath!, version, cancellationToken)];
         }
 
         return
@@ -163,21 +168,12 @@ internal sealed partial class GoAppHostToolingCheck : IEnvironmentCheck
             language.LanguageId.Value.Equals(KnownLanguageId.Go, StringComparison.OrdinalIgnoreCase);
     }
 
-    private EnvironmentCheckResult CreateOutdatedGoResult(FileInfo appHostFile, Version version)
+    private async Task<EnvironmentCheckResult> CreateOutdatedGoResultAsync(
+        FileInfo appHostFile,
+        string goPath,
+        Version version,
+        CancellationToken cancellationToken)
     {
-        // GOTOOLCHAIN values are case-sensitive in the go command, so match `local` exactly.
-        var toolchainIsLocal = string.Equals(_environment.GetEnvironmentVariable("GOTOOLCHAIN"), "local", StringComparison.Ordinal);
-
-        if (toolchainIsLocal)
-        {
-            return CreateVersionResult(
-                appHostFile,
-                version,
-                EnvironmentCheckStatus.Fail,
-                $"Go {version} is installed, and GOTOOLCHAIN=local prevents Go from downloading a newer toolchain.",
-                $"Install Go {MinimumGoVersion} or later, or unset GOTOOLCHAIN, then rerun 'aspire doctor'.");
-        }
-
         if (version < s_toolchainSwitchingVersion)
         {
             return CreateVersionResult(
@@ -188,6 +184,17 @@ internal sealed partial class GoAppHostToolingCheck : IEnvironmentCheck
                 $"Install Go {MinimumGoVersion} or later and rerun 'aspire doctor'.");
         }
 
+        var toolchain = await GetEffectiveToolchainAsync(goPath, cancellationToken);
+        if (PreventsToolchainDownload(toolchain))
+        {
+            return CreateVersionResult(
+                appHostFile,
+                version,
+                EnvironmentCheckStatus.Fail,
+                $"Go {version} is installed, and GOTOOLCHAIN={toolchain} prevents Go from downloading a newer toolchain.",
+                $"Install Go {MinimumGoVersion} or later, or change GOTOOLCHAIN to auto, then rerun 'aspire doctor'.");
+        }
+
         // With the default GOTOOLCHAIN=auto, `go run` downloads the toolchain that go.mod requires.
         return CreateVersionResult(
             appHostFile,
@@ -195,6 +202,48 @@ internal sealed partial class GoAppHostToolingCheck : IEnvironmentCheck
             EnvironmentCheckStatus.Warning,
             $"Go {version} is installed. Go downloads the Go {MinimumGoVersion} toolchain the first time the AppHost runs, which needs network access.",
             $"Install Go {MinimumGoVersion} or later to avoid the download, then rerun 'aspire doctor'.");
+    }
+
+    private async Task<string> GetEffectiveToolchainAsync(string goPath, CancellationToken cancellationToken)
+    {
+        if (_environment.GetEnvironmentVariable(ToolchainVariable) is { Length: > 0 } environmentToolchain)
+        {
+            return environmentToolchain;
+        }
+
+        // The go command takes GOTOOLCHAIN from the process environment, then from the user config that
+        // `go env -w` writes, then from $GOROOT/go.env (https://go.dev/doc/toolchain). Fedora's Go package
+        // ships `local` in go.env (https://developer.fedoraproject.org/tech/languages/go/go-installation.html),
+        // so ask go for the effective value. Run it in a fresh empty directory, never the AppHost's: go
+        // commands that read a go.mod or go.work can switch toolchains and download one, which doctor must
+        // not do. A pinned GOTOOLCHAIN=<name> is not modelled; the check validates the Go on PATH.
+        var probeDirectory = Directory.CreateTempSubdirectory("aspire-go-doctor-");
+
+        try
+        {
+            var output = await _toolchainResolver(goPath, probeDirectory.FullName, cancellationToken);
+
+            // An unreadable answer means the default, which keeps the download warning.
+            return string.IsNullOrWhiteSpace(output) ? "auto" : output.Trim();
+        }
+        finally
+        {
+            try
+            {
+                probeDirectory.Delete(recursive: true);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Best effort: an empty leftover directory in the temp folder is harmless.
+            }
+        }
+    }
+
+    // `local`, `path`, `local+path` and `<name>+path` never download a toolchain (`path` is shorthand for
+    // `local+path`). The values are case-sensitive in the go command, so match them exactly.
+    private static bool PreventsToolchainDownload(string toolchain)
+    {
+        return toolchain is "local" or "path" || toolchain.EndsWith("+path", StringComparison.Ordinal);
     }
 
     private static EnvironmentCheckResult CreateVersionResult(
@@ -251,14 +300,13 @@ internal sealed partial class GoAppHostToolingCheck : IEnvironmentCheck
     [GeneratedRegex(@"\bgo(?<version>\d+\.\d+(?:\.\d+)?)", RegexOptions.CultureInvariant)]
     private static partial Regex GoVersionRegex();
 
-    private static async Task<string?> GetGoVersionOutputAsync(
-        string executablePath,
-        ILogger logger,
-        CancellationToken cancellationToken)
+    // The version probe reports the installed toolchain: every go command, including `go version`, runs
+    // toolchain selection first. With the default GOTOOLCHAIN=auto, an older Go would download the
+    // toolchain that a go.mod in the current directory requires and report that version instead of the
+    // installed one, and the download can outlast the timeout. `local` makes it report the installed
+    // toolchain without touching the network.
+    internal static ProcessStartInfo CreateVersionProbeStartInfo(string executablePath)
     {
-        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeoutCts.CancelAfter(s_versionCheckTimeout);
-
         var startInfo = new ProcessStartInfo(executablePath, ["version"])
         {
             RedirectStandardOutput = true,
@@ -266,11 +314,32 @@ internal sealed partial class GoAppHostToolingCheck : IEnvironmentCheck
             CreateNoWindow = true
         };
 
-        // Every go command, including `go version`, runs toolchain selection first. With the default
-        // GOTOOLCHAIN=auto, an older Go would download the toolchain that a go.mod in the current
-        // directory requires and report that version instead of the installed one, which would also
-        // blow the timeout. `local` makes it report the installed toolchain without touching the network.
-        startInfo.Environment["GOTOOLCHAIN"] = "local";
+        startInfo.Environment[ToolchainVariable] = "local";
+
+        return startInfo;
+    }
+
+    // Unlike the version probe, this one must not override GOTOOLCHAIN: it reads the effective setting.
+    private static ProcessStartInfo CreateToolchainProbeStartInfo(string executablePath, string workingDirectory)
+    {
+        return new ProcessStartInfo(executablePath, ["env", ToolchainVariable])
+        {
+            WorkingDirectory = workingDirectory,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true
+        };
+    }
+
+    private static async Task<string?> RunProbeAsync(
+        ProcessStartInfo startInfo,
+        ILogger logger,
+        CancellationToken cancellationToken)
+    {
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutCts.CancelAfter(s_probeTimeout);
+
+        var arguments = string.Join(' ', startInfo.ArgumentList);
 
         try
         {
@@ -282,17 +351,18 @@ internal sealed partial class GoAppHostToolingCheck : IEnvironmentCheck
             }
 
             logger.LogDebug(
-                "Go version check failed with exit code {ExitCode}: {Error}",
+                "'go {Arguments}' failed with exit code {ExitCode}: {Error}",
+                arguments,
                 result.ExitStatus.ExitCode,
                 result.StandardError.Trim());
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            logger.LogDebug("Go version check timed out after {Timeout}s.", s_versionCheckTimeout.TotalSeconds);
+            logger.LogDebug("'go {Arguments}' timed out after {Timeout}s.", arguments, s_probeTimeout.TotalSeconds);
         }
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or IOException)
         {
-            logger.LogDebug(ex, "Could not start Go version check using '{GoPath}'.", executablePath);
+            logger.LogDebug(ex, "Could not start 'go {Arguments}' using '{GoPath}'.", arguments, startInfo.FileName);
         }
 
         return null;

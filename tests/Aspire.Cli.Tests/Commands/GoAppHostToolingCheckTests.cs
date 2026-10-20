@@ -121,19 +121,24 @@ public sealed class GoAppHostToolingCheckTests(ITestOutputHelper outputHelper)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var appHostFile = CreateGoAppHost(workspace);
-        var check = CreateCheck(workspace, appHostFile, versionResolver: ReturnsVersion("go version go1.24.1 windows/amd64"));
+        var check = CreateCheck(
+            workspace,
+            appHostFile,
+            versionResolver: ReturnsVersion("go version go1.24.1 windows/amd64"),
+            toolchainResolver: ReturnsToolchain("auto"));
 
         var result = Assert.Single(await check.CheckAsync().DefaultTimeout());
 
-        AssertVersionResult(result, EnvironmentCheckStatus.Warning);
-        Assert.Equal("Go 1.24.1 is installed. Go downloads the Go 1.26 toolchain the first time the AppHost runs, which needs network access.", result.Details);
-        Assert.Equal("Install Go 1.26 or later to avoid the download, then rerun 'aspire doctor'.", result.Fix);
+        AssertToolchainDownloadAllowed(result);
         Assert.NotNull(result.Metadata);
         Assert.Equal("1.24.1", result.Metadata["version"]?.GetValue<string>());
     }
 
-    [Fact]
-    public async Task CheckAsync_ReturnsFail_WhenGoIsOlderAndToolchainIsLocal()
+    [Theory]
+    [InlineData("auto")]
+    [InlineData("go1.25.0+auto")]
+    [InlineData("go1.24.1")] // A pinned toolchain is not modelled; the check validates the Go on PATH.
+    public async Task CheckAsync_ReturnsWarning_WhenEnvironmentToolchainAllowsDownload(string toolchain)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var appHostFile = CreateGoAppHost(workspace);
@@ -141,17 +146,18 @@ public sealed class GoAppHostToolingCheckTests(ITestOutputHelper outputHelper)
             workspace,
             appHostFile,
             versionResolver: ReturnsVersion("go version go1.24.1 windows/amd64"),
-            environment: new Dictionary<string, string?> { ["GOTOOLCHAIN"] = "local" });
+            environment: new Dictionary<string, string?> { ["GOTOOLCHAIN"] = toolchain });
 
         var result = Assert.Single(await check.CheckAsync().DefaultTimeout());
 
-        AssertVersionResult(result, EnvironmentCheckStatus.Fail);
-        Assert.Equal("Go 1.24.1 is installed, and GOTOOLCHAIN=local prevents Go from downloading a newer toolchain.", result.Details);
-        Assert.Equal("Install Go 1.26 or later, or unset GOTOOLCHAIN, then rerun 'aspire doctor'.", result.Fix);
+        AssertToolchainDownloadAllowed(result);
     }
 
-    [Fact]
-    public async Task CheckAsync_ReturnsWarning_WhenToolchainIsNotLocal()
+    [Theory]
+    [InlineData("local")]
+    [InlineData("path")]
+    [InlineData("go1.25.0+path")]
+    public async Task CheckAsync_ReturnsFail_WhenEnvironmentToolchainPreventsDownload(string toolchain)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var appHostFile = CreateGoAppHost(workspace);
@@ -159,20 +165,98 @@ public sealed class GoAppHostToolingCheckTests(ITestOutputHelper outputHelper)
             workspace,
             appHostFile,
             versionResolver: ReturnsVersion("go version go1.24.1 windows/amd64"),
-            environment: new Dictionary<string, string?> { ["GOTOOLCHAIN"] = "auto" });
+            environment: new Dictionary<string, string?> { ["GOTOOLCHAIN"] = toolchain });
 
         var result = Assert.Single(await check.CheckAsync().DefaultTimeout());
 
-        AssertVersionResult(result, EnvironmentCheckStatus.Warning);
-        Assert.Equal("Go 1.24.1 is installed. Go downloads the Go 1.26 toolchain the first time the AppHost runs, which needs network access.", result.Details);
+        AssertToolchainDownloadPrevented(result, toolchain);
     }
 
-    [Fact]
-    public async Task CheckAsync_ReturnsFail_WhenGoPredatesToolchainSwitching()
+    // Without the environment variable, Go reads GOTOOLCHAIN from the user config written by `go env -w`
+    // and then from $GOROOT/go.env, where Fedora's Go package sets `local`.
+    [Theory]
+    [InlineData(null, "local", "local")]
+    [InlineData("", "local", "local")]
+    [InlineData(null, "path", "path")]
+    [InlineData(null, "go1.25.0+path", "go1.25.0+path")]
+    [InlineData(null, "local\r\n", "local")]
+    public async Task CheckAsync_ReturnsFail_WhenGoEnvToolchainPreventsDownload(string? environmentValue, string probeOutput, string expectedToolchain)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var appHostFile = CreateGoAppHost(workspace);
-        var check = CreateCheck(workspace, appHostFile, versionResolver: ReturnsVersion("go version go1.20.14 linux/amd64"));
+        var check = CreateCheck(
+            workspace,
+            appHostFile,
+            versionResolver: ReturnsVersion("go version go1.24.1 windows/amd64"),
+            environment: new Dictionary<string, string?> { ["GOTOOLCHAIN"] = environmentValue },
+            toolchainResolver: ReturnsToolchain(probeOutput));
+
+        var result = Assert.Single(await check.CheckAsync().DefaultTimeout());
+
+        AssertToolchainDownloadPrevented(result, expectedToolchain);
+    }
+
+    [Theory]
+    [InlineData("auto")]
+    [InlineData("go1.25.0+auto")]
+    [InlineData("")]
+    [InlineData(null)] // The probe failed or timed out.
+    public async Task CheckAsync_ReturnsWarning_WhenGoEnvToolchainAllowsDownload(string? probeOutput)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var appHostFile = CreateGoAppHost(workspace);
+        var check = CreateCheck(
+            workspace,
+            appHostFile,
+            versionResolver: ReturnsVersion("go version go1.24.1 windows/amd64"),
+            toolchainResolver: ReturnsToolchain(probeOutput));
+
+        var result = Assert.Single(await check.CheckAsync().DefaultTimeout());
+
+        AssertToolchainDownloadAllowed(result);
+    }
+
+    [Fact]
+    public async Task CheckAsync_ProbesToolchainInEmptyDirectoryAndDeletesIt()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var appHostFile = CreateGoAppHost(workspace);
+        string? probedGoPath = null;
+        string? probeDirectory = null;
+        var probeDirectoryWasEmpty = false;
+
+        var check = CreateCheck(
+            workspace,
+            appHostFile,
+            versionResolver: ReturnsVersion("go version go1.24.1 windows/amd64"),
+            toolchainResolver: (goPath, workingDirectory, _) =>
+            {
+                probedGoPath = goPath;
+                probeDirectory = workingDirectory;
+                probeDirectoryWasEmpty = Directory.Exists(workingDirectory) && !Directory.EnumerateFileSystemEntries(workingDirectory).Any();
+                return Task.FromResult<string?>("auto");
+            });
+
+        await check.CheckAsync().DefaultTimeout();
+
+        // The AppHost directory holds apphost.go, so an empty probe directory cannot be it.
+        Assert.Equal("/usr/bin/go", probedGoPath);
+        Assert.True(probeDirectoryWasEmpty);
+        Assert.False(Directory.Exists(probeDirectory));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("local")]
+    public async Task CheckAsync_ReturnsFail_WhenGoPredatesToolchainSwitching(string? toolchain)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var appHostFile = CreateGoAppHost(workspace);
+        var check = CreateCheck(
+            workspace,
+            appHostFile,
+            versionResolver: ReturnsVersion("go version go1.20.14 linux/amd64"),
+            environment: new Dictionary<string, string?> { ["GOTOOLCHAIN"] = toolchain });
 
         var result = Assert.Single(await check.CheckAsync().DefaultTimeout());
 
@@ -226,6 +310,16 @@ public sealed class GoAppHostToolingCheckTests(ITestOutputHelper outputHelper)
         Assert.Null(version);
     }
 
+    [Fact]
+    public void CreateVersionProbeStartInfo_PinsToolchainToLocal()
+    {
+        var startInfo = GoAppHostToolingCheck.CreateVersionProbeStartInfo("/usr/bin/go");
+
+        Assert.Equal("/usr/bin/go", startInfo.FileName);
+        Assert.Equal(["version"], startInfo.ArgumentList);
+        Assert.Equal("local", startInfo.Environment["GOTOOLCHAIN"]);
+    }
+
     [Theory]
     [InlineData("AtsGoCodeGenerator.cs")]
     [InlineData("GoLanguageSupport.cs")]
@@ -253,7 +347,8 @@ public sealed class GoAppHostToolingCheckTests(ITestOutputHelper outputHelper)
         FileInfo? appHostFile,
         Func<string, string?>? commandResolver = null,
         Func<string, CancellationToken, Task<string?>>? versionResolver = null,
-        IReadOnlyDictionary<string, string?>? environment = null)
+        IReadOnlyDictionary<string, string?>? environment = null,
+        Func<string, string, CancellationToken, Task<string?>>? toolchainResolver = null)
     {
         var projectLocator = new TestProjectLocator
         {
@@ -266,11 +361,34 @@ public sealed class GoAppHostToolingCheckTests(ITestOutputHelper outputHelper)
             CreateExecutionContext(workspace),
             new TestEnvironment(environment),
             commandResolver ?? (command => $"/usr/bin/{command}"),
-            versionResolver ?? ReturnsVersion("go version go1.26.1 windows/amd64"));
+            versionResolver ?? ReturnsVersion("go version go1.26.1 windows/amd64"),
+            toolchainResolver ?? ThrowsIfToolchainIsProbed);
     }
 
     private static Func<string, CancellationToken, Task<string?>> ReturnsVersion(string? versionOutput) =>
         (_, _) => Task.FromResult(versionOutput);
+
+    private static Func<string, string, CancellationToken, Task<string?>> ReturnsToolchain(string? toolchainOutput) =>
+        (_, _, _) => Task.FromResult(toolchainOutput);
+
+    // Scenarios that never reach the `go env GOTOOLCHAIN` probe use this default so that an unexpected
+    // child process fails the test.
+    private static Task<string?> ThrowsIfToolchainIsProbed(string goPath, string workingDirectory, CancellationToken cancellationToken) =>
+        throw new InvalidOperationException("The effective GOTOOLCHAIN must not be probed in this scenario.");
+
+    private static void AssertToolchainDownloadAllowed(EnvironmentCheckResult result)
+    {
+        AssertVersionResult(result, EnvironmentCheckStatus.Warning);
+        Assert.Equal("Go 1.24.1 is installed. Go downloads the Go 1.26 toolchain the first time the AppHost runs, which needs network access.", result.Details);
+        Assert.Equal("Install Go 1.26 or later to avoid the download, then rerun 'aspire doctor'.", result.Fix);
+    }
+
+    private static void AssertToolchainDownloadPrevented(EnvironmentCheckResult result, string toolchain)
+    {
+        AssertVersionResult(result, EnvironmentCheckStatus.Fail);
+        Assert.Equal($"Go 1.24.1 is installed, and GOTOOLCHAIN={toolchain} prevents Go from downloading a newer toolchain.", result.Details);
+        Assert.Equal("Install Go 1.26 or later, or change GOTOOLCHAIN to auto, then rerun 'aspire doctor'.", result.Fix);
+    }
 
     private static void AssertVersionResult(EnvironmentCheckResult result, EnvironmentCheckStatus expectedStatus)
     {
