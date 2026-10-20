@@ -482,28 +482,28 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
     private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 
     [Fact]
-    public async Task WithRedirectUris_Domain_WritesDomainParameterWithPaths()
+    public async Task WithRedirectUris_Host_WritesHostParameterWithPaths()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var domain = builder.AddParameter("web-domain");
+        var host = builder.AddParameter("web-host");
         var entra = builder.AddEntraIdApplication("entra-web")
-            .WithRedirectUris(domain, "/signin-oidc", "/signout-callback-oidc");
+            .WithRedirectUris(host, "/signin-oidc", "/signout-callback-oidc");
 
         await Verify(entra.Resource.GetBicepTemplateString(), "bicep");
         var expression = Assert.IsType<ReferenceExpression>(entra.Resource.Parameters["redirectUri0"]);
         Assert.Equal("https://{0}/signin-oidc", expression.Format);
-        Assert.Same(domain.Resource, Assert.Single(expression.ValueProviders));
+        Assert.Same(host.Resource, Assert.Single(expression.ValueProviders));
     }
 
     [Fact]
-    public void WithRedirectUris_Domain_RequiresPathStartingWithSlash()
+    public void WithRedirectUris_Host_RequiresPathStartingWithSlash()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var domain = builder.AddParameter("web-domain");
+        var host = builder.AddParameter("web-host");
         var entra = builder.AddEntraIdApplication("entra-web");
 
-        Assert.Throws<ArgumentException>("callbackPath", () => entra.WithRedirectUris(domain, "signin-oidc"));
-        Assert.Throws<ArgumentException>("callbackPath", () => entra.WithRedirectUris(domain, "/signin-oidc", "other"));
+        Assert.Throws<ArgumentException>("callbackPath", () => entra.WithRedirectUris(host, "signin-oidc"));
+        Assert.Throws<ArgumentException>("callbackPath", () => entra.WithRedirectUris(host, "/signin-oidc", "other"));
     }
 
     [Fact]
@@ -547,15 +547,15 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         {
             using var builder = TestDistributedApplicationBuilder.Create();
             var existing = builder.AddParameter("redirectUri0", "https://existing.contoso.com/callback");
-            var domain = builder.AddParameter("domain", "web.contoso.com");
+            var host = builder.AddParameter("host", "web.contoso.com");
             var entra = builder.AddEntraIdApplication("entra");
             if (derivedFirst)
             {
-                entra.WithRedirectUris(domain, "/signin-oidc").WithRedirectUris(existing);
+                entra.WithRedirectUris(host, "/signin-oidc").WithRedirectUris(existing);
             }
             else
             {
-                entra.WithRedirectUris(existing).WithRedirectUris(domain, "/signin-oidc");
+                entra.WithRedirectUris(existing).WithRedirectUris(host, "/signin-oidc");
             }
 
             var bicep = entra.Resource.GetBicepTemplateString();

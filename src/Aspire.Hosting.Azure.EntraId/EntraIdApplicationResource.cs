@@ -190,7 +190,7 @@ public class EntraIdApplicationResource : AzureProvisioningResource
             if (value is IEntraIdDerivedRedirectUri derivedRedirectUri)
             {
                 // The value is only known when the parameter is resolved: after endpoint allocation when running
-                // locally, from the compute environment when deploying, or from the domain parameter's value.
+                // locally, from the compute environment when deploying, or from the host parameter's value.
                 var uriParameter = derivedRedirectUri
                     .CreateExpression()
                     .AsProvisioningParameter(infrastructure, NextDerivedParameterName());

@@ -16,12 +16,12 @@ internal interface IEntraIdDerivedRedirectUri
 }
 
 /// <summary>
-/// A redirect URI built from a domain supplied by a parameter and a caller-supplied callback path.
+/// A redirect URI built from a host name supplied by a parameter and a caller-supplied callback path.
 /// </summary>
-internal sealed class EntraIdDomainRedirectUri(ParameterResource domain, string path) : IEntraIdDerivedRedirectUri
+internal sealed class EntraIdHostRedirectUri(ParameterResource host, string path) : IEntraIdDerivedRedirectUri
 {
-    // The domain is a host name (for example, app.contoso.com), so the scheme is always https.
-    public ReferenceExpression CreateExpression() => ReferenceExpression.Create($"https://{domain}{path}");
+    // The value is a host name (for example, app.contoso.com), so the scheme is always https.
+    public ReferenceExpression CreateExpression() => ReferenceExpression.Create($"https://{host}{path}");
 }
 
 /// <summary>
