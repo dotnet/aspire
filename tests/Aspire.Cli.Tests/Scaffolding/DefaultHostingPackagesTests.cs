@@ -140,6 +140,8 @@ public class DefaultHostingPackagesTests(ITestOutputHelper outputHelper)
                 Assert.True(File.Exists(projectPath), $"Expected {package} to be built from src/{package}.");
 
                 // A preview-only package has no version that satisfies the stable CLI version the scaffolder pins.
+                // MSBuild does not see this read, so each default package project is also listed in the
+                // path_rules of eng/github-ci/test-trigger-map.yml to select this test project.
                 Assert.False(
                     File.ReadAllText(projectPath).Contains("SuppressFinalPackageVersion", StringComparison.Ordinal),
                     $"{package} sets SuppressFinalPackageVersion, so it only ships as a preview and cannot be a default hosting package.");
