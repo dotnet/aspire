@@ -528,8 +528,10 @@ internal sealed class ScaffoldingService : IScaffoldingService
         foreach (var packageName in language.DefaultHostingPackages)
         {
             // Keep whatever the config already declares for the package (a pinned version, a project
-            // reference) instead of replacing it with the SDK version.
-            if (config.Packages?.ContainsKey(packageName) is true)
+            // reference) instead of replacing it with the SDK version. Packages is keyed ordinally but
+            // NuGet package ids are case-insensitive, so a hand-edited "aspire.hosting.python" entry
+            // must count as the same package or it would be duplicated.
+            if (config.Packages?.Keys.Contains(packageName, StringComparer.OrdinalIgnoreCase) is true)
             {
                 continue;
             }

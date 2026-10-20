@@ -91,6 +91,25 @@ public class DefaultHostingPackagesTests(ITestOutputHelper outputHelper)
         Assert.Equal("9.9.9", package.Value.Version);
     }
 
+    [Theory]
+    [InlineData(KnownLanguageId.TypeScript, "aspire.hosting.javascript")]
+    [InlineData(KnownLanguageId.Python, "aspire.hosting.python")]
+    public async Task ScaffoldAsync_KeepsAnExistingEntryForADefaultHostingPackageWithADifferentCase(string languageId, string existingPackageName)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        await File.WriteAllTextAsync(
+            Path.Combine(workspace.WorkspaceRoot.FullName, "aspire.config.json"),
+            $$"""{ "packages": { "{{existingPackageName}}": "9.9.9" } }""",
+            TestContext.Current.CancellationToken);
+
+        var result = await ScaffoldAsync(workspace, GetLanguage(languageId), RequestedSdkVersion);
+
+        Assert.True(result);
+        var package = Assert.Single(LoadPackages(workspace));
+        Assert.Equal(existingPackageName, package.Key);
+        Assert.Equal("9.9.9", package.Value.Version);
+    }
+
     [Fact]
     public async Task ScaffoldAsync_RecordsNoPackagesForALanguageWithoutDefaultHostingPackages()
     {
