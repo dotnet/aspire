@@ -255,9 +255,9 @@
                 @if (isDesktop)
                 {
                     @* On desktop the resource identity and actions live in the app top bar, next to the app name. *@
-                    <SectionContent SectionName="@MainLayout.HeaderContextSectionName">
+                    <StableSectionContent SectionName="@MainLayout.HeaderContextSectionName">
                         @((RenderFragment)(builder => RenderHeaderRow(builder, isDesktop)))
-                    </SectionContent>
+                    </StableSectionContent>
                 }
                 else
                 {
@@ -308,10 +308,10 @@
                             }
                         </FluentTabs>
                         @* The button already shows the current view, so a tooltip would only cover the controls above it. *@
-                        <AspireMenuButton ButtonClass="resource-tabs-compact-button aspire-tab active"
+                        <AspireMenuButton ButtonClass="resource-tabs-compact-button"
                                           Text="@currentTabItem?.Text"
                                           IconStart="@currentTabItem?.Icon"
-                                          ButtonAppearance="ButtonAppearance.Transparent"
+                                          ButtonAppearance="ButtonAppearance.Default"
                                           ItemsProvider="@GetTabMenuItems"
                                           Title="@Loc[nameof(Dashboard.Resources.Layout.ResourceTabsLandmark)]"
                                           data-tooltip="" />

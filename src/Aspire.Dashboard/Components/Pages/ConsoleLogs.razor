@@ -20,11 +20,11 @@
 
 @if (toolbarInTabsRow)
 {
-    <SectionContent SectionName="@Aspire.Dashboard.Components.Layout.ResourcesLayout.TabToolbarSectionName">
+    <StableSectionContent SectionName="@Aspire.Dashboard.Components.Layout.ResourcesLayout.TabToolbarSectionName">
         <div class="main-toolbar filter-toolbar" role="toolbar" aria-label="@ControlsStringsLoc[nameof(ControlsStrings.PageToolbarLandmark)]">
             @((RenderFragment)RenderToolbar)
         </div>
-    </SectionContent>
+    </StableSectionContent>
 }
 
 <div class="page-content-container">

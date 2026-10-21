@@ -576,8 +576,9 @@
 
 .resource-tabs {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 12px;
+    gap: 8px 12px;
     margin-top: 10px;
     min-width: 0;
 }
@@ -587,6 +588,7 @@
     flex: 0 1 auto;
     align-items: center;
     min-width: 0;
+    max-width: 100%;
     margin-left: auto;
 }
 
@@ -594,8 +596,16 @@
     display: none;
 }
 
+/* The toolbar's controls keep their size, so when they don't fit they wrap onto another line instead of painting over
+   the tab picker. */
+.resource-tab-toolbar ::deep .main-toolbar.filter-toolbar,
+.resource-tab-toolbar ::deep .main-toolbar.filter-toolbar > .toolbar-end {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    row-gap: 8px;
+}
+
 .resource-tab-toolbar ::deep .main-toolbar.filter-toolbar {
-    flex-wrap: nowrap;
     padding: 0;
 }
 
@@ -690,27 +700,32 @@
     container-type: inline-size;
     display: flex;
     min-width: 0;
-    flex: 1 1 auto;
+    /* The 200px basis is the compact tab picker's width. A container query size-contains the nav, so it has no content
+       width of its own: without a basis the nav would shrink to nothing under the toolbar instead of letting it wrap. */
+    flex: 1 1 200px;
 }
 
+/* The compact tab picker is a single bordered control, like the dropdowns in the toolbar, with the chevron at the end. */
 .resource-tabs-nav ::deep .aspire-menu-button {
     display: none;
     align-items: center;
-    min-height: 40px;
-    padding: 3px;
-    border: 1px solid var(--colorNeutralStroke1);
-    border-radius: var(--aspire-control-radius);
 }
 
 .resource-tabs-nav ::deep .resource-tabs-compact-button {
+    justify-content: flex-start;
+    min-width: 160px;
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.resource-tabs-nav ::deep .resource-tabs-compact-button:hover {
-    background-color: var(--colorNeutralBackground3);
+.resource-tabs-nav ::deep .resource-tabs-compact-button::part(content) {
+    flex: 1 1 auto;
+}
+
+.resource-tabs-nav ::deep .resource-tabs-compact-button > svg[slot="end"] {
+    margin-inline-start: auto;
 }
 
 .resource-tabs-nav ::deep .resource-tabs-compact-button > svg[slot="start"] {
@@ -911,15 +926,6 @@
 
     .resource-tabs-nav ::deep .resource-tabs-compact-button {
         flex: 1 1 auto;
-        justify-content: flex-start;
-    }
-
-    .resource-tabs-nav ::deep .resource-tabs-compact-button::part(content) {
-        flex: 1 1 auto;
-    }
-
-    .resource-tabs-nav ::deep .resource-tabs-compact-button > svg[slot="end"] {
-        margin-inline-start: auto;
     }
 
     /* The tab picker's menu is a sheet as wide as the page content, directly under its trigger, so the options are

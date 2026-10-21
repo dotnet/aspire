@@ -29,11 +29,11 @@
     }
     @if (toolbarInTabsRow)
     {
-        <SectionContent SectionName="@Aspire.Dashboard.Components.Layout.ResourcesLayout.TabToolbarSectionName">
+        <StableSectionContent SectionName="@Aspire.Dashboard.Components.Layout.ResourcesLayout.TabToolbarSectionName">
             <div class="main-toolbar filter-toolbar" role="toolbar" aria-label="@ControlsStringsLoc[nameof(ControlsStrings.PageToolbarLandmark)]">
                 @GetFilterToolbar()
             </div>
-        </SectionContent>
+        </StableSectionContent>
     }
     <AspirePageContentLayout AddNewlineOnToolbar="true" HideDesktopToolbar="@toolbarInTabsRow" MainContentStyle="margin-top: var(--layout-top-padding);" @ref="@_contentLayout">
         <PageTitleSection>

@@ -1,0 +1,81 @@
+[     343ms] [INFO] [2026-10-21T21:24:26.453Z] Information: Normalizing '_blazor' to 'https://testshop.dev.localhost:62585/_blazor'. @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[     617ms] [INFO] [2026-10-21T21:24:26.727Z] Information: WebSocket connected to wss://testshop.dev.localhost:62585/_blazor?id=yGfpri9wN66YLe27hEpOiA. @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[     829ms] [ERROR] WebSocket connection to 'ws://localhost:62614/' failed: Error during WebSocket handshake: Unexpected response code: 403 @ https://testshop.dev.localhost:62585/_framework/aspnetcore-browser-refresh.js:317
+[     835ms] [ERROR] WebSocket connection to 'wss://localhost:62615/' failed: Error during WebSocket handshake: Unexpected response code: 403 @ https://testshop.dev.localhost:62585/_framework/aspnetcore-browser-refresh.js:317
+[    3397ms] [INFO] [2026-10-21T21:24:29.508Z] Information: Normalizing '_blazor' to 'https://testshop.dev.localhost:62585/_blazor'. @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[    3413ms] [INFO] [2026-10-21T21:24:29.524Z] Information: WebSocket connected to wss://testshop.dev.localhost:62585/_blazor?id=lHY8r8i6BUo4W1M56HLkQQ. @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[    3894ms] [ERROR] WebSocket connection to 'ws://localhost:62614/' failed: Error during WebSocket handshake: Unexpected response code: 403 @ https://testshop.dev.localhost:62585/_framework/aspnetcore-browser-refresh.js:317
+[    3898ms] [ERROR] WebSocket connection to 'wss://localhost:62615/' failed: Error during WebSocket handshake: Unexpected response code: 403 @ https://testshop.dev.localhost:62585/_framework/aspnetcore-browser-refresh.js:317
+[   34135ms] [INFO] [2026-10-21T21:25:00.246Z] Information: Normalizing '_blazor' to 'https://testshop.dev.localhost:62585/_blazor'. @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[   34150ms] [INFO] [2026-10-21T21:25:00.260Z] Information: WebSocket connected to wss://testshop.dev.localhost:62585/_blazor?id=zhigW2xahPl5JkIogK-EvQ. @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[   34628ms] [ERROR] WebSocket connection to 'ws://localhost:62614/' failed: Error during WebSocket handshake: Unexpected response code: 403 @ https://testshop.dev.localhost:62585/_framework/aspnetcore-browser-refresh.js:317
+[   34633ms] [ERROR] WebSocket connection to 'wss://localhost:62615/' failed: Error during WebSocket handshake: Unexpected response code: 403 @ https://testshop.dev.localhost:62585/_framework/aspnetcore-browser-refresh.js:317
+[   73069ms] [INFO] [2026-10-21T21:25:39.180Z] Information: Normalizing '_blazor' to 'https://testshop.dev.localhost:62585/_blazor'. @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[   73085ms] [INFO] [2026-10-21T21:25:39.196Z] Information: WebSocket connected to wss://testshop.dev.localhost:62585/_blazor?id=T-xHBEN02MM5d3hS7luemw. @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[   73545ms] [ERROR] WebSocket connection to 'ws://localhost:62614/' failed: Error during WebSocket handshake: Unexpected response code: 403 @ https://testshop.dev.localhost:62585/_framework/aspnetcore-browser-refresh.js:317
+[   73552ms] [ERROR] WebSocket connection to 'wss://localhost:62615/' failed: Error during WebSocket handshake: Unexpected response code: 403 @ https://testshop.dev.localhost:62585/_framework/aspnetcore-browser-refresh.js:317
+[   85326ms] [INFO] [2026-10-21T21:25:51.436Z] Information: Normalizing '_blazor' to 'https://testshop.dev.localhost:62585/_blazor'. @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[   85345ms] [INFO] [2026-10-21T21:25:51.455Z] Information: WebSocket connected to wss://testshop.dev.localhost:62585/_blazor?id=bkznqqo8oTEj7eehLWz3QQ. @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[   85812ms] [ERROR] WebSocket connection to 'ws://localhost:62614/' failed: Error during WebSocket handshake: Unexpected response code: 403 @ https://testshop.dev.localhost:62585/_framework/aspnetcore-browser-refresh.js:317
+[   85819ms] [ERROR] WebSocket connection to 'wss://localhost:62615/' failed: Error during WebSocket handshake: Unexpected response code: 403 @ https://testshop.dev.localhost:62585/_framework/aspnetcore-browser-refresh.js:317
+[  110963ms] [INFO] [2026-10-21T21:26:17.073Z] Information: Normalizing '_blazor' to 'https://testshop.dev.localhost:62585/_blazor'. @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[  110980ms] [INFO] [2026-10-21T21:26:17.090Z] Information: WebSocket connected to wss://testshop.dev.localhost:62585/_blazor?id=lBp38k-RGBRRecvSGtB5ew. @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[  111449ms] [ERROR] WebSocket connection to 'ws://localhost:62614/' failed: Error during WebSocket handshake: Unexpected response code: 403 @ https://testshop.dev.localhost:62585/_framework/aspnetcore-browser-refresh.js:317
+[  111467ms] [ERROR] WebSocket connection to 'wss://localhost:62615/' failed: Error during WebSocket handshake: Unexpected response code: 403 @ https://testshop.dev.localhost:62585/_framework/aspnetcore-browser-refresh.js:317
+[  230741ms] [INFO] [2026-10-21T21:28:16.852Z] Information: Normalizing '_blazor' to 'https://testshop.dev.localhost:62585/_blazor'. @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[  230757ms] [INFO] [2026-10-21T21:28:16.868Z] Information: WebSocket connected to wss://testshop.dev.localhost:62585/_blazor?id=TSjK3VENbpv5Mg2A_iHxvw. @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[  231231ms] [ERROR] WebSocket connection to 'ws://localhost:62614/' failed: Error during WebSocket handshake: Unexpected response code: 403 @ https://testshop.dev.localhost:62585/_framework/aspnetcore-browser-refresh.js:317
+[  231236ms] [ERROR] WebSocket connection to 'wss://localhost:62615/' failed: Error during WebSocket handshake: Unexpected response code: 403 @ https://testshop.dev.localhost:62585/_framework/aspnetcore-browser-refresh.js:317
+[  239911ms] [INFO] [2026-10-21T21:28:26.022Z] Information: Normalizing '_blazor' to 'https://testshop.dev.localhost:62585/_blazor'. @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[  239926ms] [INFO] [2026-10-21T21:28:26.037Z] Information: WebSocket connected to wss://testshop.dev.localhost:62585/_blazor?id=4-TA7XwwDMhstkOZnX9SXA. @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[  240412ms] [ERROR] WebSocket connection to 'ws://localhost:62614/' failed: Error during WebSocket handshake: Unexpected response code: 403 @ https://testshop.dev.localhost:62585/_framework/aspnetcore-browser-refresh.js:317
+[  240416ms] [ERROR] WebSocket connection to 'wss://localhost:62615/' failed: Error during WebSocket handshake: Unexpected response code: 403 @ https://testshop.dev.localhost:62585/_framework/aspnetcore-browser-refresh.js:317
+[  249106ms] [INFO] [2026-10-21T21:28:35.217Z] Information: Normalizing '_blazor' to 'https://testshop.dev.localhost:62585/_blazor'. @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[  249120ms] [INFO] [2026-10-21T21:28:35.231Z] Information: WebSocket connected to wss://testshop.dev.localhost:62585/_blazor?id=dDIKCpSCf-PkvjZWGYGLZQ. @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[  249597ms] [ERROR] WebSocket connection to 'ws://localhost:62614/' failed: Error during WebSocket handshake: Unexpected response code: 403 @ https://testshop.dev.localhost:62585/_framework/aspnetcore-browser-refresh.js:317
+[  249603ms] [ERROR] WebSocket connection to 'wss://localhost:62615/' failed: Error during WebSocket handshake: Unexpected response code: 403 @ https://testshop.dev.localhost:62585/_framework/aspnetcore-browser-refresh.js:317
+[  258334ms] [INFO] [2026-10-21T21:28:44.445Z] Information: Normalizing '_blazor' to 'https://testshop.dev.localhost:62585/_blazor'. @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[  258356ms] [INFO] [2026-10-21T21:28:44.466Z] Information: WebSocket connected to wss://testshop.dev.localhost:62585/_blazor?id=dowO55qUkkdyHrapmdNNig. @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[  258832ms] [ERROR] WebSocket connection to 'ws://localhost:62614/' failed: Error during WebSocket handshake: Unexpected response code: 403 @ https://testshop.dev.localhost:62585/_framework/aspnetcore-browser-refresh.js:317
+[  258837ms] [ERROR] WebSocket connection to 'wss://localhost:62615/' failed: Error during WebSocket handshake: Unexpected response code: 403 @ https://testshop.dev.localhost:62585/_framework/aspnetcore-browser-refresh.js:317
+[  267529ms] [INFO] [2026-10-21T21:28:53.639Z] Information: Normalizing '_blazor' to 'https://testshop.dev.localhost:62585/_blazor'. @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[  267543ms] [INFO] [2026-10-21T21:28:53.654Z] Information: WebSocket connected to wss://testshop.dev.localhost:62585/_blazor?id=ZYBkqFozRLX1aXQTOKliPg. @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[  268030ms] [ERROR] WebSocket connection to 'ws://localhost:62614/' failed: Error during WebSocket handshake: Unexpected response code: 403 @ https://testshop.dev.localhost:62585/_framework/aspnetcore-browser-refresh.js:317
+[  268035ms] [ERROR] WebSocket connection to 'wss://localhost:62615/' failed: Error during WebSocket handshake: Unexpected response code: 403 @ https://testshop.dev.localhost:62585/_framework/aspnetcore-browser-refresh.js:317
+[  353726ms] [ERROR] [2026-10-21T21:30:19.837Z] Error: Connection disconnected with error 'Error: WebSocket closed with status code: 1006 (no reason given).'. @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[  353745ms] [INFO] [2026-10-21T21:30:19.855Z] Information: Normalizing '_blazor' to 'https://testshop.dev.localhost:62585/_blazor'. @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[  383764ms] [ERROR] Failed to load resource: net::ERR_TIMED_OUT @ https://testshop.dev.localhost:62585/_blazor/negotiate?negotiateVersion=1:0
+[  383764ms] [WARNING] [2026-10-21T21:30:49.875Z] Warning: Error from HTTP request. TypeError: Failed to fetch. @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[  383764ms] [ERROR] [2026-10-21T21:30:49.875Z] Error: Failed to complete negotiation with the server: TypeError: Failed to fetch @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[  383764ms] [ERROR] [2026-10-21T21:30:49.875Z] Error: Failed to start the connection: Error: Failed to complete negotiation with the server: TypeError: Failed to fetch @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[  383765ms] [ERROR] [2026-10-21T21:30:49.875Z] Error: Error: Failed to complete negotiation with the server: TypeError: Failed to fetch @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[  383765ms] [ERROR] [2026-10-21T21:30:49.875Z] Error: Error: Failed to complete negotiation with the server: TypeError: Failed to fetch @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[  383765ms] [INFO] [2026-10-21T21:30:49.876Z] Information: Normalizing '_blazor' to 'https://testshop.dev.localhost:62585/_blazor'. @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[  413781ms] [ERROR] Failed to load resource: net::ERR_TIMED_OUT @ https://testshop.dev.localhost:62585/_blazor/negotiate?negotiateVersion=1:0
+[  413781ms] [WARNING] [2026-10-21T21:31:19.892Z] Warning: Error from HTTP request. TypeError: Failed to fetch. @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[  413781ms] [ERROR] [2026-10-21T21:31:19.892Z] Error: Failed to complete negotiation with the server: TypeError: Failed to fetch @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[  413781ms] [ERROR] [2026-10-21T21:31:19.892Z] Error: Failed to start the connection: Error: Failed to complete negotiation with the server: TypeError: Failed to fetch @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[  413781ms] [ERROR] [2026-10-21T21:31:19.892Z] Error: Error: Failed to complete negotiation with the server: TypeError: Failed to fetch @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[  413782ms] [ERROR] [2026-10-21T21:31:19.892Z] Error: Error: Failed to complete negotiation with the server: TypeError: Failed to fetch @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[  413782ms] [INFO] [2026-10-21T21:31:19.892Z] Information: Normalizing '_blazor' to 'https://testshop.dev.localhost:62585/_blazor'. @ https://testshop.dev.localhost:62585/_framework/blazor.web.js:0
+[  441781ms] Error: Cannot send data if the connection is not in the 'Connected' State.
+    at er.send (https://testshop.dev.localhost:62585/_framework/blazor.web.js:1:112248)
+    at Hn._sendMessage (https://testshop.dev.localhost:62585/_framework/blazor.web.js:1:85632)
+    at Hn._sendWithProtocol (https://testshop.dev.localhost:62585/_framework/blazor.web.js:1:85722)
+    at Hn.send (https://testshop.dev.localhost:62585/_framework/blazor.web.js:1:85830)
+    at lo.beginInvokeDotNetFromJS (https://testshop.dev.localhost:62585/_framework/blazor.web.js:1:174507)
+    at _.invokeDotNetMethodAsync (https://testshop.dev.localhost:62585/_framework/blazor.web.js:1:5339)
+    at k.invokeMethodAsync (https://testshop.dev.localhost:62585/_framework/blazor.web.js:1:7128)
+    at https://testshop.dev.localhost:62585/_framework/blazor.web.js:1:50143
+    at Array.forEach (<anonymous>)
+    at https://testshop.dev.localhost:62585/_framework/blazor.web.js:1:49682
+[  441932ms] Error: Cannot send data if the connection is not in the 'Connected' State.
+    at er.send (https://testshop.dev.localhost:62585/_framework/blazor.web.js:1:112248)
+    at Hn._sendMessage (https://testshop.dev.localhost:62585/_framework/blazor.web.js:1:85632)
+    at Hn._sendWithProtocol (https://testshop.dev.localhost:62585/_framework/blazor.web.js:1:85722)
+    at Hn.send (https://testshop.dev.localhost:62585/_framework/blazor.web.js:1:85830)
+    at lo.beginInvokeDotNetFromJS (https://testshop.dev.localhost:62585/_framework/blazor.web.js:1:174507)
+    at _.invokeDotNetMethodAsync (https://testshop.dev.localhost:62585/_framework/blazor.web.js:1:5339)
+    at k.invokeMethodAsync (https://testshop.dev.localhost:62585/_framework/blazor.web.js:1:7128)
+    at https://testshop.dev.localhost:62585/js/app.js:524:22
+    at later (https://testshop.dev.localhost:62585/js/app.js:516:22)
