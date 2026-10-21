@@ -475,7 +475,7 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Which skills should be installed?.
+        ///   Looks up a localized string similar to Which skills and tools do you want to configure?.
         /// </summary>
         internal static string InitCommand_SelectSkills {
             get {
@@ -484,7 +484,7 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Comma-separated list of skills to install. Bundle skills are loaded dynamically; CLI-provided skills include {0}. Use &apos;{1}&apos; or &apos;{2}&apos;.
+        ///   Looks up a localized string similar to Comma-separated skill/tool IDs ({0}), &apos;{1}&apos;, or &apos;{2}&apos;. Aspire represents the complete integration; use --aspire-source to choose native or embedded (default: aspire).
         /// </summary>
         internal static string InitCommand_SkillsOptionDescription {
             get {
@@ -779,5 +779,26 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("SkippedMalformedConfigFile", resourceCulture);
             }
         }
+
+        internal static string InitCommand_ExistingConfigurationConflict => ResourceManager.GetString("InitCommand_ExistingConfigurationConflict", resourceCulture);
+        internal static string InitCommand_AspireSourceOptionDescription => ResourceManager.GetString("InitCommand_AspireSourceOptionDescription", resourceCulture);
+        internal static string InitCommand_EmbeddedSkillsChoice => ResourceManager.GetString("InitCommand_EmbeddedSkillsChoice", resourceCulture);
+        internal static string InitCommand_ClientAcquisitionNotice => ResourceManager.GetString("InitCommand_ClientAcquisitionNotice", resourceCulture);
+        internal static string InitCommand_ConfigureAspireSourcePrompt => ResourceManager.GetString("InitCommand_ConfigureAspireSourcePrompt", resourceCulture);
+        internal static string InitCommand_InvalidSkills => ResourceManager.GetString("InitCommand_InvalidSkills", resourceCulture);
+        internal static string InitCommand_AspireSkillChoice => ResourceManager.GetString("InitCommand_AspireSkillChoice", resourceCulture);
+        internal static string InitCommand_PlaywrightSkillChoice => ResourceManager.GetString("InitCommand_PlaywrightSkillChoice", resourceCulture);
+        internal static string InitCommand_DotnetInspectSkillChoice => ResourceManager.GetString("InitCommand_DotnetInspectSkillChoice", resourceCulture);
+        internal static string InitCommand_FailedTarget => ResourceManager.GetString("InitCommand_FailedTarget", resourceCulture);
+        internal static string InitCommand_InvalidAspireSource => ResourceManager.GetString("InitCommand_InvalidAspireSource", resourceCulture);
+        internal static string InitCommand_LocalSkillsConflict => ResourceManager.GetString("InitCommand_LocalSkillsConflict", resourceCulture);
+        internal static string InitCommand_NativeSkillsChoice => ResourceManager.GetString("InitCommand_NativeSkillsChoice", resourceCulture);
+        internal static string InitCommand_NativeSkillsConflict => ResourceManager.GetString("InitCommand_NativeSkillsConflict", resourceCulture);
+        internal static string InitCommand_PluginRiskWarning => ResourceManager.GetString("InitCommand_PluginRiskWarning", resourceCulture);
+        internal static string InitCommand_RegisteredTarget => ResourceManager.GetString("InitCommand_RegisteredTarget", resourceCulture);
+        internal static string InitCommand_UnchangedTarget => ResourceManager.GetString("InitCommand_UnchangedTarget", resourceCulture);
+        internal static string InitCommand_ProjectScopeLabel => ResourceManager.GetString("InitCommand_ProjectScopeLabel", resourceCulture);
+        internal static string InitCommand_GlobalScopeLabel => ResourceManager.GetString("InitCommand_GlobalScopeLabel", resourceCulture);
+        internal static string LocalSkills_ReadFailed => ResourceManager.GetString("LocalSkills_ReadFailed", resourceCulture);
     }
 }
