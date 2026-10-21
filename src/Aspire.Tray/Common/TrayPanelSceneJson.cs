@@ -54,6 +54,7 @@ internal static class TrayPanelSceneJson
             json.WriteNumber("size", PanelFonts.Size(text.Font));
             json.WriteBoolean("semibold", PanelFonts.IsSemibold(text.Font));
             Rect(json, text.Bounds);
+            json.WriteNumber("baseline", text.Baseline);
             json.WriteString("align", text.Alignment.ToString());
             json.WriteNumber("maxLines", text.MaxLines);
             json.WriteEndObject();

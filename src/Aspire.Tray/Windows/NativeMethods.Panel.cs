@@ -267,4 +267,34 @@ internal static unsafe partial class NativeMethods
 
     [LibraryImport("gdiplus.dll")]
     internal static partial int GdipDisposeImage(nint image);
+
+    // TEXTMETRICW: the panel only reads the ascent and height, to place a baseline.
+    // https://learn.microsoft.com/windows/win32/api/wingdi/ns-wingdi-textmetricw
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct TextMetric
+    {
+        public int Height;
+        public int Ascent;
+        public int Descent;
+        public int InternalLeading;
+        public int ExternalLeading;
+        public int AverageCharWidth;
+        public int MaxCharWidth;
+        public int Weight;
+        public int Overhang;
+        public int DigitizedAspectX;
+        public int DigitizedAspectY;
+        public ushort FirstChar;
+        public ushort LastChar;
+        public ushort DefaultChar;
+        public ushort BreakChar;
+        public byte Italic;
+        public byte Underlined;
+        public byte StruckOut;
+        public byte PitchAndFamily;
+        public byte CharSet;
+    }
+
+    [LibraryImport("gdi32.dll", EntryPoint = "GetTextMetricsW")]
+    internal static partial int GetTextMetrics(nint dc, out TextMetric metrics);
 }

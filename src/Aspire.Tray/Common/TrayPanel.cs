@@ -45,6 +45,8 @@ internal sealed class TrayPanel
     //       list icons) and of text that has no glyph (section labels, Settings text).
     //   30  LeadingCenter: the center of the leading column's 20-DIP glyphs and 16-DIP icons.
     //   52  TextLeft: where names, titles and item labels start.
+    //   78  NestedTextLeft: the labels of items nested under another (the Open in applications),
+    //       after their 16-DIP icon at TextLeft and a 10-DIP gap.
     //   330 TrailingCenter: the center of the last trailing button (More, Quit) and of trailing
     //       chevrons, mirroring LeadingCenter.
     //   340 Width - EdgeMargin: the right edge of trailing text and controls that aren't buttons.
@@ -57,6 +59,7 @@ internal sealed class TrayPanel
     public const double EdgeMargin = 20;
     public const double LeadingCenter = 30;
     public const double TextLeft = 52;
+    public const double NestedTextLeft = TextLeft + 26;
     public const double TrailingCenter = Width - LeadingCenter;
     public const double RowContentRight = TrailingCenter + ButtonSize / 2;
     private const double ButtonGap = 2;
@@ -948,7 +951,7 @@ internal sealed class TrayPanel
         var all = new PanelRect(0, 0, Width, height);
         foreach (var (x, label) in new[]
         {
-            (RowInset, "row/card edge"), (EdgeMargin, "edge"), (LeadingCenter, "leading center"), (TextLeft, "text"),
+            (RowInset, "row/card edge"), (EdgeMargin, "edge"), (LeadingCenter, "leading center"), (TextLeft, "text"), (NestedTextLeft, "nested text"),
             (TrailingCenter, "trailing center"), (Width - EdgeMargin, "edge"), (RowContentRight, "button edge"),
             (Width - RowInset, "row/card edge")
         })
@@ -957,6 +960,13 @@ internal sealed class TrayPanel
         }
 
         Line(HeaderHeight / 2, "header", new(0, 0, Width, HeaderHeight));
+        if (_viewport.Y > HeaderHeight)
+        {
+            // The notice banner: its icon and its first (or only) line share one center.
+            Line(HeaderHeight + 8 + 17, "notice", new(0, HeaderHeight, Width, _viewport.Y - HeaderHeight));
+            Box(new(LeadingCenter - 8, HeaderHeight + 8 + 9, 16, 16), "notice icon");
+        }
+        _guides.Add(new(PanelGuideKind.Baseline, HeaderBaseline, "header baseline", new(TextLeft, 0, Width - TextLeft, HeaderHeight)));
         if (_settings is null)
         {
             Box(new(EdgeMargin, HeaderHeight / 2 - 10, 20, 20), "logo");
@@ -1004,6 +1014,23 @@ internal sealed class TrayPanel
                 case ListItemKind.SettingsToggle:
                     Line(top + 18, "setting", span);
                     break;
+                case ListItemKind.Confirm:
+                    // The question, the detail and the buttons, in the card that starts at top + 4.
+                    Line(top + 4 + 18, "confirm question", span);
+                    Line(top + 4 + 36, "confirm detail", span);
+                    Line(top + ConfirmHeight - 4 - 10 - ButtonSize / 2, "confirm buttons", span);
+                    break;
+                case ListItemKind.About:
+                    Line(top + 14, "about", span);
+                    for (var line = 0; line < 3; line++)
+                    {
+                        Line(top + 32 + line * 18, "about", span);
+                    }
+                    break;
+                case ListItemKind.Empty:
+                    Line(top + 72, "empty title", span);
+                    Box(new(Width / 2 - 16, top + 20, 32, 32), "empty art");
+                    break;
             }
         }
 
@@ -1011,7 +1038,7 @@ internal sealed class TrayPanel
         void Box(PanelRect bounds, string label) => _guides.Add(new(PanelGuideKind.Box, bounds.CenterY, label, bounds));
     }
 
-    private const double NoticeTextWidth = Width - 46 - 22;
+    private const double NoticeTextWidth = Width - EdgeMargin - TextLeft;
 
     // The header's one line: the logo over the rows' status glyphs, "Aspire" where the AppHost
     // names start, then the connection dot and the status. "Aspire" is a fixed string, so its
@@ -1019,32 +1046,42 @@ internal sealed class TrayPanel
     // rather than measured, which keeps the layout identical on both platforms.
     private const double HeaderTitleWidth = 56;
 
+    /// <summary>
+    /// The header's baseline: the title's capitals are centered on the bar like the logo, and the
+    /// smaller status text shares the title's baseline, as text of different sizes on one line should.
+    /// </summary>
+    internal static double HeaderBaseline => HeaderHeight / 2 + PanelFonts.CapHeight(PanelFontRole.Title) / 2;
+
     private void AddHeader(List<PanelCommand> commands, TrayViewState state, TrayPanelPalette palette)
     {
         var middle = HeaderHeight / 2;
-        commands.Add(new LogoCommand(new(20, middle - 10, 20, 20)));
+        commands.Add(new LogoCommand(new(EdgeMargin, middle - 10, 20, 20)));
         var title = new PanelRect(TextLeft, middle - 10, HeaderTitleWidth, 20);
         commands.Add(new TextCommand(title, "Aspire", PanelFontRole.Title, palette.TextPrimary));
         AddLabel("header.title", "Aspire", title, chrome: true);
         var (status, dot) = GetHeaderStatus(state, palette);
-        commands.Add(new FillPathCommand(PanelPath.Circle(title.Right + 4, middle, 4), dot));
+        // The dot is centered on the status text's capitals and digits ("3 running"), which sit
+        // on the shared baseline.
+        var statusMiddle = HeaderBaseline - PanelFonts.CapHeight(PanelFontRole.Body) / 2;
+        commands.Add(new FillPathCommand(PanelPath.Circle(title.Right + 4, statusMiddle, 4), dot));
         var statusLeft = title.Right + 14;
-        var statusBounds = new PanelRect(statusLeft, middle - 8, Width - statusLeft - 16, 16);
-        commands.Add(new TextCommand(statusBounds, status, PanelFontRole.Body, palette.TextSecondary));
+        var statusBounds = new PanelRect(statusLeft, middle - 8, Width - EdgeMargin - statusLeft, 16);
+        commands.Add(new TextCommand(statusBounds, status, PanelFontRole.Body, palette.TextSecondary, ExplicitBaseline: HeaderBaseline));
         AddLabel("header.status", status, statusBounds, chrome: true);
     }
 
     private void AddNotice(List<PanelCommand> commands, string notice, bool singleLine, double height, TrayPanelPalette palette)
     {
-        var banner = new PanelRect(12, HeaderHeight + 8, Width - 24, height);
+        var banner = new PanelRect(RowInset, HeaderHeight + 8, Width - 2 * RowInset, height);
         AddLabel("notice", notice, banner, chrome: true);
         commands.Add(new FillPathCommand(PanelPath.RoundedRect(banner, 6), palette.Banner));
         if (palette.IsHighContrast)
         {
             commands.Add(new StrokePathCommand(PanelPath.RoundedRect(banner.Inset(0.5, 0.5), 5.5), palette.Border, 1));
         }
-        TrayPanelGlyphs.AddIcon(commands, PanelIcon.Alert, new(banner.X + 10, banner.Y + 9, 16, 16), palette.BannerText);
-        var text = new PanelRect(banner.X + 34, banner.Y + 8, NoticeTextWidth, height - 16);
+        // The icon sits on the leading column and the text on the text column, like a row's.
+        TrayPanelGlyphs.AddIcon(commands, PanelIcon.Alert, new(LeadingCenter - 8, banner.Y + 9, 16, 16), palette.BannerText);
+        var text = new PanelRect(TextLeft, banner.Y + 8, NoticeTextWidth, height - 16);
         commands.Add(singleLine
             ? new TextCommand(text, notice, PanelFontRole.Body, palette.BannerText)
             : new TextCommand(text, notice, PanelFontRole.Body, palette.BannerText, MaxLines: 2));
@@ -1252,7 +1289,7 @@ internal sealed class TrayPanel
                 var fallback = new List<PanelCommand>();
                 TrayPanelGlyphs.AddIcon(fallback, PanelIcon.AppWindow, new(TextLeft, item.Y + 7, 16, 16), iconColor);
                 commands.Add(new AppIconCommand(new(TextLeft, item.Y + 7, 16, 16), _openInApplications[index], fallback));
-                commands.Add(new TextCommand(new(TextLeft + 26, item.Y, item.Right - 8 - TextLeft - 26, item.Height), label,
+                commands.Add(new TextCommand(new(NestedTextLeft, item.Y, item.Right - 8 - NestedTextLeft, item.Height), label,
                     PanelFontRole.Body, palette.TextPrimary));
             }
             else
@@ -1265,7 +1302,7 @@ internal sealed class TrayPanel
                     // A chevron on the right tells that the item opens the applications under it.
                     labelRight -= 24;
                     TrayPanelGlyphs.AddIcon(commands, _openInExpanded ? PanelIcon.ChevronDown : PanelIcon.ChevronRight,
-                        new(item.Right - 8 - 16, item.Y + 7, 16, 16), palette.TextTertiary);
+                        new(TrailingCenter - 8, item.Y + 7, 16, 16), palette.TextTertiary);
                 }
                 commands.Add(new TextCommand(new(TextLeft, item.Y, labelRight - TextLeft, item.Height), label, PanelFontRole.Body, palette.TextPrimary));
             }
@@ -1360,12 +1397,13 @@ internal sealed class TrayPanel
 
     private void AddSettingsHeader(List<PanelCommand> commands, List<PanelHitTarget> targets, TrayPanelPalette palette)
     {
-        var back = new PanelRect(12, (HeaderHeight - ButtonSize) / 2, ButtonSize, ButtonSize);
+        // The back arrow sits on the leading column, where the logo is in the list view.
+        var back = new PanelRect(LeadingCenter - ButtonSize / 2, (HeaderHeight - ButtonSize) / 2, ButtonSize, ButtonSize);
         var backKey = new PanelTargetKey(PanelTargetKind.Back, PanelSection.None, null);
         AddInteractionFill(commands, backKey, back, palette, includeFocus: false);
         TrayPanelGlyphs.AddIcon(commands, PanelIcon.ChevronLeft, back.Inset(6, 6), _hover == backKey ? palette.TextPrimary : palette.TextSecondary);
         AddTarget(targets, backKey, back, "Back to AppHosts", true, null, tooltip: "Back");
-        var title = new PanelRect(back.Right + 8, (HeaderHeight - 20) / 2, Width - back.Right - 24, 20);
+        var title = new PanelRect(TextLeft, (HeaderHeight - 20) / 2, Width - EdgeMargin - TextLeft, 20);
         commands.Add(new TextCommand(title, TraySettingsText.PanelTitle, PanelFontRole.Title, palette.TextPrimary));
         AddLabel("settings.title", TraySettingsText.PanelTitle, title, chrome: true);
     }
@@ -1421,7 +1459,7 @@ internal sealed class TrayPanel
         // Three icon buttons on the right, each with a tooltip: Settings, Documentation, Quit.
         // Quit closes only the tray, never the AppHosts, so it isn't called "Quit Aspire" and its
         // tooltip and accessibility description say so.
-        var right = RowContentRight + 4;
+        var right = RowContentRight;
         var quitDescription = $"{_quitVerb} the tray. AppHosts keep running.";
         foreach (var (kind, icon, name, tooltip, description, x) in new[]
         {
