@@ -122,6 +122,18 @@ public class ConfigurationServiceTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task SetConfigurationAsync_RewritesCrlfFileWithLfLineBreaksAndSingleFinalNewline()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+
+        var (service, settingsFilePath) = CreateService(workspace, "{\r\n  \"appHost\": {\r\n    \"path\": \"MyApp.csproj\"\r\n  }\r\n}\r\n");
+
+        await service.SetConfigurationAsync("channel", "daily", isGlobal: false);
+
+        LineEndingAssert.FileIsLfWithSingleFinalNewline(settingsFilePath);
+    }
+
+    [Fact]
     public async Task SetConfigurationAsync_HandlesEmptyFile()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
@@ -132,6 +144,19 @@ public class ConfigurationServiceTests(ITestOutputHelper outputHelper)
 
         var result = File.ReadAllText(settingsFilePath);
         Assert.Contains("daily", result);
+    }
+
+    [Fact]
+    public async Task DeleteConfigurationAsync_RewritesCrlfFileWithLfLineBreaksAndSingleFinalNewline()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+
+        var (service, settingsFilePath) = CreateService(workspace, "{\r\n  \"channel\": \"daily\",\r\n  \"appHost\": {\r\n    \"path\": \"MyApp.csproj\"\r\n  }\r\n}\r\n");
+
+        var deleted = await service.DeleteConfigurationAsync("channel", isGlobal: false);
+
+        Assert.True(deleted);
+        LineEndingAssert.FileIsLfWithSingleFinalNewline(settingsFilePath);
     }
 
     [Fact]

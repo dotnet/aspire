@@ -50,6 +50,11 @@
 *.json text=auto
 src/Components/**/ConfigurationSchema.json text eol=lf
 
+# The CLI embeds these template files and copies them byte for byte, so a CRLF
+# checkout on Windows would otherwise ship CRLF in the CLI.
+src/Aspire.Cli/Templating/Templates/**/aspire.config.json text eol=lf
+src/Aspire.Cli/Templating/Templates/**/apphost.run.json text eol=lf
+
 *.csproj text=auto
 *.vbproj text=auto
 *.fsproj text=auto

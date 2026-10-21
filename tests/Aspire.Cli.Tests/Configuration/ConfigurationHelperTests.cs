@@ -4,6 +4,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Configuration;
 
@@ -225,6 +226,73 @@ public class ConfigurationHelperTests(ITestOutputHelper outputHelper)
         Assert.NotNull(config?.Features);
         Assert.True(config.Features["polyglotSupportEnabled"]);
         Assert.False(config.Features["showAllTemplates"]);
+    }
+
+    [Theory]
+    [InlineData("{\r\n  \"a\": 1\r\n}", "{\n  \"a\": 1\n}\n")]
+    [InlineData("{\r\n  \"a\": 1\r\n}\r\n", "{\n  \"a\": 1\n}\n")]
+    [InlineData("{\n  \"a\": 1\n}", "{\n  \"a\": 1\n}\n")]
+    [InlineData("{\n  \"a\": 1\n}\n", "{\n  \"a\": 1\n}\n")]
+    [InlineData("{\n  \"a\": 1\n}\n\n\n", "{\n  \"a\": 1\n}\n")]
+    [InlineData("{}", "{}\n")]
+    // Only CRLF is rewritten: a lone CR, U+2028 and U+0085 stay as they are, unlike with string.ReplaceLineEndings.
+    [InlineData("{\r\n  \"a\": \"x\ry\u2028z\u0085w\"\r\n}", "{\n  \"a\": \"x\ry\u2028z\u0085w\"\n}\n")]
+    public void NormalizeJsonFileContent_ReturnsLfWithSingleFinalNewline(string json, string expected)
+    {
+        var normalized = ConfigurationHelper.NormalizeJsonFileContent(json);
+
+        Assert.Equal(expected, normalized);
+        Assert.Equal(expected, ConfigurationHelper.NormalizeJsonFileContent(normalized));
+    }
+
+    [Fact]
+    public void WriteSettingsFile_WritesLfLineBreaksAndSingleFinalNewline()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+
+        var settingsPath = Path.Combine(workspace.WorkspaceRoot.FullName, "nested", AspireConfigFile.FileName);
+        var settings = new JsonObject
+        {
+            ["appHost"] = new JsonObject { ["path"] = "MyApp.csproj" },
+            ["channel"] = "daily"
+        };
+
+        ConfigurationHelper.WriteSettingsFile(settingsPath, settings);
+
+        LineEndingAssert.FileIsLfWithSingleFinalNewline(settingsPath);
+        Assert.Equal("daily", JsonNode.Parse(File.ReadAllText(settingsPath))!["channel"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task WriteSettingsFileAsync_WritesLfLineBreaksAndSingleFinalNewline()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+
+        var settingsPath = Path.Combine(workspace.WorkspaceRoot.FullName, "nested", AspireConfigFile.FileName);
+        var settings = new JsonObject
+        {
+            ["appHost"] = new JsonObject { ["path"] = "MyApp.csproj" },
+            ["channel"] = "daily"
+        };
+
+        await ConfigurationHelper.WriteSettingsFileAsync(settingsPath, settings);
+
+        LineEndingAssert.FileIsLfWithSingleFinalNewline(settingsPath);
+        Assert.Equal("daily", JsonNode.Parse(File.ReadAllText(settingsPath))!["channel"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void TryNormalizeSettingsFile_RewritesCrlfFileWithLfLineBreaks()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+
+        var settingsPath = Path.Combine(workspace.WorkspaceRoot.FullName, AspireConfigFile.FileName);
+        File.WriteAllText(settingsPath, "{\r\n  \"features:showAllTemplates\": true\r\n}");
+
+        var normalized = ConfigurationHelper.TryNormalizeSettingsFile(settingsPath);
+
+        Assert.True(normalized);
+        LineEndingAssert.FileIsLfWithSingleFinalNewline(settingsPath);
     }
 
     [Fact]

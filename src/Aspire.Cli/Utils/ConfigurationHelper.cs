@@ -223,11 +223,24 @@ internal static class ConfigurationHelper
     }
 
     /// <summary>
+    /// Returns serialized JSON in the form the CLI writes to JSON config files: LF line breaks and exactly
+    /// one trailing newline, on every OS.
+    /// </summary>
+    internal static string NormalizeJsonFileContent(string json)
+    {
+        // System.Text.Json indents with Environment.NewLine (CRLF on Windows) and writes no trailing newline,
+        // so the same file would come out differently per platform. Only CRLF is rewritten: JSON forbids raw
+        // control characters inside strings and the serializer always escapes them, so a raw CRLF can only be
+        // indentation between tokens and replacing it cannot change a value.
+        return json.Replace("\r\n", "\n").TrimEnd('\n') + "\n";
+    }
+
+    /// <summary>
     /// Serializes a JsonObject and writes it to a settings file, creating the directory if needed.
     /// </summary>
     internal static async Task WriteSettingsFileAsync(string filePath, JsonObject settings, CancellationToken cancellationToken = default)
     {
-        var jsonContent = JsonSerializer.Serialize(settings, JsonSourceGenerationContext.Default.JsonObject);
+        var jsonContent = NormalizeJsonFileContent(JsonSerializer.Serialize(settings, JsonSourceGenerationContext.Default.JsonObject));
 
         EnsureDirectoryExists(filePath);
         await File.WriteAllTextAsync(filePath, jsonContent, cancellationToken);
@@ -238,7 +251,7 @@ internal static class ConfigurationHelper
     /// </summary>
     internal static void WriteSettingsFile(string filePath, JsonObject settings)
     {
-        var jsonContent = JsonSerializer.Serialize(settings, JsonSourceGenerationContext.Default.JsonObject);
+        var jsonContent = NormalizeJsonFileContent(JsonSerializer.Serialize(settings, JsonSourceGenerationContext.Default.JsonObject));
 
         EnsureDirectoryExists(filePath);
         File.WriteAllText(filePath, jsonContent);
