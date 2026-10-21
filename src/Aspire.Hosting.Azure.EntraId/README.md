@@ -245,6 +245,8 @@ builder.AddProject<Projects.Web>("web")
        .WithAzureUserAssignedIdentity(identity)
        .WithReference(entraWeb);
 ```
+The federated credential only changes how the app authenticates as itself. Interactive user sign-in still needs a redirect URI (for example https://<app>/signin-oidc) registered on the app registration, and the registration is created before the workload's URL is known. Use WithRedirectUris with a known hostname, or add the URI after the first deployment.
+
 Managed identities exist only in Azure, so these credentials are not used when running locally; add another credential, such as a client secret, for local development. Aspire never modifies an existing registration. With `AddExistingEntraApplication`, the credential only configures Microsoft.Identity.Web, and you must configure the trust yourself. You can also pass a managed identity's client ID directly:
 
 ```csharp
