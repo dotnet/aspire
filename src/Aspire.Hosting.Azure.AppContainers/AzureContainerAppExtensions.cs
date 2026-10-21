@@ -921,7 +921,12 @@ public static class AzureContainerAppExtensions
     ///
     /// This method allows for reusing the previously deployed resources if the application was deployed using
     /// azd without calling <see cref="AddAzureContainerAppEnvironment"/>
+    /// <para>
+    /// Azure Developer CLI (azd) deployment support is being retired. See
+    /// <see href="https://aka.ms/aspire/azd-deployment-retirement"/> for more information.
+    /// </para>
     /// </remarks>
+    [Obsolete("Azure Developer CLI (azd) deployment support is being retired. See https://aka.ms/aspire/azd-deployment-retirement for more information.")]
     [AspireExport]
     public static IResourceBuilder<AzureContainerAppEnvironmentResource> WithAzdResourceNaming(this IResourceBuilder<AzureContainerAppEnvironmentResource> builder)
     {
