@@ -147,21 +147,54 @@ public class EntraIdApplicationResource : AzureProvisioningResource
     private static BicepList<string> CreateRedirectUris(EntraIdApplicationResource resource, AzureResourceInfrastructure infrastructure)
     {
         var values = resource._redirectUriValues;
-        if (!values.OfType<ParameterResource>().Any())
+        if (values.All(static v => v is string))
         {
             return [.. values.OfType<string>()];
         }
 
         // Parameter values are only known at deployment time, so each is split on commas in Bicep. Consecutive
-        // literals are grouped into one array to keep the call order:
-        //   concat(['https://literal'], split(redirectUris, ','), split(otherRedirectUris, ','))
+        // literals and endpoint-derived URIs are grouped into one array to keep the call order:
+        //   concat(['https://literal', endpointRedirectUri0], split(redirectUris, ','), split(otherRedirectUris, ','))
         var arguments = new List<BicepExpression>();
         var literals = new List<BicepExpression>();
+
+        // Derived URIs get generated parameter names. Reserve the names of every user-supplied parameter first, in any
+        // call order, so a generated name never overwrites a parameter such as one named "redirectUri0".
+        var reservedNames = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var parameter in values.Concat(resource.ApplicationOwners).Concat(resource.ServicePrincipalOwners).OfType<ParameterResource>())
+        {
+            reservedNames.Add(Infrastructure.NormalizeBicepIdentifier(parameter.Name));
+        }
+
+        var endpointIndex = 0;
+        string NextDerivedParameterName()
+        {
+            string name;
+            do
+            {
+                name = $"redirectUri{endpointIndex++}";
+            }
+            while (reservedNames.Contains(name));
+
+            return name;
+        }
+
         foreach (var value in values)
         {
             if (value is string literal)
             {
                 literals.Add(new StringLiteralExpression(literal));
+                continue;
+            }
+
+            if (value is IEntraIdDerivedRedirectUri derivedRedirectUri)
+            {
+                // The value is only known when the parameter is resolved: after endpoint allocation when running
+                // locally, from the compute environment when deploying, or from the host parameter's value.
+                var uriParameter = derivedRedirectUri
+                    .CreateExpression()
+                    .AsProvisioningParameter(infrastructure, NextDerivedParameterName());
+                literals.Add(uriParameter.Value.Compile());
                 continue;
             }
 
@@ -321,6 +354,8 @@ public class EntraIdApplicationResource : AzureProvisioningResource
     internal void AddRedirectUri(string redirectUri) => _redirectUriValues.Add(redirectUri);
 
     internal void AddRedirectUri(ParameterResource redirectUri) => _redirectUriValues.Add(redirectUri);
+
+    internal void AddRedirectUri(IEntraIdDerivedRedirectUri redirectUri) => _redirectUriValues.Add(redirectUri);
 
     // Each entry is either a literal directory object ID (string) or a ParameterResource holding one.
     internal List<object> ApplicationOwners { get; } = [];

@@ -17,6 +17,7 @@ public sealed class AzureEntraIdDeploymentTests(ITestOutputHelper output)
     private const string UpdatedRedirectUri = "https://example.invalid/updated-signin-oidc";
     private const string ParameterRedirectUris = "https://example.invalid/signout-oidc,https://example.invalid/callback";
     private const string UpdatedParameterRedirectUris = "https://example.invalid/updated-callback";
+    private const string EndpointCallbackPath = "/endpoint-callback";
 
     [Fact]
     public async Task DeployEntraRegistrationAndRedeployWithStableIds()
@@ -179,10 +180,13 @@ public sealed class AzureEntraIdDeploymentTests(ITestOutputHelper output)
                 .WithRedirectUris("{{RedirectUri}}")
                 .WithRedirectUris(builder.AddParameter("redirecturis"));
 
-            builder.AddProject("consumer", "Consumer/Consumer.csproj")
+            var consumer = builder.AddProject("consumer", "Consumer/Consumer.csproj")
                 .WithHttpEndpoint(targetPort: 8080)
                 .WithExternalHttpEndpoints()
                 .WithReference(identity);
+
+            // Derived from the consumer's deployed host name, which is only known from the environment outputs.
+            identity.WithRedirectUris(consumer.GetEndpoint("http"), "{{EndpointCallbackPath}}");
 
             builder.Build().Run();
             """);
@@ -206,8 +210,15 @@ public sealed class AzureEntraIdDeploymentTests(ITestOutputHelper output)
     {
         var application = await WaitForResourceAsync(client, credential,
             $"https://graph.microsoft.com/v1.0/applications(uniqueName='{registrationName}')",
-            resource => resource.GetProperty("web").GetProperty("redirectUris").EnumerateArray()
-                .Select(uri => uri.GetString()).SequenceEqual(redirectUris),
+            resource =>
+            {
+                // The last URI is derived from the consumer's endpoint; its host name is verified below.
+                var registered = resource.GetProperty("web").GetProperty("redirectUris").EnumerateArray()
+                    .Select(uri => uri.GetString()).ToArray();
+                return registered.Length == redirectUris.Length + 1
+                    && registered.Take(redirectUris.Length).SequenceEqual(redirectUris)
+                    && registered[^1] is { } derived && derived.StartsWith("https://", StringComparison.Ordinal) && derived.EndsWith(EndpointCallbackPath, StringComparison.Ordinal);
+            },
             cancellationToken);
         Assert.Equal(registrationName, application.GetProperty("displayName").GetString());
         Assert.Equal(registrationName, application.GetProperty("uniqueName").GetString());
@@ -233,6 +244,8 @@ public sealed class AzureEntraIdDeploymentTests(ITestOutputHelper output)
         Assert.False(ingress.GetProperty("allowInsecure").GetBoolean());
         var hostname = ingress.GetProperty("fqdn").GetString();
         Assert.Equal(UriHostNameType.Dns, Uri.CheckHostName(hostname));
+        var registeredUris = application.GetProperty("web").GetProperty("redirectUris").EnumerateArray().Select(uri => uri.GetString()).ToArray();
+        Assert.Equal($"https://{hostname}{EndpointCallbackPath}", registeredUris[^1]);
         var url = $"https://{hostname}";
         await DotnetProjectDeploymentHelpers.VerifyResponseAsync(url, $"{tenantId:D}/{clientId:D}", cancellationToken);
         deploymentUrls["Consumer"] = url;
