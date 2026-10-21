@@ -94,6 +94,31 @@ public class ResourceSourceLocationGeneratorTests
         AssertSourceLocation(source, true, "AddGeneric<Resource>");
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CapturesAlternativesInAGenericHelper(bool condition)
+    {
+        var source = """
+            using Aspire.Hosting.ApplicationModel;
+            public static class SourceCases
+            {
+                public static Resource Run(bool condition) => Create<Resource>(condition);
+                private static T Create<T>(bool condition) where T : Resource, new()
+                {
+                    var builder = new ApplicationBuilder();
+                    if (condition)
+                    {
+                        return builder.AddGeneric<T>(name: "same").Resource;
+                    }
+                    return builder.AddGeneric<T>("same").Resource;
+                }
+            }
+            """ + Types;
+
+        AssertSourceLocation(source, condition, condition ? "AddGeneric<T>(name:" : "AddGeneric<T>(\"same\")");
+    }
+
     [Fact]
     public void ConfigurationCallsDoNotClaimAnUntrackedResource()
     {
@@ -406,6 +431,20 @@ public class ResourceSourceLocationGeneratorTests
                 public T Resource { get; } = resource;
             }
             public sealed class ApplicationBuilder { }
+            public static class ResourceExtensions
+            {
+                public static bool HasAnnotationOfType<T>(this IResource resource)
+                {
+                    foreach (var annotation in resource.Annotations)
+                    {
+                        if (annotation is T)
+                        {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+            }
             public static class Extensions
             {
                 public static IResourceBuilder<Resource> AddResource(this ApplicationBuilder builder, string name, int value) =>

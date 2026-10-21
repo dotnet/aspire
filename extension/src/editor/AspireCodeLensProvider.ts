@@ -215,7 +215,6 @@ export class AspireCodeLensProvider implements vscode.CodeLensProvider {
         ];
 
         const lenses: vscode.CodeLens[] = [];
-        const seenResources = new Set<string>();
 
         // Builder-statement lenses (Open Dashboard + View Logs) appear only when this
         // document maps to a concretely-running AppHost — independent of whether any
@@ -265,11 +264,6 @@ export class AspireCodeLensProvider implements vscode.CodeLensProvider {
                     if (match) {
                         const matchedRange = match.sourceLine === undefined ? lineRange
                             : new vscode.Range(match.sourceLine, 0, match.sourceLine, 0);
-                        const key = JSON.stringify([match.appHost.appHostPath, match.resource.name, matchedRange.start.line]);
-                        if (seenResources.has(key)) {
-                            continue;
-                        }
-                        seenResources.add(key);
                         this._addStateLenses(lenses, matchedRange, match.resource, match.appHost);
                         const debuggerInstallHint = getDebuggerInstallHintForResource(match.resource);
                         if (match.resource.state === ResourceState.Running && debuggerInstallHint) {

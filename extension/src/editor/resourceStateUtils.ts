@@ -73,18 +73,19 @@ export function matchResourceDeclarations(
                     sourceCandidates = named;
                 }
             }
-            if (sourceCandidates.length === 1 || sourceCandidates.every(parsed => parsed.range.start.line === line)) {
-                for (const declaration of sourceCandidates) {
-                    if (!matches.has(declaration)) {
-                        matches.set(declaration, { resource, appHost, sourceLine: !point && sourceCandidates.length > 1 ? line : undefined });
-                    }
-                }
+            if (sourceCandidates.length > 1 && !sourceCandidates.every(parsed => parsed.range.start.line === line)) {
+                continue;
+            }
+            // Line-only metadata can identify a shared line, not each call on it.
+            const declaration = sourceCandidates[0];
+            if (declaration && !matches.has(declaration)) {
+                matches.set(declaration, { resource, appHost, sourceLine: sourceCandidates.length > 1 ? line : undefined });
             }
         }
     }
 
-    // Older AppHosts do not supply provenance. Keep their single-declaration behavior,
-    // but never guess which of several same-name declarations ran.
+    // Missing provenance retains best-effort compatibility with older AppHosts.
+    // Local uniqueness is not proof of origin; never guess between duplicates.
     const declarationCounts = new Map<string, number>();
     for (const declaration of candidates) {
         declarationCounts.set(declaration.name, (declarationCounts.get(declaration.name) ?? 0) + 1);

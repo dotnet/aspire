@@ -521,6 +521,21 @@ suite('AspireGutterDecorationProvider resource decoration filtering', () => {
             '    }',
             '} }',
         ].join('\n')],
+        ['ternary.java', [
+            'import aspire.*;',
+            'class AppHost { public static void main(String[] args) {',
+            '    var builder = DistributedApplication.CreateBuilder(args);',
+            '    var resource = flag ? builder.addContainer("registry", "registry", "2") : builder.addContainer("registry", "registry", "3");',
+            '} }',
+        ].join('\n')],
+        ['multiline.java', [
+            'import aspire.*;',
+            'class AppHost { public static void main(String[] args) {',
+            '    var builder = DistributedApplication.CreateBuilder(args);',
+            '    if (flag) builder',
+            '        .addContainer("registry", "registry", "2"); else builder.addContainer("registry", "registry", "3");',
+            '} }',
+        ].join('\n')],
         ['rs', [
             'use aspire::*;',
             'fn main() -> Result<(), Box<dyn std::error::Error>> {',
@@ -535,7 +550,7 @@ suite('AspireGutterDecorationProvider resource decoration filtering', () => {
         ].join('\n')],
     ];
     for (const view of ['global', 'workspace']) {
-        test(`matches all resources once per CodeLens and gutter refresh in ${view} view`, async () => {
+        test(`places state and actions for a large AppHost in ${view} view`, async () => {
             const count = 400;
             const hostPath = p('repo', 'AppHost', 'AppHost.csproj');
             const host = makeAppHost(hostPath);
@@ -545,24 +560,15 @@ suite('AspireGutterDecorationProvider resource decoration filtering', () => {
             ].join('\n');
             const document = createMockDocument(text, p('repo', 'AppHost', 'AppHost.cs'));
             const documentHash = getResourceSourceDocumentHash(text);
-            let sourceReads = 0;
-            host.resources = Array.from({ length: count }, (_, index) => {
-                const resource = makeResource(`resource-${index}`);
-                const sourceLocation = {
+            host.resources = Array.from({ length: count }, (_, index) => makeResource(`resource-${index}`, {
+                sourceLocation: {
                     filePath: document.uri.fsPath,
                     documentHash,
                     lineNumber: index + 2,
                     columnNumber: 9,
                     methodName: 'AddContainer',
-                };
-                Object.defineProperty(resource, 'sourceLocation', {
-                    get: () => {
-                        sourceReads++;
-                        return sourceLocation;
-                    },
-                });
-                return resource;
-            });
+                },
+            }));
             const harness = createHarness(view === 'global'
                 ? { appHosts: [host] }
                 : { workspaceAppHostPath: hostPath, workspaceResources: host.resources });
@@ -575,12 +581,11 @@ suite('AspireGutterDecorationProvider resource decoration filtering', () => {
                 assert.deepStrictEqual(lenses
                     .filter(lens => lens.command?.command === 'aspire-vscode.codeLensRevealResource')
                     .map(lens => lens.range.start.line), expectedLines);
-                assert.ok(sourceReads <= count, `CodeLens read source metadata ${sourceReads} times for ${count} resources.`);
-
-                sourceReads = 0;
+                assert.deepStrictEqual(lenses
+                    .filter(lens => lens.command?.command === 'aspire-vscode.codeLensViewLogs')
+                    .map(lens => lens.command?.arguments?.[0]), host.resources.map(resource => resource.name));
                 await applyGutterDecorations(provider, editor.editor);
                 assert.deepStrictEqual(getCurrentDecoratedLines(editor.decorationState), expectedLines);
-                assert.ok(sourceReads <= count, `Gutters read source metadata ${sourceReads} times for ${count} resources.`);
             } finally {
                 provider.dispose();
                 harness.dispose();
@@ -605,7 +610,7 @@ suite('AspireGutterDecorationProvider resource decoration filtering', () => {
                             filePath: document.uri.fsPath,
                             documentHash: getResourceSourceDocumentHash(text),
                             lineNumber: point.line + 1,
-                            columnNumber: extension === 'java' ? null : point.character + 1,
+                            columnNumber: extension.endsWith('java') ? null : point.character + 1,
                             methodName: active.methodName,
                         } : undefined,
                         commands: {

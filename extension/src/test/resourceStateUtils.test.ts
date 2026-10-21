@@ -154,6 +154,45 @@ suite('resource state matching', () => {
             assert.strictEqual(matchResourceDeclarations(hosts, declarations, document).size, 0);
         });
 
+        test('returns one line-level match when line-only metadata cannot distinguish same-line calls', () => {
+            const sameLineText = 'flag ? builder.AddRedis("cache") : builder.AddRedis("cache");';
+            const sameLineDeclarations = [sameLineText.indexOf('AddRedis'), sameLineText.lastIndexOf('AddRedis')].map(start => ({
+                ...declarations[0],
+                range: new vscode.Range(0, start, 0, start + 'AddRedis("cache")'.length),
+            }));
+            const resource = locatedResource({
+                displayName: 'cache',
+                sourceLocation: {
+                    filePath,
+                    lineNumber: 1,
+                    columnNumber: null,
+                    documentHash: getResourceSourceDocumentHash(sameLineText),
+                    methodName: 'AddRedis',
+                },
+            });
+            const matches = matchResourceDeclarations(
+                [makeAppHost({ resources: [resource] })], sameLineDeclarations,
+                createMockDocument(sameLineText, filePath));
+
+            assert.strictEqual(matches.size, 1);
+            assert.strictEqual(matches.get(sameLineDeclarations[0])?.resource, resource);
+            assert.strictEqual(matches.get(sameLineDeclarations[0])?.sourceLine, 0);
+        });
+
+        test('does not choose between ambiguous calls on different lines', () => {
+            const overlappingDeclarations = declarations.map(declaration => ({
+                ...declaration,
+                invocationRange: new vscode.Range(0, 0, 1, 25),
+            }));
+            const resource = locatedResource({ displayName: 'cache' });
+            resource.sourceLocation!.columnNumber = null;
+            const matches = matchResourceDeclarations(
+                [makeAppHost({ resources: [resource] })], overlappingDeclarations,
+                createMockDocument(text, filePath));
+
+            assert.strictEqual(matches.size, 0);
+        });
+
         test('matches canonical source paths when the editor opened a symlink', () => {
             const workspace = createSymlinkedWorkspace();
             try {

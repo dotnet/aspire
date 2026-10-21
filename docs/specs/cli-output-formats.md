@@ -413,6 +413,10 @@ rather than treating a same-basename entry file as the caller.
 Editors must reject locations whose fingerprint does not match the current document.
 Without a usable location, duplicate names do not prove which declaration ran; the
 VS Code extension hides ambiguous inline state/actions while retaining tree controls.
+For line-only metadata that identifies several calls on the same line, it emits one
+shared line-level association. Missing metadata retains best-effort unique-name
+matching for compatibility; this is not proof of cross-file source identity, and
+applies both to older runtimes and to calls for which capture is unavailable.
 
 ## Logs
 
