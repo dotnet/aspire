@@ -613,8 +613,7 @@ public static class EntraIdResourceExtensions
     /// <para>
     /// For a registration that Aspire creates, use
     /// <see cref="PublishWithFederatedManagedIdentityCredential(IResourceBuilder{EntraIdApplicationResource})"/>
-    /// instead, which also creates the trust. Microsoft Entra's managed-identity federation scenario does not support
-    /// system-assigned managed identities.
+    /// instead, which also creates the trust. Only user-assigned managed identities are supported.
     /// See <see href="https://learn.microsoft.com/entra/workload-id/workload-identity-federation-config-app-trust-managed-identity"/>.
     /// </para>
     /// </remarks>
@@ -668,7 +667,7 @@ public static class EntraIdResourceExtensions
     /// <para>
     /// Managed identities exist only in Azure, so the credential is not used when running locally. Add another
     /// credential, such as a client secret, for local development.
-    /// Supported clouds are Azure public, Azure US Government and Azure China. System-assigned identities are not supported.
+    /// Supported clouds are Azure public, Azure US Government and Azure China. Only user-assigned managed identities are supported.
     /// See <see href="https://learn.microsoft.com/entra/workload-id/workload-identity-federation-config-app-trust-managed-identity"/>.
     /// </para>
     /// </remarks>
