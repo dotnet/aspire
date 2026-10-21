@@ -110,6 +110,7 @@ internal sealed class InitCommand : BaseCommand
         Options.Add(_channelOption);
         Options.Add(_languageOption);
         Options.Add(_fileBasedOption);
+        Options.Add(ConfigSourceService.s_useSourceOption);
         Options.Add(NewCommand.s_suppressAgentInitOption);
         Options.Add(AgentInitCommand.s_agentsOption);
         Options.Add(AgentInitCommand.s_scopeOption);
@@ -120,6 +121,7 @@ internal sealed class InitCommand : BaseCommand
     {
         using var activity = Telemetry.StartDiagnosticActivity(this.Name);
 
+        var configSource = await ConfigSources.SelectForCreationAsync(parseResult, cancellationToken);
         // Step 1: Get the language selection.
         var explicitLanguage = parseResult.GetValue(_languageOption);
         DisplayDeprecatedOptionWarnings(parseResult);
@@ -152,6 +154,17 @@ internal sealed class InitCommand : BaseCommand
         if (dropResult != CliExitCodes.Success)
         {
             return CommandResult.Failure(dropResult, InteractionServiceStrings.ProjectCouldNotBeCreated);
+        }
+
+        if (configSource is not null)
+        {
+            // Project-mode init drops the AppHost beneath the solution directory; bind
+            // that project, not all projects below the directory where init was invoked.
+            var projectDirectory = solutionFile is null
+                ? workingDirectory
+                : new DirectoryInfo(Path.Combine(solutionFile.Directory!.FullName, $"{Path.GetFileNameWithoutExtension(solutionFile.Name)}.AppHost"));
+            await ConfigSourceService.BindAsync(configSource, projectDirectory, cancellationToken);
+            await ConfigSources.CheckProjectAsync(projectDirectory, force: false, cancellationToken);
         }
 
         // Persist the prompted language selection now that the skeleton drop succeeded.

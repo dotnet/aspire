@@ -2,17 +2,23 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using System.IO.Hashing;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Resources;
+using Aspire.Hosting.Utils;
+using Aspire.Shared;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Utils;
 
 internal static class ConfigurationHelper
 {
     internal const string IntegrationCacheFolderName = "integrations";
+    private static readonly TimeSpan s_workspaceConfigLockTimeout = TimeSpan.FromSeconds(30);
 
     /// <summary>
     /// Standard options for parsing JSON that may contain non-spec features like comments and trailing commas.
@@ -27,6 +33,9 @@ internal static class ConfigurationHelper
         => RegisterSettingsFiles(configuration, workingDirectory, globalSettingsFile, persistNormalization: true);
 
     internal static void RegisterSettingsFiles(IConfigurationBuilder configuration, DirectoryInfo workingDirectory, FileInfo globalSettingsFile, bool persistNormalization)
+        => RegisterSettingsFiles(configuration, workingDirectory, globalSettingsFile, persistNormalization, configSourceProvider: null);
+
+    internal static void RegisterSettingsFiles(IConfigurationBuilder configuration, DirectoryInfo workingDirectory, FileInfo globalSettingsFile, bool persistNormalization, ConfigSourceConfigurationProvider? configSourceProvider)
     {
         var currentDirectory = workingDirectory;
 
@@ -74,15 +83,51 @@ internal static class ConfigurationHelper
         }
 
         // Add global settings first (if it exists) - lower precedence
+        JsonObject? globalSettings = null;
         if (File.Exists(globalSettingsFile.FullName))
         {
-            AddSettingsFile(configuration, globalSettingsFile.FullName, persistNormalization);
+            globalSettings = AddSettingsFile(configuration, globalSettingsFile.FullName, persistNormalization);
         }
 
         // Then add local settings (if found) - this will override global settings
+        JsonObject? localSettings = null;
         if (localSettingsFile is not null)
         {
-            AddSettingsFile(configuration, localSettingsFile.FullName, persistNormalization);
+            localSettings = AddSettingsFile(configuration, localSettingsFile.FullName, persistNormalization);
+        }
+
+        // This provider stays empty until acquisition succeeds. It merges the selected
+        // project's local overrides itself, so --apphost elsewhere cannot inherit values
+        // from an unrelated launch directory. Never reorder already-loaded stream sources:
+        // ConfigurationManager would try to read their consumed streams again.
+        if (configSourceProvider is not null)
+        {
+            configSourceProvider.ConfigureLaunchSettings(globalSettings, localSettings);
+            configuration.Add(configSourceProvider);
+        }
+    }
+
+    internal static async Task<FileLock?> TryAcquireWorkspaceConfigLockAsync(
+        CliExecutionContext executionContext, FileInfo settingsFile, ILogger logger, CancellationToken cancellationToken)
+    {
+        // Lock files live in the cache so read-only workspaces remain usable. Canonicalizing and
+        // folding the config path makes aliases on symlinked or case-insensitive volumes contend;
+        // on a case-sensitive volume this can only serialize two otherwise independent writes.
+        var normalizedSettingsPath = PathNormalizer.ResolveSymlinks(settingsFile.FullName)
+            .Normalize(NormalizationForm.FormC)
+            .ToUpperInvariant();
+        var lockFileName = Convert.ToHexString(XxHash3.Hash(Encoding.UTF8.GetBytes(normalizedSettingsPath))).ToLowerInvariant();
+        var lockPath = Path.Combine(executionContext.CacheDirectory.FullName, "workspace-config-locks", $"{lockFileName}.lock");
+        try
+        {
+            return await FileLock.AcquireAsync(lockPath, cancellationToken, s_workspaceConfigLockTimeout);
+        }
+        catch (Exception ex) when (ex is TimeoutException or IOException or UnauthorizedAccessException)
+        {
+            // Preserve the existing best-effort workspace bookkeeping when the cache
+            // cannot host a lock. Reads use the same policy as workspace-default writes.
+            logger.LogDebug(ex, "Proceeding without the workspace config lock at {LockPath}.", lockPath);
+            return null;
         }
     }
 
@@ -253,7 +298,7 @@ internal static class ConfigurationHelper
         }
     }
 
-    private static void AddSettingsFile(IConfigurationBuilder configuration, string filePath, bool persistNormalization)
+    private static JsonObject? AddSettingsFile(IConfigurationBuilder configuration, string filePath, bool persistNormalization)
     {
         // Proactively normalize the settings file to prevent duplicate key errors.
         // This handles files corrupted by mixing colon and dot notation
@@ -282,7 +327,7 @@ internal static class ConfigurationHelper
                 var cleanJson = node.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
                 var bytes = System.Text.Encoding.UTF8.GetBytes(cleanJson);
                 configuration.AddJsonStream(new MemoryStream(bytes));
-                return;
+                return node as JsonObject;
             }
         }
         catch (JsonException ex)
@@ -293,6 +338,7 @@ internal static class ConfigurationHelper
         }
 
         configuration.AddJsonFile(filePath, optional: true);
+        return null;
     }
 
     /// <summary>
@@ -326,7 +372,7 @@ internal static class ConfigurationHelper
         }
     }
 
-    private static bool NormalizeSettings(JsonObject settings)
+    internal static bool NormalizeSettings(JsonObject settings)
     {
         // Find all colon-separated keys at root level
         var colonKeys = new List<(string key, JsonNode? value)>();

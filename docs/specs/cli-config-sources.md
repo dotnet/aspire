@@ -1,13 +1,17 @@
 # Aspire CLI config sources
 
-**Status:** Proposed.
+**Status:** Configuration acquisition implemented; content-acquisition customizations proposed.
 
 Config sources let organizations provide shared Aspire CLI configuration through a Git-hosted `aspire.config.json`. There are two separate phases:
 
 1. **Acquire configuration:** select a remote source, ask the user whether to use it, acquire the file using Git, cache it in the Aspire home directory, and record the source in the project's `aspire.config.json`.
 2. **Acquire content:** use the effective project configuration to acquire skills, templates, and integrations.
 
-This specification focuses on the first phase. Content acquisition is summarized at the end; its detailed schema and behavior are deferred.
+This specification focuses on the first phase. Content acquisition is summarized at the end; its detailed schema and behavior are deferred. Shared CLI settings are resolved as defaults below project-owned settings. AppHost identity, SDK/channel selection, package references, and launch profiles remain project-owned and are not supplied by the remote defaults provider.
+
+Effective settings combine global settings, shared defaults, and the selected project's local overrides, in that order. Objects merge by key; local arrays and explicit nulls replace inherited values. While applying a source, local settings come from the selected project rather than the launch directory. Selecting an unbound project clears any acquired shared defaults.
+
+Documentation services resolve their source URLs and cache identities on first use, after the command applies the project's configuration source. Directory-scoped lookups that explicitly inherit parent settings, such as SDK version selection, search those parents before falling back to global settings.
 
 ## Phase 1: Acquire remote configuration
 
@@ -34,7 +38,7 @@ $env:ASPIRE_INIT_CONFIG = 'teams/platform.json'
 aspire new
 ```
 
-The file-path override applies to either an explicit repository or the Microsoft default. Repository-relative paths use `/` separators on every platform. Reject empty or absolute paths and paths that escape the repository.
+The file-path override applies to either an explicit repository or the Microsoft default. Repository-relative paths use `/` separators on every platform. Reject empty or absolute paths, `.` or `..` segments, empty segments, backslashes, and control characters. Git addresses may use HTTPS, SSH URLs, or SCP-style SSH syntax. Local paths, Git remote-helper syntax, embedded passwords/tokens, query strings, and fragments are not supported.
 
 Reuse `IInternalMicrosoftDetector` directly, independently of telemetry opt-in. An explicit source bypasses employee detection. Detection selects a default, not authorization or consent: Git still authenticates repository access. An inconclusive or failed detection does not select the Microsoft source.
 
@@ -62,7 +66,12 @@ The choice applies to the project being created or initialized, not every projec
 
 Other commands, including standalone `aspire agent init` and `aspire add`, do not prompt to enable a source. Without a saved project `configSource`, they ignore the initialization-source environment variables and employee default.
 
-Non-interactive creation requires an explicit consent mechanism; its option spelling remains to be decided. It must not hang waiting for input or silently treat employee detection as consent.
+Non-interactive creation requires `--use-config-source true` to accept the candidate or `--use-config-source false` to decline it. When a candidate is available and neither value is supplied, fail with instructions rather than waiting for input or silently treating employee detection as consent. The same option can bypass the source prompt during interactive creation:
+
+```shell
+aspire new aspire-starter --use-config-source true
+aspire init --use-config-source false
+```
 
 ### Acquire using Git
 
@@ -70,7 +79,7 @@ Use the user's Git installation and normal credential helpers or SSH authenticat
 
 Resolve the repository's default branch to a commit and read the selected configuration file from that snapshot. Validate the configuration before publishing it to the cache or applying it to the project. Retain the repository, file path, and commit so relative content paths can later be resolved against the configuration file's directory in the same snapshot, without escaping the repository.
 
-Git operations must support cancellation and bounded execution. Report missing Git, authentication failures, inaccessible repositories, missing files, and invalid configuration distinctly. Do not silently substitute standard configuration after the user accepts a source.
+Git acquisition supports cancellation and has a two-minute timeout. Read the Git blob without checking out the repository, reject symlink configuration entries, and validate the JSON object and known Aspire settings before use. Configuration files are limited to 4 MiB and cannot declare another configuration source. Report missing Git, authentication failures, inaccessible repositories, missing files, and invalid configuration distinctly. Do not silently substitute standard configuration after the user accepts a source.
 
 ### Store and refresh in Aspire home
 
@@ -78,11 +87,14 @@ Store acquired configuration centrally using the resolved Aspire home, including
 
 ```text
 <AspireHome>\configsources\<source-key>\
-  aspire.config.json
-  metadata.json
+  current
+  <snapshot-id>\
+    aspire.config.json
+    metadata.json
+    repository.git\
 ```
 
-The usual home is `<user-profile>\.aspire`. The source key distinguishes repository and upstream file path, so configurations in the same repository have separate cache entries. The cached filename remains `aspire.config.json`; metadata records the upstream identity, resolved commit, and last successful refresh time. The cache is shared storage, not a directory-scoped opt-in registry; project configuration determines whether a source applies.
+The usual home is `<user-profile>\.aspire`. The source key distinguishes repository and upstream file path, so configurations in the same repository have separate cache entries. The cached filename remains `aspire.config.json`; metadata records the upstream identity, resolved commit, and last successful refresh time. Immutable snapshots retain the bare Git repository for later same-commit content resolution. Atomically replacing the `current` pointer publishes configuration and matching metadata together. The cache is shared storage, not a directory-scoped opt-in registry; project configuration determines whether a source applies.
 
 Every command scoped to a project with `configSource` checks cache freshness before executing, even when it does not acquire skills, templates, or integrations.
 
@@ -126,7 +138,7 @@ A failed or cancelled refresh must not replace the last valid cached configurati
 
 ### Persist the project binding
 
-The created or initialized project's `aspire.config.json` records the remote identity, not the machine-specific cache path. Proposed shape:
+The created or initialized project's `aspire.config.json` records the remote identity, not the machine-specific cache path:
 
 ```json
 {
@@ -139,11 +151,11 @@ The created or initialized project's `aspire.config.json` records the remote ide
 
 Persist the selected file path even when it is the default. This makes the selection portable: another developer can acquire the same source using their own Git credentials and Aspire home. Later commands resolve the repository and file path from project configuration rather than re-running employee detection or replacing them with the current `ASPIRE_INIT_SOURCE` or `ASPIRE_INIT_CONFIG`.
 
-The acquired file provides shared defaults; project-owned settings remain local overrides. Refresh must not overwrite the project's AppHost path, package selections, or launch settings. Detailed merge rules remain to be defined alongside the content schema.
+The acquired file provides shared defaults; project-owned settings remain local overrides. Refresh must not overwrite the project's AppHost path, package selections, or launch settings. Content-specific merge rules remain to be defined alongside the content schema.
 
 Report actual remote-config use once per invocation, identifying the source and whether it was cached or refreshed. Preserve machine-readable stdout by routing human-readable notices to stderr where necessary.
 
-### Validation when implemented
+### Validation
 
 Cover source precedence and telemetry-independent detection; default/custom file paths, path validation, and separate cache entries for files in one repository; accept/decline/cancel and non-interactive consent; project `configSource` persistence and portability; Git failures and configuration validation; home overrides, concurrent cache publication, and the exact 24-hour refresh boundary. Verify freshness checks for lifecycle, inspection, and content commands, and no remote-config checks for global commands, help, or completion. No-source and declined-source flows must preserve existing behavior and perform no remote-config acquisition.
 

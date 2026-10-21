@@ -316,7 +316,11 @@ public class Program
         var globalSettingsFilePath = GetGlobalSettingsPath(startupContext.Logger, migrate: !isCompletion);
         var globalSettingsFile = new FileInfo(globalSettingsFilePath);
         var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
-        ConfigurationHelper.RegisterSettingsFiles(builder.Configuration, workingDirectory, globalSettingsFile, persistNormalization: !isCompletion);
+        var configSourceProvider = new ConfigSourceConfigurationProvider();
+        ConfigurationHelper.RegisterSettingsFiles(builder.Configuration, workingDirectory, globalSettingsFile, persistNormalization: !isCompletion, configSourceProvider);
+        builder.Services.AddSingleton(configSourceProvider);
+        builder.Services.AddSingleton<IConfigSourceGitClient, ConfigSourceGitClient>();
+        builder.Services.AddSingleton<ConfigSourceService>();
 
         if (configurationValues is not null)
         {

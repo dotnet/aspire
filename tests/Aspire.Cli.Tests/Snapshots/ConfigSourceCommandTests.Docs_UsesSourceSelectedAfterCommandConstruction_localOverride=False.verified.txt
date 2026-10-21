@@ -1,0 +1,15 @@
+﻿{
+  Document: {
+    Title: Shared Document,
+    Slug: shared-document,
+    Content:
+# Shared Document
+
+[Related](https://shared.example.test/guide/)
+  },
+  CacheFiles: [
+    index_shared.example.test-llms-full.json,
+    index_shared.example.test-llms-full_fingerprint.txt,
+    shared.example.test-llms-full.txt
+  ]
+}

@@ -7,6 +7,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using Aspire.Cli.Agents;
 using Aspire.Cli.Bundles;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
@@ -89,6 +90,7 @@ internal sealed class NewCommand : BaseCommand
         Options.Add(s_sourceOption);
         Options.Add(s_versionOption);
         Options.Add(s_suppressAgentInitOption);
+        Options.Add(ConfigSourceService.s_useSourceOption);
         Options.Add(AgentInitCommand.s_agentsOption);
         Options.Add(AgentInitCommand.s_scopeOption);
         Options.Add(AgentInitCommand.s_skillsOption);
@@ -502,6 +504,7 @@ internal sealed class NewCommand : BaseCommand
     {
         using var activity = Telemetry.StartDiagnosticActivity(this.Name);
 
+        var configSource = await ConfigSources.SelectForCreationAsync(parseResult, cancellationToken);
         var source = parseResult.GetValue(s_sourceOption);
         if (!string.IsNullOrWhiteSpace(source) && PackageSourceOverrideMappings.HasCredentialMaterial(source))
         {
@@ -603,6 +606,11 @@ internal sealed class NewCommand : BaseCommand
         }
 
         var workspaceRoot = new DirectoryInfo(templateResult.OutputPath ?? ExecutionContext.WorkingDirectory.FullName);
+        if (templateResult.ExitCode == CliExitCodes.Success && configSource is not null)
+        {
+            await ConfigSourceService.BindAsync(configSource, workspaceRoot, cancellationToken);
+            await ConfigSources.CheckProjectAsync(workspaceRoot, force: false, cancellationToken);
+        }
         var agentInitBinding = PromptBinding.CreateInvertedBoolConfirm(parseResult, s_suppressAgentInitOption, defaultValue: true);
         // New projects get the complete default skill set, including aspireify. This chained flow
         // never registers `--mcp`, so MCP configuration is unavailable here by construction —

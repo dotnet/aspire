@@ -1,0 +1,21 @@
+﻿{
+  Document: {
+    Id: csharp/aspire.hosting,
+    Name: aspire.hosting,
+    Language: csharp,
+    Kind: package,
+    Url: https://shared.example.test/reference/api/csharp/aspire.hosting,
+    ParentId: csharp,
+    Content:
+# Aspire.Hosting
+
+[Related](https://shared.example.test/guide/)
+
+  },
+  CacheFiles: [
+    index_shared.example.test-sitemap.json,
+    index_shared.example.test-sitemap_fingerprint.txt,
+    shared.example.test-reference-api-csharp-aspire.hosting.txt,
+    shared.example.test-sitemap.txt
+  ]
+}

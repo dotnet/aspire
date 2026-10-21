@@ -4,6 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Aspire.Cli.Git;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
@@ -48,7 +49,8 @@ internal sealed class AppHostConnectionResolver(
     CliExecutionContext executionContext,
     ICliHostEnvironment hostEnvironment,
     ILogger<AppHostConnectionResolver> logger,
-    ProfilingTelemetry profilingTelemetry)
+    ProfilingTelemetry profilingTelemetry,
+    ConfigSourceService configSources)
 {
     /// <summary>
     /// Resolves all running AppHost connections using socket-first discovery.
@@ -145,6 +147,7 @@ internal sealed class AppHostConnectionResolver(
                 };
             }
 
+            await configSources.CheckProjectAsync(projectFile.Directory!, force: false, cancellationToken);
             var matchingSockets = AppHostSocketManager.FindSockets(
                 projectFile.FullName,
                 executionContext.HomeDirectory.FullName,
@@ -277,6 +280,10 @@ internal sealed class AppHostConnectionResolver(
         }
 
         var selectedResult = new AppHostConnectionResult { Connection = selectedConnection };
+        if (selectedConnection.AppHostInfo?.AppHostPath is { Length: > 0 } selectedPath)
+        {
+            await configSources.CheckProjectAsync(new FileInfo(selectedPath).Directory!, force: false, cancellationToken);
+        }
         StoreAppHostCliLogFilePath(selectedResult);
         return selectedResult;
     }

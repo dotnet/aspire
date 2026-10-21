@@ -86,11 +86,17 @@ internal static class CliTestHelper
         var services = new ServiceCollection();
 
         var configBuilder = new ConfigurationBuilder();
+        var configSourceProvider = new ConfigSourceConfigurationProvider();
+        services.AddSingleton(configSourceProvider);
+        services.AddSingleton<ConfigSourceService>();
+        services.AddSingleton<IConfigSourceGitClient, TestConfigSourceGitClient>();
+        services.AddSingleton<IInternalMicrosoftDetector, TestConfigSourceDetector>();
 
         var configurationValues = new Dictionary<string, string?>();
 
         // Populate feature flag configuration in in-memory collection.
-        options.ConfigurationCallback += config => {
+        options.ConfigurationCallback += config =>
+        {
             foreach (var featureFlag in options.EnabledFeatures)
             {
                 config[$"{KnownFeatures.FeaturePrefix}:{featureFlag}"] = "true";
@@ -113,7 +119,7 @@ internal static class CliTestHelper
 
         var globalSettingsFilePath = Path.Combine(options.WorkingDirectory.FullName, ".aspire", "settings.global.json");
         var globalSettingsFile = new FileInfo(globalSettingsFilePath);
-        ConfigurationHelper.RegisterSettingsFiles(configBuilder, options.WorkingDirectory, globalSettingsFile);
+        ConfigurationHelper.RegisterSettingsFiles(configBuilder, options.WorkingDirectory, globalSettingsFile, persistNormalization: true, configSourceProvider);
 
         var configuration = configBuilder.Build();
         services.AddSingleton<IConfiguration>(configuration);
@@ -496,7 +502,7 @@ internal sealed class CliServiceCollectionTestOptions
             ?? new AppHostCandidateFinder(gitRepository, environment, profilingTelemetry, NullLogger<AppHostCandidateFinder>.Instance);
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-        return new ProjectLocator(logger, executionContext, environment, interactionService, configurationService, projectFactory, languageDiscovery, sdkInstaller, appHostCandidateFinder, telemetry, configuration);
+        return new ProjectLocator(logger, executionContext, environment, interactionService, configurationService, projectFactory, languageDiscovery, sdkInstaller, appHostCandidateFinder, telemetry, configuration, serviceProvider.GetRequiredService<ConfigSourceService>());
     }
 
     public ISolutionLocator CreateDefaultSolutionLocatorFactory(IServiceProvider serviceProvider)

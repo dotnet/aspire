@@ -26,7 +26,9 @@ internal sealed class UpdateCommand : BaseCommand
 
     // CLI package metadata is required for this command's core update workflow, independently of
     // whether the generic update notification is enabled.
-    internal override bool RequiresCliPackageMetadata => true;
+    internal override bool RequiresCliPackageMetadata => !_isConfigSourceRefresh;
+    private bool _isConfigSourceRefresh;
+    internal bool IsConfigSourceRefresh => _isConfigSourceRefresh;
 
     private readonly IProjectLocator _projectLocator;
     private readonly IPackagingService _packagingService;
@@ -46,6 +48,10 @@ internal sealed class UpdateCommand : BaseCommand
     private static readonly Option<bool> s_selfOption = new("--self")
     {
         Description = UpdateCommandStrings.SelfOptionDescription
+    };
+    internal static readonly Option<bool> s_configSourceOption = new("--config-source")
+    {
+        Description = ConfigSourceStrings.RefreshOptionDescription
     };
     private static readonly Option<bool> s_yesOption = new("--yes")
     {
@@ -94,6 +100,7 @@ internal sealed class UpdateCommand : BaseCommand
 
         Options.Add(s_appHostOption);
         Options.Add(s_selfOption);
+        Options.Add(s_configSourceOption);
         Options.Add(s_yesOption);
         Options.Add(s_migrateOption);
         Options.Add(s_nugetConfigDirOption);
@@ -120,6 +127,21 @@ internal sealed class UpdateCommand : BaseCommand
             Hidden = true
         };
         Options.Add(_qualityOption);
+        Validators.Add(result =>
+        {
+            if (result.GetValue(s_configSourceOption) &&
+                (result.GetValue(s_selfOption) || result.GetValue(s_migrateOption)
+                || result.GetResult(_channelOption) is not null || result.GetResult(_qualityOption) is not null
+                || result.GetResult(s_nugetConfigDirOption) is not null))
+            {
+                result.AddError(ConfigSourceStrings.IncompatibleOptions);
+            }
+        });
+    }
+
+    internal override void PrepareForExecution(ParseResult parseResult)
+    {
+        _isConfigSourceRefresh = parseResult.GetValue(s_configSourceOption);
     }
 
     private string? GetDotNetToolUpdateCommand()
@@ -152,8 +174,41 @@ internal sealed class UpdateCommand : BaseCommand
         return InstallSourceExtensions.ParseInstallSource(source) == InstallSource.Nix;
     }
 
+    private async Task<DirectoryInfo> ResolveConfigSourceDirectoryAsync(FileInfo? requestedFile, CancellationToken cancellationToken)
+    {
+        var directory = requestedFile is null ? ExecutionContext.WorkingDirectory
+            : Directory.Exists(requestedFile.FullName) ? new DirectoryInfo(requestedFile.FullName) : requestedFile.Directory!;
+        var configuredFile = requestedFile ?? await _projectLocator.GetAppHostFromSettingsAsync(cancellationToken);
+        if (configuredFile is not null && !Directory.Exists(configuredFile.FullName))
+        {
+            return configuredFile.Directory!;
+        }
+        if (ConfigurationHelper.FindNearestConfigFilePath(directory) is { } path && await ConfigSources.ReadBindingAsync(path, cancellationToken) is not null)
+        {
+            return directory;
+        }
+        try
+        {
+            var selectedFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(configuredFile, createSettingsFile: false, cancellationToken);
+            return selectedFile?.Directory ?? directory;
+        }
+        catch (ProjectLocatorException ex) when (ex.FailureReason == ProjectLocatorFailureReason.NoProjectFileFound)
+        {
+            // Config refresh does not need a buildable AppHost. Let the source lookup
+            // report the missing binding rather than attempting package/SDK recovery.
+            return directory;
+        }
+    }
+
     protected override async Task<CommandResult> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        if (parseResult.GetValue(s_configSourceOption))
+        {
+            var directory = await ResolveConfigSourceDirectoryAsync(parseResult.GetValue(s_appHostOption), cancellationToken);
+            await ConfigSources.CheckProjectAsync(directory, force: true, cancellationToken);
+            return CommandResult.Success();
+        }
+
         var isSelfUpdate = parseResult.GetValue(s_selfOption);
 
         // If --self is specified, handle CLI self-update
@@ -229,6 +284,7 @@ internal sealed class UpdateCommand : BaseCommand
             }
 
             var updateDirectory = projectFile?.Directory ?? ExecutionContext.WorkingDirectory;
+            await ConfigSources.CheckProjectAsync(updateDirectory, force: false, cancellationToken);
             toolManifests ??= await _repositoryToolUpdater.FindManifestsAsync(updateDirectory, cancellationToken);
             if (projectFile is null && toolManifests.Count == 0)
             {

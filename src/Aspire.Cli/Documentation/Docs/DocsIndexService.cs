@@ -136,8 +136,9 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, IDocsCa
 
     private readonly IDocsFetcher _docsFetcher = docsFetcher;
     private readonly IDocsCache _docsCache = docsCache;
-    private readonly string _llmsTxtUrl = DocsSourceConfiguration.GetLlmsTxtUrl(configuration);
     private readonly ILogger<DocsIndexService> _logger = logger;
+
+    private string LlmsTxtUrl => field ??= DocsSourceConfiguration.GetLlmsTxtUrl(configuration);
 
     // Volatile ensures the double-checked locking pattern publishes the fully initialized
     // index data before any thread observes _indexedDocuments as non-null.
@@ -446,7 +447,7 @@ internal sealed partial class DocsIndexService(IDocsFetcher docsFetcher, IDocsCa
         }
 
         content = NormalizeContent(content);
-        content = DocsSourceConfiguration.RewriteMarkdownLinks(content, _llmsTxtUrl);
+        content = DocsSourceConfiguration.RewriteMarkdownLinks(content, LlmsTxtUrl);
 
         return new DocsContent
         {

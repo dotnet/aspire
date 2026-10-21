@@ -5,6 +5,7 @@ using System.CommandLine;
 using System.CommandLine.Help;
 using System.Globalization;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
@@ -63,6 +64,7 @@ internal abstract class BaseCommand : Command
     protected IInteractionService InteractionService { get; }
 
     protected AspireCliTelemetry Telemetry { get; }
+    protected ConfigSourceService ConfigSources { get; }
 
     protected virtual string? CancellationMessage => null;
 
@@ -76,6 +78,7 @@ internal abstract class BaseCommand : Command
         _executionContext = services.ExecutionContext;
         InteractionService = services.InteractionService;
         Telemetry = services.Telemetry;
+        ConfigSources = services.ConfigSources;
         SetAction((Func<ParseResult, CancellationToken, Task<int>>)(async (parseResult, cancellationToken) =>
         {
             SelectForExecution(parseResult);
@@ -139,6 +142,7 @@ internal abstract class BaseCommand : Command
             // override GracefulShutdownBudget get the zero default (force-kill on cancel).
             services.CancellationManager.ConfigureForCommand(GracefulShutdownBudget);
 
+            await ConfigSources.CheckInvocationAsync(this, parseResult, cancellationToken);
             var handlerTask = ExecuteAsync(parseResult, cancellationToken);
             services.CancellationManager.SetStartedHandler(handlerTask);
 
@@ -178,6 +182,10 @@ internal abstract class BaseCommand : Command
                     tasksToAwait.Remove(stoppingMessageTcs.Task);
                 }
             }
+        }
+        catch (ConfigSourceException ex)
+        {
+            result = CommandResult.Failure(CliExitCodes.InvalidCommand, ex.Message);
         }
         catch (NonInteractiveException)
         {

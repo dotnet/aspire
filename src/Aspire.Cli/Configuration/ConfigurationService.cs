@@ -384,9 +384,18 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
             {
                 return Task.FromResult<string?>(configFileValue);
             }
-            else if (File.Exists(configFilePath) && !continueSearchWhenKeyMissing)
+            else if (File.Exists(configFilePath))
             {
-                break;
+                if (configuration is IConfigurationRoot root
+                    && root.Providers.OfType<ConfigSourceConfigurationProvider>().SingleOrDefault() is { } defaults
+                    && defaults.TryGetProjectDefault(configFilePath, configKey, out var defaultValue))
+                {
+                    return Task.FromResult(defaultValue);
+                }
+                if (!continueSearchWhenKeyMissing)
+                {
+                    break;
+                }
             }
 
             var legacySettingsPath = ConfigurationHelper.BuildPathToSettingsJsonFile(searchDirectory.FullName);

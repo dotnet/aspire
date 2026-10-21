@@ -327,8 +327,8 @@ internal sealed partial class ApiDocsIndexService(IApiDocsFetcher fetcher, IApiD
 
     private readonly IApiDocsFetcher _fetcher = fetcher;
     private readonly IApiDocsCache _cache = cache;
-    private readonly string _sitemapUrl = ApiDocsSourceConfiguration.GetSitemapUrl(configuration);
     private readonly ILogger<ApiDocsIndexService> _logger = logger;
+    private string SitemapUrl => field ??= ApiDocsSourceConfiguration.GetSitemapUrl(configuration);
     private volatile List<IndexedApiReferenceItem>? _indexedItems;
     private volatile Dictionary<string, ApiReferenceItem>? _itemsById;
     private volatile string? _indexSourceFingerprint;
@@ -392,7 +392,7 @@ internal sealed partial class ApiDocsIndexService(IApiDocsFetcher fetcher, IApiD
             }
 
             var sitemapEntries = ApiSitemapParser.Parse(sitemapContent);
-            var items = BuildBaseItems(sitemapEntries, _sitemapUrl);
+            var items = BuildBaseItems(sitemapEntries, SitemapUrl);
 
             var itemArray = items
                 .OrderBy(static item => item.Id, StringComparer.OrdinalIgnoreCase)
@@ -541,7 +541,7 @@ internal sealed partial class ApiDocsIndexService(IApiDocsFetcher fetcher, IApiD
             return null;
         }
 
-        content = ApiDocsSourceConfiguration.RewriteMarkdownLinks(content, item.PageUrl, _sitemapUrl);
+        content = ApiDocsSourceConfiguration.RewriteMarkdownLinks(content, item.PageUrl, SitemapUrl);
 
         return new ApiContent
         {
@@ -647,7 +647,7 @@ internal sealed partial class ApiDocsIndexService(IApiDocsFetcher fetcher, IApiD
                     return;
                 }
 
-                var memberItems = Deduplicate([.. ApiMemberMarkdownParser.Parse(containerItem, content, _sitemapUrl, memberGroupsByPageUrl)])
+                var memberItems = Deduplicate([.. ApiMemberMarkdownParser.Parse(containerItem, content, SitemapUrl, memberGroupsByPageUrl)])
                     .OrderBy(static item => item.Id, StringComparer.OrdinalIgnoreCase)
                     .ToArray();
 
