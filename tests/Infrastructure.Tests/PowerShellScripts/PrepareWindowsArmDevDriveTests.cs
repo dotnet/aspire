@@ -1,0 +1,221 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Text.Json;
+using Aspire.TestUtilities;
+using Xunit;
+
+namespace Infrastructure.Tests;
+
+public sealed class PrepareWindowsArmDevDriveTests(ITestOutputHelper output) : IDisposable
+{
+    private readonly TemporaryWorkspace _workspace = TemporaryWorkspace.Create(output);
+    private readonly string _scriptPath = Path.Combine(RepoRoot.Path, "eng", "scripts", "prepare-windows-arm-dev-drive.ps1");
+
+    private const string DiskSetup = """
+        $disk = [pscustomobject]@{
+            Number = 3; UniqueId = 'nvme-3'; PartitionStyle = 'RAW'; BusType = 'NVMe'
+            IsBoot = $false; IsSystem = $false; Size = 50GB
+            IsOffline = $false; IsReadOnly = $false
+        }
+        $state = @{
+            Disks = @($disk); DriveOccupied = $false
+            WorkspacePopulated = $false; WorkspaceIsLink = $false
+        }
+        """;
+
+    public void Dispose() => _workspace.Dispose();
+
+    [Fact]
+    [RequiresTools(["pwsh"])]
+    public async Task SelectsOnlyEligibleDiskAtMinimumSize()
+    {
+        var result = await RunFunctions(DiskSetup + """
+
+            $system = [pscustomobject]@{
+                Number = 0; UniqueId = 'system'; PartitionStyle = 'GPT'; BusType = 'NVMe'
+                IsBoot = $true; IsSystem = $true; Size = 200GB
+            }
+            $state.Disks = @($system, $disk)
+            (Get-DevDriveDisk @state).Number
+            """);
+
+        result.EnsureSuccessful();
+        Assert.Equal("3", result.Output.Trim());
+    }
+
+    [Theory]
+    [InlineData("$state.DriveOccupied = $true", "D: is already occupied.")]
+    [InlineData("$state.WorkspacePopulated = $true", "Workspace must be empty")]
+    [InlineData("$state.WorkspaceIsLink = $true", "must not be a reparse point")]
+    [InlineData("$state.Disks = @()", "found 0")]
+    [InlineData("$state.Disks = @($disk, $disk)", "found 2")]
+    [InlineData("$disk.PartitionStyle = 'GPT'", "found 0")]
+    [InlineData("$disk.BusType = 'SATA'", "found 0")]
+    [InlineData("$disk.IsBoot = $true", "found 0")]
+    [InlineData("$disk.IsSystem = $true", "found 0")]
+    [InlineData("$disk.Size = 50GB - 1", "found 0")]
+    [RequiresTools(["pwsh"])]
+    public async Task RejectsUnsafeStorage(string change, string error)
+    {
+        var result = await RunFunctions($"{DiskSetup}\n{change}\nGet-DevDriveDisk @state");
+
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains(error, result.Output);
+    }
+
+    [Theory]
+    [InlineData("$state.DriveOccupied = $true", "D: is already occupied.")]
+    [InlineData("$state.WorkspacePopulated = $true", "Workspace must be empty")]
+    [InlineData("$state.WorkspaceIsLink = $true", "must not be a reparse point")]
+    [InlineData("$state.Disks = @($disk, $disk)", "found 2")]
+    [InlineData("$disk.PartitionStyle = 'GPT'", "found 0")]
+    [InlineData("$disk.IsBoot = $true", "found 0")]
+    [InlineData("$disk.Number = 4", "Disk eligibility changed")]
+    [InlineData("$disk.UniqueId = 'replacement-disk'", "Disk eligibility changed")]
+    [RequiresTools(["pwsh"])]
+    public async Task RechecksSafetyBeforeInitializing(string change, string error)
+    {
+        var result = await RunFunctions($$"""
+            {{DiskSetup}}
+            $selected = $disk.PSObject.Copy()
+            {{change}}
+            function Get-DevDriveStorageState { return $state }
+            function Initialize-Disk { throw 'Unexpected disk mutation' }
+            function Set-Disk { throw 'Unexpected disk mutation' }
+            Initialize-DevDrive -SelectedDisk $selected
+            """);
+
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains(error, result.Output);
+    }
+
+    [Theory]
+    [InlineData("GITHUB_ACTIONS", "false")]
+    [InlineData("OS", "Linux")]
+    [InlineData("RUNNER_ARCH", "X64")]
+    [InlineData("DEV_DRIVE_RUNNER_ENVIRONMENT", "self-hosted")]
+    [InlineData("DEV_DRIVE_RUNNER_ENVIRONMENT", "")]
+    [RequiresTools(["pwsh"])]
+    public async Task RejectsUntrustedOrInapplicableHost(string variable, string value)
+    {
+        var result = await RunFunctions(
+            "Assert-DevDriveHost -RunnerEnvironment $env:DEV_DRIVE_RUNNER_ENVIRONMENT",
+            variable, value);
+
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains("requires a GitHub-hosted Windows ARM64 runner", result.Output);
+    }
+
+    [Theory]
+    [InlineData("pull_request", "microsoft/aspire")]
+    [InlineData("push", "microsoft/aspire")]
+    [InlineData("workflow_dispatch", "radical/aspire")]
+    [RequiresTools(["pwsh"])]
+    public async Task AcceptsHostedArmWithoutRestrictingCallerEvent(string eventName, string repository)
+    {
+        var result = await RunFunctions($$"""
+            $env:GITHUB_EVENT_NAME = '{{eventName}}'
+            $env:GITHUB_REPOSITORY = '{{repository}}'
+            Assert-DevDriveHost -RunnerEnvironment $env:DEV_DRIVE_RUNNER_ENVIRONMENT
+            """);
+
+        result.EnsureSuccessful();
+    }
+
+    [Theory]
+    [InlineData("D", "ReFS", 3, "This is a trusted developer volume.", 0, true)]
+    [InlineData("D", "ReFS", 3, "This is an untrusted developer volume.", 0, true)]
+    [InlineData("D", "ReFS", 3, "Volume information:\r\nThis is a trusted developer volume.\r\n", 0, true)]
+    [InlineData("C", "ReFS", 3, "This is a trusted developer volume.", 0, false)]
+    [InlineData("D", "NTFS", 3, "This is a trusted developer volume.", 0, false)]
+    [InlineData("D", "ReFS", 4, "This is a trusted developer volume.", 0, false)]
+    [InlineData("D", "ReFS", 3, "This is not a developer volume.", 0, false)]
+    [InlineData("D", "ReFS", 3, "", 0, false)]
+    [InlineData("D", "ReFS", 3, "Error: This is a trusted developer volume.", 0, false)]
+    [InlineData("D", "ReFS", 3, "This is a trusted developer volume.", 1, false)]
+    [RequiresTools(["pwsh"])]
+    public async Task RequiresPositivePlacementVerification(
+        string drive, string fileSystem, int actualDisk, string query, int queryExitCode, bool valid)
+    {
+        var result = await RunFunctions($$"""
+            Assert-DevDrivePlacement `
+                -WorkspaceVolume ([pscustomobject]@{ DriveLetter = '{{drive}}'; FileSystem = '{{fileSystem}}' }) `
+                -ExpectedDisk 3 -ActualDisk {{actualDisk}} `
+                -DevDriveQuery $env:DEV_DRIVE_QUERY -DevDriveQueryExitCode {{queryExitCode}}
+            """, "DEV_DRIVE_QUERY", query);
+
+        if (valid)
+        {
+            result.EnsureSuccessful();
+        }
+        else
+        {
+            Assert.NotEqual(0, result.ExitCode);
+            Assert.Contains(actualDisk != 3 ? "selected NVMe disk" :
+                drive != "D" || fileSystem != "ReFS" ? "D: ReFS volume" :
+                "not positively identified as a Dev Drive", result.Output);
+        }
+    }
+
+    [Theory]
+    [InlineData("Initialize-Disk")]
+    [InlineData("Format-Volume")]
+    [RequiresTools(["pwsh"])]
+    public async Task PropagatesProvisioningFailureAndRetainsDiagnostics(string failingCommand)
+    {
+        var result = await RunFunctions($$"""
+            {{DiskSetup}}
+            function Get-DevDriveStorageState { return $state }
+            function Initialize-Disk { $disk }
+            function New-Partition { $disk }
+            function {{failingCommand}} { throw 'Storage module operation failed' }
+            Invoke-PrepareDevDrive -RunnerEnvironment $env:DEV_DRIVE_RUNNER_ENVIRONMENT
+            """);
+
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains("Storage module operation failed", result.Output);
+        using var report = JsonDocument.Parse(File.ReadAllText(Path.Combine(_workspace.Path, "windows-arm-dev-drive", "storage.json")));
+        Assert.Equal("failed", report.RootElement.GetProperty("status").GetString());
+        Assert.Equal("initialization", report.RootElement.GetProperty("stage").GetString());
+        Assert.Equal("Storage module operation failed", report.RootElement.GetProperty("error").GetString());
+        Assert.Equal(3, report.RootElement.GetProperty("selectedDisk").GetInt32());
+    }
+
+    [Fact]
+    [RequiresTools(["pwsh"])]
+    public async Task EntryPointRefusesSelfHostedRunnerAndRetainsDiagnostics()
+    {
+        using var command = CreateCommand(_scriptPath)
+            .WithEnvironmentVariable("DEV_DRIVE_RUNNER_ENVIRONMENT", "self-hosted");
+        var result = await command.ExecuteAsync("-RunnerEnvironment", "self-hosted");
+
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains("requires a GitHub-hosted Windows ARM64 runner", result.Output);
+        using var report = JsonDocument.Parse(File.ReadAllText(Path.Combine(_workspace.Path, "windows-arm-dev-drive", "storage.json")));
+        Assert.Equal("failed", report.RootElement.GetProperty("status").GetString());
+        Assert.Equal("host validation", report.RootElement.GetProperty("stage").GetString());
+    }
+
+    private async Task<CommandResult> RunFunctions(string body, string? variable = null, string? value = null)
+    {
+        var harness = Path.Combine(_workspace.Path, "harness.ps1");
+        File.WriteAllText(harness, ". $env:DEV_DRIVE_SCRIPT\n" + body);
+        using var command = CreateCommand(harness);
+        if (variable is not null)
+        {
+            command.WithEnvironmentVariable(variable, value!);
+        }
+        return await command.ExecuteAsync();
+    }
+
+    private PowerShellCommand CreateCommand(string scriptPath) =>
+        new PowerShellCommand(scriptPath, output)
+            .WithTimeout(TimeSpan.FromMinutes(1))
+            .WithEnvironmentVariable("DEV_DRIVE_SCRIPT", _scriptPath)
+            .WithEnvironmentVariable("GITHUB_ACTIONS", "true")
+            .WithEnvironmentVariable("OS", "Windows_NT")
+            .WithEnvironmentVariable("RUNNER_ARCH", "ARM64")
+            .WithEnvironmentVariable("DEV_DRIVE_RUNNER_ENVIRONMENT", "github-hosted")
+            .WithEnvironmentVariable("RUNNER_TEMP", _workspace.Path);
+}
