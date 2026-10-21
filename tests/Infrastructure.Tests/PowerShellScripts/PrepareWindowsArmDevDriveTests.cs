@@ -110,7 +110,7 @@ public sealed class PrepareWindowsArmDevDriveTests(ITestOutputHelper output) : I
     [Theory]
     [InlineData("pull_request", "microsoft/aspire")]
     [InlineData("push", "microsoft/aspire")]
-    [InlineData("workflow_dispatch", "radical/aspire")]
+    [InlineData("workflow_dispatch", "microsoft/aspire")]
     [RequiresTools(["pwsh"])]
     public async Task AcceptsHostedArmWithoutRestrictingCallerEvent(string eventName, string repository)
     {
