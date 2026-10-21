@@ -40,7 +40,7 @@ namespace Aspire.Hosting.Dashboard;
 /// counterparts, and importing both namespaces would make every bare use ambiguous.
 /// </remarks>
 [Authorize(Policy = ResourceServiceApiKeyAuthorization.PolicyName)]
-internal sealed partial class DashboardService(DashboardServiceData serviceData, IHostEnvironment hostEnvironment, IHostApplicationLifetime hostApplicationLifetime, IConfiguration configuration, ILogger<DashboardService> logger, IInteractionFileUploadStore fileUploadStore, TerminalService terminalService, ApplicationModel.DistributedApplicationModel model)
+internal sealed partial class DashboardService(DashboardServiceData serviceData, DashboardRunState runState, IHostEnvironment hostEnvironment, IHostApplicationLifetime hostApplicationLifetime, IConfiguration configuration, ILogger<DashboardService> logger, IInteractionFileUploadStore fileUploadStore, TerminalService terminalService, ApplicationModel.DistributedApplicationModel model)
     : Aspire.DashboardService.Proto.V1.DashboardService.DashboardServiceBase
 {
     // gRPC has a maximum receive size of 4MB. Force logs into batches to avoid exceeding receive size.
@@ -73,7 +73,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
         {
             ApplicationName = GetDashboardApplicationName(applicationName),
             MinDashboardVersion = MinRequiredDashboardVersion,
-            RunId = serviceData.RunId,
+            RunId = runState.RunId,
             CorsAllowedOrigins = GetCorsAllowedOrigins()
         });
     }
@@ -330,19 +330,19 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
 
         async Task WatchResourcesInternal(CancellationToken cancellationToken)
         {
-            if (!string.IsNullOrEmpty(request.RunId) && request.RunId != serviceData.RunId)
+            if (!string.IsNullOrEmpty(request.RunId) && request.RunId != runState.RunId)
             {
                 throw new RpcException(new Status(StatusCode.FailedPrecondition, "The AppHost run has changed."));
             }
 
-            if (request.RunId == serviceData.RunId)
+            if (request.RunId == runState.RunId)
             {
-                serviceData.RunAttached.TrySetResult();
+                runState.MarkAttached();
             }
 
             var (initialData, updates) = serviceData.SubscribeResources();
 
-            var data = new InitialResourceData { RunId = serviceData.RunId };
+            var data = new InitialResourceData { RunId = runState.RunId };
 
             foreach (var resource in initialData)
             {

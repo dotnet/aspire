@@ -40,7 +40,8 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
                                              DcpNameGenerator nameGenerator,
                                              IHostApplicationLifetime hostApplicationLifetime,
                                              IDistributedApplicationEventing eventing,
-                                             CodespacesUrlRewriter codespaceUrlRewriter
+                                             CodespacesUrlRewriter codespaceUrlRewriter,
+                                             DashboardRunState runState
                                              ) : IDistributedApplicationEventingSubscriber, IAsyncDisposable
 {
     private static readonly HashSet<string> s_suppressAutomaticConfigurationCopy = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -70,14 +71,12 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
 
         if (dashboardOptions.Value.Persistent)
         {
-            foreach (var resource in @event.Model.Resources.Where(r => !string.Equals(r.Name, KnownResourceNames.AspireDashboard, StringComparisons.ResourceName)))
-            {
-                eventing.Subscribe<BeforeResourceStartedEvent>(resource, async (evt, ct) =>
-                {
-                    // A reused process is healthy before it has switched runs. Do not start exporters into the old run.
-                    await evt.Services.GetRequiredService<DashboardServiceHost>().WaitForDashboardRunAsync(ct).ConfigureAwait(false);
-                });
-            }
+            // Later lifecycle hooks can add or replace resources. Gate the event rather
+            // than the current resource list so no exporter can start in the old run.
+            eventing.Subscribe<BeforeResourceStartedEvent>((evt, ct) =>
+                string.Equals(evt.Resource.Name, KnownResourceNames.AspireDashboard, StringComparisons.ResourceName)
+                    ? Task.CompletedTask
+                    : runState.WaitForAttachmentAsync(ct));
         }
 
         // Stop watching logs from the dashboard when the app host is stopping. Part of the app host shutdown is tearing down the dashboard service.

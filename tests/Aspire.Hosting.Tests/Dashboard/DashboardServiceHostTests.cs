@@ -4,7 +4,9 @@
 using System.Net;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -32,9 +34,61 @@ public class DashboardServiceHostTests
 
         var port = DashboardServiceHost.AllocatePersistentResourceServicePort(
             new DistributedApplicationModel(builder.Resources), new DcpOptions(), configuration, allocator,
-            NullLogger<DashboardServiceHost>.Instance);
+            NullLogger<DashboardServiceHost>.Instance, new MockUserSecretsManager());
 
         Assert.Equal(10003, port);
+    }
+
+    [Fact]
+    public void AllocatePersistentResourceServicePort_RequiresSuccessfulPersistence()
+    {
+        var model = new DistributedApplicationModel(new ResourceCollection());
+        using var allocator = new ProxylessEndpointPortAllocator(10000, 10000, 0, 1, static (_, _) => true);
+        var secrets = new MockUserSecretsManager(canSetSecret: false);
+
+        var error = Assert.Throws<DistributedApplicationException>(() => DashboardServiceHost.AllocatePersistentResourceServicePort(
+            model, new DcpOptions(), new ConfigurationBuilder().Build(), allocator,
+            NullLogger<DashboardServiceHost>.Instance, secrets));
+
+        Assert.Contains("resource service port", error.Message);
+    }
+
+    [Fact]
+    public void AllocatePersistentResourceServicePort_DoesNotResolveModelEndpoints()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+#pragma warning disable ASPIREPERSISTENCE001 // Exercise implicit proxy policy during port planning.
+        var resource = builder.AddExecutable("persistent", "unused", ".")
+            .WithEndpoint(targetPort: 10000)
+            .WithPersistentLifetime();
+#pragma warning restore ASPIREPERSISTENCE001
+        var endpoint = resource.Resource.Annotations.OfType<EndpointAnnotation>().Single();
+        Assert.True(endpoint.IsProxied);
+        using var allocator = new ProxylessEndpointPortAllocator(10000, 10001, 0, 1, static (_, _) => true);
+        var secrets = new MockUserSecretsManager();
+
+        var port = DashboardServiceHost.AllocatePersistentResourceServicePort(
+            new DistributedApplicationModel(builder.Resources), new DcpOptions(), new ConfigurationBuilder().Build(), allocator,
+            NullLogger<DashboardServiceHost>.Instance, secrets);
+
+        Assert.Equal(10001, port);
+        Assert.True(endpoint.IsProxied);
+        Assert.Equal("10001", secrets.Secrets["AppHost:ResourceService:Port"]);
+    }
+
+    [Fact]
+    public async Task DashboardRunState_CancelledWaitDoesNotCancelOtherResources()
+    {
+        var state = new DashboardRunState();
+        using var cts = new CancellationTokenSource();
+        var cancelled = state.WaitForAttachmentAsync(cts.Token);
+        var waiting = state.WaitForAttachmentAsync(CancellationToken.None);
+
+        cts.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => cancelled);
+        Assert.False(waiting.IsCompleted);
+        state.MarkAttached();
+        await waiting.DefaultTimeout();
     }
 
     [Theory]

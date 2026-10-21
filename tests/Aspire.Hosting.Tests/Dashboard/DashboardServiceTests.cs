@@ -864,18 +864,19 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
             ["AppHost:DashboardApplicationName"] = "TestAppHost",
             [KnownConfigNames.DashboardCorsAllowedOrigins] = configuredOrigins
         }).Build();
-        var service = CreateDashboardService(data, configuration: configuration, model: new DistributedApplicationModel([resource]));
+        var runState = new DashboardRunState();
+        var service = CreateDashboardService(data, configuration: configuration, model: new DistributedApplicationModel([resource]), runState: runState);
         var info = await service.GetApplicationInformation(new ApplicationInformationRequest(), TestServerCallContext.Create());
         Assert.Equal(configuredOrigins ?? "", info.CorsAllowedOrigins);
         using var cts = new CancellationTokenSource();
         var context = TestServerCallContext.Create(cancellationToken: cts.Token);
         var writer = new TestServerStreamWriter<WatchResourcesUpdate>(context);
-        var watch = service.WatchResources(new WatchResourcesRequest { RunId = data.RunId }, writer, context);
+        var watch = service.WatchResources(new WatchResourcesRequest { RunId = runState.RunId }, writer, context);
         try
         {
             var initial = await writer.ReadNextAsync().DefaultTimeout();
             Assert.Equal(configuredOrigins ?? "", initial.CorsAllowedOrigins);
-            await data.RunAttached.Task.DefaultTimeout();
+            await runState.WhenAttached.DefaultTimeout();
 
             endpoint.AllocatedEndpoint = new(endpoint, "localhost", 45123);
             // ApplicationOrchestrator publishes resource URL changes on ResourceEndpointsAllocatedEvent.
@@ -900,12 +901,12 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
     [InlineData("previous")]
     public async Task AppHostRunInterceptor_OnlyCurrentAttachmentCanExecuteCommands(string? attachment)
     {
-        using var data = CreateDashboardServiceData();
-        var interceptor = new AppHostRunInterceptor(data);
+        var runState = new DashboardRunState();
+        var interceptor = new AppHostRunInterceptor(runState);
         var headers = new Metadata();
         if (attachment is not null)
         {
-            headers.Add("x-aspire-apphost-run-id", attachment == "current" ? data.RunId : "old-run");
+            headers.Add("x-aspire-apphost-run-id", attachment == "current" ? runState.RunId : "old-run");
         }
         var context = TestServerCallContext.Create(requestHeaders: headers);
         var invoked = false;
@@ -944,7 +945,8 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         {
             ApplicationName = "DefaultAppName"
         };
-        var dashboardService = CreateDashboardService(dashboardServiceData, hostEnvironment: hostEnvironment, configuration: configuration);
+        var runState = new DashboardRunState();
+        var dashboardService = CreateDashboardService(dashboardServiceData, hostEnvironment: hostEnvironment, configuration: configuration, runState: runState);
 
         var context = TestServerCallContext.Create();
 
@@ -955,7 +957,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
 
         // Assert
         Assert.Equal("MyCustomAppName", response.ApplicationName);
-        Assert.Equal(dashboardServiceData.RunId, response.RunId);
+        Assert.Equal(runState.RunId, response.RunId);
     }
 
     [Fact]
@@ -969,7 +971,8 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         {
             ApplicationName = "FallbackAppName"
         };
-        var dashboardService = CreateDashboardService(dashboardServiceData, hostEnvironment: hostEnvironment, configuration: configuration);
+        var runState = new DashboardRunState();
+        var dashboardService = CreateDashboardService(dashboardServiceData, hostEnvironment: hostEnvironment, configuration: configuration, runState: runState);
 
         var context = TestServerCallContext.Create();
 
@@ -1919,10 +1922,12 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         ILogger<DashboardServiceImpl>? logger = null,
         IInteractionFileUploadStore? fileUploadStore = null,
         TerminalService? terminalService = null,
-        DistributedApplicationModel? model = null)
+        DistributedApplicationModel? model = null,
+        DashboardRunState? runState = null)
     {
         return new DashboardServiceImpl(
             dashboardServiceData,
+            runState ?? new DashboardRunState(),
             hostEnvironment ?? new TestHostEnvironment(),
             new TestHostApplicationLifetime(),
             configuration ?? new ConfigurationBuilder().Build(),

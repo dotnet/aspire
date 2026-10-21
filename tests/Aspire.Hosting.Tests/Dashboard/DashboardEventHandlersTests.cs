@@ -221,6 +221,37 @@ public class DashboardEventHandlersTests(ITestOutputHelper testOutputHelper)
         Assert.Same(dashboard, Assert.Single(model.Resources));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task BeforeStartAsync_PersistentDashboardGatesResourcesAddedByLaterHooks(bool addedByLaterHook)
+    {
+        var eventing = new Hosting.Eventing.DistributedApplicationEventing();
+        var dashboard = new ProjectResource(KnownResourceNames.AspireDashboard);
+        var model = new DistributedApplicationModel(new ResourceCollection([dashboard]));
+        var runState = new DashboardRunState();
+        var resource = new ExecutableResource("app", "unused", ".");
+        if (!addedByLaterHook)
+        {
+            model.Resources.Add(resource);
+        }
+        await using var hook = CreateHook(new ResourceLoggerService(), ResourceNotificationServiceTestHelpers.Create(),
+            new ConfigurationBuilder().Build(),
+            dashboardOptions: Options.Create(new DashboardOptions { Persistent = true }), eventing: eventing, runState: runState);
+        var services = new TestServiceProvider()
+            .AddService<IOptions<DcpOptions>>(Options.Create(new DcpOptions()));
+        await hook.OnBeforeStartAsync(new BeforeStartEvent(services, model), CancellationToken.None).DefaultTimeout();
+        if (addedByLaterHook)
+        {
+            model.Resources.Add(resource);
+        }
+
+        var starting = eventing.PublishAsync(new BeforeResourceStartedEvent(resource, services));
+        Assert.False(starting.IsCompleted);
+        runState.MarkAttached();
+        await starting.DefaultTimeout();
+    }
+
     [Fact]
     public async Task BeforeStartAsync_ProjectDashboard_IncludesProjectLifecycleCommands()
     {
@@ -996,7 +1027,8 @@ public class DashboardEventHandlersTests(ITestOutputHelper testOutputHelper)
         IOptions<CodespacesOptions>? codespacesOptions = null,
         IOptions<DashboardOptions>? dashboardOptions = null,
         Hosting.Eventing.DistributedApplicationEventing? eventing = null,
-        ILogger<DistributedApplication>? distributedApplicationLogger = null
+        ILogger<DistributedApplication>? distributedApplicationLogger = null,
+        DashboardRunState? runState = null
         )
     {
         codespacesOptions ??= Options.Create(new CodespacesOptions());
@@ -1021,7 +1053,8 @@ public class DashboardEventHandlersTests(ITestOutputHelper testOutputHelper)
             new DcpNameGenerator(configuration, Options.Create(new DcpOptions())),
             new TestHostApplicationLifetime(),
             eventing ?? new Hosting.Eventing.DistributedApplicationEventing(),
-            rewriter
+            rewriter,
+            runState ?? new DashboardRunState()
             );
     }
 

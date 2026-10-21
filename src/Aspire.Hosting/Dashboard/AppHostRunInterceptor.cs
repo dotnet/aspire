@@ -8,12 +8,12 @@ namespace Aspire.Hosting.Dashboard;
 
 // Tokens are stable across runs, but commands and interaction IDs belong to one execution. Fence
 // requests from an old dashboard attachment before they can execute against the next AppHost.
-internal sealed class AppHostRunInterceptor(DashboardServiceData serviceData) : Interceptor
+internal sealed class AppHostRunInterceptor(DashboardRunState runState) : Interceptor
 {
     private void Validate(ServerCallContext context)
     {
         var runId = context.RequestHeaders.GetValue("x-aspire-apphost-run-id");
-        if (runId is not null && runId != serviceData.RunId)
+        if (runId is not null && runId != runState.RunId)
         {
             throw new RpcException(new Status(StatusCode.FailedPrecondition, "The AppHost run has changed."));
         }

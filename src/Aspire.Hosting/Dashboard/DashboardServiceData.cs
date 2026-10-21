@@ -14,9 +14,6 @@ namespace Aspire.Hosting.Dashboard;
 /// </summary>
 internal sealed class DashboardServiceData : IDisposable
 {
-    internal string RunId { get; } = Guid.NewGuid().ToString("N");
-    internal TaskCompletionSource RunAttached { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
     private readonly CancellationTokenSource _cts = new();
     private readonly ResourcePublisher _resourcePublisher;
     private readonly ResourceCommandService _resourceCommandService;
