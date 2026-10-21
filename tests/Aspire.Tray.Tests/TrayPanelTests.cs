@@ -901,7 +901,7 @@ public class TrayPanelTests
         }
         foreach (var box in scene.Guides.Where(guide => guide.Kind == PanelGuideKind.Box))
         {
-            if (box.Label == "footer icon")
+            if (box.Label is "footer icon" or "row button icon" or "recent chevron")
             {
                 Assert.Contains(box.Bounds.CenterX, trailing);
             }

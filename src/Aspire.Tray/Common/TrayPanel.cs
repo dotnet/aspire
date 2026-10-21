@@ -993,14 +993,24 @@ internal sealed class TrayPanel
             var span = new PanelRect(0, top, Width, item.Height);
             switch (item.Kind)
             {
-                case ListItemKind.SectionHeader:
-                    Line(top + 16, "section", span);
-                    break;
                 case ListItemKind.Row:
                     Line(top + RowHeight / 2, "row", span);
                     Line(top + 17, "name", span);
                     Line(top + 35, "detail", span);
                     Box(new(EdgeMargin, top + RowHeight / 2 - 10, 20, 20), "status");
+                    // The buttons' icons, drawn while the row is hovered or focused.
+                    for (var i = 0; i < (item.Host!.Id.AppHostPid != 0 ? 3 : 2); i++)
+                    {
+                        var center = TrailingCenter - i * (ButtonSize + ButtonGap);
+                        Box(new(center - 8, top + RowHeight / 2 - 8, 16, 16), "row button icon");
+                    }
+                    break;
+                case ListItemKind.SectionHeader when item.Section == PanelSection.Recent && _settings is null:
+                    Line(top + 16, "section", span);
+                    Box(new(TrailingCenter - 8, top + 8, 16, 16), "recent chevron");
+                    break;
+                case ListItemKind.SectionHeader:
+                    Line(top + 16, "section", span);
                     break;
                 case ListItemKind.Actions:
                     var count = GetRowActions(item.Host!, item.Section).Count;
