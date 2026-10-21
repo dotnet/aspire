@@ -261,6 +261,61 @@ public class AzureFrontDoorPrivateLinkTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    public async Task WithAzureFrontDoorPrivateLinkConnectsOneFrontDoorToSeveralEnvironments()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper);
+
+        var west = builder.AddAzureContainerAppEnvironment("env-west");
+        var east = builder.AddAzureContainerAppEnvironment("env-east");
+        var frontDoor = builder.AddAzureFrontDoor("frontdoor");
+        west.WithAzureFrontDoorPrivateLink(frontDoor);
+        east.WithAzureFrontDoorPrivateLink(frontDoor);
+
+        var api = builder.AddProject<Project>("api", launchProfileName: null)
+            .WithHttpsEndpoint()
+            .WithExternalHttpEndpoints()
+            .WithComputeEnvironment(west);
+        var admin = builder.AddProject<Project>("admin", launchProfileName: null)
+            .WithHttpsEndpoint()
+            .WithExternalHttpEndpoints()
+            .WithComputeEnvironment(west);
+        var web = builder.AddProject<Project>("web", launchProfileName: null)
+            .WithHttpsEndpoint()
+            .WithExternalHttpEndpoints()
+            .WithComputeEnvironment(east);
+        frontDoor.WithOrigin(api).WithOrigin(admin).WithOrigin(web);
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var (_, bicep) = await GetManifestWithBicep(frontDoor.Resource);
+
+        // Every origin is a Private Link origin, and the profile is Premium.
+        Assert.Equal(3, CountOccurrences(bicep, "sharedPrivateLinkResource:"));
+        Assert.Contains("name: 'Premium_AzureFrontDoor'", bicep);
+
+        // Each environment has its own resource ID and region, so Front Door creates one private endpoint for each
+        // environment. The two origins in the same environment have the same settings, so they share one.
+        Assert.Equal(2, CountOccurrences(bicep, "id: env_west_environment_id"));
+        Assert.Equal(1, CountOccurrences(bicep, "id: env_east_environment_id"));
+        Assert.Equal(2, CountOccurrences(bicep, "privateLinkLocation: env_west_private_link_location"));
+        Assert.Equal(1, CountOccurrences(bicep, "privateLinkLocation: env_east_private_link_location"));
+        Assert.Contains("var env_west_private_link_location = toLower(replace(env_west_location, ' ', ''))", bicep);
+        Assert.Contains("var env_east_private_link_location = toLower(replace(env_east_location, ' ', ''))", bicep);
+
+        // Each environment's owner approves a request that names that environment.
+        Assert.Equal(2, CountOccurrences(bicep, "requestMessage: 'Azure Front Door frontdoor requests access to env-west.'"));
+        Assert.Equal(1, CountOccurrences(bicep, "requestMessage: 'Azure Front Door frontdoor requests access to env-east.'"));
+
+        // Both environments lock down public network access.
+        var (_, westBicep) = await GetManifestWithBicep(west.Resource);
+        var (_, eastBicep) = await GetManifestWithBicep(east.Resource);
+        Assert.Contains("publicNetworkAccess: 'Disabled'", westBicep);
+        Assert.Contains("publicNetworkAccess: 'Disabled'", eastBicep);
+    }
+
+    [Fact]
     public async Task WithAzureFrontDoorPrivateLinkThrowsWhenAnotherFrontDoorHasAnOriginInTheEnvironment()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper);
