@@ -67,7 +67,7 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public async Task WithUrlsCallsCallbackAfterBeforeResourceStartedEvent()
+    public async Task WithUrlsCallsCallbackBeforeResourceEndpointsAllocatedEvent()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
@@ -78,13 +78,11 @@ public class WithUrlsTests(ITestOutputHelper testOutputHelper)
             .WithUrls(c => called = true)
             .OnResourceEndpointsAllocated((_, _, _) =>
             {
-                // Should not be called at this point
-                Assert.False(called);
+                Assert.True(called);
                 return Task.CompletedTask;
             })
             .OnBeforeResourceStarted((_, _, _) =>
             {
-                // Should be called by the time resource is started
                 Assert.True(called);
                 tcs.SetResult();
                 return Task.CompletedTask;

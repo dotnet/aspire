@@ -73,7 +73,7 @@ internal sealed class ApplicationOrchestrator
         dcpExecutorEvents.Subscribe<OnConnectionStringAvailableContext>(OnConnectionStringAvailable);
         dcpExecutorEvents.Subscribe<OnResourceFailedToStartContext>(OnResourceFailedToStart);
 
-        _eventing.Subscribe<ResourceEndpointsAllocatedEvent>(OnResourceEndpointsAllocated);
+        _eventing.Subscribe<ResourceEndpointsAllocatedEvent>(OnResourceEndpointsAllocated).IsPreparation = true;
         _eventing.Subscribe<ConnectionStringAvailableEvent>(PublishConnectionStringValue);
         // Implement WaitFor functionality using BeforeResourceStartedEvent.
         _eventing.Subscribe<BeforeResourceStartedEvent>(WaitForInBeforeResourceStartedEvent);
@@ -198,11 +198,12 @@ internal sealed class ApplicationOrchestrator
         }
     }
 
-    private Task OnEndpointsAllocated(OnEndpointsAllocatedContext context)
+    private async Task OnEndpointsAllocated(OnEndpointsAllocatedContext context)
     {
-        // Endpoint allocation can now complete after resource creation, so there is no longer a single
-        // app-wide point where all endpoints are guaranteed to be allocated.
-        return Task.CompletedTask;
+        foreach (var endpointEvent in context.Events)
+        {
+            await OnResourceEndpointsAllocated(endpointEvent, context.CancellationToken).ConfigureAwait(false);
+        }
     }
 
     private async Task PublishResourceEndpointUrls(IResource resource, CancellationToken cancellationToken)
@@ -301,7 +302,10 @@ internal sealed class ApplicationOrchestrator
     private async Task ProcessResourceUrlCallbacks(IResource resource, CancellationToken cancellationToken)
     {
         var urls = new List<ResourceUrlAnnotation>();
+        var browserUrls = BrowserUrlSnapshotAnnotation.GetOrCreate(resource);
         EndpointAnnotation? primaryLaunchProfileEndpoint = null;
+        var wasProcessingUrls = BrowserUrlSnapshotAnnotation.IsProcessingUrls.Value;
+        BrowserUrlSnapshotAnnotation.IsProcessingUrls.Value = true;
 
         try
         {
@@ -547,6 +551,8 @@ internal sealed class ApplicationOrchestrator
                 }
             }
 
+            browserUrls.Capture(resource, urls);
+
             // Add URLs
             var count = 0;
             foreach (var url in urls)
@@ -565,14 +571,24 @@ internal sealed class ApplicationOrchestrator
         }
         catch (Exception ex)
         {
+            browserUrls.Value.SetException(ex);
+
             var resourceLogger = _loggerService.GetLogger(resource);
             resourceLogger.LogError(ex, "An error occurred while processing URLs for resource '{ResourceName}': {Message}", resource.Name, ex.Message);
+        }
+        finally
+        {
+            BrowserUrlSnapshotAnnotation.IsProcessingUrls.Value = wasProcessingUrls;
         }
     }
 
     private async Task OnResourceEndpointsAllocated(ResourceEndpointsAllocatedEvent @event, CancellationToken cancellationToken)
     {
-        await PublishResourceEndpointUrls(@event.Resource, cancellationToken).ConfigureAwait(false);
+        if (!@event.UrlsPrepared)
+        {
+            await PublishResourceEndpointUrls(@event.Resource, cancellationToken).ConfigureAwait(false);
+            @event.UrlsPrepared = true;
+        }
     }
 
     private async Task OnResourceChanged(OnResourceChangedContext context)

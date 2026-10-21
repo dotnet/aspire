@@ -1,0 +1,50 @@
+﻿{
+  "resources": {
+    "public-origins": {
+      "type": "parameter.v0",
+      "value": "{public-origins.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "frontend": {
+      "type": "container.v0",
+      "image": "image:latest",
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "targetPort": 8080
+        }
+      }
+    },
+    "backend": {
+      "type": "container.v0",
+      "image": "image:latest",
+      "env": {
+        "ORIGINS": "{browser-frontend-origins-join-3b646805648c7c5f-a2ee847f6d45e3ff.connectionString}",
+        "JSON": "allowed={browser-frontend-origins-json-79f79defc158c876.connectionString}",
+        "CONDITIONAL": "{browser-frontend-preferred-origin-eddc59224b52c052.connectionString}"
+      }
+    },
+    "browser-frontend-origins-join-3b646805648c7c5f-a2ee847f6d45e3ff": {
+      "type": "value.v0",
+      "connectionString": "{public-origins.value}"
+    },
+    "browser-frontend-origins-json-79f79defc158c876": {
+      "type": "value.v0",
+      "connectionString": "{public-origins.value}"
+    },
+    "browser-frontend-preferred-origin-eddc59224b52c052": {
+      "type": "value.v0",
+      "connectionString": "{cond-frontend-bindings-http-tlsenabled-0772109c.connectionString}"
+    },
+    "cond-frontend-bindings-http-tlsenabled-0772109c": {
+      "type": "value.v0",
+      "connectionString": "http://deployed.example"
+    }
+  }
+}

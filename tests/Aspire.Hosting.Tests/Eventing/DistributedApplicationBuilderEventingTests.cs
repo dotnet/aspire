@@ -15,6 +15,56 @@ namespace Aspire.Hosting.Tests.Eventing;
 [Trait("Partition", "6")]
 public class DistributedApplicationBuilderEventingTests(ITestOutputHelper testOutputHelper)
 {
+    [Theory]
+    [InlineData(EventDispatchBehavior.BlockingSequential)]
+    [InlineData(EventDispatchBehavior.BlockingConcurrent)]
+    [InlineData(EventDispatchBehavior.NonBlockingSequential)]
+    [InlineData(EventDispatchBehavior.NonBlockingConcurrent)]
+    public async Task EventPreparationCompletesBeforeObservers(EventDispatchBehavior dispatchBehavior)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        var prepared = false;
+        var observed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var preparationEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var completePreparation = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        builder.Eventing.Subscribe<DummyEvent>((_, _) =>
+        {
+            observed.SetResult(prepared);
+            return Task.CompletedTask;
+        });
+        builder.Eventing.Subscribe<DummyEvent>(async (_, ct) =>
+        {
+            preparationEntered.SetResult();
+            await completePreparation.Task.WaitAsync(ct);
+            prepared = true;
+        }).IsPreparation = true;
+
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource();
+        var publish = builder.Eventing.PublishAsync(new DummyEvent(), dispatchBehavior, cts.Token);
+        try
+        {
+            await preparationEntered.Task.DefaultTimeout();
+            if (dispatchBehavior is EventDispatchBehavior.NonBlockingSequential or EventDispatchBehavior.NonBlockingConcurrent)
+            {
+                await publish.DefaultTimeout();
+            }
+            else
+            {
+                Assert.False(publish.IsCompleted);
+            }
+
+            Assert.False(observed.Task.IsCompleted);
+        }
+        finally
+        {
+            completePreparation.SetResult();
+        }
+        await publish.DefaultTimeout();
+
+        Assert.True(await observed.Task.DefaultTimeout());
+    }
+
     [Fact]
     public async Task EventsCanBePublishedBlockSequential()
     {

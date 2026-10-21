@@ -636,6 +636,34 @@ public class AtsTypeScriptCodeGeneratorTests
     }
 
     [Fact]
+    public void Scanner_HostingAssembly_BrowserUrlReferences()
+    {
+        var capabilities = ScanCapabilitiesFromHostingAssembly();
+
+        var allUrls = Assert.Single(capabilities, c => c.CapabilityId == "Aspire.Hosting/getBrowserOrigin");
+        Assert.Equal("getBrowserOrigin", allUrls.MethodName);
+        Assert.Equal("Aspire.Hosting/Aspire.Hosting.ApplicationModel.BrowserOriginReference", allUrls.ReturnType.TypeId);
+
+        var endpointUrls = Assert.Single(capabilities, c => c.CapabilityId == "Aspire.Hosting/getBrowserOriginForEndpoint");
+        Assert.Equal("getBrowserOriginForEndpoint", endpointUrls.MethodName);
+        Assert.Equal("Aspire.Hosting/Aspire.Hosting.ApplicationModel.BrowserOriginReference", endpointUrls.ReturnType.TypeId);
+        Assert.Equal("endpointName", Assert.Single(endpointUrls.Parameters).Name);
+
+        var originValue = Assert.Single(capabilities, c =>
+            c.CapabilityId == "Aspire.Hosting.ApplicationModel/BrowserOriginReference.getValueAsync");
+        Assert.Equal("string", originValue.ReturnType.TypeId);
+        var originPublishExpression = Assert.Single(capabilities, c =>
+            c.CapabilityId == "Aspire.Hosting.ApplicationModel/BrowserOriginReference.withPublishExpression");
+        Assert.Equal("withPublishExpression", originPublishExpression.MethodName);
+
+        Assert.Equal("Aspire.Hosting/Aspire.Hosting.ApplicationModel.BrowserOriginReference", originPublishExpression.ReturnType.TypeId);
+
+        var expression = Assert.Single(capabilities, c =>
+            c.CapabilityId == "Aspire.Hosting.ApplicationModel/BrowserOriginReference.toReferenceExpression");
+        Assert.Equal("Aspire.Hosting/Aspire.Hosting.ApplicationModel.ReferenceExpression", expression.ReturnType.TypeId);
+    }
+
+    [Fact]
     public async Task Scanner_HostingAssembly_AddContainerCapability()
     {
         // Verify the addContainer capability from the real Aspire.Hosting assembly

@@ -9,11 +9,15 @@ namespace Aspire.Hosting.ApplicationModel;
 /// This event is raised by orchestrators to signal to resources that their endpoints have been allocated.
 /// </summary>
 /// <remarks>
-/// Any resources that customize their URLs via a <see cref="ResourceUrlsCallbackAnnotation"/> will have their callbacks invoked during this event.
+/// Resources that customize their URLs via a <see cref="ResourceUrlsCallbackAnnotation"/> have their callbacks
+/// invoked before event handlers run. Browser URL references contain the finalized values at that point.
+/// Endpoint and URL configuration must be registered before this event is published.
 /// </remarks>
 [AspireExport(ExposeProperties = true)]
 public class ResourceEndpointsAllocatedEvent(IResource resource, IServiceProvider services) : IDistributedApplicationResourceEvent
 {
+    internal bool UrlsPrepared { get; set; }
+
     /// <inheritdoc />
     public IResource Resource { get; } = resource;
 
