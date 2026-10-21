@@ -604,15 +604,13 @@ public abstract class EntraIdClientCredential
     /// <param name="separator">The separator between configuration keys.</param>
     /// <param name="application">The Entra ID application that owns the credential.</param>
     /// <param name="consumer">The resource that receives the configuration.</param>
-    internal virtual void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator, EntraIdApplicationResource application, IResource consumer)
+    /// <param name="executionContext">The execution context that the configuration is for.</param>
+    /// <returns><see langword="true"/> when the credential was emitted, or <see langword="false"/> when it does not apply to the consumer.</returns>
+    internal virtual bool EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator, EntraIdApplicationResource application, IResource consumer, DistributedApplicationExecutionContext executionContext)
     {
         envVars[$"{prefix}{separator}SourceType"] = SourceType;
+        return true;
     }
-
-    /// <summary>
-    /// Determines whether this credential applies to the consumer in the current execution context.
-    /// </summary>
-    internal virtual bool AppliesTo(IResource consumer, DistributedApplicationExecutionContext executionContext) => true;
 }
 
 /// <summary>
@@ -645,10 +643,12 @@ public sealed class EntraIdClientSecretCredential : EntraIdClientCredential
     }
 
     /// <inheritdoc />
-    internal override void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator, EntraIdApplicationResource application, IResource consumer)
+    internal override bool EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator, EntraIdApplicationResource application, IResource consumer, DistributedApplicationExecutionContext executionContext)
     {
-        base.EmitEnvironmentVariables(envVars, prefix, separator, application, consumer);
+        base.EmitEnvironmentVariables(envVars, prefix, separator, application, consumer, executionContext);
         envVars[$"{prefix}{separator}ClientSecret"] = ClientSecret;
+
+        return true;
     }
 }
 
@@ -770,22 +770,21 @@ public sealed class EntraIdFederatedIdentityCredential : EntraIdClientCredential
     }
 
     /// <inheritdoc />
-    internal override bool AppliesTo(IResource consumer, DistributedApplicationExecutionContext executionContext)
+    internal override bool EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator, EntraIdApplicationResource application, IResource consumer, DistributedApplicationExecutionContext executionContext)
     {
         if (ComputeTarget is not null && !ReferenceEquals(ComputeTarget, consumer))
         {
             return false;
         }
 
-        // Managed identities exist only in Azure. Locally the credential has nothing to assert, so a
-        // resource-backed credential is skipped and another credential, such as a client secret, is used.
-        return !IsResourceBacked || !executionContext.IsRunMode;
-    }
+        // Managed identities exist only in Azure. Locally the credential has nothing to assert, so a resource-backed
+        // credential is skipped and another credential, such as a client secret, is used.
+        if (IsResourceBacked && executionContext.IsRunMode)
+        {
+            return false;
+        }
 
-    /// <inheritdoc />
-    internal override void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator, EntraIdApplicationResource application, IResource consumer)
-    {
-        base.EmitEnvironmentVariables(envVars, prefix, separator, application, consumer);
+        base.EmitEnvironmentVariables(envVars, prefix, separator, application, consumer, executionContext);
 
         var tokenExchangeUrl = TokenExchangeUrl;
         if (IsResourceBacked)
@@ -818,6 +817,8 @@ public sealed class EntraIdFederatedIdentityCredential : EntraIdClientCredential
         {
             envVars[$"{prefix}{separator}TokenExchangeAuthority"] = TokenExchangeAuthority;
         }
+
+        return true;
     }
 }
 
@@ -843,11 +844,13 @@ public sealed class EntraIdKeyVaultCertificateCredential : EntraIdClientCredenti
     public required string CertificateNameInKeyVault { get; init; }
 
     /// <inheritdoc />
-    internal override void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator, EntraIdApplicationResource application, IResource consumer)
+    internal override bool EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator, EntraIdApplicationResource application, IResource consumer, DistributedApplicationExecutionContext executionContext)
     {
-        base.EmitEnvironmentVariables(envVars, prefix, separator, application, consumer);
+        base.EmitEnvironmentVariables(envVars, prefix, separator, application, consumer, executionContext);
         envVars[$"{prefix}{separator}KeyVaultUrl"] = KeyVaultUrl;
         envVars[$"{prefix}{separator}KeyVaultCertificateName"] = CertificateNameInKeyVault;
+
+        return true;
     }
 }
 
@@ -896,9 +899,9 @@ public sealed class EntraIdStoreCertificateCredential : EntraIdClientCredential
     public string? DistinguishedName { get; set; }
 
     /// <inheritdoc />
-    internal override void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator, EntraIdApplicationResource application, IResource consumer)
+    internal override bool EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator, EntraIdApplicationResource application, IResource consumer, DistributedApplicationExecutionContext executionContext)
     {
-        base.EmitEnvironmentVariables(envVars, prefix, separator, application, consumer);
+        base.EmitEnvironmentVariables(envVars, prefix, separator, application, consumer, executionContext);
         envVars[$"{prefix}{separator}CertificateStorePath"] = StorePath;
 
         if (Thumbprint is not null)
@@ -909,6 +912,8 @@ public sealed class EntraIdStoreCertificateCredential : EntraIdClientCredential
         {
             envVars[$"{prefix}{separator}CertificateDistinguishedName"] = DistinguishedName;
         }
+
+        return true;
     }
 }
 
@@ -952,15 +957,17 @@ public sealed class EntraIdFileCertificateCredential : EntraIdClientCredential
     }
 
     /// <inheritdoc />
-    internal override void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator, EntraIdApplicationResource application, IResource consumer)
+    internal override bool EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator, EntraIdApplicationResource application, IResource consumer, DistributedApplicationExecutionContext executionContext)
     {
-        base.EmitEnvironmentVariables(envVars, prefix, separator, application, consumer);
+        base.EmitEnvironmentVariables(envVars, prefix, separator, application, consumer, executionContext);
         envVars[$"{prefix}{separator}CertificateDiskPath"] = FilePath;
 
         if (Password is not null)
         {
             envVars[$"{prefix}{separator}CertificatePassword"] = Password;
         }
+
+        return true;
     }
 }
 
@@ -986,13 +993,15 @@ public sealed class EntraIdSignedAssertionFileCredential : EntraIdClientCredenti
     public string? FilePath { get; set; }
 
     /// <inheritdoc />
-    internal override void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator, EntraIdApplicationResource application, IResource consumer)
+    internal override bool EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator, EntraIdApplicationResource application, IResource consumer, DistributedApplicationExecutionContext executionContext)
     {
-        base.EmitEnvironmentVariables(envVars, prefix, separator, application, consumer);
+        base.EmitEnvironmentVariables(envVars, prefix, separator, application, consumer, executionContext);
 
         if (FilePath is not null)
         {
             envVars[$"{prefix}{separator}SignedAssertionFileDiskPath"] = FilePath;
         }
+
+        return true;
     }
 }

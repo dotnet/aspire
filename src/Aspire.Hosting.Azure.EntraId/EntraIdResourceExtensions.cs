@@ -1582,16 +1582,15 @@ public static class EntraIdResourceExtensions
             }
 
             // Client credentials — each type emits its own env vars
+            // A credential that does not apply to this resource emits nothing and does not take an index, so the array has no gaps.
             var credentialIndex = 0;
             foreach (var credential in entra.ClientCredentials)
             {
-                if (!credential.AppliesTo(builder.Resource, context.ExecutionContext))
+                var credPrefix = $"{keyPrefix}ClientCredentials{separator}{credentialIndex}";
+                if (credential.EmitEnvironmentVariables(environmentVariables, credPrefix, separator, entra, builder.Resource, context.ExecutionContext))
                 {
-                    continue;
+                    credentialIndex++;
                 }
-
-                var credPrefix = $"{keyPrefix}ClientCredentials{separator}{credentialIndex++}";
-                credential.EmitEnvironmentVariables(environmentVariables, credPrefix, separator, entra, builder.Resource);
             }
 
             // Client capabilities (e.g., "cp1" for CAE)

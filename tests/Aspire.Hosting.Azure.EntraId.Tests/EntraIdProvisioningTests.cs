@@ -222,7 +222,9 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
 
         // Managed identities exist only in Azure, so there is nothing to assert when running locally.
         var credential = Assert.Single(entra.Resource.ClientCredentials);
-        Assert.Equal(expected, credential.AppliesTo(web.Resource, builder.ExecutionContext));
+        var envVars = new Dictionary<string, object>();
+        Assert.Equal(expected, credential.EmitEnvironmentVariables(envVars, "AzureAd__ClientCredentials__0", "__", entra.Resource, web.Resource, builder.ExecutionContext));
+        Assert.Equal(expected, envVars.Count > 0);
     }
     [Theory]
     [InlineData("https://login.microsoftonline.com/", "api://AzureADTokenExchange")]
