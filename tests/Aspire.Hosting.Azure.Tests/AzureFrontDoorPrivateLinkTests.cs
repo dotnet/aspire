@@ -119,7 +119,7 @@ public class AzureFrontDoorPrivateLinkTests(ITestOutputHelper testOutputHelper)
         var (_, bicep) = await GetManifestWithBicep(frontDoor.Resource);
 
         Assert.Contains("privateLinkLocation: privateLinkLocation", bicep);
-        Assert.DoesNotContain("privateLinkLocation: env_private_link_location", bicep);
+        Assert.DoesNotContain("toLower(replace(", bicep);
     }
 
     [Fact]
@@ -468,7 +468,7 @@ public class AzureFrontDoorPrivateLinkTests(ITestOutputHelper testOutputHelper)
 
         Assert.Contains("name: 'Premium_AzureFrontDoor'", bicep);
         Assert.Contains("id: target_environment_id", bicep);
-        Assert.Contains("privateLinkLocation: target_private_link_location", bicep);
+        Assert.Contains("privateLinkLocation: toLower(replace(target_location, ' ', ''))", bicep);
         Assert.Contains("groupId: 'sites'", bicep);
         Assert.Contains("requestMessage: 'Azure Front Door frontdoor requests access to target.'", bicep);
         Assert.Single(target.Resource.Annotations.OfType<PrivateEndpointTargetAnnotation>());

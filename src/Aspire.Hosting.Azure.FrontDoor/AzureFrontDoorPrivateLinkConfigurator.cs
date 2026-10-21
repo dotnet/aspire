@@ -107,18 +107,14 @@ internal sealed class AzureFrontDoorPrivateLinkConfigurator(AzureResourceInfrast
         // can be a display name such as 'West US 2', and Front Door expects 'westus2', so remove the spaces and lowercase
         // the name.
         var environmentLocation = environment.Location.AsProvisioningParameter(infrastructure, $"{environmentIdentifier}_location");
-        var variableName = $"{environmentIdentifier}_private_link_location";
-        infrastructure.Add(new ProvisioningVariable(variableName, typeof(string))
-        {
-            Value = new FunctionCallExpression(
-                new IdentifierExpression("toLower"),
-                new FunctionCallExpression(
-                    new IdentifierExpression("replace"),
-                    new IdentifierExpression(environmentLocation.BicepIdentifier),
-                    new StringLiteralExpression(" "),
-                    new StringLiteralExpression(string.Empty)))
-        });
+        var privateLinkLocation = new FunctionCallExpression(
+            new IdentifierExpression("toLower"),
+            new FunctionCallExpression(
+                new IdentifierExpression("replace"),
+                new IdentifierExpression(environmentLocation.BicepIdentifier),
+                new StringLiteralExpression(" "),
+                new StringLiteralExpression(string.Empty)));
 
-        return (environmentId, new BicepValue<string>(new IdentifierExpression(variableName)));
+        return (environmentId, new BicepValue<string>(privateLinkLocation));
     }
 }
