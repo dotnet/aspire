@@ -1506,7 +1506,7 @@ public class AzureContainerAppsTests(ITestOutputHelper outputHelper)
         Assert.NotNull(obsolete);
         Assert.False(obsolete.IsError);
         Assert.Equal(
-            "Azure Developer CLI (azd) deployment support is being retired. See https://aka.ms/aspire/azd-deployment-retirement for more information.",
+            "Azure Developer CLI (azd) deployment support is being retired. See https://aka.ms/aspire/azd-transition for more information.",
             obsolete.Message);
     }
 

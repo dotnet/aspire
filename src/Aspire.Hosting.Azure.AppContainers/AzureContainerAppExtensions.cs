@@ -923,10 +923,10 @@ public static class AzureContainerAppExtensions
     /// azd without calling <see cref="AddAzureContainerAppEnvironment"/>
     /// <para>
     /// Azure Developer CLI (azd) deployment support is being retired. See
-    /// <see href="https://aka.ms/aspire/azd-deployment-retirement"/> for more information.
+    /// <see href="https://aka.ms/aspire/azd-transition"/> for more information.
     /// </para>
     /// </remarks>
-    [Obsolete("Azure Developer CLI (azd) deployment support is being retired. See https://aka.ms/aspire/azd-deployment-retirement for more information.")]
+    [Obsolete("Azure Developer CLI (azd) deployment support is being retired. See https://aka.ms/aspire/azd-transition for more information.")]
     [AspireExport]
     public static IResourceBuilder<AzureContainerAppEnvironmentResource> WithAzdResourceNaming(this IResourceBuilder<AzureContainerAppEnvironmentResource> builder)
     {
