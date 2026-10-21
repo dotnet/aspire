@@ -2,7 +2,7 @@
   "version": 1,
   "issue": 9671,
   "issue_url": "https://github.com/microsoft/aspire/issues/9671",
-  "phase": "agent",
+  "phase": "ready",
   "created_at": "2026-10-21T20:58:36.055462+00:00",
   "base_sha": "2015b1f0a997cf68d0582de62c912e3e419d880a",
   "control_sha": "e512084cd369721858b6818429b2247c1d1fcbe6",
@@ -16,17 +16,69 @@
     "runner_iterations": 0
   },
   "history": [],
-  "notes": [],
+  "notes": [
+    {
+      "run_id": 39674943226,
+      "action": "select",
+      "explanation": "Issue 9671 is a flaky-test report for a single uniquely named test, SlimTestProgramTests.TestPortOnEndpointAnnotationAndAllocatedEndpointAnnotationMatch (quarantined with the issue URL). The failure is a TaskCanceledException thrown from SlimTestProgramFixture.WaitReadyStateAsync during collection fixture InitializeAsync. The fixture waits sequentially on log text 'Application started.' for servicea, serviceb and servicec, all under one shared timeout token that also covers StartAsync. The fixture uses randomizePorts: false, which matches the flaky patterns in the test guidelines. The issue does not name an OS; the CI report lists linux and windows, so both are targeted. The report shows 0/100 failures on each OS and 0/215 over 30 days, so reproduction may well end not-reproduced. Next action: reproduce on hosted runners. The checkpoint base_sha object is not present in the local clone, so I read the agent-branch working tree at HEAD 902476384f. That tree may differ from base_sha, and the controller should confirm the selection against base_sha.",
+      "evidence_read": [
+        "/tmp/gh-aw/flaky-investigation/context.json (issue body, stack trace, CI insights comment). No evidence/ directory was supplied, so no historical logs or TRX were available.",
+        "tests/Aspire.Hosting.Tests/SlimTestProgramTests.cs: [Collection(\"SlimTestProgram\")], [QuarantinedTest(\".../issues/9671\")] on TestPortOnEndpointAnnotationAndAllocatedEndpointAnnotationMatch",
+        "tests/Aspire.Hosting.Tests/TestProgramFixture.cs: InitializeAsync, SlimTestProgramFixture.CreateTestProgram(randomizePorts: false), WaitReadyStateAsync (sequential WaitForTextAsync on 'Application started.' with a shared CTS)"
+      ]
+    }
+  ],
   "candidate": null,
-  "target": null,
-  "local_precheck": null,
+  "target": {
+    "source": "tests/Aspire.Hosting.Tests/SlimTestProgramTests.cs",
+    "project": "tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj",
+    "class_name": "Aspire.Hosting.Tests.SlimTestProgramTests",
+    "method": "TestPortOnEndpointAnnotationAndAllocatedEndpointAnnotationMatch",
+    "oses": [
+      "ubuntu-latest",
+      "windows-latest"
+    ],
+    "failure_signature": "Collection fixture type 'Aspire.Hosting.Tests.SlimTestProgramFixture' threw in InitializeAsync",
+    "quarantined": true
+  },
+  "local_precheck": {
+    "status": "skipped",
+    "reason": "Runner OS is linux. The repo is not built or restored, and this investigation phase is not set up to run Aspire.Hosting.Tests, which needs a DCP orchestrator and container runtime. Windows behavior cannot be checked locally. A build failure would not count as test evidence, so hosted reproduction is needed."
+  },
   "outcome": null,
-  "updated_at": "2026-10-21T20:58:46.104249+00:00",
+  "updated_at": "2026-10-21T21:04:24.048205+00:00",
   "agent": {
     "sha": "902476384f47360927b33e1747a32de3a391c68e",
     "workflow": "reproduce-flaky-tests.yml",
     "branch": "ankj/flaky-test-9671-agent-1",
     "id": 39674943226,
     "revision": "a9ee9468826a2f032f4c1bf706c4ae864afe6567"
-  }
+  },
+  "repair_scope": [
+    "src/Aspire.Dashboard/",
+    "src/Aspire.Hosting.Analyzers/",
+    "src/Aspire.Hosting.AppHost/",
+    "src/Aspire.Hosting.Azure.AppContainers/",
+    "src/Aspire.Hosting.Azure.ContainerRegistry/",
+    "src/Aspire.Hosting.Azure.OperationalInsights/",
+    "src/Aspire.Hosting.Azure/",
+    "src/Aspire.Hosting.DevTunnels/",
+    "src/Aspire.Hosting.JavaScript/",
+    "src/Aspire.Hosting.Python/",
+    "src/Aspire.Hosting.Tasks/",
+    "src/Aspire.Hosting.Testing/",
+    "src/Aspire.Hosting.Yarp/",
+    "src/Aspire.Hosting/",
+    "src/Aspire.TypeSystem/",
+    "tests/Aspire.Components.Common.TestUtilities/",
+    "tests/Aspire.Hosting.TestUtilities/",
+    "tests/Aspire.Hosting.Tests/",
+    "tests/Aspire.TestUtilities/",
+    "tests/testproject/TestProject.AppHost/",
+    "tests/testproject/TestProject.IntegrationServiceA/",
+    "tests/testproject/TestProject.ServiceA/",
+    "tests/testproject/TestProject.ServiceB/",
+    "tests/testproject/TestProject.ServiceC/",
+    "tests/testproject/TestProject.WorkerA/"
+  ]
 }
