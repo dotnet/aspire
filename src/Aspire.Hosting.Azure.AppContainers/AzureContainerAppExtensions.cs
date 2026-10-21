@@ -434,12 +434,6 @@ public static class AzureContainerAppExtensions
             {
                 // The environment is the target of a private link, so it's reachable only through that link.
                 containerAppEnvironment.PublicNetworkAccess = ContainerAppPublicNetworkAccess.Disabled;
-
-                // The private link's source needs the environment's region to place its private endpoint.
-                infra.Add(new ProvisioningOutput(AzureContainerAppEnvironmentResource.LocationOutputName, typeof(string))
-                {
-                    Value = containerAppEnvironment.Location.ToBicepExpression()
-                });
             }
 
             if (appEnvResource.EnableDashboard)
@@ -937,6 +931,13 @@ public static class AzureContainerAppExtensions
         infra.Add(new ProvisioningOutput("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", typeof(string))
         {
             Value = containerAppEnvironment.DefaultDomain.ToBicepExpression()
+        });
+
+        // The region of the environment, for resources that connect to it, such as the private endpoint that
+        // Azure Front Door Private Link creates.
+        infra.Add(new ProvisioningOutput(AzureContainerAppEnvironmentResource.LocationOutputName, typeof(string))
+        {
+            Value = containerAppEnvironment.Location.ToBicepExpression()
         });
     }
 

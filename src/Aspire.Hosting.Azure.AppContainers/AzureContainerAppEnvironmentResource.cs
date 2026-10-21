@@ -301,8 +301,7 @@ public class AzureContainerAppEnvironmentResource :
     internal BicepOutputReference ContainerAppDomain => new("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", this);
 
     /// <summary>
-    /// Gets the Azure region of the Container App Environment. The module only emits this output when the
-    /// environment is the target of a private link (see <see cref="IsPublicNetworkAccessDisabled"/>).
+    /// Gets the Azure region of the Container App Environment.
     /// </summary>
     internal BicepOutputReference ContainerAppLocation => new(LocationOutputName, this);
 

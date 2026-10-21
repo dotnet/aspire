@@ -68,8 +68,6 @@ resource aspireDashboard 'Microsoft.App/managedEnvironments/dotNetComponents@202
   parent: env
 }
 
-output AZURE_CONTAINER_APPS_ENVIRONMENT_LOCATION string = env.location
-
 output AZURE_LOG_ANALYTICS_WORKSPACE_NAME string = env_law.name
 
 output AZURE_LOG_ANALYTICS_WORKSPACE_ID string = env_law.id
@@ -85,3 +83,5 @@ output AZURE_CONTAINER_APPS_ENVIRONMENT_NAME string = env.name
 output AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = env.id
 
 output AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN string = env.properties.defaultDomain
+
+output AZURE_CONTAINER_APPS_ENVIRONMENT_LOCATION string = env.location

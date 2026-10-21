@@ -18,8 +18,8 @@ namespace Aspire.Hosting.Azure;
 /// </para>
 /// <para>
 /// The connecting profile adds a <see cref="PrivateEndpointTargetAnnotation"/> to the environment, as for a private endpoint to any
-/// other Azure resource. The implementation should react to that annotation by disabling public network access, and by
-/// emitting the output that <see cref="Location"/> refers to.
+/// other Azure resource. The implementation should react to that annotation by disabling public network access. The
+/// outputs that <see cref="Id"/> and <see cref="Location"/> refer to must always exist.
 /// </para>
 /// </remarks>
 [Experimental("ASPIREAZURE003", UrlFormat = "https://aka.ms/aspire/diagnostics#{0}")]
@@ -34,8 +34,7 @@ public interface IAzureCdnPrivateLinkTarget : IComputeEnvironmentResource
     /// Gets the output reference for the Azure region of the Azure resource that the CDN profile connects to.
     /// </summary>
     /// <remarks>
-    /// The CDN profile creates its private endpoint in this region. The output only has to
-    /// exist when the resource has a <see cref="PrivateEndpointTargetAnnotation"/>.
+    /// The CDN profile creates its private endpoint in this region.
     /// </remarks>
     BicepOutputReference Location { get; }
 
