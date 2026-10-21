@@ -2,7 +2,7 @@
   "version": 1,
   "issue": 16189,
   "issue_url": "https://github.com/microsoft/aspire/issues/16189",
-  "phase": "agent",
+  "phase": "worker-intent",
   "created_at": "2026-10-21T20:33:06.496822+00:00",
   "base_sha": "2015b1f0a997cf68d0582de62c912e3e419d880a",
   "control_sha": "8e88c59dea4df119df959cb648c32f73a919bd68",
@@ -11,9 +11,9 @@
   "agent_workflow": "reproduce-flaky-tests.yml",
   "used": {
     "models": 2,
-    "workers": 0,
+    "workers": 1,
     "fixes": 0,
-    "runner_iterations": 0
+    "runner_iterations": 9
   },
   "history": [],
   "notes": [
@@ -24,6 +24,15 @@
       "evidence_read": [
         "/tmp/gh-aw/flaky-investigation/context.json (issue body, comments incl. CI insights report)",
         "tests/Aspire.Hosting.Tests/ResourceFailureLoggingTests.cs lines 1-70 (ExecutableExitsImmediately, QuarantinedTest attribute)"
+      ]
+    },
+    {
+      "run_id": 39672275072,
+      "action": "reproduce",
+      "explanation": "Target ExecutableResourceFailureLoggingTests.ExecutableExitsImmediately is selected for windows-latest; the issue reports Assert.Contains failures where stderr log lines are missing (windows ~12-15%, linux 0/100). No baseline has run yet and no evidence directory exists, so hosted reproduction is the next step. Local precheck was skipped (Linux runner, Windows-only failure). Repair must wait for matching failure and pass evidence.",
+      "evidence_read": [
+        "/tmp/gh-aw/flaky-investigation/context.json (checkpoint target, notes, issue body)",
+        "No evidence/ directory present; no historical logs available"
       ]
     }
   ],
@@ -44,7 +53,7 @@
     "reason": "Runner OS is Linux but the issue only fails on windows-latest (linux 0/100); test also requires pwsh and a built Aspire.Hosting.Tests project, so no local repeated run was attempted."
   },
   "outcome": null,
-  "updated_at": "2026-10-21T20:40:05.529480+00:00",
+  "updated_at": "2026-10-21T20:45:32.723009+00:00",
   "agent": {
     "sha": "515cac42dc95f703735d9f6bbe17bf7db879c871",
     "workflow": "reproduce-flaky-tests.yml",
@@ -78,5 +87,15 @@
     "tests/testproject/TestProject.ServiceB/",
     "tests/testproject/TestProject.ServiceC/",
     "tests/testproject/TestProject.WorkerA/"
-  ]
+  ],
+  "worker": {
+    "sha": "a1cdf22f3bc201bc6ab3c4061a72332124d2301d",
+    "source_sha": "2015b1f0a997cf68d0582de62c912e3e419d880a",
+    "workflow": "reproduce-flaky-tests.yml",
+    "phase": "reproduce",
+    "runners": 3,
+    "iterations": 3,
+    "mode": "single",
+    "branch": "ankj/flaky-test-16189-run-1"
+  }
 }
