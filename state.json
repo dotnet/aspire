@@ -2,7 +2,7 @@
   "version": 1,
   "issue": 16189,
   "issue_url": "https://github.com/microsoft/aspire/issues/16189",
-  "phase": "ready",
+  "phase": "agent-intent",
   "created_at": "2026-10-21T20:33:06.496822+00:00",
   "base_sha": "2015b1f0a997cf68d0582de62c912e3e419d880a",
   "control_sha": "8e88c59dea4df119df959cb648c32f73a919bd68",
@@ -10,7 +10,7 @@
   "worker_sha": "a1cdf22f3bc201bc6ab3c4061a72332124d2301d",
   "agent_workflow": "reproduce-flaky-tests.yml",
   "used": {
-    "models": 1,
+    "models": 2,
     "workers": 0,
     "fixes": 0,
     "runner_iterations": 0
@@ -44,13 +44,11 @@
     "reason": "Runner OS is Linux but the issue only fails on windows-latest (linux 0/100); test also requires pwsh and a built Aspire.Hosting.Tests project, so no local repeated run was attempted."
   },
   "outcome": null,
-  "updated_at": "2026-10-21T20:39:27.493497+00:00",
+  "updated_at": "2026-10-21T20:39:58.211483+00:00",
   "agent": {
     "sha": "515cac42dc95f703735d9f6bbe17bf7db879c871",
     "workflow": "reproduce-flaky-tests.yml",
-    "branch": "ankj/flaky-test-16189-agent-1",
-    "id": 39671306099,
-    "revision": "38fedfb0168fb0cbb3c9b37db35445eb6442cd72"
+    "branch": "ankj/flaky-test-16189-agent-2"
   },
   "repair_scope": [
     "src/Aspire.Dashboard/",
