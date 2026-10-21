@@ -27,8 +27,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- GoScaffoldTests checks that the go-starter sources are gofmt-clean. -->
-    <None Include="..\..\src\Aspire.Cli\Templating\Templates\go-starter\**\*.go" Link="go-starter\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <!-- GoScaffoldTests checks that the go-starter files use LF line endings and that its Go sources are gofmt-clean. -->
+    <None Include="..\..\src\Aspire.Cli\Templating\Templates\go-starter\**\*" Link="go-starter\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

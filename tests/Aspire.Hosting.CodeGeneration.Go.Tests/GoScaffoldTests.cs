@@ -38,6 +38,22 @@ public class GoScaffoldTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public void GoStarterFiles_UseLfLineEndings()
+    {
+        // The go-starter files are embedded as they are checked out and scaffolded as they are, and gofmt reports
+        // CRLF as a formatting difference. .gitattributes pins them to LF so a Windows checkout cannot change them.
+        // An existing working tree keeps CRLF until its files are re-created: delete the go-starter directory, then
+        // run `git checkout -- <directory>`.
+        var starterRoot = Path.Combine(AppContext.BaseDirectory, "go-starter");
+        var starterFiles = Directory.EnumerateFiles(starterRoot, "*", SearchOption.AllDirectories).ToList();
+        Assert.NotEmpty(starterFiles);
+
+        Assert.Empty(starterFiles
+            .Where(file => File.ReadAllText(file).Contains('\r'))
+            .Select(file => Path.GetRelativePath(starterRoot, file)));
+    }
+
+    [Fact]
     public void Scaffold_IgnoresOnlyTheGeneratedSdk()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
@@ -172,10 +188,7 @@ public class GoScaffoldTests(ITestOutputHelper outputHelper)
 
         foreach (var starterFile in starterFiles)
         {
-            // The go-starter sources are embedded resources whose line endings follow the checkout (CRLF on Windows
-            // with autocrlf), and gofmt reports CRLF as a formatting difference, so they are checked as LF.
-            var content = File.ReadAllText(starterFile).ReplaceLineEndings("\n");
-            WriteGoFile(workspace.Path, Path.Combine("go-starter", Path.GetRelativePath(starterRoot, starterFile)), content);
+            WriteGoFile(workspace.Path, Path.Combine("go-starter", Path.GetRelativePath(starterRoot, starterFile)), File.ReadAllText(starterFile));
         }
 
         var gofmtOutput = await RunGofmtAsync(workspace.Path);
