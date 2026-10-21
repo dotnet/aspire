@@ -26,7 +26,7 @@ import { ConfigInfoProvider } from './utils/configInfoProvider';
 import { AppHostLaunchService } from './services/AppHostLaunchService';
 import { stopExternalAppHost } from './services/AppHostStopper';
 import { cloneAppHostState, createStateSnapshot, getDashboardUrl } from './extensionState';
-import { createE2eStateFileBridge } from './testing/e2eStateFileBridge';
+import { createE2ePsFollowProcessTracker, createE2eStateFileBridge } from './testing/e2eStateFileBridge';
 import type { AspireAppHostState, AspireExtensionApi, AspireExtensionStateSnapshot, WaitForStateOptions } from './types/extensionApi';
 import { AppHostsViewTelemetry } from './views/AppHostsViewTelemetry';
 import { CliPathEnvironmentSynchronizer } from './utils/cliPathEnvironment';
@@ -54,6 +54,7 @@ import { initializeUsefulnessSurvey } from './services/initializeUsefulnessSurve
 let aspireExtensionContext = new AspireExtensionContext();
 
 export async function activate(context: vscode.ExtensionContext) {
+  context.subscriptions.push(createE2ePsFollowProcessTracker());
   resetEditorAssistanceWindowState();
   aspireExtensionContext = new AspireExtensionContext();
   initializeHotReloadAdvisory(context.workspaceState);
@@ -141,12 +142,13 @@ export async function activate(context: vscode.ExtensionContext) {
   }));
   const appHostDiscoveryService = new AppHostDiscoveryService(terminalProvider, configInfoProvider);
   context.subscriptions.push(appHostDiscoveryService);
+  const dataRepository = new AppHostDataRepository(terminalProvider, appHostDiscoveryService, configInfoProvider);
 
   // Meaningful-engagement reporter must outlive every command callback so it
   // can observe the first invocation. Wire it before any command is
   // registered so even synchronous early invocations (rare but possible) are
   // observed via the telemetry pipeline.
-  engagement = new MeaningfulEngagementReporter(appHostDiscoveryService);
+  engagement = new MeaningfulEngagementReporter(dataRepository);
   context.subscriptions.push(engagement);
 
   const appHostLaunchService = new AppHostLaunchService(configInfoProvider);
@@ -158,7 +160,6 @@ export async function activate(context: vscode.ExtensionContext) {
   const cliCommandRegistrations = registerCliCommands(terminalProvider, editorCommandProvider, configInfoProvider);
 
   // Aspire panel - running app hosts tree view
-  const dataRepository = new AppHostDataRepository(terminalProvider, appHostDiscoveryService, configInfoProvider);
   appHostLaunchService.setEditorSessionProvider(() => aspireExtensionContext.aspireDebugSessions);
   appHostLaunchService.setRunningAppHostProvider(async token => {
     const appHosts = await dataRepository.fetchRunningAppHostsOnce(token);
@@ -239,7 +240,7 @@ export async function activate(context: vscode.ExtensionContext) {
     getAspireDebugSession: aspireExtensionContext.getAspireDebugSession.bind(aspireExtensionContext),
   }));
 
-  aspireExtensionContext.initialize(rpcServer, context, dynamicDebugConfigProvider, dcpServer, terminalProvider, editorCommandProvider);
+  aspireExtensionContext.initialize(rpcServer, context, dynamicDebugConfigProvider, dcpServer, terminalProvider, editorCommandProvider, dataRepository);
 
   // Register Aspire MCP server definition provider so one Aspire MCP server per discovered
   // AppHost appears automatically in VS Code's MCP tools list for Aspire workspaces.

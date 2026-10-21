@@ -23,7 +23,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="$(TestsSharedDir)TestDashboardTelemetrySender.cs" Link="shared/TestDashboardTelemetrySender.cs" />
+    <Compile Include="$(TestsSharedDir)DashboardTelemetryFixture.cs" Link="shared/DashboardTelemetryFixture.cs" />
+    <Compile Include="$(TestsSharedDir)Telemetry\TestTelemetryMetadataProviders.cs" LinkBase="shared/Telemetry" />
     <Compile Include="$(TestsSharedDir)TestStringLocalizer.cs" Link="shared/TestStringLocalizer.cs" />
     <Compile Include="$(TestsSharedDir)TestDashboardClient.cs" Link="shared/TestDashboardClient.cs" />
     <Compile Include="$(TestsSharedDir)TestDialogService.cs" Link="shared/TestDialogService.cs" />
@@ -31,6 +32,7 @@
     <Compile Include="$(TestsSharedDir)AsyncTestHelpers.cs" Link="shared/AsyncTestHelpers.cs" />
     <Compile Include="$(TestsSharedDir)TemporaryWorkspace.cs" Link="shared/TemporaryWorkspace.cs" />
     <Compile Include="$(TestsSharedDir)Telemetry\TelemetryTestHelpers.cs" Link="shared/Telemetry/TelemetryTestHelpers.cs" />
+    <Compile Include="$(TestsSharedDir)Telemetry\HistogramTestHelpers.cs" Link="shared/Telemetry/HistogramTestHelpers.cs" />
     <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared/Logging" />
     <Compile Include="$(TestsSharedDir)DashboardModel\*.cs" LinkBase="shared/DashboardModel" />
     <Compile Include="..\Aspire.Dashboard.Tests\Model\MockKnownPropertyLookup.cs" Link="Shared\MockKnownPropertyLookup.cs" />

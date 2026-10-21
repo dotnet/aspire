@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREEXTENSION001, ASPIREPIPELINES001, ASPIREPROJECTS001
+#pragma warning disable ASPIREEXTENSION001, ASPIREPROJECTS001
 
 using System.IO.Compression;
 using System.Reflection;
@@ -38,7 +38,7 @@ public class DotnetProjectBuildCoordinatorTests(ITestOutputHelper outputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(
             options => options.ProjectDirectory = workspace.Path,
             outputHelper);
-        var versionProvider = UseDotnetSdkVersion(builder, "11.0.100-rc.1.26425.128");
+        var versionProvider = UseDotnetSdkVersion(builder, "11.0.100-rc.2.26504.105");
         var apiPath = Path.Combine(builder.AppHostDirectory, "Api", "Api.csproj");
         var workerPath = Path.Combine(builder.AppHostDirectory, "Worker", "Worker.csproj");
 
@@ -395,7 +395,7 @@ public class DotnetProjectBuildCoordinatorTests(ITestOutputHelper outputHelper)
     }
 
     [Theory]
-    [InlineData("11.0.100-rc.1.26425.128", false)]
+    [InlineData("11.0.100-rc.2.26504.105", false)]
     [InlineData("11.0.100-rtm.26473.104", true)]
     public async Task FileOnlyModelCreatesDirectCoordinatedBuild(
         string sdkVersion,

@@ -1,9 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREAZURE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning;
@@ -277,6 +274,31 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
         // even though the root template was never compiled.
         Assert.Contains(environment.Location, context.ParameterLookup.Keys);
         Assert.Contains(environment.ResourceGroupName, context.ParameterLookup.Keys);
+    }
+
+    [Fact]
+    public async Task AzurePublishingContext_BoundsDeploymentNamesWithoutChangingLogicalNames()
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, output, workspace.Path);
+        builder.AddAzureEnvironment();
+        const string resourceName = "production-control-plane-identity-roles-production-kubelet-identity";
+
+        using var app = builder.Build();
+        var context = await CreatePublishingContextAsync(app, workspace.Path);
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        // Prepared role resources are added directly to the model and can exceed the builder's name limit.
+        model.Resources.Add(new AzureBicepResource(resourceName, templateString: """
+            param location string
+            output result string = location
+            """));
+        var environment = model.Resources.OfType<AzureEnvironmentResource>().Single();
+
+        await context.WriteModelAsync(model, environment, CancellationToken.None);
+
+        Assert.True(File.Exists(Path.Combine(workspace.Path, resourceName, $"{resourceName}.bicep")));
+        var mainBicep = await File.ReadAllTextAsync(Path.Combine(workspace.Path, "main.bicep"));
+        await Verify(mainBicep, "bicep");
     }
 
     [Fact]

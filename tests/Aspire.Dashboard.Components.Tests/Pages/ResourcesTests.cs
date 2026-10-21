@@ -17,6 +17,8 @@ using Aspire.Dashboard.Model.ResourceGraph;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Serialization;
+using Aspire.Dashboard.Telemetry;
+using Aspire.Dashboard.Tests;
 using Aspire.Dashboard.Tests.Shared;
 using Aspire.Dashboard.Utils;
 using Aspire.Tests.Shared;
@@ -28,6 +30,8 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 using OpenTelemetry.Proto.Logs.V1;
@@ -39,6 +43,54 @@ namespace Aspire.Dashboard.Components.Tests.Pages;
 [UseCulture("en-US")]
 public partial class ResourcesTests : DashboardTestContext
 {
+    [Theory]
+    [InlineData(Components.Pages.Resources.ResourceViewKind.Graph)]
+    [InlineData(Components.Pages.Resources.ResourceViewKind.Parameters)]
+    public async Task Resources_TelemetryRecordsSelectedView(Components.Pages.Resources.ResourceViewKind viewKind)
+    {
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources:
+        [
+            CreateResource("private-resource-a", "private-type-a", "Running", null),
+            CreateResource("private-resource-b", "private-type-b", "Running", null)
+        ], resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>);
+        ResourceSetupHelpers.SetupResourcesPage(this, viewport, dashboardClient);
+        using var fixture = new DashboardTelemetryFixture();
+        var cut = Render<Components.Pages.Resources>(builder => builder.AddCascadingValue(viewport));
+        await cut.InvokeAsync(() => cut.Instance.TelemetryContext.Initialize(fixture.Telemetry, browserUserAgent: null));
+        Assert.True(fixture.LogChannel.Reader.TryRead(out var initializeLog));
+        Assert.Equal(TelemetryEventKeys.ComponentInitialize, initializeLog.Message);
+
+        using var activity = fixture.Telemetry.StartReportedActivity("resources");
+        Assert.NotNull(activity);
+        await cut.InvokeAsync(() =>
+        {
+            cut.Instance.PageViewModel.SelectedViewKind = viewKind;
+            cut.Instance.UpdateTelemetryProperties();
+        });
+
+        var expectedView = viewKind.ToString();
+        Assert.Collection(cut.Instance.TelemetryContext.Properties.OrderBy(p => p.Key, StringComparer.Ordinal),
+            property => Assert.Equal(TelemetryPropertyKeys.DashboardComponentId, property.Key),
+            property => Assert.Equal(TelemetryPropertyKeys.DashboardComponentType, property.Key),
+            property => Assert.Equal(new KeyValuePair<string, AspireTelemetryProperty>(TelemetryPropertyKeys.ResourceView,
+                new AspireTelemetryProperty(expectedView, AspireTelemetryPropertyType.UserSetting)), property));
+        Assert.True(fixture.LogChannel.Reader.TryRead(out var log));
+        Assert.Equal(TelemetryEventKeys.ParametersSet, log.Message);
+        fixture.AssertAttributes(log.Attributes,
+            new(TelemetryPropertyKeys.DashboardComponentId, TelemetryComponentIds.Resources),
+            new(TelemetryPropertyKeys.DashboardComponentType, nameof(Components.Pages.ComponentType.Page)),
+            new(TelemetryPropertyKeys.ResourceView, expectedView),
+            new("microsoft.operation_name", TelemetryEventKeys.ParametersSet),
+            new("{OriginalFormat}", TelemetryEventKeys.ParametersSet));
+        Assert.Equal(activity.TraceId, log.TraceId);
+        Assert.Equal(activity.SpanId, log.SpanId);
+        Assert.Empty(activity.Events);
+        await cut.InvokeAsync(cut.Instance.UpdateTelemetryProperties);
+        Assert.False(fixture.LogChannel.Reader.TryPeek(out _));
+        cut.Dispose();
+    }
+
     [Fact]
     public void ResourceOptions_SelectionChanges_UpdateAllCheckboxState()
     {
@@ -402,6 +454,76 @@ public partial class ResourcesTests : DashboardTestContext
         Assert.Equivalent(resources, serializedResources.Deserialize(resources.GetType(), DashboardJsonSerializerContext.Default.Options), strict: true);
     }
 
+    [Fact]
+    public async Task ResourceGraph_UpdatesWaitForInitializationAndHandleCircuitDisconnect()
+    {
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        var testSink = new TestSink();
+        Services.AddSingleton<ILogger<Components.Pages.Resources>>(new TestLogger<Components.Pages.Resources>(new TestLoggerFactory(testSink, enabled: true)));
+        ResourceSetupHelpers.SetupResourcesPage(this, viewport);
+        var initializeGraph = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var disconnected = false;
+        Exception exception = new JSDisconnectedException("The circuit disconnected.");
+        Func<Task>? disposeOnInvoke = null;
+        var module = new TestJSObjectReference
+        {
+            BeforeInvokeAsync = async identifier =>
+            {
+                if (identifier == "initializeResourcesGraph")
+                {
+                    await initializeGraph.Task;
+                    return;
+                }
+
+                if (disposeOnInvoke is { } dispose)
+                {
+                    await dispose();
+                }
+
+                if (disconnected)
+                {
+                    throw exception;
+                }
+            }
+        };
+        var import = TestJSObjectReference.SetupImport(this, "/js/app-resourcegraph.js");
+        import.SetResult(module);
+
+        Services.GetRequiredService<NavigationManager>().NavigateTo(DashboardUrls.ResourcesUrl(view: "Graph"));
+        var cut = Render<Components.Pages.Resources>(builder => builder.AddCascadingValue(viewport));
+        var tabs = cut.FindComponent<FluentTabs>().Instance;
+        var tableTab = cut.FindComponents<FluentTab>().Single(t => t.Instance.Id == "tab-Table").Instance;
+        var graphTab = cut.FindComponents<FluentTab>().Single(t => t.Instance.Id == "tab-Graph").Instance;
+        try
+        {
+            await cut.InvokeAsync(() => tabs.ActiveTabChanged.InvokeAsync(tableTab));
+            await cut.InvokeAsync(() => tabs.ActiveTabChanged.InvokeAsync(graphTab));
+
+            Assert.Equal(["initializeResourcesGraph"], module.Invocations.Select(i => i.Identifier));
+        }
+        finally
+        {
+            initializeGraph.TrySetResult();
+        }
+        cut.WaitForAssertion(() => Assert.Equal(
+            ["initializeResourcesGraph", "updateResourcesGraph", "updateResourcesGraphSelected"],
+            module.Invocations.Select(i => i.Identifier)));
+
+        await cut.InvokeAsync(() => tabs.ActiveTabChanged.InvokeAsync(tableTab));
+        disconnected = true;
+        await cut.InvokeAsync(() => tabs.ActiveTabChanged.InvokeAsync(graphTab));
+
+        Assert.Equal(2, testSink.Writes.Count(record => record.LogLevel == LogLevel.Debug && ReferenceEquals(record.Exception, exception)));
+
+        await cut.InvokeAsync(() => tabs.ActiveTabChanged.InvokeAsync(tableTab));
+        exception = new ObjectDisposedException(nameof(Components.Pages.Resources));
+        disposeOnInvoke = () => cut.Instance.DisposeAsync().AsTask();
+        await cut.InvokeAsync(() => tabs.ActiveTabChanged.InvokeAsync(graphTab));
+
+        Assert.Single(testSink.Writes, record => record.LogLevel == LogLevel.Debug && ReferenceEquals(record.Exception, exception));
+        Assert.False(Renderer.UnhandledException.IsCompleted);
+    }
+
     [Theory]
     [InlineData(true, false, 0)]
     [InlineData(true, true, 0)]
@@ -482,6 +604,7 @@ public partial class ResourcesTests : DashboardTestContext
 
         var dialog = Assert.Single(dialogs);
         Assert.Equal("resources.mmd", dialog.DownloadFileName);
+        Assert.Equal(Aspire.Dashboard.Resources.Resources.ResourcesGraphExportMermaidDescription, dialog.MarkdownDescription);
         Assert.Equal(DashboardUIHelpers.PlaintextFormat, dialog.FixedFormat);
         Assert.False(dialog.ContainsSecret);
         Assert.Empty(JSInterop.Invocations["downloadStreamAsFile"]);
@@ -537,10 +660,11 @@ public partial class ResourcesTests : DashboardTestContext
             viewport,
             dashboardClient);
 
+        JSInterop.SetupVoid("focusElement", _ => true).SetVoidResult();
         var resourceGraphModule = JSInterop.SetupModule("/js/app-resourcegraph.js");
-        resourceGraphModule.SetupVoid("initializeResourcesGraph", _ => true);
-        resourceGraphModule.SetupVoid("updateResourcesGraph", _ => true);
-        resourceGraphModule.SetupVoid("selectResource", _ => true);
+        resourceGraphModule.SetupVoid("initializeResourcesGraph", _ => true).SetVoidResult();
+        resourceGraphModule.SetupVoid("updateResourcesGraph", _ => true).SetVoidResult();
+        resourceGraphModule.SetupVoid("updateResourcesGraphSelected", _ => true).SetVoidResult();
         var menuStateHandler = resourceGraphModule.SetupVoid("updateResourcesGraphContextMenu", _ => true);
         menuStateHandler.SetVoidResult();
 

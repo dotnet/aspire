@@ -1,3 +1,8 @@
+.metrics-empty-content {
+    height: auto;
+    padding: 58px var(--spacingHorizontalXL) var(--spacingVerticalXL);
+}
+
 ::deep .meter-name-title,
 ::deep .metrics-chart-header h3 {
     overflow: hidden;
@@ -68,6 +73,8 @@
 
 ::deep .metrics-chart-header {
     grid-area: header;
+    max-width: 800px;
+    margin-right: 8px;
     overflow-x: hidden;
 }
 
