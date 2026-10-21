@@ -30,7 +30,7 @@ internal sealed class AzureFrontDoorPrivateLinkConfigurator(AzureResourceInfrast
         FrontDoorOriginGroup originGroup,
         FrontDoorOrigin origin)
     {
-        if (computeEnvironment is not IAzureFrontDoorPrivateLinkTarget environment ||
+        if (computeEnvironment is not IAzureCdnPrivateLinkTarget environment ||
             !environment.Annotations.OfType<PrivateEndpointTargetAnnotation>().Any(annotation => annotation.PrivateEndpointResource is AzureFrontDoorResource))
         {
             return false;
@@ -99,7 +99,7 @@ internal sealed class AzureFrontDoorPrivateLinkConfigurator(AzureResourceInfrast
     }
 
     private (ProvisioningParameter EnvironmentId, BicepValue<string> Location) CreateTarget(
-        IAzureFrontDoorPrivateLinkTarget environment,
+        IAzureCdnPrivateLinkTarget environment,
         AzureFrontDoorPrivateLinkAnnotation connection)
     {
         var environmentIdentifier = Infrastructure.NormalizeBicepIdentifier(environment.Name);

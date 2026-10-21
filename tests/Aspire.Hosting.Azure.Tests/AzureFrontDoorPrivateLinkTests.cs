@@ -472,7 +472,7 @@ public class AzureFrontDoorPrivateLinkTests(ITestOutputHelper testOutputHelper)
 
         var environment = builder.AddAzureContainerAppEnvironment("env");
 
-        var target = Assert.IsAssignableFrom<IAzureFrontDoorPrivateLinkTarget>(environment.Resource);
+        var target = Assert.IsAssignableFrom<IAzureCdnPrivateLinkTarget>(environment.Resource);
         Assert.Equal("managedEnvironments", target.PrivateLinkGroupId);
         Assert.Equal("AZURE_CONTAINER_APPS_ENVIRONMENT_ID", target.Id.Name);
         Assert.Equal("AZURE_CONTAINER_APPS_ENVIRONMENT_LOCATION", target.Location.Name);
@@ -503,7 +503,7 @@ public class AzureFrontDoorPrivateLinkTests(ITestOutputHelper testOutputHelper)
 
     // A compute environment other than Azure Container Apps that Front Door can reach over Private Link.
     private sealed class TestPrivateLinkTarget(string name)
-        : AzureProvisioningResource(name, _ => { }), IAzureFrontDoorPrivateLinkTarget
+        : AzureProvisioningResource(name, _ => { }), IAzureCdnPrivateLinkTarget
     {
         public BicepOutputReference Id => new("id", this);
 

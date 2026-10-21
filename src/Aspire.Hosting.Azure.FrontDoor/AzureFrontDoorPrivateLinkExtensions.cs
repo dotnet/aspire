@@ -19,7 +19,7 @@ public static class AzureFrontDoorPrivateLinkExtensions
     /// Link and disables public network access to the environment, so that the apps in the environment are reachable only
     /// through the Front Door.
     /// </summary>
-    /// <typeparam name="T">The type of the compute environment, which implements <see cref="IAzureFrontDoorPrivateLinkTarget"/>.</typeparam>
+    /// <typeparam name="T">The type of the compute environment, which implements <see cref="IAzureCdnPrivateLinkTarget"/>.</typeparam>
     /// <param name="environment">The compute environment to connect to.</param>
     /// <param name="frontDoor">
     /// The Azure Front Door, created with <see cref="AzureFrontDoorExtensions.AddAzureFrontDoor"/>, whose origins in
@@ -110,7 +110,7 @@ public static class AzureFrontDoorPrivateLinkExtensions
         this IResourceBuilder<T> environment,
         IResourceBuilder<AzureFrontDoorResource> frontDoor,
         string? privateLinkLocation = null)
-        where T : IAzureFrontDoorPrivateLinkTarget
+        where T : IAzureCdnPrivateLinkTarget
     {
         ArgumentNullException.ThrowIfNull(environment);
         ArgumentNullException.ThrowIfNull(frontDoor);
