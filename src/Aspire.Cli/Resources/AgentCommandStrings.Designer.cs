@@ -783,7 +783,6 @@ namespace Aspire.Cli.Resources {
         internal static string InitCommand_ExistingConfigurationConflict => ResourceManager.GetString("InitCommand_ExistingConfigurationConflict", resourceCulture);
         internal static string InitCommand_AspireSourceOptionDescription => ResourceManager.GetString("InitCommand_AspireSourceOptionDescription", resourceCulture);
         internal static string InitCommand_EmbeddedSkillsChoice => ResourceManager.GetString("InitCommand_EmbeddedSkillsChoice", resourceCulture);
-        internal static string InitCommand_ClientAcquisitionNotice => ResourceManager.GetString("InitCommand_ClientAcquisitionNotice", resourceCulture);
         internal static string InitCommand_ConfigureAspireSourcePrompt => ResourceManager.GetString("InitCommand_ConfigureAspireSourcePrompt", resourceCulture);
         internal static string InitCommand_InvalidSkills => ResourceManager.GetString("InitCommand_InvalidSkills", resourceCulture);
         internal static string InitCommand_AspireSkillChoice => ResourceManager.GetString("InitCommand_AspireSkillChoice", resourceCulture);
@@ -795,10 +794,8 @@ namespace Aspire.Cli.Resources {
         internal static string InitCommand_NativeSkillsChoice => ResourceManager.GetString("InitCommand_NativeSkillsChoice", resourceCulture);
         internal static string InitCommand_NativeSkillsConflict => ResourceManager.GetString("InitCommand_NativeSkillsConflict", resourceCulture);
         internal static string InitCommand_PluginRiskWarning => ResourceManager.GetString("InitCommand_PluginRiskWarning", resourceCulture);
-        internal static string InitCommand_RegisteredTarget => ResourceManager.GetString("InitCommand_RegisteredTarget", resourceCulture);
-        internal static string InitCommand_UnchangedTarget => ResourceManager.GetString("InitCommand_UnchangedTarget", resourceCulture);
-        internal static string InitCommand_ProjectScopeLabel => ResourceManager.GetString("InitCommand_ProjectScopeLabel", resourceCulture);
-        internal static string InitCommand_GlobalScopeLabel => ResourceManager.GetString("InitCommand_GlobalScopeLabel", resourceCulture);
+        internal static string InitCommand_ConfiguredTargets => ResourceManager.GetString("InitCommand_ConfiguredTargets", resourceCulture);
+        internal static string InitCommand_ConfigurationTarget => ResourceManager.GetString("InitCommand_ConfigurationTarget", resourceCulture);
         internal static string LocalSkills_ReadFailed => ResourceManager.GetString("LocalSkills_ReadFailed", resourceCulture);
     }
 }

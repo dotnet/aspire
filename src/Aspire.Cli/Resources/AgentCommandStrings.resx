@@ -305,13 +305,10 @@
     <comment>{0} identifies the conflicting JSON setting or environment override.</comment>
   </data>
   <data name="InitCommand_AspireSourceOptionDescription" xml:space="preserve">
-    <value>Source for the selected Aspire integration: native (register the complete plugin/catalog) or embedded (copy all applicable skills). Prompts when interactive; defaults to embedded otherwise</value>
+    <value>Source for the selected Aspire integration: native (register the complete plugin) or embedded (install bundled skill files). Prompts when interactive; defaults to embedded otherwise</value>
   </data>
   <data name="InitCommand_EmbeddedSkillsChoice" xml:space="preserve">
-    <value>Embedded (copy all applicable Aspire skills)</value>
-  </data>
-  <data name="InitCommand_ClientAcquisitionNotice" xml:space="preserve">
-    <value>Registration does not install or load content. Your agent controls downloads, trust, activation, and MCP startup; some policies and runtime overrides cannot be checked offline.</value>
+    <value>Embedded (bundled skill files)</value>
   </data>
   <data name="InitCommand_ConfigureAspireSourcePrompt" xml:space="preserve">
     <value>Which source do you want to use for Aspire?</value>
@@ -320,7 +317,7 @@
     <value>Invalid skill/tool selection '{0}'. Use {1}, '{2}', or '{3}'.</value>
   </data>
   <data name="InitCommand_AspireSkillChoice" xml:space="preserve">
-    <value>Aspire (remote plugin/catalog or embedded skills)</value>
+    <value>Aspire (remote plugin or embedded skills)</value>
   </data>
   <data name="InitCommand_PlaywrightSkillChoice" xml:space="preserve">
     <value>Playwright CLI and skills</value>
@@ -329,45 +326,39 @@
     <value>dotnet-inspect bootstrap skill</value>
   </data>
   <data name="InitCommand_FailedTarget" xml:space="preserve">
-    <value>Failed to configure Aspire plugin/catalog for {0} ({1}):
-  {2}</value>
+    <value>Failed to configure Aspire plugin:
+  {0}</value>
+    <comment>{0} lists each agent's configuration path and failure details, one target per line.</comment>
   </data>
   <data name="InitCommand_InvalidAspireSource" xml:space="preserve">
     <value>Invalid Aspire source '{0}'. Choose either 'native' or 'embedded'.</value>
   </data>
   <data name="InitCommand_LocalSkillsConflict" xml:space="preserve">
-    <value>Local Aspire skill files may override plugin/catalog skills:
-{0}
-
-These files will not be changed. To use only plugin/catalog skills, preserve any customizations before removing these files.</value>
+    <value>Local Aspire skill files may override plugin skills:
+{0}</value>
     <comment>{0} lists the local skill entry-point paths, one per line.</comment>
   </data>
   <data name="InitCommand_NativeSkillsChoice" xml:space="preserve">
-    <value>Remote (plugin/catalog)</value>
+    <value>Remote (plugin)</value>
   </data>
   <data name="InitCommand_NativeSkillsConflict" xml:space="preserve">
-    <value>An Aspire plugin/catalog is already enabled. Embedded skills were not installed and no configuration was changed. Keep the plugin/catalog, or disable its Aspire registration before choosing embedded skills.</value>
+    <value>The Aspire plugin is already enabled. Embedded skills were not installed and no configuration was changed. Keep the plugin, or disable its Aspire registration before choosing embedded skills.</value>
   </data>
   <data name="InitCommand_PluginRiskWarning" xml:space="preserve">
-    <value>Plugin-provided tools and scripts can execute code with your permissions. Install and use Aspire plugins or catalog content at your own risk.
-Review the source before enabling it: {0}
+    <value>Use the Aspire plugin at your own risk.
+Review the source before enabling it.
 
-Prefer skill files only? Choose Embedded, or install skills directly from the source.</value>
+Prefer skill files only? Choose Embedded, or install skills directly from {0}.</value>
     <comment>{0} is the official Aspire skills repository URL.</comment>
   </data>
-  <data name="InitCommand_RegisteredTarget" xml:space="preserve">
-    <value>Registered Aspire plugin/catalog for {0} ({1}):
-  {2}</value>
+  <data name="InitCommand_ConfiguredTargets" xml:space="preserve">
+    <value>Configured Aspire plugin:
+  {0}</value>
+    <comment>{0} lists one agent per line, with that agent's configuration paths comma-separated.</comment>
   </data>
-  <data name="InitCommand_UnchangedTarget" xml:space="preserve">
-    <value>Aspire plugin/catalog already configured for {0} ({1}):
-  {2}</value>
-  </data>
-  <data name="InitCommand_ProjectScopeLabel" xml:space="preserve">
-    <value>Project</value>
-  </data>
-  <data name="InitCommand_GlobalScopeLabel" xml:space="preserve">
-    <value>Global</value>
+  <data name="InitCommand_ConfigurationTarget" xml:space="preserve">
+    <value>{0}: {1}</value>
+    <comment>{0} is the agent name, and {1} lists its configuration paths separated by commas.</comment>
   </data>
   <data name="LocalSkills_ReadFailed" xml:space="preserve">
     <value>Could not check local Aspire skills at '{0}': {1}</value>

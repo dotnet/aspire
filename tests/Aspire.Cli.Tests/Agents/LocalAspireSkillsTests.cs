@@ -40,6 +40,7 @@ public class LocalAspireSkillsTests(ITestOutputHelper output) : IDisposable
     [Theory]
     [InlineData("GitHub Copilot", ".github")]
     [InlineData("GitHub Copilot", ".agents")]
+    [InlineData("GitHub Copilot", ".claude")]
     [InlineData("Claude Code", ".claude")]
     [InlineData("OpenCode", ".agents")]
     public async Task Find_ReportsKnownNamesWithoutInferringOwnershipOrModifyingFiles(string agent, string directory)
@@ -129,6 +130,7 @@ public class LocalAspireSkillsTests(ITestOutputHelper output) : IDisposable
 
     [Theory]
     [InlineData("GitHub Copilot", ".github")]
+    [InlineData("GitHub Copilot", ".claude")]
     [InlineData("Claude Code", ".claude")]
     [InlineData("OpenCode", ".opencode")]
     [InlineData("OpenCode", ".claude")]

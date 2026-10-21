@@ -123,19 +123,19 @@
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_AspireSkillChoice">
-        <source>Aspire (remote plugin/catalog or embedded skills)</source>
-        <target state="new">Aspire (remote plugin/catalog or embedded skills)</target>
+        <source>Aspire (remote plugin or embedded skills)</source>
+        <target state="new">Aspire (remote plugin or embedded skills)</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_AspireSourceOptionDescription">
-        <source>Source for the selected Aspire integration: native (register the complete plugin/catalog) or embedded (copy all applicable skills). Prompts when interactive; defaults to embedded otherwise</source>
-        <target state="new">Source for the selected Aspire integration: native (register the complete plugin/catalog) or embedded (copy all applicable skills). Prompts when interactive; defaults to embedded otherwise</target>
+        <source>Source for the selected Aspire integration: native (register the complete plugin) or embedded (install bundled skill files). Prompts when interactive; defaults to embedded otherwise</source>
+        <target state="new">Source for the selected Aspire integration: native (register the complete plugin) or embedded (install bundled skill files). Prompts when interactive; defaults to embedded otherwise</target>
         <note />
       </trans-unit>
-      <trans-unit id="InitCommand_ClientAcquisitionNotice">
-        <source>Registration does not install or load content. Your agent controls downloads, trust, activation, and MCP startup; some policies and runtime overrides cannot be checked offline.</source>
-        <target state="new">Registration does not install or load content. Your agent controls downloads, trust, activation, and MCP startup; some policies and runtime overrides cannot be checked offline.</target>
-        <note />
+      <trans-unit id="InitCommand_ConfigurationTarget">
+        <source>{0}: {1}</source>
+        <target state="new">{0}: {1}</target>
+        <note>{0} is the agent name, and {1} lists its configuration paths separated by commas.</note>
       </trans-unit>
       <trans-unit id="InitCommand_ConfigureAspireSourcePrompt">
         <source>Which source do you want to use for Aspire?</source>
@@ -152,6 +152,13 @@
         <target state="new">Configure the Aspire MCP server for selected agent environments?</target>
         <note />
       </trans-unit>
+      <trans-unit id="InitCommand_ConfiguredTargets">
+        <source>Configured Aspire plugin:
+  {0}</source>
+        <target state="new">Configured Aspire plugin:
+  {0}</target>
+        <note>{0} lists one agent per line, with that agent's configuration paths comma-separated.</note>
+      </trans-unit>
       <trans-unit id="InitCommand_Description">
         <source>Initialize configuration and skills for selected agent clients</source>
         <target state="needs-review-translation">Инициализировать конфигурацию среды агента для обнаруженных агентов.</target>
@@ -163,8 +170,8 @@
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_EmbeddedSkillsChoice">
-        <source>Embedded (copy all applicable Aspire skills)</source>
-        <target state="new">Embedded (copy all applicable Aspire skills)</target>
+        <source>Embedded (bundled skill files)</source>
+        <target state="new">Embedded (bundled skill files)</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_EnvironmentLocationDescription">
@@ -183,11 +190,11 @@
         <note>{0} identifies the conflicting JSON setting or environment override.</note>
       </trans-unit>
       <trans-unit id="InitCommand_FailedTarget">
-        <source>Failed to configure Aspire plugin/catalog for {0} ({1}):
-  {2}</source>
-        <target state="new">Failed to configure Aspire plugin/catalog for {0} ({1}):
-  {2}</target>
-        <note />
+        <source>Failed to configure Aspire plugin:
+  {0}</source>
+        <target state="new">Failed to configure Aspire plugin:
+  {0}</target>
+        <note>{0} lists each agent's configuration path and failure details, one target per line.</note>
       </trans-unit>
       <trans-unit id="InitCommand_FailedToInstallSkill">
         <source>Failed to install {0} skill at {1}: {2}</source>
@@ -197,11 +204,6 @@
       <trans-unit id="InitCommand_GlobalScope">
         <source>Global (Install in your home directory; available across all projects)</source>
         <target state="new">Global (Install in your home directory; available across all projects)</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="InitCommand_GlobalScopeLabel">
-        <source>Global</source>
-        <target state="new">Global</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_InstallationLocations">
@@ -250,14 +252,10 @@
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_LocalSkillsConflict">
-        <source>Local Aspire skill files may override plugin/catalog skills:
-{0}
-
-These files will not be changed. To use only plugin/catalog skills, preserve any customizations before removing these files.</source>
-        <target state="new">Local Aspire skill files may override plugin/catalog skills:
-{0}
-
-These files will not be changed. To use only plugin/catalog skills, preserve any customizations before removing these files.</target>
+        <source>Local Aspire skill files may override plugin skills:
+{0}</source>
+        <target state="new">Local Aspire skill files may override plugin skills:
+{0}</target>
         <note>{0} lists the local skill entry-point paths, one per line.</note>
       </trans-unit>
       <trans-unit id="InitCommand_McpConfigurationDescription">
@@ -276,13 +274,13 @@ These files will not be changed. To use only plugin/catalog skills, preserve any
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_NativeSkillsChoice">
-        <source>Remote (plugin/catalog)</source>
-        <target state="new">Remote (plugin/catalog)</target>
+        <source>Remote (plugin)</source>
+        <target state="new">Remote (plugin)</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_NativeSkillsConflict">
-        <source>An Aspire plugin/catalog is already enabled. Embedded skills were not installed and no configuration was changed. Keep the plugin/catalog, or disable its Aspire registration before choosing embedded skills.</source>
-        <target state="new">An Aspire plugin/catalog is already enabled. Embedded skills were not installed and no configuration was changed. Keep the plugin/catalog, or disable its Aspire registration before choosing embedded skills.</target>
+        <source>The Aspire plugin is already enabled. Embedded skills were not installed and no configuration was changed. Keep the plugin, or disable its Aspire registration before choosing embedded skills.</source>
+        <target state="new">The Aspire plugin is already enabled. Embedded skills were not installed and no configuration was changed. Keep the plugin, or disable its Aspire registration before choosing embedded skills.</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_NoConfigurationSelected">
@@ -301,31 +299,19 @@ These files will not be changed. To use only plugin/catalog skills, preserve any
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_PluginRiskWarning">
-        <source>Plugin-provided tools and scripts can execute code with your permissions. Install and use Aspire plugins or catalog content at your own risk.
-Review the source before enabling it: {0}
+        <source>Use the Aspire plugin at your own risk.
+Review the source before enabling it.
 
-Prefer skill files only? Choose Embedded, or install skills directly from the source.</source>
-        <target state="new">Plugin-provided tools and scripts can execute code with your permissions. Install and use Aspire plugins or catalog content at your own risk.
-Review the source before enabling it: {0}
+Prefer skill files only? Choose Embedded, or install skills directly from {0}.</source>
+        <target state="new">Use the Aspire plugin at your own risk.
+Review the source before enabling it.
 
-Prefer skill files only? Choose Embedded, or install skills directly from the source.</target>
+Prefer skill files only? Choose Embedded, or install skills directly from {0}.</target>
         <note>{0} is the official Aspire skills repository URL.</note>
       </trans-unit>
       <trans-unit id="InitCommand_ProjectScope">
         <source>Project (Install in your workspace root; committed with your project)</source>
         <target state="new">Project (Install in your workspace root; committed with your project)</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="InitCommand_ProjectScopeLabel">
-        <source>Project</source>
-        <target state="new">Project</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="InitCommand_RegisteredTarget">
-        <source>Registered Aspire plugin/catalog for {0} ({1}):
-  {2}</source>
-        <target state="new">Registered Aspire plugin/catalog for {0} ({1}):
-  {2}</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_ScopeOptionDescription">
@@ -381,13 +367,6 @@ Prefer skill files only? Choose Embedded, or install skills directly from the so
       <trans-unit id="InitCommand_TelemetryHooksInstalled">
         <source>Installed Aspire agent telemetry hooks for: {0}. Only Aspire skill, MCP tool, and reference-file usage is recorded. Opt out anytime by setting ASPIRE_CLI_TELEMETRY_OPTOUT=true.</source>
         <target state="new">Installed Aspire agent telemetry hooks for: {0}. Only Aspire skill, MCP tool, and reference-file usage is recorded. Opt out anytime by setting ASPIRE_CLI_TELEMETRY_OPTOUT=true.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="InitCommand_UnchangedTarget">
-        <source>Aspire plugin/catalog already configured for {0} ({1}):
-  {2}</source>
-        <target state="new">Aspire plugin/catalog already configured for {0} ({1}):
-  {2}</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_WorkspaceRootOptionDescription">

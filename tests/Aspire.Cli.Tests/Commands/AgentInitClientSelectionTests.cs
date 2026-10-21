@@ -1309,18 +1309,20 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
 
     [Theory]
     [InlineData("native", "copied")]
+    [InlineData("native", "shared")]
     [InlineData("native", "unreadable")]
     [InlineData("embedded", "native")]
     [InlineData("embedded", "malformed")]
     public async Task ExistingSources_WarnForCopiedSkillsButStopForInvalidOrEnabledNativeSettings(string source, string existing)
     {
         using var context = new AgentConfigurationTestContext(outputHelper);
-        var path = existing is "copied" or "unreadable"
+        var hasCopiedSkills = existing is "copied" or "shared";
+        var path = hasCopiedSkills || existing == "unreadable"
             ? Path.Combine(context.Home.FullName, ".agents", "skills", "aspire", "SKILL.md")
             : Path.Combine(context.CopilotDirectory, "settings.json");
         var content = existing switch
         {
-            "copied" => "My customized Aspire instructions.",
+            "copied" or "shared" => "My customized Aspire instructions.",
             "native" => """{"enabledPlugins":{"aspire@aspire-skills":true}}""",
             _ => "{broken"
         };
@@ -1332,8 +1334,9 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
         {
             await AgentConfigurationTestContext.WriteAsync(path, content);
         }
-        var projectSkillPath = Path.Combine(context.Project.FullName, ".agents", "skills", "aspire-init", "SKILL.md");
-        if (existing == "copied")
+        var projectDirectory = existing == "shared" ? ".claude" : ".agents";
+        var projectSkillPath = Path.Combine(context.Project.FullName, projectDirectory, "skills", "aspire-init", "SKILL.md");
+        if (hasCopiedSkills)
         {
             await AgentConfigurationTestContext.WriteAsync(projectSkillPath, content);
         }
@@ -1354,7 +1357,7 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
         var result = provider.GetRequiredService<RootCommand>().Parse(
             $"agent init --agents copilot --scope global --skills all --aspire-source {source} --mcp");
 
-        Assert.Equal(existing == "copied" ? CliExitCodes.Success : CliExitCodes.InvalidCommand,
+        Assert.Equal(hasCopiedSkills ? CliExitCodes.Success : CliExitCodes.InvalidCommand,
             await result.InvokeAsync().DefaultTimeout());
         if (existing == "unreadable")
         {
@@ -1364,17 +1367,18 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
         {
             Assert.Equal(content, await File.ReadAllTextAsync(path));
         }
-        if (existing == "copied")
+        if (hasCopiedSkills)
         {
             Assert.Empty(interaction.DisplayedErrors);
             Assert.Contains(interaction.DisplayedMessages, message => message.Emoji.Equals(KnownEmojis.Warning) &&
                 message.Message == string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_LocalSkillsConflict,
                     string.Join(System.Environment.NewLine,
-                        "  .agents/skills/aspire-init/SKILL.md",
+                        $"  {projectDirectory}/skills/aspire-init/SKILL.md",
                         "  ~/.agents/skills/aspire/SKILL.md")));
             Assert.Equal(content, await File.ReadAllTextAsync(projectSkillPath));
             Assert.True(File.Exists(context.Copilot.GetIntegrationConfigPath(AgentConfigurationScope.Global, context.Project)));
             Assert.True(File.Exists(context.Copilot.GetMcpConfigPath(AgentConfigurationScope.Global, context.Project)));
+            Assert.False(File.Exists(context.ClaudeCode.GetIntegrationConfigPath(AgentConfigurationScope.Global, context.Project)));
             Assert.Equal(AgentEnvironment.CopilotCli, hooks.ConfiguredEnvironments);
         }
         else

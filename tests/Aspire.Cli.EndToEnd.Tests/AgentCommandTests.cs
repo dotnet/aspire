@@ -327,8 +327,8 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
             s => s.ContainsText("Which source do you want to use for Aspire?"),
             timeout: TimeSpan.FromSeconds(60), description: "Aspire skills-source selection");
         var skillSelectionScreen = auto.CreateSnapshot().GetScreenText();
-        Assert.Contains("Embedded (copy all applicable Aspire skills)", skillSelectionScreen);
-        Assert.Contains("Remote (plugin/catalog)", skillSelectionScreen);
+        Assert.Contains("Embedded (bundled skill files)", skillSelectionScreen);
+        Assert.Contains("Remote (plugin)", skillSelectionScreen);
         Assert.Contains("at your own risk", skillSelectionScreen);
         Assert.Contains("https://github.com/microsoft/aspire-skills", skillSelectionScreen);
         Assert.DoesNotContain("Install Aspire MCP server", skillSelectionScreen);
@@ -384,7 +384,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
             s => s.ContainsText("Which source do you want to use for Aspire?"),
             timeout: TimeSpan.FromSeconds(60), description: "Aspire skills-source selection");
         var skillSelectionScreen = auto.CreateSnapshot().GetScreenText();
-        Assert.Contains("Embedded (copy all applicable Aspire skills)", skillSelectionScreen);
+        Assert.Contains("Embedded (bundled skill files)", skillSelectionScreen);
         Assert.DoesNotContain("Install Aspire MCP server", skillSelectionScreen);
         await auto.EnterAsync();
 

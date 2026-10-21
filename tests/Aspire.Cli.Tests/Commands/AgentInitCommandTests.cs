@@ -968,17 +968,128 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
             message =>
             {
                 Assert.Equal(KnownEmojis.Robot, message.Emoji);
-                Assert.Equal(string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_RegisteredTarget,
-                    context.Clients.Single(value => value.Id == client).DisplayName,
-                    scope == "project" ? AgentCommandStrings.InitCommand_ProjectScopeLabel : AgentCommandStrings.InitCommand_GlobalScopeLabel,
-                    scope == "project" ? relativePath : $"~/{relativePath}"), message.Message);
-            },
-            message =>
-            {
-                Assert.Equal(KnownEmojis.Information, message.Emoji);
-                Assert.Equal(AgentCommandStrings.InitCommand_ClientAcquisitionNotice, message.Message);
+                Assert.Equal(string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_ConfiguredTargets,
+                    string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_ConfigurationTarget,
+                        context.Clients.Single(value => value.Id == client).DisplayName,
+                        scope == "project" ? relativePath : $"~/{relativePath}")), message.Message);
             });
         Assert.Empty(interaction.DisplayedErrors);
+    }
+
+    [Theory]
+    [InlineData(nameof(AgentConfigurationScope.Project))]
+    [InlineData(nameof(AgentConfigurationScope.Global))]
+    public async Task Native_CombinesNewAndExistingRegistrationsWithOneRowPerAgent(string scopeName)
+    {
+        using var context = new AgentConfigurationTestContext(outputHelper);
+        var scope = Enum.Parse<AgentConfigurationScope>(scopeName);
+        Assert.All(await context.ConfigureIntegrationAsync(scope, [context.Copilot]).DefaultTimeout(),
+            result => Assert.Equal(AgentConfigurationStatus.Configured, result.Status));
+        var interaction = new TestInteractionService();
+        var services = context.CreateServiceCollection(outputHelper, options =>
+        {
+            options.InteractionServiceFactory = _ => interaction;
+            options.AgentEnvironmentDetectorFactory = _ => new TestAgentEnvironmentDetector();
+            options.TelemetryHookConfiguratorFactory = _ => new TestTelemetryHookConfigurator();
+        });
+        using var provider = services.BuildServiceProvider();
+        var scopeRoot = scope is AgentConfigurationScope.Project ? context.Project : context.Home;
+        var prefix = scope is AgentConfigurationScope.Global ? "~/" : string.Empty;
+        var targetEntries = context.Clients.Select(client =>
+            $"{client.DisplayName}: {prefix}{Path.GetRelativePath(scopeRoot.FullName, client.GetIntegrationConfigPath(scope, context.Project)).Replace(Path.DirectorySeparatorChar, '/')}").ToArray();
+
+        for (var invocation = 0; invocation < 2; invocation++)
+        {
+            var previousMessageCount = interaction.DisplayedMessages.Count;
+            var result = provider.GetRequiredService<RootCommand>().Parse(
+                $"agent init --agents copilot,claude,opencode --scope {scope} --skills aspire --aspire-source native --mcp=false");
+
+            Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
+            var messages = interaction.DisplayedMessages.Skip(previousMessageCount).ToArray();
+            Assert.Equal(2, messages.Length);
+            Assert.Equal(KnownEmojis.Warning, messages[0].Emoji);
+            Assert.Equal(string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_ConfiguredTargets,
+                string.Join($"{System.Environment.NewLine}  ", targetEntries)),
+                Assert.Single(messages, message => message.Emoji.Equals(KnownEmojis.Robot)).Message);
+            Assert.Empty(interaction.DisplayedErrors);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Native_ListsEachAgentsSettingsOnOneRowAndKeepsFailuresSeparate(bool projectInsideHome)
+    {
+        using var context = new AgentConfigurationTestContext(outputHelper);
+        var interaction = new TestInteractionService();
+        using var provider = context.CreateServiceCollection(outputHelper, options =>
+        {
+            options.InteractionServiceFactory = _ => interaction;
+        }).BuildServiceProvider();
+        var workspaceRoot = projectInsideHome ? context.Home.CreateSubdirectory("project") : context.Project;
+        var projectPath = context.Copilot.GetIntegrationConfigPath(AgentConfigurationScope.Project, workspaceRoot);
+        var userPath = context.Copilot.GetIntegrationConfigPath(AgentConfigurationScope.Global, workspaceRoot);
+        var sharedPath = context.ClaudeCode.GetIntegrationConfigPath(AgentConfigurationScope.Project, workspaceRoot);
+        var failedPath = context.OpenCode.GetIntegrationConfigPath(AgentConfigurationScope.Project, workspaceRoot);
+        const string reason = "Could not write settings.";
+        AgentTargetResult[] results =
+        [
+            new([context.Copilot], projectPath, AgentConfigurationStatus.Configured, null),
+            new([context.Copilot], userPath, AgentConfigurationStatus.Unchanged, null),
+            new([context.Copilot, context.ClaudeCode], sharedPath, AgentConfigurationStatus.Unchanged, null),
+            new([context.Copilot], projectPath, AgentConfigurationStatus.Unchanged, null),
+            new([context.OpenCode], failedPath, AgentConfigurationStatus.Failed, reason)
+        ];
+
+        var hasErrors = provider.GetRequiredService<AgentInitCommand>().DisplayNativeConfigurationResults(
+            results, workspaceRoot);
+
+        Assert.True(hasErrors);
+        var message = Assert.Single(interaction.DisplayedMessages);
+        Assert.Equal(KnownEmojis.Robot, message.Emoji);
+        Assert.Equal(string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_ConfiguredTargets,
+            "GitHub Copilot: .github/copilot/settings.json, ~/.copilot/settings.json, .claude/settings.json" +
+            $"{System.Environment.NewLine}  Claude Code: .claude/settings.json"), message.Message);
+        Assert.Equal(string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_FailedTarget,
+            $"OpenCode: opencode.jsonc{System.Environment.NewLine}  {reason}"),
+            Assert.Single(interaction.DisplayedErrors));
+        Assert.Empty(workspaceRoot.EnumerateFileSystemInfos());
+        Assert.Empty(context.Home.EnumerateFiles("*", SearchOption.AllDirectories));
+    }
+
+    [Fact]
+    public async Task Native_FailedRegistrationsKeepEachTargetWithItsReason()
+    {
+        using var context = new AgentConfigurationTestContext(outputHelper);
+        const string original = """{"enabledPlugins":{"aspire@aspire-skills":false}}""";
+        IAgentClient[] clients = [context.Copilot, context.ClaudeCode];
+        foreach (var client in clients)
+        {
+            await AgentConfigurationTestContext.WriteAsync(
+                client.GetIntegrationConfigPath(AgentConfigurationScope.Project, context.Project), original);
+        }
+        var interaction = new TestInteractionService();
+        using var provider = context.CreateServiceCollection(outputHelper, options =>
+        {
+            options.InteractionServiceFactory = _ => interaction;
+        }).BuildServiceProvider();
+
+        var result = provider.GetRequiredService<RootCommand>().Parse(
+            "agent init --agents copilot,claude --scope project --skills aspire --aspire-source native --mcp=false");
+
+        Assert.Equal(CliExitCodes.InvalidCommand, await result.InvokeAsync().DefaultTimeout());
+        var reason = string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_ExistingConfigurationConflict,
+            "enabledPlugins.aspire@aspire-skills");
+        Assert.Equal(string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_FailedTarget,
+            $"GitHub Copilot: .github/copilot/settings.json{System.Environment.NewLine}  {reason}{System.Environment.NewLine}" +
+            $"  Claude Code: .claude/settings.json{System.Environment.NewLine}  {reason}"),
+            Assert.Single(interaction.DisplayedErrors));
+        foreach (var client in clients)
+        {
+            Assert.Equal(original, await File.ReadAllTextAsync(
+                client.GetIntegrationConfigPath(AgentConfigurationScope.Project, context.Project)));
+        }
+        Assert.Empty(context.Home.EnumerateFileSystemInfos());
     }
 
     [Fact]

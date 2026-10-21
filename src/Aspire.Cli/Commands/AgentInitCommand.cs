@@ -567,38 +567,7 @@ internal sealed class AgentInitCommand : BaseCommand
         {
             cancellationToken.ThrowIfCancellationRequested();
             var results = await AgentConfigurationEditor.ApplyAsync(selectedClients, workspaceRoot, scope, cancellationToken);
-            foreach (var result in results)
-            {
-                var format = result.Status switch
-                {
-                    AgentConfigurationStatus.Configured => AgentCommandStrings.InitCommand_RegisteredTarget,
-                    AgentConfigurationStatus.Unchanged => AgentCommandStrings.InitCommand_UnchangedTarget,
-                    AgentConfigurationStatus.Failed => AgentCommandStrings.InitCommand_FailedTarget,
-                    _ => throw new UnreachableException()
-                };
-                var message = string.Format(CultureInfo.CurrentCulture, format,
-                    string.Join(", ", result.Clients.Select(client => client.DisplayName)),
-                    scope is AgentConfigurationScope.Project ? AgentCommandStrings.InitCommand_ProjectScopeLabel : AgentCommandStrings.InitCommand_GlobalScopeLabel,
-                    GetDisplayConfigurationPath(result.TargetPath, scope, workspaceRoot));
-                if (result.Status is AgentConfigurationStatus.Failed)
-                {
-                    InteractionService.DisplayError(message);
-                    hasErrors = true;
-                }
-                else
-                {
-                    InteractionService.DisplayMessage(KnownEmojis.Robot, message);
-                }
-                if (result.Message is not null)
-                {
-                    InteractionService.DisplaySubtleMessage(result.Message);
-                }
-            }
-            if (results.Any(result => result.Status is AgentConfigurationStatus.Configured or AgentConfigurationStatus.Unchanged))
-            {
-                InteractionService.DisplayEmptyLine();
-                InteractionService.DisplayMessage(KnownEmojis.Information, AgentCommandStrings.InitCommand_ClientAcquisitionNotice);
-            }
+            hasErrors |= DisplayNativeConfigurationResults(results, workspaceRoot);
         }
 
         // --- Phase 3: Apply copied skill files at each unique destination ---
@@ -900,6 +869,54 @@ internal sealed class AgentInitCommand : BaseCommand
         }
 
         return uniqueValues;
+    }
+
+    internal bool DisplayNativeConfigurationResults(IReadOnlyList<AgentTargetResult> results, DirectoryInfo workspaceRoot)
+    {
+        var hasErrors = false;
+        foreach (var resultGroup in results.GroupBy(result => result.Status switch
+        {
+            AgentConfigurationStatus.Configured or AgentConfigurationStatus.Unchanged => false,
+            AgentConfigurationStatus.Failed => true,
+            _ => throw new UnreachableException()
+        }))
+        {
+            var entries = resultGroup.SelectMany(result => result.Clients, (result, client) => (Result: result, Client: client));
+            var targets = resultGroup.Key
+                ? entries.Select(entry =>
+                {
+                    var target = string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_ConfigurationTarget,
+                        entry.Client.DisplayName, DisplayPath(entry.Result.TargetPath));
+
+                    return entry.Result.Message is null ? target : $"{target}{Environment.NewLine}  {entry.Result.Message}";
+                })
+                : entries.GroupBy(entry => entry.Client.Id, StringComparer.Ordinal).Select(agent =>
+                    string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_ConfigurationTarget,
+                        agent.First().Client.DisplayName,
+                        string.Join(", ", agent.Select(entry => entry.Result.TargetPath).Distinct(AgentPath.Comparer).Select(DisplayPath))));
+            var format = resultGroup.Key ? AgentCommandStrings.InitCommand_FailedTarget : AgentCommandStrings.InitCommand_ConfiguredTargets;
+            var message = string.Format(CultureInfo.CurrentCulture, format, string.Join($"{Environment.NewLine}  ", targets));
+            if (resultGroup.Key)
+            {
+                InteractionService.DisplayError(message);
+                hasErrors = true;
+            }
+            else
+            {
+                InteractionService.DisplayMessage(KnownEmojis.Robot, message);
+            }
+        }
+
+        return hasErrors;
+
+        string DisplayPath(string path)
+        {
+            var displayPath = GetDisplayConfigurationPath(path, AgentConfigurationScope.Project, workspaceRoot);
+
+            return Path.IsPathRooted(displayPath)
+                ? GetDisplayConfigurationPath(path, AgentConfigurationScope.Global, workspaceRoot)
+                : displayPath;
+        }
     }
 
     private string GetDisplayConfigurationPath(string path, AgentConfigurationScope scope, DirectoryInfo workspaceRoot)

@@ -75,6 +75,7 @@ public class NativeAgentConfigurationTests(ITestOutputHelper output) : IDisposab
 
     [Theory]
     [InlineData("copilot", false, """{"enabledPlugins":{"aspire@aspire-skills":false},"autoUpdate":false}""")]
+    [InlineData("copilot", true, """{"enabledPlugins":{"aspire@aspire-skills":false}}""")]
     [InlineData("claude", false, """{"enabledPlugins":{"aspire@aspire-skills":false},"autoUpdate":false}""")]
     [InlineData("claude", true, """{"enabledPlugins":{"aspire@aspire-skills":false}}""")]
     [InlineData("copilot", false, "{broken")]
