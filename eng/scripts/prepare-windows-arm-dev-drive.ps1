@@ -1,4 +1,7 @@
-# Prepare Windows ARM build storage, or verify inherited build paths without provisioning.
+# Select one eligible RAW NVMe disk after host, disk and workspace safety checks,
+# initialize GPT, and partition/format it as the D: ReFS Dev Drive. Redirect the
+# workspace through a junction and place TEMP/TMP on D:. VerifyOnly checks the
+# inherited build paths without provisioning storage.
 param(
     [string]$RunnerEnvironment,
     [switch]$VerifyOnly
