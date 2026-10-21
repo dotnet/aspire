@@ -202,7 +202,10 @@
                             </AspireTemplateColumn>
                         </ChildContent>
                         <EmptyContent>
-                            <FluentIcon Icon="Icons.Regular.Size24.GanttChart" Color="Color.Primary" />&nbsp;@Loc[nameof(Dashboard.Resources.Traces.TracesNoTraces)]
+                            <TelemetryEmptyContent>
+                                <FluentIcon Icon="Icons.Regular.Size24.GanttChart" Color="Color.Primary" />
+                                @Loc[nameof(Dashboard.Resources.Traces.TracesNoTraces)]
+                            </TelemetryEmptyContent>
                         </EmptyContent>
                     </AspireFluentDataGrid>
                 </GridColumnManager>

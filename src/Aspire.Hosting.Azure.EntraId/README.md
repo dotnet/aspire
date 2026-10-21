@@ -79,7 +79,35 @@ Changing the name or suffix targets another registration and leaves the previous
 Existing registrations with different `uniqueName` values are not automatically adopted: reference their IDs with
 `AddExistingEntraApplication` or explicitly clean them up when migrating.
 
-Configure callback URIs with `WithRedirectUris`; Aspire does not discover them automatically.
+Configure callback URIs with `WithRedirectUris`. To derive the scheme, host, and port from a resource's endpoint, pass the endpoint and the
+callback paths. When running locally the allocated endpoint URL is used; when publishing or deploying, the host comes from the resource's
+compute environment. The callback path can't be discovered, so it must match the path configured in the consuming app:
+
+```csharp
+entraWeb.WithRedirectUris(web.GetEndpoint("https"), "/signin-oidc", "/signout-callback-oidc");
+```
+
+When running locally, the endpoint's primary URL is used, so a friendly `*.dev.localhost` name is registered when the dashboard uses one.
+That URL is read when the registration's URL callback runs, so a `WithUrlForEndpoint` or `WithUrls` callback added after this call that changes
+the endpoint's host isn't reflected. Add such callbacks before calling `WithRedirectUris`.
+
+When only the host name varies per environment (for example, a custom domain supplied at deployment time), pass a parameter for the host
+and the fixed callback paths. Each URI is `https://{host}{path}`:
+
+```csharp
+var host = builder.AddParameter("web-host");
+entraWeb.WithRedirectUris(host, "/signin-oidc", "/signout-callback-oidc");
+```
+
+To supply the externally visible
+URIs per environment at deployment time (for example, behind a gateway or custom domain), pass parameters instead of literals.
+Each parameter value may contain several URIs separated by commas (split in the generated Bicep, so URIs can't contain commas
+and entries must not have surrounding whitespace). Literal and parameter-backed URIs can be mixed and are registered in call order:
+
+```csharp
+var redirectUris = builder.AddParameter("web-redirect-uris");
+entraWeb.WithRedirectUris(redirectUris);
+```
 
 For OpenID Connect sign-in flows that request an ID token directly from the authorization endpoint, explicitly enable ID-token issuance:
 
@@ -90,6 +118,21 @@ entraWeb.WithIdTokenIssuance();
 ID-token issuance through implicit or hybrid flows is disabled by default. `WithIdTokenIssuance` enables only ID-token issuance, not implicit access-token issuance, and only affects registrations created by Aspire. For existing registrations, enable **ID tokens (used for implicit and hybrid flows)** in their **Authentication** settings instead. It is not needed for authorization-code-only flows. For new production applications, prefer authorization code flow with PKCE and configure a confidential-client credential when the application redeems codes.
 
 Creating a registration does not protect a workload's routes or authorize API requests. Configure authentication and authorization in the consuming application using Microsoft.Identity.Web or the corresponding library for that language. A web-to-API flow additionally requires an API identifier URI, exposed scopes, client permissions/consent, a client credential, and scope or role validation in the API. These are not provisioned by this initial increment.
+
+### Assign explicit owners
+
+By default Aspire assigns no owners, so Microsoft Entra's default ownership behavior applies. To opt in, pass directory object IDs (users or service principals) as literals or parameters. Application and service principal ownership are configured separately:
+
+```csharp
+var ownerId = builder.AddParameter("entra-owner-id");
+
+var entraWeb = builder.AddEntraIdApplication("entra-web")
+                      .WithOwners(ownerId);
+```
+
+`WithOwners` sets both; use `WithApplicationOwners` / `WithServicePrincipalOwners` to configure them independently.
+
+Owners are appended; existing owners are never removed. Owners can manage the registration, and the deploying identity needs permission to manage owners (for example `Application.ReadWrite.All`). Existing registrations are not modified.
 
 ### Clean up created registrations
 

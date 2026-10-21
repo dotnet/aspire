@@ -144,6 +144,83 @@ public class EntraIdApplicationResource : AzureProvisioningResource
         }
     }
 
+    private static BicepList<string> CreateRedirectUris(EntraIdApplicationResource resource, AzureResourceInfrastructure infrastructure)
+    {
+        var values = resource._redirectUriValues;
+        if (values.All(static v => v is string))
+        {
+            return [.. values.OfType<string>()];
+        }
+
+        // Parameter values are only known at deployment time, so each is split on commas in Bicep. Consecutive
+        // literals and endpoint-derived URIs are grouped into one array to keep the call order:
+        //   concat(['https://literal', endpointRedirectUri0], split(redirectUris, ','), split(otherRedirectUris, ','))
+        var arguments = new List<BicepExpression>();
+        var literals = new List<BicepExpression>();
+
+        // Derived URIs get generated parameter names. Reserve the names of every user-supplied parameter first, in any
+        // call order, so a generated name never overwrites a parameter such as one named "redirectUri0".
+        var reservedNames = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var parameter in values.Concat(resource.ApplicationOwners).Concat(resource.ServicePrincipalOwners).OfType<ParameterResource>())
+        {
+            reservedNames.Add(Infrastructure.NormalizeBicepIdentifier(parameter.Name));
+        }
+
+        var endpointIndex = 0;
+        string NextDerivedParameterName()
+        {
+            string name;
+            do
+            {
+                name = $"redirectUri{endpointIndex++}";
+            }
+            while (reservedNames.Contains(name));
+
+            return name;
+        }
+
+        foreach (var value in values)
+        {
+            if (value is string literal)
+            {
+                literals.Add(new StringLiteralExpression(literal));
+                continue;
+            }
+
+            if (value is IEntraIdDerivedRedirectUri derivedRedirectUri)
+            {
+                // The value is only known when the parameter is resolved: after endpoint allocation when running
+                // locally, from the compute environment when deploying, or from the host parameter's value.
+                var uriParameter = derivedRedirectUri
+                    .CreateExpression()
+                    .AsProvisioningParameter(infrastructure, NextDerivedParameterName());
+                literals.Add(uriParameter.Value.Compile());
+                continue;
+            }
+
+            if (literals.Count > 0)
+            {
+                arguments.Add(new ArrayExpression([.. literals]));
+                literals.Clear();
+            }
+
+            arguments.Add(new FunctionCallExpression(
+                new IdentifierExpression("split"),
+                ((ParameterResource)value).AsProvisioningParameter(infrastructure).Value.Compile(),
+                new StringLiteralExpression(",")));
+        }
+
+        if (literals.Count > 0)
+        {
+            arguments.Add(new ArrayExpression([.. literals]));
+        }
+
+        BicepExpression expression = arguments.Count == 1
+            ? arguments[0]
+            : new FunctionCallExpression(new IdentifierExpression("concat"), [.. arguments]);
+        return BicepList<string>.FromExpression(static _ => string.Empty, expression);
+    }
+
     private static void ConfigureApplicationInfrastructure(AzureResourceInfrastructure infrastructure)
     {
         var resource = (EntraIdApplicationResource)infrastructure.AspireResource;
@@ -169,15 +246,23 @@ public class EntraIdApplicationResource : AzureProvisioningResource
             UniqueName = registrationName,
             SignInAudience = resource.SignInAudience.ToString(),
             RequestedAccessTokenVersion = 2,
-            RedirectUris = [.. resource.RedirectUris],
+            RedirectUris = CreateRedirectUris(resource, infrastructure),
             EnableIdTokenIssuance = resource.EnableIdTokenIssuance
         };
+        if (resource.ApplicationOwners.Count > 0)
+        {
+            application.Owners = CreateOwnerList(infrastructure, resource.ApplicationOwners, "applicationOwner");
+        }
         infrastructure.Add(application);
 
         var servicePrincipal = new MicrosoftGraphServicePrincipal("servicePrincipal")
         {
             AppId = application.AppId
         };
+        if (resource.ServicePrincipalOwners.Count > 0)
+        {
+            servicePrincipal.Owners = CreateOwnerList(infrastructure, resource.ServicePrincipalOwners, "servicePrincipalOwner");
+        }
         infrastructure.Add(servicePrincipal);
 
         infrastructure.Add(new ProvisioningOutput(EntraIdBicepConstants.ClientIdOutputName, typeof(string)) { Value = application.AppId.ToBicepExpression() });
@@ -247,13 +332,53 @@ public class EntraIdApplicationResource : AzureProvisioningResource
     public EntraIdSignInAudience SignInAudience { get; set; } = EntraIdSignInAudience.AzureADMyOrg;
 
     /// <summary>
-    /// Gets the web redirect URIs to register for an application created by Aspire.
+    /// Gets the literal web redirect URIs to register for an application created by Aspire.
     /// </summary>
     /// <remarks>
     /// These URIs are written directly into the generated infrastructure. Endpoints are not discovered automatically,
-    /// and existing registrations are not modified.
+    /// and existing registrations are not modified. Use <see cref="RedirectUriParameters"/> for URIs supplied at deployment time.
     /// </remarks>
-    public List<string> RedirectUris { get; } = [];
+    public IReadOnlyList<string> RedirectUris => [.. _redirectUriValues.OfType<string>()];
+
+    /// <summary>
+    /// Gets the parameters whose values are comma-separated lists of web redirect URIs to register for an application created by Aspire.
+    /// </summary>
+    /// <remarks>
+    /// The values are supplied at deployment time and split on commas in the generated infrastructure.
+    /// </remarks>
+    public IReadOnlyList<ParameterResource> RedirectUriParameters => [.. _redirectUriValues.OfType<ParameterResource>()];
+
+    // Holds string or ParameterResource entries in the order they were added, so registration order matches call order.
+    private readonly List<object> _redirectUriValues = [];
+
+    internal void AddRedirectUri(string redirectUri) => _redirectUriValues.Add(redirectUri);
+
+    internal void AddRedirectUri(ParameterResource redirectUri) => _redirectUriValues.Add(redirectUri);
+
+    internal void AddRedirectUri(IEntraIdDerivedRedirectUri redirectUri) => _redirectUriValues.Add(redirectUri);
+
+    // Each entry is either a literal directory object ID (string) or a ParameterResource holding one.
+    internal List<object> ApplicationOwners { get; } = [];
+
+    internal List<object> ServicePrincipalOwners { get; } = [];
+
+    private static BicepList<string> CreateOwnerList(AzureResourceInfrastructure infrastructure, IEnumerable<object> owners, string prefix)
+    {
+        var list = new BicepList<string>();
+        var index = 0;
+        foreach (var owner in owners)
+        {
+            // Only parameters need a Bicep identifier, so number just those.
+            BicepValue<string> value = owner switch
+            {
+                ParameterResource parameter => parameter.AsProvisioningParameter(infrastructure, $"{prefix}{index++}"),
+                string id => id,
+                _ => throw new InvalidOperationException("Unsupported owner type.")
+            };
+            list.Add(value);
+        }
+        return list;
+    }
 
     /// <summary>
     /// Gets or sets whether a created registration can issue ID tokens through implicit and hybrid flows.
