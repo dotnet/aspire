@@ -10,8 +10,8 @@
 
 namespace Aspire.Cli.Resources {
     using System;
-    
-    
+
+
     /// <summary>
     ///   A strongly-typed resource class, for looking up localized strings, etc.
     /// </summary>
@@ -23,15 +23,15 @@ namespace Aspire.Cli.Resources {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class McpCommandStrings {
-        
+
         private static global::System.Resources.ResourceManager resourceMan;
-        
+
         private static global::System.Globalization.CultureInfo resourceCulture;
-        
+
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
         internal McpCommandStrings() {
         }
-        
+
         /// <summary>
         ///   Returns the cached ResourceManager instance used by this class.
         /// </summary>
@@ -45,7 +45,7 @@ namespace Aspire.Cli.Resources {
                 return resourceMan;
             }
         }
-        
+
         /// <summary>
         ///   Overrides the current thread's CurrentUICulture property for all
         ///   resource lookups using this strongly typed resource class.
@@ -59,7 +59,7 @@ namespace Aspire.Cli.Resources {
                 resourceCulture = value;
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Call an MCP tool on a running resource.
         /// </summary>
@@ -68,7 +68,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("CallCommand_Description", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to JSON input to pass to the tool.
         /// </summary>
@@ -77,7 +77,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("CallCommand_InputOptionDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The name of the resource that exposes the MCP tool.
         /// </summary>
@@ -86,7 +86,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("CallCommand_ResourceArgumentDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The name of the MCP tool to call.
         /// </summary>
@@ -95,7 +95,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("CallCommand_ToolArgumentDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Warning: &apos;aspire mcp&apos; commands are deprecated and will be removed in a future release. Please use &apos;aspire agent&apos; instead..
         /// </summary>
@@ -104,7 +104,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("DeprecatedCommandWarning", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Interact with MCP (Model Context Protocol) tools exposed by Aspire resources.
         /// </summary>
@@ -113,7 +113,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("Description", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Which additional options do you want to enable?.
         /// </summary>
@@ -122,7 +122,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("InitCommand_AdditionalOptionsSelectPrompt", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Which agent environments do you want to configure?.
         /// </summary>
@@ -131,7 +131,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("InitCommand_AgentConfigurationSelectPrompt", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Agent environment configuration complete..
         /// </summary>
@@ -140,7 +140,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("InitCommand_ConfigurationComplete", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Install Playwright CLI for browser automation?.
         /// </summary>
@@ -149,7 +149,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("InitCommand_ConfigurePlaywrightPrompt", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Create agent environment specific instruction files?.
         /// </summary>
@@ -158,7 +158,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("InitCommand_CreateAgentInstructionsPrompt", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Initialize MCP server configuration for detected agent environments (deprecated, use &apos;agent init&apos;).
         /// </summary>
@@ -167,7 +167,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("InitCommand_Description", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Detecting agent environments....
         /// </summary>
@@ -176,7 +176,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("InitCommand_DetectingAgentEnvironments", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to No agent environments were detected..
         /// </summary>
@@ -185,7 +185,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("InitCommand_NoAgentEnvironmentsDetected", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Directory not found: {0}.
         /// </summary>
@@ -194,7 +194,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("InitCommand_WorkspaceRootNotFound", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Enter the path to the root of your workspace:.
         /// </summary>
@@ -203,7 +203,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("InitCommand_WorkspaceRootPrompt", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Workspace root path is required..
         /// </summary>
@@ -212,7 +212,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("InitCommand_WorkspaceRootRequired", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Start the MCP (Model Context Protocol) server (deprecated, use &apos;agent mcp&apos;).
         /// </summary>
@@ -221,7 +221,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("StartCommand_Description", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to List MCP tools exposed by running resources.
         /// </summary>
@@ -230,7 +230,7 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("ToolsCommand_Description", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Output format (Table or Json).
         /// </summary>

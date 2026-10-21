@@ -10,8 +10,8 @@
 
 namespace Aspire.Dashboard.Resources {
     using System;
-    
-    
+
+
     /// <summary>
     ///   A strongly-typed resource class, for looking up localized strings, etc.
     /// </summary>
@@ -23,15 +23,15 @@ namespace Aspire.Dashboard.Resources {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     public class Metrics {
-        
+
         private static global::System.Resources.ResourceManager resourceMan;
-        
+
         private static global::System.Globalization.CultureInfo resourceCulture;
-        
+
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        public Metrics() {
+        internal Metrics() {
         }
-        
+
         /// <summary>
         ///   Returns the cached ResourceManager instance used by this class.
         /// </summary>
@@ -45,7 +45,7 @@ namespace Aspire.Dashboard.Resources {
                 return resourceMan;
             }
         }
-        
+
         /// <summary>
         ///   Overrides the current thread's CurrentUICulture property for all
         ///   resource lookups using this strongly typed resource class.
@@ -59,7 +59,7 @@ namespace Aspire.Dashboard.Resources {
                 resourceCulture = value;
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Metrics.
         /// </summary>
@@ -68,7 +68,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("MetricsHeader", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Description.
         /// </summary>
@@ -77,7 +77,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("MetricsInsturementDescriptionGridNameColumnHeader", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Instrument.
         /// </summary>
@@ -86,7 +86,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("MetricsInsturementNameGridNameColumnHeader", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Last 15 minutes.
         /// </summary>
@@ -95,7 +95,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("MetricsLastFifteenMinutes", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Last 5 minutes.
         /// </summary>
@@ -104,7 +104,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("MetricsLastFiveMinutes", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Last hour.
         /// </summary>
@@ -113,7 +113,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("MetricsLastHour", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Last 1 minute.
         /// </summary>
@@ -122,7 +122,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("MetricsLastOneMinute", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Last 6 hours.
         /// </summary>
@@ -131,7 +131,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("MetricsLastSixHours", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Last 30 minutes.
         /// </summary>
@@ -140,7 +140,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("MetricsLastThirtyMinutes", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Last 3 hours.
         /// </summary>
@@ -149,7 +149,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("MetricsLastThreeHours", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Last 12 hours.
         /// </summary>
@@ -158,7 +158,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("MetricsLastTwelveHours", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to No metrics for the selected resource.
         /// </summary>
@@ -167,7 +167,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("MetricsNoMetricsForResource", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to {0} metrics.
         /// </summary>
@@ -176,7 +176,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("MetricsPageTitle", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Select a resource to view metrics.
         /// </summary>
@@ -185,7 +185,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("MetricsSelectAResource", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Select instrument..
         /// </summary>
@@ -194,7 +194,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("MetricsSelectInstrument", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to View attributes.
         /// </summary>
@@ -203,7 +203,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("MetricsViewAttributesToolbar", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Metrics capture paused at {0}.
         /// </summary>

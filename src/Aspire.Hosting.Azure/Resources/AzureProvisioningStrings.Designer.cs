@@ -10,8 +10,8 @@
 
 namespace Aspire.Hosting.Azure.Resources {
     using System;
-    
-    
+
+
     /// <summary>
     ///   A strongly-typed resource class, for looking up localized strings, etc.
     /// </summary>
@@ -23,15 +23,15 @@ namespace Aspire.Hosting.Azure.Resources {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class AzureProvisioningStrings {
-        
+
         private static global::System.Resources.ResourceManager resourceMan;
-        
+
         private static global::System.Globalization.CultureInfo resourceCulture;
-        
+
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
         internal AzureProvisioningStrings() {
         }
-        
+
         /// <summary>
         ///   Returns the cached ResourceManager instance used by this class.
         /// </summary>
@@ -45,7 +45,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return resourceMan;
             }
         }
-        
+
         /// <summary>
         ///   Overrides the current thread's CurrentUICulture property for all
         ///   resource lookups using this strongly typed resource class.
@@ -59,7 +59,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 resourceCulture = value;
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to This requests cancellation of the active Azure operation that includes this resource, or the active Azure deployment for this resource. If the operation includes other Azure resources, they will be canceled too. Azure may continue work that cannot be canceled immediately, and resources already created are not deleted. Do you want to continue?.
         /// </summary>
@@ -68,7 +68,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("CancelCommandConfirmation", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Requests cancellation of the active Azure operation or deployment for this resource..
         /// </summary>
@@ -77,7 +77,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("CancelCommandDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Cancel.
         /// </summary>
@@ -86,7 +86,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("CancelCommandName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure cancellation requested..
         /// </summary>
@@ -95,7 +95,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("CancelCommandSuccess", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to This updates the Azure context for this AppHost and reprovisions all Azure resources using the values you enter next..
         /// </summary>
@@ -104,7 +104,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ChangeAzureContextCommandConfirmation", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Updates the Azure tenant, subscription, resource group, or location for this AppHost and reprovisions all Azure resources..
         /// </summary>
@@ -113,7 +113,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ChangeAzureContextCommandDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Change Azure context.
         /// </summary>
@@ -122,7 +122,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ChangeAzureContextCommandName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure context updated and resources reprovisioned..
         /// </summary>
@@ -131,7 +131,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ChangeAzureContextCommandSuccess", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Changes the Azure location for this resource. If Aspire must delete and recreate the existing Azure resource, any data in it may be permanently lost..
         /// </summary>
@@ -140,7 +140,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ChangeResourceLocationCommandDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Change location.
         /// </summary>
@@ -149,7 +149,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ChangeResourceLocationCommandName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure resource location updated and reprovisioning completed..
         /// </summary>
@@ -158,7 +158,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ChangeResourceLocationCommandSuccess", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Allow Aspire to delete and recreate the existing Azure resource when changing its location. Any data in the deleted resource may be permanently lost..
         /// </summary>
@@ -167,7 +167,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ChangeResourceLocationConfirmDeleteDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Allow deletion and possible permanent data loss.
         /// </summary>
@@ -176,7 +176,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ChangeResourceLocationConfirmDeleteLabel", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Changing the location of Azure resource &apos;{0}&apos; requires deleting and recreating it. Any data in the deleted resource may be permanently lost. Set the &apos;{1}&apos; command argument to true to continue..
         /// </summary>
@@ -185,7 +185,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ChangeResourceLocationDeleteConfirmationRequiredFormat", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure Key Vault resources cannot change location because soft-deleted vault names remain reserved globally. Use delete, reprovision, or forget state to recover this resource..
         /// </summary>
@@ -194,7 +194,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ChangeResourceLocationKeyVaultUnsupported", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Select or enter a new Azure location for &apos;{0}&apos;. If Aspire must delete and recreate the existing Azure resource, any data in it may be permanently lost..
         /// </summary>
@@ -203,7 +203,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ChangeResourceLocationPromptMessage", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Change Azure resource location.
         /// </summary>
@@ -212,7 +212,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ChangeResourceLocationPromptTitle", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure location.
         /// </summary>
@@ -221,7 +221,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ContextPropertyLocationDisplayName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure resource group.
         /// </summary>
@@ -230,7 +230,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ContextPropertyResourceGroupDisplayName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure subscription ID.
         /// </summary>
@@ -239,7 +239,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ContextPropertySubscriptionIdDisplayName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure tenant domain.
         /// </summary>
@@ -248,7 +248,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ContextPropertyTenantDomainDisplayName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure tenant ID.
         /// </summary>
@@ -257,7 +257,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ContextPropertyTenantIdDisplayName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to This cancels the cached Azure deployment, deletes Azure resources targeted by this resource&apos;s deployment, purges recoverable Key Vaults so their names can be reused, and clears cached deployment state. Do you want to continue?.
         /// </summary>
@@ -266,7 +266,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("DeleteAzureResourceCommandConfirmation", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Cancels the cached Azure deployment, deletes Azure resources targeted by the deployment, purges recoverable Key Vaults so their names can be reused, and clears cached deployment state for this resource..
         /// </summary>
@@ -275,7 +275,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("DeleteAzureResourceCommandDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Delete Azure resource.
         /// </summary>
@@ -284,7 +284,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("DeleteAzureResourceCommandName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure resources deleted and provisioning state reset..
         /// </summary>
@@ -293,7 +293,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("DeleteAzureResourceCommandSuccess", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to This deletes the current Azure resource group and every Azure resource inside it for this AppHost, then clears the cached deployment state. Do you want to continue?.
         /// </summary>
@@ -302,7 +302,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("DeleteAzureResourcesCommandConfirmation", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Deletes the current Azure resource group for this AppHost, clears cached deployment state, and leaves the Azure context intact for reprovisioning..
         /// </summary>
@@ -311,7 +311,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("DeleteAzureResourcesCommandDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Delete Azure resources.
         /// </summary>
@@ -320,7 +320,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("DeleteAzureResourcesCommandName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure resources deleted and provisioning state reset..
         /// </summary>
@@ -329,7 +329,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("DeleteAzureResourcesCommandSuccess", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Resource-group deletion completed. These resources were not deleted: {0}..
         /// </summary>
@@ -338,7 +338,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("DeleteAzureResourcesRemainingResourcesFormat", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The listed resources were not deleted because they exist outside the resource group. Delete them separately using their service&apos;s portal or API..
         /// </summary>
@@ -347,7 +347,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("DeleteAzureResourcesRemainingResourcesWarning", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Canceled Azure resources: {0}.
         /// </summary>
@@ -356,7 +356,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("DeploymentOperationCanceledResourcesFormat", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Failed Azure resources: {0}.
         /// </summary>
@@ -365,7 +365,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("DeploymentOperationFailedResourcesFormat", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Provisioning Azure resources: {0}.
         /// </summary>
@@ -374,7 +374,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("DeploymentOperationRunningResourcesFormat", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure deployment diagnostics.
         /// </summary>
@@ -383,7 +383,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("DeploymentOperationSummaryDisplayName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure error code.
         /// </summary>
@@ -392,7 +392,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("FailurePropertyCodeDisplayName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure correlation ID.
         /// </summary>
@@ -401,7 +401,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("FailurePropertyCorrelationIdDisplayName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure current location.
         /// </summary>
@@ -410,7 +410,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("FailurePropertyCurrentLocationDisplayName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Failed Azure resources.
         /// </summary>
@@ -419,7 +419,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("FailurePropertyFailedResourcesDisplayName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure HTTP status.
         /// </summary>
@@ -428,7 +428,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("FailurePropertyHttpStatusDisplayName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure error message.
         /// </summary>
@@ -437,7 +437,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("FailurePropertyMessageDisplayName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure operation.
         /// </summary>
@@ -446,7 +446,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("FailurePropertyOperationDisplayName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure provider.
         /// </summary>
@@ -455,7 +455,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("FailurePropertyProviderDisplayName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure recommended actions.
         /// </summary>
@@ -464,7 +464,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("FailurePropertyRecommendedActionsDisplayName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure request ID.
         /// </summary>
@@ -473,7 +473,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("FailurePropertyRequestIdDisplayName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure resource name.
         /// </summary>
@@ -482,7 +482,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("FailurePropertyResourceNameDisplayName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure resource type.
         /// </summary>
@@ -491,7 +491,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("FailurePropertyResourceTypeDisplayName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure supported locations.
         /// </summary>
@@ -500,7 +500,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("FailurePropertySupportedLocationsDisplayName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure target resource ID.
         /// </summary>
@@ -509,7 +509,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("FailurePropertyTargetResourceIdDisplayName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to This clears the cached Azure deployment state for this resource and resets its provisioning snapshot..
         /// </summary>
@@ -518,7 +518,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ForgetStateCommandConfirmation", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Clears the cached Azure deployment state for this resource so it can be provisioned again using the current Azure context..
         /// </summary>
@@ -527,7 +527,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ForgetStateCommandDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Forget state.
         /// </summary>
@@ -536,7 +536,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ForgetStateCommandName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure resource provisioning state reset..
         /// </summary>
@@ -545,7 +545,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ForgetStateCommandSuccess", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Returns cached deployment state and live Azure existence information for this resource..
         /// </summary>
@@ -554,7 +554,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("GetAzureResourceCommandDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Get Azure resource.
         /// </summary>
@@ -563,7 +563,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("GetAzureResourceCommandName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure resource information retrieved..
         /// </summary>
@@ -572,16 +572,18 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("GetAzureResourceCommandSuccess", resourceCulture);
             }
         }
-        
+
         /// <summary>
-        ///   Looks up a localized string similar to Select the Azure tenant, subscription, resource group, and location Aspire should use for provisioning.  To learn more, see the [Azure provisioning docs](https://aka.ms/aspire/azure/provisioning)..
+        ///   Looks up a localized string similar to Select the Azure tenant, subscription, resource group, and location Aspire should use for provisioning.
+        ///
+        ///To learn more, see the [Azure provisioning docs](https://aka.ms/aspire/azure/provisioning)..
         /// </summary>
         internal static string InputsMessage {
             get {
                 return ResourceManager.GetString("InputsMessage", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Save.
         /// </summary>
@@ -590,7 +592,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("InputsPrimaryButtonText", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Cancel.
         /// </summary>
@@ -599,7 +601,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("InputsSecondaryButtonText", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Configure Azure context.
         /// </summary>
@@ -608,7 +610,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("InputsTitle", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure location and resource group.
         /// </summary>
@@ -617,7 +619,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("LocationDialogTitle", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Location.
         /// </summary>
@@ -626,7 +628,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("LocationLabel", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Select location.
         /// </summary>
@@ -635,7 +637,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("LocationPlaceholder", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Select your Azure location and specify resource group:.
         /// </summary>
@@ -644,7 +646,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("LocationSelectionMessage", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The model contains Azure resources that require an Azure Subscription..
         /// </summary>
@@ -653,7 +655,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("NotificationMessage", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Configure.
         /// </summary>
@@ -662,7 +664,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("NotificationPrimaryButtonText", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure provisioning.
         /// </summary>
@@ -671,7 +673,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("NotificationTitle", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure operation &apos;{0}&apos; is already running or queued for the same resource scope. Wait for it to finish or run &apos;{2}&apos; before starting &apos;{1}&apos;..
         /// </summary>
@@ -680,7 +682,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("OperationAlreadyRunningOrQueued", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Applying Azure context.
         /// </summary>
@@ -689,7 +691,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("OperationPhaseApplyingAzureContext", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Changing Azure context.
         /// </summary>
@@ -698,7 +700,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("OperationPhaseChangingAzureContext", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Changing location to {0}.
         /// </summary>
@@ -707,7 +709,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("OperationPhaseChangingLocationToFormat", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Deleting Azure resource.
         /// </summary>
@@ -716,7 +718,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("OperationPhaseDeletingAzureResource", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Deleting Azure resources.
         /// </summary>
@@ -725,7 +727,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("OperationPhaseDeletingAzureResources", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Deleting existing Azure resource before changing location to {0}.
         /// </summary>
@@ -734,7 +736,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("OperationPhaseDeletingExistingAzureResourceBeforeChangingLocationFormat", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Provisioning Azure resources.
         /// </summary>
@@ -743,7 +745,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("OperationPhaseProvisioningAzureResources", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Purging deleted Key Vault.
         /// </summary>
@@ -752,7 +754,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("OperationPhasePurgingDeletedKeyVault", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Purging recoverable Key Vault {0}.
         /// </summary>
@@ -761,7 +763,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("OperationPhasePurgingRecoverableKeyVaultFormat", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Reprovisioning.
         /// </summary>
@@ -770,7 +772,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("OperationPhaseReprovisioning", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Reprovisioning Azure resources.
         /// </summary>
@@ -779,7 +781,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("OperationPhaseReprovisioningAzureResources", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Reprovisioning in {0}.
         /// </summary>
@@ -788,7 +790,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("OperationPhaseReprovisioningInLocationFormat", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Resetting provisioning state.
         /// </summary>
@@ -797,7 +799,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("OperationPhaseResettingProvisioningState", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure operation.
         /// </summary>
@@ -806,7 +808,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("OperationPropertyNameDisplayName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure operation phase.
         /// </summary>
@@ -815,7 +817,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("OperationPropertyPhaseDisplayName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure operation started.
         /// </summary>
@@ -824,7 +826,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("OperationPropertyStartedAtDisplayName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure operation status.
         /// </summary>
@@ -833,7 +835,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("OperationPropertyStatusDisplayName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure operation target location.
         /// </summary>
@@ -842,7 +844,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("OperationPropertyTargetLocationDisplayName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to This clears the cached Azure deployment state for this AppHost and reprovisions all Azure resources again using the current Azure tenant, subscription, resource group, and location..
         /// </summary>
@@ -851,7 +853,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ReprovisionAllCommandConfirmation", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Clears the cached Azure deployment state for this AppHost and provisions all Azure resources again using the current Azure context..
         /// </summary>
@@ -860,7 +862,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ReprovisionAllCommandDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Reprovision all.
         /// </summary>
@@ -869,7 +871,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ReprovisionAllCommandName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure reprovisioning completed..
         /// </summary>
@@ -878,7 +880,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ReprovisionAllCommandSuccess", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to This clears the cached Azure deployment state for this resource and reprovisions it again using the current Azure tenant, subscription, resource group, and location..
         /// </summary>
@@ -887,7 +889,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ReprovisionResourceCommandConfirmation", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Clears the cached Azure deployment state for this resource and provisions it again using the current Azure context..
         /// </summary>
@@ -896,7 +898,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ReprovisionResourceCommandDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Reprovision.
         /// </summary>
@@ -905,7 +907,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ReprovisionResourceCommandName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure resource reprovisioning completed..
         /// </summary>
@@ -914,7 +916,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ReprovisionResourceCommandSuccess", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to This only clears the cached Azure tenant, subscription, resource group, location, and deployment state stored for this AppHost. Live Azure resources are not deleted and may be left orphaned. Do you want to continue?.
         /// </summary>
@@ -923,7 +925,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ResetProvisioningStateCommandConfirmation", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Clears the cached Azure context and deployment state for this AppHost. This does not delete live Azure resources and may leave them orphaned..
         /// </summary>
@@ -932,7 +934,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ResetProvisioningStateCommandDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Reset provisioning state.
         /// </summary>
@@ -941,7 +943,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ResetProvisioningStateCommandName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure provisioning state reset..
         /// </summary>
@@ -950,7 +952,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ResetProvisioningStateCommandSuccess", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure resource group.
         /// </summary>
@@ -959,7 +961,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ResourceGroupDialogTitle", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Resource group.
         /// </summary>
@@ -968,7 +970,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ResourceGroupLabel", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Select or enter resource group.
         /// </summary>
@@ -977,7 +979,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ResourceGroupPlaceholder", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Select your Azure resource group or enter a new name:.
         /// </summary>
@@ -986,7 +988,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ResourceGroupSelectionMessage", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure deployment canceled.
         /// </summary>
@@ -995,7 +997,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ResourceStateAzureDeploymentCanceled", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure deployment failed.
         /// </summary>
@@ -1004,7 +1006,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ResourceStateAzureDeploymentFailed", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Canceled.
         /// </summary>
@@ -1013,7 +1015,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ResourceStateCanceled", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Canceling.
         /// </summary>
@@ -1022,7 +1024,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ResourceStateCanceling", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Changing location.
         /// </summary>
@@ -1031,7 +1033,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ResourceStateChangingLocation", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Compiling ARM template.
         /// </summary>
@@ -1040,7 +1042,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ResourceStateCompilingArmTemplate", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Creating ARM Deployment.
         /// </summary>
@@ -1049,7 +1051,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ResourceStateCreatingArmDeployment", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Deleting.
         /// </summary>
@@ -1058,7 +1060,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ResourceStateDeleting", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Drifted.
         /// </summary>
@@ -1067,7 +1069,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ResourceStateDrifted", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Failed to Delete.
         /// </summary>
@@ -1076,7 +1078,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ResourceStateFailedToDelete", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Failed to Provision.
         /// </summary>
@@ -1085,7 +1087,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ResourceStateFailedToProvision", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Missing in Azure.
         /// </summary>
@@ -1094,7 +1096,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ResourceStateMissingInAzure", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Missing subscription configuration.
         /// </summary>
@@ -1103,7 +1105,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ResourceStateMissingSubscriptionConfiguration", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Provisioned.
         /// </summary>
@@ -1112,7 +1114,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ResourceStateProvisioned", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Provisioned {0} Azure resources.
         /// </summary>
@@ -1121,7 +1123,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ResourceStateProvisionedMultipleAzureResourcesFormat", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Provisioning {0} Azure resources.
         /// </summary>
@@ -1130,7 +1132,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ResourceStateProvisioningMultipleAzureResourcesFormat", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Provisioning .
         /// </summary>
@@ -1139,7 +1141,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ResourceStateProvisioningPrefix", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Provisioning {0}.
         /// </summary>
@@ -1148,7 +1150,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ResourceStateProvisioningResourceFormat", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Starting.
         /// </summary>
@@ -1157,7 +1159,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ResourceStateStarting", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Waiting for Deployment.
         /// </summary>
@@ -1166,7 +1168,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ResourceStateWaitingForDeployment", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure subscription.
         /// </summary>
@@ -1175,7 +1177,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("SubscriptionDialogTitle", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Subscription ID.
         /// </summary>
@@ -1184,7 +1186,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("SubscriptionIdLabel", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Select subscription ID.
         /// </summary>
@@ -1193,7 +1195,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("SubscriptionIdPlaceholder", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Enter your Azure subscription ID:.
         /// </summary>
@@ -1202,7 +1204,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("SubscriptionManualEntryMessage", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Select your Azure subscription:.
         /// </summary>
@@ -1211,7 +1213,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("SubscriptionSelectionMessage", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Azure tenant.
         /// </summary>
@@ -1220,7 +1222,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("TenantDialogTitle", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Tenant ID.
         /// </summary>
@@ -1229,7 +1231,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("TenantLabel", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Enter your Azure tenant ID:.
         /// </summary>
@@ -1238,7 +1240,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("TenantManualEntryMessage", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Select tenant ID.
         /// </summary>
@@ -1247,7 +1249,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("TenantPlaceholder", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Optional. Appended to the names of tenant-wide resources created by this AppHost. Leave empty to use the names from AppHost code unchanged. Changing the suffix targets different resources; previous resources are not renamed or deleted..
         /// </summary>
@@ -1256,7 +1258,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("TenantResourceSuffixDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Tenant-scoped resource suffix.
         /// </summary>
@@ -1265,7 +1267,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("TenantResourceSuffixLabel", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Add a suffix to tenant-wide resources created by this AppHost (optional)..
         /// </summary>
@@ -1274,7 +1276,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("TenantResourceSuffixSelectionMessage", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Select your Azure tenant:.
         /// </summary>
@@ -1283,7 +1285,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("TenantSelectionMessage", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Resource group name must be a valid Azure resource group name..
         /// </summary>
@@ -1292,7 +1294,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ValidationResourceGroupNameInvalid", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Subscription ID must be a valid GUID..
         /// </summary>
@@ -1301,7 +1303,7 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ValidationSubscriptionIdInvalid", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Tenant ID must be a valid GUID..
         /// </summary>
