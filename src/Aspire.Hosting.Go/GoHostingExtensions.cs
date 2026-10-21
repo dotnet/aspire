@@ -734,8 +734,8 @@ public static class GoHostingExtensions
 
         if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
         {
-            // Append after model configuration so GOFLAGS set by a later WithEnvironment call
-            // participates in the merge instead of replacing it.
+            // CLI-started resources must also support attaching later. Append after model configuration
+            // so GOFLAGS set by a later WithEnvironment call participates in the merge.
             builder.ApplicationBuilder.OnBeforeStart((_, _) =>
             {
                 if (!resource.HasAnnotationOfType<GoDelveServerAnnotation>() &&

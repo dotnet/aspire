@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.ComponentModel;
 using System.Text;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
@@ -15,7 +16,8 @@ namespace Aspire.Hosting.Go;
 /// </summary>
 internal static class GoRunDebugging
 {
-    private const string DefaultFlags = "\"-ldflags=-s=false -w=false\"";
+    private const string DebugLinkerFlags = "-s=false -w=false";
+    private const string DefaultFlags = $"\"-ldflags={DebugLinkerFlags}\"";
 
     public static async Task ConfigureEnvironmentAsync(EnvironmentCallbackContext context)
     {
@@ -55,8 +57,22 @@ internal static class GoRunDebugging
                     return;
                 }
 
+                // Per-package flags look like -ldflags=all=-X=main.version=1.2.3.
+                // Insert defaults after the optional pattern but before the user's linker options,
+                // so explicit -s/-w choices still win. Go identifies a pattern when the trimmed value
+                // does not start with '-': https://go.dev/src/cmd/go/internal/load/flag.go
+                var valueStart = flag.IndexOf('=') + 1;
+                var value = flag[valueStart..].TrimStart();
+                var patternEnd = value.StartsWith('-') ? -1 : value.IndexOf('=');
+                var linkerFlags = value[(patternEnd + 1)..];
+                // -s implies -w unless -w=false was supplied. Do not inject -w=false when the
+                // effective user -s is true; other options still override their own defaults.
+                // https://pkg.go.dev/cmd/link#hdr-Command_Line
+                var defaults = StripsSymbols(linkerFlags) ? "-s=false" : DebugLinkerFlags;
                 var quote = flag.Contains('"') ? '\'' : '"';
-                overrides.Append(' ').Append(quote).Append(flag).Append(" -s=false -w=false").Append(quote);
+                overrides.Append(' ').Append(quote).Append(flag.AsSpan(0, valueStart))
+                    .Append(value.AsSpan(0, patternEnd + 1))
+                    .Append(defaults).Append(' ').Append(linkerFlags).Append(quote);
             }
         }
 
@@ -103,24 +119,77 @@ internal static class GoRunDebugging
         var output = new StringBuilder();
         var resource = (GoAppResource)context.Resource;
         var runner = context.ExecutionContext.Services.GetRequiredService<IProcessRunner>();
-        var (resultTask, process) = runner.Run(new ProcessSpec(resource.Command)
+        try
         {
-            ArgumentList = ["env", "-json", "GOFLAGS"],
-            WorkingDirectory = resource.WorkingDirectory,
-            EnvironmentVariables = environment,
-            ResolveExecutablePath = true,
-            OnOutputData = line => output.AppendLine(line)
-        });
+            var (resultTask, process) = runner.Run(new ProcessSpec(resource.Command)
+            {
+                ArgumentList = ["env", "-json", "GOFLAGS"],
+                WorkingDirectory = resource.WorkingDirectory,
+                EnvironmentVariables = environment,
+                ResolveExecutablePath = true,
+                // Disposal awaits the process result after termination. Handle exit codes here
+                // so a terminated probe cannot replace caller cancellation with an exit exception.
+                ThrowOnNonZeroReturnCode = false,
+                OnOutputData = line => output.AppendLine(line)
+            });
 
-        await using (process)
+            await using (process)
+            {
+                var result = await resultTask.WaitAsync(context.CancellationToken).ConfigureAwait(false);
+                if (result.ExitCode != 0)
+                {
+                    throw new InvalidOperationException($"The Go settings probe exited with code {result.ExitCode}.");
+                }
+            }
+
+            using var document = JsonDocument.Parse(output.ToString());
+
+            return document.RootElement.GetProperty("GOFLAGS").GetString()
+                ?? throw new InvalidOperationException("go env returned a null GOFLAGS value.");
+        }
+        catch (Exception exception) when (!context.CancellationToken.IsCancellationRequested &&
+            exception is Win32Exception or IOException or InvalidOperationException or JsonException or KeyNotFoundException)
         {
-            await resultTask.WaitAsync(context.CancellationToken).ConfigureAwait(false);
+            context.Logger.LogWarning(exception, "Could not read GOFLAGS using 'go env -json GOFLAGS'. Continuing with default Go debugger flags.");
+            return resourceFlags ?? string.Empty;
+        }
+    }
+
+    private static bool StripsSymbols(string linkerFlags)
+    {
+        // Go accepts -s, --s and -s=<bool>; the last value wins. Value-taking options consume
+        // their next field even when it resembles a switch, e.g. -L "-s" or -buildid -w.
+        // https://pkg.go.dev/flag
+        var options = SplitFlags(linkerFlags).ToArray();
+        var stripsSymbols = false;
+        for (var index = 0; index < options.Length; index++)
+        {
+            var option = options[index];
+            if (!option.StartsWith('-') || option is "-" or "--")
+            {
+                break;
+            }
+
+            var nameStart = option.StartsWith("--", StringComparison.Ordinal) ? 2 : 1;
+            var separator = option.IndexOf('=', nameStart);
+            var name = separator < 0 ? option[nameStart..] : option[nameStart..separator];
+            if (name == "s")
+            {
+                stripsSymbols = separator < 0 || option[(separator + 1)..] is "1" or "t" or "T" or "TRUE" or "true" or "True";
+            }
+            else if (separator < 0 && name is
+                "B" or "D" or "E" or "H" or "I" or "L" or "R" or "T" or "X" or
+                "benchmark" or "benchmarkprofile" or "buildid" or "buildmode" or "capturehostobjs" or
+                "cpuprofile" or "debugtextsize" or "debugtramp" or "extar" or "extld" or "extldflags" or
+                "fipso" or "funcalign" or "importcfg" or "installsuffix" or "k" or "libgcc" or "linkmode" or
+                "macos" or "macsdk" or "memprofile" or "memprofilerate" or "o" or "pluginpath" or "r" or
+                "randlayout" or "strictdups" or "tmpdir")
+            {
+                index++;
+            }
         }
 
-        using var document = JsonDocument.Parse(output.ToString());
-
-        return document.RootElement.GetProperty("GOFLAGS").GetString()
-            ?? throw new InvalidOperationException("go env returned a null GOFLAGS value.");
+        return stripsSymbols;
     }
 
     private static IEnumerable<string> SplitFlags(string flags)

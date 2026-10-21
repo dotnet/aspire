@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.ComponentModel;
 using System.Text;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
@@ -45,7 +46,7 @@ public class GoRunDebuggingTests(ITestOutputHelper outputHelper)
     {
         var flags = mixedQuotes ? "-tags=wrapper -ldflags=-X=main.version=a'\"b" : "-tags=wrapper -ldflags=-X=main.version=wrapper";
         var expectedFlags = mixedQuotes ? flags :
-            "\"-ldflags=-s=false -w=false\" -tags=wrapper -ldflags=-X=main.version=wrapper \"-ldflags=-X=main.version=wrapper -s=false -w=false\"";
+            "\"-ldflags=-s=false -w=false\" -tags=wrapper -ldflags=-X=main.version=wrapper \"-ldflags=-s=false -w=false -X=main.version=wrapper\"";
         using var builder = TestDistributedApplicationBuilder.Create();
         var command = Path.Combine(builder.AppHostDirectory, "custom go");
         var runner = new TestProcessRunner();
@@ -67,6 +68,125 @@ public class GoRunDebuggingTests(ITestOutputHelper outputHelper)
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GoFlagsProbeFailureDoesNotPreventResourceEnvironmentEvaluation(bool processStarted)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var runner = new TestProcessRunner();
+        var startFailure = new Win32Exception(2, "The configured Go command could not be started.");
+        if (processStarted)
+        {
+            runner.EnqueueResult(exitCode: 1, output: ["""{"GOFLAGS":"-ldflags=-s"}"""]);
+        }
+        else
+        {
+            runner.EnqueueException(startFailure);
+        }
+
+        builder.Services.AddSingleton<IProcessRunner>(runner);
+        var sink = new TestSink(writeEnabled: context => context.LogLevel is LogLevel.Warning or LogLevel.Debug);
+        var logger = new TestLogger(nameof(GoRunDebuggingTests), sink, enabled: true);
+        var go = builder.AddGoApp("api", builder.AppHostDirectory)
+            .WithEnvironment("PUBLIC_VALUE", "unchanged");
+
+        await using var app = builder.Build();
+        await builder.Eventing.PublishAsync(new BeforeStartEvent(
+            app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
+        var configuration = await ExecutionConfigurationBuilder.Create(go.Resource)
+            .WithEnvironmentVariablesConfig()
+            .BuildAsync(builder.ExecutionContext, logger);
+
+        Assert.Null(configuration.Exception);
+        Assert.Equal("\"-ldflags=-s=false -w=false\"", Assert.Single(
+            configuration.EnvironmentVariables, variable => variable.Key == "GOFLAGS").Value?.Trim());
+        Assert.Equal("unchanged", Assert.Single(
+            configuration.EnvironmentVariables, variable => variable.Key == "PUBLIC_VALUE").Value);
+        var diagnostic = Assert.Single(sink.Writes);
+        if (processStarted)
+        {
+            Assert.IsType<InvalidOperationException>(diagnostic.Exception);
+            Assert.Equal(1, Assert.Single(runner.Disposables).DisposeCallCount);
+        }
+        else
+        {
+            Assert.Same(startFailure, diagnostic.Exception);
+        }
+
+        Assert.Contains("GOFLAGS", diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("invalid-json")]
+    [InlineData("{}")]
+    [InlineData("""{"GOFLAGS":null}""")]
+    [InlineData("""{"GOFLAGS":42}""")]
+    public async Task InvalidGoFlagsProbeOutputDoesNotPreventEnvironmentEvaluation(string output)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var runner = new TestProcessRunner();
+        runner.EnqueueResult(output: [output]);
+        builder.Services.AddSingleton<IProcessRunner>(runner);
+        var go = builder.AddGoApp("api", builder.AppHostDirectory);
+
+        var environment = await GetEnvironmentAsync(builder, go.Resource);
+
+        Assert.Equal("\"-ldflags=-s=false -w=false\"", environment["GOFLAGS"].Trim());
+        Assert.Equal(1, Assert.Single(runner.Disposables).DisposeCallCount);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GoFlagsProbeCancellationIsPropagated(bool processExitsNonzero)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        using var cancellation = new CancellationTokenSource();
+        var result = new TaskCompletionSource<ProcessResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var runner = new TestProcessRunner();
+        runner.EnqueuePending(result.Task);
+        runner.RunCallback = spec =>
+        {
+            if (processExitsNonzero)
+            {
+                // ProcessUtil disposal terminates the child and awaits its lifetime result.
+                Assert.Single(runner.Disposables).OnDisposeAsync = async () =>
+                {
+                    if (spec.ThrowOnNonZeroReturnCode)
+                    {
+                        result.SetException(new InvalidOperationException("The terminated probe exited nonzero."));
+                    }
+                    else
+                    {
+                        result.SetResult(new ProcessResult(1));
+                    }
+
+                    await result.Task;
+                };
+            }
+
+            cancellation.Cancel();
+        };
+        builder.Services.AddSingleton<IProcessRunner>(runner);
+        var go = builder.AddGoApp("api", builder.AppHostDirectory);
+        var sink = new TestSink();
+        await using var app = builder.Build();
+        var context = new EnvironmentCallbackContext(
+            builder.ExecutionContext, go.Resource, cancellationToken: cancellation.Token)
+        {
+            Logger = new TestLogger(nameof(GoRunDebuggingTests), sink, enabled: true)
+        };
+
+        var exception = await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => GoRunDebugging.ConfigureEnvironmentAsync(context));
+
+        Assert.Equal(cancellation.Token, exception.CancellationToken);
+        Assert.Empty(context.EnvironmentVariables);
+        Assert.Empty(sink.Writes);
+        Assert.Equal(1, Assert.Single(runner.Disposables).DisposeCallCount);
+    }
+
+    [Theory]
     [InlineData(false, false, false)]
     [InlineData(false, true, false)]
     [InlineData(true, false, false)]
@@ -77,7 +197,7 @@ public class GoRunDebuggingTests(ITestOutputHelper outputHelper)
     {
         var flags = mixedQuotes ? "-ldflags=all=-X=main.version=before -tags=netgo -ldflags=-X=main.version=a'\"b" : "-ldflags=-X=main.version=1.2.3";
         var expectedFlags = mixedQuotes ? flags :
-            "\"-ldflags=-s=false -w=false\" -ldflags=-X=main.version=1.2.3 \"-ldflags=-X=main.version=1.2.3 -s=false -w=false\"";
+            "\"-ldflags=-s=false -w=false\" -ldflags=-X=main.version=1.2.3 \"-ldflags=-s=false -w=false -X=main.version=1.2.3\"";
         using var builder = TestDistributedApplicationBuilder.Create();
         var runner = new TestProcessRunner();
         builder.Services.AddSingleton<IProcessRunner>(runner);
@@ -162,21 +282,42 @@ public class GoRunDebuggingTests(ITestOutputHelper outputHelper)
     }
 
     [Theory]
-    [InlineData(false, "", "unset", false, true)]
-    [InlineData(false, "-ldflags=-X=main.version=1.2.3", "1.2.3", false, true)]
-    [InlineData(false, "'-ldflags=-X \"main.version=hello world\"'", "hello world", false, true)]
-    [InlineData(false, "-ldflags=all=-X=main.version=1.2.3", "1.2.3", false, true)]
-    [InlineData(true, "-ldflags=-X=main.version=1.2.3", "1.2.3", false, true)]
-    [InlineData(false, "-tags=stamp -ldflags=-X=main.version=1.2.3", "1.2.3", true, true)]
-    [InlineData(false, "-ldflags=all=-X=main.version=all -ldflags=example.com/debugflags=-X=main.version=specific", "specific", false, true)]
-    [InlineData(false, "-ldflags=example.com/debugflags=-X=main.version=specific -ldflags=all=-X=main.version=all", "all", false, true)]
-    [InlineData(false, "-ldflags=-s", "unset", false, true)]
-    [InlineData(false, "-ldflags=", "unset", false, true)]
-    [InlineData(false, "-ldflags=-X=main.version=a'\"b", "a'\"b", false, false)]
-    [InlineData(true, "-ldflags=-X=main.version=a'\"b", "a'\"b", false, false)]
+    [InlineData(false, "", "unset", false, true, true)]
+    [InlineData(false, "-ldflags=-X=main.version=1.2.3", "1.2.3", false, true, true)]
+    [InlineData(false, "'-ldflags=-X \"main.version=hello world\"'", "hello world", false, true, true)]
+    [InlineData(false, "-ldflags=all=-X=main.version=1.2.3", "1.2.3", false, true, true)]
+    [InlineData(true, "-ldflags=-X=main.version=1.2.3", "1.2.3", false, true, true)]
+    [InlineData(false, "-tags=stamp -ldflags=-X=main.version=1.2.3", "1.2.3", true, true, true)]
+    [InlineData(false, "-ldflags=all=-X=main.version=all -ldflags=example.com/debugflags=-X=main.version=specific", "specific", false, true, true)]
+    [InlineData(false, "-ldflags=example.com/debugflags=-X=main.version=specific -ldflags=all=-X=main.version=all", "all", false, true, true)]
+    [InlineData(false, "-ldflags=-s", "unset", false, false, false)]
+    [InlineData(false, "\"-ldflags=-s -w\"", "unset", false, false, false)]
+    [InlineData(false, "-ldflags=-w", "unset", false, true, false)]
+    [InlineData(false, "-ldflags=-w=false", "unset", false, true, true)]
+    [InlineData(false, "-ldflags=-s=false", "unset", false, true, true)]
+    [InlineData(false, "-ldflags=--s", "unset", false, false, false)]
+    [InlineData(false, "-ldflags=--w", "unset", false, true, false)]
+    [InlineData(false, "-ldflags=--s=false", "unset", false, true, true)]
+    [InlineData(false, "-ldflags=--w=false", "unset", false, true, true)]
+    [InlineData(false, "-ldflags=-s=1", "unset", false, false, false)]
+    [InlineData(false, "-ldflags=--s=0", "unset", false, true, true)]
+    [InlineData(false, "\"-ldflags=-s -s=false\"", "unset", false, true, true)]
+    [InlineData(false, "\"-ldflags=-w -w=false\"", "unset", false, true, true)]
+    [InlineData(false, "\"-ldflags=-s -w=false\"", "unset", false, false, true)]
+    [InlineData(false, "\"-ldflags=-L -s\"", "unset", false, true, true)]
+    [InlineData(false, "'-ldflags=-L \"-w\"'", "unset", false, true, true)]
+    [InlineData(false, "-ldflags=-L=-s", "unset", false, true, true)]
+    [InlineData(false, "\"-ldflags=-L -s -s\"", "unset", false, false, false)]
+    [InlineData(false, "'-ldflags=-buildid \"-s\"'", "unset", false, true, true)]
+    [InlineData(true, "-ldflags=all=-s", "unset", false, false, false)]
+    [InlineData(false, "\"-ldflags=-s -s=false -w=false\"", "unset", false, true, true)]
+    [InlineData(false, "\"-ldflags= all = -X=main.version=space\"", "space", false, true, true)]
+    [InlineData(false, "-ldflags=", "unset", false, true, true)]
+    [InlineData(false, "-ldflags=-X=main.version=a'\"b", "a'\"b", false, false, false)]
+    [InlineData(true, "-ldflags=-X=main.version=a'\"b", "a'\"b", false, false, false)]
     [RequiresTools(["go"])]
     public async Task GoRunPreservesVersionStampAndDebugSymbolsWhenSupported(
-        bool persisted, string flags, string expectedVersion, bool expectedTagged, bool expectedDebugInformation)
+        bool persisted, string flags, string expectedVersion, bool expectedTagged, bool expectedSymbols, bool expectedDwarf)
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         File.WriteAllText(Path.Combine(workspace.Path, "go.mod"), "module example.com/debugflags\n\ngo 1.18\n");
@@ -227,9 +368,16 @@ public class GoRunDebuggingTests(ITestOutputHelper outputHelper)
                 defer image.Close()
                 var hasDwarf bool
                 if data, err := image.DWARF(); err == nil {
-                    entry, err := data.Reader().Next()
-                    if err != nil { panic(err) }
-                    hasDwarf = entry != nil
+                    reader := data.Reader()
+                    for {
+                        entry, err := reader.Next()
+                        if err != nil { panic(err) }
+                        if entry == nil { break }
+                        if entry.Tag == dwarf.TagSubprogram && entry.Val(dwarf.AttrName) == "main.main" {
+                            hasDwarf = true
+                            break
+                        }
+                    }
                 }
                 if err := json.NewEncoder(os.Stdout).Encode(map[string]any{
                     "version": version,
@@ -248,6 +396,7 @@ public class GoRunDebuggingTests(ITestOutputHelper outputHelper)
             """);
 
         using var builder = TestDistributedApplicationBuilder.Create();
+        Assert.Null(builder.Configuration["DEBUG_SESSION_PORT"]);
         var go = builder.AddGoApp("api", workspace.Path)
             .WithEnvironment("GOFLAGS", persisted ? "" : flags)
             .WithEnvironment("GOENV", "off");
@@ -281,8 +430,8 @@ public class GoRunDebuggingTests(ITestOutputHelper outputHelper)
 
         using var document = JsonDocument.Parse(output.ToString());
         Assert.Equal(expectedVersion, document.RootElement.GetProperty("version").GetString());
-        Assert.Equal(expectedDebugInformation, document.RootElement.GetProperty("dwarf").GetBoolean());
-        Assert.Equal(expectedDebugInformation, document.RootElement.GetProperty("symbols").GetBoolean());
+        Assert.Equal(expectedDwarf, document.RootElement.GetProperty("dwarf").GetBoolean());
+        Assert.Equal(expectedSymbols, document.RootElement.GetProperty("symbols").GetBoolean());
         Assert.Equal(expectedTagged, document.RootElement.GetProperty("tagged").GetBoolean());
     }
 

@@ -84,9 +84,14 @@ Aspire "Start Debugging" flow. The extension launches its own `dlv-dap` process;
 continues to run as `go run .` and no extra setup is required.
 
 To attach later, use **Attach debugger** on a running Go resource in the Aspire VS Code
-resources tree. Local `AddGoApp` launches retain symbol tables and DWARF debug information by default.
+resources tree. Local `AddGoApp` launches retain symbol tables and DWARF debug information by default,
+including when the AppHost was started with `aspire start` rather than from an IDE. No opt-in is required.
 Existing linker options in ambient, resource-provided, or persisted `GOFLAGS` are preserved
-and extended with `-s=false -w=false` for local runs.
+and receive defaults that retain symbols and DWARF information. Explicit `-s` and `-w` choices remain
+authoritative, including the rule that `-s` implies `-w` unless overridden with `-w=false`.
+A binary without the required symbols cannot support source attachment.
+If the `go env` settings probe fails, a warning is logged and startup continues with the default
+debugger flags instead of failing environment evaluation.
 If a valid linker flag contains both single and double quotes, `GOFLAGS` is left unchanged and a
 warning is logged rather than preventing startup. Automatic debug-information retention is skipped
 for that resource.
