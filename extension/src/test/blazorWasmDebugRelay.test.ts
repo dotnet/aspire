@@ -256,8 +256,14 @@ suite('Blazor WASM debug relay', () => {
             await clock.tickAsync(1000);
             client.send('start');
             await upstream.opening;
-            const clientClosed = once(client, 'close');
-            const upstreamClosed = once(upstream.requests[0].socket, 'close');
+            // Aborting a partial upgrade can emit ECONNRESET before close on macOS.
+            // Wait for close explicitly because events.once rejects on the preceding error.
+            const clientClosed = new Promise<void>(resolve => client.once('close', () => resolve()));
+            const upstreamSocket = upstream.requests[0].socket;
+            upstreamSocket.on('error', (error: NodeJS.ErrnoException) => {
+                assert.strictEqual(error.code, 'ECONNRESET');
+            });
+            const upstreamClosed = new Promise<void>(resolve => upstreamSocket.once('close', () => resolve()));
             // An incomplete upgrade can remain active on the wire without ever becoming usable.
             upstream.requests[0].socket.write('HTTP/1.1 101 Switching Protocols\r\n');
             await clock.tickAsync((timeout ?? 10000) - 1001);
