@@ -497,6 +497,10 @@ path_rules:
     targets: [test:Infrastructure.Tests]
     reason: Infrastructure.Tests/PowerShellScripts validates these CLI-archive/npm packaging scripts (DownloadNativeArchivesTests, StageNativeCliToolPackagesTests, ValidateNpmPackageSignaturesTests, ValidateNpmReleaseAliasesTests; ReleasePublishNugetPipelineTests reads validate-npm-release-aliases.ps1); the build jobs that run them are unconditional needs, so the unit verifier is the trigger that must fire
   - paths:
+      - eng/scripts/prepare-windows-storage-benchmark.ps1
+    targets: [test:Infrastructure.Tests]
+    reason: Behavioral tests validate disk eligibility for the manually dispatched Windows storage benchmark
+  - paths:
       - eng/scripts/aspire-skills-bundle.common.ps1
       - eng/test-retry-patterns.json
     targets: [test:Infrastructure.Tests]

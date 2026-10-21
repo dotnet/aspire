@@ -521,6 +521,17 @@ public sealed class TestTriggerMapTests
         Assert.Empty(result.UnmatchedFiles);
     }
 
+    [Fact]
+    public void WindowsStorageBenchmarkRunsItsSafetyTests()
+    {
+        var result = SelectWithRealMap("eng/scripts/prepare-windows-storage-benchmark.ps1");
+
+        Assert.False(result.SelectsAll);
+        Assert.Empty(result.UnmatchedFiles);
+        Assert.Equal(["Infrastructure.Tests"], result.TestProjects);
+        Assert.Empty(result.Jobs);
+    }
+
     [Theory]
     [InlineData("eng/scripts/verify-cli-npm-package.ps1")]
     [InlineData("eng/scripts/verify-cli-tool-nupkg.ps1")]

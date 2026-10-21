@@ -1,6 +1,22 @@
 name: Build native CLI archives
 
 on:
+  workflow_dispatch:
+    inputs:
+      configuration:
+        description: Build configuration shared by every benchmark variant
+        type: choice
+        options: [Release]
+        default: Release
+      benchmarkTargets:
+        description: Benchmark variants with storage, sample, and benchmarkSuffix (runner and RID are fixed)
+        type: string
+        default: >-
+          [
+            {"storage":"baseline","sample":1,"benchmarkSuffix":"-baseline-1"},
+            {"storage":"ntfs","sample":1,"benchmarkSuffix":"-ntfs-1"},
+            {"storage":"devdrive","sample":1,"benchmarkSuffix":"-devdrive-1"}
+          ]
   workflow_call:
     inputs:
       versionOverrideArg:
@@ -30,12 +46,15 @@ on:
 jobs:
 
   build_cli_archives:
-    name: Build CLI (${{ matrix.targets.rids }})
-    if: ${{ github.repository == 'microsoft/aspire' }}
-    runs-on: ${{ matrix.targets.runner }}
+    name: Build CLI (${{ matrix.targets.rids || 'win-arm64' }})${{ matrix.targets.benchmarkSuffix }}
+    # Manual storage experiments are confined to the fork; normal callers retain their existing gate.
+    if: ${{ (github.repository == 'microsoft/aspire' && !inputs.benchmarkTargets) || (github.repository == 'radical/aspire' && github.event_name == 'workflow_dispatch') }}
+    runs-on: ${{ (github.repository == 'radical/aspire' && github.event_name == 'workflow_dispatch') && 'windows-11-vs2026-arm' || matrix.targets.runner }}
+    timeout-minutes: ${{ github.repository == 'radical/aspire' && 60 || 360 }}
     strategy:
+      fail-fast: ${{ github.repository != 'radical/aspire' }}
       matrix:
-        targets: ${{ fromJson(inputs.targets) }}
+        targets: ${{ fromJson(inputs.benchmarkTargets || inputs.targets) }}
     # Compute the Aspire CLI channel from the triggering GH Actions event,
     # mirroring the algorithm in eng/pipelines/templates/build_sign_native.yml
     # (computeCliChannel step):
@@ -53,11 +72,27 @@ jobs:
     env:
       # Keep caller-supplied values out of script source; consume them as data in PowerShell.
       BUILD_CONFIGURATION: ${{ inputs.configuration }}
-      TARGET_RIDS: ${{ matrix.targets.rids }}
+      TARGET_RIDS: ${{ (github.repository == 'radical/aspire' && github.event_name == 'workflow_dispatch') && 'win-arm64' || matrix.targets.rids }}
       VERSION_OVERRIDE_ARG: ${{ inputs.versionOverrideArg }}
       ASPIRE_CLI_CHANNEL: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || (startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/internal/release/')) && 'staging' || github.ref == 'refs/heads/main' && 'local' || 'daily' }}
 
     steps:
+      - name: Prepare Windows storage benchmark
+        if: github.event_name == 'workflow_dispatch' && github.repository == 'radical/aspire'
+        shell: powershell
+        env:
+          BENCHMARK_MODE: ${{ matrix.targets.storage }}
+          BENCHMARK_SAMPLE: ${{ matrix.targets.sample }}
+          BENCHMARK_SUFFIX: ${{ matrix.targets.benchmarkSuffix }}
+          BENCHMARK_RUNNER_ENVIRONMENT: ${{ runner.environment }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # The helper must run before checkout. Fetch only this run's immutable source commit.
+          $script = Join-Path $env:RUNNER_TEMP 'prepare-windows-storage-benchmark.ps1'
+          $uri = "https://raw.githubusercontent.com/$env:GITHUB_REPOSITORY/$env:GITHUB_SHA/eng/scripts/prepare-windows-storage-benchmark.ps1"
+          Invoke-WebRequest -UseBasicParsing -Uri $uri -OutFile $script
+          & $script -Mode $env:BENCHMARK_MODE -Sample ([int]$env:BENCHMARK_SAMPLE) -Suffix $env:BENCHMARK_SUFFIX -RunnerEnvironment $env:BENCHMARK_RUNNER_ENVIRONMENT
+
       - name: Configure NuGet package cache (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
@@ -135,7 +170,7 @@ jobs:
           @versionOverrideArgs
 
       - name: Smoke test bundled Native AOT TerminalHost
-        if: ${{ !contains(matrix.targets.rids, 'musl') && ((runner.arch == 'ARM64' && endsWith(matrix.targets.rids, 'arm64')) || (runner.arch == 'X64' && endsWith(matrix.targets.rids, 'x64'))) }}
+        if: ${{ !contains(env.TARGET_RIDS, 'musl') && ((runner.arch == 'ARM64' && endsWith(env.TARGET_RIDS, 'arm64')) || (runner.arch == 'X64' && endsWith(env.TARGET_RIDS, 'x64'))) }}
         shell: pwsh
         run: >
           ./eng/scripts/test-native-terminalhost.ps1
@@ -220,7 +255,7 @@ jobs:
           }
 
       - name: Report skipped Windows ARM64 tray smoke
-        if: runner.os == 'Windows' && matrix.targets.rids == 'win-arm64'
+        if: runner.os == 'Windows' && env.TARGET_RIDS == 'win-arm64'
         shell: pwsh
         run: |
           $notice = 'Windows ARM64 native tray UI smoke is temporarily disabled on GitHub-hosted runners: notification icon registration fails in native ARM64 and emulated x64 SDK controls despite a responsive Explorer. The root cause remains unresolved. Native publishing and payload verification remain enabled; native UI behavior is not validated by this job.'
@@ -233,10 +268,10 @@ jobs:
       # Native publishing and payload verification still run.
       # https://github.com/microsoft/aspire/actions/runs/35373950404/job/105696457894
       - name: Smoke Windows native tray
-        if: runner.os == 'Windows' && matrix.targets.rids != 'win-arm64' && steps.windows_tray_desktop.outputs.available == 'true'
+        if: runner.os == 'Windows' && env.TARGET_RIDS != 'win-arm64' && steps.windows_tray_desktop.outputs.available == 'true'
         shell: pwsh
         env:
-          TRAY_RID: ${{ matrix.targets.rids }}
+          TRAY_RID: ${{ env.TARGET_RIDS }}
           TRAY_CONFIGURATION: ${{ inputs.configuration }}
         run: |
           $ErrorActionPreference = 'Stop'
@@ -279,14 +314,30 @@ jobs:
             -Rid $rid `
             -ArchivePath $archive[0].FullName
 
+      - name: Smoke benchmark CLI and Dashboard
+        if: github.event_name == 'workflow_dispatch' && github.repository == 'radical/aspire'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $root = Join-Path $env:TEMP 'storage-benchmark-smoke'
+          New-Item -ItemType Directory -Path $root | Out-Null
+          $archive = @(Get-ChildItem "artifacts/packages/$env:BUILD_CONFIGURATION" -Filter "aspire-cli-$env:TARGET_RIDS-*.zip" -Recurse -File)
+          if ($archive.Count -ne 1) { throw "Expected one benchmark CLI archive; found $($archive.Count)." }
+          Expand-Archive -LiteralPath $archive[0].FullName -DestinationPath (Join-Path $root 'cli')
+          & (Join-Path $root 'cli/aspire.exe') --version
+          $dashboardArchive = "artifacts/DashboardArtifacts/$env:BUILD_CONFIGURATION/$env:TARGET_RIDS/aspire-dashboard-$env:TARGET_RIDS.zip"
+          Expand-Archive -LiteralPath $dashboardArchive -DestinationPath (Join-Path $root 'dashboard')
+          ./eng/scripts/test-native-dashboard.ps1 -DashboardPath (Join-Path $root 'dashboard/Aspire.Dashboard.exe')
+
       # Upload DCP, Dashboard, and CLI tool packages so test/polyglot jobs can download them
       - name: Upload RID-specific packages
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: built-nugets-for-${{ matrix.targets.rids }}
+          name: built-nugets-for-${{ env.TARGET_RIDS }}${{ matrix.targets.benchmarkSuffix }}
           path: |
-            artifacts/packages/${{ inputs.configuration }}/Shipping/Aspire.Hosting.Orchestration.${{ matrix.targets.rids }}.*.nupkg
-            artifacts/packages/${{ inputs.configuration }}/Shipping/Aspire.Dashboard.Sdk.${{ matrix.targets.rids }}.*.nupkg
+            artifacts/packages/${{ inputs.configuration }}/Shipping/Aspire.Hosting.Orchestration.${{ env.TARGET_RIDS }}.*.nupkg
+            artifacts/packages/${{ inputs.configuration }}/Shipping/Aspire.Dashboard.Sdk.${{ env.TARGET_RIDS }}.*.nupkg
             artifacts/packages/${{ inputs.configuration }}/Shipping/Aspire.Cli.*.nupkg
             artifacts/packages/${{ inputs.configuration }}/Shipping/microsoft-aspire-cli*.tgz
           if-no-files-found: error
@@ -296,7 +347,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: cli-native-archives-${{ matrix.targets.rids }}
+          name: cli-native-archives-${{ env.TARGET_RIDS }}${{ matrix.targets.benchmarkSuffix }}
           path: artifacts/packages/**/aspire-cli*
           retention-days: 15
           if-no-files-found: error
@@ -305,8 +356,8 @@ jobs:
         if: success()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: native-dashboard-${{ matrix.targets.rids }}
-          path: artifacts/DashboardArtifacts/${{ inputs.configuration }}/${{ matrix.targets.rids }}/aspire-dashboard-${{ matrix.targets.rids }}.zip
+          name: native-dashboard-${{ env.TARGET_RIDS }}${{ matrix.targets.benchmarkSuffix }}
+          path: artifacts/DashboardArtifacts/${{ inputs.configuration }}/${{ env.TARGET_RIDS }}/aspire-dashboard-${{ env.TARGET_RIDS }}.zip
           retention-days: 15
           if-no-files-found: error
 
@@ -314,5 +365,41 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: cli-native-logs-${{ matrix.targets.rids }}
+          name: cli-native-logs-${{ env.TARGET_RIDS }}${{ matrix.targets.benchmarkSuffix }}
           path: artifacts/log/**
+
+      - name: Record benchmark build paths and artifact inventory
+        if: github.event_name == 'workflow_dispatch' && github.repository == 'radical/aspire'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $evidence = Join-Path $env:RUNNER_TEMP 'windows-storage-benchmark'
+          $source = (git --no-pager rev-parse HEAD).Trim()
+          if ($source -cne $env:GITHUB_SHA) { throw 'Benchmark checkout does not match the recorded source commit.' }
+          ./dotnet.cmd --info | Set-Content -LiteralPath (Join-Path $evidence 'dotnet-info.txt')
+          ./dotnet.cmd nuget locals all --list | Set-Content -LiteralPath (Join-Path $evidence 'nuget-paths.txt')
+          $vswhere = "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe"
+          $visualStudio = & $vswhere -latest -products '*' -format json | ConvertFrom-Json
+          @{
+            sourceSha = $source
+            nugetPackages = $env:NUGET_PACKAGES
+            temp = $env:TEMP
+            tmp = $env:TMP
+            runnerTemp = $env:RUNNER_TEMP
+            node = (& node --version | Out-String).Trim()
+            powershell = $PSVersionTable.PSVersion.ToString()
+            visualStudio = $visualStudio | Select-Object installationVersion, installationPath
+            nativeToolsets = @(Get-ChildItem (Join-Path $visualStudio.installationPath 'VC/Tools/MSVC') -Directory | Select-Object -ExpandProperty Name)
+            arcadeTemp = (Resolve-Path "artifacts/tmp/$env:BUILD_CONFIGURATION").Path
+            packages = @(Get-ChildItem "artifacts/packages/$env:BUILD_CONFIGURATION/Shipping" -File |
+              Sort-Object Name | Select-Object Name, Length)
+          } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $evidence 'build.json')
+
+      - name: Upload Windows storage benchmark evidence
+        if: always() && github.event_name == 'workflow_dispatch' && github.repository == 'radical/aspire'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: windows-storage${{ matrix.targets.benchmarkSuffix }}
+          path: ${{ runner.temp }}/windows-storage-benchmark/
+          if-no-files-found: error
