@@ -741,15 +741,6 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Extensions.
-        /// </summary>
-        public static string HelpDialogGoToExtensions {
-            get {
-                return ResourceManager.GetString("HelpDialogGoToExtensions", resourceCulture);
-            }
-        }
-
-        /// <summary>
         ///   Looks up a localized string similar to Resource graph.
         /// </summary>
         public static string HelpDialogGoToGraph {
@@ -818,15 +809,6 @@ namespace Aspire.Dashboard.Resources {
         public static string HelpDialogGoToStructuredLogs {
             get {
                 return ResourceManager.GetString("HelpDialogGoToStructuredLogs", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Telemetry sources.
-        /// </summary>
-        public static string HelpDialogGoToTelemetrySources {
-            get {
-                return ResourceManager.GetString("HelpDialogGoToTelemetrySources", resourceCulture);
             }
         }
 

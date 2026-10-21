@@ -26,11 +26,9 @@ public partial class HelpDialog
                 new KeyboardShortcut(AspireKeyboardShortcut.GoToParameters, ["p"], Loc[nameof(Resources.Dialogs.HelpDialogGoToParameters)]),
                 new KeyboardShortcut(AspireKeyboardShortcut.GoToGraph, ["g"], Loc[nameof(Resources.Dialogs.HelpDialogGoToGraph)]),
                 new KeyboardShortcut(AspireKeyboardShortcut.GoToTerminals, ["e"], Loc[nameof(Resources.Dialogs.HelpDialogGoToTerminals)]),
-                new KeyboardShortcut(AspireKeyboardShortcut.GoToExtensions, ["x"], Loc[nameof(Resources.Dialogs.HelpDialogGoToExtensions)]),
             ]),
             new(Loc[nameof(Resources.Dialogs.HelpDialogCategoryTelemetry)],
             [
-                new KeyboardShortcut(AspireKeyboardShortcut.GoToTelemetrySources, ["o"], Loc[nameof(Resources.Dialogs.HelpDialogGoToTelemetrySources)]),
                 new KeyboardShortcut(AspireKeyboardShortcut.GoToConsoleLogs, ["c"], Loc[nameof(Resources.Dialogs.HelpDialogGoToConsoleLogs)]),
                 new KeyboardShortcut(AspireKeyboardShortcut.GoToStructuredLogs, ["s"], Loc[nameof(Resources.Dialogs.HelpDialogGoToStructuredLogs)]),
                 new KeyboardShortcut(AspireKeyboardShortcut.GoToTraces, ["t"], Loc[nameof(Resources.Dialogs.HelpDialogGoToTraces)]),

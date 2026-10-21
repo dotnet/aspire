@@ -17,8 +17,8 @@ namespace Aspire.Dashboard.Components.Pages;
 
 /// <summary>
 /// Summarizes the selected resource: its status, endpoints and relationships, a preview of recent console output and
-/// telemetry, and the complete resource details. Each summary links to the tab that shows the full data.
-/// When several resources are selected, it displays a summary card for each of them instead.
+/// telemetry, and the complete resource details. Each summary links to the page that shows the full data.
+/// When all or several resources are selected, it displays the resource table or graph instead.
 /// </summary>
 public sealed partial class ResourceOverview : ComponentBase, IAsyncDisposable
 {

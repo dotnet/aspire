@@ -40,6 +40,27 @@ public partial class MetricsTests : DashboardTestContext
     private static readonly DateTime s_testTime = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
     [Theory]
+    [InlineData(true, "cache")]
+    [InlineData(false, "cache")]
+    [InlineData(true, null)]
+    [InlineData(false, null)]
+    public void Render_ResourceWithoutTelemetry_ShowsExpectedEmptyState(bool isDesktop, string? resourceName)
+    {
+        MetricsSetupHelpers.SetupMetricsPage(this);
+        var viewport = new ViewportInformation(isDesktop, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        Services.GetRequiredService<DimensionManager>().InvokeOnViewportInformationChanged(viewport);
+        Services.GetRequiredService<NavigationManager>().NavigateTo(DashboardUrls.MetricsUrl(resourceName));
+
+        var cut = Render<Metrics>(builder => builder
+            .AddCascadingValue(viewport)
+            .Add(p => p.ResourceName, resourceName));
+
+        cut.WaitForAssertion(() => Assert.Equal(
+            resourceName is not null ? Resources.Metrics.MetricsNoMetricsForResource : Resources.Metrics.MetricsSelectAResource,
+            cut.Find(".aspire-empty-content").TextContent.Trim()));
+    }
+
+    [Theory]
     [InlineData(MetricViewKind.Graph)]
     [InlineData(MetricViewKind.Table)]
     public async Task ChartContainer_NoSharedHistogramBounds_ShowsWarningAndCountRemainsAvailable(MetricViewKind view)

@@ -7,9 +7,10 @@
     <!-- Toolbar -->
     @if (ViewportInformation.IsDesktop)
     {
-        @* The header's top-level navigation and the resource header already show where the user is, so the
-           page title is kept for assistive technology only. *@
-        <div class="visually-hidden">@PageTitleSection</div>
+        @if (ResourcesLayout is null)
+        {
+            <div class="visually-hidden">@PageTitleSection</div>
+        }
 
         @* A page can opt out of the desktop toolbar row (HideDesktopToolbar) when it renders its toolbar
            controls somewhere else. Skipping the <header>
@@ -32,11 +33,14 @@
             </header>
         }
     }
-    else if (!IsSummaryDetailsViewOpen)
+    else if (!IsSummaryDetailsViewOpen && !HideMobileToolbar && (ResourcesLayout is null || MobilePageTitleToolbarSection is not null))
     {
         <header class="content-header">
             <div role="toolbar" style="@HeaderStyle">
-                @PageTitleSection
+                @if (ResourcesLayout is null)
+                {
+                    @PageTitleSection
+                }
 
                 @if (!AddNewlineOnToolbar)
                 {
@@ -74,7 +78,7 @@
                     @FooterSection
                 }
 
-                @if (ToolbarSection is not null)
+                @if (ToolbarSection is not null && !HideMobileToolbar)
                 {
                     <FluentButton Class="mobile-toolbar"
                                   Appearance="@ButtonAppearance.Primary"

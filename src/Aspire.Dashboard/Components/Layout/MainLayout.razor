@@ -66,7 +66,7 @@
             </FluentButton>
             <UserProfile/>
         </header>
-        <DesktopNavMenu HasResourceTerminals="@_hasResourceTerminals" />
+        <DesktopNavMenu HasResourceTerminals="@_hasResourceTerminals" HasParameters="@_hasParameters" />
     }
     else
     {
@@ -103,6 +103,7 @@
 
         <MobileNavMenu
             HasResourceTerminals="@_hasResourceTerminals"
+            HasParameters="@_hasParameters"
             IsNavMenuOpen="_isNavMenuOpen"
             CloseNavMenu="@CloseMobileNavMenu"
             LaunchHelpAsync="@LaunchHelpAsync"
@@ -139,10 +140,11 @@
         <TerminalDock @key="RunSelection.SelectedRun.RunId" />
     }
     <ResourceServiceConnectionProvider />
-    @if (IsTerminalDockEnabled)
+    @if (!_isSwitchingRuns && DashboardClient.IsEnabled)
     {
-        <ResourceTerminalsAvailabilityProvider @key="(typeof(ResourceTerminalsAvailabilityProvider), RunSelection.SelectedRun.RunId)"
-                                               AvailabilityChanged="@(available => _hasResourceTerminals = available)" />
+        <ResourceNavigationAvailabilityProvider @key="(typeof(ResourceNavigationAvailabilityProvider), RunSelection.SelectedRun.RunId)"
+                                               TerminalsAvailabilityChanged="@(available => _hasResourceTerminals = available)"
+                                               ParametersAvailabilityChanged="@(available => _hasParameters = available)" />
     }
     <div id="blazor-error-ui">
         @Loc[nameof(Layout.MainLayoutUnhandledErrorMessage)]

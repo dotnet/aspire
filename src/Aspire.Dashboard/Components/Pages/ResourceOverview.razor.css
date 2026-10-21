@@ -16,6 +16,12 @@
     color: var(--colorNeutralForeground2);
 }
 
+.resource-list-overview {
+    display: flex;
+    padding: 0;
+    overflow: hidden;
+}
+
 .overview-grid {
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));

@@ -15,7 +15,6 @@ internal static class DashboardUrls
     public const string ParametersBasePath = "parameters";
     public const string GraphBasePath = "graph";
     public const string TerminalsBasePath = "terminals";
-    public const string ExtensionsBasePath = "extensions";
     public const string ConsoleLogBasePath = "consolelogs";
     public const string MetricsBasePath = "metrics";
     public const string StructuredLogsBasePath = "structuredlogs";
@@ -129,52 +128,19 @@ internal static class DashboardUrls
     /// <summary>
     /// The query string parameter that lists the resources selected in the dashboard's resource list when more than
     /// one resource is selected, for example <c>/structuredlogs?resource=api&amp;resource=worker</c>. A single selected
-    /// resource is part of the URL path instead.
+    /// resource is part of the URL path instead. An empty value explicitly selects all resources.
     /// </summary>
     public const string ResourceSelectionQueryName = "resource";
 
     /// <summary>
-    /// The query string parameter that switches the dashboard's resource list between listing resources and grouping
-    /// them by tag, for example <c>/resources?pane=tags</c>.
+    /// The legacy query string parameter that requests resource grouping, for example <c>/resources?pane=tags</c>.
     /// </summary>
     public const string ResourcePaneQueryName = "pane";
-
-    /// <summary>
-    /// The <see cref="ResourcePaneQueryName"/> value that lists resources.
-    /// </summary>
-    public const string ResourcePaneResourcesValue = "resources";
 
     /// <summary>
     /// The <see cref="ResourcePaneQueryName"/> value that groups resources by tag.
     /// </summary>
     public const string ResourcePaneTagsValue = "tags";
-
-    public const string ResourcePaneTelemetryValue = "telemetry";
-
-    public static string TelemetrySourcesUrl() => AddTelemetryPane(StructuredLogsUrl());
-
-    public static string AddTelemetryPane(string url)
-    {
-        var fragmentIndex = url.IndexOf('#');
-        var fragment = fragmentIndex >= 0 ? url[fragmentIndex..] : string.Empty;
-        var pathAndQuery = fragmentIndex >= 0 ? url[..fragmentIndex] : url;
-        var queryIndex = pathAndQuery.IndexOf('?');
-        if (queryIndex >= 0)
-        {
-            var query = HttpUtility.ParseQueryString(pathAndQuery[(queryIndex + 1)..]);
-            if (query[ResourcePaneQueryName] == ResourcePaneTelemetryValue)
-            {
-                return url;
-            }
-            if (query[ResourcePaneQueryName] is not null)
-            {
-                query[ResourcePaneQueryName] = ResourcePaneTelemetryValue;
-                return $"{pathAndQuery[..queryIndex]}?{query}{fragment}";
-            }
-        }
-
-        return AddQueryString(pathAndQuery, ResourcePaneQueryName, ResourcePaneTelemetryValue) + fragment;
-    }
 
     /// <summary>
     /// Adds the selected resources to a URL using <see cref="ResourceSelectionQueryName"/>.
@@ -210,16 +176,14 @@ internal static class DashboardUrls
     }
 
     /// <summary>
-    /// Gets the URL of the resources view with the resource list listing resources.
+    /// Gets the URL that explicitly displays all app host resources without restoring a previous selection.
     /// </summary>
-    public static string ResourceListUrl() => AddQueryString($"/{ResourceOverviewBasePath}", ResourcePaneQueryName, ResourcePaneResourcesValue);
+    public static string ResourceListUrl() => AddQueryString($"/{ResourceOverviewBasePath}", ResourceSelectionQueryName, string.Empty);
 
     /// <summary>
     /// Gets the URL of the resources view with the resource list grouped by tag.
     /// </summary>
     public static string TagsUrl() => AddQueryString($"/{ResourceOverviewBasePath}", ResourcePaneQueryName, ResourcePaneTagsValue);
-
-    public static string ExtensionsUrl() => $"/{ExtensionsBasePath}";
 
     public static string ParametersUrl(string? hiddenStates = null, string? hiddenHealthStates = null)
     {

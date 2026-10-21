@@ -200,12 +200,6 @@
   <data name="HelpDialogGoToGraph" xml:space="preserve">
     <value>Resource graph</value>
   </data>
-  <data name="HelpDialogGoToExtensions" xml:space="preserve">
-    <value>Extensions</value>
-  </data>
-  <data name="HelpDialogGoToTelemetrySources" xml:space="preserve">
-    <value>Telemetry sources</value>
-  </data>
   <data name="HelpDialogIncreasePanelSize" xml:space="preserve">
     <value>Increase panel size</value>
   </data>

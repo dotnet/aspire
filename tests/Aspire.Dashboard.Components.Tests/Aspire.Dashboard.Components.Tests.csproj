@@ -36,6 +36,7 @@
     <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared/Logging" />
     <Compile Include="$(TestsSharedDir)DashboardModel\*.cs" LinkBase="shared/DashboardModel" />
     <Compile Include="..\Aspire.Dashboard.Tests\Model\MockKnownPropertyLookup.cs" Link="Shared\MockKnownPropertyLookup.cs" />
+    <Compile Include="..\Aspire.Dashboard.Tests\TelemetryRepositoryTests\TestOutgoingPeerResolver.cs" Link="Shared\TestOutgoingPeerResolver.cs" />
   </ItemGroup>
 
   <ItemGroup>

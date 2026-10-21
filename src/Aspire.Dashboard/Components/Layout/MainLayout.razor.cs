@@ -23,6 +23,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     private bool _runSelectionChanged;
     private bool _isSwitchingRuns;
     private bool _hasResourceTerminals;
+    private bool _hasParameters;
     // Fluent v5 has no API to notify the provider after mutating an existing toast's options. This value is
     // rendered as an additional provider attribute so changing it forces FluentToastProvider to read them again.
     private int _toastProviderUpdateVersion;
@@ -48,7 +49,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     internal const string DashboardDocumentationUrl = "https://aspire.dev/dashboard/overview/";
 
     /// <summary>
-    /// Name of the section in the desktop top bar where nested layouts can render page context, such as the selected resource.
+    /// Name of the section in the desktop top bar where nested layouts can render the page title.
     /// </summary>
     internal const string HeaderContextSectionName = "header-context";
 
@@ -317,6 +318,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
         _isSwitchingRuns = true;
         _hasResourceTerminals = false;
+        _hasParameters = false;
         await InvokeAsync(StateHasChanged);
 
         try
@@ -510,8 +512,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         AspireKeyboardShortcut.Settings,
         AspireKeyboardShortcut.GoToStructuredLogs,
         AspireKeyboardShortcut.GoToTraces,
-        AspireKeyboardShortcut.GoToMetrics,
-        AspireKeyboardShortcut.GoToTelemetrySources
+        AspireKeyboardShortcut.GoToMetrics
     };
 
     private static readonly IReadOnlySet<AspireKeyboardShortcut> s_resourceServiceSubscribedShortcuts = new HashSet<AspireKeyboardShortcut>(
@@ -520,8 +521,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         AspireKeyboardShortcut.GoToResources,
         AspireKeyboardShortcut.GoToConsoleLogs,
         AspireKeyboardShortcut.GoToHome,
-        AspireKeyboardShortcut.GoToParameters,
-        AspireKeyboardShortcut.GoToExtensions
+        AspireKeyboardShortcut.GoToParameters
     };
 
     public IReadOnlySet<AspireKeyboardShortcut> SubscribedShortcuts
@@ -583,12 +583,6 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
                 break;
             case AspireKeyboardShortcut.GoToGraph when DashboardClient.IsEnabled && Options.CurrentValue.UI.DisableResourceGraph != true:
                 NavigationManager.NavigateTo(DashboardUrls.GraphUrl());
-                break;
-            case AspireKeyboardShortcut.GoToExtensions when DashboardClient.IsEnabled:
-                NavigationManager.NavigateTo(DashboardUrls.ExtensionsUrl());
-                break;
-            case AspireKeyboardShortcut.GoToTelemetrySources:
-                NavigationManager.NavigateTo(DashboardUrls.TelemetrySourcesUrl());
                 break;
         }
     }

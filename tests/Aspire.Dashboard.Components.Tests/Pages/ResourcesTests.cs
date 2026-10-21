@@ -43,6 +43,51 @@ namespace Aspire.Dashboard.Components.Tests.Pages;
 public partial class ResourcesTests : DashboardTestContext
 {
     [Theory]
+    [InlineData(Components.Pages.Resources.ResourceViewKind.Table, true)]
+    [InlineData(Components.Pages.Resources.ResourceViewKind.Table, false)]
+    [InlineData(Components.Pages.Resources.ResourceViewKind.Graph, true)]
+    [InlineData(Components.Pages.Resources.ResourceViewKind.Graph, false)]
+    public async Task EmbeddedResourceViews_FilterSelectionAndUpdateWithoutChangingUrl(Components.Pages.Resources.ResourceViewKind viewKind, bool isDesktop)
+    {
+        var viewport = new ViewportInformation(isDesktop, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        ResourceSetupHelpers.SetupResourcesPage(this, viewport, new TestDashboardClient(isEnabled: true,
+            initialResources: [ModelTestHelpers.CreateResource("api"), ModelTestHelpers.CreateResource("worker"), ModelTestHelpers.CreateResource("cache")],
+            resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>));
+        var graphModule = JSInterop.SetupModule("/js/app-resourcegraph.js");
+        graphModule.SetupVoid("initializeResourcesGraph", _ => true).SetVoidResult();
+        graphModule.SetupVoid("updateResourcesGraph", _ => true).SetVoidResult();
+        graphModule.SetupVoid("updateResourcesGraphSelected", _ => true).SetVoidResult();
+        var navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/resources?resource=api&resource=worker");
+        var cut = Render<Components.Pages.Resources>(builder => builder
+            .AddCascadingValue(viewport)
+            .Add(p => p.EmbeddedViewKind, viewKind)
+            .Add(p => p.IncludedResourceNames, ["api", "worker"]));
+
+        var result = await cut.InvokeAsync(() => cut.Instance.GetData(new GridItemsProviderRequest<ResourceGridViewModel>()).AsTask());
+        Assert.Equal(["api", "worker"], result.Items.Select(item => item.Resource.Name));
+        Assert.Equal(viewKind, cut.Instance.PageViewModel.SelectedViewKind);
+        Assert.Empty(cut.FindAll(".mobile-toolbar, .content-header"));
+        Assert.Equal("http://localhost/resources?resource=api&resource=worker", navigation.Uri);
+        if (viewKind == Components.Pages.Resources.ResourceViewKind.Graph)
+        {
+            cut.WaitForAssertion(() => Assert.Equal(2,
+                Assert.IsType<List<ResourceDto>>(graphModule.Invocations.Last(i => i.Identifier == "updateResourcesGraph").Arguments[0]).Count));
+        }
+
+        cut.Render(builder => builder
+            .Add(p => p.EmbeddedViewKind, viewKind)
+            .Add(p => p.IncludedResourceNames, []));
+        result = await cut.InvokeAsync(() => cut.Instance.GetData(new GridItemsProviderRequest<ResourceGridViewModel>()).AsTask());
+        Assert.Equal(["api", "cache", "worker"], result.Items.Select(item => item.Resource.Name));
+        if (viewKind == Components.Pages.Resources.ResourceViewKind.Graph)
+        {
+            cut.WaitForAssertion(() => Assert.Equal(3,
+                Assert.IsType<List<ResourceDto>>(graphModule.Invocations.Last(i => i.Identifier == "updateResourcesGraph").Arguments[0]).Count));
+        }
+    }
+
+    [Theory]
     [InlineData(Components.Pages.Resources.ResourceViewKind.Graph)]
     [InlineData(Components.Pages.Resources.ResourceViewKind.Parameters)]
     public async Task Resources_TelemetryRecordsSelectedView(Components.Pages.Resources.ResourceViewKind viewKind)

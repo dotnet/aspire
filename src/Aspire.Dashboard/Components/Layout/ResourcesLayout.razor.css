@@ -84,46 +84,6 @@
     width: 100%;
 }
 
-.resource-pane-states {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    padding: 0 12px 8px;
-}
-
-.state-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 2px 8px;
-    border: 1px solid transparent;
-    border-radius: 10px;
-    background: var(--colorNeutralBackground3);
-    color: var(--colorNeutralForeground2);
-    font: inherit;
-    font-size: 11px;
-    cursor: pointer;
-}
-
-.state-chip:hover {
-    color: var(--colorNeutralForeground1);
-}
-
-.state-chip.selected {
-    border-color: var(--colorBrandStroke1);
-    background: var(--resource-brand-soft);
-    color: var(--colorBrandForeground1);
-}
-
-.state-chip:focus-visible {
-    outline: 2px solid var(--colorStrokeFocus2);
-    outline-offset: 1px;
-}
-
-.state-chip-count {
-    font-weight: 600;
-}
-
 .state-dot {
     display: inline-block;
     flex: 0 0 8px;
@@ -564,24 +524,52 @@
     background: var(--aspire-page-background);
 }
 
-.resource-header-row {
+.resource-page-header {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     min-width: 0;
 }
 
-/* The icon is as tall as the title and meta lines next to it, so its edges line up with the text. */
+.resource-page-header.in-top-bar {
+    flex: 1 1 auto;
+    height: 32px;
+    margin-left: 10px;
+    padding-left: 16px;
+    border-left: 1px solid var(--colorNeutralStroke2);
+}
+
+.resource-page-title {
+    margin: 0;
+    overflow: hidden;
+    font-family: var(--aspire-font-display);
+    font-size: 20px;
+    font-weight: 500;
+    line-height: 26px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.in-top-bar .resource-page-title {
+    font-size: 16px;
+    line-height: 22px;
+}
+
+.resource-header-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
 .resource-header-icon {
     display: inline-flex;
-    flex: 0 0 48px;
+    flex: 0 0 30px;
     align-items: center;
     justify-content: center;
-    align-self: flex-start;
-    width: 48px;
-    height: 48px;
-    border-radius: 10px;
-    background: var(--resource-brand-soft);
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
 }
 
 .resource-header-icon.neutral {
@@ -592,7 +580,6 @@
 .resource-header-text {
     flex: 1 1 auto;
     min-width: 0;
-    min-height: 48px;
 }
 
 .resource-header-title {
@@ -606,9 +593,9 @@
     margin: 0;
     overflow: hidden;
     font-family: var(--aspire-font-display);
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 500;
-    line-height: 26px;
+    line-height: 22px;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -657,53 +644,6 @@
     white-space: nowrap;
 }
 
-.resource-header-urls {
-    min-width: 0;
-    max-width: 100%;
-}
-
-.state-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 2px 9px;
-    border-radius: 10px;
-    background: var(--colorNeutralBackground3);
-    color: var(--colorNeutralForeground2);
-    font-size: 12px;
-    font-weight: 600;
-}
-
-/* Status colors don't reach text contrast on the tinted pill, so only the icon carries the state color. */
-.state-pill.state-success {
-    background: color-mix(in srgb, var(--success) 14%, transparent);
-    color: var(--colorNeutralForeground1);
-}
-
-.state-pill.state-success ::deep svg {
-    color: var(--success);
-}
-
-.state-pill.state-error {
-    background: color-mix(in srgb, var(--error) 14%, transparent);
-    color: var(--colorNeutralForeground1);
-}
-
-.state-pill.state-error ::deep svg {
-    color: var(--error);
-}
-
-.state-pill.state-warning,
-.state-pill.state-pending {
-    background: color-mix(in srgb, var(--warning) 14%, transparent);
-    color: var(--colorNeutralForeground1);
-}
-
-.state-pill.state-warning ::deep svg,
-.state-pill.state-pending ::deep svg {
-    color: var(--warning);
-}
-
 .resource-header-actions {
     display: flex;
     flex: 0 0 auto;
@@ -713,10 +653,16 @@
 
 .resource-tabs {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 12px;
-    margin-top: 10px;
+    margin-top: -4px;
     min-width: 0;
+    min-height: 36px;
+}
+
+.resource-tabs:empty {
+    display: none;
 }
 
 .resource-tabs > .resource-header-actions {
@@ -748,70 +694,6 @@
     padding: 0;
 }
 
-/* Compact single-line variant rendered in the app top bar, separated from the app name by a divider. */
-.resource-header-row.in-top-bar {
-    flex: 1 1 auto;
-    gap: 10px;
-    height: 32px;
-    margin-left: 10px;
-    padding-left: 16px;
-    border-left: 1px solid var(--colorNeutralStroke2);
-}
-
-.in-top-bar .resource-header-icon {
-    flex-basis: 30px;
-    align-self: center;
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
-}
-
-.in-top-bar .resource-header-icon ::deep svg {
-    width: 18px;
-    height: 18px;
-}
-
-.in-top-bar .resource-header-text {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-height: 0;
-    overflow: hidden;
-}
-
-.in-top-bar .resource-header-title {
-    flex: 0 1 auto;
-}
-
-.in-top-bar .resource-title {
-    font-size: 16px;
-    line-height: 22px;
-}
-
-.in-top-bar .resource-header-meta {
-    flex: 1 1 auto;
-    flex-wrap: nowrap;
-    margin-top: 0;
-    overflow: hidden;
-    white-space: nowrap;
-}
-
-.in-top-bar .resource-header-urls {
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.in-top-bar .resource-header-actions {
-    margin-left: auto;
-}
-
-/* Tabs are all that remain in the content header on desktop, so they need less top spacing.
-   The row is taller than the fluent-tab itself (centered via align-items), so pull it up by
-   that same offset to line the tab's top edge up with the pane filter box beside it. */
-.resource-header:not(:has(.resource-header-row)) .resource-tabs {
-    margin-top: -4px;
-}
-
 /* FluentTabs keeps its horizontal tab list at max-content width. Constrain the host so
    focus can scroll the selected tab into view when space is limited. */
 .resource-tabs ::deep .resources-tab-header {
@@ -822,53 +704,10 @@
     overflow-y: hidden;
 }
 
-/* Wraps the tab row in its own layout container so a container query can react to the row's
-   actual available width - which depends on sibling pane/toolbar state, not just viewport width -
-   rather than letting FluentTabs grow a horizontal scrollbar once labels no longer fit. */
 .resource-tabs-nav {
-    container-type: inline-size;
     display: flex;
     min-width: 0;
     flex: 1 1 auto;
-}
-
-.resource-tabs-nav ::deep .aspire-menu-button {
-    display: none;
-}
-
-.resource-tabs-nav ::deep .resource-tabs-compact-button {
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-@container (max-width: 600px) {
-    .resource-tabs-nav ::deep .resources-tab-header {
-        display: none;
-    }
-
-    .resource-tabs-nav ::deep .aspire-menu-button {
-        display: inline-flex;
-    }
-}
-
-/* Tabs the selected resource doesn't support (no telemetry) stay visible so the tab row keeps its
-   shape, but read as unavailable. */
-.resource-tabs ::deep fluent-tab[disabled],
-.resource-tabs ::deep fluent-tab[aria-disabled="true"] {
-    cursor: not-allowed;
-    opacity: 0.45;
-}
-
-.resource-tabs ::deep fluent-tab[disabled] *,
-.resource-tabs ::deep fluent-tab[aria-disabled="true"] * {
-    cursor: not-allowed;
-}
-
-.resource-tabs ::deep .resource-tab-error-count {
-    background: color-mix(in srgb, var(--error) 14%, transparent);
-    color: var(--error);
 }
 
 .resource-tab-body {
@@ -904,8 +743,8 @@
         padding: 8px 12px 0;
     }
 
-    .resource-header-icon {
-        display: none;
+    .resource-tabs {
+        margin-top: 8px;
     }
 }
 

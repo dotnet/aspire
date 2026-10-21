@@ -443,11 +443,6 @@ For more information about using AI agents with the dashboard, including setting
         <target state="needs-review-translation">转到“控制台日志”</target>
         <note />
       </trans-unit>
-      <trans-unit id="HelpDialogGoToExtensions">
-        <source>Extensions</source>
-        <target state="new">Extensions</target>
-        <note />
-      </trans-unit>
       <trans-unit id="HelpDialogGoToGraph">
         <source>Resource graph</source>
         <target state="new">Resource graph</target>
@@ -486,11 +481,6 @@ For more information about using AI agents with the dashboard, including setting
       <trans-unit id="HelpDialogGoToStructuredLogs">
         <source>Structured logs</source>
         <target state="needs-review-translation">转到“结构化日志”</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="HelpDialogGoToTelemetrySources">
-        <source>Telemetry sources</source>
-        <target state="new">Telemetry sources</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogGoToTerminals">

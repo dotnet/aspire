@@ -3,7 +3,6 @@
 
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Components.Pages;
-using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Xunit;
 using NavSection = Aspire.Dashboard.Components.Layout.DesktopNavMenu.NavSection;
@@ -19,18 +18,24 @@ public class ResourcesNavigationTests
     [InlineData("?resource=frontend", nameof(NavSection.Home))]
     [InlineData("resources", nameof(NavSection.Resources))]
     [InlineData("resources/frontend", nameof(NavSection.Resources))]
-    [InlineData("consolelogs/resource/frontend", nameof(NavSection.Resources))]
+    [InlineData("consolelogs/resource/frontend", nameof(NavSection.ConsoleLogs))]
     [InlineData("consolelogs", nameof(NavSection.ConsoleLogs))]
     [InlineData("consolelogs?pane=resources#logs", nameof(NavSection.ConsoleLogs))]
-    [InlineData("consolelogs?resource=api&resource=worker", nameof(NavSection.Resources))]
-    [InlineData("consolelogs?pane=telemetry", nameof(NavSection.Telemetry))]
-    [InlineData("structuredlogs?logLevel=error", nameof(NavSection.Resources))]
-    [InlineData("traces/detail/abc", nameof(NavSection.Resources))]
-    [InlineData("metrics/resource/frontend", nameof(NavSection.Resources))]
+    [InlineData("consolelogs?resource=api&resource=worker", nameof(NavSection.ConsoleLogs))]
+    [InlineData("consolelogs?pane=telemetry", nameof(NavSection.ConsoleLogs))]
+    [InlineData("structuredlogs?logLevel=error", nameof(NavSection.StructuredLogs))]
+    [InlineData("structuredlogs/resource/api", nameof(NavSection.StructuredLogs))]
+    [InlineData("structuredlogs?resource=api&resource=worker", nameof(NavSection.StructuredLogs))]
+    [InlineData("traces", nameof(NavSection.Traces))]
+    [InlineData("traces?resource=api", nameof(NavSection.Traces))]
+    [InlineData("traces/detail/abc", nameof(NavSection.Traces))]
+    [InlineData("metrics?meter=m#chart", nameof(NavSection.Metrics))]
+    [InlineData("metrics/resource/frontend", nameof(NavSection.Metrics))]
     [InlineData("parameters", nameof(NavSection.Parameters))]
-    [InlineData("graph#node", nameof(NavSection.Graph))]
+    [InlineData("graph#node", nameof(NavSection.Resources))]
+    [InlineData("resources?view=graph", nameof(NavSection.Resources))]
     [InlineData("terminals", nameof(NavSection.Terminals))]
-    [InlineData("extensions", nameof(NavSection.Extensions))]
+    [InlineData("extensions", nameof(NavSection.None))]
     [InlineData("login", nameof(NavSection.None))]
     public void GetSection_WithResourceService(string path, string expectedSection)
     {
@@ -41,49 +46,42 @@ public class ResourcesNavigationTests
     [InlineData("", nameof(NavSection.None))]
     [InlineData("resources/frontend", nameof(NavSection.None))]
     [InlineData("terminals", nameof(NavSection.None))]
-    [InlineData("structuredlogs", nameof(NavSection.Telemetry))]
-    [InlineData("traces/detail/abc", nameof(NavSection.Telemetry))]
-    [InlineData("metrics?meter=m", nameof(NavSection.Telemetry))]
+    [InlineData("structuredlogs", nameof(NavSection.StructuredLogs))]
+    [InlineData("traces/detail/abc", nameof(NavSection.Traces))]
+    [InlineData("metrics?meter=m", nameof(NavSection.Metrics))]
     public void GetSection_WithoutResourceService(string path, string expectedSection)
     {
         Assert.Equal(Enum.Parse<NavSection>(expectedSection), DesktopNavMenu.GetSection(path, hasResourceService: false));
     }
 
     [Theory]
-    [InlineData("resources?pane=tags", ResourcePaneMode.Tags)]
-    [InlineData("resources?pane=TAGS", ResourcePaneMode.Tags)]
-    [InlineData("structuredlogs?pane=telemetry", ResourcePaneMode.Telemetry)]
-    [InlineData("resources?resource=api&pane=resources", ResourcePaneMode.Resources)]
-    [InlineData("consolelogs/resource/api?pane=tags#end", ResourcePaneMode.Tags)]
-    [InlineData("resources", null)]
-    [InlineData("resources?resource=api", null)]
-    [InlineData("resources?pane=unknown", null)]
-    public void ParsePaneMode_ReturnsModeFromQuery(string path, ResourcePaneMode? expectedMode)
+    [InlineData("resources?pane=tags", true)]
+    [InlineData("resources?pane=TAGS", true)]
+    [InlineData("structuredlogs?pane=telemetry", false)]
+    [InlineData("resources?resource=api&pane=resources", false)]
+    [InlineData("consolelogs/resource/api?pane=tags#end", true)]
+    [InlineData("resources", false)]
+    [InlineData("resources?resource=api", false)]
+    [InlineData("resources?pane=unknown", false)]
+    public void IsTagGroupingRequested_RecognizesLegacyTagsQuery(string path, bool expected)
     {
-        Assert.Equal(expectedMode, ResourcesLayout.ParsePaneMode(path));
+        Assert.Equal(expected, ResourcesLayout.IsTagGroupingRequested(path));
     }
 
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void TelemetryUrls_SelectDedicatedSection(bool hasResourceService)
+    public void LegacyTelemetryPaneQuery_SelectsCurrentPage(bool hasResourceService)
     {
-        Assert.Equal(NavSection.Telemetry, DesktopNavMenu.GetSection(DashboardUrls.TelemetrySourcesUrl().TrimStart('/'), hasResourceService));
-        Assert.Equal(NavSection.Telemetry, DesktopNavMenu.GetSection("traces/detail/abc?pane=telemetry", hasResourceService));
-        Assert.Equal("/structuredlogs?pane=telemetry", DashboardUrls.TelemetrySourcesUrl());
-    }
-
-    [Theory]
-    [InlineData("/traces?pane=telemetry", "/traces?pane=telemetry")]
-    [InlineData("/traces?pane=tags", "/traces?pane=telemetry")]
-    [InlineData("/traces?resource=api#details", "/traces?resource=api&pane=telemetry#details")]
-    public void TelemetryUrls_PreserveQueryAndFragment(string url, string expected)
-    {
-        Assert.Equal(expected, DashboardUrls.AddTelemetryPane(url));
+        Assert.Equal(NavSection.StructuredLogs, DesktopNavMenu.GetSection("structuredlogs?pane=telemetry", hasResourceService));
+        Assert.Equal(NavSection.Traces, DesktopNavMenu.GetSection("traces/detail/abc?pane=telemetry", hasResourceService));
     }
 
     [Theory]
     [InlineData("resources", nameof(ResourceTab.Overview), null, false)]
+    [InlineData("resources?resource=", nameof(ResourceTab.Overview), null, false)]
+    [InlineData("resources?view=graph", nameof(ResourceTab.Graph), null, false)]
+    [InlineData("resources?view=GRAPH#nodes", nameof(ResourceTab.Graph), null, false)]
     [InlineData("resources/frontend", nameof(ResourceTab.Overview), "frontend", false)]
     [InlineData("resources/my%20app?x=1", nameof(ResourceTab.Overview), "my app", false)]
     [InlineData("consolelogs", nameof(ResourceTab.Console), null, false)]
@@ -122,6 +120,7 @@ public class ResourcesNavigationTests
     [Theory]
     [InlineData(nameof(ResourceTab.Overview), "api", "/resources/api")]
     [InlineData(nameof(ResourceTab.Overview), null, "/resources")]
+    [InlineData(nameof(ResourceTab.Graph), null, "/resources?view=graph")]
     [InlineData(nameof(ResourceTab.Console), "api", "/consolelogs/resource/api")]
     [InlineData(nameof(ResourceTab.Console), null, "/consolelogs")]
     [InlineData(nameof(ResourceTab.StructuredLogs), "api", "/structuredlogs/resource/api")]
@@ -135,6 +134,7 @@ public class ResourcesNavigationTests
 
     [Theory]
     [InlineData(nameof(ResourceTab.Overview), null, "/resources?resource=api&resource=worker")]
+    [InlineData(nameof(ResourceTab.Graph), null, "/resources?view=graph&resource=api&resource=worker")]
     [InlineData(nameof(ResourceTab.Console), null, "/consolelogs?resource=api&resource=worker")]
     [InlineData(nameof(ResourceTab.StructuredLogs), null, "/structuredlogs?resource=api&resource=worker")]
     [InlineData(nameof(ResourceTab.Traces), "api", "/traces?resource=api&resource=worker")]
@@ -176,6 +176,6 @@ public class ResourcesNavigationTests
         Assert.Equal(NavSection.Home, DesktopNavMenu.GetSection(DashboardUrls.HomeUrl().TrimStart('/'), hasResourceService: true));
         Assert.Equal(NavSection.Resources, DesktopNavMenu.GetSection(DashboardUrls.ResourceOverviewUrl().TrimStart('/'), hasResourceService: true));
         Assert.Equal(NavSection.Parameters, DesktopNavMenu.GetSection(DashboardUrls.ParametersUrl().TrimStart('/'), hasResourceService: true));
-        Assert.Equal(NavSection.Graph, DesktopNavMenu.GetSection(DashboardUrls.GraphUrl().TrimStart('/'), hasResourceService: true));
+        Assert.Equal(NavSection.Resources, DesktopNavMenu.GetSection(DashboardUrls.GraphUrl().TrimStart('/'), hasResourceService: true));
     }
 }

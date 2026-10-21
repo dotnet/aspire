@@ -10,17 +10,19 @@ using Xunit;
 
 namespace Aspire.Dashboard.Components.Tests.Layout;
 
-public class ResourceTerminalsAvailabilityProviderTests : DashboardTestContext
+public class ResourceNavigationAvailabilityProviderTests : DashboardTestContext
 {
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(true, true)]
-    public void DisabledOrHistorical_DoesNotSubscribe(bool enabled, bool readOnly)
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Disabled_DoesNotSubscribe(bool readOnly)
     {
         FluentUISetupHelpers.AddCommonDashboardServices(this);
-        var client = new TestDashboardClient(isEnabled: enabled, isReadOnly: readOnly);
+        var client = new TestDashboardClient(isEnabled: false, isReadOnly: readOnly);
         Services.AddSingleton<IDashboardClient>(client);
-        var cut = Render<ResourceTerminalsAvailabilityProvider>(builder => builder.Add(p => p.AvailabilityChanged, _ => { }));
+        var cut = Render<ResourceNavigationAvailabilityProvider>(builder => builder
+            .Add(p => p.TerminalsAvailabilityChanged, _ => { })
+            .Add(p => p.ParametersAvailabilityChanged, _ => { }));
         Assert.Equal(0, client.ResourceSubscriptionCount);
     }
 
@@ -31,7 +33,9 @@ public class ResourceTerminalsAvailabilityProviderTests : DashboardTestContext
         var connected = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var client = new TestDashboardClient(isEnabled: true, whenConnected: connected.Task);
         Services.AddSingleton<IDashboardClient>(client);
-        var cut = Render<ResourceTerminalsAvailabilityProvider>(builder => builder.Add(p => p.AvailabilityChanged, _ => { }));
+        var cut = Render<ResourceNavigationAvailabilityProvider>(builder => builder
+            .Add(p => p.TerminalsAvailabilityChanged, _ => { })
+            .Add(p => p.ParametersAvailabilityChanged, _ => { }));
         await cut.InvokeAsync(() => cut.Instance.DisposeAsync().AsTask());
         connected.SetResult();
         Assert.Equal(0, client.ResourceSubscriptionCount);

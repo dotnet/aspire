@@ -28,7 +28,7 @@ public class TracesViewModel
     public ResourceKey? ResourceKey { get => _resourceKey; set => SetValue(ref _resourceKey, value); }
 
     /// <summary>
-    /// Gets or sets the resources to include when several resources are selected. When set, it's used instead of
+    /// Gets or sets the resources to include when resources are selected in the pane. When set, it's used instead of
     /// <see cref="ResourceKey"/>, and an empty list matches no data because none of the selected resources have telemetry.
     /// </summary>
     public IReadOnlyList<ResourceKey>? ResourceKeys
@@ -140,4 +140,3 @@ public class TracesViewModel
         _traces = null;
     }
 }
-

@@ -259,7 +259,15 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
     private void UpdateInstruments(MetricsViewModel viewModel)
     {
         var selectedInstance = viewModel.SelectedResource.Id?.GetResourceKey();
-        viewModel.Instruments = selectedInstance != null ? TelemetryRepository.GetInstrumentSummaries(selectedInstance.Value) : null;
+        if (selectedInstance is not null)
+        {
+            viewModel.Instruments = TelemetryRepository.GetInstrumentSummaries(selectedInstance.Value);
+        }
+        else
+        {
+            // A named resource with no telemetry is an empty result, not an unselected resource.
+            viewModel.Instruments = ResourceName is not null ? [] : null;
+        }
     }
 
     /// <summary>

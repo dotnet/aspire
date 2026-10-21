@@ -82,11 +82,6 @@
         <target state="new">Allow deletion</target>
         <note />
       </trans-unit>
-      <trans-unit id="ExtensionsPageDescription">
-        <source>Extend the dashboard with views and tools for your app.</source>
-        <target state="new">Extend the dashboard with views and tools for your app.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="MainLayoutAspire">
         <source>Aspire</source>
         <target state="translated">Aspire</target>
@@ -172,11 +167,6 @@
         <target state="needs-review-translation">Konsola</target>
         <note />
       </trans-unit>
-      <trans-unit id="NavMenuExtensionsTab">
-        <source>Extensions</source>
-        <target state="new">Extensions</target>
-        <note />
-      </trans-unit>
       <trans-unit id="NavMenuGraphTab">
         <source>Graph</source>
         <target state="new">Graph</target>
@@ -212,11 +202,6 @@
         <target state="needs-review-translation">Ustrukturyzowane</target>
         <note />
       </trans-unit>
-      <trans-unit id="NavMenuTelemetrySourcesTab">
-        <source>Telemetry sources</source>
-        <target state="new">Telemetry sources</target>
-        <note />
-      </trans-unit>
       <trans-unit id="NavMenuTerminalsTab">
         <source>Terminals</source>
         <target state="new">Terminals</target>
@@ -235,11 +220,6 @@
       <trans-unit id="PageLayoutViewFilters">
         <source>View filters</source>
         <target state="translated">Wyświetl filtry</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="PlaceholderPageComingSoon">
-        <source>Coming soon</source>
-        <target state="new">Coming soon</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceHeaderAllResources">
@@ -347,14 +327,14 @@
         <target state="new">No tags yet</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcePaneNotApplicableState">
+        <source>N/A</source>
+        <target state="new">N/A</target>
+        <note>State of a telemetry-only resource that is not part of the application model.</note>
+      </trans-unit>
       <trans-unit id="ResourcePaneOpen">
         <source>Show resource list</source>
         <target state="new">Show resource list</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourcePaneReorderFailed">
-        <source>Unable to save the resource order. Try again.</source>
-        <target state="new">Unable to save the resource order. Try again.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcePaneReorderGroup">
@@ -365,21 +345,6 @@
       <trans-unit id="ResourcePaneReorderGroupHint">
         <source>Drag to reorder groups. Use Alt+Up or Alt+Down to move a group.</source>
         <target state="new">Drag to reorder groups. Use Alt+Up or Alt+Down to move a group.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourcePaneReorderHint">
-        <source>Drag to reorder. Use Alt+Up or Alt+Down to move among siblings.</source>
-        <target state="new">Drag to reorder. Use Alt+Up or Alt+Down to move among siblings.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourcePaneReorderResource">
-        <source>Reorder {0}</source>
-        <target state="new">Reorder {0}</target>
-        <note>{0} is the resource name.</note>
-      </trans-unit>
-      <trans-unit id="ResourcePaneReorderUnavailable">
-        <source>Clear search, filters and grouping, and move resources within the same parent.</source>
-        <target state="new">Clear search, filters and grouping, and move resources within the same parent.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcePaneResize">
@@ -410,6 +375,11 @@
       <trans-unit id="ResourcePaneTelemetryOnlyGroup">
         <source>Telemetry only</source>
         <target state="new">Telemetry only</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcePaneTelemetryType">
+        <source>Telemetry</source>
+        <target state="new">Telemetry</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcePaneUntaggedGroup">

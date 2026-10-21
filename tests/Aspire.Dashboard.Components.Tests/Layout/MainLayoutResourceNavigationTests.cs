@@ -47,13 +47,20 @@ public partial class MainLayoutTests
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task ResourceTerminalsNavigation_RunSwitchCancelsAndRestartsAvailabilityWatch(bool isDesktop)
+    [InlineData(true, false)]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    [InlineData(false, true)]
+    public async Task ResourceNavigation_RunSwitchCancelsAndRestartsAvailabilityWatch(bool isDesktop, bool historicalHasParameters)
     {
         var disposed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var initialResources = new List<ResourceViewModel>
+        {
+            TerminalSetupHelpers.CreateTerminalResource("shell"),
+            ModelTestHelpers.CreateResource("parameter", resourceType: KnownResourceTypes.Parameter)
+        };
         var client = new TestDashboardClient(isEnabled: true,
-            initialResources: [TerminalSetupHelpers.CreateTerminalResource("shell")],
+            initialResources: initialResources,
             resourceChannelProvider: () => Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>())
         {
             OnResourceSubscriptionDisposed = () => disposed.TrySetResult()
@@ -65,13 +72,22 @@ public partial class MainLayoutTests
         ]);
         SetupMainLayoutServices(dashboardRunStore: runStore, dashboardClient: client);
         var selection = Assert.IsType<FluentUISetupHelpers.TestDashboardRunSelection>(Services.GetRequiredService<IDashboardRunSelection>());
-        selection.OnSelectRun = runId => client.IsReadOnly = runId is not null;
+        selection.OnSelectRun = runId =>
+        {
+            client.IsReadOnly = runId is not null;
+            initialResources.RemoveAll(resource => resource.IsParameter);
+            if (runId is null || historicalHasParameters)
+            {
+                initialResources.Add(ModelTestHelpers.CreateResource("parameter", resourceType: KnownResourceTypes.Parameter));
+            }
+        };
         var cut = Render<MainLayout>(builder => builder.Add(p => p.ViewportInformation,
             new ViewportInformation(IsDesktop: isDesktop, IsUltraLowHeight: false, IsUltraLowWidth: false)));
         var shortcuts = Services.GetRequiredService<ShortcutManager>();
         cut.WaitForAssertion(() =>
         {
             Assert.True(HasTerminals());
+            Assert.True(HasParameters());
             Assert.True(shortcuts.IsShortcutAvailable(AspireKeyboardShortcut.GoToTerminals));
         });
         Assert.Equal(1, client.ResourceSubscriptionCount);
@@ -79,18 +95,72 @@ public partial class MainLayoutTests
         await disposed.Task.WaitAsync(DefaultWaitTimeout);
         Assert.False(HasTerminals());
         Assert.False(shortcuts.IsShortcutAvailable(AspireKeyboardShortcut.GoToTerminals));
-        Assert.Empty(cut.FindComponents<ResourceTerminalsAvailabilityProvider>());
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal(historicalHasParameters, HasParameters());
+            Assert.Equal(2, client.ResourceSubscriptionCount);
+        });
+        Assert.Single(cut.FindComponents<ResourceNavigationAvailabilityProvider>());
         await cut.InvokeAsync(() => cut.Instance.SwitchDashboardRunAsync(null));
         cut.WaitForAssertion(() =>
         {
             Assert.True(HasTerminals());
+            Assert.True(HasParameters());
             Assert.True(shortcuts.IsShortcutAvailable(AspireKeyboardShortcut.GoToTerminals));
         });
-        Assert.Equal(2, client.ResourceSubscriptionCount);
+        Assert.Equal(3, client.ResourceSubscriptionCount);
 
         bool HasTerminals() => isDesktop
             ? cut.FindComponent<DesktopNavMenu>().Instance.HasResourceTerminals
             : cut.FindComponent<MobileNavMenu>().Instance.HasResourceTerminals;
+
+        bool HasParameters() => isDesktop
+            ? cut.FindComponent<DesktopNavMenu>().Instance.HasParameters
+            : cut.FindComponent<MobileNavMenu>().Instance.HasParameters;
+    }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    [InlineData(false, true)]
+    public async Task ParametersNavigation_TracksResourcesIncludingHiddenParameters(bool isDesktop, bool hidden)
+    {
+        var updates = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var client = new TestDashboardClient(isEnabled: true, resourceChannelProvider: () => updates);
+        SetupMainLayoutServices(dashboardClient: client);
+        var cut = Render<MainLayout>(builder => builder.Add(p => p.ViewportInformation,
+            new ViewportInformation(IsDesktop: isDesktop, IsUltraLowHeight: false, IsUltraLowWidth: false)));
+        if (!isDesktop)
+        {
+            await cut.InvokeAsync(() => cut.Find($"#{MainLayout.NavigationButtonId}").Click());
+        }
+        cut.WaitForAssertion(() => Assert.Equal(1, client.ResourceSubscriptionCount));
+        AssertNavigation(false);
+
+        var parameter = ModelTestHelpers.CreateResource("parameter", resourceType: KnownResourceTypes.Parameter, hidden: hidden);
+        await updates.Writer.WriteAsync([new(ResourceViewModelChangeType.Upsert, parameter)]);
+        cut.WaitForAssertion(() => AssertNavigation(true));
+        await updates.Writer.WriteAsync([new(ResourceViewModelChangeType.Upsert, ModelTestHelpers.CreateResource("parameter"))]);
+        cut.WaitForAssertion(() => AssertNavigation(false));
+        var secondParameter = ModelTestHelpers.CreateResource("second-parameter", resourceType: KnownResourceTypes.Parameter);
+        await updates.Writer.WriteAsync([
+            new(ResourceViewModelChangeType.Upsert, parameter),
+            new(ResourceViewModelChangeType.Upsert, secondParameter)
+        ]);
+        cut.WaitForAssertion(() => AssertNavigation(true));
+        await updates.Writer.WriteAsync([new(ResourceViewModelChangeType.Delete, parameter)]);
+        cut.WaitForAssertion(() => AssertNavigation(true));
+        await updates.Writer.WriteAsync([new(ResourceViewModelChangeType.Delete, secondParameter)]);
+        cut.WaitForAssertion(() => AssertNavigation(false));
+
+        void AssertNavigation(bool expected)
+        {
+            var parameterCount = isDesktop
+                ? cut.FindAll("#main-rail-parameters").Count
+                : cut.FindAll("fluent-menu-item").Count(item => item.GetAttribute("data-tooltip") == Resources.Layout.NavMenuParametersTab);
+            Assert.Equal(expected ? 1 : 0, parameterCount);
+        }
     }
 
     [Theory]

@@ -1,14 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.RegularExpressions;
 using Aspire.Dashboard.Components.CustomIcons;
-using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
-using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
@@ -28,6 +25,9 @@ public partial class MobileNavMenu : ComponentBase, IAsyncDisposable
 
     [Parameter]
     public bool HasResourceTerminals { get; set; }
+
+    [Parameter]
+    public bool HasParameters { get; set; }
 
     [Parameter, EditorRequired]
     public required Action CloseNavMenu { get; set; }
@@ -54,9 +54,6 @@ public partial class MobileNavMenu : ComponentBase, IAsyncDisposable
     public required IDashboardClient DashboardClient { get; init; }
 
     [Inject]
-    public required IOptionsMonitor<DashboardOptions> DashboardOptions { get; init; }
-
-    [Inject]
     public required IStringLocalizer<Resources.Layout> Loc { get; init; }
 
     [Inject]
@@ -65,9 +62,18 @@ public partial class MobileNavMenu : ComponentBase, IAsyncDisposable
     [Inject]
     public required ResourcePaneState ResourcePaneState { get; init; }
 
-    private bool IsTelemetrySection => !DashboardClient.IsEnabled ||
-        ResourcePaneState.Mode == ResourcePaneMode.Telemetry ||
-        ResourcesLayout.ParsePaneMode(NavigationManager.ToBaseRelativePath(NavigationManager.Uri)) == ResourcePaneMode.Telemetry;
+    private DesktopNavMenu.NavSection ActiveSection =>
+        DesktopNavMenu.GetSection(NavigationManager.ToBaseRelativePath(NavigationManager.Uri), DashboardClient.IsEnabled);
+
+    protected override void OnInitialized()
+    {
+        ResourcePaneState.Changed += OnResourcePaneChanged;
+    }
+
+    private void OnResourcePaneChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
 
     private Task NavigateToAsync(string url)
     {
@@ -107,6 +113,7 @@ public partial class MobileNavMenu : ComponentBase, IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         _disposed = true;
+        ResourcePaneState.Changed -= OnResourcePaneChanged;
         await DisposeKeyboardNavigationAsync();
         _mobileNavMenuReference?.Dispose();
     }
@@ -151,76 +158,17 @@ public partial class MobileNavMenu : ComponentBase, IAsyncDisposable
 
     private IEnumerable<MobileNavMenuEntry> GetMobileNavMenuEntries()
     {
-        if (DashboardClient.IsEnabled)
+        foreach (var item in DesktopNavMenu.GetItems(DashboardClient.IsEnabled, HasResourceTerminals, HasParameters, Loc,
+            NavigationManager.ToBaseRelativePath(NavigationManager.Uri), ResourcePaneState))
         {
             yield return new MobileNavMenuEntry(
-                Loc[nameof(Resources.Layout.NavMenuHomeTab)],
-                () => NavigateToAsync(DashboardUrls.HomeUrl()),
-                DesktopNavMenu.HomeIcon(),
-                ActiveIcon: DesktopNavMenu.HomeIcon(active: true),
-                LinkMatchRegex: GetIndexPageRegex(DashboardUrls.HomeUrl())
+                item.Text,
+                () => NavigateToAsync(item.Href),
+                item.Icon,
+                ActiveIcon: item.ActiveIcon,
+                Section: item.Section
             );
-
-            // Telemetry pages are tabs of the Resources view, so they highlight the Resources entry.
-            yield return new MobileNavMenuEntry(
-                Loc[nameof(Resources.Layout.NavMenuResourcesTab)],
-                () => NavigateToAsync(DashboardUrls.ResourceOverviewUrl()),
-                DesktopNavMenu.ResourcesIcon(),
-                ActiveIcon: DesktopNavMenu.ResourcesIcon(active: true),
-                LinkMatchRegex: GetNonIndexPageRegex(
-                    DashboardUrls.ResourceOverviewUrl(),
-                    DashboardUrls.ConsoleLogsUrl(),
-                    DashboardUrls.StructuredLogsUrl(),
-                    DashboardUrls.TracesUrl(),
-                    DashboardUrls.MetricsUrl())
-            );
-
-            yield return new MobileNavMenuEntry(
-                Loc[nameof(Resources.Layout.NavMenuParametersTab)],
-                () => NavigateToAsync(DashboardUrls.ParametersUrl()),
-                DesktopNavMenu.ParametersIcon(),
-                ActiveIcon: DesktopNavMenu.ParametersIcon(active: true),
-                LinkMatchRegex: GetNonIndexPageRegex(DashboardUrls.ParametersUrl())
-            );
-
-            if (DashboardOptions.CurrentValue.UI.DisableResourceGraph != true)
-            {
-                yield return new MobileNavMenuEntry(
-                    Loc[nameof(Resources.Layout.NavMenuGraphTab)],
-                    () => NavigateToAsync(DashboardUrls.GraphUrl()),
-                    DesktopNavMenu.GraphIcon(),
-                    ActiveIcon: DesktopNavMenu.GraphIcon(active: true),
-                    LinkMatchRegex: GetNonIndexPageRegex(DashboardUrls.GraphUrl())
-                );
-            }
-
-            if (HasResourceTerminals)
-            {
-                yield return new MobileNavMenuEntry(
-                    Loc[nameof(Resources.Layout.NavMenuTerminalsTab)],
-                    () => NavigateToAsync(DashboardUrls.TerminalsUrl()),
-                    DesktopNavMenu.TerminalsIcon(),
-                    ActiveIcon: DesktopNavMenu.TerminalsIcon(active: true),
-                    LinkMatchRegex: GetNonIndexPageRegex(DashboardUrls.TerminalsUrl())
-                );
-            }
-
-            yield return new MobileNavMenuEntry(
-                Loc[nameof(Resources.Layout.NavMenuExtensionsTab)],
-                () => NavigateToAsync(DashboardUrls.ExtensionsUrl()),
-                DesktopNavMenu.ExtensionsIcon(),
-                ActiveIcon: DesktopNavMenu.ExtensionsIcon(active: true),
-                LinkMatchRegex: GetNonIndexPageRegex(DashboardUrls.ExtensionsUrl())
-            );
-
         }
-        yield return new MobileNavMenuEntry(
-            Loc[nameof(Resources.Layout.NavMenuTelemetrySourcesTab)],
-            () => NavigateToAsync(DashboardUrls.TelemetrySourcesUrl()),
-            DesktopNavMenu.TelemetryIcon(),
-            ActiveIcon: DesktopNavMenu.TelemetryIcon(active: true),
-            LinkMatchRegex: GetNonIndexPageRegex(DashboardUrls.StructuredLogsUrl(), DashboardUrls.TracesUrl(), DashboardUrls.MetricsUrl())
-        );
 
         yield return new MobileNavMenuEntry(
             Loc[nameof(Resources.Layout.MainLayoutAspireRepoLink)],
@@ -268,19 +216,4 @@ public partial class MobileNavMenu : ComponentBase, IAsyncDisposable
         );
     }
 
-    private static Regex GetNonIndexPageRegex(params string[] pageRelativeBasePaths)
-    {
-        var alternatives = pageRelativeBasePaths
-            .Select(Regex.Escape)
-            .Select(path => $"{path}(\\?.*)?|{path}/.+");
-        return new Regex($"^({string.Join("|", alternatives)})$", LinkMatchRegexOptions);
-    }
-
-    private static Regex GetIndexPageRegex(string pageRelativeBasePath)
-    {
-        pageRelativeBasePath = Regex.Escape(pageRelativeBasePath);
-        return new Regex($"^{pageRelativeBasePath}(\\?.*)?$", LinkMatchRegexOptions);
-    }
-
-    private const RegexOptions LinkMatchRegexOptions = RegexOptions.CultureInvariant | RegexOptions.IgnoreCase;
 }

@@ -88,6 +88,12 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     [SupplyParameterFromQuery(Name = "showHiddenResources")]
     public bool ShowHiddenResources { get; set; }
 
+    [Parameter]
+    public ResourceViewKind? EmbeddedViewKind { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<string>? IncludedResourceNames { get; set; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
 
@@ -134,7 +140,8 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     private bool _showResourceTypeColumn;
 
-    private bool Filter(ResourceViewModel resource) => PageViewModel.Filter(resource);
+    private bool Filter(ResourceViewModel resource) => PageViewModel.Filter(resource) &&
+        (IncludedResourceNames is not { Count: > 0 } names || ResourcesLayout.IsResourceInSelection(resource, names));
 
     private async Task OnAllFilterVisibilityCheckedChangedAsync()
     {
@@ -652,6 +659,14 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             return;
         }
 
+        if (EmbeddedViewKind is not null)
+        {
+            await _loadingTcs.Task;
+            await OnRouteViewChangedAsync();
+            UpdateTelemetryProperties();
+            return;
+        }
+
         if (await this.InitializeViewModelAsync())
         {
             return;
@@ -756,7 +771,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         Logger.LogDebug("Showing details for resource {ResourceName}.", resource.Name);
 
         // Resource details are displayed by the resources view. Only parameters are displayed in this page's details panel.
-        if (!resource.IsParameter && PageViewModel.SelectedViewKind is ResourceViewKind.Graph or ResourceViewKind.Parameters)
+        if (!resource.IsParameter && (EmbeddedViewKind is not null || PageViewModel.SelectedViewKind is ResourceViewKind.Graph or ResourceViewKind.Parameters))
         {
             NavigationManager.NavigateTo(DashboardUrls.ResourceOverviewUrl(GetResourceName(resource)));
             return;
@@ -946,7 +961,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
-        if (_isDisposing)
+        if (_isDisposing || EmbeddedViewKind is not null)
         {
             return;
         }
@@ -996,7 +1011,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     /// <summary>
     /// Gets the view displayed by the page from the current route: <c>/graph</c> or <c>/parameters</c>.
     /// </summary>
-    internal ResourceViewKind GetRouteViewKind() => GetViewKindFromPath(NavigationManager.ToBaseRelativePath(NavigationManager.Uri));
+    internal ResourceViewKind GetRouteViewKind() => EmbeddedViewKind ?? GetViewKindFromPath(NavigationManager.ToBaseRelativePath(NavigationManager.Uri));
 
     internal static ResourceViewKind GetViewKindFromPath(string baseRelativePath)
     {
@@ -1106,6 +1121,11 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     public string GetUrlFromSerializableViewModel(ResourcesPageState serializable)
     {
+        if (EmbeddedViewKind is not null)
+        {
+            return $"/{NavigationManager.ToBaseRelativePath(NavigationManager.Uri)}";
+        }
+
         return PageViewModel.SelectedViewKind == ResourceViewKind.Graph
             ? DashboardUrls.GraphUrl(
                 hiddenTypes: SerializeFiltersToString(serializable.ResourceTypesToVisibility),

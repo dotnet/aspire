@@ -60,11 +60,9 @@ public partial class MainLayoutTests : DashboardTestContext
 
     [Theory]
     [InlineData(AspireKeyboardShortcut.GoToHome, "/")]
-    [InlineData(AspireKeyboardShortcut.GoToResources, "/resources?pane=resources")]
+    [InlineData(AspireKeyboardShortcut.GoToResources, "/resources?resource=")]
     [InlineData(AspireKeyboardShortcut.GoToParameters, "/parameters")]
     [InlineData(AspireKeyboardShortcut.GoToGraph, "/graph")]
-    [InlineData(AspireKeyboardShortcut.GoToExtensions, "/extensions")]
-    [InlineData(AspireKeyboardShortcut.GoToTelemetrySources, "/structuredlogs?pane=telemetry")]
     [InlineData(AspireKeyboardShortcut.GoToConsoleLogs, "/consolelogs")]
     public async Task NavigationShortcut_OpensDestination(AspireKeyboardShortcut shortcut, string expectedUrl)
     {
@@ -103,7 +101,6 @@ public partial class MainLayoutTests : DashboardTestContext
             AspireKeyboardShortcut.GoToResources,
             AspireKeyboardShortcut.GoToParameters,
             AspireKeyboardShortcut.GoToGraph,
-            AspireKeyboardShortcut.GoToExtensions,
             AspireKeyboardShortcut.GoToConsoleLogs
         })
         {
@@ -117,9 +114,9 @@ public partial class MainLayoutTests : DashboardTestContext
             }
         }
 
-        Assert.True(shortcuts.IsShortcutAvailable(AspireKeyboardShortcut.GoToTelemetrySources));
-        await cut.InvokeAsync(() => shortcuts.OnGlobalKeyDown(AspireKeyboardShortcut.GoToTelemetrySources));
-        Assert.Equal(navigationManager.ToAbsoluteUri(DashboardUrls.TelemetrySourcesUrl()).AbsoluteUri, navigationManager.Uri);
+        Assert.True(shortcuts.IsShortcutAvailable(AspireKeyboardShortcut.GoToStructuredLogs));
+        await cut.InvokeAsync(() => shortcuts.OnGlobalKeyDown(AspireKeyboardShortcut.GoToStructuredLogs));
+        Assert.Equal(navigationManager.ToAbsoluteUri(DashboardUrls.StructuredLogsUrl()).AbsoluteUri, navigationManager.Uri);
     }
 
     [Fact]

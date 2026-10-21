@@ -150,9 +150,6 @@
   <data name="NavMenuResourcesTab" xml:space="preserve">
     <value>Resources</value>
   </data>
-  <data name="NavMenuTelemetrySourcesTab" xml:space="preserve">
-    <value>Telemetry sources</value>
-  </data>
   <data name="NavMenuConsoleLogsTab" xml:space="preserve">
     <value>Console logs</value>
   </data>
@@ -345,9 +342,6 @@
   <data name="NavMenuTagsTab" xml:space="preserve">
     <value>Tags</value>
   </data>
-  <data name="NavMenuExtensionsTab" xml:space="preserve">
-    <value>Extensions</value>
-  </data>
   <data name="ResourcePaneUntaggedGroup" xml:space="preserve">
     <value>Untagged</value>
   </data>
@@ -364,27 +358,8 @@
     <value>Expand or collapse {0}</value>
     <comment>{0} is the group name</comment>
   </data>
-  <data name="PlaceholderPageComingSoon" xml:space="preserve">
-    <value>Coming soon</value>
-  </data>
   <data name="TerminalsPageDescription" xml:space="preserve">
     <value>Open and switch between the terminals of your resources from one place.</value>
-  </data>
-  <data name="ExtensionsPageDescription" xml:space="preserve">
-    <value>Extend the dashboard with views and tools for your app.</value>
-  </data>
-  <data name="ResourcePaneReorderResource" xml:space="preserve">
-    <value>Reorder {0}</value>
-    <comment>{0} is the resource name.</comment>
-  </data>
-  <data name="ResourcePaneReorderHint" xml:space="preserve">
-    <value>Drag to reorder. Use Alt+Up or Alt+Down to move among siblings.</value>
-  </data>
-  <data name="ResourcePaneReorderUnavailable" xml:space="preserve">
-    <value>Clear search, filters and grouping, and move resources within the same parent.</value>
-  </data>
-  <data name="ResourcePaneReorderFailed" xml:space="preserve">
-    <value>Unable to save the resource order. Try again.</value>
   </data>
   <data name="ResourcePaneMovedBefore" xml:space="preserve">
     <value>{0} moved before {1}.</value>
@@ -406,5 +381,12 @@
   </data>
   <data name="ResourcePaneGroupReorderFailed" xml:space="preserve">
     <value>Unable to save the group order. Try again.</value>
+  </data>
+  <data name="ResourcePaneTelemetryType" xml:space="preserve">
+    <value>Telemetry</value>
+  </data>
+  <data name="ResourcePaneNotApplicableState" xml:space="preserve">
+    <value>N/A</value>
+    <comment>State of a telemetry-only resource that is not part of the application model.</comment>
   </data>
 </root>

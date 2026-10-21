@@ -77,6 +77,8 @@ internal static class FluentUISetupHelpers
 
     public static void SetupFluentDataGrid(BunitContext context)
     {
+        context.JSInterop.Setup<bool>("Blazor._internal.Virtualize.isFollowingTop", _ => true).SetResult(false);
+
         // bUnit leaves a SetupVoid invocation pending until a result is set. FluentDataGrid awaits "stop" when it is
         // disposed, so without SetVoidResult() every test that renders a data grid blocks in disposal until the
         // bUnit wait timeout elapses (10 seconds in DashboardTestContext).

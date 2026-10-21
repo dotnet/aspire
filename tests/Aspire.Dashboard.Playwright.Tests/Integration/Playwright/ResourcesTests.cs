@@ -29,7 +29,7 @@ public class ResourcesTests : PlaywrightTestsBase<ResourcesTests.ResourcesDashbo
         {
             await page.SetViewportSizeAsync(1440, 1000);
             await page.GotoAsync("/resources");
-            await page.Locator("#resourcePaneGroupingButton").ClickAsync();
+            await page.Locator("#resourcePaneFilterButton").ClickAsync();
             await page.GetByRole(AriaRole.Menuitemradio, new PageGetByRoleOptions { Name = Dashboard.Resources.Layout.ResourcePaneGroupingResourceType, Exact = true }).ClickAsync();
             var pane = page.Locator(".resource-pane");
             var groups = pane.Locator(".resource-tag-group");
@@ -59,45 +59,34 @@ public class ResourcesTests : PlaywrightTestsBase<ResourcesTests.ResourcesDashbo
 
     [Fact]
     [OuterloopTest("Resource-intensive Playwright browser test")]
-    public async Task ResourcePane_ReordersByDraggingAndKeyboardAndRemembersOrder()
+    public async Task ResourcePane_UsesTableOrderAfterReloadSearchAndGrouping()
     {
         await RunTestAsync(async page =>
         {
             await page.SetViewportSizeAsync(1280, 900);
-            await page.GotoAsync("/resources");
+            await page.GotoAsync("/resources?resource=");
 
             var pane = page.Locator(".resource-pane");
             var rows = pane.Locator("[data-resource-name]");
-            await Assertions.Expect(rows).ToHaveCountAsync(3);
-            var originalOrder = await rows.EvaluateAllAsync<string[]>("rows => rows.map(row => row.dataset.resourceName)");
-            var source = rows.Last.Locator("[data-resource-drag-handle]");
-            await source.DragToAsync(rows.First, new LocatorDragToOptions { TargetPosition = new TargetPosition { X = 8, Y = 2 } });
-            var reordered = new[] { originalOrder[2], originalOrder[0], originalOrder[1] };
-            await Assertions.Expect(rows.Locator(".resource-row-name")).ToHaveTextAsync(reordered);
+            string[] expectedOrder = ["basketcache", "apigateway", "TestResource"];
+            await Assertions.Expect(rows.Locator(".resource-row-name")).ToHaveTextAsync(expectedOrder);
+            await Assertions.Expect(pane.Locator("[data-resource-drag-handle]")).ToHaveCountAsync(0);
 
             await page.ReloadAsync();
-            await Assertions.Expect(rows.Locator(".resource-row-name")).ToHaveTextAsync(reordered);
-            var movedHandle = pane.Locator($"[data-resource-name='{originalOrder[2]}'] [data-resource-drag-handle]");
-            await movedHandle.FocusAsync();
-            await movedHandle.PressAsync("Alt+ArrowDown");
-            await Assertions.Expect(rows.Locator(".resource-row-name")).ToHaveTextAsync([originalOrder[0], originalOrder[2], originalOrder[1]]);
-            await Assertions.Expect(movedHandle).ToBeFocusedAsync();
-            await movedHandle.PressAsync("Alt+ArrowDown");
-            await Assertions.Expect(rows.Locator(".resource-row-name")).ToHaveTextAsync(originalOrder);
-            await Assertions.Expect(movedHandle).ToBeFocusedAsync();
+            await Assertions.Expect(rows.Locator(".resource-row-name")).ToHaveTextAsync(expectedOrder);
 
             var search = pane.GetByRole(AriaRole.Searchbox);
             await search.FillAsync("api");
-            await Assertions.Expect(pane.Locator("[data-resource-drag-handle]")).ToHaveCountAsync(0);
+            await Assertions.Expect(rows.Locator(".resource-row-name")).ToHaveTextAsync(["apigateway"]);
             await search.FillAsync(string.Empty);
-            await Assertions.Expect(pane.Locator("[data-resource-drag-handle]")).ToHaveCountAsync(3);
+            await Assertions.Expect(rows.Locator(".resource-row-name")).ToHaveTextAsync(expectedOrder);
 
-            await page.Locator("#resourcePaneGroupingButton").ClickAsync();
+            await page.Locator("#resourcePaneFilterButton").ClickAsync();
             await page.GetByRole(AriaRole.Menuitemradio, new PageGetByRoleOptions { Name = Dashboard.Resources.Layout.ResourcePaneGroupingState, Exact = true }).ClickAsync();
             await Assertions.Expect(pane.Locator("[data-resource-drag-handle]")).ToHaveCountAsync(0);
-            await page.Locator("#resourcePaneGroupingButton").ClickAsync();
+            await page.Locator("#resourcePaneFilterButton").ClickAsync();
             await page.GetByRole(AriaRole.Menuitemradio, new PageGetByRoleOptions { Name = Dashboard.Resources.Layout.ResourcePaneGroupingNone, Exact = true }).ClickAsync();
-            await Assertions.Expect(rows.Locator(".resource-row-name")).ToHaveTextAsync(originalOrder);
+            await Assertions.Expect(rows.Locator(".resource-row-name")).ToHaveTextAsync(expectedOrder);
         });
     }
 

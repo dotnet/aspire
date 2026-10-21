@@ -3,6 +3,12 @@
     padding-inline: 12px;
 }
 
+.embedded-resource-list {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+}
+
 ::deep .unread-logs-errors-link {
     display: inline-flex;
     flex: 0 0 auto;

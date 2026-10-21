@@ -205,15 +205,6 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Extend the dashboard with views and tools for your app..
-        /// </summary>
-        public static string ExtensionsPageDescription {
-            get {
-                return ResourceManager.GetString("ExtensionsPageDescription", resourceCulture);
-            }
-        }
-
-        /// <summary>
         ///   Looks up a localized string similar to Aspire.
         /// </summary>
         public static string MainLayoutAspire {
@@ -367,24 +358,6 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Extensions.
-        /// </summary>
-        public static string NavMenuExtensionsTab {
-            get {
-                return ResourceManager.GetString("NavMenuExtensionsTab", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Telemetry sources.
-        /// </summary>
-        public static string NavMenuTelemetrySourcesTab {
-            get {
-                return ResourceManager.GetString("NavMenuTelemetrySourcesTab", resourceCulture);
-            }
-        }
-
-        /// <summary>
         ///   Looks up a localized string similar to Graph.
         /// </summary>
         public static string NavMenuGraphTab {
@@ -480,15 +453,6 @@ namespace Aspire.Dashboard.Resources {
         public static string PageLayoutViewFilters {
             get {
                 return ResourceManager.GetString("PageLayoutViewFilters", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Coming soon.
-        /// </summary>
-        public static string PlaceholderPageComingSoon {
-            get {
-                return ResourceManager.GetString("PlaceholderPageComingSoon", resourceCulture);
             }
         }
 
@@ -826,42 +790,6 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Unable to save the resource order. Try again..
-        /// </summary>
-        public static string ResourcePaneReorderFailed {
-            get {
-                return ResourceManager.GetString("ResourcePaneReorderFailed", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Drag to reorder. Use Alt+Up or Alt+Down to move among siblings..
-        /// </summary>
-        public static string ResourcePaneReorderHint {
-            get {
-                return ResourceManager.GetString("ResourcePaneReorderHint", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Reorder {0}.
-        /// </summary>
-        public static string ResourcePaneReorderResource {
-            get {
-                return ResourceManager.GetString("ResourcePaneReorderResource", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Clear search, filters and grouping, and move resources within the same parent..
-        /// </summary>
-        public static string ResourcePaneReorderUnavailable {
-            get {
-                return ResourceManager.GetString("ResourcePaneReorderUnavailable", resourceCulture);
-            }
-        }
-
-        /// <summary>
         ///   Looks up a localized string similar to Unable to save the group order. Try again..
         /// </summary>
         public static string ResourcePaneGroupReorderFailed {
@@ -894,6 +822,24 @@ namespace Aspire.Dashboard.Resources {
         public static string ResourcePaneReorderGroupHint {
             get {
                 return ResourceManager.GetString("ResourcePaneReorderGroupHint", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Telemetry.
+        /// </summary>
+        public static string ResourcePaneTelemetryType {
+            get {
+                return ResourceManager.GetString("ResourcePaneTelemetryType", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to N/A.
+        /// </summary>
+        public static string ResourcePaneNotApplicableState {
+            get {
+                return ResourceManager.GetString("ResourcePaneNotApplicableState", resourceCulture);
             }
         }
 

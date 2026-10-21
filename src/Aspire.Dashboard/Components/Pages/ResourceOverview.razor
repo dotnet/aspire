@@ -10,32 +10,17 @@
 
 <PageTitle><ApplicationName AdditionalText="@(Resource is { } r ? GetResourceName(r) : null)" ResourceName="@nameof(Dashboard.Resources.Resources.ResourceOverviewPageTitle)" Loc="@Loc" /></PageTitle>
 
-<div class="resource-overview" tabindex="-1">
+<div class="resource-overview @(ResourcesLayout?.ShowResourceViewTabs == true ? "resource-list-overview" : null)" tabindex="-1">
     @if (ResourcesLayout is null || !ResourcesLayout.IsLoaded)
     {
         <div class="overview-message">
             <FluentSpinner Size="SpinnerSize.Small" />
         </div>
     }
-    else if (ResourcesLayout.IsMultiSelection)
+    else if (ResourcesLayout.ShowResourceViewTabs)
     {
-        @SelectionGroups(ResourcesLayout.SelectedResourceNames, Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewSelectionSummary)])
-
-    }
-    else if (ResourceName is null)
-    {
-        var allResourceNames = ResourcesLayout.GetAllResourceNames();
-        if (allResourceNames.Count == 0)
-        {
-            <div class="overview-message">
-                <span>@Loc[nameof(Dashboard.Resources.Resources.ResourcesNoResources)]</span>
-            </div>
-        }
-        else
-        {
-            @SelectionGroups(allResourceNames, LayoutLoc[nameof(Dashboard.Resources.Layout.ResourceHeaderAllResources)])
-
-        }
+        <Resources EmbeddedViewKind="@(ResourcesLayout.CurrentTab == ResourcesLayout.ResourceTab.Graph ? Resources.ResourceViewKind.Graph : Resources.ResourceViewKind.Table)"
+                   IncludedResourceNames="@ResourcesLayout.SelectedResourceNames" />
     }
     else if (Resource is not { } resource)
     {

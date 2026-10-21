@@ -5,20 +5,13 @@
 @* Icon-only links keep the rail narrow. Each label is the link's accessible name and is shown in a tooltip, which
    unlike a native title attribute also appears on keyboard focus. *@
 <nav class="main-rail" aria-label="@Loc[nameof(Layout.NavMenuLandmark)]">
-    @{
-        var displayedSection = GetDisplayedSection();
-    }
     @foreach (var item in GetItems())
     {
-        var isActive = item.Section == displayedSection;
+        var isActive = item.Section == _activeSection;
         var id = $"main-rail-{item.Section.ToString().ToLowerInvariant()}";
-        @if (item.Section == NavSection.ConsoleLogs)
-        {
-            <hr class="main-rail-separator" />
-        }
         <a id="@id"
            href="@item.Href"
-           class="main-rail-item @(item.Section == NavSection.ConsoleLogs ? "main-rail-console-logs" : null) @(isActive ? "active" : null)"
+           class="main-rail-item @(isActive ? "active" : null)"
            aria-label="@item.Text"
            aria-current="@(isActive ? "page" : null)">
             <FluentIcon Value="@(isActive ? item.ActiveIcon : item.Icon)" Width="24px" Color="Color.Custom" CustomColor="currentColor" />

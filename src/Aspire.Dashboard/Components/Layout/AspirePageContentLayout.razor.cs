@@ -15,6 +15,9 @@ public partial class AspirePageContentLayout : ComponentBase, IDisposable
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
 
+    [CascadingParameter]
+    public ResourcesLayout? ResourcesLayout { get; set; }
+
     [Parameter]
     public required RenderFragment PageTitleSection { get; set; }
 
@@ -48,10 +51,13 @@ public partial class AspirePageContentLayout : ComponentBase, IDisposable
     /// <summary>
     /// When <see langword="true"/>, the desktop toolbar header row is not rendered. Pages set this when they
     /// relocate their toolbar controls elsewhere (for example, Resources shares the tabs row with the filter
-    /// controls) so an empty toolbar row doesn't waste vertical space. The page title teleport is unaffected.
+    /// controls) so an empty toolbar row doesn't waste vertical space. The page heading is unaffected.
     /// </summary>
     [Parameter]
     public bool HideDesktopToolbar { get; set; }
+
+    [Parameter]
+    public bool HideMobileToolbar { get; set; }
 
     [Inject]
     public required DashboardDialogService DialogService { get; init; }

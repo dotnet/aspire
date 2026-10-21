@@ -39,7 +39,7 @@ public sealed class ResourcePaneInteractionTests : PlaywrightTestsBase<Dashboard
 
         await RunTestAsync(async page =>
         {
-            await page.GotoAsync(DashboardUrls.TelemetrySourcesUrl());
+            await page.GotoAsync(DashboardUrls.StructuredLogsUrl());
 
             var pane = page.Locator(".resource-pane");
 
@@ -51,8 +51,8 @@ public sealed class ResourcePaneInteractionTests : PlaywrightTestsBase<Dashboard
                 var link = pane.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = resourceName });
                 await link.ClickAsync();
 
-                await Assertions.Expect(page).ToHaveURLAsync(new Regex($"/structuredlogs/resource/{resourceName}\\?pane=telemetry$"));
-                await Assertions.Expect(page.Locator("h1.resource-title")).ToHaveTextAsync(resourceName);
+                await Assertions.Expect(page).ToHaveURLAsync(new Regex($"/structuredlogs/resource/{resourceName}$"));
+                await Assertions.Expect(page.Locator("h2.resource-title")).ToHaveTextAsync(resourceName);
                 await Assertions.Expect(link).ToHaveAttributeAsync("aria-current", "page");
             }
         });
@@ -118,28 +118,28 @@ public sealed class ResourcePaneInteractionTests : PlaywrightTestsBase<Dashboard
         await RunTestAsync(async page =>
         {
             await page.SetViewportSizeAsync(1280, 900);
-            await page.GotoAsync(DashboardUrls.AddTelemetryPane(DashboardUrls.StructuredLogsUrl(resource: "multi-a")));
+            await page.GotoAsync(DashboardUrls.StructuredLogsUrl(resource: "multi-a"));
 
             var pane = page.Locator(".resource-pane");
-            var title = page.Locator("h1.resource-title");
+            var title = page.Locator("h2.resource-title");
             await Assertions.Expect(title).ToHaveTextAsync("multi-a");
 
             await GetRowLink("multi-c").ClickAsync(new LocatorClickOptions { Modifiers = [KeyboardModifier.ControlOrMeta] });
-            await Assertions.Expect(page).ToHaveURLAsync(new Regex(@"/structuredlogs\?resource=multi-a&resource=multi-c&pane=telemetry$"));
+            await Assertions.Expect(page).ToHaveURLAsync(new Regex(@"/structuredlogs\?resource=multi-a&resource=multi-c$"));
             await Assertions.Expect(title).ToHaveTextAsync(string.Format(CultureInfo.CurrentCulture, Resources.Layout.ResourceHeaderSelectedResources, 2));
             await Assertions.Expect(pane.Locator("a[aria-current='true']")).ToHaveCountAsync(2);
             await Assertions.Expect(page.Locator(".resource-header-chip")).ToHaveTextAsync(["multi-a", "multi-c"]);
 
             // Shift+click selects the rows between the last clicked row (multi-c) and the clicked row.
             await GetRowLink("multi-a").ClickAsync(new LocatorClickOptions { Modifiers = [KeyboardModifier.Shift] });
-            await Assertions.Expect(page).ToHaveURLAsync(new Regex(@"/structuredlogs\?resource=multi-a&resource=multi-b&resource=multi-c&pane=telemetry$"));
+            await Assertions.Expect(page).ToHaveURLAsync(new Regex(@"/structuredlogs\?resource=multi-a&resource=multi-b&resource=multi-c$"));
             await Assertions.Expect(title).ToHaveTextAsync(string.Format(CultureInfo.CurrentCulture, Resources.Layout.ResourceHeaderSelectedResources, 3));
 
             await GetRowLink("multi-b").ClickAsync(new LocatorClickOptions { Modifiers = [KeyboardModifier.ControlOrMeta] });
-            await Assertions.Expect(page).ToHaveURLAsync(new Regex(@"/structuredlogs\?resource=multi-a&resource=multi-c&pane=telemetry$"));
+            await Assertions.Expect(page).ToHaveURLAsync(new Regex(@"/structuredlogs\?resource=multi-a&resource=multi-c$"));
 
             await GetRowLink("multi-b").ClickAsync();
-            await Assertions.Expect(page).ToHaveURLAsync(new Regex(@"/structuredlogs/resource/multi-b\?pane=telemetry$"));
+            await Assertions.Expect(page).ToHaveURLAsync(new Regex(@"/structuredlogs/resource/multi-b$"));
             await Assertions.Expect(title).ToHaveTextAsync("multi-b");
             await Assertions.Expect(GetRowLink("multi-b")).ToHaveAttributeAsync("aria-current", "page");
 

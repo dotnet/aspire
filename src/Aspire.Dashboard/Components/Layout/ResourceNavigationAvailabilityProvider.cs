@@ -6,26 +6,30 @@ using Microsoft.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Layout;
 
-public sealed class ResourceTerminalsAvailabilityProvider : ComponentBase, IAsyncDisposable
+public sealed class ResourceNavigationAvailabilityProvider : ComponentBase, IAsyncDisposable
 {
     private readonly CancellationTokenSource _cts = new();
     private readonly Dictionary<string, ResourceViewModel> _resources = new(StringComparers.ResourceName);
     private Task? _watchTask;
-    private bool _available;
+    private bool _hasResourceTerminals;
+    private bool _hasParameters;
     private bool _disposed;
 
     [Inject]
     public required IDashboardClient DashboardClient { get; init; }
 
     [Inject]
-    public required ILogger<ResourceTerminalsAvailabilityProvider> Logger { get; init; }
+    public required ILogger<ResourceNavigationAvailabilityProvider> Logger { get; init; }
 
     [Parameter, EditorRequired]
-    public required EventCallback<bool> AvailabilityChanged { get; set; }
+    public required EventCallback<bool> TerminalsAvailabilityChanged { get; set; }
+
+    [Parameter, EditorRequired]
+    public required EventCallback<bool> ParametersAvailabilityChanged { get; set; }
 
     protected override void OnInitialized()
     {
-        if (DashboardClient.IsEnabled && !DashboardClient.IsReadOnly)
+        if (DashboardClient.IsEnabled)
         {
             _watchTask = WatchAsync(_cts.Token);
         }
@@ -70,7 +74,7 @@ public sealed class ResourceTerminalsAvailabilityProvider : ComponentBase, IAsyn
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to watch resource terminal availability.");
+            Logger.LogError(ex, "Failed to watch resource navigation availability.");
             await DispatchExceptionAsync(ex);
         }
     }
@@ -82,11 +86,18 @@ public sealed class ResourceTerminalsAvailabilityProvider : ComponentBase, IAsyn
             return;
         }
 
-        var available = _resources.Values.Any(ResourceSelectHelpers.HasUsableTerminal);
-        if (_available != available)
+        var hasResourceTerminals = !DashboardClient.IsReadOnly && _resources.Values.Any(ResourceSelectHelpers.HasUsableTerminal);
+        if (_hasResourceTerminals != hasResourceTerminals)
         {
-            _available = available;
-            await AvailabilityChanged.InvokeAsync(available);
+            _hasResourceTerminals = hasResourceTerminals;
+            await TerminalsAvailabilityChanged.InvokeAsync(hasResourceTerminals);
+        }
+
+        var hasParameters = _resources.Values.Any(resource => resource.IsParameter);
+        if (_hasParameters != hasParameters)
+        {
+            _hasParameters = hasParameters;
+            await ParametersAvailabilityChanged.InvokeAsync(hasParameters);
         }
     }
 

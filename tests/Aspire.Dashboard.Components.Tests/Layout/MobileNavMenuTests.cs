@@ -3,6 +3,7 @@
 
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Components.Tests.Shared;
+using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Tests.Shared;
 using Aspire.Dashboard.Utils;
 using Bunit;
@@ -18,16 +19,17 @@ namespace Aspire.Dashboard.Components.Tests.Layout;
 public class MobileNavMenuTests : DashboardTestContext
 {
     [Theory]
-    [InlineData("/structuredlogs?logLevel=error")]
-    [InlineData("/traces/detail/abc")]
-    [InlineData("/metrics/resource/api")]
-    public void Standalone_TelemetryPagesSelectTelemetryEntry(string path)
+    [InlineData("/structuredlogs?logLevel=error", nameof(Resources.Layout.NavMenuStructuredLogsTab))]
+    [InlineData("/traces/detail/abc", nameof(Resources.Layout.NavMenuTracesTab))]
+    [InlineData("/metrics/resource/api", nameof(Resources.Layout.NavMenuMetricsTab))]
+    public void Standalone_TelemetryPagesSelectPageEntry(string path, string expectedText)
     {
-        var cut = RenderMobileNavMenu(path, hasResourceService: false);
+        var cut = RenderMobileNavMenu(path, hasResourceService: false, hasParameters: true);
 
-        AssertMenuItemIsActive(cut, Resources.Layout.NavMenuTelemetrySourcesTab);
+        AssertMenuItemIsActive(cut, Resources.Layout.ResourceManager.GetString(expectedText)!);
         Assert.Equal(
-            [Resources.Layout.NavMenuTelemetrySourcesTab, Resources.Layout.MainLayoutAspireRepoLink,
+            [Resources.Layout.NavMenuStructuredLogsTab, Resources.Layout.NavMenuTracesTab, Resources.Layout.NavMenuMetricsTab,
+                Resources.Layout.MainLayoutAspireRepoLink,
                 Resources.Layout.MainLayoutKeyboardShortcuts,
                 Resources.Layout.MainLayoutAspireDashboardHelpLink, Resources.Layout.MainLayoutLaunchNotifications,
                 Resources.Layout.MainLayoutLaunchSettings],
@@ -52,25 +54,33 @@ public class MobileNavMenuTests : DashboardTestContext
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void TerminalsNavigation_IsConditional(bool hasTerminals)
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void ResourceNavigation_IsConditional(bool hasTerminals, bool hasParameters)
     {
-        var cut = RenderMobileNavMenu("/terminals/resource/shell", hasResourceTerminals: hasTerminals);
-        var titles = cut.FindAll("fluent-menu-item").Select(i => i.GetAttribute("data-tooltip")).Take(hasTerminals ? 8 : 7);
+        var cut = RenderMobileNavMenu("/terminals/resource/shell", hasResourceTerminals: hasTerminals, hasParameters: hasParameters);
+        var titles = cut.FindAll("fluent-menu-item").Select(i => i.GetAttribute("data-tooltip")).Take(7 + (hasTerminals ? 1 : 0) + (hasParameters ? 1 : 0));
         var expected = new List<string>
         {
             Resources.Layout.NavMenuHomeTab,
-            Resources.Layout.NavMenuResourcesTab,
-            Resources.Layout.NavMenuParametersTab,
-            Resources.Layout.NavMenuGraphTab
+            Resources.Layout.NavMenuResourcesTab
         };
+        if (hasParameters)
+        {
+            expected.Add(Resources.Layout.NavMenuParametersTab);
+        }
+        expected.AddRange([
+            Resources.Layout.NavMenuConsoleLogsTab,
+            Resources.Layout.NavMenuStructuredLogsTab,
+            Resources.Layout.NavMenuTracesTab,
+            Resources.Layout.NavMenuMetricsTab
+        ]);
         if (hasTerminals)
         {
             expected.Add(Resources.Layout.NavMenuTerminalsTab);
         }
-        expected.Add(Resources.Layout.NavMenuExtensionsTab);
-        expected.Add(Resources.Layout.NavMenuTelemetrySourcesTab);
         expected.Add(Resources.Layout.MainLayoutAspireRepoLink);
         Assert.Equal(expected, titles);
         if (hasTerminals)
@@ -80,26 +90,76 @@ public class MobileNavMenuTests : DashboardTestContext
     }
 
     [Fact]
-    public void AppHost_TelemetryPaneSelectsTelemetryEntry()
+    public void AppHost_LegacyTelemetryPaneQuerySelectsPageEntry()
     {
-        var cut = RenderMobileNavMenu(DashboardUrls.TelemetrySourcesUrl());
-        AssertMenuItemIsActive(cut, Resources.Layout.NavMenuTelemetrySourcesTab);
+        var cut = RenderMobileNavMenu("/structuredlogs?pane=telemetry");
+        AssertMenuItemIsActive(cut, Resources.Layout.NavMenuStructuredLogsTab);
+    }
+
+    [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(false, false, true)]
+    [InlineData(false, true, false)]
+    [InlineData(false, true, true)]
+    [InlineData(true, false, false)]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, false)]
+    [InlineData(true, true, true)]
+    public async Task AppModelNavigation_ExcludesTelemetryOnlyResourcesAndClosesMenu(bool consoleLogs, bool mixedSelection, bool traceDetails)
+    {
+        var menuClosed = false;
+        string[] selection = mixedSelection ? ["api", "browser"] : ["browser"];
+        var path = traceDetails ? "/traces/detail/abc" : ResourcesLayout.GetTabUrl(ResourcesLayout.ResourceTab.Traces, selection);
+        var cut = RenderMobileNavMenu(path, () => menuClosed = true);
+        var paneState = Services.GetRequiredService<ResourcePaneState>();
+        await cut.InvokeAsync(() =>
+        {
+            paneState.SetSelectedResources(selection);
+            paneState.SetTelemetryOnlyResources(["browser"]);
+        });
+        var item = cut.FindAll("fluent-menu-item").Single(item => item.GetAttribute("data-tooltip") ==
+            (consoleLogs ? Resources.Layout.NavMenuConsoleLogsTab : Resources.Layout.NavMenuResourcesTab));
+
+        await cut.InvokeAsync(() => item.TriggerEvent("onmenuitemchange",
+            new MenuItemEventArgs { Id = item.Id, Text = item.TextContent }));
+
+        var expectedUrl = mixedSelection
+            ? consoleLogs ? DashboardUrls.ConsoleLogsUrl("api") : DashboardUrls.ResourceOverviewUrl("api")
+            : consoleLogs ? DashboardUrls.ConsoleLogsUrl() : DashboardUrls.ResourceListUrl();
+        Assert.True(menuClosed);
+        Assert.Equal(Services.GetRequiredService<NavigationManager>().ToAbsoluteUri(expectedUrl).AbsoluteUri,
+            Services.GetRequiredService<NavigationManager>().Uri);
     }
 
     [Fact]
-    public void Render_OpenMenu_TelemetryPageWithQueryStringSelectsResourcesEntry()
+    public async Task TelemetryNavigation_PreservesSelectionAndClosesMenu()
+    {
+        var menuClosed = false;
+        var cut = RenderMobileNavMenu("/resources?resource=api&resource=worker", () => menuClosed = true);
+        var tracesItem = cut.FindAll("fluent-menu-item")
+            .Single(item => item.GetAttribute("data-tooltip") == Resources.Layout.NavMenuTracesTab);
+
+        await cut.InvokeAsync(() => tracesItem.TriggerEvent("onmenuitemchange",
+            new MenuItemEventArgs { Id = tracesItem.Id, Text = tracesItem.TextContent }));
+
+        Assert.True(menuClosed);
+        Assert.Equal("http://localhost/traces?resource=api&resource=worker", Services.GetRequiredService<NavigationManager>().Uri);
+    }
+
+    [Fact]
+    public void Render_OpenMenu_TelemetryPageWithQueryStringSelectsPageEntry()
     {
         var cut = RenderMobileNavMenu(DashboardUrls.StructuredLogsUrl(logLevel: "warning"));
 
-        AssertMenuItemIsActive(cut, Resources.Layout.NavMenuResourcesTab);
+        AssertMenuItemIsActive(cut, Resources.Layout.NavMenuStructuredLogsTab);
     }
 
     [Fact]
-    public void Render_OpenMenu_TelemetryPageSelectsResourcesEntry()
+    public void Render_OpenMenu_TelemetryPageSelectsPageEntry()
     {
         var cut = RenderMobileNavMenu(DashboardUrls.StructuredLogsUrl());
 
-        AssertMenuItemIsActive(cut, Resources.Layout.NavMenuResourcesTab);
+        AssertMenuItemIsActive(cut, Resources.Layout.NavMenuStructuredLogsTab);
     }
 
     [Fact]
@@ -121,7 +181,7 @@ public class MobileNavMenuTests : DashboardTestContext
     [Fact]
     public void Render_OpenMenu_ParametersPageHasSemanticAndVisualSelectedState()
     {
-        var cut = RenderMobileNavMenu(DashboardUrls.ParametersUrl(hiddenStates: "Running"));
+        var cut = RenderMobileNavMenu(DashboardUrls.ParametersUrl(hiddenStates: "Running"), hasParameters: true);
 
         AssertMenuItemIsActive(cut, Resources.Layout.NavMenuParametersTab);
     }
@@ -189,7 +249,7 @@ public class MobileNavMenuTests : DashboardTestContext
         Assert.Equal(MainLayout.NavigationButtonId, argument);
     }
 
-    private IRenderedComponent<MobileNavMenu> RenderMobileNavMenu(string currentUrl, Action? closeNavMenu = null, bool isNavMenuOpen = true, bool hasResourceTerminals = false, bool hasResourceService = true)
+    private IRenderedComponent<MobileNavMenu> RenderMobileNavMenu(string currentUrl, Action? closeNavMenu = null, bool isNavMenuOpen = true, bool hasResourceTerminals = false, bool hasResourceService = true, bool hasParameters = false)
     {
         FluentUISetupHelpers.AddCommonDashboardServices(this);
         Services.AddSingleton<IDashboardClient>(new TestDashboardClient(isEnabled: hasResourceService));
@@ -206,6 +266,7 @@ public class MobileNavMenuTests : DashboardTestContext
         {
             builder.Add(p => p.IsNavMenuOpen, isNavMenuOpen);
             builder.Add(p => p.HasResourceTerminals, hasResourceTerminals);
+            builder.Add(p => p.HasParameters, hasParameters);
             builder.Add(p => p.CloseNavMenu, closeNavMenu ?? (() => { }));
             builder.Add(p => p.LaunchHelpAsync, () => Task.CompletedTask);
             builder.Add(p => p.LaunchAIAgentsAsync, () => Task.CompletedTask);

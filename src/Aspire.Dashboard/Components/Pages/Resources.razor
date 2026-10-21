@@ -8,26 +8,31 @@
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 @inject IStringLocalizer<Columns> ColumnsLoc
 
-<PageTitle><ApplicationName ResourceName="@GetPageTitleResourceName()" Loc="@Loc" /></PageTitle>
+@if (EmbeddedViewKind is null)
+{
+    <PageTitle><ApplicationName ResourceName="@GetPageTitleResourceName()" Loc="@Loc" /></PageTitle>
+}
 
 @{
     var showDetailsView = PageViewModel.SelectedResource is not null;
 }
 
-<div class="page-content-container">
+<div class="page-content-container @(EmbeddedViewKind is not null ? "embedded-resource-list" : null)">
     <AspirePageContentLayout @ref="@_contentLayout"
                              AddNewlineOnToolbar="true"
+                             HideDesktopToolbar="@(EmbeddedViewKind is not null)"
+                             HideMobileToolbar="@(EmbeddedViewKind is not null)"
                              IsSummaryDetailsViewOpen="@showDetailsView">
         <PageTitleSection>
             <h1 class="page-header">@Loc[GetPageTitleResourceName()]</h1>
         </PageTitleSection>
 
         <ToolbarSection>
-            @if (ViewportInformation.IsDesktop)
+            @if (EmbeddedViewKind is null && ViewportInformation.IsDesktop)
             {
                 @GetDesktopFilterControls()
             }
-            else
+            else if (EmbeddedViewKind is null)
             {
                 <FluentTextInput TextInputType="TextInputType.Search" Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
                               Class="toolbar-search"

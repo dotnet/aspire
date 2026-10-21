@@ -4,53 +4,42 @@
 namespace Aspire.Dashboard.Model;
 
 /// <summary>
-/// What the resource list next to resource pages displays.
-/// </summary>
-public enum ResourcePaneMode
-{
-    /// <summary>
-    /// Resources ordered by type, with nested resources under their parent.
-    /// </summary>
-    Resources,
-
-    /// <summary>
-    /// Legacy mode for links to the former Tags view. The layout applies tag grouping in the Resources pane.
-    /// </summary>
-    Tags,
-
-    /// <summary>
-    /// Services sending telemetry that aren't part of the AppHost model.
-    /// </summary>
-    Telemetry
-}
-
-/// <summary>
-/// Shares the resource list's mode between the resources layout, which owns the list, and the main navigation, which
-/// highlights the entry for the current mode.
+/// Shares resource selection and telemetry-only resource names between the resources layout and main navigation.
 /// </summary>
 public sealed class ResourcePaneState
 {
-    /// <summary>
-    /// Gets the resource list's mode.
-    /// </summary>
-    public ResourcePaneMode Mode { get; private set; }
+    private HashSet<string> _telemetryOnlyResourceNames = new(StringComparers.ResourceName);
 
-    /// <summary>
-    /// Raised when <see cref="Mode"/> changes.
-    /// </summary>
-    public event Action? Changed;
+    internal IReadOnlyList<string> SelectedResourceNames { get; private set; } = [];
 
-    /// <summary>
-    /// Sets the resource list's mode.
-    /// </summary>
-    public void SetMode(ResourcePaneMode mode)
+    internal IReadOnlyList<string> ExcludeTelemetryOnlyResources(IReadOnlyList<string> resourceNames) =>
+        resourceNames.Where(name => !_telemetryOnlyResourceNames.Contains(name)).ToList();
+
+    internal void SetSelectedResources(IReadOnlyList<string> resourceNames)
     {
-        if (Mode == mode)
+        if (SelectedResourceNames.SequenceEqual(resourceNames, StringComparers.ResourceName))
         {
             return;
         }
 
-        Mode = mode;
+        SelectedResourceNames = resourceNames;
+        Changed?.Invoke();
+    }
+
+    /// <summary>
+    /// Raised when the selection or telemetry-only resources change.
+    /// </summary>
+    public event Action? Changed;
+
+    internal void SetTelemetryOnlyResources(IEnumerable<string> resourceNames)
+    {
+        var names = resourceNames.ToHashSet(StringComparers.ResourceName);
+        if (_telemetryOnlyResourceNames.SetEquals(names))
+        {
+            return;
+        }
+
+        _telemetryOnlyResourceNames = names;
         Changed?.Invoke();
     }
 }
