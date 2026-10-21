@@ -16,6 +16,19 @@ namespace Infrastructure.Tests.TestTriggerMap;
 public sealed class TestTriggerMapTests
 {
     [Theory]
+    [InlineData("eng/scripts/reproduction-worker.ps1")]
+    [InlineData(".github/workflows/reproduce-flaky-tests.yml")]
+    public void ReproductionWorkerInputsSelectInfrastructureCoverage(string path)
+    {
+        var result = SelectWithRealMap(path);
+
+        Assert.False(result.SelectsAll);
+        Assert.Equal(["Infrastructure.Tests"], result.TestProjects);
+        Assert.Empty(result.Jobs);
+        Assert.Empty(result.UnmatchedFiles);
+    }
+
+    [Theory]
     [InlineData("eng/scripts/generate-template-cgmanifest.ps1")]
     public void TemplateManifestInputsSelectInfrastructureCoverage(string path)
     {
