@@ -8,7 +8,7 @@ import { isNoLogoUnsupportedOutput, noLogoOption } from './cliCompatibility';
 import { EnvironmentVariables } from './environment';
 import { extensionLogOutputChannel } from './logging';
 import { getAppHostDiscoveryTimeoutMs } from './settings';
-import { classifyAppHostPath, summarizeAppHostLanguages } from './appHostLanguage';
+import { summarizeAppHostLanguages } from './appHostLanguage';
 import { sendTelemetryEvent } from './telemetry';
 import { isExcludedDiscoveryCandidate, isExcludedDiscoveryUri } from './workspaceFileSearch';
 import { ConfigInfoProvider } from './configInfoProvider';
@@ -161,7 +161,7 @@ export class AppHostDiscoveryService implements vscode.Disposable {
                 .then(async discovery => {
                     let candidates = discovery.candidates;
                     try {
-                        candidates = await this._includeConfiguredAppHostCandidate(workspaceFolder, candidates);
+                        candidates = await this._selectConfiguredAppHostCandidate(workspaceFolder, candidates);
                         candidates = sortCandidatesByPath(this._filterExcludedCandidates(workspaceFolder, candidates));
                         emitAppHostDiscoveryTelemetry(discovery.source, 'success', candidates, startTime);
                     }
@@ -364,7 +364,7 @@ export class AppHostDiscoveryService implements vscode.Disposable {
                 const appHosts = await discoverProjectAppHostsFromWorkspaceFiles(workspaceFolder);
                 throwIfCancellationRequested(cancellationToken);
                 if (appHosts.length > 0) {
-                    extensionLogOutputChannel.warn(`CLI AppHost discovery failed; using ${appHosts.length} AppHost project candidate(s) found in the workspace.`);
+                    extensionLogOutputChannel.warn(`CLI AppHost discovery failed; using ${appHosts.length} AppHost project candidate(s) found by file discovery.`);
                     return { source: 'workspace-files', candidates: appHosts };
                 }
             }
@@ -549,36 +549,23 @@ export class AppHostDiscoveryService implements vscode.Disposable {
         }
     }
 
-    private async _includeConfiguredAppHostCandidate(workspaceFolder: vscode.WorkspaceFolder, candidates: CandidateAppHostDisplayInfo[]): Promise<CandidateAppHostDisplayInfo[]> {
+    private async _selectConfiguredAppHostCandidate(
+        workspaceFolder: vscode.WorkspaceFolder,
+        candidates: CandidateAppHostDisplayInfo[]): Promise<CandidateAppHostDisplayInfo[]> {
         if (candidates.some(candidate => candidate.selected)) {
             return candidates;
         }
 
         const configuredPaths = await findConfiguredAppHostPaths(workspaceFolder);
-        const configuredPath = configuredPaths.find(configuredPath => candidates.some(candidate => isSameFileSystemEntry(candidate.path, configuredPath)))
-            ?? configuredPaths[0];
+        const configuredPath = configuredPaths.find(configuredPath => candidates.some(candidate => isSameFileSystemEntry(candidate.path, configuredPath)));
         if (!configuredPath) {
             return candidates;
         }
 
-        const matchingCandidate = candidates.find(candidate => isSameFileSystemEntry(candidate.path, configuredPath));
-        if (matchingCandidate) {
-            return candidates.map(candidate => ({
-                ...candidate,
-                selected: isSameFileSystemEntry(candidate.path, configuredPath),
-            }));
-        }
-
-        const configuredLanguage = classifyAppHostPath(configuredPath);
-        return [
-            ...candidates,
-            {
-                path: configuredPath,
-                language: configuredLanguage === 'unknown' ? null : configuredLanguage,
-                status: 'buildable',
-                selected: true,
-            },
-        ];
+        return candidates.map(candidate => ({
+            ...candidate,
+            selected: isSameFileSystemEntry(candidate.path, configuredPath),
+        }));
     }
 
     private _filterExcludedCandidates(workspaceFolder: vscode.WorkspaceFolder, candidates: CandidateAppHostDisplayInfo[]): CandidateAppHostDisplayInfo[] {

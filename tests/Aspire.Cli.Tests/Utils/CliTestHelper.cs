@@ -25,6 +25,7 @@ using Aspire.Cli.Projects;
 using Aspire.Cli.Scaffolding;
 using Aspire.Cli.Secrets;
 using Aspire.Cli.Telemetry;
+using Aspire.Shared.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Tests.Telemetry;
 using Aspire.Cli.Tests.TestServices;
@@ -134,6 +135,10 @@ internal static class CliTestHelper
         services.AddSingleton(sp => sp.GetRequiredService<ConsoleEnvironment>().Out);
         services.AddSingleton(options.TimeProvider);
         services.AddSingleton(options.TelemetryFactory);
+        services.AddSingleton(new TelemetryConfiguration { ReportedTelemetryEnabled = false });
+        services.AddSingleton<TelemetryTagsSource>();
+        services.AddSingleton<TelemetryManager>();
+        services.AddSingleton<AgentTelemetryHook>();
         services.AddSingleton<ProfilingTelemetry>();
         services.AddSingleton(options.ProjectLocatorFactory);
         services.AddSingleton(options.SolutionLocatorFactory);
@@ -148,6 +153,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.PublishCommandPrompterFactory);
         services.AddTransient(options.DotNetCliExecutionFactoryFactory);
         services.AddTransient(options.DotNetCliRunnerFactory);
+        services.AddSingleton(options.NuGetClientFactory);
         services.AddTransient(options.NuGetPackageCacheFactory);
         services.AddSingleton<TemplateNuGetConfigService>();
         services.AddSingleton(options.TemplateProviderFactory);
@@ -169,6 +175,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.BannerServiceFactory);
         services.AddSingleton<FallbackProjectParser>();
         services.AddSingleton(options.ProjectUpdaterFactory);
+        services.AddSingleton<RepositoryToolUpdater>();
         services.AddSingleton<NuGetPackagePrefetcher>();
         services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<NuGetPackagePrefetcher>());
         services.AddSingleton(options.AuxiliaryBackchannelMonitorFactory);
@@ -193,6 +200,8 @@ internal static class CliTestHelper
         services.AddSingleton(options.LayoutDiscoveryFactory);
         services.AddTransient<LayoutProcessRunner>();
         services.AddTransient<ProcessTreeGracefulShutdownService>();
+        services.AddSingleton<IProcessIdentityProvider, ProcessIdentityProvider>();
+        services.AddSingleton(sp => new TrayProtocolOutput(() => sp.GetRequiredService<ConsoleEnvironment>().Out.Profile.Out.Writer));
         // Mirror Program.cs so consumers (e.g. GuestAppHostProject) that depend on the
         // interface receive the same ProcessTreeGracefulShutdownService instance the abstraction
         // wraps. Without this, DI returns null and Run-path tests construct the project with
@@ -261,6 +270,7 @@ internal static class CliTestHelper
 
         services.AddSingleton<CommonCommandServices>();
         services.AddSingleton<ResourceWaitService>();
+        services.AddSingleton<AppHostConfigurationProjector>();
         services.AddTransient<AppHostConnectionResolver>();
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
@@ -291,6 +301,7 @@ internal static class CliTestHelper
         services.AddTransient<DoCommand>();
         services.AddTransient<PublishCommand>();
         services.AddTransient<ConfigCommand>();
+        services.AddTransient<CompletionsCommand>();
         services.AddTransient<CacheCommand>();
         services.AddTransient<CertificatesCommand>();
         services.AddTransient<CertificatesCleanCommand>();
@@ -298,6 +309,10 @@ internal static class CliTestHelper
         services.AddTransient<DoctorCommand>();
         services.AddTransient<DashboardCommand>();
         services.AddTransient<DashboardRunCommand>();
+        services.AddTransient<TrayCommand>();
+        services.AddTransient<TrayStartCommand>();
+        services.AddTransient<TrayStopCommand>();
+        services.AddTransient<TrayLifecycleService>();
         services.AddTransient<UpdateCommand>();
         services.AddTransient<SetupCommand>();
         services.AddTransient<McpCommand>();
@@ -337,7 +352,7 @@ internal static class CliTestHelper
         services.AddTransient<SecretListCommand>();
         services.AddTransient<SecretPathCommand>();
         services.AddTransient<SecretDeleteCommand>();
-        services.AddTransient<SecretStoreResolver>();
+        services.AddTransient<AspireSecretsStoreResolver>();
 #if DEBUG
         services.AddTransient<RenderCommand>();
 #endif
@@ -391,7 +406,7 @@ internal sealed class CliServiceCollectionTestOptions
         var outConsole = CreateAnsiConsole(outputTextWriter, !DisableAnsi);
         var errorConsole = CreateAnsiConsole(errorTextWriter, !DisableAnsi);
 
-        return new ConsoleEnvironment(outConsole, errorConsole);
+        return new ConsoleEnvironment(outConsole, errorConsole, TextReader.Null);
     };
 
     private static IAnsiConsole CreateAnsiConsole(TextWriter textWriter, bool ansi = true)
@@ -504,7 +519,7 @@ internal sealed class CliServiceCollectionTestOptions
         var cache = serviceProvider.GetRequiredService<IMemoryCache>();
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var fallbackParser = serviceProvider.GetRequiredService<FallbackProjectParser>();
-        return new ProjectUpdater(logger, runner, interactionService, cache, executionContext, fallbackParser);
+        return new ProjectUpdater(logger, runner, interactionService, cache, executionContext, fallbackParser, serviceProvider.GetRequiredService<BundleNuGetService>());
     };
 
     public Func<IServiceProvider, ICliHostEnvironment> CliHostEnvironmentFactory { get; set; } = (IServiceProvider serviceProvider) =>
@@ -551,7 +566,7 @@ internal sealed class CliServiceCollectionTestOptions
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
         var logger = serviceProvider.GetRequiredService<ILogger<ScaffoldingService>>();
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
-        return new ScaffoldingService(appHostServerProjectFactory, serverSessionFactory, languageDiscovery, interactionService, serviceProvider.GetRequiredService<IEnvironment>(), logger, executionContext, serviceProvider.GetRequiredService<ProfilingTelemetry>());
+        return new ScaffoldingService(appHostServerProjectFactory, serverSessionFactory, languageDiscovery, interactionService, serviceProvider.GetRequiredService<IEnvironment>(), logger, executionContext, serviceProvider.GetRequiredService<ProfilingTelemetry>(), serviceProvider.GetRequiredService<IFeatures>(), serviceProvider.GetRequiredService<IProcessExecutionFactory>());
     };
 
     public Func<IServiceProvider, IProcessExecutionFactory> DotNetCliExecutionFactoryFactory { get; set; } = (IServiceProvider serviceProvider) =>
@@ -581,12 +596,15 @@ internal sealed class CliServiceCollectionTestOptions
 
     public Func<IServiceProvider, INuGetPackageCache> NuGetPackageCacheFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
-        var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
+        var cliRunner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         var cache = serviceProvider.GetRequiredService<IMemoryCache>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
         var features = serviceProvider.GetRequiredService<IFeatures>();
-        return new NuGetPackageCache(runner, cache, telemetry, features);
+        var nuGetService = serviceProvider.GetRequiredService<BundleNuGetService>();
+        return new NuGetPackageCache(cliRunner, cache, telemetry, features, nuGetService);
     };
+
+    public Func<IServiceProvider, INuGetClient> NuGetClientFactory { get; set; } = _ => new FakeNuGetClient();
 
     public Func<IServiceProvider, IAppHostCliBackchannel> AppHostBackchannelFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
@@ -802,6 +820,38 @@ internal sealed class NullBundleService : IBundleService
 }
 
 /// <summary>
+/// A bundle service that reports an already-extracted layout and records extraction requests.
+/// </summary>
+internal sealed class RecordingBundleService(string dcpDirectory) : IBundleService
+{
+    public int EnsureExtractedAndAcquireLayoutCallCount { get; private set; }
+
+    public bool IsBundle => true;
+
+    public Task EnsureExtractedAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+    public Task<BundleExtractResult> ExtractAsync(string destinationPath, bool force = false, CancellationToken cancellationToken = default)
+        => Task.FromResult(BundleExtractResult.NoPayload);
+
+    public Task<BundleLayoutLease?> EnsureExtractedAndAcquireLayoutAsync(string holderKind, string? commandName = null, CancellationToken cancellationToken = default)
+    {
+        EnsureExtractedAndAcquireLayoutCallCount++;
+
+        // GetComponentPath combines LayoutPath with the component's relative path, so root the
+        // layout at the DCP directory's parent and reference the directory by name.
+        var layout = new LayoutConfiguration
+        {
+            LayoutPath = Path.GetDirectoryName(dcpDirectory),
+            Components = new LayoutComponents { Dcp = Path.GetFileName(dcpDirectory) }
+        };
+
+        return Task.FromResult<BundleLayoutLease?>(new BundleLayoutLease(layout, lease: null));
+    }
+
+    public string? GetDefaultExtractDir(string processPath) => null;
+}
+
+/// <summary>
 /// A no-op payload provider that reports no payload available.
 /// </summary>
 internal sealed class NullBundlePayloadProvider : IBundlePayloadProvider
@@ -826,6 +876,14 @@ internal sealed class TestBundleService(bool isBundle) : IBundleService
 
     public Func<CancellationToken, Task>? EnsureExtractedAndAcquireLayoutAsyncCallback { get; set; }
 
+    public Func<BundleLayoutLease>? CreateLayoutLease { get; set; }
+
+    public int AcquireLayoutCallCount { get; private set; }
+
+    public string? LastHolderKind { get; private set; }
+
+    public string? LastCommandName { get; private set; }
+
     public Task EnsureExtractedAsync(CancellationToken cancellationToken = default)
         => EnsureExtractedAsyncCallback?.Invoke(cancellationToken) ?? Task.CompletedTask;
 
@@ -834,6 +892,9 @@ internal sealed class TestBundleService(bool isBundle) : IBundleService
 
     public async Task<BundleLayoutLease?> EnsureExtractedAndAcquireLayoutAsync(string holderKind, string? commandName = null, CancellationToken cancellationToken = default)
     {
+        AcquireLayoutCallCount++;
+        LastHolderKind = holderKind;
+        LastCommandName = commandName;
         if (EnsureExtractedException is not null)
         {
             throw EnsureExtractedException;
@@ -844,7 +905,7 @@ internal sealed class TestBundleService(bool isBundle) : IBundleService
             await EnsureExtractedAndAcquireLayoutAsyncCallback(cancellationToken);
         }
 
-        return Layout is null ? null : new BundleLayoutLease(Layout, lease: null);
+        return CreateLayoutLease?.Invoke() ?? (Layout is null ? null : new BundleLayoutLease(Layout, lease: null));
     }
 
     public string? GetDefaultExtractDir(string processPath) => null;
@@ -881,6 +942,13 @@ internal sealed class TestOutputTextWriter : TextWriter
     {
         _buffer.Append(message);
         FlushLine();
+    }
+
+    public override Task WriteLineAsync(ReadOnlyMemory<char> buffer, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        WriteLine(buffer.ToString());
+        return Task.CompletedTask;
     }
 
     public override void Write(string? message)

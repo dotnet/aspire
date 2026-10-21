@@ -61,7 +61,6 @@ public sealed class KubernetesDeployBasicApiServiceTests(ITestOutputHelper outpu
 
             var appHostCode = $$"""
                 #pragma warning disable ASPIRECOMPUTE003
-                #pragma warning disable ASPIREDOTNETPROJECT001
                 #pragma warning disable ASPIREPIPELINES003
                 using Aspire.Hosting;
                 using Aspire.Hosting.Kubernetes;
@@ -111,7 +110,8 @@ public sealed class KubernetesDeployBasicApiServiceTests(ITestOutputHelper outpu
                 apiClientPackages: [],
                 appHostCode: appHostCode,
                 apiProgramCode: apiProgramCode,
-                output: output);
+                output: output,
+                useLegacyProjectResources: !useProjectV2);
 
             // =====================================================================
             // Phase 3: Run aspire deploy interactively
@@ -142,6 +142,15 @@ public sealed class KubernetesDeployBasicApiServiceTests(ITestOutputHelper outpu
                 localPort: 18080,
                 testPath: "/test-deployment",
                 expectedResponse: response);
+
+            // The dashboard image has no printenv executable, so resolve the ready pod's ConfigMap-backed environment.
+            await auto.RunCommandAsync(
+                $"test \"$(kubectl get pods -n {k8sNamespace} -l app.kubernetes.io/component=env-dashboard " +
+                "-o jsonpath='{.items[*].spec.containers[?(@.name==\"env-dashboard\")].envFrom[*].configMapRef.name}')\" " +
+                "= 'env-dashboard-config' && " +
+                $"test \"$(kubectl get configmap env-dashboard-config -n {k8sNamespace} " +
+                "-o jsonpath='{.data.ASPIRE_DASHBOARD_TELEMETRY_OPTOUT}')\" = 'true'",
+                counter);
 
             // =====================================================================
             // Phase 5: Cleanup

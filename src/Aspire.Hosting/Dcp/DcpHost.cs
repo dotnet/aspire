@@ -22,7 +22,6 @@ using Microsoft.Extensions.Options;
 namespace Aspire.Hosting.Dcp;
 
 #pragma warning disable ASPIRECERTIFICATES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable ASPIREFILESYSTEM001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 internal sealed class DcpHost
 {
@@ -44,16 +43,6 @@ internal sealed class DcpHost
     private string? _dcpTlsCertFile;
     private string? _dcpTlsKeyFile;
     private Task? _logProcessorTask;
-
-    // These environment variables should never be inherited by DCP from the app host.
-    private static readonly string[] s_doNotInheritEnvironmentVars =
-    [
-        KnownAspNetCoreConfigNames.Urls,
-        "DOTNET_LAUNCH_PROFILE",
-        KnownAspNetCoreConfigNames.Environment,
-        KnownAspNetCoreConfigNames.DotNetEnvironment,
-        KnownConfigNames.AspireLogLevel,
-    ];
 
     public DcpHost(
         ILoggerFactory loggerFactory,
@@ -343,7 +332,7 @@ internal sealed class DcpHost
         {
             var key = de.Key?.ToString();
             var val = de.Value?.ToString();
-            if (key is not null && val is not null && !IsExcludedEnvironmentVariable(key))
+            if (key is not null && val is not null && !DcpEnvironmentVariables.IsExcluded(key))
             {
                 dcpProcessSpec.EnvironmentVariables[key] = val;
             }
@@ -437,7 +426,8 @@ internal sealed class DcpHost
             return false;
         }
 
-        // Shipped CLI bundles flatten the selected RID's native assets into managed/. Repo-local portable builds
+        // Shipped CLI bundles flatten the selected RID's native assets into terminalhost/ and retain the ConPTY
+        // provider in managed/ for compatibility launches. Repo-local portable builds
         // keep every RID under runtimes/<rid>/native. In both layouts conpty.dll must match the DCP/AppHost process
         // architecture, while OpenConsole.exe must match the native Windows architecture (for example, an x64
         // process running under emulation on ARM64 Windows uses win-x64/conpty.dll with arm64/OpenConsole.exe).
@@ -497,31 +487,21 @@ internal sealed class DcpHost
         }
     }
 
-    private static bool IsExcludedEnvironmentVariable(string key)
+    internal static Socket CreateLoggingSocket(string socketPath)
     {
-        foreach (var entry in s_doNotInheritEnvironmentVars)
-        {
-            if (string.Equals(key, entry, StringComparisons.EnvironmentVariableName))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static Socket CreateLoggingSocket(string socketPath)
-    {
-        var directoryName = Path.GetDirectoryName(socketPath);
-        if (!string.IsNullOrEmpty(directoryName))
-        {
-            DirectoryHelper.CreateWithOwnerOnlyPermissions(directoryName);
-        }
-
+        // This directory was allocated for the DCP session, not supplied as a socket override.
+        SocketPermissionHelper.CreateDirectory(Path.GetDirectoryName(socketPath)!, repairExisting: true);
         var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
-        socket.Bind(new UnixDomainSocketEndPoint(socketPath));
-
-        return socket;
+        try
+        {
+            SocketPermissionHelper.Bind(socket, socketPath);
+            return socket;
+        }
+        catch
+        {
+            socket.Dispose();
+            throw;
+        }
     }
 
     private async Task StartLoggingSocketAsync(Socket socket)

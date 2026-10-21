@@ -3,6 +3,7 @@
 @page "/metrics/resource/{resourceName}/meter/{meterName}"
 @page "/metrics/resource/{resourceName}/meter/{meterName}/instrument/{instrumentName}"
 
+@using Aspire.Dashboard.Components.Controls.Grid
 @using Aspire.Dashboard.Resources
 @inject IStringLocalizer<Dashboard.Resources.Metrics> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
@@ -113,7 +114,7 @@
                                         <h3 class="meter-name-title">@PageViewModel.SelectedMeter</h3>
                                         <FluentDataGrid Class="aspire-spaced-grid"
                                             Style="max-width:1100px;"
-                                            Items="@PageViewModel.Instruments.Where(i => i.Parent.Name == PageViewModel.SelectedMeter).OrderBy(i => i.Name).AsQueryable()"
+                                            ItemsProvider="@EnumerableGridItemsProvider.Create(() => PageViewModel.Instruments.Where(item => item.Parent.Name == PageViewModel.SelectedMeter).OrderBy(item => item.Name))"
                                             GridTemplateColumns="3fr 5fr"
                                             RowSize="DataGridRowSize.Medium"
                                             TGridItem="OtlpInstrumentSummary">
@@ -123,7 +124,7 @@
                                                         @context.Name
                                                     </a>
                                                 </TemplateColumn>
-                                                <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementDescriptionGridNameColumnHeader)]" Property="@(c => c.Description)" Tooltip="true" TooltipText="@(c => c.Description)" />
+                                                <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementDescriptionGridNameColumnHeader)]" Property="@(c => c.Description)" SortBy="@s_instrumentDescriptionSort" Tooltip="true" TooltipText="@(c => c.Description)" />
                                             </ChildContent>
                                         </FluentDataGrid>
                                     }
@@ -148,23 +149,27 @@
                 }
                 else if (PageViewModel.Instruments == null)
                 {
-                    <div class="aspire-empty-content">
-                        @if (ViewportInformation.IsDesktop)
-                        {
-                            <FluentIcon Icon="Icons.Regular.Size24.ChartMultiple" Color="Color.Primary"/>@:&nbsp;
-                            @Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectAResource)]
-                        }
-                        else
-                        {
-                            <FluentIcon Icon="Icons.Regular.Size24.ChartMultiple" Color="Color.Primary"/>@:&nbsp;
-                            <a href="#" @onclick="@(async () => await _contentLayout!.OpenMobileToolbarAsync())" @onclick:preventDefault="true">@Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectAResource)]</a>
-                        }
+                    <div class="aspire-empty-content metrics-empty-content">
+                        <TelemetryEmptyContent>
+                            <FluentIcon Icon="Icons.Regular.Size24.ChartMultiple" Color="Color.Primary" />
+                            @if (ViewportInformation.IsDesktop)
+                            {
+                                @Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectAResource)]
+                            }
+                            else
+                            {
+                                <a href="#" @onclick="@(async () => await _contentLayout!.OpenMobileToolbarAsync())" @onclick:preventDefault="true">@Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectAResource)]</a>
+                            }
+                        </TelemetryEmptyContent>
                     </div>
                 }
                 else
                 {
-                    <div class="aspire-empty-content">
-                        <FluentIcon Icon="Icons.Regular.Size24.ChartMultiple" Color="Color.Primary"/>&nbsp;@Loc[nameof(Dashboard.Resources.Metrics.MetricsNoMetricsForResource)]
+                    <div class="aspire-empty-content metrics-empty-content">
+                        <TelemetryEmptyContent>
+                            <FluentIcon Icon="Icons.Regular.Size24.ChartMultiple" Color="Color.Primary" />
+                            @Loc[nameof(Dashboard.Resources.Metrics.MetricsNoMetricsForResource)]
+                        </TelemetryEmptyContent>
                     </div>
                 }
             </div>

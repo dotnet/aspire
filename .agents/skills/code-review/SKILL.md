@@ -169,8 +169,10 @@ Flag concrete selection gaps:
 Selector behavior changes must keep the action, workflow gates, tool, map,
 tests, and canonical documentation synchronized. Require real-map tests for
 curated routing changes: a representative positive per distinct routing
-boundary, focused negatives for deliberately excluded consumers, and a
-structural assertion for consumer lists duplicated across rule types. Do not
+boundary and focused negatives for deliberately excluded consumers. Audit
+intentionally duplicated consumer lists for consistency and exercise selector
+behavior through each routing mechanism, rather than asserting equality of
+configuration lists. Do not
 request an acceptance case per consumer; instead audit the complete curated
 list against the consuming workflow. Treat a widened or relaxed negative
 expectation as a finding until the workflow's artifacts and execution lane
@@ -178,6 +180,13 @@ justify it. Require focused synthetic-map tests for engine or CLI behavior.
 See `docs/ci/test-trigger-map.md` for the complete contract.
 
 ### Test Coverage Review
+
+For `tests/Infrastructure.Tests/**`, apply
+`.github/instructions/infrastructure-tests.instructions.md`. A matching test
+class is not proof of coverage: identify the production entry point it executes
+and the observable regression its assertions catch. Source-text checks,
+extracted snippets, and test-owned reimplementations do not establish coverage
+of the production path.
 
 Every review must evaluate whether the PR has appropriate tests for the type of behavior being changed. Do not require tests for purely mechanical refactors, comments, or documentation-only changes, but do flag missing or insufficient coverage when production behavior changes and there is no explicit, convincing justification in the PR. Regression coverage is especially important: bug fixes and behavior changes should include tests that would have failed before the fix, not just broad happy-path coverage or regenerated snapshots.
 
@@ -219,6 +228,11 @@ Only flag **actual problems**. Every comment must identify a concrete issue. Cat
     - Changes to `NuGet.config` adding unapproved feeds
     - Changes to `global.json`
     - Using `== null` instead of `is null`
+    - Pinned GitHub Actions SHAs changed in `.github/workflows/**` without a confirmed matching
+      update to the repository/enterprise allowed-actions policy. Flag each changed
+      `owner/repo[/path]@<sha>` reference as blocking, since the workflow fails with
+      "actions not allowed" until an admin adds the new SHA (settings live outside git, so the
+      PR must call out the SHAs to allow). Do not flag unchanged pins.
 13. **Code comment guidance** — apply the `AGENTS.md` Code comments guidance when reviewing changed code. Flag only concrete problems, such as comments that contradict the code, workaround comments without a tracking link, parser/protocol/log parsing that omits the raw shape needed to understand edge cases, or comments around privacy/security-sensitive behavior that fail to explain the opt-in, scope, or WHY. Do not flag subjective missing comments or ask for comments on obvious code.
 14. **Test problems** — flaky patterns per the test review guidelines: thread-unsafe test fakes, log-based readiness checks instead of `WaitForHealthyAsync()`, shared timeout budgets, hardcoded ports, `Directory.SetCurrentDirectory` usage, commented-out tests.
 15. **Missing or insufficient test coverage** — production behavior changed without appropriate coverage for the affected surface, or a bug fix lacks a focused regression test that would have failed before the fix. Be specific about the impacted code path, the regression risk, which behavior is untested, and which coverage type is expected. For deployment changes, explicitly flag PRs that only update generated manifests or snapshots when a deployment E2E test should verify the deployed behavior.

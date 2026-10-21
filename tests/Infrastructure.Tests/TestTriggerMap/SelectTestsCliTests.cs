@@ -649,6 +649,43 @@ public sealed class SelectTestsCliTests
         });
     }
 
+    [Theory]
+    [InlineData("tests/Shared/AsyncTestHelpers.cs")]
+    [InlineData("tests/Shared/Telemetry/TelemetryTestHelpers.cs")]
+    public void NativeDashboardSharedHelpersSelectNativeValidationInEnforceMode(string path)
+    {
+        RunInTempRepo((temporaryRoot, propsPath, output) =>
+        {
+            var changed = WriteChangedFiles(temporaryRoot, path);
+            var jsonPath = Path.Combine(temporaryRoot, "selection.json");
+            var previousJson = Environment.GetEnvironmentVariable("SELECT_TESTS_JSON_FILE");
+            Environment.SetEnvironmentVariable("SELECT_TESTS_JSON_FILE", jsonPath);
+            try
+            {
+                var options = Options(RepoRoot.Path, propsPath, changedFilesPath: changed, enforce: true) with
+                {
+                    MapPath = Path.Combine(RepoRoot.Path, "eng", "github-ci", "test-trigger-map.yml")
+                };
+
+                Assert.Equal(0, Selection.Run(options));
+                Assert.Equal("true", output()["run_native_dashboard_validation"]);
+
+                using var json = JsonDocument.Parse(File.ReadAllText(jsonPath));
+                var selection = json.RootElement;
+                Assert.False(selection.GetProperty("selectsAll").GetBoolean());
+                Assert.Empty(selection.GetProperty("unattributedFiles").EnumerateArray());
+                Assert.Equal(
+                    ["job:native-dashboard-validation"],
+                    selection.GetProperty("jobs").EnumerateArray()
+                        .Select(job => job.GetProperty("name").GetString()));
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("SELECT_TESTS_JSON_FILE", previousJson);
+            }
+        });
+    }
+
     // Crash traceability hardening: the diagnostics writer must be best-effort. If the step summary
     // path is unwritable (the exact scenario where diagnostics matter), writing the block must NOT throw
     // a NEW exception that masks the ORIGINAL failure. The original (FileNotFoundException from the
@@ -937,11 +974,28 @@ public sealed class SelectTestsCliTests
             var unrelatedSha = RunGit(repoRoot, "rev-parse", "HEAD");
 
             var propsPath = Path.Combine(repoRoot, "BeforeBuildProps.props");
-            var exit = Selection.Run(Options(repoRoot, propsPath, from: unrelatedSha, to: baseSha, skipLayer1: true, enforce: true));
+            var previousOut = Console.Out;
+            using var consoleOutput = new StringWriter();
+            Console.SetOut(consoleOutput);
+            int exit;
+            try
+            {
+                exit = Selection.Run(Options(repoRoot, propsPath, from: unrelatedSha, to: baseSha, skipLayer1: true, enforce: true));
+            }
+            finally
+            {
+                Console.SetOut(previousOut);
+            }
 
             Assert.Equal(0, exit);
             // ALL selected -> enforce writes no restriction props, so enumerate-tests runs everything.
             Assert.False(File.Exists(propsPath));
+
+            // The warning is part of the selector contract, but capture it so an intentionally simulated
+            // failure does not become a real warning annotation when this test runs in GitHub Actions.
+            Assert.Contains("::warning::SelectTests:", consoleOutput.ToString());
+            Assert.Contains("no common ancestor", consoleOutput.ToString());
+            Assert.Contains("Falling back to running ALL tests", consoleOutput.ToString());
 
             // The fallback is recorded in the run summary (the durable record historical audits read),
             // naming the merge-base as the cause.

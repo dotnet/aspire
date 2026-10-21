@@ -17,6 +17,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.FluentUI.AspNetCore.Components;
+using OpenTelemetry.Proto.Logs.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using Xunit;
 using static Aspire.Tests.Shared.Telemetry.TelemetryTestHelpers;
@@ -69,7 +70,7 @@ public partial class TraceDetailsTests : DashboardTestContext
 
         // Act
         var traceId = Convert.ToHexString(Encoding.UTF8.GetBytes("1"));
-        var cut = RenderComponent<TraceDetail>(builder =>
+        var cut = Render<TraceDetail>(builder =>
         {
             builder.Add(p => p.TraceId, traceId);
             builder.AddCascadingValue(viewport);
@@ -80,9 +81,88 @@ public partial class TraceDetailsTests : DashboardTestContext
         Assert.Single(cut.FindComponents<FluentDataGrid<SpanWaterfallViewModel>>());
         cut.WaitForAssertion(() => Assert.Equal(1, telemetryRepository.TraceSubscriptionCount));
 
-        await cut.InvokeAsync(DisposeComponents);
+        await DisposeComponentsAsync();
 
         Assert.Equal(0, telemetryRepository.TraceSubscriptionCount);
+    }
+
+    [Fact]
+    public async Task Render_HasLogs_TooltipsLimitedPerSpan()
+    {
+        SetupTraceDetailsServices();
+        Render<FluentTooltipProvider>();
+
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        Services.GetRequiredService<DimensionManager>().InvokeOnViewportInformationChanged(viewport);
+
+        var telemetryRepository = Services.GetRequiredService<SqliteTelemetryRepository>();
+        await telemetryRepository.AddTracesAsync(new AddContext(), new RepeatedField<ResourceSpans>
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10)),
+                            CreateSpan(traceId: "1", spanId: "1-2", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(10), parentSpanId: "1-1")
+                        }
+                    }
+                }
+            }
+        });
+
+        var scopeLogs = new ScopeLogs { Scope = CreateScope() };
+        foreach (var spanId in new[] { "1-1", "1-2" })
+        {
+            for (var i = 0; i < 501; i++)
+            {
+                scopeLogs.LogRecords.Add(CreateLogRecord(
+                    time: s_testTime.AddMinutes(6).AddMilliseconds(i),
+                    traceId: "1",
+                    spanId: spanId,
+                    eventName: "Event"));
+            }
+        }
+        await telemetryRepository.AddLogsAsync(new AddContext(), new RepeatedField<ResourceLogs>
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(),
+                ScopeLogs = { scopeLogs }
+            }
+        });
+
+        var traceId = Convert.ToHexString(Encoding.UTF8.GetBytes("1"));
+        var cut = Render<TraceDetail>(builder =>
+        {
+            builder.Add(p => p.TraceId, traceId);
+            builder.AddCascadingValue(viewport);
+        });
+
+        cut.WaitForAssertion(() =>
+        {
+            var spanContainers = cut.FindAll(".span-button-container");
+            Assert.Equal(2, spanContainers.Count);
+
+            var tooltips = cut.FindComponents<FluentTooltip>();
+            Assert.All(spanContainers, container =>
+            {
+                var buttons = container.QuerySelectorAll(".span-log-entry-button");
+                Assert.Equal(501, buttons.Length);
+
+                var buttonIds = buttons.Select(button => button.Id).ToHashSet(StringComparer.Ordinal);
+                Assert.Equal(500, tooltips.Count(tooltip => buttonIds.Contains(tooltip.Instance.Anchor)));
+                for (var i = 0; i < buttons.Length; i++)
+                {
+                    Assert.Equal(i < 500 ? string.Empty : "Event - TestScope", buttons[i].GetAttribute("title"));
+                }
+            });
+        });
     }
 
     [Fact]
@@ -130,7 +210,7 @@ public partial class TraceDetailsTests : DashboardTestContext
         });
 
         var traceId = Convert.ToHexString(Encoding.UTF8.GetBytes("1"));
-        var cut = RenderComponent<TraceDetail>(builder =>
+        var cut = Render<TraceDetail>(builder =>
         {
             builder.Add(p => p.TraceId, traceId);
             builder.AddCascadingValue(viewport);
@@ -174,7 +254,7 @@ public partial class TraceDetailsTests : DashboardTestContext
         });
 
         var traceId = Convert.ToHexString(Encoding.UTF8.GetBytes("1"));
-        var cut = RenderComponent<TraceDetail>(builder =>
+        var cut = Render<TraceDetail>(builder =>
         {
             builder.Add(p => p.TraceId, traceId);
             builder.AddCascadingValue(viewport);
@@ -244,7 +324,7 @@ public partial class TraceDetailsTests : DashboardTestContext
 
         // Act
         var traceId = Convert.ToHexString(Encoding.UTF8.GetBytes("1"));
-        var cut = RenderComponent<TraceDetail>(builder =>
+        var cut = Render<TraceDetail>(builder =>
         {
             builder.Add(p => p.TraceId, traceId);
             builder.AddCascadingValue(viewport);
@@ -260,7 +340,7 @@ public partial class TraceDetailsTests : DashboardTestContext
         }, "Expected rows to be rendered.", logger);
 
         traceId = Convert.ToHexString(Encoding.UTF8.GetBytes("2"));
-        cut.SetParametersAndRender(builder =>
+        cut.Render(builder =>
         {
             builder.Add(p => p.TraceId, traceId);
         });
@@ -312,7 +392,7 @@ public partial class TraceDetailsTests : DashboardTestContext
 
         // Act
         var traceId = Convert.ToHexString(Encoding.UTF8.GetBytes("1"));
-        var cut = RenderComponent<TraceDetail>(builder =>
+        var cut = Render<TraceDetail>(builder =>
         {
             builder.Add(p => p.TraceId, traceId);
             builder.AddCascadingValue(viewport);
@@ -394,7 +474,7 @@ public partial class TraceDetailsTests : DashboardTestContext
 
         // Act
         var traceId = Convert.ToHexString(Encoding.UTF8.GetBytes("1"));
-        var cut = RenderComponent<TraceDetail>(builder =>
+        var cut = Render<TraceDetail>(builder =>
         {
             builder.Add(p => p.TraceId, traceId);
             builder.AddCascadingValue(viewport);
@@ -488,7 +568,7 @@ public partial class TraceDetailsTests : DashboardTestContext
 
         // Act
         var traceId = Convert.ToHexString(Encoding.UTF8.GetBytes("1"));
-        var cut = RenderComponent<TraceDetail>(builder =>
+        var cut = Render<TraceDetail>(builder =>
         {
             builder.Add(p => p.TraceId, traceId);
             builder.AddCascadingValue(viewport);
@@ -584,7 +664,7 @@ public partial class TraceDetailsTests : DashboardTestContext
             });
 
         var traceId = Convert.ToHexString(Encoding.UTF8.GetBytes("1"));
-        var cut = RenderComponent<TraceDetail>(builder =>
+        var cut = Render<TraceDetail>(builder =>
         {
             builder.Add(p => p.TraceId, traceId);
             builder.AddCascadingValue(viewport);
@@ -711,7 +791,7 @@ public partial class TraceDetailsTests : DashboardTestContext
             });
 
         var traceId = Convert.ToHexString(Encoding.UTF8.GetBytes("2"));
-        var cut = RenderComponent<TraceDetail>(builder =>
+        var cut = Render<TraceDetail>(builder =>
         {
             builder.Add(p => p.TraceId, traceId);
             builder.AddCascadingValue(viewport);
@@ -786,7 +866,7 @@ public partial class TraceDetailsTests : DashboardTestContext
             });
 
         var traceId = Convert.ToHexString(Encoding.UTF8.GetBytes("1"));
-        var cut = RenderComponent<TraceDetail>(builder =>
+        var cut = Render<TraceDetail>(builder =>
         {
             builder.Add(p => p.TraceId, traceId);
             builder.AddCascadingValue(viewport);
@@ -869,7 +949,7 @@ public partial class TraceDetailsTests : DashboardTestContext
             });
 
         var traceId = Convert.ToHexString(Encoding.UTF8.GetBytes("1"));
-        var cut = RenderComponent<TraceDetail>(builder =>
+        var cut = Render<TraceDetail>(builder =>
         {
             builder.Add(p => p.TraceId, traceId);
             builder.AddCascadingValue(viewport);
@@ -944,7 +1024,7 @@ public partial class TraceDetailsTests : DashboardTestContext
             });
 
         var traceId = Convert.ToHexString(Encoding.UTF8.GetBytes("1"));
-        var cut = RenderComponent<TraceDetail>(builder =>
+        var cut = Render<TraceDetail>(builder =>
         {
             builder.Add(p => p.TraceId, traceId);
             builder.AddCascadingValue(viewport);
@@ -1015,7 +1095,6 @@ public partial class TraceDetailsTests : DashboardTestContext
         FluentUISetupHelpers.SetupFluentToolbar(this);
         FluentUISetupHelpers.SetupFluentMenu(this);
 
-        JSInterop.SetupVoid("initializeContinuousScroll").SetVoidResult();
         JSInterop.SetupVoid("focusElement", _ => true);
 
         loggerFactory ??= NullLoggerFactory.Instance;

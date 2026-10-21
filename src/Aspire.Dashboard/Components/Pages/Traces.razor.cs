@@ -24,6 +24,11 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlState<Traces.TracesPageViewModel, Traces.TracesPageState>
 {
+    private static readonly IEqualityComparer<TraceSummary> s_traceSummaryComparer = EqualityComparer<TraceSummary>.Create(
+        static (left, right) => ReferenceEquals(left, right) || (left is not null && right is not null &&
+            left.TraceId == right.TraceId && left.LastUpdatedTimestampTicks == right.LastUpdatedTimestampTicks),
+        static item => HashCode.Combine(item.TraceId.GetHashCode(StringComparison.Ordinal), item.LastUpdatedTimestampTicks));
+
     private const string ScrollContainerId = "tracesScrollContainer";
     private const string TimestampColumn = nameof(TimestampColumn);
     private const string NameColumn = nameof(NameColumn);
@@ -42,7 +47,6 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
     private List<SelectViewModel<ResourceTypeDetails>> _resourceViewModels = default!;
     private Subscription? _resourcesSubscription;
     private Subscription? _tracesSubscription;
-    private bool _resourceChanged;
     private string _filter = string.Empty;
     private AspirePageContentLayout? _contentLayout;
     private AspireFluentDataGrid<TraceSummary> _dataGrid = null!;
@@ -86,9 +90,6 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
 
     [Inject]
     public required ISessionStorage SessionStorage { get; init; }
-
-    [Inject]
-    public required DimensionManager DimensionManager { get; init; }
 
     [Inject]
     public required PauseManager PauseManager { get; init; }
@@ -136,7 +137,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
     private async ValueTask<GridItemsProviderResult<TraceSummary>> GetData(GridItemsProviderRequest<TraceSummary> request)
     {
         TracesViewModel.StartIndex = request.StartIndex;
-        TracesViewModel.Count = request.Count ?? DashboardUIHelpers.DefaultDataGridResultCount;
+        TracesViewModel.Count = request.Count is > 0 ? request.Count.Value : DashboardUIHelpers.DefaultDataGridResultCount;
         var traces = await TracesViewModel.GetTracesAsync(request.CancellationToken);
 
         if (!TelemetryRepository.IsReadOnly)
@@ -215,8 +216,6 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
 
     private Task HandleSelectedResourceChanged()
     {
-        _resourceChanged = true;
-
         return this.AfterViewModelChangedAsync(_contentLayout, waitToApplyMobileChange: true);
     }
 
@@ -262,35 +261,13 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Check to see whether max item count should be set on every render.
-        // This is required because the data grid's virtualize component can be recreated on data change.
-        if (_dataGrid != null && FluentDataGridHelper<TraceSummary>.TrySetMaxItemCount(_dataGrid, 10_000))
-        {
-            StateHasChanged();
-        }
-
-        if (_resourceChanged)
-        {
-            await JS.InvokeVoidAsync("resetContinuousScrollPosition");
-            _resourceChanged = false;
-        }
         if (firstRender)
         {
-            await JS.InvokeVoidAsync("initializeContinuousScroll");
             // Focus the scroll container without showing the focus ring. The container is a large
             // content area where a visible focus indicator would be visually noisy on initial load.
             await JS.InvokeVoidAsync("focusElement", ScrollContainerId, true);
-            DimensionManager.OnViewportInformationChanged += OnBrowserResize;
         }
-    }
 
-    private void OnBrowserResize(object? o, EventArgs args)
-    {
-        InvokeAsync(async () =>
-        {
-            await JS.InvokeVoidAsync("resetContinuousScrollPosition");
-            await JS.InvokeVoidAsync("initializeContinuousScroll");
-        });
     }
 
     private string? PauseText => PauseManager.AreTracesPaused(out var startTime)
@@ -306,7 +283,6 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
         _cts.Dispose();
         _resourcesSubscription?.Dispose();
         _tracesSubscription?.Dispose();
-        DimensionManager.OnViewportInformationChanged -= OnBrowserResize;
     }
 
     public async Task UpdateViewModelFromQueryAsync(TracesPageViewModel viewModel)

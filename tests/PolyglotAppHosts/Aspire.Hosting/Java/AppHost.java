@@ -59,6 +59,21 @@ void main() throws Exception {
         var tool = builder.addDotnetTool("mytool", "dotnet-ef");
         var configParam = builder.addParameterFromConfiguration("myconfig", "MyConfig:Key");
         var secretParam = builder.addParameterFromConfiguration("mysecret", "MyConfig:Secret", true);
+        var optionalParam = builder.addParameter("optional-parameter").withOptional();
+        optionalParam.withRequired().withRequired(false);
+        String optionalValue = optionalParam.tryGetCurrentValue();
+        if (optionalValue != null) {
+            throw new IllegalStateException("Expected an unset optional parameter");
+        }
+        optionalParam.setValueAsync(new SetValueAsyncOptions().value("configured"));
+        if (!"configured".equals(optionalParam.tryGetCurrentValue())) {
+            throw new IllegalStateException("Expected the configured optional parameter value");
+        }
+        optionalParam.setValueAsync();
+        if (optionalParam.tryGetCurrentValue() != null) {
+            throw new IllegalStateException("Expected the optional parameter to be cleared");
+        }
+        container.withEnvironment("OPTIONAL_PARAMETER", optionalParam);
         var customInputParam = builder.addParameter("custom-input");
         var customInputOptions = new ParameterCustomInputOptions();
         customInputOptions.setInputType(InputType.NUMBER);
@@ -108,7 +123,18 @@ void main() throws Exception {
         subnet.allowInbound(new AllowInboundOptions().port("443").from(AzureServiceTags.AzureLoadBalancer));
         subnet.denyInbound(new DenyInboundOptions().from(AzureServiceTags.Internet));
         var aks = builder.addAzureKubernetesEnvironment("aks");
-        aks.addNodePool("system", new AddNodePoolOptions().vmSize(AksNodeVmSizes.StandardDSv5.StandardD2sV5));
+        aks.configureInfrastructure(infrastructure -> {
+            var cluster = infrastructure.getContainerServiceManagedCluster();
+            cluster.setIsRbacEnabled(true);
+            var _rbacEnabled = cluster.isRbacEnabled();
+        });
+        aks.withSystemNodePool(pool -> {
+            pool.setOsSku("AzureLinux");
+        });
+        aks.addNodePool("workers", pool -> {
+            pool.setVmSize(AksNodeVmSizes.StandardDSv5.StandardD2sV5);
+            pool.setOsSku("AzureLinux");
+        });
         var aksVolume = aks.addPersistentVolume("aks-data");
         aksVolume.withCapacity("20Gi");
         var pipeline = builder.pipeline();

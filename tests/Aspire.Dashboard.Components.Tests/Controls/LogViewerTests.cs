@@ -5,6 +5,7 @@ using System.Globalization;
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Shared.ConsoleLogs;
 using Bunit;
+using Microsoft.AspNetCore.Components.Web.Virtualization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Xunit;
@@ -13,6 +14,36 @@ namespace Aspire.Dashboard.Components.Tests.Controls;
 
 public class LogViewerTests : DashboardTestContext
 {
+    [Fact]
+    public void LogViewer_VirtualizeUsesIdentityComparerAndEndAnchor()
+    {
+        SetupLogViewerServices();
+
+        var timestamp = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var entry = LogEntry.Create(timestamp, logMessage: "Repeated message", isErrorMessage: false);
+        var repeatedEntry = LogEntry.Create(timestamp, logMessage: "Repeated message", isErrorMessage: false);
+        var logEntries = new LogEntries(maximumEntryCount: int.MaxValue) { BaseLineNumber = 1 };
+        logEntries.InsertSorted(entry);
+        logEntries.InsertSorted(repeatedEntry);
+        var rematerializedEntry = LogEntry.Create(timestamp, logMessage: "Repeated message", isErrorMessage: false);
+        rematerializedEntry.LineNumber = entry.LineNumber;
+
+        var cut = Render<LogViewer>(builder => builder.Add(p => p.LogEntries, logEntries));
+        var virtualize = cut.FindComponent<Virtualize<LogEntry>>().Instance;
+        var comparer = virtualize.ItemComparer;
+
+        Assert.NotNull(comparer);
+        Assert.Equal(VirtualizeAnchorMode.End, virtualize.AnchorMode);
+        Assert.True(comparer.Equals(entry, logEntries.GetEntries()[0]));
+        Assert.NotSame(entry, rematerializedEntry);
+        Assert.True(comparer.Equals(entry, rematerializedEntry));
+        Assert.Equal(comparer.GetHashCode(entry), comparer.GetHashCode(rematerializedEntry));
+        Assert.False(comparer.Equals(entry, repeatedEntry));
+        cut.WaitForAssertion(() => Assert.Equal(
+            ["Repeated message", "Repeated message"],
+            cut.FindAll(".log-content").Select(element => element.TextContent.Trim())));
+    }
+
     [Fact]
     public void ResourcePrefixStyle_UsesGeneratedAccentAndThemeAwareTextColor()
     {
@@ -43,7 +74,7 @@ public class LogViewerTests : DashboardTestContext
             isErrorMessage: false,
             resourcePrefix: $"resource-{Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture)}"));
 
-        var cut = RenderComponent<LogViewer>(builder =>
+        var cut = Render<LogViewer>(builder =>
         {
             builder.Add(p => p.LogEntries, logEntries);
             builder.Add(p => p.ShowResourcePrefix, true);
@@ -68,7 +99,7 @@ public class LogViewerTests : DashboardTestContext
     {
         SetupLogViewerServices();
 
-        var cut = RenderComponent<LogViewer>(builder =>
+        var cut = Render<LogViewer>(builder =>
         {
             builder.Add(p => p.LogEntries, new LogEntries(maximumEntryCount: int.MaxValue));
         });
@@ -100,7 +131,7 @@ public class LogViewerTests : DashboardTestContext
 
         var logEntries = CreateLogEntries("apple log", "banana log", "cherry log");
 
-        var cut = RenderComponent<LogViewer>(builder =>
+        var cut = Render<LogViewer>(builder =>
         {
             builder.Add(p => p.LogEntries, logEntries);
             builder.Add(p => p.FilterText, "banana");
@@ -121,7 +152,7 @@ public class LogViewerTests : DashboardTestContext
 
         var logEntries = CreateLogEntries("Error connecting", "Information ready");
 
-        var cut = RenderComponent<LogViewer>(builder =>
+        var cut = Render<LogViewer>(builder =>
         {
             builder.Add(p => p.LogEntries, logEntries);
             builder.Add(p => p.FilterText, "ERROR");
@@ -142,7 +173,7 @@ public class LogViewerTests : DashboardTestContext
 
         var logEntries = CreateLogEntries("apple log", "banana log");
 
-        var cut = RenderComponent<LogViewer>(builder =>
+        var cut = Render<LogViewer>(builder =>
         {
             builder.Add(p => p.LogEntries, logEntries);
             builder.Add(p => p.FilterText, "no-such-text");
@@ -181,7 +212,7 @@ public class LogViewerTests : DashboardTestContext
             isErrorMessage: false,
             resourcePrefix: null));
 
-        var cut = RenderComponent<LogViewer>(builder =>
+        var cut = Render<LogViewer>(builder =>
         {
             builder.Add(p => p.LogEntries, logEntries);
             builder.Add(p => p.FilterText, "banana");
@@ -214,7 +245,7 @@ public class LogViewerTests : DashboardTestContext
             isErrorMessage: false,
             resourcePrefix: null));
 
-        var cut = RenderComponent<LogViewer>(builder =>
+        var cut = Render<LogViewer>(builder =>
         {
             builder.Add(p => p.LogEntries, logEntries);
             builder.Add(p => p.FilterText, "info:");
@@ -234,7 +265,7 @@ public class LogViewerTests : DashboardTestContext
 
         var logEntries = CreateLogEntries("apple log", "banana log", "cherry log");
 
-        var cut = RenderComponent<LogViewer>(builder =>
+        var cut = Render<LogViewer>(builder =>
         {
             builder.Add(p => p.LogEntries, logEntries);
             builder.Add(p => p.FilterText, "apple");
@@ -248,7 +279,7 @@ public class LogViewerTests : DashboardTestContext
 
         // Changing the filter on an already-rendered component must invalidate the cached filtered
         // view and re-query Virtualize through the deferred RefreshDataAsync in OnAfterRenderAsync.
-        cut.SetParametersAndRender(builder => builder.Add(p => p.FilterText, "cherry"));
+        cut.Render(builder => builder.Add(p => p.FilterText, "cherry"));
 
         cut.WaitForAssertion(() =>
         {
@@ -264,7 +295,7 @@ public class LogViewerTests : DashboardTestContext
 
         var logEntries = CreateLogEntries("apple log", "banana log", "cherry log");
 
-        var cut = RenderComponent<LogViewer>(builder =>
+        var cut = Render<LogViewer>(builder =>
         {
             builder.Add(p => p.LogEntries, logEntries);
             builder.Add(p => p.FilterText, "banana");
@@ -274,7 +305,7 @@ public class LogViewerTests : DashboardTestContext
 
         // A whitespace-only filter is treated as empty and must short-circuit back to showing every
         // entry, restoring the unfiltered (live buffer) view.
-        cut.SetParametersAndRender(builder => builder.Add(p => p.FilterText, "   "));
+        cut.Render(builder => builder.Add(p => p.FilterText, "   "));
 
         cut.WaitForAssertion(() =>
         {
@@ -290,7 +321,7 @@ public class LogViewerTests : DashboardTestContext
 
         var logEntries = CreateLogEntries("apple log", "banana log");
 
-        var cut = RenderComponent<LogViewer>(builder =>
+        var cut = Render<LogViewer>(builder =>
         {
             builder.Add(p => p.LogEntries, logEntries);
             builder.Add(p => p.FilterText, "banana");
@@ -331,7 +362,7 @@ public class LogViewerTests : DashboardTestContext
             isErrorMessage: false,
             resourcePrefix: "frontend"));
 
-        var cut = RenderComponent<LogViewer>(builder =>
+        var cut = Render<LogViewer>(builder =>
         {
             builder.Add(p => p.LogEntries, logEntries);
             builder.Add(p => p.FilterText, "frontend");
@@ -340,7 +371,7 @@ public class LogViewerTests : DashboardTestContext
 
         cut.WaitForAssertion(() => Assert.Empty(cut.FindAll(".log-content")));
 
-        cut.SetParametersAndRender(builder => builder.Add(p => p.ShowResourcePrefix, true));
+        cut.Render(builder => builder.Add(p => p.ShowResourcePrefix, true));
 
         cut.WaitForAssertion(() =>
         {
@@ -363,7 +394,7 @@ public class LogViewerTests : DashboardTestContext
             isErrorMessage: true,
             resourcePrefix: null));
 
-        var cut = RenderComponent<LogViewer>(builder =>
+        var cut = Render<LogViewer>(builder =>
         {
             builder.Add(p => p.LogEntries, logEntries);
             builder.Add(p => p.FilterText, "stderr");
@@ -390,7 +421,7 @@ public class LogViewerTests : DashboardTestContext
             isErrorMessage: false,
             resourcePrefix: null));
 
-        var cut = RenderComponent<LogViewer>(builder =>
+        var cut = Render<LogViewer>(builder =>
         {
             builder.Add(p => p.LogEntries, logEntries);
             builder.Add(p => p.FilterText, "2024-01-01T01:00:00");
@@ -404,7 +435,7 @@ public class LogViewerTests : DashboardTestContext
             Assert.Contains("timestamped log", content.TextContent);
         });
 
-        cut.SetParametersAndRender(builder =>
+        cut.Render(builder =>
         {
             builder.Add(p => p.FilterText, "2024-01-01T00:00:00Z");
             builder.Add(p => p.ShowTimestamp, false);
@@ -473,8 +504,6 @@ public class LogViewerTests : DashboardTestContext
         FluentUISetupHelpers.AddCommonDashboardServices(this, browserTimeProvider: new TestTimeProvider());
         Services.AddLogging();
 
-        JSInterop.SetupVoid("initializeContinuousScroll").SetVoidResult();
-        JSInterop.SetupVoid("resetContinuousScrollPosition").SetVoidResult();
         JSInterop.SetupVoid("focusElement", _ => true);
     }
 }
