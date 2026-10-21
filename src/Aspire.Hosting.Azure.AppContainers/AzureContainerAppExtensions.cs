@@ -934,10 +934,19 @@ public static class AzureContainerAppExtensions
         });
 
         // The region of the environment, for resources that connect to it, such as the private endpoint that
-        // Azure Front Door Private Link creates.
+        // Azure Front Door Private Link creates. A managed environment returns a display name such as 'West US 2',
+        // but Front Door takes the programmatic name, 'westus2', so emit that. Terraform's provider normalizes the
+        // same way before it calls the Front Door API:
+        // https://github.com/hashicorp/terraform-provider-azurerm/blob/main/internal/services/cdn/resources/cdn_frontdoor_origin/r_create.go
         infra.Add(new ProvisioningOutput(AzureContainerAppEnvironmentResource.LocationOutputName, typeof(string))
         {
-            Value = containerAppEnvironment.Location.ToBicepExpression()
+            Value = new FunctionCallExpression(
+                new IdentifierExpression("toLower"),
+                new FunctionCallExpression(
+                    new IdentifierExpression("replace"),
+                    containerAppEnvironment.Location.ToBicepExpression(),
+                    new StringLiteralExpression(" "),
+                    new StringLiteralExpression(string.Empty)))
         });
     }
 

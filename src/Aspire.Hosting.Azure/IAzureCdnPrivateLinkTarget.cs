@@ -34,7 +34,9 @@ public interface IAzureCdnPrivateLinkTarget : IComputeEnvironmentResource
     /// Gets the output reference for the Azure region of the Azure resource that the CDN profile connects to.
     /// </summary>
     /// <remarks>
-    /// The CDN profile creates its private endpoint in this region.
+    /// The CDN profile creates its private endpoint in this region, so the output must be the programmatic region name that
+    /// the profile accepts, in lowercase without spaces, such as <c>westus2</c>, not a display name such as
+    /// <c>West US 2</c>.
     /// </remarks>
     BicepOutputReference Location { get; }
 

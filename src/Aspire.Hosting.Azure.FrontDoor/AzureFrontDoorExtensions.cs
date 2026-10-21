@@ -272,7 +272,7 @@ public static class AzureFrontDoorExtensions
     {
         // The Bicep values that identify a connected environment. Every origin in the environment shares them, and Front
         // Door shares one private endpoint across those origins.
-        private readonly Dictionary<AzureFrontDoorPrivateLinkAnnotation, (ProvisioningParameter EnvironmentId, BicepValue<string> Location)> _targets = [];
+        private readonly Dictionary<AzureFrontDoorPrivateLinkAnnotation, (ProvisioningParameter EnvironmentId, ProvisioningParameter Location)> _targets = [];
 
         // Converts the origin into a Private Link origin when it runs in a connected environment.
         public void ConfigureOrigin(
@@ -339,24 +339,16 @@ public static class AzureFrontDoorExtensions
             }
         }
 
-        private (ProvisioningParameter EnvironmentId, BicepValue<string> Location) CreateTarget(IAzureCdnPrivateLinkTarget environment)
-        {
-            var environmentIdentifier = Infrastructure.NormalizeBicepIdentifier(environment.Name);
-            var environmentId = environment.Id.AsProvisioningParameter(infrastructure, $"{environmentIdentifier}_environment_id");
+        private (ProvisioningParameter EnvironmentId, ProvisioningParameter Location) CreateTarget(IAzureCdnPrivateLinkTarget environment)
+            {
+                var environmentIdentifier = Infrastructure.NormalizeBicepIdentifier(environment.Name);
+                var environmentId = environment.Id.AsProvisioningParameter(infrastructure, $"{environmentIdentifier}_environment_id");
 
-            // The environment's region is an output of the environment module, so it is only known at deployment. The output
-            // can be a display name such as 'West US 2', and Front Door expects 'westus2', so remove the spaces and lowercase
-            // the name.
-            var environmentLocation = environment.Location.AsProvisioningParameter(infrastructure, $"{environmentIdentifier}_location");
-            var privateLinkLocation = new FunctionCallExpression(
-                new IdentifierExpression("toLower"),
-                new FunctionCallExpression(
-                    new IdentifierExpression("replace"),
-                    new IdentifierExpression(environmentLocation.BicepIdentifier),
-                    new StringLiteralExpression(" "),
-                    new StringLiteralExpression(string.Empty)));
+                // The environment's region is an output of the environment module, so it is only known at deployment. The output
+                // is already the programmatic region name that Front Door expects, such as 'westus2'.
+                var environmentLocation = environment.Location.AsProvisioningParameter(infrastructure, $"{environmentIdentifier}_location");
 
-            return (environmentId, new BicepValue<string>(privateLinkLocation));
-        }
+                return (environmentId, environmentLocation);
+            }
     }
 }

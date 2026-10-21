@@ -83,4 +83,4 @@ output AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = standard.id
 
 output AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN string = standard.properties.defaultDomain
 
-output AZURE_CONTAINER_APPS_ENVIRONMENT_LOCATION string = standard.location
+output AZURE_CONTAINER_APPS_ENVIRONMENT_LOCATION string = toLower(replace(standard.location, ' ', ''))

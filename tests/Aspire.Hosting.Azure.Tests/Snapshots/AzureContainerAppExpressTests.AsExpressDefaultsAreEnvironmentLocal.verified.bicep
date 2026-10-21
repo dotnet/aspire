@@ -70,4 +70,4 @@ output AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = express.id
 
 output AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN string = express.properties.defaultDomain
 
-output AZURE_CONTAINER_APPS_ENVIRONMENT_LOCATION string = express.location
+output AZURE_CONTAINER_APPS_ENVIRONMENT_LOCATION string = toLower(replace(express.location, ' ', ''))

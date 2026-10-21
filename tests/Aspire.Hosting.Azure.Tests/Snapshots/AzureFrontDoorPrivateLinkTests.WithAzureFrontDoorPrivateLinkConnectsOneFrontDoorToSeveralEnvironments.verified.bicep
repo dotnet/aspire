@@ -57,7 +57,7 @@ resource apiOrigin 'Microsoft.Cdn/profiles/originGroups/origins@2025-06-01' = {
       privateLink: {
         id: env_west_environment_id
       }
-      privateLinkLocation: toLower(replace(env_west_location, ' ', ''))
+      privateLinkLocation: env_west_location
       groupId: 'managedEnvironments'
       requestMessage: 'Azure Front Door frontdoor requests access to env-west.'
     }
@@ -116,7 +116,7 @@ resource adminOrigin 'Microsoft.Cdn/profiles/originGroups/origins@2025-06-01' = 
       privateLink: {
         id: env_west_environment_id
       }
-      privateLinkLocation: toLower(replace(env_west_location, ' ', ''))
+      privateLinkLocation: env_west_location
       groupId: 'managedEnvironments'
       requestMessage: 'Azure Front Door frontdoor requests access to env-west.'
     }
@@ -175,7 +175,7 @@ resource webOrigin 'Microsoft.Cdn/profiles/originGroups/origins@2025-06-01' = {
       privateLink: {
         id: env_east_environment_id
       }
-      privateLinkLocation: toLower(replace(env_east_location, ' ', ''))
+      privateLinkLocation: env_east_location
       groupId: 'managedEnvironments'
       requestMessage: 'Azure Front Door frontdoor requests access to env-east.'
     }
