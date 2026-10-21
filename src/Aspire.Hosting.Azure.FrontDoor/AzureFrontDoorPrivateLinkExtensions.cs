@@ -25,11 +25,6 @@ public static class AzureFrontDoorPrivateLinkExtensions
     /// The Azure Front Door, created with <see cref="AzureFrontDoorExtensions.AddAzureFrontDoor"/>, whose origins in
     /// <paramref name="environment"/> use Private Link.
     /// </param>
-    /// <param name="privateLinkLocation">
-    /// The Azure region of the private endpoint that Front Door creates, such as <c>westus2</c> or <c>West US 2</c>.
-    /// The default, <see langword="null"/>, uses the region of <paramref name="environment"/>. Front Door Private Link
-    /// is only available in some regions, so set this when the environment's region isn't one of them.
-    /// </param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for <paramref name="environment"/>, for chaining.</returns>
     /// <ats-returns>The resource builder.</ats-returns>
     /// <remarks>
@@ -61,6 +56,15 @@ public static class AzureFrontDoorPrivateLinkExtensions
     /// one that has the message of this connection. Traffic starts flowing a few minutes after approval.
     /// </para>
     /// <para>
+    /// Front Door creates its private endpoint in the region of <paramref name="environment"/>. Front Door Private Link is
+    /// only available in some
+    /// <see href="https://learn.microsoft.com/azure/frontdoor/private-link#region-availability">regions</see>, so
+    /// deployment fails when the environment's region isn't one of them. To choose another region, set the origin's
+    /// <c>SharedPrivateLinkResource.PrivateLinkLocation</c> in
+    /// <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}"/> on <paramref name="frontDoor"/>, for
+    /// example to a parameter.
+    /// </para>
+    /// <para>
     /// Private Link has no run-mode counterpart, so this method does nothing when the AppHost runs locally.
     /// </para>
     /// </remarks>
@@ -82,12 +86,10 @@ public static class AzureFrontDoorPrivateLinkExtensions
     /// </para>
     /// </ats-remarks>
     /// <exception cref="ArgumentNullException"><paramref name="environment"/> or <paramref name="frontDoor"/> is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentException"><paramref name="privateLinkLocation"/> is empty or whitespace.</exception>
     /// <exception cref="InvalidOperationException">
-    /// The environment is already connected to <paramref name="frontDoor"/> with a different
-    /// <paramref name="privateLinkLocation"/>. Publishing also fails when the environment is marked as existing or is
-    /// an Express environment, when <paramref name="frontDoor"/> has no origin in the environment, and when another Front
-    /// Door has an origin in the environment without being connected to it.
+    /// Publishing fails when the environment is marked as existing or is an Express environment, when
+    /// <paramref name="frontDoor"/> has no origin in the environment, and when another Front Door has an origin in the
+    /// environment without being connected to it.
     /// </exception>
     /// <example>
     /// <code lang="csharp">
@@ -108,42 +110,26 @@ public static class AzureFrontDoorPrivateLinkExtensions
     [Experimental("ASPIREAZURE003", UrlFormat = "https://aka.ms/aspire/diagnostics#{0}")]
     public static IResourceBuilder<T> WithAzureFrontDoorPrivateLink<T>(
         this IResourceBuilder<T> environment,
-        IResourceBuilder<AzureFrontDoorResource> frontDoor,
-        string? privateLinkLocation = null)
+        IResourceBuilder<AzureFrontDoorResource> frontDoor)
         where T : IAzureCdnPrivateLinkTarget
     {
         ArgumentNullException.ThrowIfNull(environment);
         ArgumentNullException.ThrowIfNull(frontDoor);
-        if (privateLinkLocation is not null)
-        {
-            ArgumentException.ThrowIfNullOrWhiteSpace(privateLinkLocation);
-        }
 
         if (!environment.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
             return environment;
         }
 
-        // Accept display names such as 'West US 2' as well as programmatic names such as 'westus2'.
-        var location = privateLinkLocation?.Replace(" ", string.Empty, StringComparison.Ordinal).ToLowerInvariant();
-
-        var existing = frontDoor.Resource.Annotations
+        // Calling this again for the same environment and Front Door has nothing more to do.
+        if (frontDoor.Resource.Annotations
             .OfType<AzureFrontDoorPrivateLinkAnnotation>()
-            .FirstOrDefault(annotation => ReferenceEquals(annotation.Environment, environment.Resource));
-        if (existing is not null)
+            .Any(annotation => ReferenceEquals(annotation.Environment, environment.Resource)))
         {
-            if (!string.Equals(existing.PrivateLinkLocation, location, StringComparison.Ordinal))
-            {
-                throw new InvalidOperationException(
-                    $"Compute environment '{environment.Resource.Name}' is already connected to Azure Front Door " +
-                    $"'{frontDoor.Resource.Name}' with a different Private Link location. Call {nameof(WithAzureFrontDoorPrivateLink)} " +
-                    "once for each Front Door, or pass the same location.");
-            }
-
             return environment;
         }
 
-        frontDoor.WithAnnotation(new AzureFrontDoorPrivateLinkAnnotation(frontDoor.Resource, environment.Resource, location));
+        frontDoor.WithAnnotation(new AzureFrontDoorPrivateLinkAnnotation(frontDoor.Resource, environment.Resource));
 
         // A private link target denies public network access, as it does for a private endpoint to any other Azure
         // resource. The Front Door is the resource that creates the managed private endpoint.

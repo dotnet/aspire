@@ -50,7 +50,7 @@ internal sealed class AzureFrontDoorPrivateLinkConfigurator(AzureResourceInfrast
 
         if (!_targets.TryGetValue(connection, out var target))
         {
-            target = CreateTarget(environment, connection);
+            target = CreateTarget(environment);
             _targets.Add(connection, target);
         }
 
@@ -98,17 +98,10 @@ internal sealed class AzureFrontDoorPrivateLinkConfigurator(AzureResourceInfrast
         }
     }
 
-    private (ProvisioningParameter EnvironmentId, BicepValue<string> Location) CreateTarget(
-        IAzureCdnPrivateLinkTarget environment,
-        AzureFrontDoorPrivateLinkAnnotation connection)
+    private (ProvisioningParameter EnvironmentId, BicepValue<string> Location) CreateTarget(IAzureCdnPrivateLinkTarget environment)
     {
         var environmentIdentifier = Infrastructure.NormalizeBicepIdentifier(environment.Name);
         var environmentId = environment.Id.AsProvisioningParameter(infrastructure, $"{environmentIdentifier}_environment_id");
-
-        if (connection.PrivateLinkLocation is { } location)
-        {
-            return (environmentId, location);
-        }
 
         // The environment's region is an output of the environment module, so it is only known at deployment. The output
         // can be a display name such as 'West US 2', and Front Door expects 'westus2', so remove the spaces and lowercase

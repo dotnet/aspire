@@ -76,9 +76,26 @@ origin in the environment connects through a Front Door managed private endpoint
 through the environment's internal host names. The environment must be a workload profiles environment that Aspire provisions,
 not an existing or Express environment.
 
-The private endpoint is created in the environment's region. If Front Door doesn't offer Private Link
-[in that region](https://learn.microsoft.com/azure/frontdoor/private-link#region-availability), set `privateLinkLocation` to a
-supported region, for example `"westus2"`.
+The private endpoint is created in the environment's region. Front Door only offers Private Link in some
+[regions](https://learn.microsoft.com/azure/frontdoor/private-link#region-availability), so deployment fails when the
+environment is in another region. To create the private endpoint in a supported region instead, set the location of each Private
+Link origin in `ConfigureInfrastructure`, for example from a parameter:
+
+```csharp
+var privateLinkLocation = builder.AddParameter("privateLinkLocation");
+
+frontDoor.ConfigureInfrastructure(infrastructure =>
+{
+    var location = privateLinkLocation.AsProvisioningParameter(infrastructure);
+    foreach (var origin in infrastructure.GetProvisionableResources().OfType<FrontDoorOrigin>())
+    {
+        if (origin.SharedPrivateLinkResource is { } privateLink)
+        {
+            privateLink.PrivateLinkLocation = location;
+        }
+    }
+});
+```
 
 Front Door creates the connection request in the Pending state, and no traffic reaches the apps until the environment's owner
 approves it, in the Azure portal or with the Azure CLI:

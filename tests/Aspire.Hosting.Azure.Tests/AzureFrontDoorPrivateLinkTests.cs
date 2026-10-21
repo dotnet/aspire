@@ -7,6 +7,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.AppContainers;
 using Aspire.Hosting.Utils;
+using Azure.Provisioning.Cdn;
 using static Aspire.Hosting.Utils.AzureManifestUtils;
 
 namespace Aspire.Hosting.Azure.Tests;
@@ -86,13 +87,25 @@ public class AzureFrontDoorPrivateLinkTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public async Task WithAzureFrontDoorPrivateLinkUsesExplicitLocation()
+    public async Task WithAzureFrontDoorPrivateLinkLocationCanBeOverriddenWithConfigureInfrastructure()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper);
 
         var environment = builder.AddAzureContainerAppEnvironment("env");
-        var frontDoor = builder.AddAzureFrontDoor("frontdoor");
-        environment.WithAzureFrontDoorPrivateLink(frontDoor, "westus2");
+        var privateLinkLocation = builder.AddParameter("privateLinkLocation");
+        var frontDoor = builder.AddAzureFrontDoor("frontdoor")
+            .ConfigureInfrastructure(infrastructure =>
+            {
+                var location = privateLinkLocation.AsProvisioningParameter(infrastructure);
+                foreach (var origin in infrastructure.GetProvisionableResources().OfType<FrontDoorOrigin>())
+                {
+                    if (origin.SharedPrivateLinkResource is { } privateLink)
+                    {
+                        privateLink.PrivateLinkLocation = location;
+                    }
+                }
+            });
+        environment.WithAzureFrontDoorPrivateLink(frontDoor);
 
         var api = builder.AddProject<Project>("api", launchProfileName: null)
             .WithHttpsEndpoint()
@@ -105,33 +118,8 @@ public class AzureFrontDoorPrivateLinkTests(ITestOutputHelper testOutputHelper)
 
         var (_, bicep) = await GetManifestWithBicep(frontDoor.Resource);
 
-        await Verify(bicep, "bicep");
-    }
-
-    [Theory]
-    [InlineData("westus2")]
-    [InlineData("West US 2")]
-    [InlineData("WESTUS2")]
-    public async Task WithAzureFrontDoorPrivateLinkNormalizesTheLocation(string location)
-    {
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper);
-
-        var environment = builder.AddAzureContainerAppEnvironment("env");
-        var frontDoor = builder.AddAzureFrontDoor("frontdoor");
-        environment.WithAzureFrontDoorPrivateLink(frontDoor, location);
-
-        var api = builder.AddProject<Project>("api", launchProfileName: null)
-            .WithHttpsEndpoint()
-            .WithExternalHttpEndpoints();
-        frontDoor.WithOrigin(api);
-
-        using var app = builder.Build();
-
-        await ExecuteBeforeStartHooksAsync(app, default);
-
-        var (_, bicep) = await GetManifestWithBicep(frontDoor.Resource);
-
-        Assert.Contains("privateLinkLocation: 'westus2'", bicep);
+        Assert.Contains("privateLinkLocation: privateLinkLocation", bicep);
+        Assert.DoesNotContain("privateLinkLocation: env_private_link_location", bicep);
     }
 
     [Fact]
@@ -366,31 +354,18 @@ public class AzureFrontDoorPrivateLinkTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public void WithAzureFrontDoorPrivateLinkIsIdempotentForTheSameLocation()
+    public void WithAzureFrontDoorPrivateLinkIsIdempotent()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper);
 
         var environment = builder.AddAzureContainerAppEnvironment("env");
         var frontDoor = builder.AddAzureFrontDoor("frontdoor");
 
-        environment.WithAzureFrontDoorPrivateLink(frontDoor, "westus2");
-        environment.WithAzureFrontDoorPrivateLink(frontDoor, "West US 2");
+        environment.WithAzureFrontDoorPrivateLink(frontDoor);
+        environment.WithAzureFrontDoorPrivateLink(frontDoor);
 
         Assert.Single(frontDoor.Resource.Annotations.OfType<AzureFrontDoorPrivateLinkAnnotation>());
-    }
-
-    [Fact]
-    public void WithAzureFrontDoorPrivateLinkThrowsWhenCalledAgainWithADifferentLocation()
-    {
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper);
-
-        var environment = builder.AddAzureContainerAppEnvironment("env");
-        var frontDoor = builder.AddAzureFrontDoor("frontdoor");
-        environment.WithAzureFrontDoorPrivateLink(frontDoor, "westus2");
-
-        var exception = Assert.Throws<InvalidOperationException>(() => environment.WithAzureFrontDoorPrivateLink(frontDoor, "eastus2"));
-
-        Assert.Contains("already connected to Azure Front Door 'frontdoor' with a different Private Link location", exception.Message);
+        Assert.Single(environment.Resource.Annotations.OfType<PrivateEndpointTargetAnnotation>());
     }
 
     [Fact]
@@ -418,8 +393,6 @@ public class AzureFrontDoorPrivateLinkTests(ITestOutputHelper testOutputHelper)
 
         Assert.Throws<ArgumentNullException>(() => ((IResourceBuilder<AzureContainerAppEnvironmentResource>)null!).WithAzureFrontDoorPrivateLink(frontDoor));
         Assert.Throws<ArgumentNullException>(() => environment.WithAzureFrontDoorPrivateLink(null!));
-        Assert.Throws<ArgumentException>(() => environment.WithAzureFrontDoorPrivateLink(frontDoor, ""));
-        Assert.Throws<ArgumentException>(() => environment.WithAzureFrontDoorPrivateLink(frontDoor, " "));
     }
 
     [Fact]

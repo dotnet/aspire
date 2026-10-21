@@ -17,11 +17,9 @@ internal sealed class AzureFrontDoorPrivateLinkAnnotation : IResourceAnnotation
 
     public AzureFrontDoorPrivateLinkAnnotation(
         AzureFrontDoorResource frontDoor,
-        IAzureCdnPrivateLinkTarget environment,
-        string? privateLinkLocation)
+        IAzureCdnPrivateLinkTarget environment)
     {
         Environment = environment;
-        PrivateLinkLocation = privateLinkLocation;
 
         // The environment owner sees this message on the pending connection request, so it names both ends.
         var message = $"Azure Front Door {frontDoor.Name} requests access to {environment.Name}.";
@@ -32,12 +30,6 @@ internal sealed class AzureFrontDoorPrivateLinkAnnotation : IResourceAnnotation
     /// Gets the compute environment the Front Door connects to.
     /// </summary>
     public IAzureCdnPrivateLinkTarget Environment { get; }
-
-    /// <summary>
-    /// Gets the normalized region of the Front Door private endpoint, or <see langword="null"/> to use the
-    /// environment's region.
-    /// </summary>
-    public string? PrivateLinkLocation { get; }
 
     /// <summary>
     /// Gets the message that the connection request shows to the environment owner.
