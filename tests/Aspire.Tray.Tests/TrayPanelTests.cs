@@ -905,6 +905,12 @@ public class TrayPanelTests
             {
                 Assert.Contains(box.Bounds.CenterX, trailing);
             }
+            else if (box.Label == "open-in app icon")
+            {
+                // Nested applications draw their own icon on the text column; the guide must be where it is drawn.
+                Assert.Contains(scene.Commands.OfType<AppIconCommand>(), icon => icon.Bounds == box.Bounds);
+                Assert.Equal(TrayPanel.TextLeft, box.Bounds.X);
+            }
             else if (box.Label != "empty art")
             {
                 Assert.Equal(TrayPanel.LeadingCenter, box.Bounds.CenterX);
@@ -913,6 +919,18 @@ public class TrayPanelTests
         // Row highlights and cards share the row inset on both sides.
         Assert.All(scene.Targets.Where(target => target.Kind is PanelTargetKind.Row or PanelTargetKind.LaunchAtSignIn),
             row => Assert.True(row.Bounds.X == TrayPanel.RowInset && row.Bounds.Right == TrayPanel.Width - TrayPanel.RowInset, $"{name}: {row.Key} at {row.Bounds}"));
+    }
+
+    [Fact]
+    public void OpenInApplicationGuidesSitOnTheirDrawnIcons()
+    {
+        var scene = CreatePanel("actions-open-in", TrayPanelPalette.Light).Scene;
+        var icons = scene.Commands.OfType<AppIconCommand>().Select(icon => icon.Bounds).ToList();
+        var guides = scene.Guides.Where(guide => guide.Label == "open-in app icon").Select(guide => guide.Bounds).ToList();
+
+        Assert.NotEmpty(icons);
+        Assert.Equal(icons, guides);
+        Assert.All(scene.Guides.Where(guide => guide.Label == "action icon"), guide => Assert.Equal(TrayPanel.LeadingCenter, guide.Bounds.CenterX));
     }
 
     [Fact]

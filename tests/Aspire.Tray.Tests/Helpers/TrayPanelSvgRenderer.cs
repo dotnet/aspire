@@ -190,8 +190,9 @@ internal static class TrayPanelSvgRenderer
         }
         if (text.MaxLines == 1)
         {
-            // Center a single line from the em box, as the native renderers do from ascent and descent.
-            element.Add(new XAttribute("y", F(text.Bounds.CenterY + size * 0.35)), lines[0]);
+            // Put a single line on the scene's baseline, as the native renderers do: it centers the
+            // capitals on the line, or is the baseline the header status shares with the title.
+            element.Add(new XAttribute("y", F(text.Baseline)), lines[0]);
             return element;
         }
         for (var i = 0; i < lines.Count; i++)

@@ -1013,12 +1013,18 @@ internal sealed class TrayPanel
                     Line(top + 16, "section", span);
                     break;
                 case ListItemKind.Actions:
-                    var count = GetRowActions(item.Host!, item.Section).Count;
-                    for (var i = 0; i < count; i++)
+                    var actions = GetRowActions(item.Host!, item.Section);
+                    for (var i = 0; i < actions.Count; i++)
                     {
                         var itemTop = top + ActionListPadding + i * ActionItemHeight;
-                        Line(itemTop + ActionItemHeight / 2, "action", new(0, itemTop, Width, ActionItemHeight));
-                        Box(new(LeadingCenter - 8, itemTop + ActionItemHeight / 2 - 8, 16, 16), "action icon");
+                        var middle = itemTop + ActionItemHeight / 2;
+                        Line(middle, "action", new(0, itemTop, Width, ActionItemHeight));
+                        // The applications nested under "Open in" draw their icon on the text column,
+                        // as AddActions does; every other item's icon is on the leading column.
+                        Box(actions[i].Kind == PanelTargetKind.OpenIn
+                            ? new(TextLeft, middle - 8, 16, 16)
+                            : new(LeadingCenter - 8, middle - 8, 16, 16),
+                            actions[i].Kind == PanelTargetKind.OpenIn ? "open-in app icon" : "action icon");
                     }
                     break;
                 case ListItemKind.SettingsToggle:
