@@ -300,22 +300,11 @@ public sealed class AzureEntraIdDeploymentTests(ITestOutputHelper output)
         var clientId = application.RootElement.GetProperty("appId").GetGuid();
         var objectId = application.RootElement.GetProperty("id").GetGuid();
         var principalUrl = $"https://graph.microsoft.com/v1.0/servicePrincipals(appId='{clientId:D}')";
-        using var principal = await ReadResourceAsync(client, credential, principalUrl, cleanup.Token);
-        // Application deletion cascades to its service principal. Concurrent deletes can race that
-        // cascade and fail with DirectoryObjectNotFound, leaving the application behind.
-        try
-        {
-            if (principal is not null)
-            {
-                await DeleteResourceAsync(client, credential,
-                    $"https://graph.microsoft.com/v1.0/servicePrincipals/{principal.RootElement.GetProperty("id").GetGuid():D}", cleanup.Token);
-            }
-        }
-        finally
-        {
-            // Still attempt application cleanup if service principal deletion fails.
-            await DeleteResourceAsync(client, credential, $"https://graph.microsoft.com/v1.0/applications/{objectId:D}", cleanup.Token);
-        }
+        // Application deletion cascades to its service principal. Deleting the principal first
+        // can make the cascade fail with DirectoryObjectNotFound while replicas still reference it.
+        // Verify both objects disappear rather than issuing competing deletes.
+        // https://learn.microsoft.com/graph/api/application-delete
+        await DeleteResourceAsync(client, credential, $"https://graph.microsoft.com/v1.0/applications/{objectId:D}", cleanup.Token);
         await Task.WhenAll(
             WaitForDeletionAsync(client, credential, applicationUrl, cleanup.Token),
             WaitForDeletionAsync(client, credential, principalUrl, cleanup.Token));
