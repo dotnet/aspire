@@ -241,7 +241,10 @@ public sealed class AzureEntraIdDeploymentTests(ITestOutputHelper output)
         var clientId = application.GetProperty("appId").GetGuid();
         var principal = await WaitForResourceAsync(client, credential,
             $"https://graph.microsoft.com/v1.0/servicePrincipals(appId='{clientId:D}')",
-            resource => resource.GetProperty("appId").GetGuid() == clientId, cancellationToken);
+            resource => resource.GetProperty("appId").GetGuid() == clientId
+                && resource.GetProperty("tags").EnumerateArray()
+                    .Any(tag => tag.GetString() == "WindowsAzureActiveDirectoryIntegratedApp"),
+            cancellationToken);
 
         using var consumer = await ReadResourceAsync(client, credential,
             $"https://management.azure.com/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.App/containerApps/consumer?api-version=2026-03-02-preview",
