@@ -27,8 +27,10 @@ internal sealed class ClaudeCodeAgentClient(CliExecutionContext context, IEnviro
         yield return GetSkillBaseDirectory(scope, workspaceRoot);
     }
 
-    public Task<bool> HasIntegrationRegistrationAsync(DirectoryInfo workspaceRoot, CancellationToken cancellationToken)
-        => AspireSkillsConfiguration.HasPluginRegistrationAsync(GetSettingsFiles(workspaceRoot), cancellationToken);
+    public Task<bool> HasIntegrationRegistrationAsync(
+        DirectoryInfo workspaceRoot, AgentConfigurationScope scope, CancellationToken cancellationToken)
+        => AspireSkillsConfiguration.HasPluginRegistrationAsync(
+            GetSettingsFiles(workspaceRoot, scope, new AgentConfigurationReadContext()), cancellationToken);
 
     public string GetIntegrationConfigPath(AgentConfigurationScope scope, DirectoryInfo workspaceRoot)
     {
@@ -40,9 +42,10 @@ internal sealed class ClaudeCodeAgentClient(CliExecutionContext context, IEnviro
     }
 
     public Task UpdateIntegrationConfigAsync(
-        JsonObject config, DirectoryInfo workspaceRoot, AgentConfigurationScope scope, CancellationToken cancellationToken)
-        => AspireSkillsConfiguration.ApplyPluginAsync(config, GetSettingsFiles(workspaceRoot),
-            GetIntegrationConfigPath(scope, workspaceRoot), cancellationToken);
+        JsonObject config, DirectoryInfo workspaceRoot, AgentConfigurationScope scope,
+        AgentConfigurationReadContext reads, CancellationToken cancellationToken)
+        => AspireSkillsConfiguration.ApplyPluginAsync(config, GetSettingsFiles(workspaceRoot, scope, reads),
+            GetIntegrationConfigPath(scope, workspaceRoot), reads, cancellationToken);
 
     public string GetMcpConfigPath(AgentConfigurationScope scope, DirectoryInfo workspaceRoot)
         => scope is AgentConfigurationScope.Project ? Path.Combine(workspaceRoot.FullName, ".mcp.json")
@@ -53,8 +56,9 @@ internal sealed class ClaudeCodeAgentClient(CliExecutionContext context, IEnviro
         => [(GetMcpConfigPath(scope, workspaceRoot), true)];
 
     public async Task<(JsonObject Config, string Path)> ReadMcpConfigAsync(
-        string configFilePath, DirectoryInfo workspaceRoot, AgentConfigurationScope scope, CancellationToken cancellationToken)
-        => (await McpConfigFileHelper.ReadConfigAsync(configFilePath, s_mcp.JsonDocumentOptions, cancellationToken), configFilePath);
+        string configFilePath, DirectoryInfo workspaceRoot, AgentConfigurationScope scope,
+        AgentConfigurationReadContext reads, CancellationToken cancellationToken)
+        => (await McpConfigFileHelper.ReadConfigAsync(configFilePath, s_mcp.JsonDocumentOptions, reads, cancellationToken), configFilePath);
 
     public (bool Repaired, bool Added) UpdateMcpConfig(
         JsonObject config, string configFilePath, bool configureServer, AgentConfigurationScope scope)
@@ -67,23 +71,21 @@ internal sealed class ClaudeCodeAgentClient(CliExecutionContext context, IEnviro
 
     public override string ToString() => Id;
 
-    private IEnumerable<string> GetSettingsFiles(DirectoryInfo workspaceRoot)
+    private IEnumerable<string> GetSettingsFiles(
+        DirectoryInfo workspaceRoot, AgentConfigurationScope scope, AgentConfigurationReadContext reads)
     {
         yield return Path.Combine(ClaudeCodePaths.GetConfigDirectory(context, environment), "settings.json");
-        yield return Path.Combine(workspaceRoot.FullName, ".claude", "settings.json");
-        yield return Path.Combine(workspaceRoot.FullName, ".claude", "settings.local.json");
+        if (scope is AgentConfigurationScope.Project)
+        {
+            yield return Path.Combine(workspaceRoot.FullName, ".claude", "settings.json");
+            yield return Path.Combine(workspaceRoot.FullName, ".claude", "settings.local.json");
+        }
         var managed = AgentPath.GetManagedSettingsDirectory(context, environment, "ClaudeCode", "claude-code");
         yield return Path.Combine(managed, "managed-settings.json");
         var fragments = Path.Combine(managed, "managed-settings.d");
-        if (Directory.Exists(fragments))
+        foreach (var path in reads.GetJsonFiles(fragments))
         {
-            foreach (var path in Directory.EnumerateFiles(fragments, "*.json").Order(StringComparer.Ordinal))
-            {
-                if (!Path.GetFileName(path).StartsWith('.'))
-                {
-                    yield return path;
-                }
-            }
+            yield return path;
         }
     }
 }

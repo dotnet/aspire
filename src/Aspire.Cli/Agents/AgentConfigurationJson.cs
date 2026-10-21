@@ -87,14 +87,14 @@ internal static class AgentConfigurationJson
         return node.GetValue<bool>();
     }
 
-    public static async Task<JsonObject?> ReadAsync(string path, CancellationToken cancellationToken)
+    public static Task<JsonObject?> ReadAsync(string path, CancellationToken cancellationToken)
+        => ReadAsync(path, new AgentConfigurationReadContext(), cancellationToken);
+
+    public static async Task<JsonObject?> ReadAsync(
+        string path, AgentConfigurationReadContext reads, CancellationToken cancellationToken)
     {
-        byte[] bytes;
-        try
-        {
-            bytes = await File.ReadAllBytesAsync(path, cancellationToken);
-        }
-        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        var bytes = await reads.ReadAsync(path, cancellationToken);
+        if (bytes is null)
         {
             return null;
         }
@@ -112,13 +112,14 @@ internal static class AgentConfigurationJson
     public static async Task<IReadOnlyList<JsonObject>> ReadSettingsAsync(
         IEnumerable<string> paths,
         string targetPath,
+        AgentConfigurationReadContext reads,
         CancellationToken cancellationToken)
     {
         var settings = new List<JsonObject>();
         foreach (var path in paths.Distinct(AgentPath.Comparer))
         {
             if (!AgentPath.Comparer.Equals(path, targetPath) &&
-                await ReadAsync(path, cancellationToken) is { } root)
+                await ReadAsync(path, reads, cancellationToken) is { } root)
             {
                 settings.Add(root);
             }

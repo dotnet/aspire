@@ -886,6 +886,51 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(expected, File.Exists(Path.Combine(workspace.Path, ".agents", "skills", SkillDefinition.DotnetInspect.Name, "SKILL.md")));
     }
 
+    [Theory]
+    [InlineData("copilot", "project")]
+    [InlineData("copilot", "local")]
+    [InlineData("copilot", "claude")]
+    [InlineData("claude", "project")]
+    [InlineData("claude", "local")]
+    public async Task Embedded_ProjectDisableOverridesGlobalEnablementWithoutChangingGlobalSetup(string clientId, string overrideLocation)
+    {
+        using var context = new AgentConfigurationTestContext(outputHelper);
+        var client = context.Clients.Single(client => client.Id == clientId);
+        var global = client.GetIntegrationConfigPath(AgentConfigurationScope.Global, context.Project);
+        const string enabled = """{"enabledPlugins":{"aspire@aspire-skills":true}}""";
+        const string disabled = """{"enabledPlugins":{"aspire@aspire-skills":false}}""";
+        await AgentConfigurationTestContext.WriteAsync(global, enabled);
+        var project = client.GetIntegrationConfigPath(AgentConfigurationScope.Project, context.Project);
+        var settings = overrideLocation switch
+        {
+            "local" => Path.Combine(Path.GetDirectoryName(project)!, "settings.local.json"),
+            "claude" => Path.Combine(context.Project.FullName, ".claude", "settings.json"),
+            _ => project
+        };
+        if (overrideLocation == "local")
+        {
+            await AgentConfigurationTestContext.WriteAsync(project, enabled);
+        }
+        await AgentConfigurationTestContext.WriteAsync(settings, disabled);
+        var bundle = await CreateBundleAsync(context.Workspace.WorkspaceRoot, ("scope-test", "Project scope regression"));
+        var services = context.CreateServiceCollection(outputHelper, options =>
+        {
+            options.AspireSkillsInstallerFactory = _ => new FakeAspireSkillsInstaller(
+                context.ExecutionContext, AspireSkillsInstallResult.Installed(bundle));
+        });
+        using var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+
+        Assert.Equal(CliExitCodes.Success, await command.Parse(
+            $"agent init --non-interactive --agents {clientId} --scope project --skills aspire --aspire-source embedded").InvokeAsync().DefaultTimeout());
+        Assert.True(File.Exists(Path.Combine(client.GetSkillBaseDirectory(AgentConfigurationScope.Project, context.Project), "scope-test", "SKILL.md")));
+        Assert.Equal(CliExitCodes.InvalidCommand, await command.Parse(
+            $"agent init --non-interactive --agents {clientId} --scope global --skills aspire --aspire-source embedded").InvokeAsync().DefaultTimeout());
+        Assert.Equal(enabled, await File.ReadAllTextAsync(global));
+        Assert.Equal(disabled, await File.ReadAllTextAsync(settings));
+        Assert.Equal([global], Directory.GetFiles(context.Home.FullName, "*", SearchOption.AllDirectories));
+    }
+
     private static async Task<AspireSkillsBundle> CreateBundleAsync(DirectoryInfo workspaceRoot, params (string Name, string Description)[] skills)
     {
         var bundleDirectory = new DirectoryInfo(Path.Combine(workspaceRoot.FullName, $".test-aspire-skills-bundle-{Guid.NewGuid():N}"));

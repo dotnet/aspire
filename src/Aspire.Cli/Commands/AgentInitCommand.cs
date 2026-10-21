@@ -494,7 +494,7 @@ internal sealed class AgentInitCommand : BaseCommand
             {
                 foreach (var client in selectedClients)
                 {
-                    if (await client.HasIntegrationRegistrationAsync(workspaceRoot, cancellationToken))
+                    if (await client.HasIntegrationRegistrationAsync(workspaceRoot, scope, cancellationToken))
                     {
                         conflict = AgentCommandStrings.InitCommand_NativeSkillsConflict;
                         break;
@@ -646,8 +646,9 @@ internal sealed class AgentInitCommand : BaseCommand
                     AgentCommandStrings.InitCommand_McpConfigurationDescription, firstTarget.Client.DisplayName, targets.Key);
                 try
                 {
+                    var reads = new AgentConfigurationReadContext();
                     var (config, configFilePath) = await firstTarget.Client.ReadMcpConfigAsync(
-                        targets.Key, workspaceRoot, scope, cancellationToken);
+                        targets.Key, workspaceRoot, scope, reads, cancellationToken);
                     var notifications = new List<(KnownEmoji Emoji, string Message)>();
                     // Legacy repairs share the same selection, scope, and consent as new configuration.
                     foreach (var (client, _, configureServer) in targets)
@@ -668,7 +669,7 @@ internal sealed class AgentInitCommand : BaseCommand
 
                     if (notifications.Count > 0)
                     {
-                        await ConfigurationHelper.WriteSettingsFileAsync(configFilePath, config, cancellationToken);
+                        await AgentConfigurationFile.WriteAsync(configFilePath, config, reads, cancellationToken);
                     }
 
                     foreach (var (emoji, message) in notifications)

@@ -6,7 +6,6 @@ using Aspire.Cli.Agents.ClaudeCode;
 using Aspire.Cli.Agents.Copilot;
 using Aspire.Cli.Agents.OpenCode;
 using Aspire.Cli.Tests.Utils;
-using Aspire.Cli.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Cli.Tests.Agents;
@@ -73,12 +72,13 @@ internal sealed class AgentConfigurationTestContext : IDisposable
     public async Task<(string Path, bool Repaired, bool Added)> ConfigureMcpAsync(
         IAgentClient client, AgentConfigurationScope scope, CancellationToken cancellationToken = default)
     {
+        var reads = new AgentConfigurationReadContext();
         var (config, path) = await client.ReadMcpConfigAsync(
-            client.GetMcpConfigPath(scope, Project), Project, scope, cancellationToken);
+            client.GetMcpConfigPath(scope, Project), Project, scope, reads, cancellationToken);
         var (repaired, added) = client.UpdateMcpConfig(config, path, configureServer: true, scope);
         if (repaired || added)
         {
-            await ConfigurationHelper.WriteSettingsFileAsync(path, config, cancellationToken);
+            await AgentConfigurationFile.WriteAsync(path, config, reads, cancellationToken);
         }
 
         return (path, repaired, added);

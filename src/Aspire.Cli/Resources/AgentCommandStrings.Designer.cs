@@ -61,6 +61,15 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Could not safely update '{0}'. Check for concurrent changes, links, or restrictive permissions, then retry or configure it manually..
+        /// </summary>
+        internal static string ConfigurationWriteRefused {
+            get {
+                return ResourceManager.GetString("ConfigurationWriteRefused", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to The AI agent client that produced the event (for example copilot-cli, claude-code, or vscode).
         /// </summary>
         internal static string AgentTelemetryCommand_ClientNameDescription {

@@ -87,6 +87,11 @@
         <target state="translated">次のエージェント構成で非推奨の 'mcp start' コマンドが使用されています。これらを更新しますか?</target>
         <note />
       </trans-unit>
+      <trans-unit id="ConfigurationWriteRefused">
+        <source>Could not safely update '{0}'. Check for concurrent changes, links, or restrictive permissions, then retry or configure it manually.</source>
+        <target state="new">Could not safely update '{0}'. Check for concurrent changes, links, or restrictive permissions, then retry or configure it manually.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DeprecatedConfigFix">
         <source>Run 'aspire agent init' to update configuration</source>
         <target state="translated">'aspire agent init' を実行して構成を更新してください</target>

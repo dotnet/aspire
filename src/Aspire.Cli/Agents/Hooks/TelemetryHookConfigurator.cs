@@ -138,7 +138,9 @@ internal sealed class TelemetryHookConfigurator : ITelemetryHookConfigurator
                 },
             };
 
-            await WriteJsonAtomicAsync(filePath, config, cancellationToken);
+            var reads = new AgentConfigurationReadContext();
+            await reads.ReadAsync(filePath, cancellationToken);
+            await AgentConfigurationFile.WriteAsync(filePath, config, reads, cancellationToken);
             return true;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -153,19 +155,24 @@ internal sealed class TelemetryHookConfigurator : ITelemetryHookConfigurator
         var claudeDirectory = ClaudeCodePaths.GetConfigDirectory(_executionContext, _environment);
         var settingsPath = Path.Combine(claudeDirectory, ClaudeSettingsFileName);
 
+        var reads = new AgentConfigurationReadContext();
+        byte[]? bytes;
+        try
+        {
+            bytes = await reads.ReadAsync(settingsPath, cancellationToken);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _logger.LogDebug(ex, "Failed to read Claude settings at {Path}.", settingsPath);
+            return TelemetryHookSkipReason.WriteFailed;
+        }
+
         JsonObject settings;
-        if (File.Exists(settingsPath))
+        if (bytes is not null)
         {
             string content;
-            try
-            {
-                content = await File.ReadAllTextAsync(settingsPath, cancellationToken);
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                _logger.LogDebug(ex, "Failed to read Claude settings at {Path}.", settingsPath);
-                return TelemetryHookSkipReason.WriteFailed;
-            }
+            using var reader = new StreamReader(new MemoryStream(bytes));
+            content = await reader.ReadToEndAsync(cancellationToken);
 
             JsonNode? parsed;
             try
@@ -257,7 +264,7 @@ internal sealed class TelemetryHookConfigurator : ITelemetryHookConfigurator
         try
         {
             Directory.CreateDirectory(claudeDirectory);
-            await WriteJsonAtomicAsync(settingsPath, settings, cancellationToken);
+            await AgentConfigurationFile.WriteAsync(settingsPath, settings, reads, cancellationToken);
             return null;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -271,7 +278,8 @@ internal sealed class TelemetryHookConfigurator : ITelemetryHookConfigurator
     {
         // The Copilot CLI hooks reference resolves the user-level hooks directory from COPILOT_HOME when
         // set, otherwise ~/.copilot/hooks. Mirror that so the hook lands where Copilot actually reads it.
-        var configDirectory = CopilotPaths.GetConfigDirectory(_executionContext.HomeDirectory, _environment);
+        var configDirectory = AgentPath.Expand(
+            CopilotPaths.GetConfigDirectory(_executionContext.HomeDirectory, _environment), _executionContext);
         return Path.Combine(configDirectory, CopilotHooksDirectoryName);
     }
 
@@ -353,15 +361,4 @@ internal sealed class TelemetryHookConfigurator : ITelemetryHookConfigurator
         => value is not null
             && (value.Contains(TelemetryHookInstaller.ShellResourceName, StringComparison.OrdinalIgnoreCase)
                 || value.Contains(TelemetryHookInstaller.PowerShellResourceName, StringComparison.OrdinalIgnoreCase));
-
-    private static async Task WriteJsonAtomicAsync(string path, JsonObject config, CancellationToken cancellationToken)
-    {
-        var json = JsonSerializer.Serialize(config, JsonSourceGenerationContext.Default.JsonObject);
-
-        // Write to a sibling temp file then move into place so a concurrently firing hook never reads a
-        // half-written config.
-        var tempPath = path + ".tmp-" + Guid.NewGuid().ToString("N");
-        await File.WriteAllTextAsync(tempPath, json, cancellationToken);
-        File.Move(tempPath, path, overwrite: true);
-    }
 }

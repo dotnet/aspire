@@ -22,15 +22,18 @@ internal static class AspireSkillsConfiguration
 
     public static async Task<bool> HasPluginRegistrationAsync(IEnumerable<string> settings, CancellationToken cancellationToken)
     {
+        var enabled = false;
         foreach (var path in settings)
         {
-            if (await AgentConfigurationJson.ReadAsync(path, cancellationToken) is { } config && HasPlugin(config))
+            if (await AgentConfigurationJson.ReadAsync(path, cancellationToken) is { } config &&
+                AgentConfigurationJson.OptionalObject(config, "enabledPlugins") is { } plugins &&
+                AgentConfigurationJson.Boolean(plugins, PluginName) is { } value)
             {
-                return true;
+                enabled = value;
             }
         }
 
-        return false;
+        return enabled;
     }
 
     public static void ApplyOpenCodeCatalog(JsonObject root, IEnumerable<JsonObject> configs)
@@ -96,14 +99,11 @@ internal static class AspireSkillsConfiguration
             path.EndsWith("/opencode/v2", StringComparison.Ordinal);
     }
 
-    private static bool HasPlugin(JsonObject root)
-        => AgentConfigurationJson.OptionalObject(root, "enabledPlugins") is { } plugins &&
-            AgentConfigurationJson.Boolean(plugins, PluginName) is true;
-
     public static async Task ApplyPluginAsync(
-        JsonObject root, IEnumerable<string> settingsPaths, string targetPath, CancellationToken cancellationToken)
+        JsonObject root, IEnumerable<string> settingsPaths, string targetPath,
+        AgentConfigurationReadContext reads, CancellationToken cancellationToken)
     {
-        var settings = await AgentConfigurationJson.ReadSettingsAsync(settingsPaths, targetPath, cancellationToken);
+        var settings = await AgentConfigurationJson.ReadSettingsAsync(settingsPaths, targetPath, reads, cancellationToken);
         JsonObject? selectedSource = null;
         foreach (var config in settings.Append(root))
         {

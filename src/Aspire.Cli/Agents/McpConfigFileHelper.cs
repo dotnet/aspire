@@ -31,25 +31,30 @@ internal static class McpConfigFileHelper
     /// </summary>
     /// <param name="configFilePath">The path to the MCP configuration file.</param>
     /// <param name="documentOptions">The JSON parsing options for this configuration format.</param>
+    /// <param name="reads">Tracks configuration inputs until publication.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>The parsed <see cref="JsonObject"/> from the file, or a new empty <see cref="JsonObject"/> if the file doesn't exist.</returns>
     /// <exception cref="InvalidOperationException">
     /// Thrown when the file contains malformed JSON or its root is not an object.
     /// Malformed JSON exceptions wrap the underlying <see cref="JsonException"/>.
     /// </exception>
-    public static async Task<JsonObject> ReadConfigAsync(string configFilePath, JsonDocumentOptions documentOptions, CancellationToken cancellationToken)
+    public static async Task<JsonObject> ReadConfigAsync(
+        string configFilePath, JsonDocumentOptions documentOptions,
+        AgentConfigurationReadContext reads, CancellationToken cancellationToken)
     {
-        if (!File.Exists(configFilePath))
+        var content = await reads.ReadAsync(configFilePath, cancellationToken);
+        if (content is null)
         {
             return new JsonObject();
         }
-
-        var content = await File.ReadAllTextAsync(configFilePath, cancellationToken);
+        // Keep MCP's existing BOM/encoding detection and per-client JSON parsing rules.
+        using var reader = new StreamReader(new MemoryStream(content));
+        var text = await reader.ReadToEndAsync(cancellationToken);
 
         JsonNode? root;
         try
         {
-            root = JsonNode.Parse(content, documentOptions: documentOptions);
+            root = JsonNode.Parse(text, documentOptions: documentOptions);
         }
         catch (JsonException ex)
         {

@@ -3,7 +3,6 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Aspire.Cli.Utils;
 
 namespace Aspire.Cli.Agents;
 
@@ -21,20 +20,22 @@ internal static class AgentConfigurationEditor
             string? message = null;
             try
             {
-                var original = await AgentConfigurationJson.ReadAsync(targets.Key, cancellationToken);
+                var reads = new AgentConfigurationReadContext();
+                var original = await AgentConfigurationJson.ReadAsync(targets.Key, reads, cancellationToken);
                 var root = original?.DeepClone().AsObject() ?? new JsonObject();
                 foreach (var client in targets)
                 {
-                    await client.UpdateIntegrationConfigAsync(root, workspaceRoot, scope, cancellationToken);
+                    await client.UpdateIntegrationConfigAsync(root, workspaceRoot, scope, reads, cancellationToken);
                 }
 
                 if (JsonNode.DeepEquals(original ?? new JsonObject(), root))
                 {
+                    await reads.ValidateAsync(targets.Key, cancellationToken);
                     status = AgentConfigurationStatus.Unchanged;
                 }
                 else
                 {
-                    await ConfigurationHelper.WriteSettingsFileAsync(targets.Key, root, cancellationToken);
+                    await AgentConfigurationFile.WriteAsync(targets.Key, root, reads, cancellationToken);
                 }
             }
             catch (Exception ex) when (ex is JsonException or InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)

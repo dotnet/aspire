@@ -138,9 +138,10 @@ internal sealed class OpenCodeAgentClient(CliExecutionContext context, IEnvironm
         => [(GetMcpConfigPath(scope, workspaceRoot), true)];
 
     public async Task<(JsonObject Config, string Path)> ReadMcpConfigAsync(
-        string configFilePath, DirectoryInfo workspaceRoot, AgentConfigurationScope scope, CancellationToken cancellationToken)
+        string configFilePath, DirectoryInfo workspaceRoot, AgentConfigurationScope scope,
+        AgentConfigurationReadContext reads, CancellationToken cancellationToken)
     {
-        var config = await McpConfigFileHelper.ReadConfigAsync(configFilePath, s_mcp.JsonDocumentOptions, cancellationToken);
+        var config = await McpConfigFileHelper.ReadConfigAsync(configFilePath, s_mcp.JsonDocumentOptions, reads, cancellationToken);
         // JSONC {"mcp":{"aspire":{"enabled":true}}} inherits its command from a
         // lower-precedence document. Repair that owner without shadowing pins or
         // overrides in JSONC or .opencode settings. Explicit OPENCODE_CONFIG files
@@ -156,7 +157,7 @@ internal sealed class OpenCodeAgentClient(CliExecutionContext context, IEnvironm
         {
             var candidateConfig = AgentPath.Comparer.Equals(candidate, configFilePath)
                 ? config
-                : await McpConfigFileHelper.ReadConfigAsync(candidate, s_mcp.JsonDocumentOptions, cancellationToken);
+                : await McpConfigFileHelper.ReadConfigAsync(candidate, s_mcp.JsonDocumentOptions, reads, cancellationToken);
             var (servers, native) = GetMcpServerContainer(candidateConfig, candidate);
             if (servers is not null && servers.TryGetPropertyValue("aspire", out var server))
             {
@@ -234,7 +235,8 @@ internal sealed class OpenCodeAgentClient(CliExecutionContext context, IEnvironm
             ? OpenCodePaths.GetProjectConfigPath(workspaceRoot)
             : OpenCodePaths.GetGlobalMcpConfigPath(context, environment);
 
-    public async Task<bool> HasIntegrationRegistrationAsync(DirectoryInfo workspaceRoot, CancellationToken cancellationToken)
+    public async Task<bool> HasIntegrationRegistrationAsync(
+        DirectoryInfo workspaceRoot, AgentConfigurationScope scope, CancellationToken cancellationToken)
     {
         // Inline settings can activate skills, but are not a writable registration target.
         if (environment.GetEnvironmentVariable("OPENCODE_CONFIG_CONTENT") is { Length: > 0 } inline &&
@@ -243,7 +245,7 @@ internal sealed class OpenCodeAgentClient(CliExecutionContext context, IEnvironm
             return true;
         }
 
-        foreach (var path in CatalogSettings(workspaceRoot))
+        foreach (var path in scope is AgentConfigurationScope.Project ? CatalogSettings(workspaceRoot) : GlobalCatalogSettings())
         {
             if (await AgentConfigurationJson.ReadAsync(path, cancellationToken) is { } config && AspireSkillsConfiguration.HasOpenCodeCatalog(config))
             {
@@ -255,10 +257,12 @@ internal sealed class OpenCodeAgentClient(CliExecutionContext context, IEnvironm
     }
 
     public async Task UpdateIntegrationConfigAsync(
-        JsonObject config, DirectoryInfo workspaceRoot, AgentConfigurationScope scope, CancellationToken cancellationToken)
+        JsonObject config, DirectoryInfo workspaceRoot, AgentConfigurationScope scope,
+        AgentConfigurationReadContext reads, CancellationToken cancellationToken)
     {
         var configs = await AgentConfigurationJson.ReadSettingsAsync(
-            CatalogSettings(workspaceRoot), GetIntegrationConfigPath(scope, workspaceRoot), cancellationToken);
+            scope is AgentConfigurationScope.Project ? CatalogSettings(workspaceRoot) : GlobalCatalogSettings(),
+            GetIntegrationConfigPath(scope, workspaceRoot), reads, cancellationToken);
         if (environment.GetEnvironmentVariable("OPENCODE_CONFIG_CONTENT") is { Length: > 0 } inline)
         {
             var inlineConfig = AgentConfigurationJson.ParseObject(Encoding.UTF8.GetBytes(inline));

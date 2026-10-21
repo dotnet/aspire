@@ -87,6 +87,11 @@
         <target state="translated">Następujące konfiguracje agentów używają przestarzałego polecenia „mcp start”. Zaktualizować je?</target>
         <note />
       </trans-unit>
+      <trans-unit id="ConfigurationWriteRefused">
+        <source>Could not safely update '{0}'. Check for concurrent changes, links, or restrictive permissions, then retry or configure it manually.</source>
+        <target state="new">Could not safely update '{0}'. Check for concurrent changes, links, or restrictive permissions, then retry or configure it manually.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DeprecatedConfigFix">
         <source>Run 'aspire agent init' to update configuration</source>
         <target state="translated">Uruchom polecenie „aspire agent init”, aby zaktualizować konfigurację</target>

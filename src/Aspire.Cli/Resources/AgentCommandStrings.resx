@@ -123,6 +123,9 @@
   <data name="InitCommand_NoConfigurationSelected" xml:space="preserve">
     <value>No agent configuration selected. Existing configuration was left unchanged.</value>
   </data>
+  <data name="ConfigurationWriteRefused" xml:space="preserve">
+    <value>Could not safely update '{0}'. Check for concurrent changes, links, or restrictive permissions, then retry or configure it manually.</value>
+  </data>
   <data name="InitCommand_ProjectScope" xml:space="preserve">
     <value>Project (Install in your workspace root; committed with your project)</value>
   </data>
