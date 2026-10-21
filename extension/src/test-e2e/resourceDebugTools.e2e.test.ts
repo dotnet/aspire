@@ -364,6 +364,43 @@ suite('Aspire resource debug language model tool E2E', function () {
         await waitForNoDebugSessions(120000);
         await waitForNoRunningAppHost(120000, appHostPath);
     });
+
+    test('attaches to a Go resource launched with Run Without Debugging, hits a breakpoint, and detaches', async function () {
+        this.timeout(600000);
+        if (!resourceDebugPrerequisitesInstalled) {
+            this.skip();
+        }
+
+        await openAspireView();
+        await waitForRepositoryIdle();
+        const discovered = await waitForWorkspaceAppHost();
+        const appHostPath = discovered.state.workspaceAppHostPath ?? getPrimaryAppHostProjectPath();
+        const runBefore = getCommandInvocationCount('aspire-vscode.runAppHost');
+        await executeE2eControlCommand({ name: 'runAppHost', appHostPath }, { waitFor: 'started' });
+        await waitForCommandOutcome('aspire-vscode.runAppHost', 'success', 180000, runBefore);
+        const running = await waitForResourceState('e2e-go', ['Running'], 180000);
+        const go = findResource(running.state, 'e2e-go');
+        assert.ok(go);
+        const sourcePath = path.join(getWorkspaceRoot(), 'AspireE2E.Go', 'main.go');
+
+        const proof = (await executeE2eControlCommand({
+            name: 'proveAttachedResourceDebugging',
+            appHostPath,
+            resourceName: go.name,
+            sourcePath,
+            breakpointLine: findBreakpointLine(sourcePath, 'message := "go-ok"'),
+            expectedDebugType: 'go',
+            expectedResponse: 'go-ok',
+            timeoutMs: 300000,
+        }, { timeoutMs: 360000 })).result as AttachedResourceDebugProof;
+
+        assertSafeResourceDebugResult(proof.toolPayload);
+        assert.deepStrictEqual(proof.debugAdapterResponses, []);
+
+        await stopPrimaryAppHostIfRunning();
+        await waitForNoDebugSessions(120000);
+        await waitForNoRunningAppHost(120000, appHostPath);
+    });
 });
 
 suite('Aspire resource debug source paths', function () {

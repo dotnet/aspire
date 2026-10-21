@@ -748,7 +748,7 @@ public static class GoHostingExtensions
             });
         }
 
-        return builder.WithDebugSupport(
+        builder.WithDebugSupport(
             mode =>
             {
                 // Resolve annotations when DCP creates the launch configuration so later
@@ -767,7 +767,17 @@ public static class GoHostingExtensions
                     BuildFlags = buildFlags.Length > 0 ? buildFlags : null
                 };
             },
-            "go")
+            "go");
+
+        if (resource.TryGetLastAnnotation<SupportsDebuggingAnnotation>(out var debugSupport))
+        {
+            // Keep non-debug runs as DCP-managed go run processes so the PID identifies the launcher,
+            // matching CLI starts. Delve's noDebug launch does not emit a DAP process event:
+            // https://github.com/go-delve/delve/blob/v1.25.2/service/dap/server.go
+            debugSupport.RequiresDebugMode = true;
+        }
+
+        return builder
             .WithLaunchToolArgs(static ctx =>
             {
                 // The executable resource normally starts as:
