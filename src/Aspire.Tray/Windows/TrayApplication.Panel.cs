@@ -388,6 +388,10 @@ internal sealed unsafe partial class TrayApplication
 
     private static TrayPanelPalette GetPanelPalette()
     {
+        if (s_previewPalette is { } preview)
+        {
+            return preview;
+        }
         // SPI_GETHIGHCONTRAST; HCF_HIGHCONTRASTON = 1.
         var contrast = new NativeMethods.HighContrast { Size = (uint)sizeof(NativeMethods.HighContrast) };
         if (NativeMethods.GetHighContrast(0x42, contrast.Size, ref contrast, 0) != 0 && (contrast.Flags & 1) != 0)

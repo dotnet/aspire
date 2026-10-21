@@ -251,4 +251,20 @@ internal static unsafe partial class NativeMethods
 
     [LibraryImport("user32.dll")]
     internal static partial int UpdateWindow(nint window);
+
+    // Smoke preview screenshots: copy the composited screen under the panel and save it as PNG.
+    [LibraryImport("user32.dll")]
+    internal static partial nint GetDC(nint window);
+
+    [LibraryImport("user32.dll")]
+    internal static partial int ReleaseDC(nint window, nint dc);
+
+    [LibraryImport("gdiplus.dll")]
+    internal static partial int GdipCreateBitmapFromHBITMAP(nint bitmap, nint palette, out nint image);
+
+    [LibraryImport("gdiplus.dll", StringMarshalling = StringMarshalling.Utf16)]
+    internal static partial int GdipSaveImageToFile(nint image, string fileName, in Guid encoder, nint parameters);
+
+    [LibraryImport("gdiplus.dll")]
+    internal static partial int GdipDisposeImage(nint image);
 }

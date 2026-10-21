@@ -36,11 +36,30 @@ internal sealed class TrayPanel
     private const double ActionListPadding = 4;
     private const double ActionListGap = 6;
 
-    // Trailing row buttons are laid out from the right edge of the row's content area.
-    private const double RowInset = 8;
-    private const double RowContentRight = Width - RowInset - 8;
+    // The alignment grid. Everything in the panel lines up on these columns, which the scene
+    // also emits as guides (TrayPanelScene.Guides) for tests and screenshot overlays:
+    //
+    //   8   RowInset: the left edge of row highlights, cards (action lists, confirmations) and
+    //       the notice banner; Width - 8 is their right edge.
+    //   20  EdgeMargin: the left edge of the leading column (status glyphs, the header logo,
+    //       list icons) and of text that has no glyph (section labels, Settings text).
+    //   30  LeadingCenter: the center of the leading column's 20-DIP glyphs and 16-DIP icons.
+    //   52  TextLeft: where names, titles and item labels start.
+    //   330 TrailingCenter: the center of the last trailing button (More, Quit) and of trailing
+    //       chevrons, mirroring LeadingCenter.
+    //   340 Width - EdgeMargin: the right edge of trailing text and controls that aren't buttons.
+    //   344 RowContentRight: the right edge of trailing 28-DIP buttons (TrailingCenter + 14).
+    //
+    // Vertically, each kind of line has one center: the header and footer bars at 22, a row's
+    // glyph and buttons at its middle (26) with its name and detail lines centered at 17 and 35
+    // around it, section labels at 16, and action list items at their middle (15).
+    public const double RowInset = 8;
+    public const double EdgeMargin = 20;
+    public const double LeadingCenter = 30;
+    public const double TextLeft = 52;
+    public const double TrailingCenter = Width - LeadingCenter;
+    public const double RowContentRight = TrailingCenter + ButtonSize / 2;
     private const double ButtonGap = 2;
-    private const double TextLeft = 52;
 
     // The banner estimates whether its text needs a second line from an average glyph width
     // for 12 px system UI text, rather than measuring, so both platforms lay it out the same.
@@ -727,6 +746,7 @@ internal sealed class TrayPanel
         // AddTarget and AddLabel append here in drawing order, which is also reading order.
         var accessible = new List<PanelAccessibleElement>();
         _accessible = accessible;
+        _guides = [];
 
         // Lay out the list first: its height decides the panel height and the scroll range.
         var items = new List<ListItem>();
@@ -913,7 +933,82 @@ internal sealed class TrayPanel
             commands.Add(new PopClipCommand());
         }
 
-        return new(Width, height, commands, targets, accessible);
+        AddGuides(items, listOrigin, height);
+        return new(Width, height, commands, targets, accessible) { Guides = _guides };
+    }
+
+    private List<PanelGuide> _guides = [];
+
+    /// <summary>
+    /// Emits the alignment grid for the scene just laid out: the columns over the whole panel,
+    /// then the centers and glyph boxes of the header, each visible list item and the footer.
+    /// </summary>
+    private void AddGuides(List<ListItem> items, double listOrigin, double height)
+    {
+        var all = new PanelRect(0, 0, Width, height);
+        foreach (var (x, label) in new[]
+        {
+            (RowInset, "row/card edge"), (EdgeMargin, "edge"), (LeadingCenter, "leading center"), (TextLeft, "text"),
+            (TrailingCenter, "trailing center"), (Width - EdgeMargin, "edge"), (RowContentRight, "button edge"),
+            (Width - RowInset, "row/card edge")
+        })
+        {
+            _guides.Add(new(PanelGuideKind.Column, x, label, all));
+        }
+
+        Line(HeaderHeight / 2, "header", new(0, 0, Width, HeaderHeight));
+        if (_settings is null)
+        {
+            Box(new(EdgeMargin, HeaderHeight / 2 - 10, 20, 20), "logo");
+        }
+        else
+        {
+            Box(new(LeadingCenter - 8, HeaderHeight / 2 - 8, 16, 16), "back");
+        }
+        var footerTop = height - FooterHeight;
+        Line(footerTop + FooterHeight / 2, "footer", new(0, footerTop, Width, FooterHeight));
+        for (var i = 0; i < 3; i++)
+        {
+            var center = TrailingCenter - i * (ButtonSize + ButtonGap);
+            Box(new(center - 8, footerTop + FooterHeight / 2 - 8, 16, 16), "footer icon");
+        }
+
+        foreach (var item in items)
+        {
+            var top = listOrigin + item.Y;
+            if (top + item.Height <= _viewport.Y || top >= _viewport.Bottom)
+            {
+                continue;
+            }
+            var span = new PanelRect(0, top, Width, item.Height);
+            switch (item.Kind)
+            {
+                case ListItemKind.SectionHeader:
+                    Line(top + 16, "section", span);
+                    break;
+                case ListItemKind.Row:
+                    Line(top + RowHeight / 2, "row", span);
+                    Line(top + 17, "name", span);
+                    Line(top + 35, "detail", span);
+                    Box(new(EdgeMargin, top + RowHeight / 2 - 10, 20, 20), "status");
+                    break;
+                case ListItemKind.Actions:
+                    var count = GetRowActions(item.Host!, item.Section).Count;
+                    for (var i = 0; i < count; i++)
+                    {
+                        var itemTop = top + ActionListPadding + i * ActionItemHeight;
+                        Line(itemTop + ActionItemHeight / 2, "action", new(0, itemTop, Width, ActionItemHeight));
+                        Box(new(LeadingCenter - 8, itemTop + ActionItemHeight / 2 - 8, 16, 16), "action icon");
+                    }
+                    break;
+                case ListItemKind.SettingsToggle:
+                    Line(top + 18, "setting", span);
+                    break;
+            }
+        }
+
+        void Line(double y, string label, PanelRect bounds) => _guides.Add(new(PanelGuideKind.Center, y, label, bounds));
+        void Box(PanelRect bounds, string label) => _guides.Add(new(PanelGuideKind.Box, bounds.CenterY, label, bounds));
     }
 
     private const double NoticeTextWidth = Width - 46 - 22;

@@ -221,7 +221,31 @@ internal sealed record TrayPanelScene(
     double Height,
     IReadOnlyList<PanelCommand> Commands,
     IReadOnlyList<PanelHitTarget> Targets,
-    IReadOnlyList<PanelAccessibleElement> Accessibility);
+    IReadOnlyList<PanelAccessibleElement> Accessibility)
+{
+    /// <summary>
+    /// The alignment grid the layout intends, for tests and screenshot overlays: the columns,
+    /// the vertical center of each visible element, and the boxes glyphs should fill. Renderers
+    /// ignore it.
+    /// </summary>
+    public IReadOnlyList<PanelGuide> Guides { get; init; } = [];
+}
+
+internal enum PanelGuideKind
+{
+    /// <summary>A vertical line at <see cref="PanelGuide.Position"/> (x), spanning <see cref="PanelGuide.Bounds"/>.</summary>
+    Column,
+    /// <summary>
+    /// A horizontal line at <see cref="PanelGuide.Position"/> (y), spanning <see cref="PanelGuide.Bounds"/>: where
+    /// the vertical center of the elements on that line should be.
+    /// </summary>
+    Center,
+    /// <summary>The box a glyph, icon or logo should fill, centered on its column and line.</summary>
+    Box
+}
+
+/// <summary>One line or box of the alignment grid. <see cref="Label"/> names it in overlays and test failures.</summary>
+internal sealed record PanelGuide(PanelGuideKind Kind, double Position, string Label, PanelRect Bounds);
 
 internal enum PanelActionKind
 {
