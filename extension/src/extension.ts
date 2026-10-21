@@ -149,12 +149,13 @@ export async function activate(context: vscode.ExtensionContext) {
   }));
   const appHostDiscoveryService = new AppHostDiscoveryService(terminalProvider, configInfoProvider);
   context.subscriptions.push(appHostDiscoveryService);
+  const dataRepository = new AppHostDataRepository(terminalProvider, appHostDiscoveryService, configInfoProvider);
 
   // Meaningful-engagement reporter must outlive every command callback so it
   // can observe the first invocation. Wire it before any command is
   // registered so even synchronous early invocations (rare but possible) are
   // observed via the telemetry pipeline.
-  engagement = new MeaningfulEngagementReporter(appHostDiscoveryService);
+  engagement = new MeaningfulEngagementReporter(dataRepository);
   context.subscriptions.push(engagement);
 
   const appHostLaunchService = new AppHostLaunchService(configInfoProvider);
@@ -166,7 +167,6 @@ export async function activate(context: vscode.ExtensionContext) {
   const cliCommandRegistrations = registerCliCommands(terminalProvider, editorCommandProvider, configInfoProvider);
 
   // Aspire panel - running app hosts tree view
-  const dataRepository = new AppHostDataRepository(terminalProvider, appHostDiscoveryService, configInfoProvider);
   const resourceDebugTelemetry = new ExtensionResourceDebugTelemetry();
   const resourceDebugClock = monotonicResourceDebugClock;
   const resourceDebugSessionRegistry = new ResourceDebugSessionRegistry(vscode.debug, {
