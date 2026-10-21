@@ -1,3 +1,0 @@
-﻿12:56:add_resource:fnv1a64:665a6a8945e1697a
-12:80:add_resource:fnv1a64:665a6a8945e1697a
-Stale source suppressed

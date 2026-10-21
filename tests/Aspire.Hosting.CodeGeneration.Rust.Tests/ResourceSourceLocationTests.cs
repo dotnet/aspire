@@ -10,13 +10,13 @@ namespace Aspire.Hosting.CodeGeneration.Rust.Tests;
 public class ResourceSourceLocationTests(ITestOutputHelper outputHelper)
 {
     [Theory]
-    [InlineData("ascii", "ASCII")]
-    [InlineData("tab", "\t")]
-    [InlineData("emoji", "\U0001F600")]
-    [InlineData("wide", "\u4E2D")]
-    [InlineData("combining", "e\u0301")]
+    [InlineData("ASCII")]
+    [InlineData("\t")]
+    [InlineData("\U0001F600")]
+    [InlineData("\u4E2D")]
+    [InlineData("e\u0301")]
     [RequiresTools(["cargo"])]
-    public async Task GeneratedTransportCapturesExecutedCallsAndRejectsNewerSource(string caseName, string prefix)
+    public async Task GeneratedTransportCapturesExecutedCallsAndRejectsNewerSource(string prefix)
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var files = new AtsRustCodeGenerator().GenerateDistributedApplication(new AtsContext
@@ -70,8 +70,7 @@ public class ResourceSourceLocationTests(ITestOutputHelper outputHelper)
             throw;
         }
 
-        Assert.True(process.ExitCode == 0, await stderr);
-        await Verify(await stdout).UseParameters(caseName);
+        Assert.True(process.ExitCode == 0, $"{await stdout}{await stderr}");
     }
 
     private const string Probe = """
@@ -85,6 +84,9 @@ public class ResourceSourceLocationTests(ITestOutputHelper outputHelper)
 
         fn main() {
             let compiled_source = include_str!("main.rs");
+            let expected_hash = compiled_source.as_bytes().iter()
+                .fold(14695981039346656037u64, |hash, byte|
+                    (hash ^ u64::from(*byte)).wrapping_mul(1099511628211));
             for condition in [true, false] {
                 let _prefix = "SOURCE_UNICODE"; let source = if condition { add_resource() } else { add_resource() };
                 let (line_index, line) = compiled_source.lines().enumerate()
@@ -97,17 +99,15 @@ public class ResourceSourceLocationTests(ITestOutputHelper outputHelper)
                     assert_eq!(source["columnNumber"], serde_json::Value::Null);
                 }
                 assert_eq!(source["methodName"], "add_resource");
+                assert_eq!(source["documentHash"], format!("fnv1a64:{expected_hash:016x}"));
                 let path = std::path::PathBuf::from(source["filePath"].as_str().unwrap());
                 assert!(path.is_absolute());
                 assert_eq!(std::fs::canonicalize(path).unwrap(), std::fs::canonicalize("main.rs").unwrap());
-                println!("{}:{}:{}:{}", source["lineNumber"], source["columnNumber"],
-                    source["methodName"].as_str().unwrap(), source["documentHash"].as_str().unwrap());
             }
             std::fs::write("main.rs", format!("{compiled_source}\n// Edited after compilation.")).unwrap();
             std::fs::OpenOptions::new().write(true).open("main.rs").unwrap()
                 .set_modified(std::time::SystemTime::now() + std::time::Duration::from_secs(1)).unwrap();
             assert!(transport::resource_source_location("add_resource").is_none());
-            println!("Stale source suppressed");
         }
         """;
 }
