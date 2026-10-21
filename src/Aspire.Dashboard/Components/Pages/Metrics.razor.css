@@ -9,17 +9,21 @@
     line-height: 32px;
 }
 
-/* The title takes the row so the pin button sits at the top-right, like other header icon buttons. */
+/* The title takes the row so the pin button sits at the top-right, like other header icon buttons. The row is exactly
+   as tall as its title and buttons, so they share one center line; the space below it is the row's margin rather than
+   the heading's, which would make the row taller than the title and push the centered buttons below it. */
 ::deep .metrics-chart-title {
     display: flex;
     align-items: center;
     gap: var(--spacingHorizontalS);
     min-width: 0;
+    margin-bottom: var(--spacingVerticalM);
 }
 
 ::deep .metrics-chart-title h3 {
     flex: 1;
     min-width: 0;
+    margin: 0;
 }
 
 ::deep .meter-name-title {
@@ -109,10 +113,21 @@
     line-height: 22px;
 }
 
+/* The back and pin buttons match the 32px title row between them rather than the dashboard's 28px default, so all
+   three line up with the filter box beside the list. */
+::deep .metrics-chart-title {
+    --aspire-control-height: 32px;
+}
+
+/* The list starts at the same top edge as the instrument's content beside it, so their first rows line up. Only the
+   mobile panel's label above the row needs space between them. */
 ::deep .metric-groups-filter-row {
     display: flex;
     align-items: center;
     gap: var(--spacingHorizontalXS);
+}
+
+::deep label + .metric-groups-filter-row {
     margin-top: var(--layout-top-padding);
 }
 
@@ -120,10 +135,6 @@
     display: block;
     flex: 1;
     min-width: 0;
-}
-
-::deep .metric-groups-all {
-    flex: none;
 }
 
 ::deep .metric-groups-search > fluent-text-input,
@@ -196,6 +207,11 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+/* Same emphasis as the resource list's "All resources" row, so it reads as the list's overview rather than a meter. */
+::deep .metric-group-all .metric-group-name {
+    font-weight: 600;
 }
 
 ::deep .metric-group-count {

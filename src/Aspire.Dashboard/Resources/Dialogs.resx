@@ -593,6 +593,45 @@
   <data name="AIAgentsDialogTitle" xml:space="preserve">
     <value>AI agents</value>
   </data>
+  <data name="HelpDialogDocumentationTab" xml:space="preserve">
+    <value>Documentation</value>
+  </data>
+  <data name="HelpDialogDashboardDocumentationDescription" xml:space="preserve">
+    <value>Guides and reference for using the Aspire dashboard.</value>
+  </data>
+  <data name="HelpDialogRepoDescription" xml:space="preserve">
+    <value>Source code, releases and issues on GitHub.</value>
+  </data>
+  <data name="HelpDialogOpensInNewTab" xml:space="preserve">
+    <value>Opens in a new tab</value>
+  </data>
+  <data name="HelpDialogLearnHeading" xml:space="preserve">
+    <value>Learn</value>
+  </data>
+  <data name="HelpDialogCommunityHeading" xml:space="preserve">
+    <value>Community and support</value>
+  </data>
+  <data name="HelpDialogAspireDocumentationTitle" xml:space="preserve">
+    <value>Aspire documentation</value>
+  </data>
+  <data name="HelpDialogAspireDocumentationDescription" xml:space="preserve">
+    <value>Get started with Aspire, its integrations and deployment.</value>
+  </data>
+  <data name="HelpDialogReportIssueTitle" xml:space="preserve">
+    <value>Report an issue</value>
+  </data>
+  <data name="HelpDialogReportIssueDescription" xml:space="preserve">
+    <value>Found a bug or have an idea? Open an issue on GitHub.</value>
+  </data>
+  <data name="HelpDialogDiscordTitle" xml:space="preserve">
+    <value>Discord</value>
+  </data>
+  <data name="HelpDialogDiscordDescription" xml:space="preserve">
+    <value>Chat with the Aspire team and community.</value>
+  </data>
+  <data name="HelpDialogDashboardVersion" xml:space="preserve">
+    <value>Aspire dashboard version {0}</value>
+  </data>
   <data name="AIAgentsDialogStandaloneDescription" xml:space="preserve">
     <value>Aspire gives AI coding agents deep observability into your app using the same information visible in the dashboard. Agents use telemetry to diagnose issues faster and verify fixes with confidence. 🚀
 

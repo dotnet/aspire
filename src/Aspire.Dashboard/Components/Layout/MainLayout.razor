@@ -1,4 +1,5 @@
 @using Aspire.Dashboard.Components.CustomIcons
+@using Aspire.Dashboard.Components.Dialogs
 @using Aspire.Dashboard.Components.Interactions
 @using Aspire.Dashboard.Resources
 @using Microsoft.AspNetCore.Components.Sections
@@ -37,31 +38,13 @@
                 <DashboardRunPill SelectedRunStartedAtUtc="@RunSelection.SelectedRun.StartedAtUtc"
                                   OnClick="@LaunchRecordingsAsync" />
             }
-            <a class="header-button"
-                          href="https://aka.ms/aspire/repo" target="_blank" rel="noreferrer noopener"
-                          data-tooltip="@Loc[nameof(Layout.MainLayoutAspireRepoLink)]" aria-label="@Loc[nameof(Layout.MainLayoutAspireRepoLink)]">
-                <FluentIcon Value="@(new AspireIcons.Size24.GitHub())" Color="Color.Default"/>
-            </a>
             <FluentButton Class="header-button"
                           Id="@HelpButtonId"
-                          Appearance="ButtonAppearance.Default" OnClick="@(() => LaunchHelpAsync(HelpButtonId))"
-                          data-tooltip="@Loc[nameof(Layout.MainLayoutKeyboardShortcuts)]" aria-label="@Loc[nameof(Layout.MainLayoutKeyboardShortcuts)]"
-                          aria-keyshortcuts="?">
-                <FluentIcon Value="@(new Icons.Regular.Size24.Keyboard())" Color="Color.Default"/>
-            </FluentButton>
-            <a class="header-button"
-               href="@DashboardDocumentationUrl" target="_blank" rel="noreferrer noopener"
-               data-tooltip="@Loc[nameof(Layout.MainLayoutAspireDashboardHelpLink)]" aria-label="@Loc[nameof(Layout.MainLayoutAspireDashboardHelpLink)]">
+                          Appearance="ButtonAppearance.Default" OnClick="@(() => LaunchHelpAsync(HelpButtonId, HelpDialogTab.Documentation))"
+                          data-tooltip="@Loc[nameof(Layout.MainLayoutHelp)]" aria-label="@Loc[nameof(Layout.MainLayoutHelp)]"
+                          aria-haspopup="dialog" aria-keyshortcuts="?">
                 <FluentIcon Value="@(new Icons.Regular.Size24.QuestionCircle())" Color="Color.Default"/>
-            </a>
-            @if (Options.CurrentValue.UI.DisableAgentHelp != true)
-            {
-                <FluentButton Class="header-button"
-                              Appearance="ButtonAppearance.Default" OnClick="@LaunchAIAgentsAsync"
-                              data-tooltip="@Loc[nameof(Layout.MainLayoutLaunchAIAgents)]" aria-label="@Loc[nameof(Layout.MainLayoutLaunchAIAgents)]">
-                    <FluentIcon Value="@(new Icons.Regular.Size24.BotSparkle())" Color="Color.Default"/>
-                </FluentButton>
-            }
+            </FluentButton>
             @if (RunStore.SupportsRunSelection && !UseRunMenu)
             {
                 var selectedRun = RunSelection.SelectedRun;

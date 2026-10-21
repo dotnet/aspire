@@ -1,81 +1,95 @@
-.help-content {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    min-width: 0;
+.help-tabs-host ::deep .help-tabs {
+    width: 100%;
 }
 
-.help-shortcuts-hint {
-    margin: 0;
-    color: var(--colorNeutralForeground2);
-    font-size: var(--fontSizeBase200);
-    line-height: var(--lineHeightBase300);
+/* The tabs are a segmented row above the content, so the content needs space from it. */
+.help-tabs-host ::deep .help-tabs > .fluent-tab-panel {
+    margin-top: 16px;
 }
 
-.help-shortcut-categories {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
+.help-section + .help-section {
+    margin-top: 20px;
 }
 
-.help-shortcut-category {
-    padding: 16px;
-    border: 1px solid var(--colorNeutralStroke2);
-    border-radius: 8px;
-    background: var(--colorNeutralBackground2);
-}
-
-.help-shortcut-category h6 {
-    margin: 0 0 12px;
+.help-section-heading {
+    margin: 0 0 10px;
     color: var(--colorNeutralForeground2);
     font-size: var(--fontSizeBase200);
     font-weight: var(--fontWeightSemibold);
+    letter-spacing: .02em;
+    text-transform: uppercase;
 }
 
-.help-shortcut-category dl {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin: 0;
-}
-
-.help-shortcut {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
+.help-links {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
-}
-
-.help-shortcut dt {
-    min-width: 0;
-    font-weight: normal;
-}
-
-.help-shortcut dd {
-    display: inline-flex;
-    flex-shrink: 0;
-    align-items: center;
-    gap: 4px;
     margin: 0;
+    padding: 0;
+    list-style: none;
 }
 
-.help-shortcut kbd,
-.help-shortcuts-hint kbd {
-    min-width: 24px;
-    padding: 2px 6px;
-    border: 1px solid var(--colorNeutralStroke1);
-    border-bottom-width: 2px;
-    border-radius: 4px;
-    background: var(--colorNeutralBackground1);
+.help-link {
+    display: flex;
+    height: 100%;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 1px solid var(--colorNeutralStroke2);
+    border-radius: 8px;
+    background: var(--colorNeutralBackground2);
     color: var(--colorNeutralForeground1);
-    font-family: var(--aspire-font-mono);
+    text-decoration: none;
+}
+
+.help-link:hover {
+    background: var(--aspire-menu-item-hover-background);
+}
+
+.help-link:focus-visible {
+    outline: 2px solid var(--colorStrokeFocus2);
+    outline-offset: 2px;
+}
+
+.help-link-icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--colorBrandBackground) 14%, transparent);
+}
+
+.help-link-text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.help-link-title {
+    font-weight: var(--fontWeightSemibold);
+}
+
+.help-link-description {
+    color: var(--colorNeutralForeground2);
     font-size: var(--fontSizeBase200);
-    line-height: 18px;
-    text-align: center;
+    line-height: var(--lineHeightBase200);
+}
+
+.help-about {
+    margin: 24px 0 0;
+    padding-top: 12px;
+    border-top: 1px solid var(--colorNeutralStroke2);
+    color: var(--colorNeutralForeground3);
+    font-size: var(--fontSizeBase200);
 }
 
 @media (max-width: 600px) {
-    .help-shortcut-categories {
+    .help-links {
         grid-template-columns: minmax(0, 1fr);
     }
 }

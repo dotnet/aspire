@@ -313,6 +313,15 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Help.
+        /// </summary>
+        public static string MainLayoutHelp {
+            get {
+                return ResourceManager.GetString("MainLayoutHelp", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Aspire repo.
         /// </summary>
         public static string MainLayoutAspireRepoLink {

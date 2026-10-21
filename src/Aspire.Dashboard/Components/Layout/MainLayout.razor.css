@@ -275,16 +275,14 @@
 
 @media (max-width: 768px) {
     ::deep.layout {
-        /* MobileNavMenu uses this same value to keep its scrollport within the
-           visible viewport instead of extending underneath the header at high zoom. */
+        /* MobileNavMenu uses this same value to place its sheet directly under the header and to keep its
+           scrollport within the visible viewport instead of extending underneath the header at high zoom. */
         --mobile-header-height: 50px;
-        --mobile-nav-menu-offset: 2px;
         --mobile-nav-menu-focus-padding: 4px;
         grid-template-columns: auto 1fr;
-        grid-template-rows: var(--mobile-header-height) minmax(0, auto) auto minmax(0, 1fr);
+        grid-template-rows: var(--mobile-header-height) auto minmax(0, 1fr);
         grid-template-areas:
             "icon head"
-            "nav-menu nav-menu"
             "messagebar messagebar"
             "main main";
     }

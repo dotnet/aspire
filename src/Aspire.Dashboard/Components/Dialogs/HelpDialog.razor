@@ -1,48 +1,63 @@
-﻿@using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Components.CustomIcons
 
 <FluentDialogBody Class="help-dialog-body">
-    <div class="help-content">
-        @{
-            // The hint names the F6 key mid-sentence; split around the placeholder so the key renders like the
-            // shortcuts below while translators keep control of the word order.
-            var hintParts = Loc[nameof(Dialogs.HelpDialogShortcutsHint)].Value.Split("{0}", 2);
-        }
-        <p class="help-shortcuts-hint">@hintParts[0]@if (hintParts.Length > 1) {<kbd>F6</kbd>@hintParts[1]}</p>
-
-        @{
-            var shortcutCategories = GetShortcutsByCategory();
-        }
-
-        @* Description lists pair each action with its keys for assistive technology. *@
-        <div class="help-shortcut-categories">
-            @for (var categoryIndex = 0; categoryIndex < shortcutCategories.Count; categoryIndex++)
+    @* Fluent's components don't take the scoped CSS attribute, so this element anchors the styles for the tabs inside it. *@
+    <div class="help-tabs-host">
+    <FluentTabs Class="aspire-content-tabs help-tabs"
+                ActiveTabId="@GetTabId(_activeTab)"
+                ActiveTabChanged="@OnTabChanged"
+                aria-label="@LayoutLoc[nameof(Resources.Layout.MainLayoutHelp)]"
+                Size="null">
+        <FluentTab HeaderClass="tab-label"
+                   Id="@GetTabId(HelpDialogTab.Documentation)"
+                   Header="@Loc[nameof(Resources.Dialogs.HelpDialogDocumentationTab)]"
+                   IconStart="@(new Icons.Regular.Size24.Book())">
+            @foreach (var section in GetLinkSections())
             {
-                var shortcutCategory = shortcutCategories[categoryIndex];
-                var categoryHeadingId = $"help-dialog-shortcut-category-{categoryIndex}";
-
-                <section class="help-shortcut-category" aria-labelledby="@categoryHeadingId">
-                    <h6 id="@categoryHeadingId">@shortcutCategory.Category</h6>
-                    <dl aria-labelledby="@categoryHeadingId">
-                        @foreach (var shortcut in shortcutCategory.Shortcuts)
+                var headingId = $"help-links-{section.Id}";
+                <section class="help-section" aria-labelledby="@headingId">
+                    <h2 id="@headingId" class="help-section-heading">@section.Heading</h2>
+                    <ul class="help-links">
+                        @foreach (var link in section.Links)
                         {
-                            <div class="help-shortcut">
-                                <dt>@shortcut.Description</dt>
-                                <dd>
-                                    @for (var i = 0; i < shortcut.Keys.Length; i++)
-                                    {
-                                        <kbd>@shortcut.Keys[i]</kbd>
-
-                                        if (i < shortcut.Keys.Length - 1)
-                                        {
-                                            <span aria-hidden="true">+</span>
-                                        }
-                                    }
-                                </dd>
-                            </div>
+                            <li>
+                                <a class="help-link" href="@link.Url" target="_blank" rel="noreferrer noopener">
+                                    <span class="help-link-icon">
+                                        <FluentIcon Value="@link.Icon" Color="Color.Primary" />
+                                    </span>
+                                    <span class="help-link-text">
+                                        <span class="help-link-title">@link.Title</span>
+                                        <span class="help-link-description">@link.Description</span>
+                                    </span>
+                                    <FluentIcon Value="@(new Icons.Regular.Size16.Open())" Color="Color.Default" />
+                                    <span class="visually-hidden">@Loc[nameof(Resources.Dialogs.HelpDialogOpensInNewTab)]</span>
+                                </a>
+                            </li>
                         }
-                    </dl>
+                    </ul>
                 </section>
             }
-        </div>
+
+            @if (VersionHelpers.DashboardDisplayVersion is { } dashboardVersion)
+            {
+                <p class="help-about">@string.Format(CultureInfo.CurrentCulture, Loc[nameof(Resources.Dialogs.HelpDialogDashboardVersion)], dashboardVersion)</p>
+            }
+        </FluentTab>
+        <FluentTab HeaderClass="tab-label"
+                   Id="@GetTabId(HelpDialogTab.KeyboardShortcuts)"
+                   Header="@LayoutLoc[nameof(Resources.Layout.MainLayoutKeyboardShortcuts)]"
+                   IconStart="@(new Icons.Regular.Size24.Keyboard())">
+            <KeyboardShortcutsHelp />
+        </FluentTab>
+        @if (IsAgentHelpEnabled)
+        {
+            <FluentTab HeaderClass="tab-label"
+                       Id="@GetTabId(HelpDialogTab.AIAgents)"
+                       Header="@Loc[nameof(Resources.Dialogs.AIAgentsDialogTitle)]"
+                       IconStart="@(new Icons.Regular.Size24.BotSparkle())">
+                <AIAgentsHelp />
+            </FluentTab>
+        }
+    </FluentTabs>
     </div>
 </FluentDialogBody>

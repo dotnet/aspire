@@ -31,7 +31,7 @@ public partial class MainLayoutTests : DashboardTestContext
     private IRenderedComponent<FluentMessageBarProvider>? _messageBarProvider;
 
     [Fact]
-    public async Task HeaderShortcutsAndDocumentation_AreSeparateActions()
+    public async Task HeaderHelp_IsSingleActionThatOpensHelpDialog()
     {
         DialogParameters? capturedParameters = null;
         var dialogService = new TestDialogService(onShowDialog: (_, parameters) =>
@@ -43,19 +43,16 @@ public partial class MainLayoutTests : DashboardTestContext
         var cut = Render<MainLayout>(builder => builder.Add(p => p.ViewportInformation,
             new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false)));
 
-        var shortcutButton = cut.Find($"#{MainLayout.HelpButtonId}");
-        Assert.Equal(Resources.Layout.MainLayoutKeyboardShortcuts, shortcutButton.GetAttribute("aria-label"));
-        Assert.Equal("?", shortcutButton.GetAttribute("aria-keyshortcuts"));
-        var documentationLink = cut.Find($"header a[aria-label='{Resources.Layout.MainLayoutAspireDashboardHelpLink}']");
-        Assert.Equal("https://aspire.dev/dashboard/overview/", documentationLink.GetAttribute("href"));
-        Assert.Equal("_blank", documentationLink.GetAttribute("target"));
-        Assert.Equal("noreferrer noopener", documentationLink.GetAttribute("rel"));
+        var helpButton = cut.Find($"#{MainLayout.HelpButtonId}");
+        Assert.Equal(Resources.Layout.MainLayoutHelp, helpButton.GetAttribute("aria-label"));
+        Assert.Equal("?", helpButton.GetAttribute("aria-keyshortcuts"));
+        Assert.Empty(cut.FindAll($"header a[aria-label='{Resources.Layout.MainLayoutAspireDashboardHelpLink}']"));
 
-        await cut.InvokeAsync(() => shortcutButton.Click());
+        await cut.InvokeAsync(() => helpButton.Click());
 
         Assert.NotNull(capturedParameters);
         Assert.Equal("HelpDialog", capturedParameters.Id);
-        Assert.Equal(Resources.Layout.MainLayoutKeyboardShortcuts, capturedParameters.Title);
+        Assert.Equal(Resources.Layout.MainLayoutHelp, capturedParameters.Title);
     }
 
     [Theory]
@@ -428,9 +425,9 @@ public partial class MainLayoutTests : DashboardTestContext
         Assert.Equal(["Live run", "Learn about runs"], menuButton.Instance.ItemsProvider().Where(item => !item.IsDivider).Select(item => item.Text));
         if (isDesktop)
         {
-            // Where it was before recordings had their own panel: right before the header's buttons.
+            // Where it was before recordings had their own panel: with the header's buttons, ahead of the help button.
             var menuIndex = cut.Markup.IndexOf("application-run-select", StringComparison.Ordinal);
-            Assert.True(menuIndex < cut.Markup.IndexOf($"aria-label=\"{Resources.Layout.MainLayoutAspireRepoLink}\"", StringComparison.Ordinal));
+            Assert.True(menuIndex < cut.Markup.IndexOf($"id=\"{MainLayout.HelpButtonId}\"", StringComparison.Ordinal));
         }
     }
 

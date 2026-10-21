@@ -18,6 +18,8 @@ public partial class MetricGroupList : IDisposable
 {
     private static readonly Icon s_pinnedIcon = new Icons.Filled.Size16.Pin();
     private static readonly Icon s_meterIcon = new Icons.Regular.Size16.ChartMultiple();
+    // Fluent UI has no 16px AppsList, so the "all" row draws the 20px one at 16px, like the resource list's "All resources" row.
+    private static readonly Icon s_allIcon = new Icons.Regular.Size20.AppsList();
 
     [Parameter, EditorRequired]
     public required Metrics.MetricsViewModel PageViewModel { get; set; }
@@ -56,6 +58,9 @@ public partial class MetricGroupList : IDisposable
     }
 
     private Task OnTextFilterChanged() => TextFilterChanged.InvokeAsync();
+
+    // The instruments the "all" row would show: every one of the resource's that matches the filter.
+    private int GetAllCount() => PageViewModel.Instruments!.Count(i => MetricFilter.Matches(i, PageViewModel.TextFilter));
 
     private List<MetricGroup> GetGroups()
     {

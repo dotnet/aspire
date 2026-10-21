@@ -40,12 +40,12 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     private const string HelpDialogId = "HelpDialog";
     private const string NotificationsDialogId = "NotificationsDialog";
     private const string RecordingsDialogId = "RecordingsDialog";
-    private const string AIAgentsDialogId = "AIAgentsDialog";
     internal const string HelpButtonId = "dashboard-help-button";
     internal const string SettingsButtonId = "dashboard-settings-button";
     internal const string NavigationButtonId = "dashboard-navigation-button";
     internal const string RunSelectButtonId = "dashboard-run-select-button";
     internal const string DashboardDocumentationUrl = "https://aspire.dev/dashboard/overview/";
+    internal const string AspireRepoUrl = "https://aka.ms/aspire/repo";
 
     /// <summary>
     /// Name of the section in the desktop top bar where nested layouts can render page context, such as the selected resource.
@@ -357,13 +357,16 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         return returnFocusElementId is null ? null : GetDefaultReturnFocusElementId(desktopButtonId);
     }
 
-    private Task LaunchHelpAsync() => LaunchHelpAsync(GetDefaultReturnFocusElementId(HelpButtonId));
+    private Task LaunchHelpAsync() => LaunchHelpAsync(GetDefaultReturnFocusElementId(HelpButtonId), HelpDialogTab.KeyboardShortcuts);
 
-    private async Task LaunchHelpAsync(string? returnFocusElementId)
+    // The help dialog has a tab for AI agents, so launching the agents help opens it on that tab.
+    public Task LaunchAIAgentsAsync() => LaunchHelpAsync(GetDefaultReturnFocusElementId(HelpButtonId), HelpDialogTab.AIAgents);
+
+    private async Task LaunchHelpAsync(string? returnFocusElementId, HelpDialogTab tab)
     {
         DialogParameters parameters = new()
         {
-            Title = Loc[nameof(Resources.Layout.MainLayoutKeyboardShortcuts)],
+            Title = Loc[nameof(Resources.Layout.MainLayoutHelp)],
             PrimaryAction = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)],
             PrimaryActionEnabled = true,
             SecondaryAction = null,
@@ -379,7 +382,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             return;
         }
 
-        _openPageDialog = await DialogService.ShowDialogAsync<HelpDialog>(parameters).ConfigureAwait(true);
+        _openPageDialog = await DialogService.ShowDialogAsync<HelpDialog>(tab, parameters).ConfigureAwait(true);
     }
 
     private void HandleDialogClose(string? returnFocusElementId = null)
@@ -415,29 +418,6 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         }
 
         return true;
-    }
-
-    public async Task LaunchAIAgentsAsync()
-    {
-        DialogParameters parameters = new()
-        {
-            Title = Loc[nameof(Resources.Layout.MainLayoutLaunchAIAgents)],
-            PrimaryAction = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)],
-            PrimaryActionEnabled = true,
-            SecondaryAction = null,
-            Modal = true,
-            Alignment = HorizontalAlignment.Center,
-            Width = "700px",
-            Id = AIAgentsDialogId,
-            OnDialogClosing = EventCallback.Factory.Create<IDialogInstance>(this, _ => HandleDialogClose())
-        };
-
-        if (!await CloseOpenPageDialogForReplacementAsync(AIAgentsDialogId).ConfigureAwait(true))
-        {
-            return;
-        }
-
-        _openPageDialog = await DialogService.ShowDialogAsync<AIAgentsDialog>(parameters).ConfigureAwait(true);
     }
 
     public Task LaunchSettingsAsync() => LaunchSettingsAsync(GetDefaultReturnFocusElementId(SettingsButtonId));

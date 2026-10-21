@@ -600,12 +600,6 @@
     border-radius: 50%;
 }
 
-@media (max-width: 767px) {
-    .home {
-        padding: 12px;
-    }
-}
-
 /* The recent problems, side by side. */
 .home-problems {
     display: grid;

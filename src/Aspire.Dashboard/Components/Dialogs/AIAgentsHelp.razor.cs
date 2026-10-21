@@ -12,7 +12,10 @@ using DialogsLoc = Aspire.Dashboard.Resources.Dialogs;
 
 namespace Aspire.Dashboard.Components.Dialogs;
 
-public partial class AIAgentsDialog
+/// <summary>
+/// How AI coding agents can use the dashboard's telemetry. Shown in a tab of <see cref="HelpDialog"/>.
+/// </summary>
+public partial class AIAgentsHelp
 {
     private MarkdownProcessor? _markdownProcessor;
 

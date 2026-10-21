@@ -142,6 +142,11 @@
         <target state="translated">Repozytorium Aspire</target>
         <note />
       </trans-unit>
+      <trans-unit id="MainLayoutHelp">
+        <source>Help</source>
+        <target state="new">Help</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MainLayoutKeyboardShortcuts">
         <source>Keyboard shortcuts</source>
         <target state="new">Keyboard shortcuts</target>

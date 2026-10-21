@@ -654,11 +654,14 @@ fluent-dialog-body .fluent-message-box {
 }
 
 .main-toolbar.filter-toolbar > .pause-incoming-data-button {
-    width: 44px;
+    width: 32px;
+    min-width: 32px;
+    padding-inline: 0;
 }
 
 .main-toolbar.filter-toolbar .clear-button {
-    width: 67px;
+    width: auto;
+    padding-inline: 8px;
 }
 
 /* v4 used Stealth colors for inactive toolbar buttons while retaining accent icons.

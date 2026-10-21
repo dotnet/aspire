@@ -111,6 +111,123 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Documentation.
+        /// </summary>
+        public static string HelpDialogDocumentationTab {
+            get {
+                return ResourceManager.GetString("HelpDialogDocumentationTab", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Guides and reference for using the Aspire dashboard..
+        /// </summary>
+        public static string HelpDialogDashboardDocumentationDescription {
+            get {
+                return ResourceManager.GetString("HelpDialogDashboardDocumentationDescription", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Source code, releases and issues on GitHub..
+        /// </summary>
+        public static string HelpDialogRepoDescription {
+            get {
+                return ResourceManager.GetString("HelpDialogRepoDescription", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Opens in a new tab.
+        /// </summary>
+        public static string HelpDialogOpensInNewTab {
+            get {
+                return ResourceManager.GetString("HelpDialogOpensInNewTab", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Learn.
+        /// </summary>
+        public static string HelpDialogLearnHeading {
+            get {
+                return ResourceManager.GetString("HelpDialogLearnHeading", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Community and support.
+        /// </summary>
+        public static string HelpDialogCommunityHeading {
+            get {
+                return ResourceManager.GetString("HelpDialogCommunityHeading", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Aspire documentation.
+        /// </summary>
+        public static string HelpDialogAspireDocumentationTitle {
+            get {
+                return ResourceManager.GetString("HelpDialogAspireDocumentationTitle", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Get started with Aspire, its integrations and deployment..
+        /// </summary>
+        public static string HelpDialogAspireDocumentationDescription {
+            get {
+                return ResourceManager.GetString("HelpDialogAspireDocumentationDescription", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Report an issue.
+        /// </summary>
+        public static string HelpDialogReportIssueTitle {
+            get {
+                return ResourceManager.GetString("HelpDialogReportIssueTitle", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Found a bug or have an idea? Open an issue on GitHub..
+        /// </summary>
+        public static string HelpDialogReportIssueDescription {
+            get {
+                return ResourceManager.GetString("HelpDialogReportIssueDescription", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Discord.
+        /// </summary>
+        public static string HelpDialogDiscordTitle {
+            get {
+                return ResourceManager.GetString("HelpDialogDiscordTitle", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Chat with the Aspire team and community..
+        /// </summary>
+        public static string HelpDialogDiscordDescription {
+            get {
+                return ResourceManager.GetString("HelpDialogDiscordDescription", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Aspire dashboard version {0}.
+        /// </summary>
+        public static string HelpDialogDashboardVersion {
+            get {
+                return ResourceManager.GetString("HelpDialogDashboardVersion", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Close.
         /// </summary>
         public static string DialogCloseButtonText {

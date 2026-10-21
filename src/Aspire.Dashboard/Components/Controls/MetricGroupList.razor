@@ -30,26 +30,28 @@
             <FluentIcon Value="@(new Icons.Regular.Size16.Search())" Color="Color.Primary" />
         </StartTemplate>
     </FluentTextInput>
-    @{
-        var allLabel = Loc[nameof(Metrics.MetricsShowAllInstruments)];
-        var isAllSelected = PageViewModel is { ShowAll: true, ShowFilterResults: false, SelectedInstrument: null };
-    }
-    @* Shows every instrument, grouped by meter. Primary while selected, like the dashboard's other toggle buttons. *@
-    <FluentButton Class="aspire-button metric-groups-all"
-                  Appearance="@(isAllSelected ? ButtonAppearance.Primary : ButtonAppearance.Default)"
-                  IconOnly="true"
-                  IconStart="@(new Icons.Regular.Size16.TextAsterisk())"
-                  OnClick="@(() => SelectGroupAsync(Pages.Metrics.MetricGroupKind.All, null))"
-                  aria-pressed="@(isAllSelected ? "true" : "false")"
-                  data-tooltip="@allLabel"
-                  aria-label="@allLabel" />
 </div>
 
 @{
     var groups = GetGroups();
+    var allLabel = Loc[nameof(Metrics.MetricsAllInstrumentsTitle)];
+    var isAllSelected = PageViewModel is { ShowAll: true, ShowFilterResults: false, SelectedInstrument: null };
 }
 
 <nav class="metric-groups" aria-label="@Loc[nameof(Metrics.MetricsGroupsLabel)]">
+    @* Shows every instrument, grouped by meter, like the resource list's "All resources" row. *@
+    <a class="metric-group metric-group-all @(isAllSelected ? "selected" : null)"
+       href="@GetGroupUrl(Pages.Metrics.MetricGroupKind.All, null)"
+       aria-current="@(isAllSelected ? "page" : null)"
+       data-tooltip="@allLabel"
+       @onclick="@(() => SelectGroupAsync(Pages.Metrics.MetricGroupKind.All, null))"
+       @onclick:preventDefault="true">
+        <FluentIcon Value="@s_allIcon" Width="16px" Color="Color.Custom" CustomColor="currentColor" />
+        <span class="metric-group-name">@allLabel</span>
+        <span class="metric-group-count">@GetAllCount()</span>
+    </a>
+    <div class="metric-groups-divider" role="presentation"></div>
+
     @if (groups.Count == 0)
     {
         <div class="metric-groups-empty">@Loc[nameof(Metrics.MetricsNoMatchingInstruments)]</div>

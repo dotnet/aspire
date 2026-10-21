@@ -135,13 +135,14 @@ public class MobileNavMenuTests : DashboardTestContext
         Assert.Equal("fluent-menu-item", menu.Children[0].LocalName);
         Assert.Equal("fluent-menu-item", menu.Children[menu.Children.Length - 1].LocalName);
 
-        Assert.Contains("max-height: calc(100dvh - var(--mobile-header-height) - var(--mobile-nav-menu-offset))", style);
+        Assert.Contains("max-height: calc(100dvh - var(--mobile-header-height))", style);
         Assert.DoesNotContain("height: 100vh", style);
-        Assert.Contains("margin-top: var(--mobile-nav-menu-offset)", style);
+        Assert.DoesNotContain("margin-top", style);
         Assert.Contains("overflow-y: auto", style);
         Assert.Contains("padding-block: var(--mobile-nav-menu-focus-padding)", style);
         Assert.Contains("scroll-padding-block: var(--mobile-nav-menu-focus-padding)", style);
         Assert.Contains("mobile-nav-menu", menu.ClassList);
+        Assert.Single(cut.FindAll(".mobile-nav-scrim"));
     }
 
     [Fact]

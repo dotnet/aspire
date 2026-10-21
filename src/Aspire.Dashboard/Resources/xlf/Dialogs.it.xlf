@@ -413,6 +413,16 @@ For more information about using AI agents with the dashboard, including setting
         <target state="new">Unexpected or truncated message content.</target>
         <note />
       </trans-unit>
+      <trans-unit id="HelpDialogAspireDocumentationDescription">
+        <source>Get started with Aspire, its integrations and deployment.</source>
+        <target state="new">Get started with Aspire, its integrations and deployment.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogAspireDocumentationTitle">
+        <source>Aspire documentation</source>
+        <target state="new">Aspire documentation</target>
+        <note />
+      </trans-unit>
       <trans-unit id="HelpDialogCategoryNavigation">
         <source>General</source>
         <target state="needs-review-translation">Spostamento a livello di sito</target>
@@ -433,9 +443,39 @@ For more information about using AI agents with the dashboard, including setting
         <target state="new">Logs &amp; telemetry</target>
         <note />
       </trans-unit>
+      <trans-unit id="HelpDialogCommunityHeading">
+        <source>Community and support</source>
+        <target state="new">Community and support</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogDashboardDocumentationDescription">
+        <source>Guides and reference for using the Aspire dashboard.</source>
+        <target state="new">Guides and reference for using the Aspire dashboard.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogDashboardVersion">
+        <source>Aspire dashboard version {0}</source>
+        <target state="new">Aspire dashboard version {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="HelpDialogDecreasePanelSize">
         <source>Decrease panel size</source>
         <target state="translated">Riduci dimensioni del pannello</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogDiscordDescription">
+        <source>Chat with the Aspire team and community.</source>
+        <target state="new">Chat with the Aspire team and community.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogDiscordTitle">
+        <source>Discord</source>
+        <target state="new">Discord</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogDocumentationTab">
+        <source>Documentation</source>
+        <target state="new">Documentation</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogGoToConsoleLogs">
@@ -501,6 +541,31 @@ For more information about using AI agents with the dashboard, including setting
       <trans-unit id="HelpDialogIncreasePanelSize">
         <source>Increase panel size</source>
         <target state="translated">Aumenta dimensioni del pannello</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogLearnHeading">
+        <source>Learn</source>
+        <target state="new">Learn</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogOpensInNewTab">
+        <source>Opens in a new tab</source>
+        <target state="new">Opens in a new tab</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogRepoDescription">
+        <source>Source code, releases and issues on GitHub.</source>
+        <target state="new">Source code, releases and issues on GitHub.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogReportIssueDescription">
+        <source>Found a bug or have an idea? Open an issue on GitHub.</source>
+        <target state="new">Found a bug or have an idea? Open an issue on GitHub.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogReportIssueTitle">
+        <source>Report an issue</source>
+        <target state="new">Report an issue</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogResetPanelSize">

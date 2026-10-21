@@ -12,8 +12,9 @@
     background: var(--aspire-page-background);
 }
 
-.resources-layout.pane-collapsed {
-    --resource-pane-width: 52px;
+/* A collapsed pane is hidden entirely; the toggle at the start of the tabs row brings it back. */
+.resources-layout.pane-collapsed .resource-pane {
+    display: none;
 }
 
 /* Resource pane */
@@ -67,11 +68,6 @@
     align-items: center;
     gap: 6px;
     padding: 12px 12px 8px;
-}
-
-.pane-collapsed .resource-pane-head {
-    justify-content: center;
-    padding: 12px 6px 8px;
 }
 
 ::deep .resource-pane-search {
@@ -228,20 +224,6 @@
     padding-inline-start: 14px;
 }
 
-.pane-collapsed .resource-tag-group .resource-row-link {
-    padding: 4px;
-}
-
-.resource-tag-divider {
-    height: 1px;
-    margin: 6px 8px;
-    background: var(--colorNeutralStroke2);
-}
-
-.resource-tag-group:first-child .resource-tag-divider {
-    display: none;
-}
-
 .resource-tags-empty {
     display: flex;
     flex-direction: column;
@@ -353,11 +335,6 @@
     text-decoration: none;
 }
 
-.pane-collapsed .resource-row-link {
-    justify-content: center;
-    padding: 4px;
-}
-
 .resource-row-link:focus-visible {
     outline: 2px solid var(--colorStrokeFocus2);
     outline-offset: -2px;
@@ -403,13 +380,6 @@
 
 .resource-row-all .resource-row-name {
     font-weight: 700;
-}
-
-.resource-row-icon-state {
-    position: absolute;
-    right: -1px;
-    bottom: -1px;
-    box-shadow: 0 0 0 2px var(--aspire-page-background);
 }
 
 .resource-row-text {
@@ -465,6 +435,12 @@
     border-top: 1px solid var(--colorNeutralStroke3);
     color: var(--colorNeutralForeground2);
     font-size: 12px;
+}
+
+.resource-tabs ::deep .resource-pane-toggle-button {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
 }
 
 /* Resource content */
@@ -623,6 +599,20 @@
     padding: 0;
 }
 
+.resource-tab-toolbar ::deep .main-toolbar.filter-toolbar .toolbar-search {
+    flex-basis: 9rem;
+    width: 9rem;
+    min-width: 7rem;
+}
+
+/* The span type options are short ("Messaging" is the longest), so this dropdown is narrower than Fluent's 160px default. */
+.resource-tab-toolbar ::deep .main-toolbar.filter-toolbar .toolbar-select-compact,
+.resource-tab-toolbar ::deep .main-toolbar.filter-toolbar .toolbar-select-compact > fluent-dropdown {
+    --aspire-dropdown-min-width: 0px;
+    width: 8rem;
+    min-width: 0;
+}
+
 /* Compact single-line variant rendered in the app top bar, separated from the app name by a divider. */
 .resource-header-row.in-top-bar {
     flex: 1 1 auto;
@@ -705,6 +695,11 @@
 
 .resource-tabs-nav ::deep .aspire-menu-button {
     display: none;
+    align-items: center;
+    min-height: 40px;
+    padding: 3px;
+    border: 1px solid var(--colorNeutralStroke1);
+    border-radius: var(--aspire-control-radius);
 }
 
 .resource-tabs-nav ::deep .resource-tabs-compact-button {
@@ -714,7 +709,72 @@
     white-space: nowrap;
 }
 
-@container (max-width: 600px) {
+.resource-tabs-nav ::deep .resource-tabs-compact-button:hover {
+    background-color: var(--colorNeutralBackground3);
+}
+
+.resource-tabs-nav ::deep .resource-tabs-compact-button > svg[slot="start"] {
+    width: 18px !important;
+    min-width: 18px;
+    max-width: 18px;
+    height: 18px !important;
+    margin-right: var(--spacingHorizontalXS);
+    color: var(--colorBrandForeground1);
+}
+
+.resource-tabs-nav ::deep .aspire-menu-container fluent-menu-list {
+    width: max-content;
+    min-width: anchor-size(width);
+    gap: 4px;
+    padding: 3px;
+    border: 1px solid var(--colorNeutralStroke1);
+    border-radius: var(--aspire-control-radius);
+    background-color: var(--colorNeutralBackground1);
+}
+
+.resource-tabs-nav ::deep fluent-menu-item.resource-tab-menu-item {
+    grid-template-columns: minmax(0, 1fr);
+    width: auto;
+    height: 32px;
+    min-height: 32px;
+    margin: 0;
+    padding: 0 12px;
+    border: 1px solid transparent;
+    border-radius: var(--aspire-control-radius);
+    background-color: transparent;
+    color: var(--colorNeutralForeground2);
+}
+
+.resource-tabs-nav ::deep fluent-menu-item.resource-tab-menu-item::part(content) {
+    grid-column: 1;
+}
+
+.resource-tabs-nav ::deep fluent-menu-item.resource-tab-menu-item[checked] {
+    border-color: var(--colorNeutralStroke1);
+    background-color: var(--colorNeutralBackground3);
+    color: var(--colorNeutralForeground1);
+}
+
+.resource-tabs-nav ::deep fluent-menu-item.resource-tab-menu-item:not(:state(disabled)):hover,
+.resource-tabs-nav ::deep fluent-menu-item.resource-tab-menu-item:not(:state(disabled)):state(active),
+.resource-tabs-nav ::deep fluent-menu-item.resource-tab-menu-item:not(:state(disabled)):focus-visible {
+    background-color: var(--colorNeutralBackground3);
+    color: var(--colorNeutralForeground1);
+}
+
+.resource-tabs-nav ::deep fluent-menu-item.resource-tab-menu-item .aspire-menu-item-label {
+    gap: var(--spacingHorizontalXS);
+}
+
+.resource-tabs-nav ::deep fluent-menu-item.resource-tab-menu-item .aspire-menu-item-label svg {
+    width: 18px !important;
+    min-width: 18px;
+    max-width: 18px;
+    height: 18px !important;
+    color: var(--colorBrandForeground1);
+}
+
+@container (max-width: 520px) {
     .resource-tabs-nav ::deep .resources-tab-header {
         display: none;
     }
@@ -751,24 +811,16 @@
     overflow: hidden;
 }
 
-/* Mobile: the pane is a drawer over the content. */
+/* Mobile: the resource pane is a full-screen sheet over the content. It's opaque, so it needs no scrim. The breakpoint
+   matches ViewportInformation.MobileCutoffPixelWidth, which decides what the layout renders. */
 
-.resource-pane-scrim {
-    position: absolute;
-    inset: 0;
-    z-index: 20;
-    background: rgba(0, 0, 0, .35);
-}
-
-@media (max-width: 767px) {
+@media (max-width: 768px) {
     .resource-pane {
         position: absolute;
-        top: 0;
-        bottom: 0;
-        left: 0;
+        inset: 0;
         z-index: 21;
-        width: min(320px, 88vw);
-        box-shadow: var(--aspire-popup-shadow);
+        width: 100%;
+        border-right: 0;
     }
 
     .resource-header {
@@ -777,6 +829,120 @@
 
     .resource-header-icon {
         display: none;
+    }
+
+    /* The 48px minimum height matches the resource icon, which is hidden here. Keeping it would leave a lone
+       title in a tall box. */
+    .resource-header-text {
+        min-height: 0;
+    }
+
+    .resource-header-title {
+        gap: 0;
+    }
+
+    /* The title is the control that opens the resource list. It spans the content width, like the page content
+       below it, and has the outline and chevron of a select so it reads as something to change. The heading's
+       own overflow clipping is lifted so the focus ring isn't cut off. */
+    .resource-title {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: visible;
+    }
+
+    .resource-picker {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        min-height: 44px;
+        padding: 0 12px;
+        border: 1px solid var(--colorNeutralStroke1);
+        border-radius: var(--aspire-control-radius);
+        background: var(--aspire-control-background);
+        color: var(--colorNeutralForeground1);
+        font: inherit;
+        font-size: 16px;
+        font-weight: 600;
+        line-height: 22px;
+        text-align: start;
+        cursor: pointer;
+    }
+
+    .resource-picker:hover {
+        background: var(--aspire-menu-item-hover-background);
+    }
+
+    .resource-picker:active {
+        background: var(--colorNeutralBackground3);
+    }
+
+    .resource-picker:focus-visible {
+        outline: 2px solid var(--colorStrokeFocus2);
+        outline-offset: 1px;
+    }
+
+    .resource-picker-text {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .resource-header-meta {
+        margin-top: 8px;
+    }
+
+    /* The meta items wrap onto separate lines here, which would leave a separator dangling at a line's end.
+       The row's gap spaces the items instead. */
+    .resource-header-sep {
+        display: none;
+    }
+
+    .resource-tabs {
+        margin-top: 8px;
+    }
+
+    /* The tab picker spans the content width, like the resource picker above it, with its chevron at the end. */
+    .resource-tabs-nav ::deep .aspire-menu-button {
+        flex: 1 1 auto;
+    }
+
+    .resource-tabs-nav ::deep .resource-tabs-compact-button {
+        flex: 1 1 auto;
+        justify-content: flex-start;
+    }
+
+    .resource-tabs-nav ::deep .resource-tabs-compact-button::part(content) {
+        flex: 1 1 auto;
+    }
+
+    .resource-tabs-nav ::deep .resource-tabs-compact-button > svg[slot="end"] {
+        margin-inline-start: auto;
+    }
+
+    /* The tab picker's menu is a sheet as wide as the page content, directly under its trigger, so the options are
+       large targets that line up with everything else. The popover's backdrop dims the page behind it, and a tap
+       there closes the menu. */
+    .resource-tabs-nav ::deep .aspire-menu-container fluent-menu-list {
+        left: var(--layout-left-padding);
+        right: var(--layout-right-padding);
+        width: auto;
+        min-width: 0;
+        max-width: none;
+        margin-top: 4px;
+    }
+
+    .resource-tabs-nav ::deep .aspire-menu-container fluent-menu-list::backdrop {
+        background: rgba(0, 0, 0, .35);
+    }
+
+    .resource-tabs-nav ::deep fluent-menu-item.resource-tab-menu-item {
+        height: 44px;
+        min-height: 44px;
+        padding: 0 16px;
+        font-size: var(--fontSizeBase400);
     }
 }
 

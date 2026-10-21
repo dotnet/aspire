@@ -1432,15 +1432,15 @@ public partial class MetricsTests : DashboardTestContext
         });
         cut.WaitForState(() => cut.Instance.PageViewModel.Instruments?.Count == 3);
 
-        cut.Find(".metric-groups-all").Click();
+        cut.Find(".metric-group-all").Click();
 
         cut.WaitForAssertion(() =>
         {
             Assert.True(cut.Instance.PageViewModel.ShowAll);
             Assert.Equal("All metrics", cut.Find(".meter-name-title").TextContent);
             Assert.Equal(["test-meter1: http.request.count", "test-meter1: memory.usage", "test-meter2: queue.length"], GetFilterResultsByMeter(cut));
-            Assert.Equal("true", cut.Find(".metric-groups-all").GetAttribute("aria-pressed"));
-            Assert.Empty(cut.FindAll(".metric-group.selected"));
+            Assert.Equal("page", cut.Find(".metric-group-all").GetAttribute("aria-current"));
+            Assert.Empty(cut.FindAll(".metric-group.selected:not(.metric-group-all)"));
             Assert.Contains("all=true", navigationManager.Uri);
         });
     }
@@ -1556,7 +1556,7 @@ public partial class MetricsTests : DashboardTestContext
 
     // Each group as "<name> <instrument count>".
     private static List<string> GetMetricGroups(IRenderedComponent<Metrics> cut) =>
-        [.. cut.FindAll(".metric-group").Select(g => $"{g.QuerySelector(".metric-group-name")!.TextContent} {g.QuerySelector(".metric-group-count")!.TextContent}")];
+        [.. cut.FindAll(".metric-group:not(.metric-group-all)").Select(g => $"{g.QuerySelector(".metric-group-name")!.TextContent} {g.QuerySelector(".metric-group-count")!.TextContent}")];
 
     private static List<string> GetCardNames(IRenderedComponent<Metrics> cut) =>
         [.. cut.FindAll(".meter-card-name").Select(n => n.TextContent)];

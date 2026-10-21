@@ -1042,8 +1042,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
 
     private bool CanReorderPane =>
         _isLoaded && !IsTelemetryPane &&
-        _filter.TextFilter.Length == 0 && NoFiltersSet &&
-        !(ViewportInformation.IsDesktop && _isPaneCollapsed);
+        _filter.TextFilter.Length == 0 && NoFiltersSet;
 
     private bool CanReorderResources => CanReorderPane && _grouping == ResourceGrouping.None;
 
@@ -1563,9 +1562,8 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
         if (!IsTelemetryPane && _grouping != ResourceGrouping.None)
         {
             // A resource with several tags is listed several times. Ranges use its first position.
-            var showAllGroups = ViewportInformation.IsDesktop && _isPaneCollapsed;
             names = GetResourceGroups()
-                .Where(g => showAllGroups || !IsGroupCollapsed(g))
+                .Where(g => !IsGroupCollapsed(g))
                 .SelectMany(g => g.Resources)
                 .Select(GetResourceName)
                 .Distinct(StringComparers.ResourceName)
@@ -1653,9 +1651,9 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
             items.Add(new MenuButtonItem
             {
                 Id = $"{GetTabId(tab.Tab)}-menu-item",
+                Class = "resource-tab-menu-item",
                 Text = tab.Text,
                 StartIcon = tab.Icon,
-                Icon = s_checkmarkIcon,
                 Role = MenuItemRole.Radio,
                 Checked = tab.Tab == CurrentTab,
                 IsDisabled = tab.Href is null,

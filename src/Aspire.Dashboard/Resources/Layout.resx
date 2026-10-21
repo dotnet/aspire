@@ -126,6 +126,9 @@
   <data name="MainLayoutKeyboardShortcuts" xml:space="preserve">
     <value>Keyboard shortcuts</value>
   </data>
+  <data name="MainLayoutHelp" xml:space="preserve">
+    <value>Help</value>
+  </data>
   <data name="MainLayoutLaunchSettings" xml:space="preserve">
     <value>Settings</value>
   </data>

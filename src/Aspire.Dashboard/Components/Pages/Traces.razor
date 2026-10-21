@@ -192,14 +192,7 @@
 
             <DesktopToolbarDivider />
 
-            @if (TracesViewModel.Filters.Count == 0)
-            {
-                if (ViewportInformation.IsDesktop)
-                {
-                    <span>@FilterLoc[nameof(StructuredFiltering.NoFilters)]</span>
-                }
-            }
-            else
+            @if (TracesViewModel.Filters.Count > 0)
             {
                 <div>
                     <FluentCounterBadge Count="@(TracesViewModel.Filters.GetEnabledFilters().Count())" ShowEmpty="false" Appearance="BadgeAppearance.Filled">
@@ -208,13 +201,13 @@
                         </AnchorContent>
                     </FluentCounterBadge>
                 </div>
-            }
 
-            <DesktopToolbarDivider />
+                <DesktopToolbarDivider />
+            }
 
             @if (ViewportInformation.IsDesktop)
             {
-                <FluentButton Appearance="ButtonAppearance.Default" Class="toolbar-button" aria-label="@FilterLoc[nameof(StructuredFiltering.AddFilter)]" OnClick="() => OpenFilterAsync(null)"><FluentIcon Value="@(new Icons.Regular.Size20.Filter())" Color="Color.Primary" /></FluentButton>
+                <FluentButton Appearance="ButtonAppearance.Default" Class="toolbar-button" aria-label="@FilterLoc[nameof(StructuredFiltering.AddFilter)]" data-tooltip="@FilterLoc[nameof(StructuredFiltering.AddFilter)]" OnClick="() => OpenFilterAsync(null)"><FluentIcon Value="@(new Icons.Regular.Size20.Filter())" Color="Color.Primary" /></FluentButton>
             }
             else
             {

@@ -396,6 +396,14 @@ fluent-field.aspire-checkbox > fluent-checkbox {
     margin: 0;
 }
 
+/* The help dialog's height follows the selected tab. A dialog is centered vertically, so a taller tab would move the
+   tab row up from under the pointer in the middle of the click that selected it. The click would then land on the
+   dialog's backdrop and dismiss it. Anchoring the top edge lets the height change without moving the tabs. */
+fluent-dialog#HelpDialog::part(dialog) {
+    margin-top: min(80px, 8vh);
+    margin-bottom: auto;
+}
+
 fluent-dialog-body fluent-radio {
     --size: 18px;
     flex-shrink: 0;
@@ -773,34 +781,49 @@ fluent-menu-item:state(disabled) {
     opacity: var(--disabled-opacity);
 }
 
+/* The mobile menu is a sheet laid over the page, flush with the screen edges and directly under the header. It doesn't
+   take a layout row, so the content below stays where it is. The scrim covers the page under it. */
+.mobile-nav-scrim {
+    position: fixed;
+    inset: var(--mobile-header-height) 0 0;
+    z-index: 99;
+    background: rgba(0, 0, 0, .35);
+}
+
 .aspire-menu-container.mobile-nav-menu {
-    z-index: 1;
-    width: 100%;
+    position: fixed;
+    top: var(--mobile-header-height);
+    left: 0;
+    right: 0;
+    z-index: 100;
+    width: auto;
     min-width: 0;
     max-width: none;
     gap: 0;
     padding-inline: 0;
-    border: 1px solid transparent;
-    border-radius: var(--aspire-popup-radius);
+    border: 0;
+    border-bottom: 1px solid var(--colorNeutralStroke2);
+    border-radius: 0;
     background-color: var(--aspire-popup-background);
     box-shadow: var(--aspire-popup-shadow);
 }
 
 .aspire-menu-container.mobile-nav-menu fluent-menu-item {
     position: relative;
-    grid-template-columns: 36px minmax(0, 1fr) 32px;
+    grid-template-columns: 44px minmax(0, 1fr) 32px;
     width: auto;
     min-width: 0;
-    height: 40px;
+    height: 48px;
     margin: 0;
-    border: 1px solid transparent;
+    border: 0;
+    border-radius: 0;
     background-color: transparent;
     color: var(--aspire-dropdown-option-foreground);
 }
 
 .aspire-menu-container.mobile-nav-menu fluent-menu-item > [slot="start"] {
     --colorNeutralForeground1: var(--aspire-dropdown-option-foreground);
-    inset-inline-start: 8px;
+    inset-inline-start: 12px;
     color: inherit;
 }
 
@@ -821,10 +844,9 @@ fluent-menu-item:state(disabled) {
     content: "";
     position: absolute;
     inset-inline-start: 0;
-    top: 4px;
+    top: 0;
+    bottom: 0;
     width: 3px;
-    height: 30px;
-    border-radius: 2px;
     background-color: var(--colorBrandForegroundLinkPressed);
 }
 
@@ -835,7 +857,7 @@ fluent-menu-item:state(disabled) {
 .aspire-menu-container.mobile-nav-menu fluent-divider {
     --colorNeutralStroke2: var(--mobile-nav-divider-color);
     height: 1px;
-    margin: 0 0 4px;
+    margin: 0;
 }
 
 *,
