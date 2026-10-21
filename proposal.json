@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "issue_url": "https://github.com/microsoft/aspire/issues/16189",
+  "state_revision": "38fedfb0168fb0cbb3c9b37db35445eb6442cd72",
+  "action": "select",
+  "explanation": "Issue uniquely identifies Aspire.Hosting.Tests.ExecutableResourceFailureLoggingTests.ExecutableExitsImmediately (quarantined, Partition 2). Failure on windows-latest: Assert.Contains() Failure on log lines where 'Hello from Stdout' was captured but 'Hello from Stderr' missing (stack line 40). Likely log-collection race: the resource reaches Finished and the app is disposed before stderr log lines are consumed. Quarantine report shows windows-only failures (~12-15%), linux 0/100. Historical CI logs were not available locally (no evidence dir); only the issue body/comments were read. Next: hosted windows reproduction.",
+  "evidence_read": [
+    "/tmp/gh-aw/flaky-investigation/context.json (issue body, comments incl. CI insights report)",
+    "tests/Aspire.Hosting.Tests/ResourceFailureLoggingTests.cs lines 1-70 (ExecutableExitsImmediately, QuarantinedTest attribute)"
+  ],
+  "selection": {
+    "source": "tests/Aspire.Hosting.Tests/ResourceFailureLoggingTests.cs",
+    "project": "tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj",
+    "class_name": "Aspire.Hosting.Tests.ExecutableResourceFailureLoggingTests",
+    "method": "ExecutableExitsImmediately",
+    "oses": ["windows-latest"],
+    "failure_signature": "Assert.Contains() Failure: Filter not matched in collection"
+  },
+  "local_precheck": {
+    "status": "skipped",
+    "reason": "Runner OS is Linux but the issue only fails on windows-latest (linux 0/100); test also requires pwsh and a built Aspire.Hosting.Tests project, so no local repeated run was attempted."
+  }
+}
