@@ -1,0 +1,19 @@
+{
+  "area": "Integrations",
+  "areaEmoji": "🔌",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Bug fixes",
+  "communityContributors": [],
+  "description": "The Entra ID application resource now shows \"Missing subscription configuration\" like other Azure resources when subscription, location, or resource group settings are missing, instead of overwriting it with \"Failed to start\".",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "🧾",
+  "firstMergedAt": "2026-10-20T15:28:57Z",
+  "lastMergedAt": "2026-10-20T15:28:57Z",
+  "name": "Entra ID shows missing subscription state",
+  "owner": "eerhardt",
+  "prs": [
+    21163
+  ]
+}

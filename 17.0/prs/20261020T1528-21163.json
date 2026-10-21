@@ -1,0 +1,9 @@
+{
+  "author": "eerhardt",
+  "comment": "Fixes Entra ID resource state when Azure configuration is missing",
+  "mergedAt": "2026-10-20T15:28:57Z",
+  "number": 21163,
+  "runDate": "2026-10-21T00:10:00Z",
+  "status": "included",
+  "title": "Entra ID application should show missing subscription state like other Azure resources"
+}

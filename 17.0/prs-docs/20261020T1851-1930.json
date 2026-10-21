@@ -1,0 +1,9 @@
+{
+  "author": "unknown",
+  "comment": "aspire.dev site hosting change; no matching changelog entry",
+  "mergedAt": "2026-10-20T18:51:26Z",
+  "number": 1930,
+  "runDate": "2026-10-21T00:10:00Z",
+  "status": "excluded",
+  "title": "Honor Front Door X-Forwarded-Host in StaticHost"
+}

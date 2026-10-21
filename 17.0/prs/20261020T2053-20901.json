@@ -1,0 +1,9 @@
+{
+  "author": "app/copilot-swe-agent",
+  "comment": "CI workflow hardening; no user-facing impact",
+  "mergedAt": "2026-10-20T20:53:44Z",
+  "number": 20901,
+  "runDate": "2026-10-21T00:10:00Z",
+  "status": "excluded",
+  "title": "[ci] Fix possible template injection in workflows"
+}

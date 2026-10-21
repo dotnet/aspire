@@ -1,0 +1,9 @@
+{
+  "author": "eerhardt",
+  "comment": "Container image tag bump; treated as dependency update",
+  "mergedAt": "2026-10-20T21:22:39Z",
+  "number": 21218,
+  "runDate": "2026-10-21T00:10:00Z",
+  "status": "excluded",
+  "title": "Update MongoDB container image tag to 9.0"
+}

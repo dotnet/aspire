@@ -1,0 +1,19 @@
+{
+  "area": "Extensions",
+  "areaEmoji": "🧩",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Bug fixes",
+  "communityContributors": [],
+  "description": "The VS Code CLI update warning no longer shows build metadata such as `+abc123` in the displayed versions, making official release versions less noisy.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "🏷️",
+  "firstMergedAt": "2026-10-20T20:25:00Z",
+  "lastMergedAt": "2026-10-20T20:25:00Z",
+  "name": "Cleaner CLI update warning versions in VS Code",
+  "owner": "spboyer",
+  "prs": [
+    21155
+  ]
+}

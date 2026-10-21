@@ -1,0 +1,9 @@
+{
+  "author": "radical",
+  "comment": "Test guidance and deleted infrastructure tests; no user-facing impact",
+  "mergedAt": "2026-10-20T16:55:03Z",
+  "number": 20612,
+  "runDate": "2026-10-21T00:10:00Z",
+  "status": "excluded",
+  "title": "tests: Add guidance around creating Infrastructure tests"
+}

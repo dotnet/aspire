@@ -1,0 +1,9 @@
+{
+  "author": "spboyer",
+  "comment": "Fixes noisy version display in VS Code CLI update warning",
+  "mergedAt": "2026-10-20T20:25:00Z",
+  "number": 21155,
+  "runDate": "2026-10-21T00:10:00Z",
+  "status": "included",
+  "title": "Fix VS Code CLI update warning version display"
+}
