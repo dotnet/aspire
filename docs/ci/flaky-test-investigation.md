@@ -21,10 +21,10 @@ Use `operation=resume` to reconcile an existing investigation, or
 require maintainer permission; the issue author need not be a maintainer.
 Repeated enrollment does not reset state or budgets.
 
-The controller advances one phase and exits; no model waits for CI. Completion
-events accelerate recovery, but are not required: a scheduled controller
-reconciles checkpoints every 15 minutes. Token-dispatched workflows need not
-produce another event for progress to continue. A scheduled recovery can also
+The controller advances one phase and exits; no model waits for CI. A scheduled
+controller reconciles checkpoints every 15 minutes. Manual resume can advance
+completed work before the next scheduled check. Progress does not depend on
+completion events from token-dispatched workflows. Scheduled recovery can also
 resume a completed worker after an interrupted controller.
 
 ```text

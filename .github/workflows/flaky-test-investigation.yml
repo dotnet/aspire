@@ -15,13 +15,10 @@ on:
         options: [start, resume, cancel]
   schedule:
     - cron: "7,22,37,52 * * * *"
-  workflow_run:
-    workflows: [Flaky Test Investigator, Reproduce Flaky Tests]
-    types: [completed]
 
 permissions: {}
 
-# Recovery and callbacks share one writer. Git's nonforced checkpoint update is
+# Manual and scheduled recovery share one writer. Git's nonforced checkpoint update is
 # still the final guard against an independently resumed stale controller.
 concurrency:
   group: flaky-test-investigation-controller
