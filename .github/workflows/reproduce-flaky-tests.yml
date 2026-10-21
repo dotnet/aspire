@@ -3,6 +3,7 @@ run-name: "Read-only reusable agent capability: issue 16189"
 on:
   workflow_dispatch: {}
 permissions:
+  actions: read
   contents: read
   issues: write
   copilot-requests: write
