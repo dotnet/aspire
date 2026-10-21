@@ -5,6 +5,8 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
@@ -27,14 +29,16 @@ public static class EntraIdResourceExtensions
     /// into consuming services. For .NET programs, the variables default to the <c>AzureAd</c> configuration section
     /// that Microsoft.Identity.Web reads natively.
     /// </para>
+    /// <para>
+    /// By default, Aspire provisions an application and service principal using the Microsoft Graph Bicep extension.
+    /// This requires Azure provisioning configuration and permission to create registrations in the subscription's
+    /// tenant. Call <c>AddExistingEntraApplication</c> to reference an existing registration without Azure or Graph access.
+    /// </para>
     /// <example>
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// var entraApi = builder.AddEntraIdApplication("entra-api")
-    ///     .AsExistingApplication(
-    ///         tenantId: builder.AddParameter("EntraTenantId"),
-    ///         clientId: builder.AddParameter("EntraApiClientId"));
+    /// var entraApi = builder.AddEntraIdApplication("entra-api");
     ///
     /// builder.AddProject&lt;Projects.Api&gt;("api")
     ///     .WithReference(entraApi);
@@ -48,7 +52,14 @@ public static class EntraIdResourceExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        var resource = new EntraIdApplicationResource(name);
+        builder.AddAzureProvisioning();
+
+        var resource = new EntraIdApplicationResource(name)
+        {
+            // Resource initialization and Azure environment initialization run concurrently. Keep a pending task
+            // available from the outset so ID resolution waits for provisioning rather than reading missing outputs.
+            ProvisioningTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously)
+        };
         return ConfigureEntraIdResource(builder.AddResource(resource));
     }
 
@@ -65,8 +76,6 @@ public static class EntraIdResourceExtensions
                 State = KnownResourceStates.Waiting,
                 Properties = []
             })
-            // The resource only describes an app registration that already exists, so there is nothing to deploy.
-            .ExcludeFromManifest()
             .OnInitializeResource(InitializeEntraIdResourceAsync);
     }
 
@@ -75,20 +84,85 @@ public static class EntraIdResourceExtensions
         InitializeResourceEvent evt,
         CancellationToken cancellationToken)
     {
+        if (resource.IsExistingApplication)
+        {
+            await InitializeEntraIdResourceOnceAsync(resource, evt, cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        // Azure retries replace the completed provisioning task without publishing another initialization event.
+        // Keep observing attempts for the resource's lifetime, including successful reprovisioning with new IDs.
+        using var lifetimeCts = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken, evt.Services.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping);
+        cancellationToken = lifetimeCts.Token;
+        Task? previousAttempt = null;
+        await foreach (var update in evt.Notifications.WatchAsync(cancellationToken).ConfigureAwait(false))
+        {
+            if (update.Resource != resource)
+            {
+                continue;
+            }
+
+            var attempt = resource.ProvisioningTaskCompletionSource?.Task;
+            if (attempt is null || ReferenceEquals(attempt, previousAttempt))
+            {
+                continue;
+            }
+
+            previousAttempt = attempt;
+            await InitializeEntraIdResourceOnceAsync(resource, evt, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task InitializeEntraIdResourceOnceAsync(
+        EntraIdApplicationResource resource,
+        InitializeResourceEvent evt,
+        CancellationToken cancellationToken)
+    {
         var logger = evt.Logger;
 
-        if ((resource.TenantIdParameter is null && resource.TenantId is null) ||
-            (resource.ClientIdParameter is null && resource.ClientId is null))
+        if (resource.IsExistingApplication &&
+            ((resource.TenantIdParameter is null && resource.TenantId is null) ||
+             (resource.ClientIdParameter is null && resource.ClientId is null)))
         {
-            logger.LogError("The app registration is not fully configured. Call AsExistingApplication with the registration's tenant ID and client ID.");
+            logger.LogError("The app registration is not fully configured. Call AddExistingEntraApplication with the registration's tenant ID and client ID.");
             await PublishFailedToStartAsync(resource, evt).ConfigureAwait(false);
             return;
         }
 
         // Check every setting before failing, so that a misconfigured resource reports all of its problems at once
         // rather than one per restart of the AppHost.
-        var tenantId = await ResolveIdAsync(resource.TenantIdParameter, resource.TenantId, "tenant ID", EntraIdValidation.ValidateTenantId, logger, cancellationToken).ConfigureAwait(false);
-        var clientId = await ResolveIdAsync(resource.ClientIdParameter, resource.ClientId, "client ID", EntraIdValidation.ValidateClientId, logger, cancellationToken).ConfigureAwait(false);
+        string? tenantId;
+        string? clientId;
+        if (resource.IsExistingApplication)
+        {
+            tenantId = await ResolveIdAsync(resource.TenantIdParameter, resource.TenantId, "tenant ID", EntraIdValidation.ValidateTenantId, logger, cancellationToken).ConfigureAwait(false);
+            clientId = await ResolveIdAsync(resource.ClientIdParameter, resource.ClientId, "client ID", EntraIdValidation.ValidateClientId, logger, cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            try
+            {
+                tenantId = await resource.TenantIdOutputReference.GetValueAsync(cancellationToken).ConfigureAwait(false);
+                clientId = await resource.ClientIdOutputReference.GetValueAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (IsMissingAzureConfiguration(ex))
+            {
+                // The Azure provisioning controller already published the "Missing subscription configuration"
+                // state for this resource, like every other Azure resource. Don't overwrite it with FailedToStart.
+                return;
+            }
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+            {
+                logger.LogError(ex, "Failed to provision the Entra ID application. If your tenant does not allow creating registrations, use AddExistingEntraApplication with an existing registration's tenant ID and client ID.");
+                await PublishFailedToStartAsync(resource, evt).ConfigureAwait(false);
+                return;
+            }
+
+            tenantId = await ResolveIdAsync(null, tenantId, "tenant ID", EntraIdValidation.ValidateTenantId, logger, cancellationToken).ConfigureAwait(false);
+            clientId = await ResolveIdAsync(null, clientId, "client ID", EntraIdValidation.ValidateClientId, logger, cancellationToken).ConfigureAwait(false);
+        }
+
         var hasInvalidSetting = false;
 
         if (EntraIdValidation.ValidateInstance(resource.Instance) is { } instanceError)
@@ -126,9 +200,11 @@ public static class EntraIdResourceExtensions
 
         try
         {
-            // Other resources that stand in for an external service publish this event before reporting Running, which
-            // runs the OnBeforeResourceStarted callbacks registered on the resource.
-            await evt.Eventing.PublishAsync(new BeforeResourceStartedEvent(resource, evt.Services), cancellationToken).ConfigureAwait(false);
+            // Azure provisioning already publishes this event for created registrations.
+            if (resource.IsExistingApplication)
+            {
+                await evt.Eventing.PublishAsync(new BeforeResourceStartedEvent(resource, evt.Services), cancellationToken).ConfigureAwait(false);
+            }
         }
         catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
         {
@@ -165,12 +241,12 @@ public static class EntraIdResourceExtensions
             properties.Add(CreateHighlightedProperty("entra.credentials", "Credentials", sourceTypes, isSensitive: false, sortOrder: 4));
         }
 
-        // Append rather than replace, so URLs and properties that the orchestrator already published, such as ones added
-        // with WithUrl or a parent relationship, are kept. Initialization runs once, so nothing is added twice.
+        // Replace integration-owned metadata on reprovisioning while preserving custom URLs and properties.
         await evt.Notifications.PublishUpdateAsync(resource, snapshot => snapshot with
         {
-            Urls = snapshot.Urls.AddRange(urls),
-            Properties = snapshot.Properties.AddRange(properties),
+            Urls = [.. snapshot.Urls.Where(url => url.Name is not "OpenID Config" and not "Azure Portal"), .. urls],
+            Properties = [.. snapshot.Properties.Where(property =>
+                property.Name != "entra.credentials" && !properties.Any(updated => updated.Name == property.Name)), .. properties],
             State = KnownResourceStates.Running
         }).ConfigureAwait(false);
     }
@@ -217,6 +293,11 @@ public static class EntraIdResourceExtensions
         return parameterValue;
     }
 
+    // MissingConfigurationException is internal to Aspire.Hosting.Azure, so match it by name rather than exposing it.
+    private static bool IsMissingAzureConfiguration(Exception ex)
+        => ex.GetType().Name == "MissingConfigurationException" ||
+            ex is AggregateException aggregate && aggregate.InnerExceptions.Any(IsMissingAzureConfiguration);
+
     private static Task PublishFailedToStartAsync(EntraIdApplicationResource resource, InitializeResourceEvent evt)
     {
         return evt.Notifications.PublishUpdateAsync(resource, snapshot => snapshot with
@@ -238,9 +319,10 @@ public static class EntraIdResourceExtensions
     }
 
     /// <summary>
-    /// Marks this Entra ID application as an existing resource, identified by its tenant ID and client ID.
+    /// Adds a reference to an existing Microsoft Entra ID application registration without enabling Azure provisioning.
     /// </summary>
-    /// <param name="builder">The resource builder.</param>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource.</param>
     /// <param name="tenantId">
     /// A parameter containing the ID of the app's home tenant: the directory where the app is registered, shown as
     /// "Directory (tenant) ID" on the app registration's Overview page.
@@ -249,7 +331,7 @@ public static class EntraIdResourceExtensions
     /// A parameter containing the application (client) ID, shown as "Application (client) ID" on the app registration's
     /// Overview page.
     /// </param>
-    /// <returns>The resource builder for chaining.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{EntraIdApplicationResource}"/>.</returns>
     /// <remarks>
     /// <para>
     /// Both the tenant ID and client ID are required to identify an existing Entra ID application.
@@ -262,29 +344,42 @@ public static class EntraIdResourceExtensions
     /// reports <c>FailedToStart</c> and logs the reason.
     /// </para>
     /// <para>
-    /// This is deliberately not named <c>AsExisting</c>. Aspire's Azure resources use
-    /// <c>AsExisting(name, resourceGroup)</c>, so reusing that name here would give the same call shape
-    /// two different meanings once this resource participates in Azure provisioning.
+    /// The registration is used only for configuration. Aspire does not deploy Bicep or query Microsoft Graph
+    /// for this resource. Use <see cref="AddEntraIdApplication"/> to create a registration instead.
     /// </para>
+    /// <example>
+    /// <code lang="csharp">
+    /// var tenantId = builder.AddParameter("EntraTenantId");
+    /// var clientId = builder.AddParameter("EntraClientId");
+    /// var identity = builder.AddExistingEntraApplication("identity", tenantId, clientId);
+    /// builder.AddProject&lt;Projects.Api&gt;("api").WithReference(identity);
+    /// </code>
+    /// </example>
     /// </remarks>
-    public static IResourceBuilder<EntraIdApplicationResource> AsExistingApplication(
-        this IResourceBuilder<EntraIdApplicationResource> builder,
+    public static IResourceBuilder<EntraIdApplicationResource> AddExistingEntraApplication(
+        this IDistributedApplicationBuilder builder,
+        [ResourceName] string name,
         IResourceBuilder<ParameterResource> tenantId,
         IResourceBuilder<ParameterResource> clientId)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentNullException.ThrowIfNull(tenantId);
         ArgumentNullException.ThrowIfNull(clientId);
 
-        builder.Resource.TenantIdParameter = tenantId.Resource;
-        builder.Resource.ClientIdParameter = clientId.Resource;
-        return builder;
+        var resource = new EntraIdApplicationResource(name)
+        {
+            TenantIdParameter = tenantId.Resource,
+            ClientIdParameter = clientId.Resource
+        };
+        return ConfigureExistingApplication(builder, resource);
     }
 
     /// <summary>
-    /// Marks this Entra ID application as an existing resource, identified by its tenant ID and client ID.
+    /// Adds a reference to an existing Microsoft Entra ID application registration without enabling Azure provisioning.
     /// </summary>
-    /// <param name="builder">The resource builder.</param>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource.</param>
     /// <param name="tenantId">
     /// The ID of the app's home tenant: the directory where the app is registered, shown as "Directory (tenant) ID" on the
     /// app registration's Overview page. A domain such as <c>contoso.onmicrosoft.com</c> is also accepted.
@@ -292,7 +387,7 @@ public static class EntraIdResourceExtensions
     /// <param name="clientId">
     /// The application (client) ID, shown as "Application (client) ID" on the app registration's Overview page.
     /// </param>
-    /// <returns>The resource builder for chaining.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{EntraIdApplicationResource}"/>.</returns>
     /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="tenantId"/> is empty, is not a GUID or domain name, or is one of the sign-in audience
     /// keywords <c>organizations</c>, <c>common</c> or <c>consumers</c>; or when <paramref name="clientId"/> is empty
@@ -309,10 +404,103 @@ public static class EntraIdResourceExtensions
     /// <see cref="WithSignInAudience"/>.
     /// </para>
     /// <para>
-    /// This is deliberately not named <c>AsExisting</c>. Aspire's Azure resources use
-    /// <c>AsExisting(name, resourceGroup)</c>, so reusing that name here would give the same call shape
-    /// two different meanings once this resource participates in Azure provisioning.
+    /// The registration is used only for configuration. Aspire does not deploy Bicep or query Microsoft Graph
+    /// for this resource. Use <see cref="AddEntraIdApplication"/> to create a registration instead.
     /// </para>
+    /// <example>
+    /// <code lang="csharp">
+    /// var identity = builder.AddExistingEntraApplication(
+    ///     "identity",
+    ///     tenantId: "aaaabbbb-0000-cccc-1111-dddd2222eeee",
+    ///     clientId: "00001111-aaaa-2222-bbbb-3333cccc4444");
+    /// builder.AddProject&lt;Projects.Api&gt;("api").WithReference(identity);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<EntraIdApplicationResource> AddExistingEntraApplication(
+        this IDistributedApplicationBuilder builder,
+        [ResourceName] string name,
+        string tenantId,
+        string clientId)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ValidateExistingApplicationIds(tenantId, clientId);
+
+        var resource = new EntraIdApplicationResource(name)
+        {
+            TenantId = tenantId,
+            ClientId = clientId
+        };
+        return ConfigureExistingApplication(builder, resource);
+    }
+
+    /// <summary>
+    /// Configures this resource to reference an existing Microsoft Entra ID application registration.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="tenantId">A parameter containing the registration's home tenant ID.</param>
+    /// <param name="clientId">A parameter containing the registration's application (client) ID.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// Parameter values are validated when the application starts. The tenant ID must be a GUID or a domain such as
+    /// <c>contoso.onmicrosoft.com</c>, and the client ID must be a GUID.
+    /// </para>
+    /// <para>
+    /// <see cref="AddEntraIdApplication"/> enables Azure provisioning before this method is called.
+    /// This method does not disable that setup, so deployment can still require Azure authentication and provisioning
+    /// configuration. To reference an existing registration without enabling Azure provisioning, use
+    /// <see cref="AddExistingEntraApplication(IDistributedApplicationBuilder, string, IResourceBuilder{ParameterResource}, IResourceBuilder{ParameterResource})"/>.
+    /// </para>
+    /// <example>
+    /// <code lang="csharp">
+    /// var identity = builder.AddEntraIdApplication("identity")
+    ///     .AsExistingApplication(builder.AddParameter("TenantId"), builder.AddParameter("ClientId"));
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<EntraIdApplicationResource> AsExistingApplication(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        IResourceBuilder<ParameterResource> tenantId,
+        IResourceBuilder<ParameterResource> clientId)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(tenantId);
+        ArgumentNullException.ThrowIfNull(clientId);
+
+        builder.Resource.TenantIdParameter = tenantId.Resource;
+        builder.Resource.ClientIdParameter = clientId.Resource;
+        return ConfigureExistingApplication(builder);
+    }
+
+    /// <summary>
+    /// Configures this resource to reference an existing Microsoft Entra ID application registration.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="tenantId">The registration's home tenant ID, as a GUID or a domain such as <c>contoso.onmicrosoft.com</c>.</param>
+    /// <param name="clientId">The registration's application (client) ID.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <exception cref="ArgumentException">A tenant ID or client ID is empty or invalid.</exception>
+    /// <remarks>
+    /// <para>
+    /// Pass the home tenant ID, not a sign-in keyword such as <c>organizations</c>.
+    /// Use <see cref="WithSignInAudience"/> to allow accounts from other tenants to sign in.
+    /// </para>
+    /// <para>
+    /// <see cref="AddEntraIdApplication"/> enables Azure provisioning before this method is called.
+    /// This method does not disable that setup, so deployment can still require Azure authentication and provisioning
+    /// configuration. To reference an existing registration without enabling Azure provisioning, use
+    /// <see cref="AddExistingEntraApplication(IDistributedApplicationBuilder, string, string, string)"/>.
+    /// </para>
+    /// <example>
+    /// <code lang="csharp">
+    /// var identity = builder.AddEntraIdApplication("identity")
+    ///     .AsExistingApplication(
+    ///         tenantId: "aaaabbbb-0000-cccc-1111-dddd2222eeee",
+    ///         clientId: "00001111-aaaa-2222-bbbb-3333cccc4444");
+    /// </code>
+    /// </example>
     /// </remarks>
     public static IResourceBuilder<EntraIdApplicationResource> AsExistingApplication(
         this IResourceBuilder<EntraIdApplicationResource> builder,
@@ -320,6 +508,15 @@ public static class EntraIdResourceExtensions
         string clientId)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ValidateExistingApplicationIds(tenantId, clientId);
+
+        builder.Resource.TenantId = tenantId;
+        builder.Resource.ClientId = clientId;
+        return ConfigureExistingApplication(builder);
+    }
+
+    private static void ValidateExistingApplicationIds(string tenantId, string clientId)
+    {
         ArgumentException.ThrowIfNullOrEmpty(tenantId);
         ArgumentException.ThrowIfNullOrEmpty(clientId);
 
@@ -332,10 +529,20 @@ public static class EntraIdResourceExtensions
         {
             throw new ArgumentException($"'{clientId}' is not a valid client ID. {clientIdError}", nameof(clientId));
         }
+    }
 
-        builder.Resource.TenantId = tenantId;
-        builder.Resource.ClientId = clientId;
-        return builder;
+    private static IResourceBuilder<EntraIdApplicationResource> ConfigureExistingApplication(
+        IDistributedApplicationBuilder builder,
+        EntraIdApplicationResource resource)
+    {
+        return ConfigureExistingApplication(ConfigureEntraIdResource(builder.AddResource(resource)));
+    }
+
+    private static IResourceBuilder<EntraIdApplicationResource> ConfigureExistingApplication(
+        IResourceBuilder<EntraIdApplicationResource> builder)
+    {
+        builder.Resource.SetExistingApplication();
+        return builder.ExcludeFromManifest();
     }
 
     /// <summary>
@@ -378,21 +585,43 @@ public static class EntraIdResourceExtensions
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="managedIdentityClientId">
-    /// The client ID of a user-assigned managed identity.
-    /// If <see langword="null"/>, the system-assigned managed identity is used.
+    /// The client ID of the user-assigned managed identity attached to the consuming workload.
+    /// This is not the identity's object (principal) ID.
     /// </param>
     /// <returns>The resource builder for chaining.</returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="managedIdentityClientId"/> is empty or is not a GUID.
+    /// </exception>
     /// <remarks>
     /// <para>
     /// This adds an entry to the <c>ClientCredentials</c> array in the Microsoft.Identity.Web
     /// configuration with <c>SourceType</c> set to <c>"SignedAssertionFromManagedIdentity"</c>.
+    /// It does not create or assign the managed identity, or provision the federated identity credential.
+    /// </para>
+    /// <para>
+    /// The registration must already trust a user-assigned managed identity in the same tenant.
+    /// The credential's subject is the identity's object (principal) ID, while this method takes its client ID.
+    /// Microsoft Entra's managed-identity federation scenario does not support system-assigned managed identities.
+    /// See <see href="https://learn.microsoft.com/entra/workload-id/workload-identity-federation-config-app-trust-managed-identity"/>.
     /// </para>
     /// </remarks>
+    /// <example>
+    /// <code lang="csharp">
+    /// var entraWeb = builder.AddExistingEntraApplication("entra-web", tenantId, clientId)
+    ///     .WithFicMsi("00001111-aaaa-2222-bbbb-3333cccc4444");
+    /// </code>
+    /// </example>
     public static IResourceBuilder<EntraIdApplicationResource> WithFicMsi(
         this IResourceBuilder<EntraIdApplicationResource> builder,
-        string? managedIdentityClientId = null)
+        string managedIdentityClientId)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(managedIdentityClientId);
+
+        if (EntraIdValidation.ValidateManagedIdentityClientId(managedIdentityClientId) is { } error)
+        {
+            throw new ArgumentException(error, nameof(managedIdentityClientId));
+        }
 
         builder.Resource.ClientCredentials.Add(new EntraIdFederatedIdentityCredential
         {
@@ -548,8 +777,7 @@ public static class EntraIdResourceExtensions
     /// <example>
     /// Let work or school accounts from any organization sign in:
     /// <code lang="csharp">
-    /// var entraWeb = builder.AddEntraIdApplication("entra-web")
-    ///     .AsExistingApplication(tenantId, clientId)
+    /// var entraWeb = builder.AddExistingEntraApplication("entra-web", tenantId, clientId)
     ///     .WithSignInAudience(EntraIdSignInAudience.AzureADMultipleOrgs);
     /// </code>
     /// </example>
@@ -566,6 +794,400 @@ public static class EntraIdResourceExtensions
         }
 
         builder.Resource.SignInAudience = signInAudience;
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds web redirect URIs to a registration created by Aspire.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="redirectUris">The redirect URIs to register for browser sign-in and sign-out callbacks.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> or <paramref name="redirectUris"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when a redirect URI is empty.</exception>
+    /// <remarks>
+    /// URIs are written directly into the generated infrastructure; endpoints are not discovered automatically.
+    /// Existing registrations are not modified.
+    /// </remarks>
+    /// <example>
+    /// <code lang="csharp">
+    /// var entraWeb = builder.AddEntraIdApplication("entra-web")
+    ///     .WithRedirectUris("https://localhost:7123/signin-oidc");
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<EntraIdApplicationResource> WithRedirectUris(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        params string[] redirectUris)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(redirectUris);
+        foreach (var redirectUri in redirectUris)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(redirectUri, nameof(redirectUris));
+        }
+
+        foreach (var redirectUri in redirectUris)
+        {
+            builder.Resource.AddRedirectUri(redirectUri);
+        }
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds parameters whose values supply web redirect URIs to a registration created by Aspire.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="redirectUris">Parameters whose values are the redirect URIs. Each value may contain several URIs separated by commas.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/>, <paramref name="redirectUris"/>, or one of its elements is null.</exception>
+    /// <remarks>
+    /// <para>
+    /// Use this overload when the externally visible callback URIs (for example, behind a gateway, reverse proxy,
+    /// or custom domain) are supplied per environment at deployment time. The values are split on commas in the
+    /// generated infrastructure, so a URI supplied through a parameter can't contain a comma and entries must not
+    /// have surrounding whitespace. Literal URIs can be mixed with parameter-backed URIs by also calling
+    /// <see cref="WithRedirectUris(IResourceBuilder{EntraIdApplicationResource}, string[])"/>; URIs are registered in call order.
+    /// </para>
+    /// <para>
+    /// Endpoints are not discovered automatically. Existing registrations are not modified.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code lang="csharp">
+    /// var signIn = builder.AddParameter("web-signin-redirect-uri");
+    /// var signOut = builder.AddParameter("web-signout-redirect-uri");
+    /// var entraWeb = builder.AddEntraIdApplication("entra-web")
+    ///     .WithRedirectUris(signIn, signOut);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<EntraIdApplicationResource> WithRedirectUris(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        params IResourceBuilder<ParameterResource>[] redirectUris)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(redirectUris);
+        foreach (var redirectUri in redirectUris)
+        {
+            ArgumentNullException.ThrowIfNull(redirectUri, nameof(redirectUris));
+        }
+
+        foreach (var redirectUri in redirectUris)
+        {
+            builder.Resource.AddRedirectUri(redirectUri.Resource);
+        }
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds redirect URIs for a resource's endpoint to a registration created by Aspire.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="endpoint">The endpoint that serves the callbacks.</param>
+    /// <param name="callbackPaths">The callback paths on that endpoint, such as <c>/signin-oidc</c>.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when an argument is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when no path is provided or a path doesn't start with <c>/</c>.</exception>
+    /// <remarks>
+    /// <para>
+    /// The scheme, host, and port come from the endpoint so they follow local endpoint allocation. When running locally the
+    /// allocated URL is used. When publishing or deploying, the host name comes from the resource's compute environment and
+    /// the scheme is <c>https</c>.
+    /// </para>
+    /// <para>
+    /// The callback path can't be discovered from the endpoint: it's configured by the consuming application, so it is
+    /// supplied here and must match that configuration. When the externally visible URL differs from the endpoint
+    /// (gateway, reverse proxy, or custom domain), supply the full URL with <c>WithRedirectUris</c> instead.
+    /// Existing registrations are not modified.
+    /// </para>
+    /// <para>
+    /// When running locally, the URL shown as the endpoint's primary URL is used, so a friendly <c>*.dev.localhost</c> name
+    /// is registered when the dashboard uses one. That URL is read when this registration's URL callback runs, so a
+    /// <c>WithUrlForEndpoint</c> or <c>WithUrls</c> callback added after this call that changes the endpoint's host isn't
+    /// reflected. Add such callbacks before calling this method.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code lang="csharp">
+    /// var web = builder.AddProject&lt;Projects.Web&gt;("web").WithExternalHttpEndpoints();
+    /// var entraWeb = builder.AddEntraIdApplication("entra-web")
+    ///     .WithRedirectUris(web.GetEndpoint("https"), "/signin-oidc", "/signout-callback-oidc");
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<EntraIdApplicationResource> WithRedirectUris(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        EndpointReference endpoint,
+        params string[] callbackPaths)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(endpoint);
+        ArgumentNullException.ThrowIfNull(callbackPaths);
+
+        if (callbackPaths.Length == 0)
+        {
+            throw new ArgumentException("At least one callback path is required.", nameof(callbackPaths));
+        }
+
+        foreach (var path in callbackPaths)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(path, nameof(callbackPaths));
+            if (!path.StartsWith('/'))
+            {
+                throw new ArgumentException($"The callback path '{path}' must start with '/'.", nameof(callbackPaths));
+            }
+        }
+
+        foreach (var path in callbackPaths)
+        {
+            builder.Resource.AddRedirectUri(new EntraIdEndpointRedirectUri(endpoint, path, builder.ApplicationBuilder.ExecutionContext.IsPublishMode));
+        }
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds redirect URIs for a host supplied by a parameter to a registration created by Aspire.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="host">A parameter whose value is the host name (optionally with a port) that serves the callbacks, such as <c>app.contoso.com</c>. Don't include a scheme or path.</param>
+    /// <param name="callbackPath">The first callback path on that host, such as <c>/signin-oidc</c>.</param>
+    /// <param name="additionalCallbackPaths">Further callback paths on that host.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when an argument is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when a path is empty or doesn't start with <c>/</c>.</exception>
+    /// <remarks>
+    /// <para>
+    /// Use this overload when the externally visible host (for example, a custom domain or gateway) is supplied per
+    /// environment at deployment time but the callback paths are fixed by the application. Each URI is
+    /// <c>https://{host}{path}</c>, so the scheme is always <c>https</c>.
+    /// </para>
+    /// <para>
+    /// The first path is a separate parameter so that a call with only a parameter still binds to
+    /// <see cref="WithRedirectUris(IResourceBuilder{EntraIdApplicationResource}, IResourceBuilder{ParameterResource}[])"/>.
+    /// Existing registrations are not modified.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code lang="csharp">
+    /// var host = builder.AddParameter("web-host");
+    /// var entraWeb = builder.AddEntraIdApplication("entra-web")
+    ///     .WithRedirectUris(host, "/signin-oidc", "/signout-callback-oidc");
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<EntraIdApplicationResource> WithRedirectUris(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        IResourceBuilder<ParameterResource> host,
+        string callbackPath,
+        params string[] additionalCallbackPaths)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(host);
+        ArgumentNullException.ThrowIfNull(additionalCallbackPaths);
+
+        string[] callbackPaths = [callbackPath, .. additionalCallbackPaths];
+        foreach (var path in callbackPaths)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(path, nameof(callbackPath));
+            if (!path.StartsWith('/'))
+            {
+                throw new ArgumentException($"The callback path '{path}' must start with '/'.", nameof(callbackPath));
+            }
+        }
+
+        foreach (var path in callbackPaths)
+        {
+            builder.Resource.AddRedirectUri(new EntraIdHostRedirectUri(host.Resource, path));
+        }
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds explicit owners to the application registration created by Aspire.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="ownerObjectIds">The object IDs (GUIDs) of the Microsoft Entra users or service principals to add as owners.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> or <paramref name="ownerObjectIds"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when an owner ID is not a GUID.</exception>
+    /// <remarks>
+    /// <para>
+    /// Owners can manage the application registration, so grant ownership deliberately. By default, Aspire sets no owners
+    /// and Microsoft Entra's default ownership behavior applies. The owners are not necessarily the identity that runs the deployment.
+    /// </para>
+    /// <para>
+    /// Owners are added with append semantics: existing owners are never removed. The deploying identity needs permission to
+    /// manage application owners (for example the <c>Application.ReadWrite.All</c> Microsoft Graph permission or a directory
+    /// role such as Application Administrator).
+    /// </para>
+    /// <para>
+    /// Application and service principal ownership are separate; use <see cref="WithServicePrincipalOwners(IResourceBuilder{EntraIdApplicationResource}, string[])"/>
+    /// for the enterprise application. This setting only affects registrations created by Aspire; existing registrations are not modified.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code lang="csharp">
+    /// var entraApi = builder.AddEntraIdApplication("entra-api")
+    ///     .WithApplicationOwners("00000000-0000-0000-0000-000000000001");
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<EntraIdApplicationResource> WithApplicationOwners(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        params string[] ownerObjectIds)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        AddOwners(builder.Resource.ApplicationOwners, ownerObjectIds, nameof(ownerObjectIds));
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds explicit owners, supplied by parameters, to the application registration created by Aspire.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="ownerObjectIds">Parameters whose values are the object IDs of the users or service principals to add as owners.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> or <paramref name="ownerObjectIds"/> is null.</exception>
+    /// <remarks>
+    /// See <see cref="WithApplicationOwners(IResourceBuilder{EntraIdApplicationResource}, string[])"/> for permission and append semantics.
+    /// </remarks>
+    public static IResourceBuilder<EntraIdApplicationResource> WithApplicationOwners(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        params IResourceBuilder<ParameterResource>[] ownerObjectIds)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(ownerObjectIds);
+        builder.Resource.ApplicationOwners.AddRange(ownerObjectIds.Select(p => (object)p.Resource));
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds explicit owners to the service principal (enterprise application) created by Aspire.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="ownerObjectIds">The object IDs (GUIDs) of the Microsoft Entra users or service principals to add as owners.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> or <paramref name="ownerObjectIds"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when an owner ID is not a GUID.</exception>
+    /// <remarks>
+    /// Service principal ownership is independent of application registration ownership and has the same
+    /// append semantics and permission requirements as <see cref="WithApplicationOwners(IResourceBuilder{EntraIdApplicationResource}, string[])"/>.
+    /// This setting only affects registrations created by Aspire.
+    /// </remarks>
+    public static IResourceBuilder<EntraIdApplicationResource> WithServicePrincipalOwners(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        params string[] ownerObjectIds)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        AddOwners(builder.Resource.ServicePrincipalOwners, ownerObjectIds, nameof(ownerObjectIds));
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds explicit owners, supplied by parameters, to the service principal (enterprise application) created by Aspire.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="ownerObjectIds">Parameters whose values are the object IDs of the users or service principals to add as owners.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> or <paramref name="ownerObjectIds"/> is null.</exception>
+    public static IResourceBuilder<EntraIdApplicationResource> WithServicePrincipalOwners(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        params IResourceBuilder<ParameterResource>[] ownerObjectIds)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(ownerObjectIds);
+        builder.Resource.ServicePrincipalOwners.AddRange(ownerObjectIds.Select(p => (object)p.Resource));
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds explicit owners to both the application registration and the service principal created by Aspire.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="ownerObjectIds">The object IDs (GUIDs) of the Microsoft Entra users or service principals to add as owners.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <remarks>
+    /// Equivalent to calling <see cref="WithApplicationOwners(IResourceBuilder{EntraIdApplicationResource}, string[])"/> and
+    /// <see cref="WithServicePrincipalOwners(IResourceBuilder{EntraIdApplicationResource}, string[])"/> with the same IDs.
+    /// </remarks>
+    public static IResourceBuilder<EntraIdApplicationResource> WithOwners(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        params string[] ownerObjectIds)
+    {
+        return builder.WithApplicationOwners(ownerObjectIds).WithServicePrincipalOwners(ownerObjectIds);
+    }
+
+    /// <summary>
+    /// Adds explicit owners, supplied by parameters, to both the application registration and the service principal created by Aspire.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="ownerObjectIds">Parameters whose values are the object IDs of the users or service principals to add as owners.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    public static IResourceBuilder<EntraIdApplicationResource> WithOwners(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        params IResourceBuilder<ParameterResource>[] ownerObjectIds)
+    {
+        return builder.WithApplicationOwners(ownerObjectIds).WithServicePrincipalOwners(ownerObjectIds);
+    }
+
+    private static void AddOwners(List<object> target, string[] ownerObjectIds, string paramName)
+    {
+        ArgumentNullException.ThrowIfNull(ownerObjectIds, paramName);
+        // Normalize to the canonical lowercase "D" format first: Guid.TryParse also accepts compact ("N") and
+        // braced ("B") spellings, which Graph would treat as the same owner.
+        var normalized = new List<string>(ownerObjectIds.Length);
+        foreach (var id in ownerObjectIds)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(id, paramName);
+            if (!Guid.TryParse(id, out var guid))
+            {
+                throw new ArgumentException($"'{id}' is not a valid directory object ID. Owner IDs must be GUIDs.", paramName);
+            }
+
+            normalized.Add(guid.ToString("D"));
+        }
+
+        // Duplicate owner IDs would be rejected by Microsoft Graph, so skip ones that are already present.
+        foreach (var id in normalized)
+        {
+            if (!target.Any(o => o is string s && string.Equals(s, id, StringComparison.Ordinal)))
+            {
+                target.Add(id);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Enables ID-token issuance through implicit and hybrid flows for a registration created by Aspire.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> is null.</exception>
+    /// <remarks>
+    /// <para>
+    /// ID-token issuance through implicit and hybrid flows is disabled by default. Enable it when the application's
+    /// OpenID Connect sign-in flow requests an ID token directly from the authorization endpoint. This does not enable
+    /// implicit access-token issuance and is not required for authorization-code-only flows.
+    /// For new production applications, prefer authorization code flow with PKCE.
+    /// </para>
+    /// <para>
+    /// This setting only affects registrations created by Aspire. Existing registrations are not modified;
+    /// enable "ID tokens (used for implicit and hybrid flows)" in their Authentication settings instead.
+    /// </para>
+    /// <example>
+    /// <code lang="csharp">
+    /// var entraWeb = builder.AddEntraIdApplication("entra-web")
+    ///     .WithIdTokenIssuance()
+    ///     .WithRedirectUris("https://localhost:7123/signin-oidc");
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<EntraIdApplicationResource> WithIdTokenIssuance(
+        this IResourceBuilder<EntraIdApplicationResource> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.Resource.EnableIdTokenIssuance = true;
         return builder;
     }
 
@@ -686,8 +1308,7 @@ public static class EntraIdResourceExtensions
     /// </code>
     /// <example>
     /// <code lang="csharp">
-    /// var entraApi = builder.AddEntraIdApplication("entra-api")
-    ///     .AsExistingApplication(
+    /// var entraApi = builder.AddExistingEntraApplication("entra-api",
     ///         tenantId: tenantId,
     ///         clientId: clientId);
     ///
@@ -746,7 +1367,7 @@ public static class EntraIdResourceExtensions
             // be used when the app acquires tokens as itself, so Microsoft.Identity.Web falls back to AppHomeTenantId for
             // those requests and fails when it isn't set. See
             // https://learn.microsoft.com/entra/identity-platform/howto-convert-app-to-be-multi-tenant
-            object? homeTenantId = (object?)entra.TenantIdParameter ?? entra.TenantId;
+            var homeTenantId = entra.HomeTenantIdValue;
             if (entra.SignInTenantKeyword is { } signInTenantKeyword)
             {
                 environmentVariables[$"{keyPrefix}TenantId"] = signInTenantKeyword;
@@ -761,13 +1382,9 @@ public static class EntraIdResourceExtensions
                 environmentVariables[$"{keyPrefix}TenantId"] = homeTenantId;
             }
 
-            if (entra.ClientIdParameter is not null)
+            if (entra.ClientIdValue is { } clientId)
             {
-                environmentVariables[$"{keyPrefix}ClientId"] = entra.ClientIdParameter;
-            }
-            else if (entra.ClientId is not null)
-            {
-                environmentVariables[$"{keyPrefix}ClientId"] = entra.ClientId;
+                environmentVariables[$"{keyPrefix}ClientId"] = clientId;
             }
 
             // Send the x5c claim only when explicitly requested. It enables certificate rollover but

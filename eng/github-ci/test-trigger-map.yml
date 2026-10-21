@@ -118,6 +118,10 @@ ignore:
   - eng/generate-catalog.ps1                            # Windows/AzDO template catalog generation; no GH-CI consumer
   - eng/scripts/update-aspire-skills-bundle.ps1         # schedule/dispatch-only bundle updater
   - eng/scripts/verify-aspire-skills-bundle.ps1         # exercised by its dedicated PR workflow
+  # Native AOT/socket/generated-SDK/workload smokes run in the independently path-triggered
+  # native-hosting-validation.yml lane, not a tests.yml run_* target.
+  - .github/workflows/native-hosting-validation.yml
+  - playground/NativeIntegrations/TypeScript/**        # executed by the dedicated native hosting workflow
   # Schedule/dispatch-only workflows that regenerate API/ATS surface baselines; no PR-CI path.
   - .github/workflows/generate-api-diffs.yml
   - .github/workflows/generate-ats-diffs.yml
@@ -131,11 +135,18 @@ ignore:
 # only. targets may be test: / job: / a GROUP name / ALL.
 path_rules:
   - paths:
+      - eng/scripts/test-native-hosting.sh
+    targets: [test:Infrastructure.Tests]
+    reason: native hosting harness coverage is guarded by infrastructure tests and executed by its dedicated PR workflow
+
+  - paths:
       - Aspire.slnx
     targets: [ALL]
     reason: solution membership can add an existing project without touching that project's files, so run everything
 
   - paths:
+      - .config/dotnet-tools.json
+      - .mcp.json
       - src/Aspire.Dashboard/Components/Controls/TerminalView.razor.js
       - src/Aspire.Dashboard/Components/Controls/TerminalTitle.razor.js
       - src/Aspire.Dashboard/Components/Layout/TerminalDock.razor.js
@@ -565,9 +576,10 @@ path_rules:
       - tools/SelectTests/**
       - eng/github-ci/test-trigger-map.yml
       - eng/github-ci/ci-skip-entirely-patterns.txt
+      - eng/github-ci/resolve-comparison-base.sh
       - .gitignore
     targets: [test:Infrastructure.Tests]
-    reason: Infrastructure.Tests validates the selector map, prefilter, and root ignore behavior
+    reason: Infrastructure.Tests validates selector inputs and comparison history
   - paths:
       - .github/workflows/**
       - .github/actionlint.yaml
@@ -615,6 +627,9 @@ affected_project_rules:
   - projects: [CreateLayout]
     targets: [CLI_BUNDLE]
     reason: CreateLayout assembles the CLI bundle consumed by these tests and jobs
+  - projects: [Aspire.Hosting.Native.Server]
+    targets: [CLI_BUNDLE]
+    reason: AppHost Server v2 is embedded in the CLI bundle
   - projects: [Aspire.TerminalHost]
     targets: [CLI_BUNDLE]
     reason: standalone terminal host is a runtime component of the CLI bundle
