@@ -907,8 +907,9 @@ internal sealed unsafe partial class TrayApplication
                     return 0;
                 }
                 break;
-            case NativeMethods.WmActivate when (wParam & 0xFFFF) == 0:
-                // WA_INACTIVE: clicking anywhere else closes the flyout, like a menu.
+            case NativeMethods.WmActivate when (wParam & 0xFFFF) == 0 && _previewExport is null:
+                // WA_INACTIVE: clicking anywhere else closes the flyout, like a menu. A pending
+                // smoke preview capture keeps it open: the console that launched it takes focus back.
                 HidePanel();
                 return 0;
             case NativeMethods.WmDpiChanged when _panelVisible:
