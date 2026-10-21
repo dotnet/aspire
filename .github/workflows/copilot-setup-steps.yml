@@ -27,7 +27,7 @@ jobs:
 
       # Install gh aw to enable GitHub Copilot Agent integration
       - name: Install gh-aw extension
-        uses: github/gh-aw-actions/setup-cli@f3b81cdb3070066a47faa9bdf440f4f1dc78b1f0 # v0.89.17
+        uses: github/gh-aw-actions/setup-cli@1fb6c864926ff05221250363842509bb10046563 # v0.91.14
         with:
           version: v0.89.17
 
