@@ -1,0 +1,9 @@
+{
+  "author": "mitchdenny",
+  "comment": "Registry-qualified images in published Kubernetes charts",
+  "mergedAt": "2026-10-21T05:09:13Z",
+  "number": 21121,
+  "runDate": "2026-10-21T06:05:00Z",
+  "status": "included",
+  "title": "Honor container registries in published Kubernetes charts"
+}

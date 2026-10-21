@@ -1,0 +1,19 @@
+{
+  "area": "CLI",
+  "areaEmoji": "💻",
+  "backport": false,
+  "breaking": false,
+  "changeType": "New features",
+  "communityContributors": [],
+  "description": "The CLI bundle now includes an opt-in AppHost Server v2 that separates application authoring from execution, with a long-lived server owning the application graph, pipeline scheduling, and workload lifetimes for `aspire run`, `start`, and `deploy`.",
+  "docsPrs": [],
+  "docsRequired": true,
+  "emoji": "🧬",
+  "firstMergedAt": "2026-10-21T05:56:21Z",
+  "lastMergedAt": "2026-10-21T05:56:21Z",
+  "name": "Opt-in AppHost Server v2 in the CLI bundle",
+  "owner": "davidfowl",
+  "prs": [
+    20897
+  ]
+}

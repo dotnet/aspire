@@ -1,0 +1,19 @@
+{
+  "area": "AppHost",
+  "areaEmoji": "🏠",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Improvements",
+  "communityContributors": [],
+  "description": "Published Kubernetes charts now default buildable images to the configured container registry, repository prefix, and custom push name/tags instead of `<resource>:latest`, so deploying charts directly with Helm pulls the intended image.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "📦",
+  "firstMergedAt": "2026-10-21T05:09:13Z",
+  "lastMergedAt": "2026-10-21T05:09:13Z",
+  "name": "Registry-qualified images in published Kubernetes charts",
+  "owner": "mitchdenny",
+  "prs": [
+    21121
+  ]
+}

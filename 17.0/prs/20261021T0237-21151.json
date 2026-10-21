@@ -1,0 +1,9 @@
+{
+  "author": "eerhardt",
+  "comment": "Extends Entra redirect URI entry with endpoint-derived URIs",
+  "mergedAt": "2026-10-21T02:37:04Z",
+  "number": 21151,
+  "runDate": "2026-10-21T06:05:00Z",
+  "status": "included",
+  "title": "Derive Entra redirect URIs from resource endpoints"
+}
