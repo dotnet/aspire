@@ -458,11 +458,6 @@ For more information about using AI agents with the dashboard, including setting
         <target state="needs-review-translation">转到“帮助”</target>
         <note />
       </trans-unit>
-      <trans-unit id="HelpDialogGoToHome">
-        <source>Home</source>
-        <target state="new">Home</target>
-        <note />
-      </trans-unit>
       <trans-unit id="HelpDialogGoToMetrics">
         <source>Metrics</source>
         <target state="needs-review-translation">转到“指标”</target>
@@ -683,6 +678,21 @@ For more information about using AI agents with the dashboard, including setting
         <target state="translated">运行时: {0}</target>
         <note>{0} is the .NET runtime version</note>
       </trans-unit>
+      <trans-unit id="SettingsDialogGroupOverview">
+        <source>Overview of several resources</source>
+        <target state="new">Overview of several resources</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogGroupOverviewResources">
+        <source>Resource list</source>
+        <target state="new">Resource list</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogGroupOverviewSummary">
+        <source>Summary</source>
+        <target state="new">Summary</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SettingsDialogLanguage">
         <source>Language</source>
         <target state="translated">语言</target>
@@ -696,6 +706,36 @@ For more information about using AI agents with the dashboard, including setting
       <trans-unit id="SettingsDialogLightTheme">
         <source>Light</source>
         <target state="translated">浅色</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogRecordingsStyle">
+        <source>Recordings</source>
+        <target state="new">Recordings</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogRecordingsStyleMenu">
+        <source>Live run menu</source>
+        <target state="new">Live run menu</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogRecordingsStylePanel">
+        <source>Recordings panel</source>
+        <target state="new">Recordings panel</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogResourceListDensity">
+        <source>Resource list density</source>
+        <target state="new">Resource list density</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogResourceListDensityComfortable">
+        <source>Comfortable</source>
+        <target state="new">Comfortable</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogResourceListDensityCompact">
+        <source>Compact</source>
+        <target state="new">Compact</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogSystemTheme">

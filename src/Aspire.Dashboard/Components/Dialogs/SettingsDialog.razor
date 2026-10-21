@@ -43,6 +43,36 @@
             </FluentRadioGroup>
         </div>
 
+        <div class="input-container">
+            <span class="setting-title aspire-field-label">@Loc[nameof(Dialogs.SettingsDialogResourceListDensity)]</span>
+            <IconToggleGroup TValue="ResourceListDensity"
+                             Label="@Loc[nameof(Dialogs.SettingsDialogResourceListDensity)]"
+                             Options="@_densityOptions"
+                             Value="@ViewPreferences.Density"
+                             ValueChanged="@(density => ViewPreferences.SetDensityAsync(density))" />
+        </div>
+
+        <div class="input-container">
+            <span class="setting-title aspire-field-label">@Loc[nameof(Dialogs.SettingsDialogGroupOverview)]</span>
+            <IconToggleGroup TValue="GroupOverview"
+                             Label="@Loc[nameof(Dialogs.SettingsDialogGroupOverview)]"
+                             Options="@_groupOverviewOptions"
+                             Value="@ViewPreferences.GroupOverview"
+                             ValueChanged="@(groupOverview => ViewPreferences.SetGroupOverviewAsync(groupOverview))" />
+        </div>
+
+        @if (RunStore.SupportsRunSelection)
+        {
+            <div class="input-container">
+                <span class="setting-title aspire-field-label">@Loc[nameof(Dialogs.SettingsDialogRecordingsStyle)]</span>
+                <IconToggleGroup TValue="RecordingsStyle"
+                                 Label="@Loc[nameof(Dialogs.SettingsDialogRecordingsStyle)]"
+                                 Options="@_recordingsStyleOptions"
+                                 Value="@ViewPreferences.RecordingsStyle"
+                                 ValueChanged="@(recordingsStyle => ViewPreferences.SetRecordingsStyleAsync(recordingsStyle))" />
+            </div>
+        }
+
         <div>
             <span class="setting-title aspire-field-label">@Loc[nameof(Dialogs.SettingsDialogDashboardLogsAndTelemetry)]</span>
             <div>

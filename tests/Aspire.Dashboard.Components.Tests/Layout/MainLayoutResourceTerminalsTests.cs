@@ -79,7 +79,7 @@ public partial class MainLayoutTests
         await disposed.Task.WaitAsync(DefaultWaitTimeout);
         Assert.False(HasTerminals());
         Assert.False(shortcuts.IsShortcutAvailable(AspireKeyboardShortcut.GoToTerminals));
-        Assert.Empty(cut.FindComponents<ResourceTerminalsAvailabilityProvider>());
+        Assert.Empty(cut.FindComponents<NavigationAvailabilityProvider>());
         await cut.InvokeAsync(() => cut.Instance.SwitchDashboardRunAsync(null));
         cut.WaitForAssertion(() =>
         {

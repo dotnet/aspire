@@ -44,9 +44,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
     private readonly HashSet<string> _collapsedGroups = new(StringComparer.OrdinalIgnoreCase);
     private ResourceGrouping _grouping;
     private readonly CancellationTokenSource _cts = new();
-    private readonly List<MenuButtonItem> _resourceMenuItems = [];
     private readonly List<MenuButtonItem> _paneMenuItems = [];
-    private readonly List<CommandViewModel> _highlightedCommands = [];
     private readonly ResourcesPage.ResourcesViewModel _filter = new() { SelectedViewKind = ResourcesPage.ResourceViewKind.Table };
 
     private Task? _resourceSubscriptionTask;
@@ -108,6 +106,9 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
 
     [Inject]
     public required ResourcePaneState PaneState { get; init; }
+
+    [Inject]
+    public required DashboardViewPreferences ViewPreferences { get; init; }
 
     [Inject]
     public required IStringLocalizer<Resources.Layout> Loc { get; init; }
@@ -232,6 +233,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
         {
             await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.ResourcePaneGrouping, _grouping.ToString());
         }
+        await ViewPreferences.EnsureLoadedAsync();
         await ApplyPaneModeFromLocationAsync(_lastLocation);
         if (cancellationToken.IsCancellationRequested)
         {
@@ -239,6 +241,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
         }
 
         TagStore.Changed += OnTagsChanged;
+        ViewPreferences.Changed += OnViewPreferencesChanged;
         OrderStore.Changed += OnOrderChanged;
 
         var showHiddenResources = await SessionStorage.GetAsync<bool>(BrowserStorageKeys.ResourcesShowHiddenResources);
@@ -648,7 +651,6 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
             PaneState.SetMode(ResourcePaneMode.Telemetry);
         }
 
-        UpdateResourceMenuItems();
     }
 
     /// <summary>
@@ -704,20 +706,12 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
         List<string> resourceNames;
         try
         {
+            // Entering the resources view restores the selection made earlier in this browser session. Without one,
+            // such as when the dashboard opens, all resources stay selected and the overview summarizes the app.
             var lastSelected = await SessionStorage.GetAsync<List<string>>(BrowserStorageKeys.LastSelectedResources);
-            if (lastSelected is { Success: true, Value: { } names })
-            {
-                // An empty list means the user cleared the selection, so the overview asks them to select resources.
-                resourceNames = names.Where(IsKnownResourceName).ToList();
-                if (names.Count > 0 && resourceNames.Count == 0 && GetPaneRows().FirstOrDefault() is { } fallbackRow)
-                {
-                    resourceNames.Add(GetResourceName(fallbackRow.Resource));
-                }
-            }
-            else
-            {
-                resourceNames = GetPaneRows().FirstOrDefault() is { } firstRow ? [GetResourceName(firstRow.Resource)] : [];
-            }
+            resourceNames = lastSelected is { Success: true, Value: { } names }
+                ? names.Where(IsKnownResourceName).ToList()
+                : [];
         }
         catch (JSDisconnectedException)
         {
@@ -946,43 +940,16 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
         StateHasChanged();
     });
 
-    private List<StateCount> GetStateCounts()
-    {
-        return _resourceByName.Values
-            .Where(r => !r.IsParameter && !r.IsResourceHidden(_filter.ShowHiddenResources))
-            .GroupBy(r => r.State ?? string.Empty, StringComparers.ResourceState)
-            .Select(g => new StateCount(g.Key, g.Count(), g.First()))
-            .OrderByDescending(s => s.Count)
-            .ThenBy(s => s.State, StringComparers.ResourceState)
-            .ToList();
-    }
-
-    private bool IsStateChipSelected(string state)
-    {
-        var visibleStates = _filter.ResourceStatesToVisibility.Where(kvp => kvp.Value).Select(kvp => kvp.Key).ToList();
-        return visibleStates.Count == 1 && string.Equals(visibleStates[0], state, StringComparisons.ResourceState);
-    }
-
-    private void ToggleStateChip(string state)
-    {
-        // Clicking a state chip shows only that state. Clicking the selected chip again shows every state.
-        var showOnlyThisState = !IsStateChipSelected(state);
-        foreach (var key in _filter.ResourceStatesToVisibility.Keys)
-        {
-            _filter.ResourceStatesToVisibility[key] = !showOnlyThisState || string.Equals(key, state, StringComparisons.ResourceState);
-        }
-    }
-
     private List<MenuButtonItem> GetFilterMenuItems()
     {
         var items = new List<MenuButtonItem>();
-        AddFilterGroup(items, "types", ResourcesLoc[nameof(Dashboard.Resources.Resources.ResourcesResourceTypesHeader)], _filter.ResourceTypesToVisibility);
-        AddFilterGroup(items, "states", ResourcesLoc[nameof(Dashboard.Resources.Resources.ResourcesResourceStatesHeader)], _filter.ResourceStatesToVisibility);
-        AddFilterGroup(items, "health", ResourcesLoc[nameof(Dashboard.Resources.Resources.ResourcesDetailsHealthStateProperty)], _filter.ResourceHealthStatusesToVisibility);
+        AddFilterGroup(items, "types", ResourcesLoc[nameof(Dashboard.Resources.Resources.ResourcesResourceTypesHeader)], _filter.ResourceTypesToVisibility, r => r.ResourceType);
+        AddFilterGroup(items, "states", ResourcesLoc[nameof(Dashboard.Resources.Resources.ResourcesResourceStatesHeader)], _filter.ResourceStatesToVisibility, r => r.State ?? string.Empty);
+        AddFilterGroup(items, "health", ResourcesLoc[nameof(Dashboard.Resources.Resources.ResourcesDetailsHealthStateProperty)], _filter.ResourceHealthStatusesToVisibility, r => r.HealthStatus?.Humanize() ?? string.Empty);
         return items;
     }
 
-    private void AddFilterGroup(List<MenuButtonItem> items, string groupId, string header, ConcurrentDictionary<string, bool> values)
+    private void AddFilterGroup(List<MenuButtonItem> items, string groupId, string header, ConcurrentDictionary<string, bool> values, Func<ResourceViewModel, string> getKey)
     {
         if (items.Count > 0)
         {
@@ -1004,6 +971,18 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
         // OrderBy doesn't use thread safe APIs on ConcurrentDictionary. Call ToArray first.
         var sortedValues = values.ToArray().OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase).ToList();
 
+        // Each value shows how many resources it matches, whatever the other filters, so hiding a value doesn't
+        // change the counts. The keys are those the filter itself uses, so the counts use the dictionary's comparer.
+        var counts = new Dictionary<string, int>(values.Comparer);
+        foreach (var resource in _resourceByName.Values)
+        {
+            if (!resource.IsParameter && !resource.IsResourceHidden(_filter.ShowHiddenResources))
+            {
+                var key = getKey(resource);
+                counts[key] = counts.GetValueOrDefault(key) + 1;
+            }
+        }
+
         // A menu checkbox can't show an indeterminate state, so "All" is checked only when every value
         // is visible. Checking it shows every value; unchecking it hides every value.
         items.Add(CreateFilterMenuItem(
@@ -1011,6 +990,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
             renderKey: $"{groupId}-all",
             text: ControlsStringsLoc[nameof(ControlsStrings.LabelAll)],
             isChecked: sortedValues.All(pair => pair.Value),
+            count: null,
             onCheckedChanged: isChecked =>
             {
                 foreach (var key in values.Keys)
@@ -1027,11 +1007,12 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
                 renderKey: $"{groupId}:{key}",
                 text: string.IsNullOrEmpty(key) ? ResourcesLoc[nameof(Dashboard.Resources.Resources.ResourceFilterOptionEmpty)] : key,
                 isChecked: isVisible,
-                onCheckedChanged: isChecked => values[key] = isChecked));
+                onCheckedChanged: isChecked => values[key] = isChecked,
+                count: counts.GetValueOrDefault(key)));
         }
     }
 
-    private MenuButtonItem CreateFilterMenuItem(string id, string renderKey, string text, bool isChecked, Action<bool> onCheckedChanged)
+    private MenuButtonItem CreateFilterMenuItem(string id, string renderKey, string text, bool isChecked, Action<bool> onCheckedChanged, int? count)
     {
         return new MenuButtonItem
         {
@@ -1042,6 +1023,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
             Icon = s_checkmarkIcon,
             Role = MenuItemRole.Checkbox,
             Checked = isChecked,
+            Count = count,
             OnCheckedChanged = value =>
             {
                 onCheckedChanged(value);
@@ -1209,22 +1191,23 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
             }));
     }
 
-    private void UpdateResourceMenuItems()
+    // The density is set in the settings panel, which isn't part of this layout.
+    private void OnViewPreferencesChanged() => InvokeAsync(StateHasChanged);
+
+    private bool IsCompact => ViewPreferences.Density == ResourceListDensity.Compact;
+
+    private static IEnumerable<CommandViewModel> GetHighlightedCommands(ResourceViewModel resource) => resource.Commands
+        .Where(c => c.IsHighlighted && c.State != CommandViewModelState.Hidden)
+        .Take(DashboardUIHelpers.MaxHighlightedCommands);
+
+    private bool IsCommandDisabled(ResourceViewModel resource, CommandViewModel command) =>
+        DashboardClient.IsReadOnly || command.State == CommandViewModelState.Disabled || DashboardCommandExecutor.IsExecuting(resource.Name, command.Name);
+
+    private List<MenuButtonItem> GetResourceMenuItems(ResourceViewModel resource)
     {
-        _highlightedCommands.Clear();
-        _resourceMenuItems.Clear();
-
-        if (SelectedResource is not { } resource)
-        {
-            return;
-        }
-
-        _highlightedCommands.AddRange(resource.Commands
-            .Where(c => c.IsHighlighted && c.State != CommandViewModelState.Hidden)
-            .Take(DashboardUIHelpers.MaxHighlightedCommands));
-
+        var items = new List<MenuButtonItem>();
         ResourceMenuBuilder.AddMenuItems(
-            _resourceMenuItems,
+            items,
             resource,
             _resourceByName,
             onViewDetails: EventCallback.Empty,
@@ -1234,6 +1217,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
             showTerminalItem: true,
             showConsoleLogsItem: false,
             showUrls: false);
+        return items;
     }
 
     private Task ExecuteResourceCommandAsync(ResourceViewModel resource, CommandViewModel command)
@@ -1700,6 +1684,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
         _isDisposed = true;
         _cts.Cancel();
         TagStore.Changed -= OnTagsChanged;
+        ViewPreferences.Changed -= OnViewPreferencesChanged;
         OrderStore.Changed -= OnOrderChanged;
         _logsSubscription?.Dispose();
         _telemetryResourcesSubscription?.Dispose();
@@ -1748,8 +1733,6 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
     }
 
     private sealed record ResourceGroup(string? Value, List<ResourceViewModel> Resources);
-
-    private sealed record StateCount(string State, int Count, ResourceViewModel Example);
 
     private sealed record TabItem(ResourceTab Tab, string Text, Icon Icon, bool IsVisible, string? Href, int ErrorCount);
 }

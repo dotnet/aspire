@@ -21,7 +21,7 @@ public class HelpDialogTests : DashboardTestContext
     {
         FluentUISetupHelpers.SetupDialogInfrastructure(this);
         var shortcutManager = Services.GetRequiredService<ShortcutManager>();
-        shortcutManager.AddGlobalKeydownListener(new TestGlobalKeydownListener(AspireKeyboardShortcut.GoToHome));
+        shortcutManager.AddGlobalKeydownListener(new TestGlobalKeydownListener(AspireKeyboardShortcut.GoToResources));
         if (expectTerminalsShortcut)
         {
             shortcutManager.AddGlobalKeydownListener(new TestGlobalKeydownListener(AspireKeyboardShortcut.GoToTerminals));
@@ -31,8 +31,8 @@ public class HelpDialogTests : DashboardTestContext
 
         var heading = Assert.Single(cut.FindAll("h6"), h => h.TextContent == Resources.Dialogs.HelpDialogCategoryPageNavigation);
         var navigationShortcuts = cut.Find($"dl[aria-labelledby='{heading.Id}']");
-        List<string> expectedDescriptions = [Resources.Dialogs.HelpDialogGoToHome];
-        List<string> expectedKeys = ["h"];
+        List<string> expectedDescriptions = [Resources.Dialogs.HelpDialogGoToResources];
+        List<string> expectedKeys = ["r"];
         if (expectTerminalsShortcut)
         {
             expectedDescriptions.Add(Resources.Dialogs.HelpDialogGoToTerminals);
@@ -117,7 +117,6 @@ public class HelpDialogTests : DashboardTestContext
     {
         FluentUISetupHelpers.SetupDialogInfrastructure(this);
         Services.GetRequiredService<ShortcutManager>().AddGlobalKeydownListener(new TestGlobalKeydownListener(
-            AspireKeyboardShortcut.GoToHome,
             AspireKeyboardShortcut.GoToResources,
             AspireKeyboardShortcut.GoToParameters,
             AspireKeyboardShortcut.GoToGraph,
@@ -137,7 +136,6 @@ public class HelpDialogTests : DashboardTestContext
             categories.Select(category => category.QuerySelector("h6")!.TextContent));
         Assert.Equal(
             [
-                (Resources.Dialogs.HelpDialogGoToHome, "h"),
                 (Resources.Dialogs.HelpDialogGoToResources, "r"),
                 (Resources.Dialogs.HelpDialogGoToParameters, "p"),
                 (Resources.Dialogs.HelpDialogGoToGraph, "g"),

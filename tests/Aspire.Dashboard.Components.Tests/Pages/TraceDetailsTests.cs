@@ -37,7 +37,7 @@ public partial class TraceDetailsTests : DashboardTestContext
     }
 
     [Fact]
-    public async Task Render_ManySpanLogs_UsesSharedTooltipsAndPreservesLogMetadata()
+    public async Task Render_ManySpanLogs_RendersButtonsWithoutTooltipText()
     {
         SetupTraceDetailsServices();
         var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
@@ -75,10 +75,12 @@ public partial class TraceDetailsTests : DashboardTestContext
         {
             var buttons = cut.FindAll(".span-log-entry-button");
             Assert.Equal(501, buttons.Count);
+            // Span logs can number in the thousands, so their buttons carry no tooltip text. The log's details open
+            // on click instead.
             Assert.All(buttons, button =>
             {
-                Assert.StartsWith("Test event - test-scope\nLevel: Information\nTimestamp: ", button.GetAttribute("data-tooltip"));
-                Assert.EndsWith("\nMessage: Test message", button.GetAttribute("data-tooltip"));
+                Assert.Null(button.GetAttribute("data-tooltip"));
+                Assert.Equal("Log entry details", button.GetAttribute("aria-label"));
             });
             // Only the bounded trace header keeps its rich Fluent tooltip.
             Assert.Single(cut.FindComponents<FluentTooltip>());

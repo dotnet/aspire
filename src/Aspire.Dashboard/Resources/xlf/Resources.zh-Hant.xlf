@@ -62,11 +62,6 @@
         <target state="new">No errors logged</target>
         <note />
       </trans-unit>
-      <trans-unit id="HomePageTitle">
-        <source>Home</source>
-        <target state="new">Home</target>
-        <note />
-      </trans-unit>
       <trans-unit id="HomePendingLabel">
         <source>Pending</source>
         <target state="new">Pending</target>
@@ -80,6 +75,16 @@
       <trans-unit id="HomeRecentFailedTracesTitle">
         <source>Recent failed traces</source>
         <target state="new">Recent failed traces</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HomeResourceActions">
+        <source>Actions for {0}</source>
+        <target state="new">Actions for {0}</target>
+        <note>{0} is the resource name.</note>
+      </trans-unit>
+      <trans-unit id="HomeResourceColumn">
+        <source>Resource</source>
+        <target state="new">Resource</target>
         <note />
       </trans-unit>
       <trans-unit id="HomeResourceStatesLabel">
@@ -342,6 +347,11 @@
         <target state="new">No traces</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceOverviewNoVolumes">
+        <source>No volumes</source>
+        <target state="new">No volumes</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceOverviewNotFound">
         <source>Resource '{0}' was not found.</source>
         <target state="new">Resource '{0}' was not found.</target>
@@ -370,11 +380,6 @@
       <trans-unit id="ResourceOverviewRelationshipsTitle">
         <source>Relationships</source>
         <target state="new">Relationships</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourceOverviewSelectionSummary">
-        <source>Summary of the selected resources</source>
-        <target state="new">Summary of the selected resources</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceOverviewShowAllEnvironmentVariables">

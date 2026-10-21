@@ -1,0 +1,49 @@
+.icon-toggle-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.icon-toggle-buttons {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid var(--colorNeutralStroke1);
+    border-radius: 8px;
+    background: var(--colorNeutralBackground2);
+}
+
+.icon-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--colorNeutralForeground2);
+    cursor: pointer;
+}
+
+.icon-toggle:hover {
+    background: var(--colorNeutralBackground1Hover);
+    color: var(--colorNeutralForeground1);
+}
+
+.icon-toggle.selected {
+    background: var(--colorNeutralBackground1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .15);
+    color: var(--colorBrandForeground1);
+}
+
+.icon-toggle:focus-visible {
+    outline: 2px solid var(--colorStrokeFocus2);
+    outline-offset: 1px;
+}
+
+.icon-toggle-current {
+    color: var(--colorNeutralForeground2);
+    font-size: var(--fontSizeBase200);
+}

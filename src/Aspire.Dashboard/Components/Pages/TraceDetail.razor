@@ -129,7 +129,7 @@
                                                     ItemKey="@(r => r.Span.SpanId)"
                                                     OnRowClick="@(r => r.ExecuteOnDefault(d => OnShowPropertiesAsync(d, focusElementId: ScrollContainerId)))">
                                     <ChildContent>
-                                        <AspireTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailNameHeader)]" Tooltip="true" TooltipText="@(c => c.GetTooltip(_resources))" Class="expand-col">
+                                        <AspireTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailNameHeader)]" Class="expand-col">
                                             @{
                                                 var isServerOrConsumer = context.Span.Kind == OtlpSpanKind.Server || context.Span.Kind == OtlpSpanKind.Consumer;
                                                 // Indent the span name based on the depth of the span.
@@ -220,7 +220,7 @@
                                                 </span>
                                             </div>
                                         </AspireTemplateColumn>
-                                        <AspireTemplateColumn ColumnId="@ResourceColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailResourceHeader)]" Tooltip="true" TooltipText="@(c => GetResourceName(c.Span.Source))" Class="expand-col">
+                                        <AspireTemplateColumn ColumnId="@ResourceColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailResourceHeader)]" Class="expand-col">
                                             <div class="resource-name">
                                                 <FluentHighlighter HighlightedText="@PageViewModel.Filter" Text="@GetResourceName(context.Span.Source)" />
                                             </div>
@@ -264,7 +264,6 @@
                                                                 var buttonColor = item.LogEntry.IsError ? "var(--error)" : spanColor;
 
                                                                 <button id="@buttonId"
-                                                                        data-tooltip="@($"{eventName} - {item.LogEntry.ScopeName}\n{StructuredLogsLoc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsLevelColumnHeader)]}: {item.LogEntry.Severity}\n{StructuredLogsLoc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader)]}: {FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, item.LogEntry.TimeStamp, MillisecondsDisplay.Truncated)}\n{StructuredLogsLoc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageColumnHeader)]}: {FormatHelpers.TruncateText(item.LogEntry.Message, maxLength: 150)}")"
                                                                         aria-label="@StructuredLogsLoc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEntryDetails)]"
                                                                         class="@($"span-log-entry-button {(isSelected ? "span-log-entry-selected" : null)} {(item.LogEntry.IsError ? "span-log-entry-error" : null)}")"
                                                                         data-span-color="@spanColor"

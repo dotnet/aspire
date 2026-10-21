@@ -22,7 +22,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
     private bool _runSelectionChanged;
     private bool _isSwitchingRuns;
-    private bool _hasResourceTerminals;
+    private NavigationAvailability _navigationAvailability = NavigationAvailability.Default;
     // Fluent v5 has no API to notify the provider after mutating an existing toast's options. This value is
     // rendered as an additional provider attribute so changing it forces FluentToastProvider to read them again.
     private int _toastProviderUpdateVersion;
@@ -104,6 +104,12 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     public required ILogger<MainLayout> Logger { get; init; }
 
     [Inject]
+    public required DashboardViewPreferences ViewPreferences { get; init; }
+
+    // The "Recordings" setting picks between the recordings icon and panel, and the "Live run" menu.
+    private bool UseRunMenu => ViewPreferences.RecordingsStyle == RecordingsStyle.Menu;
+
+    [Inject]
     public required Aspire.Dashboard.Model.INotificationService NotificationService { get; init; }
 
     [CascadingParameter]
@@ -113,6 +119,9 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
     protected override async Task OnInitializedAsync()
     {
+        ViewPreferences.Changed += OnViewPreferencesChanged;
+        await ViewPreferences.EnsureLoadedAsync();
+
         if (RunStore.SupportsRunSelection)
         {
             var selectedRunResult = await SessionStorage.GetAsync<string>(BrowserStorageKeys.SelectedDashboardRunId);
@@ -316,7 +325,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         }
 
         _isSwitchingRuns = true;
-        _hasResourceTerminals = false;
+        _navigationAvailability = NavigationAvailability.Default;
         await InvokeAsync(StateHasChanged);
 
         try
@@ -480,6 +489,22 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         _openPageDialog = await DialogService.ShowPanelAsync<NotificationsDialog>(parameters).ConfigureAwait(true);
     }
 
+    // The logo and the app name open the overview of all resources. Unlike the Resources entry of the rail, they don't
+    // restore the last selected resources, so the stored selection is cleared first. The links keep "/" as their
+    // address, so opening them in a new tab, which has no stored selection, shows the same view.
+    private async Task GoToAllResourcesAsync()
+    {
+        if (DashboardClient.IsEnabled)
+        {
+            await SessionStorage.SetAsync(BrowserStorageKeys.LastSelectedResources, new List<string>());
+            NavigationManager.NavigateTo(DashboardUrls.ResourceListUrl());
+        }
+        else
+        {
+            NavigationManager.NavigateTo(DashboardUrls.HomeUrl());
+        }
+    }
+
     private async Task LaunchRecordingsAsync()
     {
         var parameters = new DialogParameters
@@ -519,7 +544,6 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     {
         AspireKeyboardShortcut.GoToResources,
         AspireKeyboardShortcut.GoToConsoleLogs,
-        AspireKeyboardShortcut.GoToHome,
         AspireKeyboardShortcut.GoToParameters,
         AspireKeyboardShortcut.GoToExtensions
     };
@@ -538,7 +562,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             {
                 shortcuts.Add(AspireKeyboardShortcut.GoToGraph);
             }
-            if (_hasResourceTerminals)
+            if (_navigationAvailability.HasResourceTerminals)
             {
                 shortcuts.Add(AspireKeyboardShortcut.GoToTerminals);
             }
@@ -572,11 +596,8 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             case AspireKeyboardShortcut.GoToMetrics:
                 NavigationManager.NavigateTo(DashboardUrls.MetricsUrl());
                 break;
-            case AspireKeyboardShortcut.GoToTerminals when DashboardClient.IsEnabled && _hasResourceTerminals:
+            case AspireKeyboardShortcut.GoToTerminals when DashboardClient.IsEnabled && _navigationAvailability.HasResourceTerminals:
                 NavigationManager.NavigateTo(DashboardUrls.TerminalsUrl());
-                break;
-            case AspireKeyboardShortcut.GoToHome when DashboardClient.IsEnabled:
-                NavigationManager.NavigateTo(DashboardUrls.HomeUrl());
                 break;
             case AspireKeyboardShortcut.GoToParameters when DashboardClient.IsEnabled:
                 NavigationManager.NavigateTo(DashboardUrls.ParametersUrl());
@@ -610,9 +631,12 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         });
     }
 
+    private void OnViewPreferencesChanged() => _ = InvokeAsync(StateHasChanged);
+
     public async ValueTask DisposeAsync()
     {
         _isDisposing = true;
+        ViewPreferences.Changed -= OnViewPreferencesChanged;
 
         _shortcutManagerReference?.Dispose();
         _layoutReference?.Dispose();

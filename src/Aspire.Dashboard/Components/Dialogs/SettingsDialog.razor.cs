@@ -2,10 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Dialogs;
 
@@ -15,6 +17,9 @@ public partial class SettingsDialog : IDisposable
     private List<CultureInfo> _languageOptions = null!;
     private CultureInfo? _selectedUiCulture;
     private TimeFormat _timeFormat;
+    private IReadOnlyList<IconToggleOption<ResourceListDensity>> _densityOptions = [];
+    private IReadOnlyList<IconToggleOption<GroupOverview>> _groupOverviewOptions = [];
+    private IReadOnlyList<IconToggleOption<RecordingsStyle>> _recordingsStyleOptions = [];
 
     private IDisposable? _themeChangedSubscription;
 
@@ -36,6 +41,12 @@ public partial class SettingsDialog : IDisposable
     [Inject]
     public required ILocalStorage LocalStorage { get; init; }
 
+    [Inject]
+    public required DashboardViewPreferences ViewPreferences { get; init; }
+
+    [Inject]
+    public required IDashboardRunStore RunStore { get; init; }
+
     protected override void OnInitialized()
     {
         _languageOptions = GlobalizationHelpers.OrderedLocalizedCultures;
@@ -46,6 +57,21 @@ public partial class SettingsDialog : IDisposable
             CultureInfo.CurrentUICulture;
 
         _timeFormat = TimeProvider.ConfiguredTimeFormat;
+        _densityOptions =
+        [
+            new(ResourceListDensity.Comfortable, new Icons.Regular.Size20.AppsListDetail(), Loc[nameof(Dashboard.Resources.Dialogs.SettingsDialogResourceListDensityComfortable)]),
+            new(ResourceListDensity.Compact, new Icons.Regular.Size20.AppsList(), Loc[nameof(Dashboard.Resources.Dialogs.SettingsDialogResourceListDensityCompact)]),
+        ];
+        _groupOverviewOptions =
+        [
+            new(GroupOverview.Summary, new Icons.Regular.Size20.Board(), Loc[nameof(Dashboard.Resources.Dialogs.SettingsDialogGroupOverviewSummary)]),
+            new(GroupOverview.Resources, new Icons.Regular.Size20.TableSimple(), Loc[nameof(Dashboard.Resources.Dialogs.SettingsDialogGroupOverviewResources)]),
+        ];
+        _recordingsStyleOptions =
+        [
+            new(RecordingsStyle.Panel, new Icons.Regular.Size20.History(), Loc[nameof(Dashboard.Resources.Dialogs.SettingsDialogRecordingsStylePanel)]),
+            new(RecordingsStyle.Menu, new Icons.Regular.Size20.ChevronDownUp(), Loc[nameof(Dashboard.Resources.Dialogs.SettingsDialogRecordingsStyleMenu)]),
+        ];
 
         _currentSetting = ThemeManager.SelectedTheme ?? ThemeManager.ThemeSettingSystem;
 
@@ -113,6 +139,15 @@ public partial class SettingsDialog : IDisposable
         NavigationManager.NavigateTo(uri, forceLoad: true);
     }
 
+    protected override async Task OnInitializedAsync()
+    {
+        // The preferences are usually loaded by the views that apply them, but settings can open first.
+        ViewPreferences.Changed += OnViewPreferencesChanged;
+        await ViewPreferences.EnsureLoadedAsync();
+    }
+
+    private void OnViewPreferencesChanged() => InvokeAsync(StateHasChanged);
+
     private string FormatTimeFormatOption(TimeFormat format) => format switch
     {
         TimeFormat.System => Loc[nameof(Dashboard.Resources.Dialogs.SettingsDialogTimeFormatSystem)],
@@ -124,5 +159,6 @@ public partial class SettingsDialog : IDisposable
     public void Dispose()
     {
         _themeChangedSubscription?.Dispose();
+        ViewPreferences.Changed -= OnViewPreferencesChanged;
     }
 }

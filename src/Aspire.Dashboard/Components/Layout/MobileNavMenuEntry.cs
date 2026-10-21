@@ -11,4 +11,6 @@ internal record MobileNavMenuEntry(
     Func<Task> OnClick,
     Icon? Icon = null,
     Icon? ActiveIcon = null,
-    Regex? LinkMatchRegex = null);
+    Regex? LinkMatchRegex = null,
+    bool IsResourceSelectionPage = false,
+    string? DisabledText = null);

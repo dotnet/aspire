@@ -187,6 +187,78 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Select dashboard run.
+        /// </summary>
+        public static string DashboardRunMenuTitle {
+            get {
+                return ResourceManager.GetString("DashboardRunMenuTitle", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Select run: {0}.
+        /// </summary>
+        public static string DashboardRunMenuAccessibleLabel {
+            get {
+                return ResourceManager.GetString("DashboardRunMenuAccessibleLabel", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Live run.
+        /// </summary>
+        public static string DashboardRunMenuCurrent {
+            get {
+                return ResourceManager.GetString("DashboardRunMenuCurrent", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to This run can't be viewed because it was created by an incompatible version of the dashboard..
+        /// </summary>
+        public static string DashboardRunMenuIncompatibleTooltip {
+            get {
+                return ResourceManager.GetString("DashboardRunMenuIncompatibleTooltip", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Unpin run.
+        /// </summary>
+        public static string DashboardRunMenuUnpin {
+            get {
+                return ResourceManager.GetString("DashboardRunMenuUnpin", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Pin run.
+        /// </summary>
+        public static string DashboardRunMenuPin {
+            get {
+                return ResourceManager.GetString("DashboardRunMenuPin", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Learn about runs.
+        /// </summary>
+        public static string DashboardRunMenuHelp {
+            get {
+                return ResourceManager.GetString("DashboardRunMenuHelp", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Switch between the live run and read-only data from previous runs. Pin a run to keep it from being automatically deleted..
+        /// </summary>
+        public static string DashboardRunMenuHelpTooltip {
+            get {
+                return ResourceManager.GetString("DashboardRunMenuHelpTooltip", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Recordings.
         /// </summary>
         public static string DashboardRunSelectTitle {
@@ -394,15 +466,6 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Home.
-        /// </summary>
-        public static string NavMenuHomeTab {
-            get {
-                return ResourceManager.GetString("NavMenuHomeTab", resourceCulture);
-            }
-        }
-
-        /// <summary>
         ///   Looks up a localized string similar to Main navigation.
         /// </summary>
         public static string NavMenuLandmark {
@@ -417,6 +480,15 @@ namespace Aspire.Dashboard.Resources {
         public static string NavMenuMetricsTab {
             get {
                 return ResourceManager.GetString("NavMenuMetricsTab", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No parameters.
+        /// </summary>
+        public static string NavMenuNoParameters {
+            get {
+                return ResourceManager.GetString("NavMenuNoParameters", resourceCulture);
             }
         }
 
@@ -664,15 +736,6 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Filter by state.
-        /// </summary>
-        public static string ResourcePaneStateFilters {
-            get {
-                return ResourceManager.GetString("ResourcePaneStateFilters", resourceCulture);
-            }
-        }
-
-        /// <summary>
         ///   Looks up a localized string similar to Group resources.
         /// </summary>
         public static string ResourcePaneGrouping {
@@ -754,6 +817,15 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Actions for {0}.
+        /// </summary>
+        public static string ResourcePaneResourceActions {
+            get {
+                return ResourceManager.GetString("ResourcePaneResourceActions", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to {0} unviewed error logs.
         /// </summary>
         public static string ResourcePaneUnviewedErrors {
@@ -763,11 +835,11 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Overview.
+        ///   Looks up a localized string similar to Resource views.
         /// </summary>
-        public static string ResourceTabOverview {
+        public static string ResourceTabsLandmark {
             get {
-                return ResourceManager.GetString("ResourceTabOverview", resourceCulture);
+                return ResourceManager.GetString("ResourceTabsLandmark", resourceCulture);
             }
         }
 
@@ -781,11 +853,11 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Resource views.
+        ///   Looks up a localized string similar to Overview.
         /// </summary>
-        public static string ResourceTabsLandmark {
+        public static string ResourceTabOverview {
             get {
-                return ResourceManager.GetString("ResourceTabsLandmark", resourceCulture);
+                return ResourceManager.GetString("ResourceTabOverview", resourceCulture);
             }
         }
 
@@ -817,24 +889,6 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Drag to reorder. Use Alt+Up or Alt+Down to move among siblings..
-        /// </summary>
-        public static string ResourcePaneReorderHint {
-            get {
-                return ResourceManager.GetString("ResourcePaneReorderHint", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Reorder {0}.
-        /// </summary>
-        public static string ResourcePaneReorderResource {
-            get {
-                return ResourceManager.GetString("ResourcePaneReorderResource", resourceCulture);
-            }
-        }
-
-        /// <summary>
         ///   Looks up a localized string similar to Clear search, filters and grouping, and move resources within the same parent..
         /// </summary>
         public static string ResourcePaneReorderUnavailable {
@@ -858,24 +912,6 @@ namespace Aspire.Dashboard.Resources {
         public static string ResourcePaneGroupReorderUnavailable {
             get {
                 return ResourceManager.GetString("ResourcePaneGroupReorderUnavailable", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Reorder group {0}.
-        /// </summary>
-        public static string ResourcePaneReorderGroup {
-            get {
-                return ResourceManager.GetString("ResourcePaneReorderGroup", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Drag to reorder groups. Use Alt+Up or Alt+Down to move a group..
-        /// </summary>
-        public static string ResourcePaneReorderGroupHint {
-            get {
-                return ResourceManager.GetString("ResourcePaneReorderGroupHint", resourceCulture);
             }
         }
 

@@ -57,10 +57,9 @@ public class MobileNavMenuTests : DashboardTestContext
     public void TerminalsNavigation_IsConditional(bool hasTerminals)
     {
         var cut = RenderMobileNavMenu("/terminals/resource/shell", hasResourceTerminals: hasTerminals);
-        var titles = cut.FindAll("fluent-menu-item").Select(i => i.GetAttribute("data-tooltip")).Take(hasTerminals ? 8 : 7);
+        var titles = cut.FindAll("fluent-menu-item").Select(i => i.GetAttribute("data-tooltip")).Take(hasTerminals ? 6 : 5);
         var expected = new List<string>
         {
-            Resources.Layout.NavMenuHomeTab,
             Resources.Layout.NavMenuResourcesTab,
             Resources.Layout.NavMenuParametersTab,
             Resources.Layout.NavMenuGraphTab
@@ -69,7 +68,6 @@ public class MobileNavMenuTests : DashboardTestContext
         {
             expected.Add(Resources.Layout.NavMenuTerminalsTab);
         }
-        expected.Add(Resources.Layout.NavMenuExtensionsTab);
         expected.Add(Resources.Layout.NavMenuTelemetrySourcesTab);
         expected.Add(Resources.Layout.MainLayoutAspireRepoLink);
         Assert.Equal(expected, titles);
@@ -94,10 +92,14 @@ public class MobileNavMenuTests : DashboardTestContext
         AssertMenuItemIsActive(cut, Resources.Layout.NavMenuResourcesTab);
     }
 
-    [Fact]
-    public void Render_OpenMenu_TelemetryPageSelectsResourcesEntry()
+    [Theory]
+    [InlineData("/consolelogs/resource/api")]
+    [InlineData("/structuredlogs")]
+    [InlineData("/traces")]
+    [InlineData("/metrics/resource/api")]
+    public void Render_OpenMenu_SelectionPageSelectsResourcesEntry(string path)
     {
-        var cut = RenderMobileNavMenu(DashboardUrls.StructuredLogsUrl());
+        var cut = RenderMobileNavMenu(path);
 
         AssertMenuItemIsActive(cut, Resources.Layout.NavMenuResourcesTab);
     }
@@ -108,14 +110,6 @@ public class MobileNavMenuTests : DashboardTestContext
         var cut = RenderMobileNavMenu(DashboardUrls.ResourceOverviewUrl("foo"));
 
         AssertMenuItemIsActive(cut, Resources.Layout.NavMenuResourcesTab);
-    }
-
-    [Fact]
-    public void Render_OpenMenu_HomePageHasSemanticAndVisualSelectedState()
-    {
-        var cut = RenderMobileNavMenu(DashboardUrls.HomeUrl());
-
-        AssertMenuItemIsActive(cut, Resources.Layout.NavMenuHomeTab);
     }
 
     [Fact]

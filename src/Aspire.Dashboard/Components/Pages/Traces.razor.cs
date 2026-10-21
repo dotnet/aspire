@@ -126,29 +126,6 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
     [SupplyParameterFromQuery(Name = "filters")]
     public string? SerializedFilters { get; set; }
 
-    private string GetNameTooltip(TraceSummary trace)
-    {
-        var tooltip = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesFullName)], trace.FullName);
-        tooltip += Environment.NewLine + string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesTraceId)], trace.TraceId);
-
-        return tooltip;
-    }
-
-    private string GetSpansTooltip(TraceResourceSummary resourceSpans)
-    {
-        var count = resourceSpans.TotalSpans;
-        var errorCount = resourceSpans.ErroredSpans;
-
-        var tooltip = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesResourceSpans)], GetResourceName(resourceSpans.Resource));
-        tooltip += Environment.NewLine + string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesTotalTraces)], count);
-        if (errorCount > 0)
-        {
-            tooltip += Environment.NewLine + string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesTotalErroredTraces)], errorCount);
-        }
-
-        return tooltip;
-    }
-
     private async ValueTask<GridItemsProviderResult<TraceSummary>> GetData(GridItemsProviderRequest<TraceSummary> request)
     {
         TracesViewModel.ResourceKeys = ResourcesLayout?.GetSelectionTelemetryKeys(SelectedResourceNames);

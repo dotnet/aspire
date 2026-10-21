@@ -447,6 +447,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddScoped<DashboardMessageBarService>();
         builder.Services.AddScoped<ResourceMenuBuilder>();
         builder.Services.AddScoped<ResourcePaneState>();
+        builder.Services.AddScoped<DashboardViewPreferences>();
         builder.Services.AddScoped<StructuredLogMenuBuilder>();
         builder.Services.AddScoped<SpanMenuBuilder>();
         builder.Services.AddScoped<TraceMenuBuilder>();

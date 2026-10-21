@@ -37,11 +37,6 @@
         <target state="translated">Mostrando &lt;strong&gt;{0} rastreamento&lt;/strong&gt;</target>
         <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
-      <trans-unit id="TracesFullName">
-        <source>Name: {0}</source>
-        <target state="translated">Nome: {0}</target>
-        <note />
-      </trans-unit>
       <trans-unit id="TracesHeader">
         <source>Traces</source>
         <target state="translated">Rastreamentos</target>
@@ -62,29 +57,9 @@
         <target state="translated">{0} rastreamentos</target>
         <note>{0} is an application name</note>
       </trans-unit>
-      <trans-unit id="TracesResourceSpans">
-        <source>{0} spans</source>
-        <target state="translated">{0} intervalos</target>
-        <note>{0} is a resource name</note>
-      </trans-unit>
       <trans-unit id="TracesSpansColumnHeader">
         <source>Spans</source>
         <target state="translated">Intervalos</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="TracesTotalErroredTraces">
-        <source>Errored: {0}</source>
-        <target state="translated">Erro: {0}</target>
-        <note>{0} is a number</note>
-      </trans-unit>
-      <trans-unit id="TracesTotalTraces">
-        <source>Total: {0}</source>
-        <target state="translated">Total: {0}</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="TracesTraceId">
-        <source>Trace Id: {0}</source>
-        <target state="translated">ID de rastreamento: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="VirtualizedLimitText">

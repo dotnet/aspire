@@ -169,15 +169,6 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Home.
-        /// </summary>
-        public static string HomePageTitle {
-            get {
-                return ResourceManager.GetString("HomePageTitle", resourceCulture);
-            }
-        }
-
-        /// <summary>
         ///   Looks up a localized string similar to Pending.
         /// </summary>
         public static string HomePendingLabel {
@@ -219,6 +210,24 @@ namespace Aspire.Dashboard.Resources {
         public static string HomeResourcesLabel {
             get {
                 return ResourceManager.GetString("HomeResourcesLabel", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Resource.
+        /// </summary>
+        public static string HomeResourceColumn {
+            get {
+                return ResourceManager.GetString("HomeResourceColumn", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Actions for {0}.
+        /// </summary>
+        public static string HomeResourceActions {
+            get {
+                return ResourceManager.GetString("HomeResourceActions", resourceCulture);
             }
         }
 
@@ -604,6 +613,15 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to No volumes.
+        /// </summary>
+        public static string ResourceOverviewNoVolumes {
+            get {
+                return ResourceManager.GetString("ResourceOverviewNoVolumes", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to No health checks.
         /// </summary>
         public static string ResourceOverviewNoHealthChecks {
@@ -717,15 +735,6 @@ namespace Aspire.Dashboard.Resources {
         public static string ResourceOverviewRelationshipsTitle {
             get {
                 return ResourceManager.GetString("ResourceOverviewRelationshipsTitle", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Summary of the selected resources.
-        /// </summary>
-        public static string ResourceOverviewSelectionSummary {
-            get {
-                return ResourceManager.GetString("ResourceOverviewSelectionSummary", resourceCulture);
             }
         }
 

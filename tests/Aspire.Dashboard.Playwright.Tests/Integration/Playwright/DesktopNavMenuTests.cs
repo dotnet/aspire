@@ -26,8 +26,10 @@ public sealed class DesktopNavMenuTests : PlaywrightTestsBase<DashboardServerFix
         {
             await page.GotoAsync("/");
 
+            // The root URL opens the resources, with all resources selected.
+            await page.WaitForURLAsync(url => new Uri(url).AbsolutePath.StartsWith("/resources", StringComparison.Ordinal));
             var nav = page.Locator(".main-rail");
-            await AssertActiveItemAsync(Resources.Layout.NavMenuHomeTab);
+            await AssertActiveItemAsync(Resources.Layout.NavMenuResourcesTab);
 
             var navigationCount = await page.EvaluateAsync<int>("() => performance.getEntriesByType('navigation').length");
 

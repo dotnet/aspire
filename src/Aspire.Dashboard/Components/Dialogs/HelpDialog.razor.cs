@@ -21,7 +21,6 @@ public partial class HelpDialog
         [
             new(Loc[nameof(Resources.Dialogs.HelpDialogCategoryPageNavigation)],
             [
-                new KeyboardShortcut(AspireKeyboardShortcut.GoToHome, ["h"], Loc[nameof(Resources.Dialogs.HelpDialogGoToHome)]),
                 new KeyboardShortcut(AspireKeyboardShortcut.GoToResources, ["r"], Loc[nameof(Resources.Dialogs.HelpDialogGoToResources)]),
                 new KeyboardShortcut(AspireKeyboardShortcut.GoToParameters, ["p"], Loc[nameof(Resources.Dialogs.HelpDialogGoToParameters)]),
                 new KeyboardShortcut(AspireKeyboardShortcut.GoToGraph, ["g"], Loc[nameof(Resources.Dialogs.HelpDialogGoToGraph)]),

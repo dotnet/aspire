@@ -1,4 +1,4 @@
-@namespace Aspire.Dashboard.Components.Layout
+﻿@namespace Aspire.Dashboard.Components.Layout
 @inherits LayoutComponentBase
 @layout MainLayout
 @using Aspire.Dashboard.Components.ResourcesGridColumns
@@ -89,30 +89,7 @@
                 }
             </div>
 
-            @if (!IsTelemetryPane && !showCollapsedPane)
-            {
-                var stateCounts = GetStateCounts();
-                @if (stateCounts.Count > 1)
-                {
-                    <div class="resource-pane-states" role="group" aria-label="@Loc[nameof(Dashboard.Resources.Layout.ResourcePaneStateFilters)]">
-                        @foreach (var stateCount in stateCounts)
-                        {
-                            var isSelected = IsStateChipSelected(stateCount.State);
-                            var stateText = string.IsNullOrEmpty(stateCount.State) ? ColumnsLoc[nameof(Columns.UnknownStateLabel)].Value : stateCount.State.Humanize();
-                            <button type="button"
-                                    class="state-chip @(isSelected ? "selected" : string.Empty)"
-                                    aria-pressed="@(isSelected.ToString().ToLowerInvariant())"
-                                    @onclick="@(() => ToggleStateChip(stateCount.State))">
-                                <span class="state-dot @GetStateClass(stateCount.Example)"></span>
-                                @stateText
-                                <span class="state-chip-count">@stateCount.Count</span>
-                            </button>
-                        }
-                    </div>
-                }
-            }
-
-            <nav class="resource-pane-list"
+            <nav class="resource-pane-list @(IsCompact ? "density-compact" : null)"
                  data-reorder-enabled="@CanReorderResources.ToString().ToLowerInvariant()"
                  data-group-reorder-enabled="@CanReorderGroups.ToString().ToLowerInvariant()"
                  aria-label="@Loc[IsTelemetryPane ? nameof(Dashboard.Resources.Layout.NavMenuTelemetrySourcesTab) : nameof(Dashboard.Resources.Layout.ResourcePaneLandmark)]">
@@ -195,6 +172,9 @@
                                        href="@GetSelectionUrl(groupResourceNames)"
                                        aria-current="@(isGroupSelected ? "true" : null)"
                                        aria-label="@string.Format(CultureInfo.CurrentCulture, Loc[nameof(Dashboard.Resources.Layout.ResourcePaneTagGroupLabel)], groupName, countText)"
+                                       draggable="@(CanReorderGroups ? "true" : null)"
+                                       data-resource-group-drag-handle="@CanReorderGroups"
+                                       aria-keyshortcuts="@(CanReorderGroups ? "Alt+ArrowUp Alt+ArrowDown" : null)"
                                        @onclick="@(e => OnResourceGroupClick(e, groupResourceNames))"
                                        @onclick:preventDefault="true">
                                         @if (_grouping == ResourceGrouping.State)
@@ -216,19 +196,6 @@
                                         <span class="resource-tag-name"><FluentHighlighter HighlightedText="@_filter.TextFilter" Text="@groupName" /></span>
                                         <span class="resource-tag-count" aria-hidden="true">@group.Resources.Count</span>
                                     </a>
-                                    @if (CanReorderGroups)
-                                    {
-                                        <button type="button"
-                                                class="resource-group-drag-handle"
-                                                draggable="true"
-                                                data-resource-group-drag-handle
-                                                aria-label="@string.Format(CultureInfo.CurrentCulture, Loc[nameof(Dashboard.Resources.Layout.ResourcePaneReorderGroup)], groupName)"
-                                                aria-description="@Loc[nameof(Dashboard.Resources.Layout.ResourcePaneReorderGroupHint)]"
-                                                aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
-                                                data-tooltip="@Loc[nameof(Dashboard.Resources.Layout.ResourcePaneReorderGroupHint)]">
-                                            <FluentIcon Value="@(new Icons.Regular.Size16.ReOrderDotsVertical())" Color="Color.Default" />
-                                        </button>
-                                    }
                                     <button type="button"
                                             class="resource-row-toggle @(isGroupCollapsed ? "collapsed" : string.Empty)"
                                             aria-expanded="@((!isGroupCollapsed).ToString().ToLowerInvariant())"
@@ -331,12 +298,6 @@
                     RenderHeaderRow(__builder, isDesktop);
                 }
 
-                @*
-                    Tab content isn't nested inside FluentTab elements. The tab control is just used to display the tabs,
-                    and each tab maps to a page rendered in the body below.
-                *@
-                @* Keep the tabs alive when the resource header moves between desktop and mobile.
-                   Disposing FluentTab instances can otherwise trigger an unsolicited navigation. *@
                 <div class="resource-tabs" @key="typeof(ResourcesLayout)">
                     @{
                         // When the tab row no longer has room for every label (e.g. a wide resource pane leaves
@@ -382,10 +343,6 @@
                             <SectionOutlet SectionName="@TabToolbarSectionName" />
                         </div>
                     }
-                    @if (isDesktop && SelectedResource is { } actionsResource)
-                    {
-                        RenderResourceActions(__builder, actionsResource, isDesktop);
-                    }
                 </div>
             </header>
 
@@ -399,32 +356,48 @@
 }
 
 @code {
-    private void RenderResourceActions(RenderTreeBuilder __builder, ResourceViewModel selected, bool isDesktop)
+    // A resource's highlighted commands, such as Start and Stop, and its "more" menu. The resource overview shows them
+    // with labels; the resource list shows them as icons on each row. The menu is built when it opens, so the list
+    // doesn't build a menu for every resource it renders.
+    internal RenderFragment RenderResourceActions(ResourceViewModel resource, bool showLabels) => __builder =>
     {
-    <div class="resource-header-actions">
-        @foreach (var command in _highlightedCommands)
-        {
-            var commandTitle = !string.IsNullOrEmpty(command.GetDisplayDescription()) ? command.GetDisplayDescription() : command.GetDisplayName();
-            <FluentButton Appearance="ButtonAppearance.Default"
-                          data-tooltip="@commandTitle"
-                          IconStart="@IconResolver.ResolveHighlightedCommandIcon(command.IconName, command.IconVariant).WithColor(Color.Primary)"
-                          OnClick="@(() => ExecuteResourceCommandAsync(selected, command))"
-                          Disabled="@(DashboardClient.IsReadOnly || command.State == CommandViewModelState.Disabled || DashboardCommandExecutor.IsExecuting(selected.Name, command.Name))">
-                @if (isDesktop)
+        var resourceName = GetResourceName(resource);
+        <div class="@(showLabels ? "resource-actions" : "resource-row-actions")">
+            @foreach (var command in GetHighlightedCommands(resource))
+            {
+                var commandTitle = !string.IsNullOrEmpty(command.GetDisplayDescription()) ? command.GetDisplayDescription() : command.GetDisplayName();
+                if (showLabels)
                 {
-                    @command.GetDisplayName()
+                    <FluentButton Appearance="ButtonAppearance.Default"
+                                  data-tooltip="@commandTitle"
+                                  IconStart="@IconResolver.ResolveHighlightedCommandIcon(command.IconName, command.IconVariant).WithColor(Color.Primary)"
+                                  OnClick="@(() => ExecuteResourceCommandAsync(resource, command))"
+                                  Disabled="@IsCommandDisabled(resource, command)">
+                        @command.GetDisplayName()
+                    </FluentButton>
                 }
-            </FluentButton>
-        }
-        @if (_resourceMenuItems.Count > 0)
-        {
-            <AspireMenuButton ButtonAppearance="ButtonAppearance.Default"
+                else
+                {
+                    <FluentButton Appearance="ButtonAppearance.Transparent"
+                                  Class="resource-row-action"
+                                  IconOnly="true"
+                                  @* Always the outlined variant: filled icons are too heavy for small buttons repeated on every row. *@
+                                  IconStart="@IconResolver.ResolveHighlightedCommandIcon(command.IconName, IconVariant.Regular)"
+                                  data-tooltip="@commandTitle"
+                                  aria-label="@($"{command.GetDisplayName()} {resourceName}")"
+                                  OnClick="@(() => ExecuteResourceCommandAsync(resource, command))"
+                                  Disabled="@IsCommandDisabled(resource, command)" />
+                }
+            }
+            <AspireMenuButton ButtonAppearance="@(showLabels ? ButtonAppearance.Default : ButtonAppearance.Transparent)"
+                              ButtonClass="@(showLabels ? null : "resource-row-action")"
                               Icon="@(new Icons.Regular.Size16.MoreHorizontal())"
-                              ItemsProvider="@(() => _resourceMenuItems)"
-                              Title="@ControlsStringsLoc[nameof(ControlsStrings.ActionsButtonText)]" />
-        }
-    </div>
-    }
+                              IconColor="Color.Custom"
+                              IconCustomColor="currentColor"
+                              ItemsProvider="@(() => GetResourceMenuItems(resource))"
+                              Title="@string.Format(CultureInfo.CurrentCulture, Loc[nameof(Dashboard.Resources.Layout.ResourcePaneResourceActions)], resourceName)" />
+        </div>
+    };
 
     private void RenderHeaderRow(RenderTreeBuilder __builder, bool isDesktop)
     {
@@ -481,10 +454,6 @@
                 </div>
                 }
             </div>
-            @if (!isDesktop)
-            {
-                RenderResourceActions(__builder, selected, isDesktop);
-            }
         }
         else if (SelectedTelemetryOnlyResource is { } telemetryOnly)
         {
@@ -508,22 +477,6 @@
             <div class="resource-header-text">
                 <div class="resource-header-title">
                     <h1 class="resource-title">@string.Format(CultureInfo.CurrentCulture, Loc[IsTelemetryPane ? nameof(Dashboard.Resources.Layout.TelemetryHeaderSelectedSources) : nameof(Dashboard.Resources.Layout.ResourceHeaderSelectedResources)], _selectedItems.Count)</h1>
-                </div>
-                <div class="resource-header-meta resource-header-selection">
-                    @foreach (var item in _selectedItems)
-                    {
-                        <a class="resource-header-chip" href="@GetRowUrl(item.Name)" data-tooltip="@item.Name">
-                            <FluentIcon Width="14px"
-                                        Color="Color.Custom"
-                                        CustomColor="@ColorGenerator.Instance.GetColorVariableByKey(item.Name)"
-                                        Value="@(item.Resource is { } itemResource ? ResourceIconHelpers.GetIconForResource(IconResolver, itemResource, IconSize.Size16) : new Icons.Regular.Size16.DataUsage())" />
-                            @if (item.Resource is { } chipResource)
-                            {
-                                <span class="state-dot @GetStateClass(chipResource)"></span>
-                            }
-                            <span class="resource-header-chip-name">@item.Name</span>
-                        </a>
-                    }
                 </div>
             </div>
         }
@@ -561,6 +514,9 @@
         var stateViewModel = ResourceStateViewModel.GetStateViewModel(resource, ColumnsLoc);
         var errorCount = GetUnviewedErrorCount(resource);
         var depth = row?.Depth ?? 0;
+        // The whole row is the drag source, so reordering doesn't need a separate grip. The icon-only pane can't show
+        // where a row would land, so it doesn't reorder.
+        var canReorder = CanReorderResources && !showCollapsedPane;
 
         <div class="resource-row @(isSelected ? "selected" : string.Empty) @(resource.IsResourceHidden(showHiddenResources: false) ? "resource-row-hidden" : null)"
              data-resource-name="@resource.Name"
@@ -572,6 +528,9 @@
                aria-current="@GetRowAriaCurrent(isSelected)"
                aria-label="@resourceName"
                aria-description="@GetResourceAccessibilityDescription(resource, stateViewModel.Text, errorCount)"
+               draggable="@(canReorder ? "true" : null)"
+               data-resource-drag-handle="@canReorder"
+               aria-keyshortcuts="@(canReorder ? "Alt+ArrowUp Alt+ArrowDown" : null)"
                @onclick="@(e => OnRowClickAsync(e, resourceName))"
                @onclick:preventDefault="true">
                 <span class="resource-row-icon">
@@ -584,10 +543,56 @@
                         <span class="state-dot resource-row-icon-state @GetStateClass(resource)"></span>
                     }
                 </span>
-                @if (!showCollapsedPane)
+                @if (!showCollapsedPane && IsCompact)
                 {
+                    @* One line per resource: the name, then aligned columns for type and state, so they line up from
+                       row to row. The state is a dot here; its name is in the tooltip and the label. *@
                     <span class="resource-row-text">
                         <span class="resource-row-name"><FluentHighlighter HighlightedText="@_filter.TextFilter" Text="@resourceName" /></span>
+                        @if (resource.IsPersistentContainer)
+                        {
+                            @* Right after the name, as part of what the resource is rather than of its state. *@
+                            <FluentIcon Icon="Icons.Regular.Size16.Pin"
+                                        Class="persistent-container-icon"
+                                        data-tooltip="@ColumnsLoc[nameof(Columns.PersistentContainerIconTooltip)]"
+                                        aria-label="@ColumnsLoc[nameof(Columns.PersistentContainerIconTooltip)]"
+                                        Color="Color.Default" />
+                        }
+                        @if (resource.IsResourceHidden(showHiddenResources: false))
+                        {
+                            <FluentIcon Value="@(new Icons.Regular.Size16.EyeOff())"
+                                        Class="resource-row-hidden-icon"
+                                        data-tooltip="@ColumnsLoc[nameof(Columns.HiddenResourceIconTooltip)]"
+                                        aria-label="@ColumnsLoc[nameof(Columns.HiddenResourceIconTooltip)]"
+                                        Color="Color.Custom" CustomColor="var(--colorNeutralForeground3)" />
+                        }
+                    </span>
+                    @if (errorCount > 0)
+                    {
+                        <span class="error-badge" data-tooltip="@string.Format(CultureInfo.CurrentCulture, Loc[nameof(Dashboard.Resources.Layout.ResourcePaneUnviewedErrors)], errorCount)">@errorCount</span>
+                    }
+                    <span class="resource-row-meta">
+                        <span class="resource-row-type" data-tooltip="@resource.ResourceType">@resource.ResourceType</span>
+                        <span class="resource-row-meta-state" data-tooltip="@stateViewModel.Text">
+                            <span class="state-dot @GetStateClass(resource)"></span>
+                        </span>
+                    </span>
+                }
+                else if (!showCollapsedPane)
+                {
+                    <span class="resource-row-text">
+                        <span class="resource-row-title">
+                            <span class="resource-row-name"><FluentHighlighter HighlightedText="@_filter.TextFilter" Text="@resourceName" /></span>
+                            @if (resource.IsPersistentContainer)
+                            {
+                                @* Right after the name, as part of what the resource is rather than of its state. *@
+                                <FluentIcon Icon="Icons.Regular.Size16.Pin"
+                                            Class="persistent-container-icon"
+                                            data-tooltip="@ColumnsLoc[nameof(Columns.PersistentContainerIconTooltip)]"
+                                            aria-label="@ColumnsLoc[nameof(Columns.PersistentContainerIconTooltip)]"
+                                            Color="Color.Default" />
+                            }
+                        </span>
                         <span class="resource-row-sub">
                             @if (resource.IsResourceHidden(showHiddenResources: false))
                             {
@@ -600,14 +605,6 @@
                             <span>@stateViewModel.Text</span>
                             <span class="resource-row-sep" aria-hidden="true">·</span>
                             <span class="resource-row-type">@resource.ResourceType</span>
-                            @if (resource.IsPersistentContainer)
-                            {
-                                <FluentIcon Icon="Icons.Regular.Size16.Pin"
-                                            Class="persistent-container-icon"
-                                            data-tooltip="@ColumnsLoc[nameof(Columns.PersistentContainerIconTooltip)]"
-                                            aria-label="@ColumnsLoc[nameof(Columns.PersistentContainerIconTooltip)]"
-                                            Color="Color.Default" />
-                            }
                         </span>
                     </span>
                     @if (errorCount > 0)
@@ -616,18 +613,9 @@
                     }
                 }
             </a>
-            @if (CanReorderResources)
+            @if (!showCollapsedPane)
             {
-                <button type="button"
-                        class="resource-row-drag-handle"
-                        draggable="true"
-                        data-resource-drag-handle
-                        aria-label="@string.Format(CultureInfo.CurrentCulture, Loc[nameof(Dashboard.Resources.Layout.ResourcePaneReorderResource)], resourceName)"
-                        aria-description="@Loc[nameof(Dashboard.Resources.Layout.ResourcePaneReorderHint)]"
-                        aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
-                        data-tooltip="@Loc[nameof(Dashboard.Resources.Layout.ResourcePaneReorderHint)]">
-                    <FluentIcon Value="@(new Icons.Regular.Size16.ReOrderDotsVertical())" Color="Color.Default" />
-                </button>
+                @RenderResourceActions(resource, showLabels: false)
             }
             @if (!showCollapsedPane && row is { Children.Count: > 0 })
             {
@@ -638,6 +626,11 @@
                         @onclick="@(() => OnToggleCollapseAsync(row))">
                     <FluentIcon Value="@(new Icons.Regular.Size12.ChevronDown())" Color="Color.Default" />
                 </button>
+            }
+            else if (!showCollapsedPane && IsCompact)
+            {
+                @* Keeps the compact columns aligned with those of parent rows, which end with the expand toggle. *@
+                <span class="resource-row-toggle-spacer" aria-hidden="true"></span>
             }
         </div>
     }

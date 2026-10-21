@@ -40,19 +40,13 @@ public class DesktopNavMenuTests : DashboardTestContext
         var expected = new List<string>();
         if (enabled)
         {
-            expected.AddRange([DashboardUrls.HomeUrl(), DashboardUrls.ResourceListUrl(),
-                DashboardUrls.ParametersUrl(), DashboardUrls.GraphUrl()]);
+            expected.AddRange([DashboardUrls.ResourceListUrl(), DashboardUrls.ParametersUrl(), DashboardUrls.GraphUrl()]);
             if (hasTerminals)
             {
                 expected.Add(DashboardUrls.TerminalsUrl());
             }
-            expected.Add(DashboardUrls.ExtensionsUrl());
         }
         expected.Add(DashboardUrls.TelemetrySourcesUrl());
-        if (enabled)
-        {
-            expected.Add(DashboardUrls.ConsoleLogsUrl());
-        }
         var links = cut.FindAll("nav.main-rail > a");
         Assert.Equal(expected, links.Select(link => link.GetAttribute("href")));
         if (enabled && hasTerminals)
@@ -69,32 +63,58 @@ public class DesktopNavMenuTests : DashboardTestContext
         }
     }
 
+    [Theory]
+    [InlineData("/consolelogs")]
+    [InlineData("/consolelogs/resource/api")]
+    [InlineData("/structuredlogs/resource/api")]
+    [InlineData("/traces/detail/abc")]
+    [InlineData("/metrics/resource/api")]
+    public void SelectionPages_HighlightResources(string url)
+    {
+        RenderNavMenu(url);
+        var cut = Render<DesktopNavMenu>();
+
+        // The pages of a selection are icons at the top of the resources view, so the rail has no entries for them.
+        Assert.Equal("main-rail-resources", cut.Find("a[aria-current='page']").Id);
+    }
+
     [Fact]
-    public void ConsoleLogsNavigation_SelectsAllResourcesAndUpdatesActiveItem()
+    public void Resources_KeepsTheCurrentSelection()
+    {
+        string[] selection = ["api", "worker"];
+        RenderNavMenu(DashboardUrls.AddResourceSelection(DashboardUrls.ConsoleLogsUrl(), selection));
+        var cut = Render<DesktopNavMenu>();
+
+        Assert.Equal(DashboardUrls.AddResourceSelection(DashboardUrls.ResourceOverviewUrl(), selection), cut.Find("#main-rail-resources").GetAttribute("href"));
+    }
+
+    [Fact]
+    public void EmptyParametersAndTelemetrySources_AreDisabledWithTheReason()
+    {
+        RenderNavMenu(DashboardUrls.ResourceListUrl());
+        var cut = Render<DesktopNavMenu>(builder => builder.Add(p => p.Availability, new NavigationAvailability(HasResourceTerminals: false, HasParameters: false, HasTelemetrySources: false)));
+
+        Assert.Equal(["main-rail-parameters", "main-rail-telemetry"], cut.FindAll(".main-rail-item.disabled").Select(item => item.Id));
+        var parameters = cut.Find("#main-rail-parameters");
+        Assert.Equal("span", parameters.LocalName);
+        Assert.Equal("true", parameters.GetAttribute("aria-disabled"));
+        Assert.Equal(Resources.Layout.NavMenuParametersTab, parameters.GetAttribute("aria-label"));
+        Assert.Equal(Resources.Layout.NavMenuNoParameters, parameters.GetAttribute("aria-description"));
+        Assert.Equal(Resources.Layout.TelemetryPaneNoSources, cut.Find("#main-rail-telemetry").GetAttribute("aria-description"));
+
+        cut.Render(builder => builder.Add(p => p.Availability, new NavigationAvailability(HasResourceTerminals: false, HasParameters: true, HasTelemetrySources: true)));
+
+        Assert.Empty(cut.FindAll(".main-rail-item.disabled"));
+        Assert.Equal(DashboardUrls.ParametersUrl(), cut.Find("#main-rail-parameters").GetAttribute("href"));
+    }
+
+    private void RenderNavMenu(string url)
     {
         FluentUISetupHelpers.AddCommonDashboardServices(this);
         FluentUISetupHelpers.SetupFluentUIComponents(this);
         FluentUISetupHelpers.SetupFluentAnchoredRegion(this);
         Services.AddSingleton<IDashboardClient>(new TestDashboardClient(isEnabled: true));
-        var navigationManager = Services.GetRequiredService<NavigationManager>();
-        navigationManager.NavigateTo("/consolelogs/resource/api?resource=api&resource=worker");
+        Services.GetRequiredService<NavigationManager>().NavigateTo(url);
         Render<FluentTooltipProvider>();
-        var cut = Render<DesktopNavMenu>();
-
-        Assert.Equal("main-rail-resources", cut.Find("a[aria-current='page']").Id);
-        var shortcut = cut.Find("#main-rail-consolelogs");
-        Assert.Equal(Resources.Layout.NavMenuConsoleLogsTab, shortcut.GetAttribute("aria-label"));
-        Assert.Equal("HR", shortcut.PreviousElementSibling?.TagName);
-        var url = shortcut.GetAttribute("href")!;
-        var location = ResourcesLayout.ParseLocation(url.TrimStart('/'));
-        Assert.Equal(ResourcesLayout.ResourceTab.Console, location.Tab);
-        Assert.Empty(location.SelectedResourceNames);
-        Assert.False(location.KeepSelection);
-
-        navigationManager.NavigateTo(url);
-        cut.WaitForAssertion(() => Assert.Equal("main-rail-consolelogs", cut.Find("a[aria-current='page']").Id));
-
-        navigationManager.NavigateTo("/consolelogs/resource/api");
-        cut.WaitForAssertion(() => Assert.Equal("main-rail-resources", cut.Find("a[aria-current='page']").Id));
     }
 }

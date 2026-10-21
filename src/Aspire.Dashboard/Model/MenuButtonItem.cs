@@ -54,6 +54,10 @@ public class MenuButtonItem
     /// secondary action (e.g. the duration of a recording).
     /// </summary>
     public string? Description { get; set; }
+    /// <summary>
+    /// Optional number displayed in a pill at the end of the item (e.g. how many resources a filter value matches).
+    /// </summary>
+    public int? Count { get; set; }
     public Icon? Icon { get; set; }
     /// <summary>
     /// Optional icon displayed inline before the text, in addition to the

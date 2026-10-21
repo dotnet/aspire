@@ -15,13 +15,13 @@ namespace Aspire.Dashboard.Components.Tests.Layout;
 public class ResourcesNavigationTests
 {
     [Theory]
-    [InlineData("", nameof(NavSection.Home))]
-    [InlineData("?resource=frontend", nameof(NavSection.Home))]
+    [InlineData("", nameof(NavSection.Resources))]
+    [InlineData("?resource=frontend", nameof(NavSection.Resources))]
     [InlineData("resources", nameof(NavSection.Resources))]
     [InlineData("resources/frontend", nameof(NavSection.Resources))]
     [InlineData("consolelogs/resource/frontend", nameof(NavSection.Resources))]
-    [InlineData("consolelogs", nameof(NavSection.ConsoleLogs))]
-    [InlineData("consolelogs?pane=resources#logs", nameof(NavSection.ConsoleLogs))]
+    [InlineData("consolelogs", nameof(NavSection.Resources))]
+    [InlineData("consolelogs?pane=resources#logs", nameof(NavSection.Resources))]
     [InlineData("consolelogs?resource=api&resource=worker", nameof(NavSection.Resources))]
     [InlineData("consolelogs?pane=telemetry", nameof(NavSection.Telemetry))]
     [InlineData("structuredlogs?logLevel=error", nameof(NavSection.Resources))]
@@ -173,7 +173,7 @@ public class ResourcesNavigationTests
     [Fact]
     public void HeaderSectionUrls_MatchSections()
     {
-        Assert.Equal(NavSection.Home, DesktopNavMenu.GetSection(DashboardUrls.HomeUrl().TrimStart('/'), hasResourceService: true));
+        Assert.Equal(NavSection.Resources, DesktopNavMenu.GetSection(DashboardUrls.HomeUrl().TrimStart('/'), hasResourceService: true));
         Assert.Equal(NavSection.Resources, DesktopNavMenu.GetSection(DashboardUrls.ResourceOverviewUrl().TrimStart('/'), hasResourceService: true));
         Assert.Equal(NavSection.Parameters, DesktopNavMenu.GetSection(DashboardUrls.ParametersUrl().TrimStart('/'), hasResourceService: true));
         Assert.Equal(NavSection.Graph, DesktopNavMenu.GetSection(DashboardUrls.GraphUrl().TrimStart('/'), hasResourceService: true));

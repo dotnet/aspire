@@ -1,9 +1,7 @@
-﻿.home {
+﻿/* The summary is rendered inside the resource overview, which already pads and scrolls its content. Adding padding
+   here would indent the summary from the tabs above it, unlike a single resource's overview. */
+.home {
     width: 100%;
-    height: 100%;
-    overflow: auto;
-    /* The horizontal padding matches the top message bars so their edges line up with the widgets. */
-    padding: 20px 12px 28px;
     container-type: inline-size;
     outline: none;
 }
@@ -87,20 +85,6 @@
 .home-hero-sub {
     color: var(--colorNeutralForeground2);
     font-size: 12.5px;
-}
-
-.home-hero-link {
-    display: inline-flex;
-    flex: 0 0 auto;
-    align-items: center;
-    gap: 4px;
-    color: var(--colorBrandForegroundLink);
-    font-size: 12.5px;
-    text-decoration: none;
-}
-
-.home-hero-link:hover {
-    text-decoration: underline;
 }
 
 .home-health-bar {
@@ -474,29 +458,6 @@
     background: var(--colorBrandBackground);
 }
 
-/* Request-rate area drawn faintly along the bottom of each resource tile. */
-.home-tile-spark {
-    position: absolute;
-    inset-inline: 0;
-    bottom: 0;
-    width: 100%;
-    height: 22px;
-    pointer-events: none;
-}
-
-.home-tile-spark polygon {
-    fill: currentColor;
-    opacity: 0.12;
-}
-
-.home-tile-spark polyline {
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.25;
-    opacity: 0.6;
-    vector-effect: non-scaling-stroke;
-}
-
 @container (max-width: 700px) {
     .home-activity-body {
         grid-template-columns: minmax(0, 1fr);
@@ -510,26 +471,6 @@
 
 @container (max-width: 900px) {
     .home-insights {
-        grid-template-columns: minmax(0, 1fr);
-    }
-}
-
-.home-columns {
-    display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-    gap: 14px;
-    align-items: start;
-}
-
-.home-side {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    min-width: 0;
-}
-
-@container (max-width: 900px) {
-    .home-columns {
         grid-template-columns: minmax(0, 1fr);
     }
 }
@@ -586,129 +527,6 @@
     min-height: 40px;
     color: var(--colorNeutralForeground2);
     font-size: 12.5px;
-}
-
-.home-tiles {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 8px;
-}
-
-.home-tile {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-width: 0;
-    padding: 9px 10px 9px 12px;
-    border: 1px solid var(--colorNeutralStroke3);
-    border-radius: 10px;
-    color: var(--colorNeutralForeground1);
-    overflow: hidden;
-}
-
-/* A state-colored accent on the leading edge makes unhealthy resources stand out when scanning the grid. */
-.home-tile::before {
-    position: absolute;
-    inset-block: 0;
-    inset-inline-start: 0;
-    width: 3px;
-    background: var(--home-state-color);
-    content: "";
-}
-
-.home-tile:hover {
-    border-color: var(--colorNeutralStroke1);
-    background: var(--datagrid-hover-color);
-}
-
-.home-tile:has(.home-tile-name:focus-visible) {
-    outline: 2px solid var(--colorStrokeFocus2);
-    outline-offset: 1px;
-}
-
-.home-tile-icon {
-    display: inline-flex;
-    flex: 0 0 34px;
-    align-items: center;
-    justify-content: center;
-    width: 34px;
-    height: 34px;
-    border-radius: 8px;
-    background: var(--colorNeutralBackground3);
-}
-
-.home-tile-text {
-    display: flex;
-    flex: 1 1 auto;
-    flex-direction: column;
-    min-width: 0;
-}
-
-.home-tile-name {
-    overflow: hidden;
-    color: inherit;
-    text-decoration: none;
-    outline: none;
-    font-size: 13.5px;
-    font-weight: 600;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-/* Stretch the name link over the whole tile so the tile is one click target. */
-.home-tile-name::after {
-    position: absolute;
-    inset: 0;
-    content: "";
-}
-
-.home-tile-url {
-    position: relative;
-    z-index: 1;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    max-width: 100%;
-    margin-top: 2px;
-    color: var(--colorBrandForegroundLink);
-    font-size: 12px;
-    text-decoration: none;
-    white-space: nowrap;
-}
-
-.home-tile-url ::deep svg {
-    flex: 0 0 auto;
-}
-
-.home-tile-url span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.home-tile-url:hover span {
-    text-decoration: underline;
-}
-
-.home-tile-sub {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    overflow: hidden;
-    color: var(--colorNeutralForeground2);
-    font-size: 12px;
-    white-space: nowrap;
-}
-
-.home-tile-type {
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.home-tile-state {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
 }
 
 .home-error-badge {
@@ -786,4 +604,87 @@
     .home {
         padding: 12px;
     }
+}
+
+/* The recent problems, side by side. */
+.home-problems {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    align-items: start;
+}
+
+@container (max-width: 700px) {
+    .home-problems {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.home-table-resource:focus-visible {
+    outline: 2px solid var(--colorStrokeFocus2);
+    outline-offset: 1px;
+    border-radius: 2px;
+}
+
+.home-table-resource {
+    display: inline-flex;
+    min-width: 0;
+    align-items: center;
+    gap: 6px;
+    color: var(--colorNeutralForeground1);
+    font-size: 13px;
+    text-decoration: none;
+}
+
+/* Table of the summarized resources with their state, endpoints and actions. */
+.home-resource-table {
+    overflow-x: auto;
+}
+
+.home-resource-table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.home-resource-table th {
+    padding: 0 10px 6px;
+    color: var(--colorNeutralForeground3);
+    font-size: 11.5px;
+    font-weight: 600;
+    text-align: start;
+    white-space: nowrap;
+}
+
+.home-resource-table td {
+    padding: 6px 10px;
+    border-top: 1px solid var(--colorNeutralStroke3);
+    vertical-align: middle;
+}
+
+.home-resource-table th:first-child,
+.home-resource-table td:first-child {
+    padding-inline-start: 0;
+}
+
+.home-resource-table th:last-child,
+.home-resource-table td:last-child {
+    width: 1%;
+    padding-inline-end: 0;
+}
+
+.home-resource-table tbody tr:hover td {
+    background: var(--datagrid-hover-color);
+}
+
+.home-table-type {
+    color: var(--colorNeutralForeground3);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+
+/* Names stay on one line next to their icon, like in the resources grid. */
+.home-resource-table td:first-child {
+    white-space: nowrap;
 }

@@ -12,7 +12,8 @@ span.aspire-menu-secondary-action-container {
 }
 
 /* Keep secondary text from touching the item text when the menu is at its maximum width. */
-span.aspire-menu-secondary-action-container:has(.aspire-menu-item-description) {
+span.aspire-menu-secondary-action-container:has(.aspire-menu-item-description),
+span.aspire-menu-secondary-action-container:has(.aspire-menu-item-count) {
     padding-inline-start: 16px;
 }
 
@@ -20,6 +21,18 @@ span.aspire-menu-secondary-action-container:has(.aspire-menu-item-description) {
     color: var(--colorNeutralForeground3);
     font-size: var(--fontSizeBase200);
     white-space: nowrap;
+}
+
+/* Matches the count pill of the resource list's group headers. */
+.aspire-menu-item-count {
+    min-width: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: var(--colorNeutralBackground3);
+    color: var(--colorNeutralForeground2);
+    font-size: 11px;
+    line-height: 18px;
+    text-align: center;
 }
 
 .aspire-menu-item-label {

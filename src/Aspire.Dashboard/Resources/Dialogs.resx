@@ -191,9 +191,6 @@
     <value>Use shortcuts outside text fields and terminal input. Panel shortcuts apply to an open details panel. Press {0} in a terminal to focus its controls before using dashboard shortcuts.</value>
     <comment>{0} is the F6 key, rendered as a keyboard key.</comment>
   </data>
-  <data name="HelpDialogGoToHome" xml:space="preserve">
-    <value>Home</value>
-  </data>
   <data name="HelpDialogGoToParameters" xml:space="preserve">
     <value>Parameters</value>
   </data>
@@ -544,6 +541,33 @@
   </data>
   <data name="ManageDataResource" xml:space="preserve">
     <value>Resource</value>
+  </data>
+  <data name="SettingsDialogGroupOverview" xml:space="preserve">
+    <value>Overview of several resources</value>
+  </data>
+  <data name="SettingsDialogGroupOverviewSummary" xml:space="preserve">
+    <value>Summary</value>
+  </data>
+  <data name="SettingsDialogGroupOverviewResources" xml:space="preserve">
+    <value>Resource list</value>
+  </data>
+  <data name="SettingsDialogRecordingsStyle" xml:space="preserve">
+    <value>Recordings</value>
+  </data>
+  <data name="SettingsDialogRecordingsStylePanel" xml:space="preserve">
+    <value>Recordings panel</value>
+  </data>
+  <data name="SettingsDialogRecordingsStyleMenu" xml:space="preserve">
+    <value>Live run menu</value>
+  </data>
+  <data name="SettingsDialogResourceListDensity" xml:space="preserve">
+    <value>Resource list density</value>
+  </data>
+  <data name="SettingsDialogResourceListDensityComfortable" xml:space="preserve">
+    <value>Comfortable</value>
+  </data>
+  <data name="SettingsDialogResourceListDensityCompact" xml:space="preserve">
+    <value>Compact</value>
   </data>
   <data name="SettingsDialogTimeFormat" xml:space="preserve">
     <value>Time format</value>

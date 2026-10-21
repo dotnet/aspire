@@ -768,15 +768,6 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Home.
-        /// </summary>
-        public static string HelpDialogGoToHome {
-            get {
-                return ResourceManager.GetString("HelpDialogGoToHome", resourceCulture);
-            }
-        }
-
-        /// <summary>
         ///   Looks up a localized string similar to Metrics.
         /// </summary>
         public static string HelpDialogGoToMetrics {
@@ -1259,6 +1250,87 @@ namespace Aspire.Dashboard.Resources {
         public static string SettingsDialogTheme {
             get {
                 return ResourceManager.GetString("SettingsDialogTheme", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Overview of several resources.
+        /// </summary>
+        public static string SettingsDialogGroupOverview {
+            get {
+                return ResourceManager.GetString("SettingsDialogGroupOverview", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Summary.
+        /// </summary>
+        public static string SettingsDialogGroupOverviewSummary {
+            get {
+                return ResourceManager.GetString("SettingsDialogGroupOverviewSummary", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Resource list.
+        /// </summary>
+        public static string SettingsDialogGroupOverviewResources {
+            get {
+                return ResourceManager.GetString("SettingsDialogGroupOverviewResources", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Recordings.
+        /// </summary>
+        public static string SettingsDialogRecordingsStyle {
+            get {
+                return ResourceManager.GetString("SettingsDialogRecordingsStyle", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Recordings panel.
+        /// </summary>
+        public static string SettingsDialogRecordingsStylePanel {
+            get {
+                return ResourceManager.GetString("SettingsDialogRecordingsStylePanel", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Live run menu.
+        /// </summary>
+        public static string SettingsDialogRecordingsStyleMenu {
+            get {
+                return ResourceManager.GetString("SettingsDialogRecordingsStyleMenu", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Resource list density.
+        /// </summary>
+        public static string SettingsDialogResourceListDensity {
+            get {
+                return ResourceManager.GetString("SettingsDialogResourceListDensity", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Comfortable.
+        /// </summary>
+        public static string SettingsDialogResourceListDensityComfortable {
+            get {
+                return ResourceManager.GetString("SettingsDialogResourceListDensityComfortable", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Compact.
+        /// </summary>
+        public static string SettingsDialogResourceListDensityCompact {
+            get {
+                return ResourceManager.GetString("SettingsDialogResourceListDensityCompact", resourceCulture);
             }
         }
 

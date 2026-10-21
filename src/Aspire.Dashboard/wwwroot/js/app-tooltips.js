@@ -8,20 +8,35 @@ class AspireTooltipProvider extends HTMLElement {
     #version = 0;
     #observer = null;
     #visibilityObserver = null;
+    #keyboardModality = false;
 
     connectedCallback() {
         this.#controller = new AbortController();
         const options = { signal: this.#controller.signal };
         document.addEventListener("mouseover", event => this.#show(event.target, 250), options);
-        document.addEventListener("focusin", event => this.#show(event.target, 0), options);
+        // Focus shows a tooltip only while the user navigates with the keyboard. Opening a menu, a dialog or a panel
+        // with the mouse moves focus to its first item, and that item's tooltip would otherwise appear although the
+        // pointer isn't on it. Track the last input in the capture phase, before focus moves.
+        document.addEventListener("focusin", event => {
+            if (this.#keyboardModality) {
+                this.#show(event.target, 0);
+            }
+        }, options);
         document.addEventListener("mouseout", event => this.#leave(event.relatedTarget), options);
         document.addEventListener("focusout", event => this.#leave(event.relatedTarget), options);
-        document.addEventListener("pointerdown", () => this.#clear(), options);
+        document.addEventListener("pointerdown", () => {
+            this.#keyboardModality = false;
+            this.#clear();
+        }, { ...options, capture: true });
         document.addEventListener("keydown", event => {
+            // Modifier keys alone (for example a shortcut that's being typed) don't mean keyboard navigation.
+            if (!["Shift", "Control", "Alt", "Meta"].includes(event.key)) {
+                this.#keyboardModality = true;
+            }
             if (event.key === "Escape") {
                 this.#clear();
             }
-        }, options);
+        }, { ...options, capture: true });
         document.addEventListener("scroll", () => this.#clear(), { ...options, capture: true });
     }
 

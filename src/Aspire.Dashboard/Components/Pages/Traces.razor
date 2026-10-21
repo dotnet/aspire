@@ -67,10 +67,10 @@
                                     OnRowClick="@(r => r.ExecuteOnDefault(d => NavigationManager.NavigateTo(ResourcesLayout?.AddPaneToUrl(DashboardUrls.TraceDetailUrl(d.TraceId)) ?? DashboardUrls.TraceDetailUrl(d.TraceId))))"
                                     Class="main-grid enable-row-click aspire-scroll-border-grid">
                         <ChildContent>
-                            <AspireTemplateColumn ColumnId="@TimestampColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.TimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, context.StartTime, MillisecondsDisplay.Full, CultureInfo.CurrentCulture))" Tooltip="true">
+                            <AspireTemplateColumn ColumnId="@TimestampColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.TimestampColumnHeader)]">
                                 @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.StartTime, MillisecondsDisplay.Truncated)
                             </AspireTemplateColumn>
-                            <AspireTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Tooltip="true" TooltipText="@(trace => GetNameTooltip(trace))" Class="no-ellipsis">
+                            <AspireTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Class="no-ellipsis">
                                 <div class="trace-name-container">
                                     <span class="trace-name-content">
                                         <span style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @(ColorGenerator.Instance.GetColorVariableByKey(GetResourceName(context.RootResource)));">
@@ -101,7 +101,7 @@
                                         </div>
                                     </ItemTemplate>
                                     <MoreTemplate Context="overflow">
-                                        <span class="trace-tag" data-tooltip="@(string.Join(", ", overflow.Items.Select(item => $"{GetResourceName(item.Resource)} ({item.TotalSpans})")))">
+                                        <span class="trace-tag">
                                             @($"+{overflow.OverflowCount}")
                                         </span>
                                     </MoreTemplate>
@@ -225,7 +225,7 @@
         </div>
     </text>;
 
-    private RenderFragment RenderTraceResourceSummary(TraceResourceSummary item) => @<span class="trace-tag trace-service-tag" data-tooltip="@(GetSpansTooltip(item))" style="border-left-color: @(ColorGenerator.Instance.GetColorVariableByKey(GetResourceName(item.Resource)));">
+    private RenderFragment RenderTraceResourceSummary(TraceResourceSummary item) => @<span class="trace-tag trace-service-tag" style="border-left-color: @(ColorGenerator.Instance.GetColorVariableByKey(GetResourceName(item.Resource)));">
         @if (item.ErroredSpans > 0)
         {
             <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon" />

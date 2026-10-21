@@ -189,6 +189,30 @@
   <data name="MainLayoutLaunchAIAgents" xml:space="preserve">
     <value>AI agents</value>
   </data>
+  <data name="DashboardRunMenuTitle" xml:space="preserve">
+    <value>Select dashboard run</value>
+  </data>
+  <data name="DashboardRunMenuAccessibleLabel" xml:space="preserve">
+    <value>Select run: {0}</value>
+  </data>
+  <data name="DashboardRunMenuCurrent" xml:space="preserve">
+    <value>Live run</value>
+  </data>
+  <data name="DashboardRunMenuIncompatibleTooltip" xml:space="preserve">
+    <value>This run can't be viewed because it was created by an incompatible version of the dashboard.</value>
+  </data>
+  <data name="DashboardRunMenuUnpin" xml:space="preserve">
+    <value>Unpin run</value>
+  </data>
+  <data name="DashboardRunMenuPin" xml:space="preserve">
+    <value>Pin run</value>
+  </data>
+  <data name="DashboardRunMenuHelp" xml:space="preserve">
+    <value>Learn about runs</value>
+  </data>
+  <data name="DashboardRunMenuHelpTooltip" xml:space="preserve">
+    <value>Switch between the live run and read-only data from previous runs. Pin a run to keep it from being automatically deleted.</value>
+  </data>
   <data name="DashboardRunSelectTitle" xml:space="preserve">
     <value>Recordings</value>
   </data>
@@ -243,8 +267,8 @@
   <data name="NavMenuLandmark" xml:space="preserve">
     <value>Main navigation</value>
   </data>
-  <data name="NavMenuHomeTab" xml:space="preserve">
-    <value>Home</value>
+  <data name="NavMenuNoParameters" xml:space="preserve">
+    <value>No parameters</value>
   </data>
   <data name="NavMenuParametersTab" xml:space="preserve">
     <value>Parameters</value>
@@ -267,9 +291,6 @@
   <data name="ResourcePaneClose" xml:space="preserve">
     <value>Hide resource list</value>
   </data>
-  <data name="ResourcePaneStateFilters" xml:space="preserve">
-    <value>Filter by state</value>
-  </data>
   <data name="ResourcePaneGrouping" xml:space="preserve">
     <value>Group resources</value>
   </data>
@@ -281,6 +302,9 @@
   </data>
   <data name="ResourcePaneGroupingState" xml:space="preserve">
     <value>State</value>
+  </data>
+  <data name="ResourcePaneResourceActions" xml:space="preserve">
+    <value>Actions for {0}</value>
   </data>
   <data name="ResourcePaneUnviewedErrors" xml:space="preserve">
     <value>{0} unviewed error logs</value>
@@ -367,13 +391,6 @@
   <data name="ExtensionsPageDescription" xml:space="preserve">
     <value>Extend the dashboard with views and tools for your app.</value>
   </data>
-  <data name="ResourcePaneReorderResource" xml:space="preserve">
-    <value>Reorder {0}</value>
-    <comment>{0} is the resource name.</comment>
-  </data>
-  <data name="ResourcePaneReorderHint" xml:space="preserve">
-    <value>Drag to reorder. Use Alt+Up or Alt+Down to move among siblings.</value>
-  </data>
   <data name="ResourcePaneReorderUnavailable" xml:space="preserve">
     <value>Clear search, filters and grouping, and move resources within the same parent.</value>
   </data>
@@ -387,13 +404,6 @@
   <data name="ResourcePaneMovedAfter" xml:space="preserve">
     <value>{0} moved after {1}.</value>
     <comment>{0} is the moved resource name; {1} is the target resource name.</comment>
-  </data>
-  <data name="ResourcePaneReorderGroup" xml:space="preserve">
-    <value>Reorder group {0}</value>
-    <comment>{0} is the group name.</comment>
-  </data>
-  <data name="ResourcePaneReorderGroupHint" xml:space="preserve">
-    <value>Drag to reorder groups. Use Alt+Up or Alt+Down to move a group.</value>
   </data>
   <data name="ResourcePaneGroupReorderUnavailable" xml:space="preserve">
     <value>Clear search and filters, and try reordering groups again.</value>

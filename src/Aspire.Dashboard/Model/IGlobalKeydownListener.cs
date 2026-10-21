@@ -20,7 +20,6 @@ public enum AspireKeyboardShortcut
     GoToTraces = 230,
     GoToMetrics = 240,
     GoToTerminals = 250,
-    GoToHome = 260,
     GoToParameters = 270,
     GoToGraph = 280,
     GoToExtensions = 290,

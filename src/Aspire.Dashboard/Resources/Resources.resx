@@ -427,14 +427,18 @@
   <data name="ResourceOverviewMeters" xml:space="preserve">
     <value>Meters</value>
   </data>
-  <data name="HomePageTitle" xml:space="preserve">
-    <value>Home</value>
-  </data>
   <data name="HomeSummaryLandmark" xml:space="preserve">
     <value>Summary</value>
   </data>
   <data name="HomeResourcesLabel" xml:space="preserve">
     <value>Resources</value>
+  </data>
+  <data name="HomeResourceColumn" xml:space="preserve">
+    <value>Resource</value>
+  </data>
+  <data name="HomeResourceActions" xml:space="preserve">
+    <value>Actions for {0}</value>
+    <comment>{0} is the resource name.</comment>
   </data>
   <data name="HomeRunningLabel" xml:space="preserve">
     <value>Running</value>
@@ -460,14 +464,14 @@
   <data name="ResourceOverviewRelationshipGraph" xml:space="preserve">
     <value>Relationship graph</value>
   </data>
-  <data name="ResourceOverviewSelectionSummary" xml:space="preserve">
-    <value>Summary of the selected resources</value>
-  </data>
   <data name="ResourceOverviewPropertiesTitle" xml:space="preserve">
     <value>Properties</value>
   </data>
   <data name="ResourceOverviewNoProperties" xml:space="preserve">
     <value>No properties</value>
+  </data>
+  <data name="ResourceOverviewNoVolumes" xml:space="preserve">
+    <value>No volumes</value>
   </data>
   <data name="ResourceOverviewNoHealthChecks" xml:space="preserve">
     <value>No health checks</value>

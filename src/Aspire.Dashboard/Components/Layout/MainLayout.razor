@@ -12,19 +12,27 @@
            views are switched from the icon rail below the logo. *@
         <header>
             <div class="brand-logo-container">
-                <a href="/" class="logo"
+                <a href="/" class="logo" @onclick="GoToAllResourcesAsync" @onclick:preventDefault="true"
                               data-tooltip="@Loc[nameof(Layout.MainLayoutAspire)]"
                               aria-label="@Loc[nameof(Layout.MainLayoutAspire)]">
                     <AspireLogo />
                 </a>
             </div>
-            <a href="/" class="application-name">
+            <a href="/" class="application-name" @onclick="GoToAllResourcesAsync" @onclick:preventDefault="true">
                 <ApplicationName/>
             </a>
             <div class="header-context">
                 <SectionOutlet SectionName="@HeaderContextSectionName" />
             </div>
-            @if (RunStore.SupportsRunSelection && !RunSelection.SelectedRun.IsCurrent)
+            @if (RunStore.SupportsRunSelection && UseRunMenu)
+            {
+                @* The "Live run" dropdown from before recordings had their own panel, at the same place in the header. *@
+                <DashboardRunMenu SelectedRunId="@RunSelection.SelectedRun.RunId"
+                                  SelectedRunIsCurrent="@RunSelection.SelectedRun.IsCurrent"
+                                  SelectedRunStartedAtUtc="@RunSelection.SelectedRun.StartedAtUtc"
+                                  SelectedRunIdChanged="@SwitchDashboardRunAsync" />
+            }
+            else if (RunStore.SupportsRunSelection && !RunSelection.SelectedRun.IsCurrent)
             {
                 <DashboardRunPill SelectedRunStartedAtUtc="@RunSelection.SelectedRun.StartedAtUtc"
                                   OnClick="@LaunchRecordingsAsync" />
@@ -54,7 +62,7 @@
                     <FluentIcon Value="@(new Icons.Regular.Size24.BotSparkle())" Color="Color.Default"/>
                 </FluentButton>
             }
-            @if (RunStore.SupportsRunSelection)
+            @if (RunStore.SupportsRunSelection && !UseRunMenu)
             {
                 var selectedRun = RunSelection.SelectedRun;
                 <DashboardRunSelect ButtonId="@RunSelectButtonId"
@@ -71,23 +79,30 @@
             </FluentButton>
             <UserProfile/>
         </header>
-        <DesktopNavMenu HasResourceTerminals="@_hasResourceTerminals" />
+        <DesktopNavMenu HasResourceTerminals="@_navigationAvailability.HasResourceTerminals" Availability="@_navigationAvailability" />
     }
     else
     {
         <div class="aspire-icon">
-            <a href="/" class="logo"
+            <a href="/" class="logo" @onclick="GoToAllResourcesAsync" @onclick:preventDefault="true"
                           data-tooltip="@Loc[nameof(Layout.MainLayoutAspire)]"
                           aria-label="@Loc[nameof(Layout.MainLayoutAspire)]">
                 <AspireLogo />
             </a>
         </div>
         <header>
-            <a href="/" class="application-name">
+            <a href="/" class="application-name" @onclick="GoToAllResourcesAsync" @onclick:preventDefault="true">
                 <ApplicationName/>
             </a>
             <div class="flex-filler"></div>
-            @if (RunStore.SupportsRunSelection)
+            @if (RunStore.SupportsRunSelection && UseRunMenu)
+            {
+                <DashboardRunMenu SelectedRunId="@RunSelection.SelectedRun.RunId"
+                                  SelectedRunIsCurrent="@RunSelection.SelectedRun.IsCurrent"
+                                  SelectedRunStartedAtUtc="@RunSelection.SelectedRun.StartedAtUtc"
+                                  SelectedRunIdChanged="@SwitchDashboardRunAsync" />
+            }
+            else if (RunStore.SupportsRunSelection)
             {
                 var selectedRun = RunSelection.SelectedRun;
                 <DashboardRunSelect ButtonId="@RunSelectButtonId"
@@ -107,7 +122,8 @@
         </header>
 
         <MobileNavMenu
-            HasResourceTerminals="@_hasResourceTerminals"
+            HasResourceTerminals="@_navigationAvailability.HasResourceTerminals"
+            Availability="@_navigationAvailability"
             IsNavMenuOpen="_isNavMenuOpen"
             CloseNavMenu="@CloseMobileNavMenu"
             LaunchHelpAsync="@LaunchHelpAsync"
@@ -146,8 +162,8 @@
     <ResourceServiceConnectionProvider />
     @if (IsTerminalDockEnabled)
     {
-        <ResourceTerminalsAvailabilityProvider @key="(typeof(ResourceTerminalsAvailabilityProvider), RunSelection.SelectedRun.RunId)"
-                                               AvailabilityChanged="@(available => _hasResourceTerminals = available)" />
+        <NavigationAvailabilityProvider @key="(typeof(NavigationAvailabilityProvider), RunSelection.SelectedRun.RunId)"
+                                        AvailabilityChanged="@(availability => _navigationAvailability = availability)" />
     }
     <div id="blazor-error-ui">
         @Loc[nameof(Layout.MainLayoutUnhandledErrorMessage)]

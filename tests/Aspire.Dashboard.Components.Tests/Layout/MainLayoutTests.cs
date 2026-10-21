@@ -59,7 +59,25 @@ public partial class MainLayoutTests : DashboardTestContext
     }
 
     [Theory]
-    [InlineData(AspireKeyboardShortcut.GoToHome, "/")]
+    [InlineData(".logo")]
+    [InlineData(".application-name")]
+    public async Task Logo_OpensAllResourcesOverviewWithoutRestoringSelection(string selector)
+    {
+        var stored = new Dictionary<string, object?>();
+        SetupMainLayoutServices(
+            sessionStorage: new TestSessionStorage { OnSetAsync = (key, value) => stored[key] = value },
+            dashboardClient: new TestDashboardClient(isEnabled: true, resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>));
+        var navigationManager = Services.GetRequiredService<NavigationManager>();
+        var cut = Render<MainLayout>(builder => builder.Add(p => p.ViewportInformation,
+            new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false)));
+
+        await cut.InvokeAsync(() => cut.Find($"header {selector}").Click());
+
+        Assert.Equal(DashboardUrls.ResourceListUrl(), "/" + navigationManager.ToBaseRelativePath(navigationManager.Uri));
+        Assert.Empty(Assert.IsType<List<string>>(stored[BrowserStorageKeys.LastSelectedResources]));
+    }
+
+    [Theory]
     [InlineData(AspireKeyboardShortcut.GoToResources, "/resources?pane=resources")]
     [InlineData(AspireKeyboardShortcut.GoToParameters, "/parameters")]
     [InlineData(AspireKeyboardShortcut.GoToGraph, "/graph")]
@@ -99,7 +117,6 @@ public partial class MainLayoutTests : DashboardTestContext
 
         foreach (var shortcut in new[]
         {
-            AspireKeyboardShortcut.GoToHome,
             AspireKeyboardShortcut.GoToResources,
             AspireKeyboardShortcut.GoToParameters,
             AspireKeyboardShortcut.GoToGraph,
@@ -149,6 +166,11 @@ public partial class MainLayoutTests : DashboardTestContext
                 case BrowserStorageKeys.UnsecuredTelemetryMessageDismissedKey:
                 case BrowserStorageKeys.UnsecuredEndpointMessageDismissedKey:
                     return (false, false);
+                // The view preferences are read with the layout. None are stored here.
+                case BrowserStorageKeys.ResourceListDensity:
+                case BrowserStorageKeys.GroupOverview:
+                case BrowserStorageKeys.RecordingsStyle:
+                    return (false, null);
                 default:
                     throw new InvalidOperationException("Unexpected key.");
             }
@@ -198,6 +220,11 @@ public partial class MainLayoutTests : DashboardTestContext
                     return (unsecuredTelemetryMessageDismissedKey, unsecuredTelemetryMessageDismissedKey);
                 case BrowserStorageKeys.UnsecuredEndpointMessageDismissedKey:
                     return (unsecuredEndpointMessageDismissedKey, unsecuredEndpointMessageDismissedKey);
+                // The view preferences are read with the layout. None are stored here.
+                case BrowserStorageKeys.ResourceListDensity:
+                case BrowserStorageKeys.GroupOverview:
+                case BrowserStorageKeys.RecordingsStyle:
+                    return (false, null);
                 default:
                     throw new InvalidOperationException("Unexpected key.");
             }
@@ -232,6 +259,11 @@ public partial class MainLayoutTests : DashboardTestContext
                 case BrowserStorageKeys.UnsecuredTelemetryMessageDismissedKey:
                 case BrowserStorageKeys.UnsecuredEndpointMessageDismissedKey:
                     return (false, false); // Message not dismissed, but should be suppressed by config if suppressUnsecuredMessage is true
+                // The view preferences are read with the layout. None are stored here.
+                case BrowserStorageKeys.ResourceListDensity:
+                case BrowserStorageKeys.GroupOverview:
+                case BrowserStorageKeys.RecordingsStyle:
+                    return (false, null);
                 default:
                     throw new InvalidOperationException("Unexpected key.");
             }
@@ -269,6 +301,12 @@ public partial class MainLayoutTests : DashboardTestContext
         {
             OnGetUnprotectedAsync = key =>
             {
+                // The view preferences are read with the layout too, and aren't what this test is about.
+                if (key is BrowserStorageKeys.ResourceListDensity or BrowserStorageKeys.GroupOverview or BrowserStorageKeys.RecordingsStyle)
+                {
+                    return (false, null);
+                }
+
                 readKeys.Add(key);
                 return key == failedKey ? (false, false) : (true, false);
             }
@@ -363,6 +401,36 @@ public partial class MainLayoutTests : DashboardTestContext
         else
         {
             Assert.True(runSelectIndex < cut.Markup.IndexOf($"id=\"{MainLayout.NavigationButtonId}\"", StringComparison.Ordinal));
+        }
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void RecordingsMenuSetting_ShowsTheLiveRunMenuInsteadOfTheRecordingsButton(bool isDesktop)
+    {
+        var localStorage = new TestLocalStorage
+        {
+            OnGetUnprotectedAsync = key => key == BrowserStorageKeys.RecordingsStyle ? (true, "Menu") : (false, null)
+        };
+        SetupMainLayoutServices(localStorage: localStorage);
+
+        var cut = Render<MainLayout>(builder =>
+        {
+            builder.Add(p => p.ViewportInformation, new ViewportInformation(IsDesktop: isDesktop, IsUltraLowHeight: false, IsUltraLowWidth: false));
+        });
+
+        cut.WaitForAssertion(() => Assert.Single(cut.FindComponents<DashboardRunMenu>()));
+        Assert.Empty(cut.FindComponents<DashboardRunSelect>());
+        Assert.Empty(cut.FindComponents<DashboardRunPill>());
+        var menuButton = Assert.Single(cut.FindComponent<DashboardRunMenu>().FindComponents<AspireMenuButton>());
+        Assert.Equal("Live run", menuButton.Instance.Text);
+        Assert.Equal(["Live run", "Learn about runs"], menuButton.Instance.ItemsProvider().Where(item => !item.IsDivider).Select(item => item.Text));
+        if (isDesktop)
+        {
+            // Where it was before recordings had their own panel: right before the header's buttons.
+            var menuIndex = cut.Markup.IndexOf("application-run-select", StringComparison.Ordinal);
+            Assert.True(menuIndex < cut.Markup.IndexOf($"aria-label=\"{Resources.Layout.MainLayoutAspireRepoLink}\"", StringComparison.Ordinal));
         }
     }
 

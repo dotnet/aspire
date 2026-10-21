@@ -17,25 +17,10 @@
             <FluentSpinner Size="SpinnerSize.Small" />
         </div>
     }
-    else if (ResourcesLayout.IsMultiSelection)
+    else if (ResourcesLayout.IsMultiSelection || ResourceName is null)
     {
-        @SelectionGroups(ResourcesLayout.SelectedResourceNames, Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewSelectionSummary)])
-
-    }
-    else if (ResourceName is null)
-    {
-        var allResourceNames = ResourcesLayout.GetAllResourceNames();
-        if (allResourceNames.Count == 0)
-        {
-            <div class="overview-message">
-                <span>@Loc[nameof(Dashboard.Resources.Resources.ResourcesNoResources)]</span>
-            </div>
-        }
-        else
-        {
-            @SelectionGroups(allResourceNames, LayoutLoc[nameof(Dashboard.Resources.Layout.ResourceHeaderAllResources)])
-
-        }
+        @* All resources, or several selected resources: summarize them, with their endpoints. *@
+        <ApplicationSummary ResourceNames="@(ResourcesLayout.IsMultiSelection ? ResourcesLayout.SelectedResourceNames : null)" />
     }
     else if (Resource is not { } resource)
     {
@@ -54,19 +39,14 @@
         var source = ResourceSourceViewModel.GetSourceViewModel(resource);
         var hasTelemetry = _telemetryKey is not null;
         var isInstrumented = hasTelemetry && TelemetryRepository.GetResource(_telemetryKey!.Value) is { UninstrumentedPeer: false };
-        // Only show telemetry cards that have something to show; an empty card wastes a large slot in the grid.
-        // While the first telemetry query for this resource is still in flight, keep a candidate card visible
-        // showing a loading skeleton instead of waiting for real counts. Otherwise these cards would pop in and
-        // reflow the whole grid a moment after the rest of the overview has already settled.
+        // The telemetry cards show their content only when the resource sends that telemetry. While the first query
+        // is in flight they show a loading skeleton; otherwise they show an empty card of the same size.
         var showLogs = isInstrumented && (!_telemetryLoaded || _telemetry is { LogCount: > 0 });
         var showTraces = hasTelemetry && (!_telemetryLoaded || _telemetry is { TraceCount: > 0 });
         var showMetrics = isInstrumented && (!_telemetryLoaded || _telemetry is { Instruments.Count: > 0 });
         var consoleLines = GetConsoleLines();
-        // Same rationale as the telemetry cards above: resources that structurally can't have endpoints
-        // (e.g. database sub-resources) or console output shouldn't waste a large empty card slot. Keep the
-        // console card visible while it's still loading so the spinner has somewhere to render.
         var showEndpoints = urls.Count > 0;
-        var showConsole = consoleLines.Count > 0 || !_consoleLogsLoaded;
+        var showConsole = true;
         var properties = GetVisibleProperties();
         var environmentVariables = GetVisibleEnvironmentVariables(resource);
         var healthReports = GetHealthReports(resource);
@@ -75,47 +55,24 @@
         var showHealth = healthReports.Count > 0;
         var hasVolumes = resource.Volumes.Length > 0;
 
-        // Each card asks for a width that suits its content: dense lists and log output get more columns,
-        // empty or short cards get fewer. The layout then packs cards into rows and widens cards so every row is full.
-        // This list must stay in the same order the cards are rendered in below: the packing algorithm distributes
-        // spare columns per row based on this order, and CSS grid auto-placement wraps rows in DOM order, so a
-        // mismatch here causes rows to wrap in different places than the computed spans assume.
+        // Every resource gets the same cards, in the same order and at the same size, so moving between resources
+        // keeps each block where the eye expects it. A card with nothing to show says so instead of disappearing.
+        // The rows are: status, endpoints and relationships; console and logs; traces and metrics; properties and
+        // environment; volumes and health.
         List<(OverviewCard Card, int Span)> cardSpans =
         [
-            (OverviewCard.Status, 4)
+            (OverviewCard.Status, 4),
+            (OverviewCard.Endpoints, 4),
+            (OverviewCard.Relationships, 4),
+            (OverviewCard.Console, 7),
+            (OverviewCard.Logs, 5),
+            (OverviewCard.Traces, 6),
+            (OverviewCard.Metrics, 6),
+            (OverviewCard.Properties, 6),
+            (OverviewCard.Environment, 6),
+            (OverviewCard.Volumes, 6),
+            (OverviewCard.Health, 6)
         ];
-        if (showEndpoints)
-        {
-            cardSpans.Add((OverviewCard.Endpoints, urls.Count > 4 ? 5 : 4));
-        }
-        cardSpans.Add((OverviewCard.Relationships, relatedResources.Count == 0 ? 3 : 4));
-        if (showConsole)
-        {
-            cardSpans.Add((OverviewCard.Console, consoleLines.Count > 0 ? 7 : 4));
-        }
-        if (showLogs)
-        {
-            cardSpans.Add((OverviewCard.Logs, 5));
-        }
-        if (showTraces)
-        {
-            cardSpans.Add((OverviewCard.Traces, 6));
-        }
-        if (showMetrics)
-        {
-            // The card's tiles are the pinned instruments, so their count decides whether it needs the wider slot.
-            cardSpans.Add((OverviewCard.Metrics, _telemetryLoaded && PinStore.GetPinnedInstruments(_telemetry!.Instruments).Count > 4 ? 6 : 4));
-        }
-        cardSpans.Add((OverviewCard.Properties, properties.Count == 0 ? 4 : 6));
-        cardSpans.Add((OverviewCard.Environment, resource.Environment.Length == 0 ? 4 : 6));
-        if (hasVolumes)
-        {
-            cardSpans.Add((OverviewCard.Volumes, 6));
-        }
-        if (showHealth)
-        {
-            cardSpans.Add((OverviewCard.Health, 6));
-        }
         var cardLayout = OverviewCardLayout.Create(cardSpans);
 
         <div class="overview-grid">
@@ -137,6 +94,14 @@
                         <FluentIcon Value="@(new Icons.Regular.Size16.Info())" Width="16px" Color="Color.Custom" CustomColor="currentColor" />
                     </span>
                     <h2 id="overview-status-title">@Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewStatusTitle)]</h2>
+                    @* Start, stop and the other actions live here rather than above every page of the resource, next to
+                       the state they change. *@
+                    @if (ResourcesLayout is not null)
+                    {
+                        <div class="overview-status-actions">
+                            @ResourcesLayout.RenderResourceActions(resource, showLabels: true)
+                        </div>
+                    }
                 </div>
                 <dl class="overview-properties">
                     <dt>@Loc[nameof(Dashboard.Resources.Resources.ResourcesStateColumnHeader)]</dt>
@@ -226,6 +191,10 @@
                     }
                 </ul>
             </section>
+            }
+            else
+            {
+                @EmptyCard(OverviewCard.Endpoints, cardLayout, "overview-endpoints-title", new Icons.Regular.Size16.Link(), Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewEndpointsTitle)], Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewNoEndpoints)])
             }
 
             <section class="overview-card overview-relationships-card" style="@cardLayout.Style(OverviewCard.Relationships)" aria-labelledby="overview-relationships-title">
@@ -380,6 +349,10 @@
                 }
             </section>
             }
+            else
+            {
+                @EmptyCard(OverviewCard.Logs, cardLayout, "overview-logs-title", new Icons.Regular.Size16.SlideTextSparkle(), Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewLogsTitle)], Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewNoTelemetry)])
+            }
 
             @if (showTraces)
             {
@@ -435,6 +408,10 @@
                 }
             </section>
             }
+            else
+            {
+                @EmptyCard(OverviewCard.Traces, cardLayout, "overview-traces-title", new Icons.Regular.Size16.GanttChart(), Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewTracesTitle)], Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewNoTelemetry)])
+            }
 
             @if (showMetrics)
             {
@@ -480,6 +457,10 @@
                     }
                 }
             </section>
+            }
+            else
+            {
+                @EmptyCard(OverviewCard.Metrics, cardLayout, "overview-metrics-title", new Icons.Regular.Size16.ChartMultiple(), Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewMetricsTitle)], Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewNoTelemetry)])
             }
 
             <section class="overview-card" style="@cardLayout.Style(OverviewCard.Properties)" aria-labelledby="overview-properties-title">
@@ -632,6 +613,10 @@
                     </ul>
                 </section>
             }
+            else
+            {
+                @EmptyCard(OverviewCard.Volumes, cardLayout, "overview-volumes-title", new Icons.Regular.Size16.Storage(), ControlsStringsLoc[nameof(ControlsStrings.ResourceDetailsVolumesHeader)], Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewNoVolumes)])
+            }
 
             @if (showHealth)
             {
@@ -667,11 +652,29 @@
                     </ul>
                 </section>
             }
+            else
+            {
+                @EmptyCard(OverviewCard.Health, cardLayout, "overview-health-title", new Icons.Regular.Size16.Heart(), ControlsStringsLoc[nameof(ControlsStrings.ResourceHealthChecksHeader)], Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewNoHealthChecks)])
+            }
         </div>
     }
 </div>
 
 @code {
+    // A card that has nothing to show for this resource, so the layout stays the same from one resource to the next.
+    private RenderFragment EmptyCard(OverviewCard card, OverviewCardLayout cardLayout, string titleId, Icon icon, string title, string message) => __builder =>
+    {
+        <section class="overview-card overview-card-empty" style="@cardLayout.Style(card)" aria-labelledby="@titleId">
+            <div class="overview-card-header">
+                <span class="card-header-icon" aria-hidden="true">
+                    <FluentIcon Value="@icon" Width="16px" Color="Color.Custom" CustomColor="currentColor" />
+                </span>
+                <h2 id="@titleId">@title</h2>
+            </div>
+            <div class="overview-empty">@message</div>
+        </section>
+    };
+
     private RenderFragment CardCount(int shown, int total) => __builder =>
     {
         if (shown < total)

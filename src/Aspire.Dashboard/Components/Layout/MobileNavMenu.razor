@@ -15,13 +15,15 @@
         {
             isActive &= IsTelemetrySection;
         }
-        else if (item.Text == Loc[nameof(Aspire.Dashboard.Resources.Layout.NavMenuResourcesTab)])
+        else if (item.IsResourceSelectionPage)
         {
+            @* The telemetry pane shows the same pages for telemetry sources, and highlights its own entry instead. *@
             isActive &= !IsTelemetrySection;
         }
+        var isDisabled = item.DisabledText is not null && !isActive;
         var menuItemAttributes = new Dictionary<string, object>
         {
-            ["data-tooltip"] = item.Text
+            ["data-tooltip"] = isDisabled ? item.DisabledText! : item.Text
         };
         if (isActive)
         {
@@ -31,7 +33,7 @@
         @* mobile-nav-menu-item-active drives the accent color bar applied via
            ::before, mirroring the desktop selected
            treatment without needing a separate sibling element. *@
-        <FluentMenuItem OnClick="@(async () => { CloseNavMenu(); await item.OnClick(); })" Class="@(isActive ? "mobile-nav-menu-item-active" : null)" AdditionalAttributes="@menuItemAttributes">
+        <FluentMenuItem OnClick="@(async () => { CloseNavMenu(); await item.OnClick(); })" Disabled="@isDisabled" Class="@(isActive ? "mobile-nav-menu-item-active" : null)" AdditionalAttributes="@menuItemAttributes">
             <span>@item.Text</span>
 
             @{

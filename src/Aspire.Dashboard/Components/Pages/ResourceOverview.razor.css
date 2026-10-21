@@ -37,6 +37,23 @@
     grid-column: span var(--overview-span, 12);
 }
 
+/* Cards keep their height; what doesn't fit scrolls inside them, below the card's header. The tags card isn't
+   sized: it's one line, and its tag picker opens a popup that a clipped card would cut off. */
+.overview-grid > .overview-card:not(.overview-tags-card) {
+    height: var(--overview-card-height, auto);
+    overflow: hidden;
+}
+
+.overview-grid > .overview-card:not(.overview-tags-card) > :not(.overview-card-header) {
+    flex-shrink: 1;
+    min-height: 0;
+    overflow: auto;
+}
+
+.overview-card-empty .overview-empty {
+    flex: 1 1 auto;
+}
+
 @container (max-width: 1100px) {
     .overview-grid > .overview-card {
         grid-column: span var(--overview-span-md, 12);
@@ -646,4 +663,8 @@ a.overview-selection-card-title:hover {
     .resource-overview {
         padding: 12px;
     }
+}
+
+.overview-status-actions {
+    margin-inline-start: auto;
 }

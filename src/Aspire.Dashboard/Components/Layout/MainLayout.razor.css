@@ -236,6 +236,13 @@
         outline-offset: -2px;
     }
 
+    ::deep.layout > .main-rail > .main-rail-item.disabled,
+    ::deep.layout > .main-rail > .main-rail-item.disabled:hover {
+        background: transparent;
+        color: var(--colorNeutralForegroundDisabled);
+        cursor: default;
+    }
+
     ::deep.layout > .main-rail > .main-rail-item.active {
         background: var(--colorNeutralBackground3);
         color: var(--colorBrandForeground1);
@@ -253,33 +260,6 @@
         width: 3px;
         border-radius: 0 2px 2px 0;
         background: var(--colorBrandBackground);
-    }
-
-    ::deep.layout > .main-rail > .main-rail-separator {
-        flex-shrink: 0;
-        width: 28px;
-        margin: 8px 0;
-        border: 0;
-        border-top: 1px solid var(--colorNeutralStroke1);
-    }
-
-    ::deep.layout > .main-rail > .main-rail-console-logs {
-        background: color-mix(in srgb, var(--colorNeutralBackground4), black 8%);
-        color: var(--colorNeutralForeground2);
-    }
-
-    ::deep.layout > .main-rail > .main-rail-console-logs:hover {
-        background: color-mix(in srgb, var(--colorNeutralBackground4), black 12%);
-        color: var(--colorNeutralForeground1);
-    }
-
-    ::deep.layout > .main-rail > .main-rail-console-logs.active {
-        background: color-mix(in srgb, var(--colorNeutralBackground4), black 8%);
-        color: var(--colorBrandForeground1);
-    }
-
-    ::deep.layout > .main-rail > .main-rail-console-logs.active svg {
-        fill: currentColor !important;
     }
 
     ::deep.layout > .layout-body-container {

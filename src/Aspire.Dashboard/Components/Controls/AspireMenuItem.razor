@@ -71,12 +71,16 @@ else
                 @Item.Text
             </span>
         }
-        @if (Item.Description is not null || Item.SecondaryActionIcon is not null)
+        @if (Item.Description is not null || Item.Count is not null || Item.SecondaryActionIcon is not null)
         {
             <span class="aspire-menu-secondary-action-container" slot="end">
                 @if (Item.Description is not null)
                 {
                     <span class="aspire-menu-item-description">@Item.Description</span>
+                }
+                @if (Item.Count is { } count)
+                {
+                    <span class="aspire-menu-item-count">@count.ToString(CultureInfo.CurrentCulture)</span>
                 }
                 @if (Item.SecondaryActionIcon is not null)
                 {

@@ -402,8 +402,6 @@ window.registerGlobalKeydownListener = function (shortcutManager) {
                     return 240;
                 case "e": // go to terminals
                     return 250;
-                case "h": // go to home
-                    return 260;
                 case "p": // go to parameters
                     return 270;
                 case "g": // go to graph

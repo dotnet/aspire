@@ -12,17 +12,31 @@
     {
         var isActive = item.Section == displayedSection;
         var id = $"main-rail-{item.Section.ToString().ToLowerInvariant()}";
-        @if (item.Section == NavSection.ConsoleLogs)
+        @if (item.DisabledText is { } disabledText && !isActive)
         {
-            <hr class="main-rail-separator" />
+            @* Kept in the rail so it doesn't move the entries below it when the page starts having content. It stays
+               focusable so keyboard users can read why it's unavailable. *@
+            <span id="@id"
+                  class="main-rail-item disabled"
+                  role="link"
+                  tabindex="0"
+                  aria-disabled="true"
+                  aria-label="@item.Text"
+                  aria-description="@disabledText">
+                <FluentIcon Value="@item.Icon" Width="24px" Color="Color.Custom" CustomColor="currentColor" />
+            </span>
+            <FluentTooltip Anchor="@id" Positioning="Positioning.After">@disabledText</FluentTooltip>
         }
-        <a id="@id"
-           href="@item.Href"
-           class="main-rail-item @(item.Section == NavSection.ConsoleLogs ? "main-rail-console-logs" : null) @(isActive ? "active" : null)"
-           aria-label="@item.Text"
-           aria-current="@(isActive ? "page" : null)">
-            <FluentIcon Value="@(isActive ? item.ActiveIcon : item.Icon)" Width="24px" Color="Color.Custom" CustomColor="currentColor" />
-        </a>
-        <FluentTooltip Anchor="@id" Positioning="Positioning.After">@item.Text</FluentTooltip>
+        else
+        {
+            <a id="@id"
+               href="@item.Href"
+               class="main-rail-item @(isActive ? "active" : null)"
+               aria-label="@item.Text"
+               aria-current="@(isActive ? "page" : null)">
+                <FluentIcon Value="@(isActive ? item.ActiveIcon : item.Icon)" Width="24px" Color="Color.Custom" CustomColor="currentColor" />
+            </a>
+            <FluentTooltip Anchor="@id" Positioning="Positioning.After">@item.Text</FluentTooltip>
+        }
     }
 </nav>

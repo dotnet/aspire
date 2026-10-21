@@ -14,8 +14,8 @@ namespace Aspire.Dashboard.Components.Layout;
 
 /// <summary>
 /// The top-level navigation displayed as a vertical icon rail on the left of the desktop layout. With a resource
-/// service the dashboard is organized around the app model (Home, Resources, Parameters, Graph, Terminals,
-/// Extensions) and telemetry is reached from a resource's tabs. Telemetry-only services have a separate section
+/// service the dashboard is organized around the app model (Resources, Parameters, Graph, Terminals) and
+/// telemetry is reached from the pages of a resource selection. Telemetry-only services have a separate section
 /// in both AppHost and standalone mode.
 /// </summary>
 public partial class DesktopNavMenu : ComponentBase, IDisposable
@@ -26,6 +26,10 @@ public partial class DesktopNavMenu : ComponentBase, IDisposable
     internal static Icon HomeIcon(bool active = false) =>
         active ? new Icons.Filled.Size24.Home()
                   : new Icons.Regular.Size24.Home();
+
+    internal static Icon ConsoleLogsIcon(bool active = false) =>
+        active ? new Icons.Filled.Size24.SlideText()
+                  : new Icons.Regular.Size24.SlideText();
 
     internal static Icon ResourcesIcon(bool active = false) =>
         active ? new Icons.Filled.Size24.AppFolder()
@@ -49,12 +53,14 @@ public partial class DesktopNavMenu : ComponentBase, IDisposable
         active ? new Icons.Filled.Size24.ShareAndroid()
                   : new Icons.Regular.Size24.ShareAndroid();
 
-    internal static Icon ConsoleLogsIcon(bool active = false) =>
-        active ? new Icons.Filled.Size24.SlideText()
-                  : new Icons.Regular.Size24.SlideText();
-
     [Parameter]
     public bool HasResourceTerminals { get; set; }
+
+    /// <summary>
+    /// Which entries have something to show. The others are displayed disabled, with a tooltip that says why.
+    /// </summary>
+    [Parameter]
+    public NavigationAvailability Availability { get; set; } = NavigationAvailability.Default;
 
     internal static Icon StructuredLogsIcon(bool active = false) =>
         active ? new Icons.Filled.Size24.SlideTextSparkle()
@@ -96,31 +102,54 @@ public partial class DesktopNavMenu : ComponentBase, IDisposable
 
     // Telemetry-source pages share the resource routes, so the pane determines their navigation highlight.
     private NavSection GetDisplayedSection() =>
-        _activeSection == NavSection.Resources
-            ? ResourcePaneState.Mode switch
-            {
-                ResourcePaneMode.Telemetry => NavSection.Telemetry,
-                _ => _activeSection
-            }
+        _activeSection == NavSection.Resources && ResourcePaneState.Mode == ResourcePaneMode.Telemetry
+            ? NavSection.Telemetry
             : _activeSection;
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
-        var section = GetSection(NavigationManager.ToBaseRelativePath(e.Location), DashboardClient.IsEnabled);
-        if (section != _activeSection)
+        // Always re-render: the links to a selection's pages follow the selection in the URL.
+        _activeSection = GetSection(NavigationManager.ToBaseRelativePath(e.Location), DashboardClient.IsEnabled);
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Gets the URL of a page of the current resource selection, such as its console logs. The selection is read from
+    /// the current URL; pages that aren't about resources, like the parameters, select every resource.
+    /// </summary>
+    internal static string GetSelectionPageUrl(NavigationManager navigationManager, ResourcesLayout.ResourceTab tab)
+    {
+        var path = navigationManager.ToBaseRelativePath(navigationManager.Uri);
+        IReadOnlyList<string> resourceNames = [];
+        string? routeResourceName = null;
+        if (GetSection(path, hasResourceService: true) is NavSection.Resources or NavSection.Telemetry)
         {
-            _activeSection = section;
-            _ = InvokeAsync(StateHasChanged);
+            var location = ResourcesLayout.ParseLocation(path);
+            resourceNames = location.SelectedResourceNames;
+            routeResourceName = location.RouteResourceName;
         }
+
+        // Without a selection, the overview restores the last selected resources, like the Resources entry always did.
+        if (tab == ResourcesLayout.ResourceTab.Overview && resourceNames.Count == 0)
+        {
+            return DashboardUrls.ResourceListUrl();
+        }
+
+        var url = ResourcesLayout.GetTabUrl(tab, resourceNames, routeResourceName);
+        return ResourcesLayout.ParsePaneMode(path) == ResourcePaneMode.Telemetry && tab is not (ResourcesLayout.ResourceTab.Overview or ResourcesLayout.ResourceTab.Console)
+            ? DashboardUrls.AddTelemetryPane(url)
+            : url;
     }
 
     private IEnumerable<NavItem> GetItems()
     {
         if (DashboardClient.IsEnabled)
         {
-            yield return new NavItem(NavSection.Home, DashboardUrls.HomeUrl(), Loc[nameof(Resources.Layout.NavMenuHomeTab)], HomeIcon(), HomeIcon(active: true));
-            yield return new NavItem(NavSection.Resources, DashboardUrls.ResourceListUrl(), Loc[nameof(Resources.Layout.NavMenuResourcesTab)], ResourcesIcon(), ResourcesIcon(active: true));
-            yield return new NavItem(NavSection.Parameters, DashboardUrls.ParametersUrl(), Loc[nameof(Resources.Layout.NavMenuParametersTab)], ParametersIcon(), ParametersIcon(active: true));
+            // The pages of a selection (overview, console logs, structured logs, traces and metrics) are icons at the
+            // top of the resources view, so the rail has a single entry for them.
+            yield return new NavItem(NavSection.Resources, GetSelectionPageUrl(NavigationManager, ResourcesLayout.ResourceTab.Overview), Loc[nameof(Resources.Layout.NavMenuResourcesTab)], ResourcesIcon(), ResourcesIcon(active: true));
+            yield return new NavItem(NavSection.Parameters, DashboardUrls.ParametersUrl(), Loc[nameof(Resources.Layout.NavMenuParametersTab)], ParametersIcon(), ParametersIcon(active: true),
+                DisabledText: Availability.HasParameters ? null : Loc[nameof(Resources.Layout.NavMenuNoParameters)].Value);
             if (DashboardOptions.CurrentValue.UI.DisableResourceGraph != true)
             {
                 yield return new NavItem(NavSection.Graph, DashboardUrls.GraphUrl(), Loc[nameof(Resources.Layout.NavMenuGraphTab)], GraphIcon(), GraphIcon(active: true));
@@ -129,13 +158,9 @@ public partial class DesktopNavMenu : ComponentBase, IDisposable
             {
                 yield return new NavItem(NavSection.Terminals, DashboardUrls.TerminalsUrl(), Loc[nameof(Resources.Layout.NavMenuTerminalsTab)], TerminalsIcon(), TerminalsIcon(active: true));
             }
-            yield return new NavItem(NavSection.Extensions, DashboardUrls.ExtensionsUrl(), Loc[nameof(Resources.Layout.NavMenuExtensionsTab)], ExtensionsIcon(), ExtensionsIcon(active: true));
         }
-        yield return new NavItem(NavSection.Telemetry, DashboardUrls.TelemetrySourcesUrl(), Loc[nameof(Resources.Layout.NavMenuTelemetrySourcesTab)], TelemetryIcon(), TelemetryIcon(active: true));
-        if (DashboardClient.IsEnabled)
-        {
-            yield return new NavItem(NavSection.ConsoleLogs, DashboardUrls.ConsoleLogsUrl(), Loc[nameof(Resources.Layout.NavMenuConsoleLogsTab)], ConsoleLogsIcon(), ConsoleLogsIcon(active: true));
-        }
+        yield return new NavItem(NavSection.Telemetry, DashboardUrls.TelemetrySourcesUrl(), Loc[nameof(Resources.Layout.NavMenuTelemetrySourcesTab)], TelemetryIcon(), TelemetryIcon(active: true),
+            DisabledText: Availability.HasTelemetrySources ? null : Loc[nameof(Resources.Layout.TelemetryPaneNoSources)].Value);
     }
 
     /// <summary>
@@ -168,24 +193,20 @@ public partial class DesktopNavMenu : ComponentBase, IDisposable
             };
         }
 
-        if (firstSegment == DashboardUrls.ConsoleLogBasePath &&
-            ResourcesLayout.ParseLocation(baseRelativePath).SelectedResourceNames.Count == 0)
-        {
-            return NavSection.ConsoleLogs;
-        }
-
         return firstSegment switch
         {
-            "" => NavSection.Home,
-            DashboardUrls.ParametersBasePath => NavSection.Parameters,
-            DashboardUrls.GraphBasePath => NavSection.Graph,
-            DashboardUrls.TerminalsBasePath => NavSection.Terminals,
-            DashboardUrls.ExtensionsBasePath => NavSection.Extensions,
-            DashboardUrls.ResourceOverviewBasePath or
+            // The root URL redirects to the resources.
+            "" => NavSection.Resources,
+            // The pages of a selection are part of the resources view.
             DashboardUrls.ConsoleLogBasePath or
             DashboardUrls.StructuredLogsBasePath or
             DashboardUrls.TracesBasePath or
             DashboardUrls.MetricsBasePath => NavSection.Resources,
+            DashboardUrls.ParametersBasePath => NavSection.Parameters,
+            DashboardUrls.GraphBasePath => NavSection.Graph,
+            DashboardUrls.TerminalsBasePath => NavSection.Terminals,
+            DashboardUrls.ExtensionsBasePath => NavSection.Extensions,
+            DashboardUrls.ResourceOverviewBasePath => NavSection.Resources,
             _ => NavSection.None
         };
     }
@@ -199,18 +220,13 @@ public partial class DesktopNavMenu : ComponentBase, IDisposable
     internal enum NavSection
     {
         None,
-        Home,
         Resources,
         Telemetry,
         Parameters,
         Graph,
         Terminals,
-        Extensions,
-        ConsoleLogs,
-        StructuredLogs,
-        Traces,
-        Metrics
+        Extensions
     }
 
-    private sealed record NavItem(NavSection Section, string Href, string Text, Icon Icon, Icon ActiveIcon);
+    private sealed record NavItem(NavSection Section, string Href, string Text, Icon Icon, Icon ActiveIcon, string? DisabledText = null);
 }

@@ -690,7 +690,7 @@ public sealed partial class ResourceOverview : ComponentBase, IAsyncDisposable
         public required List<OtlpInstrumentSummary> Instruments { get; init; }
     }
 
-    private enum OverviewCard
+    internal enum OverviewCard
     {
         Status,
         Endpoints,
@@ -710,7 +710,7 @@ public sealed partial class ResourceOverview : ComponentBase, IAsyncDisposable
     /// spare columns at the end of a row are shared between that row's cards so rows never have trailing gaps.
     /// Medium widths use a separate two-per-row packing where wide cards take the full row.
     /// </summary>
-    private sealed class OverviewCardLayout
+    internal sealed class OverviewCardLayout
     {
         private const int Columns = 12;
 
@@ -732,8 +732,19 @@ public sealed partial class ResourceOverview : ComponentBase, IAsyncDisposable
 
         public string Style(OverviewCard card)
         {
-            return string.Create(CultureInfo.InvariantCulture, $"--overview-span: {_spans.GetValueOrDefault(card, Columns)}; --overview-span-md: {_mediumSpans.GetValueOrDefault(card, Columns)};");
+            return string.Create(CultureInfo.InvariantCulture, $"--overview-span: {_spans.GetValueOrDefault(card, Columns)}; --overview-span-md: {_mediumSpans.GetValueOrDefault(card, Columns)}; --overview-card-height: {GetHeight(card)}px;");
         }
+
+        // Each card has a fixed height, so a card is the same size for every resource and the cards below it don't
+        // move. Content that doesn't fit scrolls inside the card. Cards on the same row share a height.
+        private static int GetHeight(OverviewCard card) => card switch
+        {
+            OverviewCard.Status or OverviewCard.Endpoints or OverviewCard.Relationships => 260,
+            OverviewCard.Console or OverviewCard.Logs => 300,
+            OverviewCard.Traces or OverviewCard.Metrics => 300,
+            OverviewCard.Properties or OverviewCard.Environment => 340,
+            _ => 240
+        };
 
         private static Dictionary<OverviewCard, int> Pack(IReadOnlyList<(OverviewCard Card, int Span)> cards)
         {

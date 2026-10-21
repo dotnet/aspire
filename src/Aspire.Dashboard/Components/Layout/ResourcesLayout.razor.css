@@ -84,46 +84,6 @@
     width: 100%;
 }
 
-.resource-pane-states {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    padding: 0 12px 8px;
-}
-
-.state-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 2px 8px;
-    border: 1px solid transparent;
-    border-radius: 10px;
-    background: var(--colorNeutralBackground3);
-    color: var(--colorNeutralForeground2);
-    font: inherit;
-    font-size: 11px;
-    cursor: pointer;
-}
-
-.state-chip:hover {
-    color: var(--colorNeutralForeground1);
-}
-
-.state-chip.selected {
-    border-color: var(--colorBrandStroke1);
-    background: var(--resource-brand-soft);
-    color: var(--colorBrandForeground1);
-}
-
-.state-chip:focus-visible {
-    outline: 2px solid var(--colorStrokeFocus2);
-    outline-offset: 1px;
-}
-
-.state-chip-count {
-    font-weight: 600;
-}
-
 .state-dot {
     display: inline-block;
     flex: 0 0 8px;
@@ -332,36 +292,6 @@
     background: var(--colorBrandBackground);
 }
 
-.resource-row-drag-handle,
-.resource-group-drag-handle {
-    display: inline-flex;
-    flex: 0 0 auto;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 24px;
-    margin-right: 6px;
-    padding: 0;
-    border: 0;
-    border-radius: 4px;
-    background: transparent;
-    color: var(--colorNeutralForeground2);
-    cursor: grab;
-    opacity: 0;
-}
-
-.resource-row:hover .resource-row-drag-handle,
-.resource-row:focus-within .resource-row-drag-handle,
-.resource-tag-header:hover .resource-group-drag-handle,
-.resource-tag-header:focus-within .resource-group-drag-handle {
-    opacity: 1;
-}
-
-.resource-row-drag-handle:focus-visible,
-.resource-group-drag-handle:focus-visible {
-    outline: 2px solid var(--colorStrokeFocus2);
-}
-
 .resource-dragging {
     opacity: .5;
 }
@@ -383,13 +313,6 @@
 
 .resource-drop-after::after {
     bottom: -1px;
-}
-
-@media (hover: none) {
-    .resource-row-drag-handle,
-    .resource-group-drag-handle {
-        opacity: 1;
-    }
 }
 
 /* The expand toggle sits on the right so resource icons stay aligned with the filter box above the list. */
@@ -499,7 +422,7 @@
 .resource-row-name {
     overflow: hidden;
     font-size: 13.5px;
-    font-weight: 600;
+    font-weight: 500;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -517,10 +440,6 @@
 .resource-row-type {
     overflow: hidden;
     text-overflow: ellipsis;
-}
-
-.resource-row-sub ::deep .persistent-container-icon {
-    flex-shrink: 0;
 }
 
 .error-badge {
@@ -625,38 +544,6 @@
     font-size: 12.5px;
 }
 
-.resource-header-selection {
-    gap: 4px 6px;
-}
-
-.resource-header-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    max-width: 200px;
-    padding: 1px 8px;
-    border-radius: 10px;
-    background: var(--colorNeutralBackground3);
-    color: var(--colorNeutralForeground1);
-    font-size: 12px;
-    text-decoration: none;
-}
-
-.resource-header-chip:hover {
-    background: var(--datagrid-hover-color);
-}
-
-.resource-header-chip:focus-visible {
-    outline: 2px solid var(--colorStrokeFocus2);
-    outline-offset: 1px;
-}
-
-.resource-header-chip-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
 .resource-header-urls {
     min-width: 0;
     max-width: 100%;
@@ -719,10 +606,6 @@
     min-width: 0;
 }
 
-.resource-tabs > .resource-header-actions {
-    margin-left: auto;
-}
-
 .resource-tabs > .resource-tab-toolbar {
     display: flex;
     flex: 0 1 auto;
@@ -731,16 +614,8 @@
     margin-left: auto;
 }
 
-.resource-tab-toolbar + .resource-header-actions {
-    margin-left: 0;
-}
-
 .resource-tab-toolbar:empty {
     display: none;
-}
-
-.resource-tab-toolbar:empty + .resource-header-actions {
-    margin-left: auto;
 }
 
 .resource-tab-toolbar ::deep .main-toolbar.filter-toolbar {
@@ -799,10 +674,6 @@
 .in-top-bar .resource-header-urls {
     overflow: hidden;
     text-overflow: ellipsis;
-}
-
-.in-top-bar .resource-header-actions {
-    margin-left: auto;
 }
 
 /* Tabs are all that remain in the content header on desktop, so they need less top spacing.
@@ -913,4 +784,137 @@
    filter and collapse buttons next to it. FluentIcon sets the width inline, hence !important. */
 .resource-pane-head ::deep #resourcePaneGroupingButton svg {
     width: 16px !important;
+}
+
+/* Compact density: one line per resource. The state, type and persistence move to fixed-width columns on the
+   right, so they line up from row to row. */
+.density-compact .resource-row-link {
+    gap: 8px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+}
+
+.density-compact .resource-row-icon {
+    flex-basis: 22px;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+}
+
+.density-compact .resource-row-text {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+}
+
+.density-compact .resource-row-name {
+    font-size: 13px;
+}
+
+.density-compact .resource-row-text ::deep .resource-row-hidden-icon {
+    flex-shrink: 0;
+}
+
+.resource-row-meta {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 8px;
+    color: var(--colorNeutralForeground2);
+    font-size: 12px;
+}
+
+.resource-row-meta-state {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* The name and, for a persistent container, its pin. The name truncates so the pin always stays visible. */
+.resource-row-title {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+
+.resource-row-title ::deep .persistent-container-icon,
+.density-compact .resource-row-text ::deep .persistent-container-icon {
+    flex-shrink: 0;
+}
+
+.resource-row-toggle-spacer {
+    flex: 0 0 20px;
+    margin-right: 6px;
+}
+
+.resource-row-meta-state {
+    width: 10px;
+}
+
+.resource-row-meta .resource-row-type {
+    width: 64px;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.density-compact .resource-row-toggle,
+.density-compact .resource-row-toggle-spacer {
+    margin-right: 2px;
+}
+
+/* A resource's actions: labeled buttons in the overview, icons on the rows of the resource list. */
+.resource-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 6px;
+}
+
+.resource-row-actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 2px;
+    margin-right: 4px;
+}
+
+.resource-row-actions ::deep .resource-row-action {
+    width: 24px;
+    min-width: 24px;
+    height: 24px;
+    /* Fluent UI buttons default to a 32px minimum, which would make the row taller than the others. */
+    min-height: 24px;
+}
+
+.resource-row-actions ::deep .resource-row-action::part(control) {
+    width: 24px;
+    min-width: 24px;
+    height: 24px;
+    padding: 0;
+}
+
+/* Compact rows show the actions only while hovered or focused, in place of their state and type columns. They stay
+   while the row's menu is open. Comfortable rows always show them. */
+.density-compact .resource-row-actions {
+    display: none;
+}
+
+.density-compact .resource-row:hover .resource-row-actions,
+.density-compact .resource-row:focus-within .resource-row-actions,
+.density-compact .resource-row:has(.resource-row-actions [aria-expanded="true"]) .resource-row-actions {
+    display: flex;
+}
+
+.density-compact .resource-row:hover .resource-row-meta,
+.density-compact .resource-row:focus-within .resource-row-meta,
+.density-compact .resource-row:has(.resource-row-actions [aria-expanded="true"]) .resource-row-meta {
+    display: none;
+}
+
+@media (hover: none) {
+    .density-compact .resource-row-actions {
+        display: flex;
+    }
 }
