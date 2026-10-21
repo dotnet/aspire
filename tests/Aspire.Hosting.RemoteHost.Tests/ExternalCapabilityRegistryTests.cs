@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.RemoteHost.Ats;
 using Aspire.Hosting.RemoteHost.Diagnostics;
 using Aspire.Hosting.RemoteHost.Language;
@@ -279,6 +280,137 @@ public class ExternalCapabilityRegistryTests
         {
             response.TrySetResult(null);
         }
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task Dispatcher_ExternalFactoryAttributesOnlyItsReturnedResource(bool returnBuilder, bool hasSource)
+    {
+        await using var handles = new HandleRegistry();
+        using var tokens = new CancellationTokenRegistry();
+        using var registry = new ExternalCapabilityRegistry(NullLogger<ExternalCapabilityRegistry>.Instance);
+        var dispatcher = CreateDispatcher(handles, tokens, registry);
+        var resource = new TestResourceWithProperties("same-name");
+        var child = new TestResourceWithProperties("child");
+        var integrationSource = new ResourceSourceLocationAnnotation(Path.GetFullPath("integration.mts"), 20, 8, "fnv1a64:0000000000000001")
+        {
+            MethodName = "addContainer"
+        };
+        var appHostSource = new ResourceSourceLocationAnnotation(Path.GetFullPath("apphost.mts"), 7, 12, "fnv1a64:0000000000000002")
+        {
+            MethodName = "addResource"
+        };
+        dispatcher.Register("test/addResource", (args, registry) =>
+        {
+            var created = args!["name"]!.GetValue<string>() == "child" ? child : resource;
+            object value = returnBuilder ? new TestResourceBuilder<TestResourceWithProperties>(created) : created;
+            return Task.FromResult<JsonNode?>(registry.Marshal(value, "test/Resource"));
+        });
+        JsonObject? forwardedArgs = null;
+        using var integration = new IntegrationHostTestConnection(CreateResourceCapabilities(), async (_, args) =>
+        {
+            forwardedArgs = args!.DeepClone().AsObject();
+            await dispatcher.InvokeAsync("test/addResource", new JsonObject
+            {
+                ["name"] = "child",
+                ["$source"] = JsonSerializer.SerializeToNode(integrationSource, AtsMarshaller.JsonOptions)
+            });
+            return await dispatcher.InvokeAsync("test/addResource", new JsonObject
+            {
+                ["name"] = args["name"]!.GetValue<string>(),
+                ["$source"] = JsonSerializer.SerializeToNode(integrationSource, AtsMarshaller.JsonOptions)
+            });
+        });
+        registry.AddIntegrationHost(integration.ServerRpc);
+        await registry.InitializeAllHostsAsync(1, TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        var args = new JsonObject { ["name"] = "same-name" };
+        if (hasSource)
+        {
+            args["$source"] = JsonSerializer.SerializeToNode(appHostSource, AtsMarshaller.JsonOptions);
+        }
+
+        var result = await dispatcher.InvokeAsync("test.external/addResource", args, cancellationToken: TestContext.Current.CancellationToken);
+
+        var handle = Assert.IsType<HandleRef>(HandleRef.FromJsonNode(result));
+        var returned = handles.GetObject(handle.HandleId);
+        Assert.Same(resource, returnBuilder
+            ? Assert.IsType<TestResourceBuilder<TestResourceWithProperties>>(returned).Resource
+            : returned);
+        var sources = resource.Annotations.OfType<ResourceSourceLocationAnnotation>().ToArray();
+        Assert.Equal(hasSource ? 2 : 1, sources.Length);
+        Assert.Equivalent(integrationSource, sources[0], strict: true);
+        Assert.Equivalent(hasSource ? appHostSource : integrationSource, sources[^1], strict: true);
+        Assert.Equivalent(integrationSource,
+            Assert.Single(child.Annotations.OfType<ResourceSourceLocationAnnotation>()), strict: true);
+        Assert.NotNull(forwardedArgs);
+        Assert.Equal(["name"], forwardedArgs.Select(pair => pair.Key));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Dispatcher_ExternalModifierPreservesAnInputResourcesSource(bool hasSource)
+    {
+        await using var handles = new HandleRegistry();
+        using var tokens = new CancellationTokenRegistry();
+        using var registry = new ExternalCapabilityRegistry(NullLogger<ExternalCapabilityRegistry>.Instance);
+        var dispatcher = CreateDispatcher(handles, tokens, registry);
+        var resource = new TestResourceWithProperties("same-name");
+        if (hasSource)
+        {
+            resource.Annotations.Add(new ResourceSourceLocationAnnotation(Path.GetFullPath("original.mts"), 3, 4, "original"));
+        }
+        var originalAnnotations = resource.Annotations.ToArray();
+        using var integration = new IntegrationHostTestConnection(CreateResourceCapabilities(), (_, _) =>
+            Task.FromResult<JsonNode?>(handles.Marshal(new TestResourceBuilder<TestResourceWithProperties>(resource), "test/Resource")));
+        registry.AddIntegrationHost(integration.ServerRpc);
+        await registry.InitializeAllHostsAsync(1, TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+        await dispatcher.InvokeAsync("test.external/addResource", new JsonObject
+        {
+            ["builder"] = handles.Marshal(new TestResourceBuilder<TestResourceWithProperties>(resource), "test/Resource"),
+            ["$source"] = new JsonObject
+            {
+                ["filePath"] = Path.GetFullPath("apphost.mts"),
+                ["lineNumber"] = 7,
+                ["documentHash"] = "other"
+            }
+        }, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(originalAnnotations, resource.Annotations);
+    }
+
+    [Theory]
+    [InlineData("null")]
+    [InlineData("{}")]
+    [InlineData("""{"filePath":"apphost.mts","lineNumber":0,"documentHash":"hash"}""")]
+    [InlineData("""{"filePath":"apphost.mts","lineNumber":2,"columnNumber":-1,"documentHash":"hash"}""")]
+    [InlineData("""{"filePath":"apphost.mts","lineNumber":2,"columnNumber":"3","documentHash":"hash"}""")]
+    [InlineData("""{"filePath":"apphost.mts","lineNumber":2,"methodName":4,"documentHash":"hash"}""")]
+    public async Task Dispatcher_RejectsMalformedSourceBeforeCallingAnExternalHost(string source)
+    {
+        await using var handles = new HandleRegistry();
+        using var tokens = new CancellationTokenRegistry();
+        using var registry = new ExternalCapabilityRegistry(NullLogger<ExternalCapabilityRegistry>.Instance);
+        var dispatcher = CreateDispatcher(handles, tokens, registry);
+        var called = false;
+        using var integration = new IntegrationHostTestConnection(CreateResourceCapabilities(), (_, _) =>
+        {
+            called = true;
+            return Task.FromResult<JsonNode?>(null);
+        });
+        registry.AddIntegrationHost(integration.ServerRpc);
+        await registry.InitializeAllHostsAsync(1, TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+        var error = await Assert.ThrowsAsync<CapabilityException>(() =>
+            dispatcher.InvokeAsync("test.external/addResource", new JsonObject { ["$source"] = JsonNode.Parse(source) },
+                cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Equal(AtsErrorCodes.InvalidArgument, error.Error.Code);
+        Assert.False(called);
     }
 
     [Fact]
@@ -984,6 +1116,34 @@ public class ExternalCapabilityRegistryTests
         Assert.Equal(context.Properties, augmented.Properties);
         Assert.Empty(context.Capabilities);
     }
+
+    private static CapabilityDispatcher CreateDispatcher(
+        HandleRegistry handles, CancellationTokenRegistry tokens, ExternalCapabilityRegistry registry)
+    {
+        var configuration = new ConfigurationBuilder().Build();
+        var telemetry = RemoteHostProfilingTelemetry.Disabled;
+        var marshaller = new AtsMarshaller(handles, CreateContext(), tokens,
+            new Lazy<AtsCallbackProxyFactory>(() => throw new NotImplementedException()));
+
+        return new CapabilityDispatcher(handles,
+            new AssemblyLoader(configuration, NullLogger<AssemblyLoader>.Instance, telemetry),
+            marshaller, registry, NullLogger<CapabilityDispatcher>.Instance, telemetry);
+    }
+
+    private static JsonElement CreateResourceCapabilities()
+        => JsonSerializer.SerializeToElement(new
+        {
+            capabilities = new[]
+            {
+                new
+                {
+                    id = "test.external/addResource",
+                    method = "addResource",
+                    returnsBuilder = true,
+                    returnType = new { typeId = "test/Resource", category = "Handle" }
+                }
+            }
+        });
 
     private static JsonElement CreateCapabilities(params string[] ids)
         => JsonSerializer.SerializeToElement(new

@@ -382,6 +382,16 @@ Older AppHosts and SDKs can omit it.
 Generated SDKs capture source only for resource-returning `add*` methods, not for
 unrelated capabilities that happen to have an `add*` name.
 
+C# leaves local functions, base-qualified calls, and static abstract/virtual
+interface calls uninstrumented so source capture cannot change their dispatch
+or prevent otherwise valid code from compiling.
+
+When an external integration factory receives source metadata, its returned
+resource is attributed to the outer AppHost call rather than an internal
+factory call in the integration. Other resources created by the integration
+retain their own locations. A modifier returning an input resource preserves
+that resource's original metadata.
+
 | Source-location field | Description |
 | --------------------- | ----------- |
 | `filePath` | Absolute source-document path. |

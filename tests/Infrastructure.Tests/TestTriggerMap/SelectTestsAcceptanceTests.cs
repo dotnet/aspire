@@ -1157,9 +1157,9 @@ public sealed class SelectTestsAcceptanceTests(ITestOutputHelper outputHelper) :
     }
 
     [Theory]
-    [InlineData("Aspire.Hosting.Analyzers")]
-    [InlineData("Aspire.Hosting.Tasks")]
-    public void RealMapFixturelessHostingProjectsDoNotRunPolyglotValidation(string project)
+    [InlineData("Aspire.Hosting.Analyzers", new[] { "job:extension-e2e", "job:typescript-api-compat" })]
+    [InlineData("Aspire.Hosting.Tasks", new[] { "job:typescript-api-compat" })]
+    public void RealMapFixturelessHostingProjectsDoNotRunPolyglotValidation(string project, string[] expectedJobs)
     {
         var mapPath = Path.Combine(RepoRoot.Path, "eng", "github-ci", "test-trigger-map.yml");
         var selector = new TestSelector(
@@ -1170,7 +1170,7 @@ public sealed class SelectTestsAcceptanceTests(ITestOutputHelper outputHelper) :
 
         var result = selector.Select([], [project], new SelectorOptions());
 
-        Assert.Equal(["job:typescript-api-compat"], result.Jobs.Order(StringComparer.Ordinal));
+        Assert.Equal(expectedJobs, result.Jobs.Order(StringComparer.Ordinal));
     }
 
     [Fact]

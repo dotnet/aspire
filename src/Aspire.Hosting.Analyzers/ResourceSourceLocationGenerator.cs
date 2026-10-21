@@ -82,6 +82,14 @@ public sealed class ResourceSourceLocationGenerator : IIncrementalGenerator
         }
 
         var method = (symbol.ReducedFrom ?? symbol).OriginalDefinition;
+        // Only wrap calls that can be forwarded as ordinary member access without changing dispatch.
+        if (method.MethodKind != MethodKind.Ordinary
+            || syntax.Expression is MemberAccessExpressionSyntax { Expression: BaseExpressionSyntax }
+            || (method.IsStatic && method.ContainingType.TypeKind == TypeKind.Interface && (method.IsAbstract || method.IsVirtual)))
+        {
+            return null;
+        }
+
         var compilation = context.SemanticModel.Compilation;
         var builderType = compilation.GetTypeByMetadataName(BuilderType);
         if (builderType is null

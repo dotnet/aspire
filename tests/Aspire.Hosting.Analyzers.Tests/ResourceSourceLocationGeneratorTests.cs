@@ -109,10 +109,110 @@ public class ResourceSourceLocationGeneratorTests
             }
             """ + Types;
 
-        var resource = Execute(source, true)!;
+        var resource = Execute(source, true, expectInterception: true)!;
         var annotations = (System.Collections.IEnumerable)resource.GetType().GetProperty("Annotations")!.GetValue(resource)!;
 
         Assert.Empty(annotations);
+    }
+
+    [Fact]
+    public void PreservesBaseQualifiedVirtualDispatch()
+    {
+        var source = """
+            using Aspire.Hosting.ApplicationModel;
+            public static class SourceCases
+            {
+                public static object Run(bool condition) =>
+                    new ChildFactory().RegisterParent().Resource.Annotations[0];
+            }
+            public class ParentFactory
+            {
+                public virtual IResourceBuilder<Resource> AddWorker(string name) =>
+                    new ResourceBuilder<Resource>(new Resource { Annotations = new() { "parent" } });
+            }
+            public sealed class ChildFactory : ParentFactory
+            {
+                public override IResourceBuilder<Resource> AddWorker(string name) =>
+                    new ResourceBuilder<Resource>(new Resource { Annotations = new() { "child" } });
+                public IResourceBuilder<Resource> RegisterParent() => base.AddWorker("same");
+            }
+            """ + Types;
+
+        Assert.Equal("parent", Execute(source, true, expectInterception: false));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DoesNotInterceptLocalFactories(bool isStatic)
+    {
+        var source = $$"""
+            using Aspire.Hosting.ApplicationModel;
+            public static class SourceCases
+            {
+                public static Resource Run(bool condition)
+                {
+                    var resource = new Resource();
+                    {{(isStatic ? "static " : "")}}IResourceBuilder<Resource> AddWorker(Resource value) =>
+                        new ResourceBuilder<Resource>({{(isStatic ? "value" : "resource")}});
+                    return AddWorker(resource).Resource;
+                }
+            }
+            """ + Types;
+
+        var resource = Execute(source, true, expectInterception: false)!;
+        var annotations = (System.Collections.IEnumerable)resource.GetType().GetProperty("Annotations")!.GetValue(resource)!;
+
+        Assert.Empty(annotations);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DoesNotInterceptStaticAbstractOrVirtualInterfaceFactories(bool isAbstract)
+    {
+        var source = $$"""
+            using Aspire.Hosting.ApplicationModel;
+            public static class SourceCases
+            {
+                public static Resource Run(bool condition) => Create<Factory>().Resource;
+                private static IResourceBuilder<Resource> Create<T>() where T : IFactory<T> => T.AddWorker("same");
+            }
+            public interface IFactory<T> where T : IFactory<T>
+            {
+                static {{(isAbstract ? "abstract" : "virtual")}} IResourceBuilder<Resource> AddWorker(string name)
+                    {{(isAbstract ? ";" : "=> new ResourceBuilder<Resource>(new Resource());")}}
+            }
+            public sealed class Factory : IFactory<Factory>
+            {
+                public static IResourceBuilder<Resource> AddWorker(string name) =>
+                    new ResourceBuilder<Resource>(new Resource());
+            }
+            """ + Types;
+
+        var resource = Execute(source, true, expectInterception: false)!;
+        var annotations = (System.Collections.IEnumerable)resource.GetType().GetProperty("Annotations")!.GetValue(resource)!;
+
+        Assert.Empty(annotations);
+    }
+
+    [Fact]
+    public void CapturesStaticInterfaceFactories()
+    {
+        var source = """
+            using Aspire.Hosting.ApplicationModel;
+            public static class SourceCases
+            {
+                public static Resource Run(bool condition) => IFactory.AddWorker("same").Resource;
+            }
+            public interface IFactory
+            {
+                public static IResourceBuilder<Resource> AddWorker(string name) =>
+                    new ResourceBuilder<Resource>(new Resource());
+            }
+            """ + Types;
+
+        AssertSourceLocation(source, true, "AddWorker(\"same\")");
     }
 
     [Fact]
@@ -166,7 +266,7 @@ public class ResourceSourceLocationGeneratorTests
             }
             """ + Types;
 
-        Assert.Null(Execute(source, true));
+        Assert.Null(Execute(source, true, expectInterception: true));
     }
 
     [Fact]
@@ -248,7 +348,7 @@ public class ResourceSourceLocationGeneratorTests
         });
     }
 
-    private static object? Execute(string source, bool condition)
+    private static object? Execute(string source, bool condition, bool expectInterception)
     {
         var options = CSharpParseOptions.Default
             .WithFeatures([new KeyValuePair<string, string>("InterceptorsNamespaces", "Aspire.Hosting.Generated")]);
@@ -257,7 +357,7 @@ public class ResourceSourceLocationGeneratorTests
         driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var output, out var diagnostics);
 
         Assert.Empty(diagnostics);
-        Assert.Single(driver.GetRunResult().GeneratedTrees);
+        Assert.Equal(expectInterception ? 1 : 0, driver.GetRunResult().GeneratedTrees.Length);
         using var stream = new MemoryStream();
         var result = output.Emit(stream);
         Assert.True(result.Success, string.Join(Environment.NewLine, result.Diagnostics));
@@ -268,7 +368,7 @@ public class ResourceSourceLocationGeneratorTests
 
     private static void AssertSourceLocation(string source, bool condition, string invocation)
     {
-        var resource = Execute(source, condition)!;
+        var resource = Execute(source, condition, expectInterception: true)!;
         var annotations = (System.Collections.IEnumerable)resource.GetType().GetProperty("Annotations")!.GetValue(resource)!;
         var annotation = Assert.Single(annotations.Cast<object>());
         var type = annotation.GetType();

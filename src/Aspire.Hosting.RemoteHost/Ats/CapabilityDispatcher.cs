@@ -555,6 +555,7 @@ internal sealed class CapabilityDispatcher
             if (_externalRegistry is not null)
             {
                 _logger.LogDebug("Calling ExternalCapabilityRegistry.TryInvokeAsync for {CapabilityId}", capabilityId);
+                var sourceLocation = args is null ? null : ReadResourceSourceLocation(capabilityId, args);
                 using var externalCancellation = CancellationTokenSource.CreateLinkedTokenSource(
                     [cancellationToken, .. _externalRegistry.GetCancellationTokens(capabilityId, args, _marshaller)]);
                 var (found, result) = await _externalRegistry.TryInvokeAsync(
@@ -563,6 +564,12 @@ internal sealed class CapabilityDispatcher
                     found, result?.ToJsonString() ?? "null");
                 if (found)
                 {
+                    if (args is not null && sourceLocation is not null && HandleRef.FromJsonNode(result) is { } handle)
+                    {
+                        // Snapshots use the last source annotation. Override the internal factory's
+                        // location only on the returned resource, leaving children and inputs alone.
+                        AttachResourceSourceLocation(_handles.GetObject(handle.HandleId), sourceLocation, args, overrideExisting: true);
+                    }
                     return result;
                 }
             }
@@ -579,7 +586,7 @@ internal sealed class CapabilityDispatcher
             var result = await registration.Handler(args, _handles).ConfigureAwait(false);
             if (sourceLocation is not null && HandleRef.FromJsonNode(result) is { } handle)
             {
-                AttachResourceSourceLocation(_handles.GetObject(handle.HandleId), sourceLocation, args);
+                AttachResourceSourceLocation(_handles.GetObject(handle.HandleId), sourceLocation, args, overrideExisting: false);
             }
 
             return result;
@@ -660,7 +667,7 @@ internal sealed class CapabilityDispatcher
         return InvokeAsync(capabilityId, args).GetAwaiter().GetResult();
     }
 
-    private void AttachResourceSourceLocation(object value, ResourceSourceLocation source, JsonObject args)
+    private void AttachResourceSourceLocation(object value, ResourceSourceLocation source, JsonObject args, bool overrideExisting)
     {
         // RemoteHost loads the application's Hosting version in an isolated load context.
         // Resolve its contracts there rather than pinning RemoteHost to a Hosting assembly.
@@ -690,7 +697,7 @@ internal sealed class CapabilityDispatcher
         var annotations = (System.Collections.IList)resourceType.GetProperty("Annotations")!.GetValue(resource)!;
         lock (annotations)
         {
-            if (annotations.Cast<object>().Any(annotationType.IsInstanceOfType))
+            if (!overrideExisting && annotations.Cast<object>().Any(annotationType.IsInstanceOfType))
             {
                 return;
             }
