@@ -46,7 +46,18 @@ function Get-DevDriveDisk
         throw "Expected one unused NVMe disk of at least 50 GiB; found $($candidates.Count)."
     }
 
-    return $candidates[0]
+    $disk = $candidates[0]
+    # Do not trust RAW metadata alone. Enumerate all partitions rather than a
+    # disk-filtered query that can report "not found" for an empty RAW disk.
+    # Rejecting every partition also excludes its volume and folder/drive mounts:
+    # https://learn.microsoft.com/windows-hardware/drivers/storage/msft-partition
+    $partitions = @(Get-Partition | Where-Object DiskNumber -eq $disk.Number)
+    if ($disk.NumberOfPartitions -ne 0 -or $partitions.Count -ne 0)
+    {
+        throw "Selected NVMe disk $($disk.Number) already has partitions, associated volumes or mount paths; refusing initialization."
+    }
+
+    return $disk
 }
 
 function Get-DevDriveStorageState
@@ -128,7 +139,7 @@ function Invoke-PrepareDevDrive
         Assert-DevDriveHost -RunnerEnvironment $RunnerEnvironment
         $report.stage = 'inventory'
         $state = Get-DevDriveStorageState
-        $report.disks = @($state.Disks | Select-Object Number, UniqueId, BusType, PartitionStyle, Size, IsBoot, IsSystem)
+        $report.disks = @($state.Disks | Select-Object Number, UniqueId, BusType, PartitionStyle, NumberOfPartitions, Size, IsBoot, IsSystem)
         $disk = Get-DevDriveDisk @state
         $report.selectedDisk = $disk.Number
         $report.stage = 'initialization'

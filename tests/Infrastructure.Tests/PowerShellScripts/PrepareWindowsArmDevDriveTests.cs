@@ -16,8 +16,9 @@ public sealed class PrepareWindowsArmDevDriveTests(ITestOutputHelper output) : I
         $disk = [pscustomobject]@{
             Number = 3; UniqueId = 'nvme-3'; PartitionStyle = 'RAW'; BusType = 'NVMe'
             IsBoot = $false; IsSystem = $false; Size = 50GB
-            IsOffline = $false; IsReadOnly = $false
+            IsOffline = $false; IsReadOnly = $false; NumberOfPartitions = 0
         }
+        function Get-Partition { }
         $state = @{
             Disks = @($disk); DriveOccupied = $false
             WorkspacePopulated = $false; WorkspaceIsLink = $false
@@ -88,6 +89,69 @@ public sealed class PrepareWindowsArmDevDriveTests(ITestOutputHelper output) : I
 
         Assert.NotEqual(0, result.ExitCode);
         Assert.Contains(error, result.Output);
+    }
+
+    [Theory]
+    [InlineData("$disk.NumberOfPartitions = 1", "already has partitions")]
+    [InlineData("function Get-Partition { [pscustomobject]@{ DiskNumber = 3; AccessPaths = @() } }", "already has partitions")]
+    [InlineData("function Get-Partition { [pscustomobject]@{ DiskNumber = 3; AccessPaths = @('E:\\') } }", "already has partitions")]
+    [InlineData("function Get-Partition { [pscustomobject]@{ DiskNumber = 3; AccessPaths = @('C:\\mounted-data\\') } }", "already has partitions")]
+    [InlineData("function Get-Partition { [pscustomobject]@{ DiskNumber = 3; AccessPaths = @('\\\\?\\Volume{existing}\\') } }", "already has partitions")]
+    [InlineData("function Get-Partition { Write-Error 'Partition enumeration failed' }", "Partition enumeration failed")]
+    [RequiresTools(["pwsh"])]
+    public async Task RefusesOccupiedRawDiskBeforeMutation(string change, string error)
+    {
+        var result = await RunFunctions($$"""
+            {{DiskSetup}}
+            function Get-DevDriveStorageState { return $state }
+            $selected = Get-DevDriveDisk @state
+            {{change}}
+            function Initialize-Disk { throw 'Unexpected disk mutation' }
+            function Set-Disk { throw 'Unexpected disk mutation' }
+            Initialize-DevDrive -SelectedDisk $selected
+            """);
+
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains(error, result.Output);
+    }
+
+    [Theory]
+    [InlineData("$disk.NumberOfPartitions = 1", "already has partitions")]
+    [InlineData("function Get-Partition { [pscustomobject]@{ DiskNumber = 3; AccessPaths = @('C:\\mounted-data\\') } }", "already has partitions")]
+    [InlineData("function Get-Partition { Write-Error 'Partition enumeration failed' }", "Partition enumeration failed")]
+    [RequiresTools(["pwsh"])]
+    public async Task InventoryRefusesOccupiedRawDisk(string change, string error)
+    {
+        var result = await RunFunctions($$"""
+            {{DiskSetup}}
+            $env:GITHUB_WORKSPACE = New-Item -ItemType Directory -Path (Join-Path $env:RUNNER_TEMP 'empty-workspace')
+            function Get-Disk { $disk }
+            function Get-Volume { }
+            {{change}}
+            $inventory = Get-DevDriveStorageState
+            Get-DevDriveDisk @inventory
+            """);
+
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains(error, result.Output);
+    }
+
+    [Fact]
+    [RequiresTools(["pwsh"])]
+    public async Task EmptyRawDiskIgnoresOtherDisksPartitions()
+    {
+        var result = await RunFunctions(DiskSetup + """
+
+            $env:GITHUB_WORKSPACE = New-Item -ItemType Directory -Path (Join-Path $env:RUNNER_TEMP 'empty-workspace')
+            function Get-Disk { $disk }
+            function Get-Volume { }
+            function Get-Partition { [pscustomobject]@{ DiskNumber = 0; AccessPaths = @('C:\') } }
+            $inventory = Get-DevDriveStorageState
+            (Get-DevDriveDisk @inventory).Number
+            """);
+
+        result.EnsureSuccessful();
+        Assert.Equal("3", result.Output.Trim());
     }
 
     [Theory]
