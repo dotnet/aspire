@@ -53,7 +53,7 @@ resource apiOrigin 'Microsoft.Cdn/profiles/originGroups/origins@2025-06-01' = {
       }
       privateLinkLocation: env_private_link_location
       groupId: 'managedEnvironments'
-      requestMessage: 'Azure Front Door frontdoor requests access to Azure Container Apps environment env.'
+      requestMessage: 'Azure Front Door frontdoor requests access to env.'
     }
     enforceCertificateNameCheck: true
   }
@@ -114,7 +114,7 @@ resource webOrigin 'Microsoft.Cdn/profiles/originGroups/origins@2025-06-01' = {
       }
       privateLinkLocation: env_private_link_location
       groupId: 'managedEnvironments'
-      requestMessage: 'Azure Front Door frontdoor requests access to Azure Container Apps environment env.'
+      requestMessage: 'Azure Front Door frontdoor requests access to env.'
     }
     enforceCertificateNameCheck: true
   }

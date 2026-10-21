@@ -6,20 +6,21 @@
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
-using Aspire.Hosting.Azure.AppContainers;
 
 namespace Aspire.Hosting;
 
 /// <summary>
-/// Extension methods for reaching Azure Container Apps through Azure Front Door Private Link.
+/// Extension methods for reaching a compute environment, such as Azure Container Apps, through Azure Front Door Private Link.
 /// </summary>
 public static class AzureFrontDoorPrivateLinkExtensions
 {
     /// <summary>
-    /// Connects an Azure Front Door to an Azure Container Apps environment over Private Link and disables public network
-    /// access to the environment, so that the apps in the environment are reachable only through the Front Door.
+    /// Connects an Azure Front Door to a compute environment, such as an Azure Container Apps environment, over Private
+    /// Link and disables public network access to the environment, so that the apps in the environment are reachable only
+    /// through the Front Door.
     /// </summary>
-    /// <param name="environment">The Azure Container Apps environment to connect to.</param>
+    /// <typeparam name="T">The type of the compute environment, which implements <see cref="IAzureFrontDoorPrivateLinkTarget"/>.</typeparam>
+    /// <param name="environment">The compute environment to connect to.</param>
     /// <param name="frontDoor">
     /// The Azure Front Door, created with <see cref="AzureFrontDoorExtensions.AddAzureFrontDoor"/>, whose origins in
     /// <paramref name="environment"/> use Private Link.
@@ -37,16 +38,18 @@ public static class AzureFrontDoorPrivateLinkExtensions
     /// When publishing, every origin of <paramref name="frontDoor"/> that runs in <paramref name="environment"/> becomes a
     /// Private Link origin: the Front Door profile uses the Premium SKU, the origin connects to the environment through a
     /// Front Door managed private endpoint, and Front Door forwards requests and probes the origin over HTTPS, because the
-    /// Container Apps ingress terminates TLS. The apps must expose external HTTP endpoints, for example with
+    /// environment's ingress terminates TLS. The apps must expose external HTTP endpoints, for example with
     /// <c>WithExternalHttpEndpoints</c>. Origins in other compute environments are left as they are.
     /// </para>
     /// <para>
     /// Like a private endpoint to any other Azure resource, the Private Link disables public network access to the
     /// environment. Apps in the environment are no longer reachable from the Internet except through Front Door, and
     /// references between apps in the environment use the environment's internal host names. Callers outside the
-    /// environment must reach the apps through the Front Door, or through a route of their own. Public network access can
-    /// only be disabled for an environment that Aspire provisions, so the environment can't be marked as existing, and it
-    /// must be a workload profiles environment, not an
+    /// environment must reach the apps through the Front Door, or through a route of their own.
+    /// </para>
+    /// <para>
+    /// An Azure Container Apps environment can only have its public network access disabled when Aspire provisions it, so it
+    /// can't be marked as existing, and it must be a workload profiles environment, not an
     /// <see href="https://learn.microsoft.com/azure/container-apps/express-overview">Azure Container Apps Express</see>
     /// environment.
     /// </para>
@@ -101,12 +104,13 @@ public static class AzureFrontDoorPrivateLinkExtensions
     /// </code>
     /// </example>
     /// <seealso href="https://learn.microsoft.com/azure/container-apps/how-to-integrate-with-azure-front-door">Access a container app using Azure Front Door with Private Link</seealso>
-    [AspireExport]
+    [AspireExport("withFrontDoorAzureFrontDoorPrivateLink", MethodName = "withAzureFrontDoorPrivateLink")]
     [Experimental("ASPIREAZURE003", UrlFormat = "https://aka.ms/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<AzureContainerAppEnvironmentResource> WithAzureFrontDoorPrivateLink(
-        this IResourceBuilder<AzureContainerAppEnvironmentResource> environment,
+    public static IResourceBuilder<T> WithAzureFrontDoorPrivateLink<T>(
+        this IResourceBuilder<T> environment,
         IResourceBuilder<AzureFrontDoorResource> frontDoor,
         string? privateLinkLocation = null)
+        where T : IAzureFrontDoorPrivateLinkTarget
     {
         ArgumentNullException.ThrowIfNull(environment);
         ArgumentNullException.ThrowIfNull(frontDoor);
@@ -131,7 +135,7 @@ public static class AzureFrontDoorPrivateLinkExtensions
             if (!string.Equals(existing.PrivateLinkLocation, location, StringComparison.Ordinal))
             {
                 throw new InvalidOperationException(
-                    $"Azure Container Apps environment '{environment.Resource.Name}' is already connected to Azure Front Door " +
+                    $"Compute environment '{environment.Resource.Name}' is already connected to Azure Front Door " +
                     $"'{frontDoor.Resource.Name}' with a different Private Link location. Call {nameof(WithAzureFrontDoorPrivateLink)} " +
                     "once for each Front Door, or pass the same location.");
             }

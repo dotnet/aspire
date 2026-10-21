@@ -4,7 +4,6 @@
 #pragma warning disable ASPIREAZURE003 // Type is for evaluation purposes only and is subject to change or removal in future updates.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Azure.AppContainers;
 using Azure.Provisioning;
 using Azure.Provisioning.Cdn;
 using Azure.Provisioning.Expressions;
@@ -12,7 +11,7 @@ using Azure.Provisioning.Expressions;
 namespace Aspire.Hosting.Azure;
 
 /// <summary>
-/// Converts the origins of one Front Door template that run in a Container Apps environment connected with
+/// Converts the origins of one Front Door template that run in a compute environment connected with
 /// <see cref="AzureFrontDoorPrivateLinkExtensions.WithAzureFrontDoorPrivateLink"/> into Private Link origins.
 /// </summary>
 internal sealed class AzureFrontDoorPrivateLinkConfigurator(AzureResourceInfrastructure infrastructure, AzureFrontDoorResource frontDoor)
@@ -31,7 +30,7 @@ internal sealed class AzureFrontDoorPrivateLinkConfigurator(AzureResourceInfrast
         FrontDoorOriginGroup originGroup,
         FrontDoorOrigin origin)
     {
-        if (computeEnvironment is not AzureContainerAppEnvironmentResource environment ||
+        if (computeEnvironment is not IAzureFrontDoorPrivateLinkTarget environment ||
             !environment.Annotations.OfType<PrivateEndpointTargetAnnotation>().Any(annotation => annotation.PrivateEndpointResource is AzureFrontDoorResource))
         {
             return false;
@@ -44,7 +43,7 @@ internal sealed class AzureFrontDoorPrivateLinkConfigurator(AzureResourceInfrast
         {
             // The environment refuses public traffic, so a Front Door that isn't connected to it can't reach the origin.
             throw new InvalidOperationException(
-                $"Origin '{originName}' of Azure Front Door '{frontDoor.Name}' runs in Azure Container Apps environment '{environment.Name}', " +
+                $"Origin '{originName}' of Azure Front Door '{frontDoor.Name}' runs in compute environment '{environment.Name}', " +
                 $"which is connected to another Azure Front Door through Private Link and has public network access disabled. " +
                 $"Call {nameof(AzureFrontDoorPrivateLinkExtensions.WithAzureFrontDoorPrivateLink)} on '{environment.Name}' with '{frontDoor.Name}' to connect it.");
         }
@@ -55,19 +54,19 @@ internal sealed class AzureFrontDoorPrivateLinkConfigurator(AzureResourceInfrast
             _targets.Add(connection, target);
         }
 
-        // Container Apps routes requests by host name, so the origin host header must be the app's own host name, which
-        // AddAzureFrontDoor already sets. The certificate name check must stay on for a Private Link origin.
+        // The compute environment routes requests by host name, so the origin host header must be the app's own host name,
+        // which AddAzureFrontDoor already sets. The certificate name check must stay on for a Private Link origin.
         origin.EnforceCertificateNameCheck = true;
         origin.SharedPrivateLinkResource = new SharedPrivateLinkResourceProperties
         {
             PrivateLinkId = target.EnvironmentId,
             PrivateLinkLocation = target.Location,
-            GroupId = AzureFrontDoorPrivateLinkAnnotation.GroupId,
+            GroupId = connection.Environment.PrivateLinkGroupId,
             RequestMessage = connection.RequestMessage,
         };
 
-        // Container Apps ingress terminates TLS, so Front Door must probe over HTTPS even when the app's probe
-        // endpoint uses HTTP. Routes already forward over HTTPS only.
+        // The compute environment's ingress terminates TLS, so Front Door must probe over HTTPS even when the app's
+        // probe endpoint uses HTTP. Routes already forward over HTTPS only.
         originGroup.HealthProbeSettings ??= new HealthProbeSettings();
         originGroup.HealthProbeSettings.ProbeProtocol = HealthProbeProtocol.Https;
 
@@ -85,7 +84,7 @@ internal sealed class AzureFrontDoorPrivateLinkConfigurator(AzureResourceInfrast
             if (!_targets.ContainsKey(connection))
             {
                 throw new InvalidOperationException(
-                    $"Azure Front Door '{frontDoor.Name}' is connected to Azure Container Apps environment '{connection.Environment.Name}' through Private Link, " +
+                    $"Azure Front Door '{frontDoor.Name}' is connected to compute environment '{connection.Environment.Name}' through Private Link, " +
                     $"but none of its origins run in that environment. Add apps in '{connection.Environment.Name}' with " +
                     $"{nameof(AzureFrontDoorExtensions.WithOrigin)}, or remove the {nameof(AzureFrontDoorPrivateLinkExtensions.WithAzureFrontDoorPrivateLink)} call.");
             }
@@ -100,21 +99,21 @@ internal sealed class AzureFrontDoorPrivateLinkConfigurator(AzureResourceInfrast
     }
 
     private (ProvisioningParameter EnvironmentId, BicepValue<string> Location) CreateTarget(
-        AzureContainerAppEnvironmentResource environment,
+        IAzureFrontDoorPrivateLinkTarget environment,
         AzureFrontDoorPrivateLinkAnnotation connection)
     {
         var environmentIdentifier = Infrastructure.NormalizeBicepIdentifier(environment.Name);
-        var environmentId = environment.ContainerAppEnvironmentId.AsProvisioningParameter(infrastructure, $"{environmentIdentifier}_environment_id");
+        var environmentId = environment.Id.AsProvisioningParameter(infrastructure, $"{environmentIdentifier}_environment_id");
 
         if (connection.PrivateLinkLocation is { } location)
         {
             return (environmentId, location);
         }
 
-        // The environment's region is an output of the environment module, so it is only known at deployment. Container
-        // Apps returns display names such as 'West US 2', and Front Door expects 'westus2', so remove the spaces and
-        // lowercase the name.
-        var environmentLocation = environment.ContainerAppLocation.AsProvisioningParameter(infrastructure, $"{environmentIdentifier}_location");
+        // The environment's region is an output of the environment module, so it is only known at deployment. The output
+        // can be a display name such as 'West US 2', and Front Door expects 'westus2', so remove the spaces and lowercase
+        // the name.
+        var environmentLocation = environment.Location.AsProvisioningParameter(infrastructure, $"{environmentIdentifier}_location");
         var variableName = $"{environmentIdentifier}_private_link_location";
         infrastructure.Add(new ProvisioningVariable(variableName, typeof(string))
         {

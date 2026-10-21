@@ -268,8 +268,8 @@ public class AzureFrontDoorPrivateLinkTests(ITestOutputHelper testOutputHelper)
         var (_, firstBicep) = await GetManifestWithBicep(first.Resource);
         var (_, secondBicep) = await GetManifestWithBicep(second.Resource);
 
-        Assert.Contains("requestMessage: 'Azure Front Door first requests access to Azure Container Apps environment env.'", firstBicep);
-        Assert.Contains("requestMessage: 'Azure Front Door second requests access to Azure Container Apps environment env.'", secondBicep);
+        Assert.Contains("requestMessage: 'Azure Front Door first requests access to env.'", firstBicep);
+        Assert.Contains("requestMessage: 'Azure Front Door second requests access to env.'", secondBicep);
     }
 
     [Fact]
@@ -436,6 +436,48 @@ public class AzureFrontDoorPrivateLinkTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(140, connection.RequestMessage.Length);
     }
 
+    [Fact]
+    public async Task WithAzureFrontDoorPrivateLinkSupportsAnyPrivateLinkTarget()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper);
+
+        var target = builder.AddResource(new TestPrivateLinkTarget("target"));
+        var frontDoor = builder.AddAzureFrontDoor("frontdoor");
+        target.WithAzureFrontDoorPrivateLink(frontDoor);
+
+        var api = builder.AddProject<Project>("api", launchProfileName: null)
+            .WithHttpsEndpoint()
+            .WithExternalHttpEndpoints()
+            .WithComputeEnvironment(target);
+        frontDoor.WithOrigin(api);
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var (_, bicep) = await GetManifestWithBicep(frontDoor.Resource);
+
+        Assert.Contains("name: 'Premium_AzureFrontDoor'", bicep);
+        Assert.Contains("id: target_environment_id", bicep);
+        Assert.Contains("privateLinkLocation: target_private_link_location", bicep);
+        Assert.Contains("groupId: 'sites'", bicep);
+        Assert.Contains("requestMessage: 'Azure Front Door frontdoor requests access to target.'", bicep);
+        Assert.Single(target.Resource.Annotations.OfType<PrivateEndpointTargetAnnotation>());
+    }
+
+    [Fact]
+    public void AzureContainerAppEnvironmentIsAPrivateLinkTarget()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper);
+
+        var environment = builder.AddAzureContainerAppEnvironment("env");
+
+        var target = Assert.IsAssignableFrom<IAzureFrontDoorPrivateLinkTarget>(environment.Resource);
+        Assert.Equal("managedEnvironments", target.PrivateLinkGroupId);
+        Assert.Equal("AZURE_CONTAINER_APPS_ENVIRONMENT_ID", target.Id.Name);
+        Assert.Equal("AZURE_CONTAINER_APPS_ENVIRONMENT_LOCATION", target.Location.Name);
+    }
+
     private static IResource GetContainerApp(IResource resource)
     {
         var target = resource.GetDeploymentTargetAnnotation();
@@ -457,5 +499,19 @@ public class AzureFrontDoorPrivateLinkTests(ITestOutputHelper testOutputHelper)
     private sealed class Project : IProjectMetadata
     {
         public string ProjectPath => "project";
+    }
+
+    // A compute environment other than Azure Container Apps that Front Door can reach over Private Link.
+    private sealed class TestPrivateLinkTarget(string name)
+        : AzureProvisioningResource(name, _ => { }), IAzureFrontDoorPrivateLinkTarget
+    {
+        public BicepOutputReference Id => new("id", this);
+
+        public BicepOutputReference Location => new("location", this);
+
+        public string PrivateLinkGroupId => "sites";
+
+        public ReferenceExpression GetHostAddressExpression(EndpointReference endpointReference)
+            => ReferenceExpression.Create($"{endpointReference.Resource.Name}.{new BicepOutputReference("domain", this)}");
     }
 }

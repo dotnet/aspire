@@ -21,11 +21,20 @@ namespace Aspire.Hosting.Azure.AppContainers;
 /// </summary>
 #pragma warning disable CS0618 // Type or member is obsolete
 public class AzureContainerAppEnvironmentResource :
-    AzureProvisioningResource, IAzureComputeEnvironmentResource, IComputeEnvironmentWithVolumeMounts, IAzureContainerRegistry, IAzureDelegatedSubnetResource
+    AzureProvisioningResource, IAzureComputeEnvironmentResource, IComputeEnvironmentWithVolumeMounts, IAzureContainerRegistry, IAzureDelegatedSubnetResource, IAzureFrontDoorPrivateLinkTarget
 #pragma warning restore CS0618 // Type or member is obsolete
 {
     /// <inheritdoc />
     string IAzureDelegatedSubnetResource.DelegatedSubnetServiceName => AzureSubnetServiceDelegations.ContainerAppEnvironments;
+
+    /// <inheritdoc />
+    BicepOutputReference IAzureFrontDoorPrivateLinkTarget.Id => ContainerAppEnvironmentId;
+
+    /// <inheritdoc />
+    BicepOutputReference IAzureFrontDoorPrivateLinkTarget.Location => ContainerAppLocation;
+
+    /// <inheritdoc />
+    string IAzureFrontDoorPrivateLinkTarget.PrivateLinkGroupId => "managedEnvironments";
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureContainerAppEnvironmentResource"/> class.

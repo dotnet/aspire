@@ -12,8 +12,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
-    <ProjectReference Include="..\Aspire.Hosting.Azure.AppContainers\Aspire.Hosting.Azure.AppContainers.csproj" />
     <PackageReference Include="Azure.Provisioning.Cdn" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="$(SharedDir)ComputeEnvironmentEndpointResolver.cs" LinkBase="Shared\ComputeEnvironmentEndpointResolver.cs" />
   </ItemGroup>
 
   <ItemGroup>
