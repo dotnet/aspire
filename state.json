@@ -2,7 +2,7 @@
   "version": 1,
   "issue": 16189,
   "issue_url": "https://github.com/microsoft/aspire/issues/16189",
-  "phase": "publication-intent",
+  "phase": "terminal",
   "created_at": "2026-10-21T20:33:06.496822+00:00",
   "base_sha": "2015b1f0a997cf68d0582de62c912e3e419d880a",
   "control_sha": "8e88c59dea4df119df959cb648c32f73a919bd68",
@@ -53,7 +53,7 @@
     "reason": "Runner OS is Linux but the issue only fails on windows-latest (linux 0/100); test also requires pwsh and a built Aspire.Hosting.Tests project, so no local repeated run was attempted."
   },
   "outcome": "blocked",
-  "updated_at": "2026-10-21T20:56:07.428272+00:00",
+  "updated_at": "2026-10-21T20:56:11.403438+00:00",
   "agent": {
     "sha": "515cac42dc95f703735d9f6bbe17bf7db879c871",
     "workflow": "reproduce-flaky-tests.yml",
