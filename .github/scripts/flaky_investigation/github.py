@@ -14,6 +14,18 @@ from contracts import REPOSITORY, require, sha
 TRAILER = "\n\nCo-authored-by: Copilot App <223556219+Copilot@users.noreply.github.com>\n"
 
 
+class GitHubAPIError(subprocess.CalledProcessError):
+    """Expose captured diagnostics while preserving existing failure handling."""
+
+    def __str__(self):
+        if not self.stderr:
+            return super().__str__()
+        diagnostic = self.stderr.decode("utf-8", errors="replace")
+        diagnostic = re.sub(r"(?:gh[pousr]_|github_pat_)[A-Za-z0-9_]+", "[REDACTED]", diagnostic)
+        diagnostic = re.sub(r"(?i)([?&](?:sig|token|access_token)=)[^&\s\"']+", r"\1[REDACTED]", diagnostic)
+        return f"{super().__str__()}\nGitHub API diagnostic: {json.dumps(diagnostic.strip()[:4000])}"
+
+
 class GitHub:
     def api(self, endpoint, body=None, method=None, binary=False):
         command = ["gh", "api", f"repos/{REPOSITORY}/{endpoint}"]
@@ -21,8 +33,11 @@ class GitHub:
             command += ["--method", method]
         if body is not None:
             command += ["--input", "-"]
-        result = subprocess.run(command, input=json.dumps(body).encode() if body is not None else None,
-                                capture_output=True, check=True, timeout=120)
+        try:
+            result = subprocess.run(command, input=json.dumps(body).encode() if body is not None else None,
+                                    capture_output=True, check=True, timeout=120)
+        except subprocess.CalledProcessError as error:
+            raise GitHubAPIError(error.returncode, error.cmd, output=error.stdout, stderr=error.stderr) from error
         if binary:
             return result.stdout
         return json.loads(result.stdout) if result.stdout else None

@@ -241,6 +241,24 @@ class OrchestrationTests(unittest.TestCase):
         self.assertEqual("blocked", self.github.state["outcome"])
         self.assertEqual(1, len([call for call in self.github.calls if call[0] == "dispatch"]))
 
+    def test_worker_ref_failure_resumes_to_blocked_without_worker_or_retry(self):
+        self.selected()
+        error = subprocess.CalledProcessError(
+            1, ["gh", "api", "git/refs"], stderr=b"gh: Resource not accessible by integration (HTTP 403)")
+        with patch.object(self.github, "create_ref", side_effect=error) as create_ref:
+            with self.assertRaises(subprocess.CalledProcessError):
+                self.controller.dispatch_worker(self.state, self.revision, "reproduce", 1, 1, "single")
+            state, revision = self.live()
+            self.assertEqual("worker-intent", state["phase"])
+            self.assertIsNone(state["worker"].get("id"))
+            self.controller.advance(state, revision)
+            create_ref.assert_called_once_with(state["worker"]["branch"], CONTROL)
+        self.assertEqual("terminal", self.github.state["phase"])
+        self.assertEqual("blocked", self.github.state["outcome"])
+        self.assertEqual(1, len(self.github.comments))
+        self.assertEqual([], self.github.pulls)
+        self.assertFalse(any(call[0] == "dispatch" for call in self.github.calls))
+
     def test_lost_callback_resumes_exact_owned_worker_once(self):
         self.selected()
         self.controller.dispatch_worker(self.state, self.revision, "reproduce", 1, 1, "single")
@@ -445,6 +463,44 @@ class OrchestrationTests(unittest.TestCase):
 
 
 class BoundaryTests(unittest.TestCase):
+    def test_api_error_retains_http_diagnostic_and_never_retries(self):
+        command = ["gh", "api", f"repos/{REPOSITORY}/git/refs", "--input", "-"]
+        diagnostic = b"gh: Resource not accessible by integration (HTTP 403)\n"
+        error = subprocess.CalledProcessError(1, command, output=b'{"status":"403"}', stderr=diagnostic)
+        with patch("github.subprocess.run", side_effect=error) as run:
+            with self.assertRaises(subprocess.CalledProcessError) as caught:
+                GitHub().create_ref("ankj/flaky-test-123-run-1", CONTROL)
+        self.assertEqual(
+            f"{error}\nGitHub API diagnostic: \"gh: Resource not accessible by integration (HTTP 403)\"",
+            str(caught.exception))
+        self.assertEqual(diagnostic, caught.exception.stderr)
+        run.assert_called_once()
+
+    def test_optional_lookup_still_suppresses_only_not_found(self):
+        for status in (404, 403):
+            error = subprocess.CalledProcessError(
+                1, ["gh", "api"], stderr=f"gh: lookup failed (HTTP {status})".encode())
+            with self.subTest(status=status), patch("github.subprocess.run", side_effect=error) as run, \
+                    patch("sys.stderr", io.StringIO()) as stderr:
+                if status == 404:
+                    self.assertIsNone(GitHub().optional("git/ref/heads/missing"))
+                else:
+                    with self.assertRaisesRegex(subprocess.CalledProcessError, "HTTP 403"):
+                        GitHub().optional("git/ref/heads/forbidden")
+                self.assertEqual("", stderr.getvalue())
+                run.assert_called_once()
+
+    def test_api_diagnostics_are_bounded_escaped_and_redacted(self):
+        diagnostic = "HTTP 403\n::error::untrusted\nghp_example_test_only https://example.invalid/?token=example&sig=example\n"
+        error = subprocess.CalledProcessError(
+            1, ["gh", "api"], stderr=(diagnostic + "x" * 5000).encode())
+        with patch("github.subprocess.run", side_effect=error):
+            with self.assertRaises(subprocess.CalledProcessError) as caught:
+                GitHub().api("git/refs", {"ref": "refs/heads/test", "sha": CONTROL})
+        detail = str(caught.exception).partition("\nGitHub API diagnostic: ")[2]
+        expected = "HTTP 403\n::error::untrusted\n[REDACTED] https://example.invalid/?token=[REDACTED]&sig=[REDACTED]\n"
+        self.assertEqual(json.dumps((expected + "x" * 5000)[:4000]), detail)
+
     def test_agent_preparation_matches_proposal_branch_to_issue(self):
         for number in ("123", "124"):
             with self.subTest(number=number), patch.dict(os.environ, {

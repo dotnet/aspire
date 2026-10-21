@@ -166,6 +166,15 @@ trusted deployment settings, never issue/model inputs. Their identities are
 frozen in the checkpoint. Production defaults use the canonical agent filename
 and the control revision for both agent and worker code.
 
+For premerge validation, publish the exact trusted worker revision to an
+upstream ref before the job token creates run refs. In the observed
+[before](https://github.com/microsoft/aspire/actions/runs/39673661846) /
+[after](https://github.com/microsoft/aspire/actions/runs/39673902818) probe,
+readable ancestor access returned HTTP 403 until that registration. This is an
+observed activation prerequisite, not a universal GitHub policy guarantee.
+Only separately authorized bootstrap setup uses a workflow-capable credential;
+runtime jobs still use their job tokens and do not modify workflow files.
+
 An agent wrapper forwards `issue_url`, `issue_number`, and `state_revision`.
 The controller derives the number from the URL; preparation checks they agree
 before model work. Proposal branches stay in the per-issue namespace:
