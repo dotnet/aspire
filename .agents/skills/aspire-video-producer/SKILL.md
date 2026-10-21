@@ -1,6 +1,6 @@
 ---
 name: aspire-video-producer
-description: Produces narrated Aspire videos (feature walkthroughs, dashboard tours, integration overviews, pull request demos) with one unified look and specification - 1080p, the Aspire logo, purple palette and Poppins font from aspire.dev, a neural voice picked from a shortlist, captions, slight dynamic zooms on demos, and renditions for GitHub, aspire.dev, YouTube or chat apps. Use when asked to record, narrate, or produce a video of Aspire, its dashboard or its CLI: narrated and branded by default, or silent or unbranded when the user asks for a simpler video.
+description: Produces narrated Aspire videos (feature walkthroughs, dashboard tours, integration overviews, pull request demos) with one unified look and specification - 1080p, the Aspire logo and purple palette from aspire.dev, a neural voice picked from a shortlist, captions, slight dynamic zooms on demos, and renditions for GitHub, aspire.dev, YouTube or chat apps. Use when asked to record, narrate, or produce a video of Aspire, its dashboard or its CLI: narrated and branded by default, or silent or unbranded when the user asks for a simpler video.
 ---
 
 # Aspire Video Producer
@@ -9,7 +9,7 @@ Every Aspire video looks the same: the same branding, layout, captions, zooms, a
 narrator, the renditions, and whether sections get chapter cards (step 0).
 This skill holds that specification and the scripts that apply it. It's adapted from the Orchard Core video producer
 skill (BSD 3-Clause License, see "Orchard Core" in the repository's `THIRD-PARTY-NOTICES.TXT`). **Don't change the specification for a single
-video.** If it must change, change it here, in `scripts/brand.py`, `scripts/narrate.py` and `scripts/assemble.py`,
+video.** If it must change, change it here, in `scripts/Brand.cs`, `scripts/Speech.cs` and `scripts/Assembly.cs`,
 and in `references/specs.md`, so every later video follows.
 
 ## When to use it
@@ -35,33 +35,36 @@ dashboard, matching the example clip in `scripts/recorder/Scenes.cs`. Read it be
 |---|---|
 | Output | 1920x1080, 30 fps, H.264 (`-tune stillimage`), `+faststart`, in the renditions the user picks: `web` (1080p, **under 10 MB**, the default), `hd` (1080p, best quality), `light` (720p, under 5 MB) |
 | Recording | Chromium at 1536x864 CSS pixels, device scale 1.25, dark color scheme, en-US, shown at 1728x972 in a purple frame |
-| Branding | The aspire.dev dark theme (`#1F1E33`) with purple and magenta glows, the Aspire logo (symbol and white "Aspire" name), Poppins and Fira Code from `assets/fonts` |
+| Branding | The aspire.dev dark theme (`#1F1E33`) with purple and magenta glows, the Aspire logo (symbol and white "Aspire" name), the system UI and monospace fonts (Segoe UI and Cascadia Mono on Windows, Helvetica Neue and Menlo on macOS) |
 | Colors | Purple `#512BD4` (pills), primary `#7455DD` (accents, frame, highlights, cursor clicks), secondary `#B9AAEE`, muted `#DCD5F6`, black `#1F1E33`, white |
-| Voice | The narrator the user picks from a shortlist (default `en-US-AndrewMultilingualNeural`), rate `+2%`, through the `msedge-tts` npm package (`scripts/tts.mjs`) |
+| Voice | The narrator the user picks from a shortlist (default `en-US-AndrewMultilingualNeural`), rate `+2%`, through the `msedge-tts` npm package (`scripts/tts/tts.mjs`) |
 | Structure | Opening card, numbered chapters (an optional chapter card + slides or recordings), closing card |
-| Zooms | Slight (1.25x), eased zooms on what each recorded step points at, rendered by `assemble.py` |
+| Zooms | Slight (1.25x), eased zooms on what each recorded step points at, rendered by the assembly |
 | Captions | WebVTT and SRT, from the narration, at most about 13 words each |
 
 The full specification, with every value and the reasons behind them, is in `references/specs.md`.
 
 ## Prerequisites
 
-- Python 3.11+ with `pillow pygments imageio-ffmpeg` (ffmpeg comes with `imageio-ffmpeg`), in a dedicated virtual
-  environment: `python3 -m venv ~/.venvs/aspire-video && ~/.venvs/aspire-video/bin/pip install pillow pygments
-  imageio-ffmpeg`. Run every script with `~/.venvs/aspire-video/bin/python`, wherever the steps below say `python`.
-- Node.js 18+ with the `msedge-tts` npm package, for the voice, installed from the public npm registry next to the
-  virtual environment: `mkdir -p ~/.venvs/aspire-video/node && npm install --prefix ~/.venvs/aspire-video/node
-  --registry https://registry.npmjs.org msedge-tts@^2.1.0` (or set `ASPIRE_VIDEO_NODE` to another folder).
-  Microsoft changes the speech service's handshake from time to time: when every request fails with a 403, update
-  `msedge-tts` (2.1.0 has the October 2026 fix). It gets these fixes sooner than the Python `edge-tts` package.
-- .NET 10 SDK, for the recorder (Playwright for .NET; run `pwsh <bin>/playwright.ps1 install chromium` once).
+- .NET SDK 10.0.300 or later: the tools are a .NET file-based app (`scripts/video.cs`, with `#:include`) and the
+  recorder (Playwright for .NET). Install the recorder's browser once, after building it: `pwsh
+  <bin>/playwright.ps1 install chromium` (the Chromium build pinned by the recorder's Playwright version).
+- Node.js 24 (LTS) or later, for the voice. Its package, `msedge-tts`, is pinned in `scripts/tts/package.json` and
+  `package-lock.json`, and installed from the lockfile: `npm ci --prefix <tools>/tts`. Microsoft changes the speech
+  service's handshake from time to time: when every request fails with a 403, update `msedge-tts` (Dependabot
+  proposes new versions).
+- ffmpeg 7 or later, with the libx264 encoder, on the `PATH` (or named by `FFMPEG`): `winget install Gyan.FFmpeg`,
+  `brew install ffmpeg`, or `sudo apt install ffmpeg`.
 - The Aspire CLI and a throwaway sample app to record: see `references/recording.md`.
 - Internet access for the voice (`msedge-tts` calls the Microsoft Edge speech service).
 - Docker (or Podman) running, when the app to record has container resources.
 
 Check these first. If one is missing, tell the user what to install rather than working around it.
 
-`<skill>` below is the folder of this skill.
+`<skill>` below is the folder of this skill, and `<tools>` the copy of its `scripts` folder in the workspace (step 1).
+Every package the tools use is pinned to an exact version: `#:package` in `scripts/video.cs`, `Recorder.csproj`, and
+`scripts/tts/package-lock.json`. Run the tools with `dotnet run <tools>/video.cs -- <command> ...`; the first run
+builds them (a few seconds), and later runs reuse the build.
 
 ## Workflow
 
@@ -83,9 +86,9 @@ question tool when the session has one), unless they already said:
    Teams, Slack, email or phones. Recommend from where the video goes. See "Renditions" in `references/specs.md`;
    there is no vertical or 4K rendition.
 2. **Voice**: the shortlist of "Voice" in `references/specs.md`, Andrew (the default) first. Offer a sample before
-   they choose: `python <skill>/scripts/voices.py <workspace>/voices.mp4` reads one line in each voice of the
+   they choose: `dotnet run <tools>/video.cs -- voices <workspace>/voices.mp4` reads one line in each voice of the
    shortlist (or in the voices given), on cards that name them. Send it, and use the voice they pick. For another
-   voice or language, pick from `python <skill>/scripts/voices.py --list <prefix>` (such as `es-`): only the voices
+   voice or language, pick from `dotnet run <tools>/video.cs -- voices --list <prefix>` (such as `es-`): only the voices
    it lists work.
 3. **Chapter cards**: a card between sections ("Chapter 2, The resources"), or none, for a quicker video. Recommend
    cards for overviews of 3 minutes or more, none for short videos and pull request demos.
@@ -95,14 +98,20 @@ Write the answers into the storyboard: `renditions`, `voice`, `chapterCards`. To
 
 ### 1. Create a workspace outside any repository
 
-Use the session's scratchpad or a temp folder, never a repository: frames and audio are large, and the recorder must
-not pick up a repository's build settings.
+Use the session's scratchpad or a temp folder, never a repository: frames and audio are large, and the tools must not
+pick up a repository's build settings or package sources. Copy the skill's `scripts` folder into it as `tools`, and
+install the voice package:
+
+```bash
+cp -R <skill>/scripts <workspace>/tools
+npm ci --prefix <workspace>/tools/tts
+```
 
 ```text
 <workspace>/
-  storyboard.json   the chapters, clips and narration (see references/storyboard.md)
-  slides.py         the slides, if the storyboard has "slide" clips
-  recorder/         a copy of scripts/recorder, with your scenes in Scenes.cs
+  storyboard.json   the chapters, clips, narration and slides (see references/storyboard.md)
+  slides/           the code shown on slides, if any ("source" of a code panel)
+  tools/            a copy of the skill's scripts: video.cs, tts/, and recorder/ with your scenes in Scenes.cs
   app/              the throwaway Aspire app to record, if the video shows one
   audio/            generated: one mp3 per step
   durations.json    generated: the length of each step's narration
@@ -111,7 +120,7 @@ not pick up a repository's build settings.
   <output>.mp4/.vtt/.srt   the result
 ```
 
-Start from `examples/dashboard-tour/storyboard.json` and `slides.py`, and copy `scripts/recorder` into the workspace.
+Start from `examples/dashboard-tour/storyboard.json` and its `slides/` folder.
 
 ### 2. Write the storyboard
 
@@ -128,20 +137,20 @@ through: changing the text after recording means recording again.
 ### 3. Generate the narration
 
 ```bash
-python <skill>/scripts/narrate.py <workspace>
+dotnet run <tools>/video.cs -- narrate <workspace>
 ```
 
 It writes `audio/` and `durations.json`. Run it again after any change to the text: only the changed steps are
 generated again. **Record after narrating**, since the recorder holds each step for the length of its narration.
 
-If the voice mispronounces a word, add it to `SPOKEN` in `scripts/narrate.py` (for every video) or to `"spoken"` in
+If the voice mispronounces a word, add it to `s_spoken` in `scripts/Speech.cs` (for every video) or to `"spoken"` in
 the storyboard (for this one). The captions keep the written form. **Have a person confirm a new spelling before
 using it**: make a pronunciation sample, a few seconds per candidate spelling, and ask which option sounds right.
 Rebuilding a whole video to try a spelling wastes minutes per attempt. Pass the storyboard, so the sample uses the
 video's voice and rate (or `--voice` and `--rate`): a spelling that works for one voice can fail with another.
 
 ```bash
-python <skill>/scripts/pronounce.py --storyboard <workspace>/storyboard.json otlp.mp4 "The dashboard receives {} telemetry from every resource." "OTLP" "O.T.L.P." "O-T-L-P" "O T L P"
+dotnet run <tools>/video.cs -- pronounce --storyboard <workspace>/storyboard.json otlp.mp4 "The dashboard receives {} telemetry from every resource." "OTLP" "O.T.L.P." "O-T-L-P" "O T L P"
 ```
 
 Letters said one by one are written as an abbreviation with periods, such as "A.S.P.": the voice spells it at an
@@ -150,7 +159,7 @@ even pace. With spaces ("A S P"), the letters run together; with commas ("A, S, 
 
 ### 4. Record the clips
 
-Start the sample app (`aspire run`), then write one method per "clip" in `recorder/Scenes.cs`, with one
+Start the sample app (`aspire run`), then write one method per "clip" in `tools/recorder/Scenes.cs`, with one
 `scene.StepAsync("<step id>", ...)` per step, in the storyboard's order. See `references/recording.md` for the app
 to record, the scene API, and the pitfalls. Wait until every resource is Running and healthy, and generate some
 traffic so logs, traces and metrics have data. Then:
@@ -159,13 +168,13 @@ traffic so logs, traces and metrics have data. Then:
 own folder, so several videos can be recorded side by side.
 
 ```bash
-cd <workspace>/recorder && dotnet build
+cd <workspace>/tools/recorder && dotnet build
 export VIDEO_ROOT=<workspace> VIDEO_BASE_URL=https://localhost:17010
 export VIDEO_LOGIN_URL='<the dashboard login URL that aspire run prints>'
 <bin>/Recorder setup          # logs in to the dashboard, once per run of the app
 <bin>/Recorder probe / "..."  # checks each selector of Scenes.cs before recording
 <bin>/Recorder record all     # or the names of some clips
-python <skill>/scripts/review.py <workspace> <clip>
+dotnet run <tools>/video.cs -- review <workspace> <clip>
 ```
 
 Look at every contact sheet (`shots/<clip>.jpg`) before assembling: the frame at the end of each step must show what
@@ -177,7 +186,8 @@ storyboard, slides and recorder, and record them all from the same running app.
 ### 5. Assemble
 
 ```bash
-python <skill>/scripts/assemble.py <workspace>
+dotnet run <tools>/video.cs -- slides <workspace>     # renders the slides to shots/slides/, to check them first
+dotnet run <tools>/video.cs -- assemble <workspace>
 ```
 
 It writes one file per rendition (`<output>.mp4` for `web`, `<output>-hd.mp4`, `<output>-light.mp4`), and prints
@@ -222,15 +232,16 @@ Give the user `<output>.mp4` (send the file when the session can), and end with 
   folder the user can open (such as `<working directory>/<name>-videos/`), and link to the copies: a temporary folder is
   temporary.
 - **Links to its captions**: `<output>.vtt` and `<output>.srt`.
-- **The path to its workspace**, with links to `storyboard.json` (the narration), `slides.py` if any, and the
+- **The path to its workspace**, with links to `storyboard.json` (the narration and slides), and the
   recorder's `Scenes.cs`, so the user can change the text or a clip and produce the video again. When the workspace
   is in a temporary folder, also copy its sources next to the videos (`<name>-videos/workspaces/`: the storyboards,
-  `slides.py`, `recorder/` without `bin` and `obj`, and the app without `node_modules`, `bin`, `obj` and
+  `slides/`, `tools/` without `tts/node_modules`, `bin` and `obj`, and the app without `node_modules`, `bin`, `obj` and
   `aspire-output`), and link to both: the copy outlives the session, the workspace keeps the frames and audio.
 - **Shared files**, when several videos use them: the sample app, the recorder, and any settings or AppHost versions
   the clips copy in.
 
-End with the commands that produce a video again from its workspace (`narrate.py`, `Recorder record`, `assemble.py`).
+End with the commands that produce a video again from its workspace (`video.cs narrate`, `Recorder record`, `video.cs
+assemble`).
 
 ## Improving the skill
 
@@ -248,11 +259,15 @@ user's agreement.
 - `references/recording.md`: the app to record, the recorder, the scene API, and pitfalls.
 - `references/troubleshooting.md`: problems with external tools (VS Code in the browser, the Aspire CLI, NuGet
   packages, the dashboard, the voice), with their fixes. Check it before debugging one, and add what you find.
-- `scripts/brand.py`: the branding, the layout, and the slide building blocks.
-- `scripts/pronounce.py`: a pronunciation sample, to confirm the spelling of a word the voice misreads.
-- `scripts/voices.py`: a voice sample, to choose the narrator.
-- `assets/`: the Aspire logo (from aspire.dev) and the Poppins and Fira Code fonts (SIL Open Font License).
-- `examples/dashboard-tour/`: a complete storyboard and slides.
+- `scripts/video.cs`: the tools, a .NET file-based app: `narrate`, `voices`, `pronounce`, `slides`, `assemble`,
+  `review`. `Brand.cs` holds the branding and layout, `Slides.cs` the slides, `Speech.cs` the voice, `Assembly.cs` the
+  assembly, and `Media.cs` the calls to ffmpeg and Node.js.
+- `scripts/tts/`: the voice (`tts.mjs`), with its pinned npm package.
+- `scripts/recorder/`: the recorder, a Playwright for .NET app.
+- `scripts/assets/`: the Aspire logo, from aspire.dev.
+- `cgmanifest.json`: the components the skill uses that component detection can't find: the packages of `video.cs`,
+  and Orchard Core, which the skill is adapted from.
+- `examples/dashboard-tour/`: a complete storyboard, with slides.
 - `examples/aspire-introduction/`: a video with no slides: the AppHost typed in VS Code with IntelliSense, `aspire run`
   in its terminal, the dashboard, and `aspire deploy`, in English and Spanish. **Start from it for any video
   that shows VS Code or a terminal.**

@@ -31,11 +31,69 @@
           "steps": [
             {
               "id": "why-1",
-              "text": "Without it, each service runs in its own terminal, with its own console. It's hard to tell which ones are running, which ones failed, and which ones depend on each other."
+              "text": "Without it, each service runs in its own terminal, with its own console. It's hard to tell which ones are running, which ones failed, and which ones depend on each other.",
+              "slide": {
+                "heading": "Many processes, many consoles",
+                "bullets": [
+                  {
+                    "icon": "1",
+                    "title": "Many processes",
+                    "text": "Projects, containers and executables, each in its own terminal."
+                  },
+                  {
+                    "icon": "2",
+                    "title": "No overview",
+                    "text": "Which ones run, which ones failed, which ones depend on each other?"
+                  },
+                  {
+                    "icon": "check",
+                    "title": "Every resource",
+                    "text": "Its state, its health, and its endpoints, in one list."
+                  },
+                  {
+                    "icon": "check",
+                    "title": "Every signal",
+                    "text": "Console logs, structured logs, traces, and metrics, side by side."
+                  }
+                ],
+                "active": [
+                  0,
+                  1
+                ]
+              }
             },
             {
               "id": "why-2",
-              "text": "The Aspire dashboard brings them together. It lists every resource with its state and endpoints, and it shows their console logs, structured logs, traces, and metrics, side by side."
+              "text": "The Aspire dashboard brings them together. It lists every resource with its state and endpoints, and it shows their console logs, structured logs, traces, and metrics, side by side.",
+              "slide": {
+                "heading": "Many processes, many consoles",
+                "bullets": [
+                  {
+                    "icon": "1",
+                    "title": "Many processes",
+                    "text": "Projects, containers and executables, each in its own terminal."
+                  },
+                  {
+                    "icon": "2",
+                    "title": "No overview",
+                    "text": "Which ones run, which ones failed, which ones depend on each other?"
+                  },
+                  {
+                    "icon": "check",
+                    "title": "Every resource",
+                    "text": "Its state, its health, and its endpoints, in one list."
+                  },
+                  {
+                    "icon": "check",
+                    "title": "Every signal",
+                    "text": "Console logs, structured logs, traces, and metrics, side by side."
+                  }
+                ],
+                "active": [
+                  2,
+                  3
+                ]
+              }
             }
           ]
         }
@@ -73,7 +131,36 @@
           "steps": [
             {
               "id": "apphost-1",
-              "text": "The resources come from the AppHost. Add Redis adds a cache. Add Project adds a service. With Reference and Wait For connect them, so the web frontend starts once the cache and the API are ready."
+              "text": "The resources come from the AppHost. Add Redis adds a cache. Add Project adds a service. With Reference and Wait For connect them, so the web frontend starts once the cache and the API are ready.",
+              "slide": {
+                "heading": "The AppHost describes the app",
+                "code": {
+                  "title": "AppHost.cs",
+                  "language": "csharp",
+                  "source": "slides/AppHost.cs",
+                  "size": 22,
+                  "types": [
+                    "DistributedApplication",
+                    "Projects",
+                    "VideoDemo_ApiService",
+                    "VideoDemo_Web"
+                  ]
+                },
+                "notes": [
+                  {
+                    "title": "Add Redis",
+                    "text": "a container resource"
+                  },
+                  {
+                    "title": "Add Project",
+                    "text": "a service resource"
+                  },
+                  {
+                    "title": "With Reference",
+                    "text": "connects them"
+                  }
+                ]
+              }
             }
           ]
         }

@@ -1,7 +1,7 @@
 # The storyboard
 
 `storyboard.json` describes the whole video: its chapters, the clips of each chapter, and the narrated steps of each
-clip. `narrate.py`, the recorder and `assemble.py` all read it.
+clip, and the slides. The tools (`video.cs`) and the recorder all read it.
 
 ```json
 {
@@ -29,7 +29,7 @@ clip. `narrate.py`, the recorder and `assemble.py` all read it.
 ```
 
 - `output`: the file name of the result, without extension: `<output>.mp4`, `.vtt`, `.srt`.
-- `spoken`: pronunciation fixes for this video only (see `SPOKEN` in `scripts/narrate.py` for those of every video).
+- `spoken`: pronunciation fixes for this video only (see `s_spoken` in `scripts/Speech.cs` for those of every video).
 - `voice`, `rate` (optional): the narrator the user picked (see "Voice" in `references/specs.md`), such as
   `en-US-AvaMultilingualNeural`, or a voice for a video in another language (`es-ES-AlvaroNeural`). Without it, the
   default voice.
@@ -38,10 +38,10 @@ clip. `narrate.py`, the recorder and `assemble.py` all read it.
 - `chapterCards` (optional): `false` for no chapter card between sections. The default is `true`.
 - `zoom` (optional): `false` to render the recordings without their dynamic zooms. The default is `true`.
 - `narration` (optional): `false` for a silent video, without voice or captions. Each step then lasts its `"seconds"`
-  (3 by default), and its `"text"` is optional. `narrate.py` still runs: it writes `durations.json` from them.
+  (3 by default), and its `"text"` is optional. `narrate` still runs: it writes `durations.json` from them.
 - `branding` (optional): `false` for a video without the Aspire look: no logo and no Aspire color. Recordings fill the
   whole frame, with no header or border; cards are white text on black; the recorder's highlights are white and
-  black. Slides use `brand.py`, which is branded: leave them out, or draw plain ones.
+  black. Slides are branded: leave them out.
 - `chapter` (optional): the word for "Chapter" on chapter cards and pills, in the language of the video ("Capítulo").
 - `chapterCardSeconds` (optional): how long each chapter card stays on screen, when the user wants quicker (or
   slower) transitions than the default 2.6 s of `references/specs.md`, such as `1.2`.
@@ -49,8 +49,8 @@ clip. `narrate.py`, the recorder and `assemble.py` all read it.
   chapter card; every other chapter is numbered "Chapter N" from its id.
 - Clip `kind`:
   - `card`: the opening or closing card, with the chapter's title and subtitle, and one narrated step.
-  - `slide`: one image per step, drawn by `slide(step_id, chapter_title, label)` in the workspace's `slides.py`.
-  - `clip`: a recording, made by the method of the same name in `recorder/Scenes.cs`.
+  - `slide`: one image per step, drawn from the step's `"slide"` (see "Writing the slides").
+  - `clip`: a recording, made by the method of the same name in `tools/recorder/Scenes.cs`.
 - Step `id`: unique in the video; the recorder marks the time each one starts.
 
 ## Structure
@@ -72,7 +72,7 @@ A pull request demo can be shorter: an opening card, the recordings, and a closi
 
 For a video of a given length, add up the timing of `references/specs.md` before recording: each card takes its
 narration plus 2.4 s, each chapter card 2.6 s, each recording its steps (narration plus 0.45 s each) plus 1.7 s, and
-each slide clip its narration plus about 1.6 s. Run `narrate.py`, compute the length, and adjust the text until it
+each slide clip its narration plus about 1.6 s. Run `narrate`, compute the length, and adjust the text until it
 fits, then record.
 
 | Length | Outline |
@@ -99,7 +99,7 @@ card reads "Aspire Aspire". Name what the video is, such as "An introduction to 
   Aspire CLI". Say "Aspire", not ".NET Aspire".
 - **Acronyms**: the voice reads most of them correctly (API, HTTP, SQL). For one that must be spelled out letter by
   letter, add a `spoken` entry that writes it as an abbreviation with periods, such as "A.S.P. .NET" for "ASP.NET",
-  and have a person confirm it with a sample from `scripts/pronounce.py`.
+  and have a person confirm it with a sample from `video.cs pronounce`.
 - **Spell out** what a voice could misread: say "Add Redis" for `AddRedis()`, "With Reference" for
   `WithReference()`, "Wait For" for `WaitFor()`. Check every name of the narration for pronunciation, and add fixes
   to `spoken`.
@@ -108,33 +108,39 @@ card reads "Aspire Aspire". Name what the video is, such as "An introduction to 
 
 ## Writing the slides
 
-`slides.py` exposes `slide(step_id, chapter_title, label)`, which returns a 1920x1080 PIL image built with the
-helpers of `scripts/brand.py` (`assemble.py` puts it on the import path):
+A slide is data: the `"slide"` of a step of a `slide` clip. The tools draw it in the Aspire look, so every video's
+slides match. A heading, then one of: bullet cards, code panels, or code panels with note cards beside them.
 
-```python
-from brand import W, bullets, draw_code, note_cards, slide_base
-
-def slide(step_id, chapter_title, label):
-    if step_id == "why-1":
-        image = slide_base(chapter_title, label, "Many processes, many consoles")
-        bullets(image, PROBLEMS, active={0, 1})   # the cards of this step are bright, the others dimmed
-        return image
-    if step_id == "apphost-1":
-        image = slide_base(chapter_title, label, "The AppHost describes the app")
-        draw_code(image, (96, 240, 1180, 1030), "AppHost.cs", "csharp", APPHOST, types=TYPES, size=26)
-        return image
-    raise SystemExit(f"No slide for {step_id}")
+```json
+{ "id": "why-1", "text": "...",
+  "slide": {
+    "heading": "Many processes, many consoles",
+    "bullets": [
+      { "icon": "1", "title": "Many processes", "text": "Projects, containers and executables, each in its own terminal." },
+      { "icon": "check", "title": "Every resource", "text": "Its state, its health, and its endpoints, in one list." }
+    ],
+    "active": [0]
+  } },
+{ "id": "apphost-1", "text": "...",
+  "slide": {
+    "heading": "The AppHost describes the app",
+    "code": { "title": "AppHost.cs", "language": "csharp", "source": "slides/AppHost.cs", "size": 22,
+              "types": ["DistributedApplication", "Projects"] },
+    "notes": [ { "title": "Add Redis", "text": "a container resource" } ]
+  } }
 ```
 
-- Use only the helpers of `brand.py` and its colors and fonts: don't introduce new colors, fonts or layouts.
-- `bullets`: up to four cards of (icon, title, text); icon is a short text such as "1", or `"check"`. Spread the
-  cards over several steps with `active` to follow the narration.
-- `draw_code`: real, compilable code from aspire.dev or the templates, trimmed to what the narration talks about;
-  mark what's omitted with `// ...`. Pass the type names to `types`, so they are colored as types. Languages:
-  `csharp`, `typescript`, `javascript`, `json`, `yaml`, `bash`, `powershell`, `xml`, `html`.
-- `note_cards`: up to four (title, text) cards next to a code panel.
-- `bullets`, `note_cards` and `draw_code` stop with a "Slide layout" error when a text runs off its card, its panel or
-  the slide: shorten the text, or give the panel more room. Size code panels to their code, so they don't end in a
-  large empty area.
-- Keep every text at 21 px or more, and render each slide once (`python -c "import slides; slides.slide('why-1', 'T', 'Chapter 1').save('x.png')"`
-  from the workspace, with the skill's `scripts` folder on `PYTHONPATH`) to check nothing overflows.
+- `bullets`: up to four cards of `icon`, `title` and `text`; `icon` is a short text such as "1", or `"check"`.
+  Spread the cards over several steps with `active` (the indexes shown bright, the others dimmed) to follow the
+  narration; without `active`, all are bright.
+- `code`: a panel, or a list of panels stacked from top to bottom, each as tall as its code. `title` is the file
+  name in the window bar; the code is `source` (a file, relative to the workspace, such as `slides/AppHost.cs`) or
+  `text`. Show real, compilable code from aspire.dev or the templates, trimmed to what the narration talks about;
+  mark what's omitted with `// ...`. `language`: `csharp`, `typescript`, `javascript`, `json`, `yaml`, `bash`,
+  `powershell`, `xml`, `html`; the colors are Visual Studio Code's Dark+ theme. `types`: the names to color as types,
+  which the grammars can't tell from variables. `highlight`: the 1-based lines shown bright, the others dimmed.
+  `size`: the font size, 22 or more (25 by default); keep at most about 20 lines per panel.
+- `notes`: up to four cards of `title` and `text`, beside the code.
+- A text that runs off its card, its panel or the slide stops the build with a "Slide layout" error: shorten it, or
+  split the slide. Render the slides before assembling, and look at them:
+  `dotnet run <tools>/video.cs -- slides <workspace>` writes `shots/slides/<step>.png`.

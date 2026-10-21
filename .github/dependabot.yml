@@ -27,3 +27,26 @@ updates:
       interval: "weekly"
     cooldown:
       default-days: 7
+  # The aspire-video-producer agent skill: the recorder's packages (Recorder.csproj), the packages of its file-based
+  # app (#:package directives in video.cs, once Dependabot supports them), and the voice's npm package. These run on
+  # the user's machine, outside the build, so they follow the latest stable versions.
+  - package-ecosystem: "nuget"
+    directories:
+      - "/.agents/skills/aspire-video-producer/scripts"
+      - "/.agents/skills/aspire-video-producer/scripts/recorder"
+    groups:
+      aspire-video-producer:
+        patterns: ["*"]
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+  - package-ecosystem: "npm"
+    directory: "/.agents/skills/aspire-video-producer/scripts/tts"
+    groups:
+      npm:
+        patterns: ["*"]
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7

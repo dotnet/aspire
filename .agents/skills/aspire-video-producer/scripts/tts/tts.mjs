@@ -1,20 +1,14 @@
-// Speaks a text with the Microsoft Edge voice, through the msedge-tts npm package, and writes an mp3.
-// narrate.py and pronounce.py call it; they hold the voice and the rate of every video (see references/specs.md).
+// Speaks a text with the Microsoft Edge voice, through the msedge-tts npm package, and writes an mp3. video.cs calls
+// it; it holds the voice and the rate of every video (see references/specs.md).
 //
 // Usage: node tts.mjs <voice> <rate> <output.mp3> [--words] < text
 //        node tts.mjs --voices
 //
-// --words prints the words the voice speaks, as a JSON array, for pronounce.py.
-// --voices prints the voices the service offers, as JSON, for voices.py --list: only these work.
-// msedge-tts is installed from the public npm registry in ~/.venvs/aspire-video/node (see SKILL.md), or in the
-// folder named by ASPIRE_VIDEO_NODE.
-import { createRequire } from "node:module";
+// --words prints the words the voice speaks, as a JSON array, for pronunciation samples.
+// --voices prints the voices the service offers, as JSON: only these work.
+// msedge-tts is installed next to this file, at the exact version of package-lock.json: npm ci --prefix <this folder>.
+import { MsEdgeTTS, OUTPUT_FORMAT } from "msedge-tts";
 import { writeFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
-
-const folder = process.env.ASPIRE_VIDEO_NODE ?? join(homedir(), ".venvs", "aspire-video", "node");
-const { MsEdgeTTS, OUTPUT_FORMAT } = createRequire(join(folder, "package.json"))("msedge-tts");
 
 if (process.argv[2] === "--voices") {
   const voices = await new MsEdgeTTS().getVoices();

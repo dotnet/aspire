@@ -53,7 +53,7 @@ re-record everything, stop the app, remove its containers and volumes, and start
 
 ## The recorder
 
-`scripts/recorder` is a Playwright for .NET console app. Copy it into the workspace, add your clips to `Scenes.cs`,
+`scripts/recorder` is a Playwright for .NET console app, copied into the workspace with the tools (`tools/recorder`). Add your clips to `Scenes.cs`,
 and build it there (its output goes to a short path in the user's profile, `~/.aspire-video/recorder/<hash>/bin`, as Playwright's files exceed `MAX_PATH` under deep folders
 on Windows).
 
@@ -118,7 +118,7 @@ await scene.StepAsync("resources-2", async () =>
 - **Expand menus and panels before `StartCaptureAsync`** when opening them isn't part of the story.
 - **Seed data outside the capture**, with `fetch` calls or a script, rather than by clicking through forms on camera.
 - **Highlights are fixed-position**: clear them before scrolling.
-- **Zooms**: they're rendered by `assemble.py`, so the contact sheets of `review.py` show the page wide. Check them in
+- **Zooms**: they're rendered by the assembly, so the contact sheets of `video.cs review` show the page wide. Check them in
   the assembled video. Zoom on what the narration names, about once a step: a zoom on every action makes the video
   restless. A step starts wide: zoom again in each step that needs it. Don't zoom on something larger than about
   two thirds of the page: it gets a smaller zoom, or none.
@@ -142,6 +142,6 @@ await scene.StepAsync("resources-2", async () =>
 - **Hide secrets**: the login token, connection strings and environment variables shown in resource details. Mask
   them in the dashboard, or don't open them.
 - **Problems with external tools** (VS Code, the Aspire CLI, packages, the voice): see `references/troubleshooting.md`.
-- **Look at every contact sheet** (`review.py`): an error, an unhealthy resource or an empty list is easy to miss in
+- **Look at every contact sheet** (`video.cs review`): an error, an unhealthy resource or an empty list is easy to miss in
   the logs.
 - **Restart the app** after changing its code, and run `Recorder setup` again with the new login URL.

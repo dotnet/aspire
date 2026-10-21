@@ -1,7 +1,8 @@
 # The Aspire video specification
 
-Every Aspire video follows these values. They are applied by `scripts/brand.py`, `scripts/narrate.py`,
-`scripts/tts.mjs`, `scripts/assemble.py` and `scripts/recorder/Scene.cs`; change them there, and here, never for a single video.
+Every Aspire video follows these values. They are applied by the tools (`scripts/Brand.cs`, `scripts/Slides.cs`,
+`scripts/Speech.cs`, `scripts/Assembly.cs`), the voice (`scripts/tts/tts.mjs`) and the recorder
+(`scripts/recorder/Scene.cs`); change them there, and here, never for a single video.
 
 ## Output
 
@@ -18,7 +19,7 @@ Every Aspire video follows these values. They are applied by `scripts/brand.py`,
 ### Renditions
 
 The user picks one or more renditions, by where the video goes; the storyboard lists them in `"renditions"`
-(`["web"]` by default). Each one is encoded from `build/master.mp4` by `assemble.py` (`RENDITIONS`).
+(`["web"]` by default). Each one is encoded from `build/master.mp4` by the assembly (`Renditions` in `scripts/Assembly.cs`).
 
 | Rendition | File | Use | Resolution | CRF | Audio | Size limit |
 |---|---|---|---|---|---|---|
@@ -35,14 +36,14 @@ the 1080p video scaled up). When a rendition is over its limit, raise its CRF on
 - **Background**: `#1F1E33` (the aspire.dev dark background), with blurred glows: purple in the top right corner,
   magenta in the bottom left.
 - **Header** (recordings and slides): the logo, 190 px wide, at x = 96, centered on y = 47; a thin divider; the
-  chapter title in Poppins SemiBold 32 px; on the right, a `#512BD4` pill with the chapter label ("CHAPTER 3") in
-  Poppins Bold 21 px, white.
+  chapter title in the sans-serif font, semibold, 32 px; on the right, a `#512BD4` pill with the chapter label ("CHAPTER 3") in
+  bold 21 px, white.
 - **Recordings**: scaled to 1728x972 (90%), centered horizontally, 14 px from the bottom, with a soft shadow and a
   3 px `#7455DD` rounded border.
-- **Slides**: a heading in Poppins Bold 52 px at y = 150, underlined by a 100x6 px `#7455DD` bar; content from
+- **Slides**: a heading in bold 52 px at y = 150, underlined by a 100x6 px `#7455DD` bar; content from
   y = 240, within 96 px margins.
 - **Bullet and note cards**: `#2A2949` (dark surface), with a 2 px `#7455DD` border; dimmed cards use `#3B3A5E`.
-- **Code panels**: `#161527` with a `#2A2949` window bar (red, yellow and green dots) and the file name; Fira Code,
+- **Code panels**: `#161527` with a `#2A2949` window bar (red, yellow and green dots) and the file name; the monospace font,
   22 to 28 px; the syntax colors of the Visual Studio Code dark theme; at most about 20 lines per panel.
 - **Cards**: the opening and closing cards show the full logo (640 px) over the video's title, a purple bar, and the
   subtitle. Chapter cards show the symbol (150 px), "CHAPTER N" in `#B9AAEE`, the chapter's title and subtitle. The
@@ -53,19 +54,22 @@ the 1080p video scaled up). When a rendition is over its limit, raise its CRF on
 
 - **No narration** (`"narration": false`): silent audio, no captions; each step lasts its `"seconds"`.
 - **No branding** (`"branding": false`): no Aspire logo and no Aspire color. Recordings scaled to the full 1920x1080
-  frame, with no header, border or shadow; cards in white (`#FFFFFF`, title in Poppins Bold 72 px) and gray
-  (`#AAAAAA`, subtitle in Poppins 38 px, label in Poppins SemiBold 30 px) on black. The recorder's highlight rings and
+  frame, with no header, border or shadow; cards in white (`#FFFFFF`, title in bold 72 px) and gray
+  (`#AAAAAA`, subtitle in 38 px, label in semibold 30 px) on black. The recorder's highlight rings and
   click ripples are white, its captions white on black.
 
 ## Branding
 
-All assets ship with the skill, in `assets/`, so it works outside the aspire.dev repository.
+The logo ships with the skill, in `scripts/assets/`, so it works outside the aspire.dev repository.
 
-- Logo: `assets/logo/aspire-logo.svg` (from aspire.dev, `src/frontend/src/assets/aspire-logo-256.svg`), rendered as
-  `assets/logo/aspire-logo-1024.png`. The full logo is the symbol followed by the name "Aspire" in white Poppins
-  SemiBold, composed by `brand.logo()`; the symbol alone is used on chapter cards. Never recolor the symbol.
-- Fonts: Poppins (Regular, SemiBold, Bold), the aspire.dev text font, and Fira Code, its code font, in
-  `assets/fonts` (SIL Open Font License, see the `OFL-*.txt` files).
+- Logo: `scripts/assets/aspire-logo.svg` (from aspire.dev, `src/frontend/src/assets/aspire-logo-256.svg`), rendered
+  as `scripts/assets/aspire-logo-1024.png`. The full logo is the symbol followed by the name "Aspire" in white,
+  semibold, composed by `Brand.Logo()`; the symbol alone is used on chapter cards. Never recolor the symbol.
+- Fonts: the system's, as aspire.dev falls back to them (`system-ui, -apple-system, 'Segoe UI'`, and
+  `ui-monospace, Menlo, Consolas` for code). The first one installed wins: Segoe UI, Helvetica Neue, Noto Sans,
+  DejaVu Sans, Liberation Sans, then Arial; and for code Cascadia Mono, Consolas, Menlo, SF Mono, Noto Sans Mono,
+  DejaVu Sans Mono, Liberation Mono, then Courier New. Nothing is bundled, so the same video can differ slightly in
+  type from one operating system to another; produce a series on one machine.
 - Colors (from aspire.dev, `src/frontend/src/styles/aspire-brand.css`):
 
 | Name | Hex | Use |
@@ -90,7 +94,7 @@ All assets ship with the skill, in `assets/`, so it works outside the aspire.dev
 - The cursor moves with ease-in-out over 25 steps; typing at 55 to 90 ms per character; each step holds until its
   narration ends, plus 0.45 s.
 - **Dynamic zooms**: a slight zoom (1.25x) on what the narration points at, so text stays readable without losing
-  the page around it. `Scene.cs` records them (`HighlightAsync`, `TypeAsync`, `ZoomAsync`), and `assemble.py`
+  the page around it. `Scene.cs` records them (`HighlightAsync`, `TypeAsync`, `ZoomAsync`), and the assembly
   renders them on the recorded frames, with sub-pixel precision:
   - 0.8 s, ease-in-out, to zoom in, to zoom out, or to pan from one element to the next.
   - At most 1.4x, and the element fills at most 80% of the width or height: a large element gets a smaller zoom, or
@@ -114,7 +118,7 @@ All assets ship with the skill, in `assets/`, so it works outside the aspire.dev
 ## Voice
 
 - The user picks the narrator. The default is `en-US-AndrewMultilingualNeural`, a neutral, clear voice; the
-  shortlist to offer (in `scripts/voices.py`, which makes a sample of each) is:
+  shortlist to offer (in `scripts/Speech.cs`; `video.cs voices` makes a sample of each) is:
 
 | Voice | Description |
 |---|---|
@@ -125,11 +129,10 @@ All assets ship with the skill, in `assets/`, so it works outside the aspire.dev
 | `en-US-EmmaMultilingualNeural` | Female, cheerful and clear |
 | `en-US-JennyNeural` | Female, friendly and considerate |
 
-  Another voice works only if the free Edge voice service offers it: list them with `python scripts/voices.py
-  --list en-` (or another language prefix). The Azure Voice Gallery has more voices, which the service rejects, such
+  Another voice works only if the free Edge voice service offers it: list them with `video.cs voices --list en-` (or another language prefix). The Azure Voice Gallery has more voices, which the service rejects, such
   as `en-US-PhoebeMultilingualNeural`. Keep one voice across the videos of a series.
-- Every voice at `+2%` rate, through the `msedge-tts` npm package (`scripts/tts.mjs`), as a 24 kHz 48 kbps mono mp3.
-- Pronunciation fixes in `SPOKEN` (`scripts/narrate.py`), such as "ASP.NET" spoken as "A.S.P. .NET". The
+- Every voice at `+2%` rate, through the `msedge-tts` npm package (`scripts/tts/tts.mjs`), as a 24 kHz 48 kbps mono mp3.
+- Pronunciation fixes in `s_spoken` (`scripts/Speech.cs`), such as "ASP.NET" spoken as "A.S.P. .NET". The
   captions keep the written form.
 - Letters said one by one are written as an abbreviation with periods ("A.S.P."), which the voice spells at an even
-  pace. A person confirms each new spelling with a sample from `scripts/pronounce.py` before it's used.
+  pace. A person confirms each new spelling with a sample from `video.cs pronounce` before it's used.
