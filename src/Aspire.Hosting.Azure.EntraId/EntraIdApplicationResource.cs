@@ -602,7 +602,9 @@ public abstract class EntraIdClientCredential
     /// <param name="envVars">The environment variable dictionary to populate.</param>
     /// <param name="prefix">The environment variable prefix (e.g., <c>"AzureAd__ClientCredentials__0"</c>).</param>
     /// <param name="separator">The separator between configuration keys.</param>
-    internal virtual void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator)
+    /// <param name="application">The Entra ID application that owns the credential.</param>
+    /// <param name="consumer">The resource that receives the configuration.</param>
+    internal virtual void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator, EntraIdApplicationResource application, IResource consumer)
     {
         envVars[$"{prefix}{separator}SourceType"] = SourceType;
     }
@@ -611,12 +613,6 @@ public abstract class EntraIdClientCredential
     /// Determines whether this credential applies to the consumer in the current execution context.
     /// </summary>
     internal virtual bool AppliesTo(IResource consumer, DistributedApplicationExecutionContext executionContext) => true;
-
-    /// <summary>
-    /// Emits environment variables for this credential, which can depend on the application and the consuming resource.
-    /// </summary>
-    internal virtual void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator, EntraIdApplicationResource application, IResource consumer)
-        => EmitEnvironmentVariables(envVars, prefix, separator);
 }
 
 /// <summary>
@@ -649,9 +645,9 @@ public sealed class EntraIdClientSecretCredential : EntraIdClientCredential
     }
 
     /// <inheritdoc />
-    internal override void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator)
+    internal override void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator, EntraIdApplicationResource application, IResource consumer)
     {
-        base.EmitEnvironmentVariables(envVars, prefix, separator);
+        base.EmitEnvironmentVariables(envVars, prefix, separator, application, consumer);
         envVars[$"{prefix}{separator}ClientSecret"] = ClientSecret;
     }
 }
@@ -787,51 +783,30 @@ public sealed class EntraIdFederatedIdentityCredential : EntraIdClientCredential
     }
 
     /// <inheritdoc />
-    internal override void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator)
-    {
-        base.EmitEnvironmentVariables(envVars, prefix, separator);
-
-        if (ManagedIdentityClientId is null)
-        {
-            throw new InvalidOperationException("A managed identity client ID is required.");
-        }
-
-        envVars[$"{prefix}{separator}ManagedIdentityClientId"] = ManagedIdentityClientId;
-
-        if (TokenExchangeUrl is not null)
-        {
-            envVars[$"{prefix}{separator}TokenExchangeUrl"] = TokenExchangeUrl;
-        }
-
-        if (TokenExchangeAuthority is not null)
-        {
-            envVars[$"{prefix}{separator}TokenExchangeAuthority"] = TokenExchangeAuthority;
-        }
-    }
-
-    /// <inheritdoc />
     internal override void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator, EntraIdApplicationResource application, IResource consumer)
     {
-        if (!IsResourceBacked)
-        {
-            EmitEnvironmentVariables(envVars, prefix, separator);
-            return;
-        }
+        base.EmitEnvironmentVariables(envVars, prefix, separator, application, consumer);
 
-        envVars[$"{prefix}{separator}SourceType"] = SourceType;
-
-        // An environment callback runs once and its result is cached. The Azure resource preparer runs it to discover
-        // dependencies before it attaches the compute resource's identity, so the identity cannot be read here. The
-        // value looks it up when it is read; the validation step that runs after the preparer reports a missing one.
-        envVars[$"{prefix}{separator}ManagedIdentityClientId"] = new ManagedIdentityClientIdValue(this, application, consumer);
-
-        // Sovereign clouds use their own token exchange audience, which Microsoft.Identity.Web reads from TokenExchangeUrl.
         var tokenExchangeUrl = TokenExchangeUrl;
-        if (tokenExchangeUrl is null &&
-            EntraIdFederation.GetTokenExchangeAudience(application.Instance) is { } audience &&
-            audience != EntraIdFederation.DefaultTokenExchangeAudience)
+        if (IsResourceBacked)
         {
-            tokenExchangeUrl = audience;
+            // An environment callback runs once and its result is cached. The Azure resource preparer runs it to discover
+            // dependencies before it attaches the compute resource's identity, so the identity cannot be read here. The
+            // value looks it up when it is read; the validation step that runs after the preparer reports a missing one.
+            envVars[$"{prefix}{separator}ManagedIdentityClientId"] = new ManagedIdentityClientIdValue(this, application, consumer);
+
+            // Sovereign clouds use their own token exchange audience, which Microsoft.Identity.Web reads from TokenExchangeUrl.
+            if (tokenExchangeUrl is null &&
+                EntraIdFederation.GetTokenExchangeAudience(application.Instance) is { } audience &&
+                audience != EntraIdFederation.DefaultTokenExchangeAudience)
+            {
+                tokenExchangeUrl = audience;
+            }
+        }
+        else
+        {
+            envVars[$"{prefix}{separator}ManagedIdentityClientId"] = ManagedIdentityClientId
+                ?? throw new InvalidOperationException("A managed identity client ID is required.");
         }
 
         if (tokenExchangeUrl is not null)
@@ -868,9 +843,9 @@ public sealed class EntraIdKeyVaultCertificateCredential : EntraIdClientCredenti
     public required string CertificateNameInKeyVault { get; init; }
 
     /// <inheritdoc />
-    internal override void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator)
+    internal override void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator, EntraIdApplicationResource application, IResource consumer)
     {
-        base.EmitEnvironmentVariables(envVars, prefix, separator);
+        base.EmitEnvironmentVariables(envVars, prefix, separator, application, consumer);
         envVars[$"{prefix}{separator}KeyVaultUrl"] = KeyVaultUrl;
         envVars[$"{prefix}{separator}KeyVaultCertificateName"] = CertificateNameInKeyVault;
     }
@@ -921,9 +896,9 @@ public sealed class EntraIdStoreCertificateCredential : EntraIdClientCredential
     public string? DistinguishedName { get; set; }
 
     /// <inheritdoc />
-    internal override void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator)
+    internal override void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator, EntraIdApplicationResource application, IResource consumer)
     {
-        base.EmitEnvironmentVariables(envVars, prefix, separator);
+        base.EmitEnvironmentVariables(envVars, prefix, separator, application, consumer);
         envVars[$"{prefix}{separator}CertificateStorePath"] = StorePath;
 
         if (Thumbprint is not null)
@@ -977,9 +952,9 @@ public sealed class EntraIdFileCertificateCredential : EntraIdClientCredential
     }
 
     /// <inheritdoc />
-    internal override void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator)
+    internal override void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator, EntraIdApplicationResource application, IResource consumer)
     {
-        base.EmitEnvironmentVariables(envVars, prefix, separator);
+        base.EmitEnvironmentVariables(envVars, prefix, separator, application, consumer);
         envVars[$"{prefix}{separator}CertificateDiskPath"] = FilePath;
 
         if (Password is not null)
@@ -1011,9 +986,9 @@ public sealed class EntraIdSignedAssertionFileCredential : EntraIdClientCredenti
     public string? FilePath { get; set; }
 
     /// <inheritdoc />
-    internal override void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator)
+    internal override void EmitEnvironmentVariables(IDictionary<string, object> envVars, string prefix, string separator, EntraIdApplicationResource application, IResource consumer)
     {
-        base.EmitEnvironmentVariables(envVars, prefix, separator);
+        base.EmitEnvironmentVariables(envVars, prefix, separator, application, consumer);
 
         if (FilePath is not null)
         {
