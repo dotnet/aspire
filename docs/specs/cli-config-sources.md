@@ -89,6 +89,7 @@ Every command scoped to a project with `configSource` checks cache freshness bef
 | Command scope | Config-source check/update trigger |
 |---|---|
 | `aspire new` / `aspire init` creating or initializing a project | After the user accepts the source, check the cache and acquire or refresh as needed |
+| `aspire update --config-source` | Force acquisition or refresh of the project's saved source, regardless of cache age |
 | Any command scoped to an existing project with `configSource`, including lifecycle, inspection, and content commands | Resolve the project's saved source, check the cache, and acquire or refresh as needed before executing |
 | Commands scoped to a project without `configSource` | No remote-config check or acquisition |
 | Global commands not scoped to a project, help, and completion | No remote-config check or acquisition |
@@ -96,13 +97,32 @@ Every command scoped to a project with `configSource` checks cache freshness bef
 | Cache state at the check | Behavior |
 |---|---|
 | Missing | Acquire and validate before use |
-| Refreshed less than 24 hours ago | Use the cached file without fetching |
+| Refreshed less than 24 hours ago | Use the cached file without fetching, unless explicitly refreshing with `aspire update --config-source` |
 | Refreshed at least 24 hours ago | Refresh on this invocation before use |
 | Acquisition or refresh fails | Report the error and fail the affected operation; preserve the last valid cache |
 
 Refresh is triggered by command invocation, not a background schedule. Publish validated configuration and matching metadata atomically under a cache lock, and advance freshness only after success. A creation flow and its chained commands use one consistent snapshot.
 
 Protect private cached content with user-scoped permissions. Never store credentials in configuration or metadata, log them, or send private source details in ordinary telemetry.
+
+### Force a configuration refresh
+
+Use `aspire update --config-source` to fetch the latest configuration without waiting for the 24-hour refresh window:
+
+```shell
+aspire update --config-source
+aspire update --config-source --apphost MyApp.AppHost.csproj
+```
+
+This is a refresh-only mode of `aspire update`, not an addition to its package-update workflow:
+
+- Resolve the project using the existing project-selection behavior, including `--apphost`, and use its saved `configSource`. Do not select a source from environment variables or employee detection. If the project has no saved source, report an error and exit nonzero without Git acquisition.
+- Bypass the freshness check and fetch the repository's current default-branch snapshot, even when the cache was just refreshed. Acquire a missing cache entry the same way. Validate and atomically publish the configuration and metadata using the same cache lock and failure handling as automatic refresh.
+- If the upstream commit is unchanged, still record the successful refresh time. Report the source, resolved commit, and whether the configuration changed.
+- Do not update the CLI, SDK, packages, or project binding, regenerate application files, or reinstall content. Reject combinations with `--self`, `--migrate`, or channel/package-source overrides rather than silently ignoring those options. Plain `aspire update` retains its existing update behavior and the normal config-source freshness check.
+- Follow `aspire update`'s existing non-interactive confirmation contract: automation uses `aspire update --config-source --yes --non-interactive`. The saved binding supplies source consent; this command does not establish a new binding or prompt to enable one.
+
+A failed or cancelled refresh must not replace the last valid cached configuration or advance its refresh time, and must not report success. Because the cache is shared by source identity, a successful refresh is available to other projects bound to that source on their next invocation; it does not change an already-running command's snapshot.
 
 ### Persist the project binding
 
@@ -126,6 +146,8 @@ Report actual remote-config use once per invocation, identifying the source and 
 ### Validation when implemented
 
 Cover source precedence and telemetry-independent detection; default/custom file paths, path validation, and separate cache entries for files in one repository; accept/decline/cancel and non-interactive consent; project `configSource` persistence and portability; Git failures and configuration validation; home overrides, concurrent cache publication, and the exact 24-hour refresh boundary. Verify freshness checks for lifecycle, inspection, and content commands, and no remote-config checks for global commands, help, or completion. No-source and declined-source flows must preserve existing behavior and perform no remote-config acquisition.
+
+For `aspire update --config-source`, verify that a fresh cache still triggers Git acquisition, a missing cache is acquired, an unchanged upstream commit advances freshness, and a missing project binding fails without source detection or Git acquisition. Cover `--apphost` selection, non-interactive execution, incompatible-option errors, and failed or cancelled refreshes preserving the last valid cache and timestamp. Verify that refresh-only mode does not run package or CLI updates or reinstall content, and that plain `aspire update` retains its existing behavior.
 
 ## Phase 2: Acquire content from configuration
 
