@@ -107,6 +107,7 @@ export function getResourceSourcePaths(resource: ResourceJson, appHostPath?: str
 
     const appHostDirectory = appHostPath ? path.dirname(appHostPath) : undefined;
     const projectPath = resource.properties?.['project.path']?.trim();
+    const sourcePath = resource.properties?.['resource.sourcePath']?.trim();
     // Tools also publish executable.path for their launcher, not for the tool's source.
     const hasNonFilesystemSource = Boolean(resource.properties?.['container.image']?.trim() || resource.properties?.['tool.package']?.trim());
     const executablePath = hasNonFilesystemSource ? undefined : resource.properties?.['executable.path']?.trim();
@@ -123,15 +124,16 @@ export function getResourceSourcePaths(resource: ResourceJson, appHostPath?: str
     // the command is relative to the worker directory, not the AppHost.
     const sourceValues = [
         { source: projectPath, directory: appHostDirectory },
+        { source: sourcePath, directory: appHostDirectory },
         {
-            // Language launch configurations identify runtimes/launchers, not source; use their working directory.
-            source: !hasLaunchConfigurationType && executablePath && (path.isAbsolute(executablePath) || executablePath.includes(path.sep) || executablePath.includes('/'))
+            // Older hosts only identify language launchers when the resource is eligible for debugging.
+            source: !sourcePath && !hasLaunchConfigurationType && executablePath && (path.isAbsolute(executablePath) || executablePath.includes(path.sep) || executablePath.includes('/'))
                 ? executablePath
                 : undefined,
             directory: executableDirectory,
         },
         // PATH commands such as npm have no local executable source; open their declared working directory.
-        { source: executablePath ? executableWorkDir : undefined, directory: appHostDirectory },
+        { source: !sourcePath && executablePath ? executableWorkDir : undefined, directory: appHostDirectory },
     ];
     return sourceValues.flatMap(({ source, directory }) => {
         const trimmedSource = source?.trim();

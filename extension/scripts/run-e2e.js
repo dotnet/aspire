@@ -1756,9 +1756,8 @@ ${winUiProjectReference}${azureFunctionsPackageReference}  </ItemGroup>
   const winUiResource = includeWinUi
     ? 'builder.AddProject<Projects.AspireE2E_WinUI>("e2e-winui", launchProfileName: "E2E");\n\n'
     : '';
-  // Launch metadata also triggers debugger-install notifications; keep those out of unrelated UI scenarios.
   const languageSourceResources = includeLanguageSources
-    ? `// Match launch metadata with existing binaries without installing or launching Python or Java.
+    ? `// Match source metadata with existing binaries without installing or launching Python or Java.
 foreach (var (language, launcher) in new[]
 {
     ("python", Path.Combine(builder.AppHostDirectory, "e2e-python-source", ".venv", ${isWindows ? '"Scripts", "python.exe"' : '"bin", "python"'})),
@@ -1771,7 +1770,7 @@ foreach (var (language, launcher) in new[]
             ResourceType = "Executable",
             State = KnownResourceStates.Running,
             Properties = [
-                new("resource.launchConfigurationType", language),
+                new("resource.sourcePath", Path.Combine(builder.AppHostDirectory, $"e2e-{language}-source")),
                 new("executable.path", launcher),
                 new("executable.workDir", Path.Combine(builder.AppHostDirectory, $"e2e-{language}-source"))
             ]

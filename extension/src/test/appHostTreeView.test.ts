@@ -1852,6 +1852,10 @@ suite('source navigation', () => {
                 appHostPath, [workerDirectory], 'Executable'],
             [{ 'resource.launchConfigurationType': 'java', 'executable.path': sourcePath, 'executable.workDir': '../worker' },
                 appHostPath, [workerDirectory], 'Executable'],
+            [{ 'resource.sourcePath': '../worker', ...resource.properties }, appHostPath, [workerDirectory], 'Executable'],
+            [{ 'resource.sourcePath': workerDirectory }, undefined, [workerDirectory], 'Executable'],
+            [{ 'project.path': sourcePath, 'resource.sourcePath': workerDirectory, ...resource.properties },
+                appHostPath, [sourcePath, workerDirectory], 'Project'],
             [{ 'project.path': sourcePath, ...resource.properties, 'resource.launchConfigurationType': 'java' },
                 appHostPath, [sourcePath, workerDirectory], 'Project'],
             [{ 'project.path': `${parentPath}${path.sep}run.cmd` }, appHostPath, [sourcePath], 'Project'],
@@ -1882,7 +1886,7 @@ suite('source navigation', () => {
         }
     });
 
-    for (const sourceProperty of ['project.path', 'executable.path']) {
+    for (const sourceProperty of ['project.path', 'resource.sourcePath', 'executable.path']) {
         test(`empty, but not whitespace, resource.source suppresses ${sourceProperty}`, () => {
             for (const source of ['', ' ']) {
                 const candidate = makeResource({ properties: { [sourceProperty]: sourcePath, 'resource.source': source } });
@@ -1947,33 +1951,38 @@ suite('source navigation', () => {
 
     for (const viewMode of ['workspace', 'global'] as const) {
         for (const language of ['python', 'java']) {
-            test(`${viewMode} reveals ${language} application source instead of an existing launcher`, async () => {
-                const launcherPath = language === 'java'
-                    ? path.join(directory, 'runtimes', 'cmd.exe')
-                    : path.join(workerDirectory, '.venv', process.platform === 'win32' ? 'Scripts' : 'bin',
-                        process.platform === 'win32' ? 'python.exe' : 'python');
-                fs.mkdirSync(path.dirname(launcherPath), { recursive: true });
-                fs.writeFileSync(launcherPath, Buffer.from([0x4d, 0x5a, 0, 0]));
-                const stat = sandbox.spy(fs.promises, 'stat');
-                provider = makeTreeProvider([makeAppHost({
-                    appHostPath,
-                    resources: [makeResource({
-                        resourceType: 'Executable',
-                        properties: {
-                            'resource.launchConfigurationType': language,
-                            'executable.path': launcherPath,
-                            'executable.workDir': '../worker',
-                        },
-                    })],
-                })], viewMode);
+            for (const metadata of ['legacy launch configuration', 'explicit source path']) {
+                test(`${viewMode} reveals ${language} application source from ${metadata} instead of an existing launcher`, async () => {
+                    const launcherPath = language === 'java'
+                        ? path.join(directory, 'runtimes', 'cmd.exe')
+                        : path.join(workerDirectory, '.venv', process.platform === 'win32' ? 'Scripts' : 'bin',
+                            process.platform === 'win32' ? 'python.exe' : 'python');
+                    fs.mkdirSync(path.dirname(launcherPath), { recursive: true });
+                    fs.writeFileSync(launcherPath, Buffer.from([0x4d, 0x5a, 0, 0]));
+                    const stat = sandbox.spy(fs.promises, 'stat');
+                    const properties: NonNullable<ResourceJson['properties']> = {
+                        'executable.path': launcherPath,
+                        'executable.workDir': '../worker',
+                    };
+                    if (metadata === 'legacy launch configuration') {
+                        // Older hosts only expose the language while debugging is eligible.
+                        properties['resource.launchConfigurationType'] = language;
+                    } else {
+                        properties['resource.sourcePath'] = workerDirectory;
+                    }
+                    provider = makeTreeProvider([makeAppHost({
+                        appHostPath,
+                        resources: [makeResource({ resourceType: 'Executable', properties })],
+                    })], viewMode);
 
-                await provider.openResourceSource(getResourceItems(provider)[0]);
+                    await provider.openResourceSource(getResourceItems(provider)[0]);
 
-                assert.deepStrictEqual(stat.args, [[workerDirectory]]);
-                assert.strictEqual(api.reveal.calledOnceWithExactly('revealInExplorer',
-                    sinon.match.has('fsPath', vscode.Uri.file(workerDirectory).fsPath)), true);
-                assert.deepStrictEqual([api.open.called, api.show.called, api.warning.called], [false, false, false]);
-            });
+                    assert.deepStrictEqual(stat.args, [[workerDirectory]]);
+                    assert.strictEqual(api.reveal.calledOnceWithExactly('revealInExplorer',
+                        sinon.match.has('fsPath', vscode.Uri.file(workerDirectory).fsPath)), true);
+                    assert.deepStrictEqual([api.open.called, api.show.called, api.warning.called], [false, false, false]);
+                });
+            }
         }
 
         test(`${viewMode} resource navigation rejects non-filesystem and explicitly suppressed sources`, async () => {
