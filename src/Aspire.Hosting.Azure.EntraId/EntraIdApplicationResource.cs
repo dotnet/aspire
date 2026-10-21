@@ -157,8 +157,6 @@ public class EntraIdApplicationResource : AzureProvisioningResource
 
     internal bool TargetValidationSubscribed { get; set; }
 
-    internal bool TrustWarningSubscribed { get; set; }
-
     internal void ValidateComputeTargets()
     {
         foreach (var target in ClientCredentials.OfType<EntraIdFederatedIdentityCredential>().Select(c => c.ComputeTarget).OfType<IResource>())

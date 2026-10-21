@@ -15,7 +15,6 @@ using Aspire.Hosting.Utils;
 using Aspire.Tests.Utils;
 using Azure.Provisioning;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
@@ -218,55 +217,33 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task PublishWithFederatedManagedIdentityCredential_ExistingApplication_UsesConsumerIdentityWithoutProvisioning()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        var identity = builder.AddAzureUserAssignedIdentity("web-identity");
-        var entra = builder.AddExistingEntraApplication("entra-web", tenantId: TenantId, clientId: ClientId)
-            .PublishWithFederatedManagedIdentityCredential();
-        var web = builder.AddResource(new ProjectResource("web")).WithAzureUserAssignedIdentity(identity).WithReference(entra);
-
-        var env = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
-            web.Resource, DistributedApplicationOperation.Publish, TestServiceProvider.Instance);
-
-        Assert.Equal("{web-identity.outputs.clientId}", env["AzureAd__ClientCredentials__0__ManagedIdentityClientId"]);
-        Assert.True(entra.Resource.IsExistingApplication);
-        Assert.False(entra.Resource.TryGetAnnotationsOfType<PipelineStepAnnotation>(out _));
-    }
-
-    [Theory]
-    [InlineData(true, true)]
-    [InlineData(false, false)]
-    public async Task PublishWithFederatedManagedIdentityCredential_WarnsOnlyForExistingRegistrationsWhenPublishing(bool existing, bool expectWarning)
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        builder.Services.AddFakeLogging();
-        var entra = existing
-            ? builder.AddExistingEntraApplication("entra-web", tenantId: TenantId, clientId: ClientId)
-            : builder.AddEntraIdApplication("entra-web");
-        entra.PublishWithFederatedManagedIdentityCredential();
-
-        using var app = builder.Build();
-        await ExecuteBeforeStartHooksAsync(app, default);
-
-        var warnings = app.Services.GetFakeLogCollector().GetSnapshot().Where(r => r.Level == LogLevel.Warning && r.Message.Contains("existing registration"));
-        Assert.Equal(expectWarning, warnings.Any());
-    }
-    [Fact]
-    public async Task WithFederatedManagedIdentityCredential_Identity_IsSkippedInRunMode()
+    public void PublishWithFederatedManagedIdentityCredential_ExistingApplication_Throws()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var identity = builder.AddAzureUserAssignedIdentity("web-identity");
-        var entra = builder.AddExistingEntraApplication("entra-web", tenantId: TenantId, clientId: ClientId)
-            .PublishWithFederatedManagedIdentityCredential(identity);
-        var web = builder.AddResource(new ProjectResource("web")).WithReference(entra);
+        var web = builder.AddResource(new ProjectResource("web"));
+        var entra = builder.AddExistingEntraApplication("entra-web", tenantId: TenantId, clientId: ClientId);
 
-        var env = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
-            web.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
-
-        Assert.DoesNotContain(env.Keys, key => key.Contains("ClientCredentials", StringComparison.Ordinal));
+        Assert.Contains("existing registration", Assert.Throws<InvalidOperationException>(entra.PublishWithFederatedManagedIdentityCredential).Message);
+        Assert.Contains("existing registration", Assert.Throws<InvalidOperationException>(() => entra.PublishWithFederatedManagedIdentityCredential(web)).Message);
+        Assert.Contains("existing registration", Assert.Throws<InvalidOperationException>(() => entra.PublishWithFederatedManagedIdentityCredential(identity)).Message);
+        Assert.Empty(entra.Resource.ClientCredentials);
     }
+    [Theory]
+    [InlineData(DistributedApplicationOperation.Run, false)]
+    [InlineData(DistributedApplicationOperation.Publish, true)]
+    public void PublishWithFederatedManagedIdentityCredential_Identity_AppliesOnlyWhenPublishing(DistributedApplicationOperation operation, bool expected)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(operation);
+        var identity = builder.AddAzureUserAssignedIdentity("web-identity");
+        var entra = builder.AddEntraIdApplication("entra-web")
+            .PublishWithFederatedManagedIdentityCredential(identity);
+        var web = builder.AddResource(new ProjectResource("web"));
 
+        // Managed identities exist only in Azure, so there is nothing to assert when running locally.
+        var credential = Assert.Single(entra.Resource.ClientCredentials);
+        Assert.Equal(expected, credential.AppliesTo(web.Resource, builder.ExecutionContext));
+    }
     [Theory]
     [InlineData("https://login.microsoftonline.com/", "api://AzureADTokenExchange")]
     [InlineData("https://login.microsoftonline.us/", "api://AzureADTokenExchangeUSGov")]
@@ -287,18 +264,6 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
 
         var exception = Assert.Throws<InvalidOperationException>(entra.Resource.GetBicepTemplateString);
         Assert.Contains("no known managed identity token exchange audience", exception.Message);
-    }
-
-    [Fact]
-    public void WithFederatedManagedIdentityCredential_ExistingRegistration_DoesNotProvision()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var identity = builder.AddAzureUserAssignedIdentity("web-identity");
-        var entra = builder.AddExistingEntraApplication("existing", tenantId: TenantId, clientId: ClientId)
-            .PublishWithFederatedManagedIdentityCredential(identity);
-
-        Assert.True(entra.Resource.IsExistingApplication);
-        Assert.False(entra.Resource.TryGetAnnotationsOfType<PipelineStepAnnotation>(out _));
     }
 
     [Fact]
