@@ -68,7 +68,6 @@ public class EntraIdApplicationResource : AzureProvisioningResource
                     ValidateManagedIdentities();
                 }
 
-
                 return Task.CompletedTask;
             },
             DependsOnSteps = [AzureEnvironmentResource.PrepareResourcesStepName],
