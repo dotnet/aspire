@@ -148,6 +148,12 @@ public static class EntraIdResourceExtensions
                 tenantId = await resource.TenantIdOutputReference.GetValueAsync(cancellationToken).ConfigureAwait(false);
                 clientId = await resource.ClientIdOutputReference.GetValueAsync(cancellationToken).ConfigureAwait(false);
             }
+            catch (Exception ex) when (IsMissingAzureConfiguration(ex))
+            {
+                // The Azure provisioning controller already published the "Missing subscription configuration"
+                // state for this resource, like every other Azure resource. Don't overwrite it with FailedToStart.
+                return;
+            }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 logger.LogError(ex, "Failed to provision the Entra ID application. If your tenant does not allow creating registrations, use AddExistingEntraApplication with an existing registration's tenant ID and client ID.");
@@ -288,6 +294,11 @@ public static class EntraIdResourceExtensions
 
         return parameterValue;
     }
+
+    // MissingConfigurationException is internal to Aspire.Hosting.Azure, so match it by name rather than exposing it.
+    private static bool IsMissingAzureConfiguration(Exception ex)
+        => ex.GetType().Name == "MissingConfigurationException" ||
+            ex is AggregateException aggregate && aggregate.InnerExceptions.Any(IsMissingAzureConfiguration);
 
     private static Task PublishFailedToStartAsync(EntraIdApplicationResource resource, InitializeResourceEvent evt)
     {
@@ -974,7 +985,180 @@ public static class EntraIdResourceExtensions
             ArgumentException.ThrowIfNullOrWhiteSpace(redirectUri, nameof(redirectUris));
         }
 
-        builder.Resource.RedirectUris.AddRange(redirectUris);
+        foreach (var redirectUri in redirectUris)
+        {
+            builder.Resource.AddRedirectUri(redirectUri);
+        }
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds parameters whose values supply web redirect URIs to a registration created by Aspire.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="redirectUris">Parameters whose values are the redirect URIs. Each value may contain several URIs separated by commas.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/>, <paramref name="redirectUris"/>, or one of its elements is null.</exception>
+    /// <remarks>
+    /// <para>
+    /// Use this overload when the externally visible callback URIs (for example, behind a gateway, reverse proxy,
+    /// or custom domain) are supplied per environment at deployment time. The values are split on commas in the
+    /// generated infrastructure, so a URI supplied through a parameter can't contain a comma and entries must not
+    /// have surrounding whitespace. Literal URIs can be mixed with parameter-backed URIs by also calling
+    /// <see cref="WithRedirectUris(IResourceBuilder{EntraIdApplicationResource}, string[])"/>; URIs are registered in call order.
+    /// </para>
+    /// <para>
+    /// Endpoints are not discovered automatically. Existing registrations are not modified.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code lang="csharp">
+    /// var signIn = builder.AddParameter("web-signin-redirect-uri");
+    /// var signOut = builder.AddParameter("web-signout-redirect-uri");
+    /// var entraWeb = builder.AddEntraIdApplication("entra-web")
+    ///     .WithRedirectUris(signIn, signOut);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<EntraIdApplicationResource> WithRedirectUris(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        params IResourceBuilder<ParameterResource>[] redirectUris)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(redirectUris);
+        foreach (var redirectUri in redirectUris)
+        {
+            ArgumentNullException.ThrowIfNull(redirectUri, nameof(redirectUris));
+        }
+
+        foreach (var redirectUri in redirectUris)
+        {
+            builder.Resource.AddRedirectUri(redirectUri.Resource);
+        }
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds redirect URIs for a resource's endpoint to a registration created by Aspire.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="endpoint">The endpoint that serves the callbacks.</param>
+    /// <param name="callbackPaths">The callback paths on that endpoint, such as <c>/signin-oidc</c>.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when an argument is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when no path is provided or a path doesn't start with <c>/</c>.</exception>
+    /// <remarks>
+    /// <para>
+    /// The scheme, host, and port come from the endpoint so they follow local endpoint allocation. When running locally the
+    /// allocated URL is used. When publishing or deploying, the host name comes from the resource's compute environment and
+    /// the scheme is <c>https</c>.
+    /// </para>
+    /// <para>
+    /// The callback path can't be discovered from the endpoint: it's configured by the consuming application, so it is
+    /// supplied here and must match that configuration. When the externally visible URL differs from the endpoint
+    /// (gateway, reverse proxy, or custom domain), supply the full URL with <c>WithRedirectUris</c> instead.
+    /// Existing registrations are not modified.
+    /// </para>
+    /// <para>
+    /// When running locally, the URL shown as the endpoint's primary URL is used, so a friendly <c>*.dev.localhost</c> name
+    /// is registered when the dashboard uses one. That URL is read when this registration's URL callback runs, so a
+    /// <c>WithUrlForEndpoint</c> or <c>WithUrls</c> callback added after this call that changes the endpoint's host isn't
+    /// reflected. Add such callbacks before calling this method.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code lang="csharp">
+    /// var web = builder.AddProject&lt;Projects.Web&gt;("web").WithExternalHttpEndpoints();
+    /// var entraWeb = builder.AddEntraIdApplication("entra-web")
+    ///     .WithRedirectUris(web.GetEndpoint("https"), "/signin-oidc", "/signout-callback-oidc");
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<EntraIdApplicationResource> WithRedirectUris(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        EndpointReference endpoint,
+        params string[] callbackPaths)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(endpoint);
+        ArgumentNullException.ThrowIfNull(callbackPaths);
+
+        if (callbackPaths.Length == 0)
+        {
+            throw new ArgumentException("At least one callback path is required.", nameof(callbackPaths));
+        }
+
+        foreach (var path in callbackPaths)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(path, nameof(callbackPaths));
+            if (!path.StartsWith('/'))
+            {
+                throw new ArgumentException($"The callback path '{path}' must start with '/'.", nameof(callbackPaths));
+            }
+        }
+
+        foreach (var path in callbackPaths)
+        {
+            builder.Resource.AddRedirectUri(new EntraIdEndpointRedirectUri(endpoint, path, builder.ApplicationBuilder.ExecutionContext.IsPublishMode));
+        }
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds redirect URIs for a host supplied by a parameter to a registration created by Aspire.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="host">A parameter whose value is the host name (optionally with a port) that serves the callbacks, such as <c>app.contoso.com</c>. Don't include a scheme or path.</param>
+    /// <param name="callbackPath">The first callback path on that host, such as <c>/signin-oidc</c>.</param>
+    /// <param name="additionalCallbackPaths">Further callback paths on that host.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when an argument is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when a path is empty or doesn't start with <c>/</c>.</exception>
+    /// <remarks>
+    /// <para>
+    /// Use this overload when the externally visible host (for example, a custom domain or gateway) is supplied per
+    /// environment at deployment time but the callback paths are fixed by the application. Each URI is
+    /// <c>https://{host}{path}</c>, so the scheme is always <c>https</c>.
+    /// </para>
+    /// <para>
+    /// The first path is a separate parameter so that a call with only a parameter still binds to
+    /// <see cref="WithRedirectUris(IResourceBuilder{EntraIdApplicationResource}, IResourceBuilder{ParameterResource}[])"/>.
+    /// Existing registrations are not modified.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code lang="csharp">
+    /// var host = builder.AddParameter("web-host");
+    /// var entraWeb = builder.AddEntraIdApplication("entra-web")
+    ///     .WithRedirectUris(host, "/signin-oidc", "/signout-callback-oidc");
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<EntraIdApplicationResource> WithRedirectUris(
+        this IResourceBuilder<EntraIdApplicationResource> builder,
+        IResourceBuilder<ParameterResource> host,
+        string callbackPath,
+        params string[] additionalCallbackPaths)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(host);
+        ArgumentNullException.ThrowIfNull(additionalCallbackPaths);
+
+        string[] callbackPaths = [callbackPath, .. additionalCallbackPaths];
+        foreach (var path in callbackPaths)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(path, nameof(callbackPath));
+            if (!path.StartsWith('/'))
+            {
+                throw new ArgumentException($"The callback path '{path}' must start with '/'.", nameof(callbackPath));
+            }
+        }
+
+        foreach (var path in callbackPaths)
+        {
+            builder.Resource.AddRedirectUri(new EntraIdHostRedirectUri(host.Resource, path));
+        }
+
         return builder;
     }
 

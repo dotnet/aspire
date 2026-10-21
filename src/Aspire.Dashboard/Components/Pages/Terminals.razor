@@ -72,8 +72,8 @@
             }
             else if (_resources is not null && !_redirected)
             {
-                <div class="aspire-empty-content" role="status">
-                    <FluentIcon Value="@(new Icons.Regular.Size20.WindowConsole())" Width="24px" Color="Color.Primary" />&nbsp;
+                <div class="aspire-empty-content aspire-empty-message" role="status">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.WindowConsole())" Width="24px" Color="Color.Primary" />
                     @if (ViewportInformation.IsDesktop)
                     {
                         @Loc[nameof(TerminalStrings.TerminalsSelectAResource)]

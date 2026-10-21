@@ -23,6 +23,9 @@ resource application 'Microsoft.Graph/applications@v1.0' = {
 
 resource servicePrincipal 'Microsoft.Graph/servicePrincipals@v1.0' = {
   appId: application.appId
+  tags: [
+    'WindowsAzureActiveDirectoryIntegratedApp'
+  ]
 }
 
 resource federatedCredential_web_identity 'Microsoft.Graph/applications/federatedIdentityCredentials@v1.0' = {

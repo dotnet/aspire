@@ -79,7 +79,35 @@ Changing the name or suffix targets another registration and leaves the previous
 Existing registrations with different `uniqueName` values are not automatically adopted: reference their IDs with
 `AddExistingEntraApplication` or explicitly clean them up when migrating.
 
-Configure callback URIs with `WithRedirectUris`; Aspire does not discover them automatically.
+Configure callback URIs with `WithRedirectUris`. To derive the scheme, host, and port from a resource's endpoint, pass the endpoint and the
+callback paths. When running locally the allocated endpoint URL is used; when publishing or deploying, the host comes from the resource's
+compute environment. The callback path can't be discovered, so it must match the path configured in the consuming app:
+
+```csharp
+entraWeb.WithRedirectUris(web.GetEndpoint("https"), "/signin-oidc", "/signout-callback-oidc");
+```
+
+When running locally, the endpoint's primary URL is used, so a friendly `*.dev.localhost` name is registered when the dashboard uses one.
+That URL is read when the registration's URL callback runs, so a `WithUrlForEndpoint` or `WithUrls` callback added after this call that changes
+the endpoint's host isn't reflected. Add such callbacks before calling `WithRedirectUris`.
+
+When only the host name varies per environment (for example, a custom domain supplied at deployment time), pass a parameter for the host
+and the fixed callback paths. Each URI is `https://{host}{path}`:
+
+```csharp
+var host = builder.AddParameter("web-host");
+entraWeb.WithRedirectUris(host, "/signin-oidc", "/signout-callback-oidc");
+```
+
+To supply the externally visible
+URIs per environment at deployment time (for example, behind a gateway or custom domain), pass parameters instead of literals.
+Each parameter value may contain several URIs separated by commas (split in the generated Bicep, so URIs can't contain commas
+and entries must not have surrounding whitespace). Literal and parameter-backed URIs can be mixed and are registered in call order:
+
+```csharp
+var redirectUris = builder.AddParameter("web-redirect-uris");
+entraWeb.WithRedirectUris(redirectUris);
+```
 
 For OpenID Connect sign-in flows that request an ID token directly from the authorization endpoint, explicitly enable ID-token issuance:
 
@@ -245,7 +273,7 @@ builder.AddProject<Projects.Web>("web")
        .WithAzureUserAssignedIdentity(identity)
        .WithReference(entraWeb);
 ```
-The federated credential only changes how the app authenticates as itself. Interactive user sign-in still needs a redirect URI (for example https://<app>/signin-oidc) registered on the app registration, and the registration is created before the workload's URL is known. Use WithRedirectUris with a known hostname, or add the URI after the first deployment.
+The federated credential only changes how the app authenticates as itself. Interactive user sign-in still needs a redirect URI registered on the app registration. Derive it from the web app's endpoint with `WithRedirectUris(web.GetEndpoint("https"), "/signin-oidc")`, which uses the compute environment's host when deployed, so it does not make the registration depend on the web app.
 
 Managed identities exist only in Azure, so these credentials are not used when running locally; add another credential, such as a client secret, for local development. Aspire never modifies an existing registration. With `AddExistingEntraApplication`, the credential only configures Microsoft.Identity.Web, and you must configure the trust yourself. You can also pass a managed identity's client ID directly:
 
