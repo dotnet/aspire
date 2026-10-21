@@ -275,14 +275,12 @@ builder.AddProject<Projects.Web>("web")
 ```
 The federated credential only changes how the app authenticates as itself. Interactive user sign-in still needs a redirect URI registered on the app registration. Derive it from the web app's endpoint with `WithRedirectUris(web.GetEndpoint("https"), "/signin-oidc")`, which uses the compute environment's host when deployed, so it does not make the registration depend on the web app.
 
-Managed identities exist only in Azure, so these credentials are not used when running locally; add another credential, such as a client secret, for local development. Aspire never modifies an existing registration. With `AddExistingEntraApplication`, the credential only configures Microsoft.Identity.Web, and you must configure the trust yourself. You can also pass a managed identity's client ID directly:
+Managed identities exist only in Azure, so these credentials are not used when running locally; add another credential, such as a client secret, for local development. Aspire never modifies an existing registration. With `AddExistingEntraApplication`, the credential only configures Microsoft.Identity.Web, and you must configure the trust yourself. For an existing registration, pass the managed identity's client ID (not its principal ID):
 
 ```csharp
 var entraWeb = builder.AddExistingEntraApplication("entra-web", tenantId: tenantId, clientId: webClientId)
                       .WithFederatedManagedIdentityCredential("00001111-aaaa-2222-bbbb-3333cccc4444");
 ```
-
-Pass the **Client ID of a user-assigned managed identity**, not its object (principal) ID or Azure resource ID. Entra's managed-identity federation scenario supports user-assigned identities only; a system-assigned identity is not a supported replacement. See [Configure an application to trust a managed identity](https://learn.microsoft.com/entra/workload-id/workload-identity-federation-config-app-trust-managed-identity).
 
 Federation authenticates as the app registration using a managed identity assertion. It is different from acquiring a token directly as the managed identity. It also does not enable mTLS proof-of-possession: that requires downstream API `ProtocolScheme = "MTLS_POP"` and the transport/certificate support described in Microsoft's [bound-credentials guidance](https://github.com/AzureAD/microsoft-identity-web/tree/master/.github/skills/boundcredentials).
 
