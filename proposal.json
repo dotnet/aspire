@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issue_url": "https://github.com/microsoft/aspire/issues/9671",
+  "state_revision": "d61287a84a33e92571505503e6d36675b2008a72",
+  "action": "reproduce",
+  "explanation": "Round 2 (run 39678560091): 18/18 target TRX outcomes Passed on ubuntu-latest and windows-latest, no InitializeAsync/TaskCanceledException in output. Round 1 was also 18/18 passed. Only two baseline rounds have run, so not-reproduced is premature; request the third and final round, escalating to quarantined-project contention if supported. No fix is proposed without matching failure evidence.",
+  "evidence_read": [
+    "evidence/39678560091/*/*/iteration-*/Aspire.Hosting.Tests_net10.0_x64.trx: 18 Passed outcomes for TestPortOnEndpointAnnotationAndAllocatedEndpointAnnotationMatch, 0 failed",
+    "grep for InitializeAsync in round 2 evidence: no matches",
+    "context.json history: round 1 18 passed, 0 failed"
+  ]
+}
