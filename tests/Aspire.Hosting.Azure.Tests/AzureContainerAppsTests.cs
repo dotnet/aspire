@@ -1496,7 +1496,7 @@ public class AzureContainerAppsTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public void WithAzdResourceNamingIsObsoleteWithRetirementGuidance()
+    public void WithAzdResourceNamingIsObsoleteWithTransitionGuidance()
     {
         var method = typeof(AzureContainerAppExtensions).GetMethod(nameof(AzureContainerAppExtensions.WithAzdResourceNaming));
 
@@ -1506,7 +1506,7 @@ public class AzureContainerAppsTests(ITestOutputHelper outputHelper)
         Assert.NotNull(obsolete);
         Assert.False(obsolete.IsError);
         Assert.Equal(
-            "Azure Developer CLI (azd) deployment support is being retired. See https://aka.ms/aspire/azd-transition for more information.",
+            "For Aspire AppHosts deployed using Azure Developer CLI (azd), we recommend transitioning to 'aspire deploy'. See https://aka.ms/aspire/azd-transition for more information.",
             obsolete.Message);
     }
 
