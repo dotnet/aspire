@@ -13,6 +13,7 @@
   <ItemGroup>
     <Compile Include="$(TestsSharedDir)\TestModuleInitializer.cs" />
     <Compile Include="$(TestsSharedDir)\TestPipelineActivityReporter.cs" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
     <PackageReference Include="Verify.XunitV3" />
     <PackageReference Include="Microsoft.Identity.Web" />
   </ItemGroup>

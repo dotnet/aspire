@@ -675,6 +675,7 @@ public static class EntraIdResourceExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         builder.Resource.ClientCredentials.Add(new EntraIdFederatedIdentityCredential());
+        WarnWhenTrustIsNotProvisioned(builder);
 
         foreach (var consumer in builder.Resource.Consumers)
         {
@@ -724,6 +725,7 @@ public static class EntraIdResourceExtensions
             ComputeTarget = computeResource.Resource
         });
         EnsureManagedIdentityRequired(computeResource.Resource);
+        WarnWhenTrustIsNotProvisioned(builder);
 
         // The compute resource can reference the application after this call, so validate once the model is complete.
         if (!builder.Resource.TargetValidationSubscribed)
@@ -777,8 +779,35 @@ public static class EntraIdResourceExtensions
         {
             ManagedIdentity = identity.Resource
         });
+        WarnWhenTrustIsNotProvisioned(builder);
 
         return builder;
+    }
+
+    // Aspire never modifies an existing registration, so the federated credential that makes it trust the identity is not
+    // created. Say so when publishing, because the app would otherwise deploy and then fail to get a token.
+    private static void WarnWhenTrustIsNotProvisioned(IResourceBuilder<EntraIdApplicationResource> builder)
+    {
+        var entra = builder.Resource;
+        if (entra.TrustWarningSubscribed)
+        {
+            return;
+        }
+
+        entra.TrustWarningSubscribed = true;
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((@event, _) =>
+        {
+            if (entra.IsExistingApplication &&
+                @event.Services.GetRequiredService<DistributedApplicationExecutionContext>().IsPublishMode)
+            {
+                @event.Services.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(EntraIdResourceExtensions)).LogWarning(
+                    "Entra ID application '{Application}' is an existing registration, so Aspire does not create its federated identity credential. " +
+                    "Add a federated credential to the registration for each managed identity it should trust, using the identity's principal ID as the subject.",
+                    entra.Name);
+            }
+
+            return Task.CompletedTask;
+        });
     }
 
     // Referencing the application needs an identity the way referencing an Azure resource needs a role assignment,

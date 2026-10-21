@@ -15,6 +15,7 @@ using Aspire.Hosting.Utils;
 using Aspire.Tests.Utils;
 using Azure.Provisioning;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
@@ -233,6 +234,24 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         Assert.False(entra.Resource.TryGetAnnotationsOfType<PipelineStepAnnotation>(out _));
     }
 
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    public async Task PublishWithFederatedManagedIdentityCredential_WarnsOnlyForExistingRegistrationsWhenPublishing(bool existing, bool expectWarning)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.Services.AddFakeLogging();
+        var entra = existing
+            ? builder.AddExistingEntraApplication("entra-web", tenantId: TenantId, clientId: ClientId)
+            : builder.AddEntraIdApplication("entra-web");
+        entra.PublishWithFederatedManagedIdentityCredential();
+
+        using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var warnings = app.Services.GetFakeLogCollector().GetSnapshot().Where(r => r.Level == LogLevel.Warning && r.Message.Contains("existing registration"));
+        Assert.Equal(expectWarning, warnings.Any());
+    }
     [Fact]
     public async Task WithFederatedManagedIdentityCredential_Identity_IsSkippedInRunMode()
     {
