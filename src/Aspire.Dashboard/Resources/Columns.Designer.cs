@@ -10,8 +10,8 @@
 
 namespace Aspire.Dashboard.Resources {
     using System;
-
-
+    
+    
     /// <summary>
     ///   A strongly-typed resource class, for looking up localized strings, etc.
     /// </summary>
@@ -23,15 +23,15 @@ namespace Aspire.Dashboard.Resources {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     public class Columns {
-
+        
         private static global::System.Resources.ResourceManager resourceMan;
-
+        
         private static global::System.Globalization.CultureInfo resourceCulture;
-
+        
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        internal Columns() {
+        public Columns() {
         }
-
+        
         /// <summary>
         ///   Returns the cached ResourceManager instance used by this class.
         /// </summary>
@@ -45,7 +45,7 @@ namespace Aspire.Dashboard.Resources {
                 return resourceMan;
             }
         }
-
+        
         /// <summary>
         ///   Overrides the current thread's CurrentUICulture property for all
         ///   resource lookups using this strongly typed resource class.
@@ -59,16 +59,7 @@ namespace Aspire.Dashboard.Resources {
                 resourceCulture = value;
             }
         }
-
-        /// <summary>
-        ///   Looks up a localized string similar to This container is persistent and won&apos;t be stopped when the app host is shut down..
-        /// </summary>
-        public static string PersistentContainerIconTooltip {
-            get {
-                return ResourceManager.GetString("PersistentContainerIconTooltip", resourceCulture);
-            }
-        }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Hidden by default. Visible when &quot;Show hidden resources&quot; is enabled..
         /// </summary>
@@ -77,7 +68,16 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("HiddenResourceIconTooltip", resourceCulture);
             }
         }
-
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This container is persistent and won&apos;t be stopped when the app host is shut down..
+        /// </summary>
+        public static string PersistentContainerIconTooltip {
+            get {
+                return ResourceManager.GetString("PersistentContainerIconTooltip", resourceCulture);
+            }
+        }
+        
         /// <summary>
         ///   Looks up a localized string similar to Resource is running but not in a healthy state..
         /// </summary>
@@ -86,7 +86,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("RunningAndUnhealthyResourceStateToolTip", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Copy full command to clipboard.
         /// </summary>
@@ -95,17 +95,16 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("SourceColumnDisplayCopyCommandToClipboard", resourceCulture);
             }
         }
-
+        
         /// <summary>
-        ///   Looks up a localized string similar to Container runtime was found but appears to be unhealthy. Ensure that it is running.
-        ///For more information, see https://aka.ms/aspire/container-runtime-unhealthy..
+        ///   Looks up a localized string similar to Container runtime was found but appears to be unhealthy. Ensure that it is running. For more information, see https://aka.ms/aspire/container-runtime-unhealthy..
         /// </summary>
         public static string StateColumnResourceContainerRuntimeUnhealthy {
             get {
                 return ResourceManager.GetString("StateColumnResourceContainerRuntimeUnhealthy", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to {0} is no longer running..
         /// </summary>
@@ -114,7 +113,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("StateColumnResourceExited", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to {0} exited unexpectedly with exit code {1}..
         /// </summary>
@@ -123,7 +122,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("StateColumnResourceExitedUnexpectedly", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to {0} failed to start..
         /// </summary>
@@ -132,7 +131,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("StateColumnResourceFailedToStart", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Resource is not configured to start automatically..
         /// </summary>
@@ -141,7 +140,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("StateColumnResourceNotStarted", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Resource is waiting for dependencies..
         /// </summary>
@@ -150,7 +149,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("StateColumnResourceWaiting", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Waiting for dependencies: {0}.
         /// </summary>
@@ -159,7 +158,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("StateColumnResourceWaitingFor", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unknown.
         /// </summary>
@@ -168,7 +167,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("UnknownStateLabel", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to {0} error logs.
         /// </summary>
@@ -177,7 +176,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("UnreadLogErrorsBadgeErrorLogs", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to 1 error log.
         /// </summary>
@@ -186,7 +185,7 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("UnreadLogErrorsBadgeOneErrorLog", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to URLs.
         /// </summary>

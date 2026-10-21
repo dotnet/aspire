@@ -10,8 +10,8 @@
 
 namespace Aspire.Hosting.Testing.Properties {
     using System;
-
-
+    
+    
     /// <summary>
     ///   A strongly-typed resource class, for looking up localized strings, etc.
     /// </summary>
@@ -23,15 +23,15 @@ namespace Aspire.Hosting.Testing.Properties {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class Resources {
-
+        
         private static global::System.Resources.ResourceManager resourceMan;
-
+        
         private static global::System.Globalization.CultureInfo resourceCulture;
-
+        
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
         internal Resources() {
         }
-
+        
         /// <summary>
         ///   Returns the cached ResourceManager instance used by this class.
         /// </summary>
@@ -45,7 +45,7 @@ namespace Aspire.Hosting.Testing.Properties {
                 return resourceMan;
             }
         }
-
+        
         /// <summary>
         ///   Overrides the current thread's CurrentUICulture property for all
         ///   resource lookups using this strongly typed resource class.
@@ -59,7 +59,7 @@ namespace Aspire.Hosting.Testing.Properties {
                 resourceCulture = value;
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The application must be started before resolving endpoints or connection strings..
         /// </summary>
@@ -68,7 +68,7 @@ namespace Aspire.Hosting.Testing.Properties {
                 return ResourceManager.GetString("ApplicationNotStartedExceptionMessage", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The dashboard is not enabled for this application..
         /// </summary>
@@ -77,7 +77,7 @@ namespace Aspire.Hosting.Testing.Properties {
                 return ResourceManager.GetString("DashboardDisabledExceptionMessage", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Dashboard testing is not supported in publish mode..
         /// </summary>
@@ -86,7 +86,7 @@ namespace Aspire.Hosting.Testing.Properties {
                 return ResourceManager.GetString("DashboardTestingPublishModeExceptionMessage", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The application must be started before retrieving the dashboard URL..
         /// </summary>
@@ -95,7 +95,7 @@ namespace Aspire.Hosting.Testing.Properties {
                 return ResourceManager.GetString("DashboardUrlApplicationNotStartedExceptionMessage", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The dashboard URL is not available in publish mode..
         /// </summary>
@@ -104,7 +104,7 @@ namespace Aspire.Hosting.Testing.Properties {
                 return ResourceManager.GetString("DashboardUrlPublishModeExceptionMessage", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The dashboard URL is not available..
         /// </summary>
@@ -113,7 +113,7 @@ namespace Aspire.Hosting.Testing.Properties {
                 return ResourceManager.GetString("DashboardUrlUnavailableExceptionMessage", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Endpoint &apos;{0}&apos; for resource &apos;{1}&apos; not found..
         /// </summary>
@@ -122,7 +122,7 @@ namespace Aspire.Hosting.Testing.Properties {
                 return ResourceManager.GetString("EndpointForResourceNotFoundExceptionMessage", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Resource &apos;{0}&apos; does not expose a connection string..
         /// </summary>
@@ -131,7 +131,7 @@ namespace Aspire.Hosting.Testing.Properties {
                 return ResourceManager.GetString("ResourceDoesNotExposeConnectionStringExceptionMessage", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Resource &apos;{0}&apos; has no allocated endpoints..
         /// </summary>
@@ -140,7 +140,7 @@ namespace Aspire.Hosting.Testing.Properties {
                 return ResourceManager.GetString("ResourceHasNoAllocatedEndpointsExceptionMessage", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Resource &apos;{0}&apos; not found..
         /// </summary>
