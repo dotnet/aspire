@@ -241,7 +241,11 @@ Cumulative bucket layouts must remain stable within an aggregation. Charts combi
 
 Indexes support instrument lookup, dimension matching, time-window queries, retention, and exemplar lookup.
 
-Repeated metric values extend the latest point's end time without inserting a new point. The time-window index retains both interval bounds, ordered by dimension and end time; there is no separate start-time index to maintain on inserts and deletes. Exemplar window queries explicitly use the time-window index to filter intervals before loading points and exemplars. Repeats still update this index and commit a transaction; retaining a single time-window index limits write amplification without deferring telemetry persistence or changing retention.
+Repeated metric values extend the latest point's end time without inserting a new point. The single time-window index is ordered by dimension, a persisted 60-second end-time bucket, interval start, and point ID. Repeats update the indexed bucket only when their exact end time crosses a bucket boundary, reducing index writes and the resulting WAL/checkpoint work. An expression index over the exact end time would still be maintained on every repeat, even when its computed bucket is unchanged.
+
+Time buckets only prefilter candidate points. Queries still compare exact interval bounds, and exemplar window queries explicitly use the time-window index before loading points and exemplars. Latest-time queries seek the highest bucket in each dimension and take the maximum exact end time within it; point insertion order does not determine the latest timestamp.
+
+Every export still commits its exact timestamps and counts before ingestion completes. Transaction boundaries, checkpoint policy, and retention are unchanged. Bucket crossings still re-key the index, and new points still maintain it. Coarser index ordering can trade some full-history read and append/retention performance for lower repeat-ingestion cost; it does not eliminate all SQLite write work or change timestamp precision.
 
 ## Repository behavior
 

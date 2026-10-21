@@ -70,11 +70,11 @@ public class TelemetryRepositoryMetricRepeatsBenchmarks
                 )
                 INSERT INTO telemetry_metric_points(
                     dimension_id, point_type, start_time_unix_nano, end_time_unix_nano,
-                    repeat_count, integer_value, flags)
+                    repeat_count, integer_value, flags, end_time_bucket)
                 SELECT d.dimension_id, 1,
                     @StartTime + (samples.value - 1) * @Interval,
                     @StartTime + samples.value * @Interval,
-                    1, samples.value, 0
+                    1, samples.value, 0, (@StartTime + samples.value * @Interval) / @TimeBucketWidth
                 FROM samples
                 CROSS JOIN telemetry_metric_dimensions d
                 ORDER BY samples.value, d.dimension_id;
@@ -82,6 +82,7 @@ public class TelemetryRepositoryMetricRepeatsBenchmarks
             command.Parameters.AddWithValue("PointCount", PointsPerDimension);
             command.Parameters.AddWithValue("StartTime", startTimeUnixNano);
             command.Parameters.AddWithValue("Interval", intervalUnixNano);
+            command.Parameters.AddWithValue("TimeBucketWidth", SqliteTelemetryRepository.MetricTimeBucketWidthUnixNano);
             var inserted = command.ExecuteNonQuery();
             if (inserted != DimensionCount * (PointsPerDimension - 1))
             {
