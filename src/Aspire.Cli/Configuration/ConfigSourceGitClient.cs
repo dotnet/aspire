@@ -17,7 +17,7 @@ internal interface IConfigSourceGitClient
     Task<(string Commit, JsonObject Configuration)> AcquireAsync(ConfigSource source, string directory, CancellationToken cancellationToken);
 }
 
-internal sealed class ConfigSourceGitClient : IConfigSourceGitClient
+internal sealed class ConfigSourceGitClient(ICliHostEnvironment hostEnvironment) : IConfigSourceGitClient
 {
     public async Task<(string Commit, JsonObject Configuration)> AcquireAsync(ConfigSource source, string directory, CancellationToken cancellationToken)
     {
@@ -77,7 +77,7 @@ internal sealed class ConfigSourceGitClient : IConfigSourceGitClient
         }
     }
 
-    private static async Task<string> RunAsync(string directory, string[] arguments, CancellationToken cancellationToken)
+    internal ProcessStartInfo CreateStartInfo(string directory, string[] arguments)
     {
         // Explicitly identify our bare repository. Discovery inside it is intentionally
         // disabled when a user sets safe.bareRepository=explicit.
@@ -90,16 +90,23 @@ internal sealed class ConfigSourceGitClient : IConfigSourceGitClient
             RedirectStandardError = true,
             StandardOutputEncoding = System.Text.Encoding.UTF8,
             StandardErrorEncoding = System.Text.Encoding.UTF8,
-            CreateNoWindow = true
+            // Git prompts use the controlling terminal even though diagnostics are captured.
+            // On Windows, keep that console attached when interactive input is allowed.
+            CreateNoWindow = !hostEnvironment.SupportsInteractiveInput
         };
-        // Use normal credential helpers, but never wait indefinitely for terminal input.
-        startInfo.Environment["GIT_TERMINAL_PROMPT"] = "0";
+        startInfo.Environment["GIT_TERMINAL_PROMPT"] = hostEnvironment.SupportsInteractiveInput ? "1" : "0";
         // Keep Git diagnostics stable for the local failure classification below.
         startInfo.Environment["LC_ALL"] = "C";
         foreach (var key in new[] { "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES" })
         {
             startInfo.Environment.Remove(key);
         }
+        return startInfo;
+    }
+
+    private async Task<string> RunAsync(string directory, string[] arguments, CancellationToken cancellationToken)
+    {
+        var startInfo = CreateStartInfo(directory, arguments);
         try
         {
             var result = await Process.RunAndCaptureTextAsync(startInfo, cancellationToken);

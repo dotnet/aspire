@@ -4,11 +4,37 @@
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Tests.Utils;
+using Aspire.Cli.Utils;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Cli.Tests.Configuration;
 
 public class ConfigSourceGitClientTests(ITestOutputHelper outputHelper)
 {
+    [Theory]
+    [InlineData(false, null, null, true)]
+    [InlineData(true, null, null, false)]
+    [InlineData(false, "true", null, false)]
+    [InlineData(false, null, "true", false)]
+    public void CreateStartInfo_CredentialPromptsFollowHostInteractivity(
+        bool nonInteractive, string? configuredNonInteractive, string? ci, bool expectedInteractive)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        using var configuration = new ConfigurationManager();
+        configuration["ASPIRE_NON_INTERACTIVE"] = configuredNonInteractive;
+        configuration["CI"] = ci;
+        var hostEnvironment = new CliHostEnvironment(configuration, nonInteractive, isOutputRedirected: true);
+        var client = new ConfigSourceGitClient(hostEnvironment);
+
+        var startInfo = client.CreateStartInfo(workspace.Path, ["clone", "--bare", "--", "https://example.com/configuration", "repository.git"]);
+
+        Assert.Equal(expectedInteractive ? "1" : "0", startInfo.Environment["GIT_TERMINAL_PROMPT"]);
+        Assert.Equal(!expectedInteractive, startInfo.CreateNoWindow);
+        Assert.False(startInfo.RedirectStandardInput);
+        Assert.True(startInfo.RedirectStandardOutput);
+        Assert.True(startInfo.RedirectStandardError);
+    }
+
     [Theory]
     [InlineData("aspire.config.json")]
     [InlineData("teams/platform config.json")]
@@ -17,7 +43,7 @@ public class ConfigSourceGitClientTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         await CreateRepositoryAsync(workspace, path, "{\"features\":{\"test\":true},\"custom\":\"\u65e5\u672c\u8a9e\"}");
         var cache = workspace.CreateDirectory("cache");
-        var client = new ConfigSourceGitClient();
+        var client = new ConfigSourceGitClient(TestHelpers.CreateNonInteractiveHostEnvironment());
 
         // Source-address validation is covered separately. A local transport exercises
         // real Git snapshot acquisition without contacting a network repository.
@@ -43,7 +69,7 @@ public class ConfigSourceGitClientTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         await CreateRepositoryAsync(workspace, AspireConfigFile.FileName, content);
 
-        await Assert.ThrowsAsync<ConfigSourceException>(() => new ConfigSourceGitClient().AcquireAsync(
+        await Assert.ThrowsAsync<ConfigSourceException>(() => new ConfigSourceGitClient(TestHelpers.CreateNonInteractiveHostEnvironment()).AcquireAsync(
             new(workspace.Path, AspireConfigFile.FileName), workspace.CreateDirectory("cache").FullName, TestContext.Current.CancellationToken));
     }
 
@@ -53,7 +79,7 @@ public class ConfigSourceGitClientTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         await CreateRepositoryAsync(workspace, "other.json", "{}");
 
-        var error = await Assert.ThrowsAsync<ConfigSourceException>(() => new ConfigSourceGitClient().AcquireAsync(
+        var error = await Assert.ThrowsAsync<ConfigSourceException>(() => new ConfigSourceGitClient(TestHelpers.CreateNonInteractiveHostEnvironment()).AcquireAsync(
             new(workspace.Path, AspireConfigFile.FileName), workspace.CreateDirectory("cache").FullName, TestContext.Current.CancellationToken));
 
         Assert.Equal(ConfigSourceStrings.MissingFile, error.Message);
@@ -66,7 +92,7 @@ public class ConfigSourceGitClientTests(ITestOutputHelper outputHelper)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         await CreateRepositoryAsync(workspace, AspireConfigFile.FileName, "{}".PadRight(bytes));
-        var client = new ConfigSourceGitClient();
+        var client = new ConfigSourceGitClient(TestHelpers.CreateNonInteractiveHostEnvironment());
         var cache = workspace.CreateDirectory("cache");
         var source = new ConfigSource(workspace.Path, AspireConfigFile.FileName);
 
@@ -97,7 +123,7 @@ public class ConfigSourceGitClientTests(ITestOutputHelper outputHelper)
         await GitTestHelper.RunGitAsync(workspace.Path, outputHelper, "update-index", "--cacheinfo", $"120000,{objectId},{AspireConfigFile.FileName}");
         await GitTestHelper.RunGitAsync(workspace.Path, outputHelper, "commit", "-m", "Add symlink configuration");
 
-        var error = await Assert.ThrowsAsync<ConfigSourceException>(() => new ConfigSourceGitClient().AcquireAsync(
+        var error = await Assert.ThrowsAsync<ConfigSourceException>(() => new ConfigSourceGitClient(TestHelpers.CreateNonInteractiveHostEnvironment()).AcquireAsync(
             new(workspace.Path, AspireConfigFile.FileName), workspace.CreateDirectory("cache").FullName, TestContext.Current.CancellationToken));
         Assert.Equal(ConfigSourceStrings.MissingFile, error.Message);
     }

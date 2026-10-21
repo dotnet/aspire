@@ -2,6 +2,8 @@
 
 **Status:** Configuration acquisition implemented; content-acquisition customizations proposed.
 
+For example developer journeys, see [Microsoft first-party config-source scenarios](cli-config-sources-1p-scenarios.md).
+
 Config sources let organizations provide shared Aspire CLI configuration through a Git-hosted `aspire.config.json`. There are two separate phases:
 
 1. **Acquire configuration:** select a remote source, ask the user whether to use it, acquire the file using Git, cache it in the Aspire home directory, and record the source in the project's `aspire.config.json`.
@@ -76,6 +78,8 @@ aspire init --use-config-source false
 ### Acquire using Git
 
 Use the user's Git installation and normal credential helpers or SSH authentication. Do not introduce a separate login flow or reuse credentials from employee detection.
+
+Allow Git terminal credential prompts when the CLI host supports interactive input. Disable terminal prompts for `--non-interactive`, `ASPIRE_NON_INTERACTIVE`, and CI environments where the host disables input; those invocations need authentication configured beforehand. Keep the existing acquisition timeout and cancellation behavior, including while waiting for credentials.
 
 Resolve the repository's default branch to a commit and read the selected configuration file from that snapshot. Validate the configuration before publishing it to the cache or applying it to the project. Retain the repository, file path, and commit so relative content paths can later be resolved against the configuration file's directory in the same snapshot, without escaping the repository.
 
