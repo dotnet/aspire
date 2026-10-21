@@ -2,7 +2,7 @@
   "version": 1,
   "issue": 9671,
   "issue_url": "https://github.com/microsoft/aspire/issues/9671",
-  "phase": "agent",
+  "phase": "worker-intent",
   "created_at": "2026-10-21T20:58:36.055462+00:00",
   "base_sha": "2015b1f0a997cf68d0582de62c912e3e419d880a",
   "control_sha": "e512084cd369721858b6818429b2247c1d1fcbe6",
@@ -11,9 +11,9 @@
   "agent_workflow": "reproduce-flaky-tests.yml",
   "used": {
     "models": 2,
-    "workers": 0,
+    "workers": 1,
     "fixes": 0,
-    "runner_iterations": 0
+    "runner_iterations": 18
   },
   "history": [],
   "notes": [
@@ -25,6 +25,14 @@
         "/tmp/gh-aw/flaky-investigation/context.json (issue body, stack trace, CI insights comment). No evidence/ directory was supplied, so no historical logs or TRX were available.",
         "tests/Aspire.Hosting.Tests/SlimTestProgramTests.cs: [Collection(\"SlimTestProgram\")], [QuarantinedTest(\".../issues/9671\")] on TestPortOnEndpointAnnotationAndAllocatedEndpointAnnotationMatch",
         "tests/Aspire.Hosting.Tests/TestProgramFixture.cs: InitializeAsync, SlimTestProgramFixture.CreateTestProgram(randomizePorts: false), WaitReadyStateAsync (sequential WaitForTextAsync on 'Application started.' with a shared CTS)"
+      ]
+    },
+    {
+      "run_id": 39675843770,
+      "action": "reproduce",
+      "explanation": "The checkpoint target (SlimTestProgramTests.TestPortOnEndpointAnnotationAndAllocatedEndpointAnnotationMatch, quarantined, fixture InitializeAsync failure) is set and no candidate exists, so the next step is hosted baseline reproduction on ubuntu-latest and windows-latest. No evidence/ directory was supplied, and the local precheck was skipped earlier (linux runner, no built repo or DCP/container runtime). CI insights reported 0 failures over 215 runs in 30 days, so not-reproduced is a plausible outcome; no fix should be proposed unless matching failure and pass evidence appears.",
+      "evidence_read": [
+        "/tmp/gh-aw/flaky-investigation/context.json (checkpoint, target, prior notes, issue); evidence/ directory absent"
       ]
     }
   ],
@@ -46,7 +54,7 @@
     "reason": "Runner OS is linux. The repo is not built or restored, and this investigation phase is not set up to run Aspire.Hosting.Tests, which needs a DCP orchestrator and container runtime. Windows behavior cannot be checked locally. A build failure would not count as test evidence, so hosted reproduction is needed."
   },
   "outcome": null,
-  "updated_at": "2026-10-21T21:05:04.344005+00:00",
+  "updated_at": "2026-10-21T21:10:34.072626+00:00",
   "agent": {
     "sha": "902476384f47360927b33e1747a32de3a391c68e",
     "workflow": "reproduce-flaky-tests.yml",
@@ -80,5 +88,15 @@
     "tests/testproject/TestProject.ServiceB/",
     "tests/testproject/TestProject.ServiceC/",
     "tests/testproject/TestProject.WorkerA/"
-  ]
+  ],
+  "worker": {
+    "sha": "b2e12ac9966c16a7b15af754f36983fe98f0caab",
+    "source_sha": "2015b1f0a997cf68d0582de62c912e3e419d880a",
+    "workflow": "reproduce-flaky-tests.yml",
+    "phase": "reproduce",
+    "runners": 3,
+    "iterations": 3,
+    "mode": "single",
+    "branch": "ankj/flaky-test-9671-run-1"
+  }
 }
