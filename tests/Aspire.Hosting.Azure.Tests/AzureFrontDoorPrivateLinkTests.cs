@@ -175,31 +175,6 @@ public class AzureFrontDoorPrivateLinkTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public async Task WithAzureFrontDoorPrivateLinkProbesOverHttps()
-    {
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper);
-
-        var environment = builder.AddAzureContainerAppEnvironment("env");
-        var frontDoor = builder.AddAzureFrontDoor("frontdoor");
-        environment.WithAzureFrontDoorPrivateLink(frontDoor);
-
-        var api = builder.AddProject<Project>("api", launchProfileName: null)
-            .WithHttpEndpoint()
-            .WithExternalHttpEndpoints()
-            .WithHttpProbe(ProbeType.Liveness, "/health", endpointName: "http");
-        frontDoor.WithOrigin(api);
-
-        using var app = builder.Build();
-
-        await ExecuteBeforeStartHooksAsync(app, default);
-
-        var (_, bicep) = await GetManifestWithBicep(frontDoor.Resource);
-
-        Assert.Contains("probePath: '/health'", bicep);
-        Assert.Contains("probeProtocol: 'Https'", bicep);
-    }
-
-    [Fact]
     public async Task WithAzureFrontDoorPrivateLinkLeavesOriginsInOtherEnvironmentsPublic()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper);

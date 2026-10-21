@@ -31,9 +31,8 @@ public static class AzureFrontDoorPrivateLinkExtensions
     /// <para>
     /// Add the apps to the Front Door with <see cref="AzureFrontDoorExtensions.WithOrigin"/>, before or after this call.
     /// When publishing, every origin of <paramref name="frontDoor"/> that runs in <paramref name="environment"/> becomes a
-    /// Private Link origin: the Front Door profile uses the Premium SKU, the origin connects to the environment through a
-    /// Front Door managed private endpoint, and Front Door forwards requests and probes the origin over HTTPS, because the
-    /// environment's ingress terminates TLS. The apps must expose external HTTP endpoints, for example with
+    /// Private Link origin: the Front Door profile uses the Premium SKU, and the origin connects to the environment through
+    /// a Front Door managed private endpoint. The apps must expose external HTTP endpoints, for example with
     /// <c>WithExternalHttpEndpoints</c>. Origins in other compute environments are left as they are.
     /// </para>
     /// <para>
@@ -71,9 +70,9 @@ public static class AzureFrontDoorPrivateLinkExtensions
     /// <ats-remarks>
     /// <para>
     /// Add the apps to the Front Door with <c>withOrigin</c>, before or after this call. Every origin of the Front Door that
-    /// runs in the environment becomes a Private Link origin: the Front Door profile uses the Premium SKU, and Front Door
-    /// forwards requests and probes the origin over HTTPS. The apps must expose external HTTP endpoints. Origins in other
-    /// compute environments are left as they are.
+    /// runs in the environment becomes a Private Link origin: the Front Door profile uses the Premium SKU, and the origin
+    /// connects to the environment through a Front Door managed private endpoint. The apps must expose external HTTP
+    /// endpoints. Origins in other compute environments are left as they are.
     /// </para>
     /// <para>
     /// Public network access to the environment is disabled, so the apps are reachable only through the Front Door, and

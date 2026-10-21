@@ -139,7 +139,7 @@ public static class AzureFrontDoorExtensions
                 infrastructure.Add(origin);
 
                 // Reach origins in an environment connected through Private Link over the private endpoint.
-                privateLink.ConfigureOrigin(computeEnv, originResource.Name, originGroup, origin);
+                privateLink.ConfigureOrigin(computeEnv, originResource.Name, origin);
 
                 // Route
                 var route = new FrontDoorRoute($"{originBicepId}Route")
@@ -278,7 +278,6 @@ public static class AzureFrontDoorExtensions
         public void ConfigureOrigin(
             IComputeEnvironmentResource computeEnvironment,
             string originName,
-            FrontDoorOriginGroup originGroup,
             FrontDoorOrigin origin)
         {
             if (computeEnvironment is not IAzureCdnPrivateLinkTarget environment ||
@@ -315,11 +314,6 @@ public static class AzureFrontDoorExtensions
                 GroupId = connection.Environment.PrivateLinkGroupId,
                 RequestMessage = connection.RequestMessage,
             };
-
-            // The compute environment's ingress terminates TLS, so Front Door must probe over HTTPS even when the app's
-            // probe endpoint uses HTTP. Routes already forward over HTTPS only.
-            originGroup.HealthProbeSettings ??= new HealthProbeSettings();
-            originGroup.HealthProbeSettings.ProbeProtocol = HealthProbeProtocol.Https;
         }
 
         // Finishes the template after every origin is added: Private Link needs the Premium SKU, and a connection
