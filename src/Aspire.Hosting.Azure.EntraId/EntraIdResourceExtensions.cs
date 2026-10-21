@@ -651,6 +651,13 @@ public static class EntraIdResourceExtensions
     /// <returns>The resource builder for chaining.</returns>
     /// <remarks>
     /// <para>
+    /// A single call covers every resource that references this application, including resources that reference it after
+    /// this call, and the application trusts each resource's own identity. Use
+    /// <see cref="PublishWithFederatedManagedIdentityCredential{T}(IResourceBuilder{EntraIdApplicationResource}, IResourceBuilder{T})"/>
+    /// to trust a single resource instead. The method adds one credential entry to the application's configuration, and
+    /// Aspire creates one federated identity credential on the registration for each trusted identity.
+    /// </para>
+    /// <para>
     /// Every resource that references this application with <c>WithReference</c> is given a managed identity when published,
     /// and the application trusts it. The identity is the one the resource already has, for example from
     /// <c>WithAzureUserAssignedIdentity</c> or because it references other Azure resources; otherwise the Azure environment
@@ -711,6 +718,7 @@ public static class EntraIdResourceExtensions
     /// Thrown when <paramref name="computeResource"/> does not reference this application.
     /// </exception>
     /// <remarks>
+    /// Only <paramref name="computeResource"/>'s identity is trusted, and only it receives the managed identity credential.
     /// The resource's identity is resolved after the Azure environment has prepared it, as described in
     /// <see cref="PublishWithFederatedManagedIdentityCredential(IResourceBuilder{EntraIdApplicationResource})"/>.
     /// </remarks>

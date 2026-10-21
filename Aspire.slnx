@@ -110,18 +110,17 @@
     <Project Path="src/Aspire.Hosting.Azure.Network/Aspire.Hosting.Azure.Network.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.OperationalInsights/Aspire.Hosting.Azure.OperationalInsights.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.PostgreSQL/Aspire.Hosting.Azure.PostgreSQL.csproj" />
-    <Project Path="src/Aspire.Hosting.Azure.Provisioning/Aspire.Hosting.Azure.Provisioning.csproj" />
-    <Project Path="src/Aspire.Hosting.Azure.Provisioning.Generators/Aspire.Hosting.Azure.Provisioning.Generators.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.Provisioning.AppConfiguration/Aspire.Hosting.Azure.Provisioning.AppConfiguration.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.Provisioning.AppContainers/Aspire.Hosting.Azure.Provisioning.AppContainers.csproj" />
-    <Project Path="src/Aspire.Hosting.Azure.Provisioning.AppService/Aspire.Hosting.Azure.Provisioning.AppService.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.Provisioning.ApplicationInsights/Aspire.Hosting.Azure.Provisioning.ApplicationInsights.csproj" />
+    <Project Path="src/Aspire.Hosting.Azure.Provisioning.AppService/Aspire.Hosting.Azure.Provisioning.AppService.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.Provisioning.Cdn/Aspire.Hosting.Azure.Provisioning.Cdn.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.Provisioning.CognitiveServices/Aspire.Hosting.Azure.Provisioning.CognitiveServices.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.Provisioning.ContainerRegistry/Aspire.Hosting.Azure.Provisioning.ContainerRegistry.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.Provisioning.ContainerService/Aspire.Hosting.Azure.Provisioning.ContainerService.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.Provisioning.CosmosDB/Aspire.Hosting.Azure.Provisioning.CosmosDB.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.Provisioning.EventHubs/Aspire.Hosting.Azure.Provisioning.EventHubs.csproj" />
+    <Project Path="src/Aspire.Hosting.Azure.Provisioning.Generators/Aspire.Hosting.Azure.Provisioning.Generators.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.Provisioning.KeyVault/Aspire.Hosting.Azure.Provisioning.KeyVault.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.Provisioning.Kusto/Aspire.Hosting.Azure.Provisioning.Kusto.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.Provisioning.Network/Aspire.Hosting.Azure.Provisioning.Network.csproj" />
@@ -136,6 +135,7 @@
     <Project Path="src/Aspire.Hosting.Azure.Provisioning.Sql/Aspire.Hosting.Azure.Provisioning.Sql.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.Provisioning.Storage/Aspire.Hosting.Azure.Provisioning.Storage.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.Provisioning.WebPubSub/Aspire.Hosting.Azure.Provisioning.WebPubSub.csproj" />
+    <Project Path="src/Aspire.Hosting.Azure.Provisioning/Aspire.Hosting.Azure.Provisioning.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.Redis/Aspire.Hosting.Azure.Redis.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.Sandboxes/Aspire.Hosting.Azure.Sandboxes.csproj" />
     <Project Path="src/Aspire.Hosting.Azure.Search/Aspire.Hosting.Azure.Search.csproj" />
@@ -155,14 +155,14 @@
     <Project Path="playground/Playground.ServiceDefaults/Playground.ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/playground/NativeIntegrations/">
-    <Project Path="playground/NativeIntegrations/CSharp/ExternalApi/NativeIntegrations.ExternalApi.csproj" />
-    <Project Path="playground/NativeIntegrations/CSharp/Contracts/NativeIntegrations.Contracts.csproj" />
-    <Project Path="playground/NativeIntegrations/CSharp/Provider/NativeIntegrations.Provider.csproj" />
     <Project Path="playground/NativeIntegrations/CSharp/AppHost/NativeIntegrations.AppHost.Sample.csproj" />
+    <Project Path="playground/NativeIntegrations/CSharp/Contracts/NativeIntegrations.Contracts.csproj" />
+    <Project Path="playground/NativeIntegrations/CSharp/ExternalApi/NativeIntegrations.ExternalApi.csproj" />
+    <Project Path="playground/NativeIntegrations/CSharp/Provider/NativeIntegrations.Provider.csproj" />
     <Project Path="playground/NativeIntegrations/CSharp/Redis/NativeIntegrations.Redis.csproj" />
+    <Project Path="playground/NativeIntegrations/CSharp/RedisAppHost/NativeIntegrations.Redis.AppHost.Sample.csproj" />
     <Project Path="playground/NativeIntegrations/CSharp/RedisContracts/NativeIntegrations.Redis.Contracts.csproj" />
     <Project Path="playground/NativeIntegrations/CSharp/RedisProvider/NativeIntegrations.Redis.Provider.csproj" />
-    <Project Path="playground/NativeIntegrations/CSharp/RedisAppHost/NativeIntegrations.Redis.AppHost.Sample.csproj" />
     <Project Path="playground/NativeIntegrations/CSharp/RedisValidation/NativeIntegrations.Redis.Validation.csproj" />
   </Folder>
   <Folder Name="/playground/BlazorHosted/">
@@ -269,6 +269,9 @@
     <Project Path="playground/CosmosEndToEnd/CosmosEndToEnd.ApiService/CosmosEndToEnd.ApiService.csproj" />
     <Project Path="playground/CosmosEndToEnd/CosmosEndToEnd.AppHost/CosmosEndToEnd.AppHost.csproj" />
   </Folder>
+  <Folder Name="/playground/DotnetProject/dockerfile/">
+    <Project Path="playground/withdockerfile/WithDockerfile.AppHost/WithDockerfile.AppHost.csproj" />
+  </Folder>
   <Folder Name="/playground/DotnetTool/">
     <Project Path="playground/DotnetTool/DotnetTool.AppHost/DotnetTool.AppHost.csproj" />
   </Folder>
@@ -294,9 +297,6 @@
     <Project Path="playground/DevTunnels/DevTunnels.ApiService/DevTunnels.ApiService.csproj" />
     <Project Path="playground/DevTunnels/DevTunnels.AppHost/DevTunnels.AppHost.csproj" />
     <Project Path="playground/DevTunnels/DevTunnels.WebFrontEnd/DevTunnels.WebFrontEnd.csproj" />
-  </Folder>
-  <Folder Name="/playground/dockerfile/">
-    <Project Path="playground/withdockerfile/WithDockerfile.AppHost/WithDockerfile.AppHost.csproj" />
   </Folder>
   <Folder Name="/playground/EntraId/">
     <Project Path="playground/EntraId/EntraId.AppHost/EntraId.AppHost.csproj" />
@@ -572,6 +572,7 @@
   </Folder>
   <Folder Name="/tests/Hosting/">
     <Project Path="tests/Aspire.Hosting.Analyzers.Tests/Aspire.Hosting.Analyzers.Tests.csproj" />
+    <Project Path="tests/Aspire.Hosting.Azure.EntraId.Tests/Aspire.Hosting.Azure.EntraId.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Azure.Kubernetes.Tests/Aspire.Hosting.Azure.Kubernetes.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Azure.Kusto.Tests/Aspire.Hosting.Azure.Kusto.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Azure.Provisioning.Tests/Aspire.Hosting.Azure.Provisioning.Tests.csproj" />
@@ -595,7 +596,6 @@
     <Project Path="tests/Aspire.Hosting.Java.Tests/Aspire.Hosting.Java.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.JavaScript.Tests/Aspire.Hosting.JavaScript.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Kafka.Tests/Aspire.Hosting.Kafka.Tests.csproj" />
-    <Project Path="tests/Aspire.Hosting.Azure.EntraId.Tests/Aspire.Hosting.Azure.EntraId.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Keycloak.Tests/Aspire.Hosting.Keycloak.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Kubernetes.Tests/Aspire.Hosting.Kubernetes.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Maui.Tests/Aspire.Hosting.Maui.Tests.csproj" />
