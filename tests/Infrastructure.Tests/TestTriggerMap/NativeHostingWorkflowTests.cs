@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.SelectTests;
 using Xunit;
 using YamlDotNet.RepresentationModel;
 
@@ -75,7 +76,7 @@ public sealed class NativeHostingWorkflowTests
         foreach (var eventName in new[] { "pull_request", "push" })
         {
             var paths = Paths(events, eventName);
-            Assert.Contains(paths, pattern => TestTriggerMap.GlobMatches(pattern, path));
+            Assert.Contains(paths, pattern => TriggerMap.GlobMatches(pattern, path));
         }
     }
 
@@ -88,7 +89,7 @@ public sealed class NativeHostingWorkflowTests
     public void UnrelatedInputsDoNotTriggerNativeHostingLane(string path)
     {
         Assert.All(Paths(Events(), "pull_request"),
-            pattern => Assert.False(TestTriggerMap.GlobMatches(pattern, path)));
+            pattern => Assert.False(TriggerMap.GlobMatches(pattern, path)));
     }
 
     [Fact]
@@ -103,7 +104,7 @@ public sealed class NativeHostingWorkflowTests
     [Fact]
     public void IndependentLaneIsClassifiedWithoutInventingASelectorJob()
     {
-        var map = TestTriggerMap.Load(RepoRoot.Path);
+        var map = TriggerMap.Load(Path.Combine(RepoRoot.Path, "eng", "github-ci", "test-trigger-map.yml"));
         const string workflow = ".github/workflows/native-hosting-validation.yml";
         const string harness = "eng/scripts/test-native-hosting.sh";
 
@@ -112,7 +113,7 @@ public sealed class NativeHostingWorkflowTests
         foreach (var path in new[] { workflow, harness })
         {
             var targets = map.PathRules
-                .Where(rule => rule.Paths.Any(pattern => TestTriggerMap.GlobMatches(pattern, path)))
+                .Where(rule => rule.Paths.Any(pattern => TriggerMap.GlobMatches(pattern, path)))
                 .SelectMany(rule => rule.Targets)
                 .Distinct()
                 .ToArray();

@@ -5,6 +5,7 @@ using System.CommandLine;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using Aspire.Cli.Agents;
 using Aspire.Cli.Bundles;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
@@ -88,7 +89,8 @@ internal sealed class NewCommand : BaseCommand
         Options.Add(s_sourceOption);
         Options.Add(s_versionOption);
         Options.Add(s_suppressAgentInitOption);
-        Options.Add(AgentInitCommand.s_skillLocationsOption);
+        Options.Add(AgentInitCommand.s_agentsOption);
+        Options.Add(AgentInitCommand.s_scopeOption);
         Options.Add(AgentInitCommand.s_skillsOption);
 
         // Customize description based on whether staging channel is enabled
@@ -602,8 +604,6 @@ internal sealed class NewCommand : BaseCommand
 
         var workspaceRoot = new DirectoryInfo(templateResult.OutputPath ?? ExecutionContext.WorkingDirectory.FullName);
         var agentInitBinding = PromptBinding.CreateInvertedBoolConfirm(parseResult, s_suppressAgentInitOption, defaultValue: true);
-        var skillLocationsBinding = PromptBinding.Create(parseResult, AgentInitCommand.s_skillLocationsOption);
-        var skillsBinding = PromptBinding.Create(parseResult, AgentInitCommand.s_skillsOption);
         // New projects get the complete default skill set, including aspireify. This chained flow
         // never registers `--mcp`, so MCP configuration is unavailable here by construction —
         // it remains reachable only through standalone `aspire agent init`.
@@ -612,8 +612,9 @@ internal sealed class NewCommand : BaseCommand
             templateResult.ExitCode,
             workspaceRoot,
             agentInitBinding,
-            skillLocationsBinding,
-            skillsBinding,
+            PromptBinding.Create(parseResult, AgentInitCommand.s_agentsOption),
+            PromptBinding.Create(parseResult, AgentInitCommand.s_skillsOption),
+            PromptBinding.Create(parseResult, AgentInitCommand.s_scopeOption, AgentConfigurationScope.Project),
             cancellationToken);
 
         if (templateResult.OutputPath is not null && ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _))

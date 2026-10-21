@@ -1264,6 +1264,40 @@ public class AtsTypeScriptCodeGeneratorTests
     }
 
     [Fact]
+    public async Task Generate_AksNodePools_ExposeConfigurationCallbacks()
+    {
+        const string packageName = "Aspire.Hosting.Azure.Kubernetes";
+        var scanResult = AtsCapabilityScanner.ScanAssemblies(
+        [
+            typeof(DistributedApplication).Assembly,
+            typeof(global::Aspire.Hosting.Kubernetes.KubernetesNodePoolResource).Assembly,
+            typeof(global::Aspire.Hosting.Azure.Kubernetes.AksNodePoolConfig).Assembly
+        ]);
+
+        var addNodePool = Assert.Single(scanResult.Capabilities, c => c.CapabilityId == $"{packageName}/addNodePool");
+        var withSystemNodePool = Assert.Single(scanResult.Capabilities, c => c.CapabilityId == $"{packageName}/withSystemNodePool");
+        Assert.True(addNodePool.Parameters[^1].IsCallback);
+        Assert.True(withSystemNodePool.Parameters[^1].IsCallback);
+        Assert.True(addNodePool.RunSyncOnBackgroundThread);
+        Assert.True(withSystemNodePool.RunSyncOnBackgroundThread);
+        Assert.Single(scanResult.DtoTypes, dto => dto.ClrType == typeof(global::Aspire.Hosting.Azure.Kubernetes.AksNodePoolConfig));
+        Assert.Equal(AtsTypeCategory.Dto, addNodePool.Parameters[^1].CallbackParameters![0].Type.Category);
+        Assert.Equal(AtsTypeCategory.Dto, withSystemNodePool.Parameters[^1].CallbackParameters![0].Type.Category);
+
+        var context = scanResult.ToAtsContext();
+        var model = ProjectApi(context, packageName);
+        var members = model.Modules.SelectMany(module => module.Items).SelectMany(item => item.Members);
+        var config = Assert.Single(model.Declarations, declaration => declaration.Content.StartsWith("export interface AksNodePoolConfig {", StringComparison.Ordinal));
+
+        await Verify(new
+        {
+            Config = config.Content,
+            AddNodePool = members.Where(member => member.CapabilityId == addNodePool.CapabilityId).Select(member => member.Declaration).Distinct().ToArray(),
+            WithSystemNodePool = members.Where(member => member.CapabilityId == withSystemNodePool.CapabilityId).Select(member => member.Declaration).Distinct().ToArray()
+        });
+    }
+
+    [Fact]
     public void Generate_KubernetesPersistentVolumeMount_UsesOptionsObject()
     {
         var scanResult = AtsCapabilityScanner.ScanAssemblies(
