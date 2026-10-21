@@ -54,7 +54,8 @@ internal sealed unsafe partial class TrayApplication
     // PNG encoder of GDI+ (ImageCodecInfo.Clsid for image/png).
     private static readonly Guid s_pngEncoder = new("557CF406-1A04-11D3-9A73-0000F81EF32E");
     private static TrayPanelPalette? s_previewPalette;
-    private string? _previewCapture;
+    private string? _previewExport;
+    private long _previewStateAt;
     private long _previewCaptureAt;
 
     /// <summary>
@@ -62,19 +63,32 @@ internal sealed unsafe partial class TrayApplication
     /// pick its palette (ASPIRE_TRAY_SMOKE_PREVIEW_APPEARANCE: light or dark), its state
     /// (ASPIRE_TRAY_SMOKE_PREVIEW_STATE: hover shows the first row's buttons, actions opens its
     /// action list, settings opens the Settings view), and a JSON file to export the scene to
-    /// (ASPIRE_TRAY_SMOKE_PREVIEW_EXPORT). With an export, the composited screen under the panel
-    /// is also saved next to it as PNG a moment later, once DWM has presented it.
+    /// (ASPIRE_TRAY_SMOKE_PREVIEW_EXPORT). The state is applied a moment after the panel opens,
+    /// once the preview's fake AppHosts have arrived, and the scene is exported together with a
+    /// PNG of the composited screen under the panel once DWM has presented it, so both describe
+    /// the same frame.
     /// </summary>
     private void ShowPreviewPanel()
     {
-        var appearance = Environment.GetEnvironmentVariable("ASPIRE_TRAY_SMOKE_PREVIEW_APPEARANCE");
-        s_previewPalette = appearance switch
+        s_previewPalette = Environment.GetEnvironmentVariable("ASPIRE_TRAY_SMOKE_PREVIEW_APPEARANCE") switch
         {
             "light" => TrayPanelPalette.Light,
             "dark" => TrayPanelPalette.Dark,
             _ => null
         };
         ShowPanel();
+        _previewStateAt = Environment.TickCount64 + 1500;
+        _previewExport = Environment.GetEnvironmentVariable("ASPIRE_TRAY_SMOKE_PREVIEW_EXPORT") is { Length: > 0 } export ? export : null;
+    }
+
+    /// <summary>Applies the preview's state on the timer, after the fake AppHosts have arrived.</summary>
+    private void ApplyPreviewState()
+    {
+        if (_previewStateAt == 0 || Environment.TickCount64 < _previewStateAt || !_panelVisible)
+        {
+            return;
+        }
+        _previewStateAt = 0;
         var panel = _panel!;
         var first = panel.Scene.Targets.FirstOrDefault(target => target.Kind == PanelTargetKind.Row);
         switch (Environment.GetEnvironmentVariable("ASPIRE_TRAY_SMOKE_PREVIEW_STATE"))
@@ -91,25 +105,25 @@ internal sealed unsafe partial class TrayApplication
                 RunPanelAction(new(PanelActionKind.Settings));
                 break;
         }
-        if (Environment.GetEnvironmentVariable("ASPIRE_TRAY_SMOKE_PREVIEW_EXPORT") is { Length: > 0 } export)
-        {
-            NativeCallException.Require(NativeMethods.GetWindowRect(_panelWindow, out var rect) != 0, "GetWindowRect(preview)");
-            TrayPanelSceneJson.Write(export, panel.Scene, "Windows", appearance ?? "system", PanelScale, _panelWindow,
-                (rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top));
-            _previewCapture = Path.ChangeExtension(export, ".png");
-            _previewCaptureAt = Environment.TickCount64 + 1500;
-        }
+        _previewCaptureAt = Environment.TickCount64 + 700;
     }
 
-    /// <summary>Saves the composited screen under the panel window, as presented, to the pending PNG.</summary>
+    /// <summary>
+    /// Exports the scene and saves the composited screen under the panel window, as presented,
+    /// once the state has been applied and painted.
+    /// </summary>
     private void CapturePreviewForSmoke()
     {
-        if (_previewCapture is not { } path || Environment.TickCount64 < _previewCaptureAt || !_panelVisible)
+        ApplyPreviewState();
+        if (_previewExport is not { } export || _previewCaptureAt == 0 || Environment.TickCount64 < _previewCaptureAt || !_panelVisible)
         {
             return;
         }
-        _previewCapture = null;
+        _previewExport = null;
+        var path = Path.ChangeExtension(export, ".png");
         NativeCallException.Require(NativeMethods.GetWindowRect(_panelWindow, out var rect) != 0, "GetWindowRect(capture)");
+        TrayPanelSceneJson.Write(export, _panel!.Scene, "Windows", Environment.GetEnvironmentVariable("ASPIRE_TRAY_SMOKE_PREVIEW_APPEARANCE") ?? "system",
+            PanelScale, _panelWindow, (rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top));
         var width = rect.Right - rect.Left;
         var height = rect.Bottom - rect.Top;
         var screen = NativeMethods.GetDC(0);
