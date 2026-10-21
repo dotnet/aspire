@@ -84,8 +84,10 @@ CREATE INDEX IF NOT EXISTS ix_telemetry_metric_dimensions_hash
     ON telemetry_metric_dimensions(instrument_id, attribute_hash);
 CREATE INDEX IF NOT EXISTS ix_telemetry_metric_points_dimension_order
     ON telemetry_metric_points(dimension_id, point_id);
+-- Repeated values extend the end time on every export. Keep it out of the start-time
+-- index to avoid rewriting both time indexes; the end-time index covers interval overlap.
 CREATE INDEX IF NOT EXISTS ix_telemetry_metric_points_time
-    ON telemetry_metric_points(dimension_id, start_time_unix_nano, end_time_unix_nano);
+    ON telemetry_metric_points(dimension_id, start_time_unix_nano);
 CREATE INDEX IF NOT EXISTS ix_telemetry_metric_points_end_time
     ON telemetry_metric_points(dimension_id, end_time_unix_nano, start_time_unix_nano, point_id);
 CREATE UNIQUE INDEX IF NOT EXISTS ix_telemetry_metric_points_histogram_identity

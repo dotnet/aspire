@@ -241,6 +241,8 @@ Cumulative bucket layouts must remain stable within an aggregation. Charts combi
 
 Indexes support instrument lookup, dimension matching, time-window queries, retention, and exemplar lookup.
 
+Repeated metric values extend the latest point's end time without inserting a new point. The start-time index contains only the dimension and start time so these updates do not rewrite it. The separate end-time index retains both interval bounds for recent-window lookups. Exemplar window queries explicitly use that index to filter intervals before loading points and exemplars, avoiding history scans through the narrower start-time index. Repeats still update the end-time index and commit a transaction; avoiding the second index rewrite reduces write amplification without deferring telemetry persistence or changing retention.
+
 ## Repository behavior
 
 `DashboardDataSourcePool` owns the current writable database and pools selected historical databases across Blazor circuits. `DashboardDataSource` is scoped to a circuit and exposes the resource and telemetry repositories for that circuit's selected run.
@@ -306,6 +308,8 @@ The Dashboard applies these default ingestion limits:
 The oldest logs, traces, and metric points are removed when their limits are exceeded. Fixed limits of 10,000 also apply to resource views per resource, scopes per database, instruments per resource, and dimensions per instrument; additional identities are rejected.
 
 The `AddHistogramMetricsAtCapacity` benchmark in [TelemetryRepositoryMetricsBenchmarks](../../benchmarks/Aspire.Dashboard.Benchmarks/TelemetryRepositoryMetricsBenchmarks.cs) measures steady-state ingestion with one or five dimensions already at the default retention limit. Each invocation adds one cumulative histogram point per dimension with four replayed exemplars, exercising eviction and cascading exemplar deletes. Payload construction and history population are outside the measured operation.
+
+The `AddRepeatedMetrics` benchmark in [TelemetryRepositoryMetricRepeatsBenchmarks](../../benchmarks/Aspire.Dashboard.Benchmarks/TelemetryRepositoryMetricRepeatsBenchmarks.cs) measures unchanged numeric values across 1,000 dimensions, with 100 or 4,600 stored points per dimension. Each invocation extends the latest points by one second through ten exports of 100 dimensions, exercising time-index updates and commits without new points or retention deletes. History population and payload construction are outside the measured operation.
 
 Console logs are persisted only after their stream is viewed or exported. The frontend keeps up to `Dashboard:Frontend:MaxConsoleLogCount` entries in memory, which defaults to 100,000. The same limit applies across all console logs in the database, with the oldest entries removed when the limit is exceeded. Historical runs can therefore omit uncaptured logs.
 
