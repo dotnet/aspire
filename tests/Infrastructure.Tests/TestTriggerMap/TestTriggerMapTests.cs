@@ -1177,6 +1177,7 @@ public sealed class TestTriggerMapTests
     }
 
     [Theory]
+    [InlineData("src/Aspire.Hosting.Go/Aspire.Hosting.Go.csproj", "Aspire.Hosting.Go")]
     [InlineData("src/Aspire.Hosting.JavaScript/Aspire.Hosting.JavaScript.csproj", "Aspire.Hosting.JavaScript")]
     [InlineData("src/Aspire.Hosting.Python/Aspire.Hosting.Python.csproj", "Aspire.Hosting.Python")]
     public void DefaultHostingPackageProjectsSelectCliStablePackageGuard(string path, string affectedProject)

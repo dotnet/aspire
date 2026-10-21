@@ -1404,7 +1404,7 @@ The unified config file for polyglot AppHosts. Replaces the legacy split across 
 |----------|--------------------------|
 | `typescript/nodejs` | `Aspire.Hosting.JavaScript` |
 | `python` | `Aspire.Hosting.Python` |
-| `go` | None yet. `Aspire.Hosting.Go` is still a preview package. |
+| `go` | `Aspire.Hosting.Go` |
 | `java` | None yet. `Aspire.Hosting.Java` is still a preview package. |
 | `rust` | None yet. `Aspire.Hosting.Rust` is still a preview package. |
 | `csharp` | None. C# AppHosts declare packages as `#:package` directives in `apphost.cs`, where the scaffolded file already lists its defaults, or as `PackageReference` items in the project. |

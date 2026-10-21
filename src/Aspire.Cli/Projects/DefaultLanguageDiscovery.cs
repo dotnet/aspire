@@ -65,7 +65,10 @@ internal sealed class DefaultLanguageDiscovery(IFeatures features) : ILanguageDi
             DetectionPatterns: ["apphost.go"],
             CodeGenerator: "Go",
             AppHostFileName: "apphost.go",
-            IsExperimental: true),
+            IsExperimental: true)
+        {
+            DefaultHostingPackages = ["Aspire.Hosting.Go"]
+        },
         new LanguageInfo(
             LanguageId: new LanguageId(KnownLanguageId.Java),
             DisplayName: KnownLanguageId.JavaDisplayName,

@@ -28,6 +28,7 @@ public class DefaultHostingPackagesTests(ITestOutputHelper outputHelper)
     [Theory]
     [InlineData(KnownLanguageId.TypeScript, "Aspire.Hosting.JavaScript")]
     [InlineData(KnownLanguageId.Python, "Aspire.Hosting.Python")]
+    [InlineData(KnownLanguageId.Go, "Aspire.Hosting.Go")]
     public async Task ScaffoldAsync_RecordsAndRestoresTheLanguageDefaultHostingPackage(string languageId, string expectedPackage)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
@@ -94,6 +95,7 @@ public class DefaultHostingPackagesTests(ITestOutputHelper outputHelper)
     [Theory]
     [InlineData(KnownLanguageId.TypeScript, "aspire.hosting.javascript")]
     [InlineData(KnownLanguageId.Python, "aspire.hosting.python")]
+    [InlineData(KnownLanguageId.Go, "aspire.hosting.go")]
     public async Task ScaffoldAsync_KeepsAnExistingEntryForADefaultHostingPackageWithADifferentCase(string languageId, string existingPackageName)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
@@ -129,6 +131,7 @@ public class DefaultHostingPackagesTests(ITestOutputHelper outputHelper)
     [Theory]
     [InlineData("ts-starter", KnownLanguageId.TypeScript)]
     [InlineData("py-starter", KnownLanguageId.TypeScript)] // The Python starter's AppHost is a TypeScript AppHost.
+    [InlineData("go-starter", KnownLanguageId.Go)]
     public void StarterTemplate_DeclaresTheDefaultHostingPackagesOfItsAppHostLanguage(string template, string appHostLanguageId)
     {
         var language = GetLanguage(appHostLanguageId);

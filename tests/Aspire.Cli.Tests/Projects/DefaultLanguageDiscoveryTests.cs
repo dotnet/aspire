@@ -48,7 +48,6 @@ public class DefaultLanguageDiscoveryTests(ITestOutputHelper outputHelper)
     }
 
     [Theory]
-    [InlineData(KnownLanguageId.Go)]
     [InlineData(KnownLanguageId.Java)]
     [InlineData(KnownLanguageId.Rust)]
     public void AllLanguages_LanguageWithAPreviewHostingPackageHasNoDefaultHostingPackages(string languageId)
