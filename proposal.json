@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "issue_url": "https://github.com/microsoft/aspire/issues/16189",
+  "state_revision": "3fade220522f4daa67ea89fce1f0acb78fb43c2e",
+  "action": "reproduce",
+  "explanation": "Target ExecutableResourceFailureLoggingTests.ExecutableExitsImmediately is selected for windows-latest; the issue reports Assert.Contains failures where stderr log lines are missing (windows ~12-15%, linux 0/100). No baseline has run yet and no evidence directory exists, so hosted reproduction is the next step. Local precheck was skipped (Linux runner, Windows-only failure). Repair must wait for matching failure and pass evidence.",
+  "evidence_read": [
+    "/tmp/gh-aw/flaky-investigation/context.json (checkpoint target, notes, issue body)",
+    "No evidence/ directory present; no historical logs available"
+  ]
+}
