@@ -54,6 +54,37 @@ public class EntraIdApplicationResource : AzureProvisioningResource
             [EntraIdBicepConstants.ServicePrincipalResourceType] = EntraIdBicepConstants.ServicePrincipalIdOutputName
         }));
         Parameters[KnownParameters.TenantResourceSuffix] = null;
+        // Existing registrations are never provisioned, so SetExistingApplication removes these along with the base annotations.
+        Annotations.Add(new PipelineStepAnnotation(_ => new PipelineStep
+        {
+            Name = $"validate-{name}-managed-identities",
+            Description = $"Validates the managed identities that Entra ID application {name} trusts.",
+            // The Azure resource preparer attaches each compute resource's identity, so the identities can only be checked after it.
+            Action = context =>
+            {
+                ValidateComputeTargets();
+                if (context.ExecutionContext.IsPublishMode)
+                {
+                    ValidateManagedIdentities();
+                }
+
+                return Task.CompletedTask;
+            },
+            DependsOnSteps = [AzureEnvironmentResource.PrepareResourcesStepName],
+            RequiredBySteps = [WellKnownPipelineSteps.BeforeStart]
+        }));
+
+        // The registration's federated credentials use the identities' principal IDs, so the identities must be
+        // provisioned first. The Bicep parameters would imply this, but only as a side effect of generating the template.
+        Annotations.Add(new PipelineConfigurationAnnotation(context =>
+        {
+            var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
+            foreach (var identity in GetFederatedIdentities())
+            {
+                provisionSteps.DependsOn(context.GetSteps(identity, WellKnownPipelineTags.ProvisionInfrastructure));
+            }
+        }));
+
         _provisioningAnnotations = [.. Annotations.Where(annotation => annotation is PipelineStepAnnotation or PipelineConfigurationAnnotation)];
     }
 
@@ -155,8 +186,6 @@ public class EntraIdApplicationResource : AzureProvisioningResource
     // Consumers are recorded as they reference the registration so that each one's own identity can be trusted.
     internal List<IResource> Consumers { get; } = [];
 
-    internal bool TargetValidationSubscribed { get; set; }
-
     internal void ValidateComputeTargets()
     {
         foreach (var target in ClientCredentials.OfType<EntraIdFederatedIdentityCredential>().Select(c => c.ComputeTarget).OfType<IResource>())
@@ -166,6 +195,20 @@ public class EntraIdApplicationResource : AzureProvisioningResource
                 throw new InvalidOperationException(
                     $"Resource '{target.Name}' is trusted by Entra ID application '{Name}' but does not reference it, so it would not receive the configuration. " +
                     $"Call WithReference on '{target.Name}' with the Entra ID application.");
+            }
+        }
+    }
+
+    // Every compute resource whose identity is trusted must have one by now. The Azure resource preparer attaches it
+    // for resources that need one, but only environments that support managed identities do.
+    internal void ValidateManagedIdentities()
+    {
+        foreach (var credential in ClientCredentials.OfType<EntraIdFederatedIdentityCredential>().Where(c => c.IsResourceBacked))
+        {
+            IEnumerable<IResource> targets = credential.ComputeTarget is { } target ? [target] : Consumers;
+            foreach (var resource in targets)
+            {
+                credential.ValidateConsumer(this, resource);
             }
         }
     }
@@ -699,10 +742,9 @@ public sealed class EntraIdFederatedIdentityCredential : EntraIdClientCredential
             ? annotation.IdentityResource as AzureUserAssignedIdentityResource
             : null;
 
-    private AzureUserAssignedIdentityResource ResolveIdentity(EntraIdApplicationResource application, IResource consumer)
+    internal void ValidateConsumer(EntraIdApplicationResource application, IResource consumer)
     {
-        var consumerIdentity = GetConsumerIdentity(consumer);
-        var identity = ManagedIdentity ?? consumerIdentity
+        var consumerIdentity = GetConsumerIdentity(consumer)
             ?? throw new InvalidOperationException(
                 $"Resource '{consumer.Name}' references Entra ID application '{application.Name}', which uses a managed identity credential, " +
                 "but the resource has no user-assigned managed identity. Use a compute environment that supports managed identities, such as AddAzureContainerAppEnvironment, or call WithAzureUserAssignedIdentity.");
@@ -713,26 +755,30 @@ public sealed class EntraIdFederatedIdentityCredential : EntraIdClientCredential
                 $"Resource '{consumer.Name}' references Entra ID application '{application.Name}', which trusts managed identity '{ManagedIdentity.Name}', " +
                 $"but the resource does not use that identity. Call WithAzureUserAssignedIdentity on '{consumer.Name}' with that identity.");
         }
-
-        return identity;
     }
-
     private sealed class ManagedIdentityClientIdValue(
         EntraIdFederatedIdentityCredential credential,
         EntraIdApplicationResource application,
         IResource consumer) : IValueProvider, IManifestExpressionProvider, IValueWithReferences
     {
-        private AzureUserAssignedIdentityResource Identity => credential.ResolveIdentity(application, consumer);
+        private BicepOutputReference ClientId
+        {
+            get
+            {
+                credential.ValidateConsumer(application, consumer);
+                return (credential.ManagedIdentity ?? GetConsumerIdentity(consumer))!.ClientId;
+            }
+        }
 
-        public string ValueExpression => Identity.ClientId.ValueExpression;
+        public string ValueExpression => ClientId.ValueExpression;
 
-        // Before the identity exists, the preparer is still discovering dependencies and the identity is not one yet.
+        // While the preparer is discovering dependencies the identity does not exist yet, so there is nothing to reference.
         public IEnumerable<object> References => credential.ManagedIdentity is not null || GetConsumerIdentity(consumer) is not null
-            ? [Identity.ClientId]
+            ? [ClientId]
             : [];
 
         public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default)
-            => ((IValueProvider)Identity.ClientId).GetValueAsync(cancellationToken);
+            => ((IValueProvider)ClientId).GetValueAsync(cancellationToken);
     }
 
     /// <inheritdoc />
@@ -782,9 +828,11 @@ public sealed class EntraIdFederatedIdentityCredential : EntraIdClientCredential
 
         envVars[$"{prefix}{separator}SourceType"] = SourceType;
 
-        // The Azure resource preparer evaluates environment callbacks to discover dependencies before it has
-        // attached each resource's identity, so resolve the identity only when the value is actually needed.
+        // An environment callback runs once and its result is cached. The Azure resource preparer runs it to discover
+        // dependencies before it attaches the compute resource's identity, so the identity cannot be read here. The
+        // value looks it up when it is read; the validation step that runs after the preparer reports a missing one.
         envVars[$"{prefix}{separator}ManagedIdentityClientId"] = new ManagedIdentityClientIdValue(this, application, consumer);
+
         // Sovereign clouds use their own token exchange audience, which Microsoft.Identity.Web reads from TokenExchangeUrl.
         var tokenExchangeUrl = TokenExchangeUrl;
         if (tokenExchangeUrl is null &&

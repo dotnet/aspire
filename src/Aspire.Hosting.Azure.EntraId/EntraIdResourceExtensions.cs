@@ -746,18 +746,6 @@ public static class EntraIdResourceExtensions
         });
         EnsureManagedIdentityRequired(computeResource.Resource);
 
-        // The compute resource can reference the application after this call, so validate once the model is complete.
-        if (!builder.Resource.TargetValidationSubscribed)
-        {
-            builder.Resource.TargetValidationSubscribed = true;
-            var entra = builder.Resource;
-            builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((_, _) =>
-            {
-                entra.ValidateComputeTargets();
-                return Task.CompletedTask;
-            });
-        }
-
         return builder;
     }
 

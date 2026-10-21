@@ -127,28 +127,44 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task WithFederatedManagedIdentityCredential_Identity_RequiresConsumerToUseIdentity()
+    public void ValidateManagedIdentities_RejectsResourceWithoutIdentity()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         var identity = builder.AddAzureUserAssignedIdentity("web-identity");
         var entra = builder.AddEntraIdApplication("entra-web")
             .PublishWithFederatedManagedIdentityCredential(identity);
-        var web = builder.AddResource(new ProjectResource("web")).WithReference(entra);
+        builder.AddResource(new ProjectResource("web")).WithReference(entra);
 
+        var exception = Assert.Throws<InvalidOperationException>(entra.Resource.ValidateManagedIdentities);
+        Assert.Contains("no user-assigned managed identity", exception.Message);
+    }
+
+    [Fact]
+    public async Task ValidateManagedIdentities_RejectsResourceUsingAnotherIdentity()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var trusted = builder.AddAzureUserAssignedIdentity("trusted-identity");
+        var other = builder.AddAzureUserAssignedIdentity("other-identity");
+        var entra = builder.AddEntraIdApplication("entra-web")
+            .PublishWithFederatedManagedIdentityCredential(trusted);
+        var web = builder.AddResource(new ProjectResource("web")).WithAzureUserAssignedIdentity(other).WithReference(entra);
+
+        Assert.Contains("WithAzureUserAssignedIdentity", Assert.Throws<InvalidOperationException>(entra.Resource.ValidateManagedIdentities).Message);
         var exception = await Assert.ThrowsAsync<AggregateException>(async () => await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
             web.Resource, DistributedApplicationOperation.Publish, TestServiceProvider.Instance));
         Assert.Contains("WithAzureUserAssignedIdentity", exception.Message);
     }
 
     [Fact]
-    public async Task PublishWithFederatedManagedIdentityCredential_ConsumerWithoutIdentity_DoesNotThrowUntilValueIsResolved()
+    public async Task PublishWithFederatedManagedIdentityCredential_EnvironmentCallbackRunBeforeIdentityExists_StillResolvesIt()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         var entra = builder.AddEntraIdApplication("entra-web")
             .PublishWithFederatedManagedIdentityCredential();
         var web = builder.AddResource(new ProjectResource("web")).WithReference(entra);
 
-        // The Azure resource preparer gathers environment values to discover dependencies before it attaches identities.
+        // The Azure resource preparer runs the environment callbacks to discover dependencies before it attaches
+        // identities, and a callback's result is cached, so the value must not need the identity at that point.
         var dependencies = await web.Resource.GetResourceDependenciesAsync(builder.ExecutionContext, ResourceDependencyDiscoveryMode.DirectOnly);
         Assert.Contains(entra.Resource, dependencies);
 
@@ -158,76 +174,40 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
             web.Resource, DistributedApplicationOperation.Publish, TestServiceProvider.Instance);
         Assert.Equal("{web-identity.outputs.clientId}", env["AzureAd__ClientCredentials__0__ManagedIdentityClientId"]);
     }
-
     [Fact]
-    public void PublishWithFederatedManagedIdentityCredential_RequestsManagedIdentityForConsumers()
+    public async Task BeforeStart_ComputeEnvironmentWithIdentities_TrustsTheIdentityTheAzurePreparerCreated()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        var entra = builder.AddEntraIdApplication("entra-web");
-        var early = builder.AddResource(new ProjectResource("early")).WithReference(entra);
-        entra.PublishWithFederatedManagedIdentityCredential();
-        var late = builder.AddResource(new ProjectResource("late")).WithReference(entra);
-        var unrelated = builder.AddResource(new ProjectResource("unrelated"));
+        builder.AddAzureContainerAppEnvironment("env");
+        var entra = builder.AddEntraIdApplication("entra-web")
+            .PublishWithFederatedManagedIdentityCredential();
+        builder.AddContainer("web", "image").WithReference(entra);
 
-        Assert.True(early.Resource.HasAnnotationOfType<ManagedIdentityRequiredAnnotation>());
-        Assert.True(late.Resource.HasAnnotationOfType<ManagedIdentityRequiredAnnotation>());
-        Assert.False(unrelated.Resource.HasAnnotationOfType<ManagedIdentityRequiredAnnotation>());
+        using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var identity = Assert.Single(model.Resources.OfType<AzureUserAssignedIdentityResource>());
+        Assert.Equal("web-identity", identity.Name);
+        Assert.Same(identity, Assert.Single(entra.Resource.GetFederatedIdentities()));
+        // GetBicepTemplateString caches the first template, which pipeline resolution generates before the preparer runs.
+        // Provisioning writes a fresh template file instead.
+        using var template = entra.Resource.GetBicepTemplateFile();
+        Assert.Contains("web_identity_principalId", await File.ReadAllTextAsync(template.Path));
     }
 
     [Fact]
-    public async Task PublishWithFederatedManagedIdentityCredential_ComputeResource_TrustsOnlyThatResource()
+    public async Task BeforeStart_ComputeEnvironmentWithoutIdentities_FailsWithTheResourceName()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        var webIdentity = builder.AddAzureUserAssignedIdentity("web-identity");
-        var apiIdentity = builder.AddAzureUserAssignedIdentity("api-identity");
-        var entra = builder.AddEntraIdApplication("entra-web");
-        var web = builder.AddResource(new ProjectResource("web")).WithAzureUserAssignedIdentity(webIdentity).WithReference(entra);
-        var api = builder.AddResource(new ProjectResource("api")).WithAzureUserAssignedIdentity(apiIdentity).WithReference(entra);
-        entra.PublishWithFederatedManagedIdentityCredential(web);
+        var entra = builder.AddEntraIdApplication("entra-web")
+            .PublishWithFederatedManagedIdentityCredential();
+        builder.AddContainer("web", "image").WithReference(entra);
 
-        Assert.True(web.Resource.HasAnnotationOfType<ManagedIdentityRequiredAnnotation>());
-        Assert.False(api.Resource.HasAnnotationOfType<ManagedIdentityRequiredAnnotation>());
-
-        var webEnv = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
-            web.Resource, DistributedApplicationOperation.Publish, TestServiceProvider.Instance);
-        var apiEnv = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
-            api.Resource, DistributedApplicationOperation.Publish, TestServiceProvider.Instance);
-
-        Assert.Equal("{web-identity.outputs.clientId}", webEnv["AzureAd__ClientCredentials__0__ManagedIdentityClientId"]);
-        Assert.DoesNotContain(apiEnv.Keys, key => key.Contains("ClientCredentials", StringComparison.Ordinal));
-
-        var bicep = entra.Resource.GetBicepTemplateString();
-        Assert.Contains("param web_identity_principalId string", bicep);
-        Assert.DoesNotContain("api_identity", bicep);
-    }
-
-    [Fact]
-    public void ValidateComputeTargets_RejectsResourceThatDoesNotReferenceApplication()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        var entra = builder.AddEntraIdApplication("entra-web");
-        var web = builder.AddResource(new ProjectResource("web"));
-        entra.PublishWithFederatedManagedIdentityCredential(web);
-
-        var exception = Assert.Throws<InvalidOperationException>(entra.Resource.ValidateComputeTargets);
-        Assert.Contains("WithReference", exception.Message);
-
-        web.WithReference(entra);
-        entra.Resource.ValidateComputeTargets();
-    }
-
-    [Fact]
-    public void PublishWithFederatedManagedIdentityCredential_ExistingApplication_Throws()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var identity = builder.AddAzureUserAssignedIdentity("web-identity");
-        var web = builder.AddResource(new ProjectResource("web"));
-        var entra = builder.AddExistingEntraApplication("entra-web", tenantId: TenantId, clientId: ClientId);
-
-        Assert.Contains("existing registration", Assert.Throws<InvalidOperationException>(entra.PublishWithFederatedManagedIdentityCredential).Message);
-        Assert.Contains("existing registration", Assert.Throws<InvalidOperationException>(() => entra.PublishWithFederatedManagedIdentityCredential(web)).Message);
-        Assert.Contains("existing registration", Assert.Throws<InvalidOperationException>(() => entra.PublishWithFederatedManagedIdentityCredential(identity)).Message);
-        Assert.Empty(entra.Resource.ClientCredentials);
+        using var app = builder.Build();
+        var exception = await Assert.ThrowsAnyAsync<Exception>(() => ExecuteBeforeStartHooksAsync(app, default));
+        Assert.Contains("Resource 'web'", exception.ToString());
+        Assert.Contains("no user-assigned managed identity", exception.ToString());
     }
     [Theory]
     [InlineData(DistributedApplicationOperation.Run, false)]
@@ -981,7 +961,8 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
 
         Assert.Single(builder.Resources.OfType<AzureEnvironmentResource>());
         var created = Assert.Single(builder.Resources.OfType<EntraIdApplicationResource>(), resource => resource.Name == "created");
-        Assert.Single(created.Annotations.OfType<PipelineStepAnnotation>());
+        // The provisioning step and the managed identity validation step.
+        Assert.Equal(2, created.Annotations.OfType<PipelineStepAnnotation>().Count());
         Assert.NotNull(created.ProvisioningTaskCompletionSource);
     }
 
