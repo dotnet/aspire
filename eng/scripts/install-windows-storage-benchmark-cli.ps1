@@ -53,6 +53,10 @@ if ($version -cne $archiveVersion)
     throw "Installed CLI version does not match archive version $archiveVersion`: $version"
 }
 $installRoot | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+# Keep generated apps outside the checkout so they cannot inherit repository
+# Directory.Build.* or central package versions.
+$validationRoot = Join-Path $env:TEMP 'storage-benchmark-consumer'
+"BENCHMARK_VALIDATION_ROOT=$validationRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
 @{
     runId = $RunId
@@ -63,6 +67,7 @@ $installRoot | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
     archive = $archives[0].Name
     cliPath = $cli
     cliVersion = $version
+    validationRoot = $validationRoot
     sourceIdentityEvidence = 'GitHub artifact run plus matching storage/build checkout reports; CI --version omits source metadata.'
     templateChannel = 'daily'
     templateProvenance = 'Published daily templates and dependencies; the native CLI comes from the selected benchmark artifact.'

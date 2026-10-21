@@ -467,7 +467,7 @@ jobs:
         timeout-minutes: 35
         shell: pwsh
         run: |
-          ./eng/scripts/cli-starter-validation.ps1 -Channel daily -MaxStartupSeconds 180 -ResourceReadyTimeoutSeconds 300 -ValidationRoot "$env:GITHUB_WORKSPACE/artifacts/storage-consumer"
+          ./eng/scripts/cli-starter-validation.ps1 -Channel daily -MaxStartupSeconds 180 -ResourceReadyTimeoutSeconds 300 -ValidationRoot $env:BENCHMARK_VALIDATION_ROOT
 
       - name: Collect consumer CLI logs
         if: always()
@@ -485,5 +485,12 @@ jobs:
           name: windows-storage-consumer-${{ inputs.validationMode }}-${{ inputs.validationSample }}
           path: |
             ${{ runner.temp }}/windows-storage-benchmark/
-            artifacts/storage-consumer/**/diagnostics/**
+          if-no-files-found: error
+
+      - name: Upload starter diagnostics
+        if: always() && env.BENCHMARK_VALIDATION_ROOT != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: windows-storage-starters-${{ inputs.validationMode }}-${{ inputs.validationSample }}
+          path: ${{ env.BENCHMARK_VALIDATION_ROOT }}/**/diagnostics/**
           if-no-files-found: error
