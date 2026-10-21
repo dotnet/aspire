@@ -68,6 +68,7 @@ public class EntraIdApplicationResource : AzureProvisioningResource
                     ValidateManagedIdentities();
                 }
 
+                _resolvedIdentities = ComputeFederatedIdentities();
                 return Task.CompletedTask;
             },
             DependsOnSteps = [AzureEnvironmentResource.PrepareResourcesStepName],
@@ -202,10 +203,18 @@ public class EntraIdApplicationResource : AzureProvisioningResource
         }
     }
 
+    // Set by the validation step once the Azure resource preparer has attached the compute resources' identities, so the
+    // registration's Bicep uses the identities that were validated rather than looking them up again.
+    private IReadOnlyList<AzureUserAssignedIdentityResource>? _resolvedIdentities;
+
+    internal bool IdentitiesResolved => _resolvedIdentities is not null;
+
     /// <summary>
     /// Gets the distinct user-assigned identities that the registration trusts.
     /// </summary>
-    internal IReadOnlyList<AzureUserAssignedIdentityResource> GetFederatedIdentities()
+    internal IReadOnlyList<AzureUserAssignedIdentityResource> GetFederatedIdentities() => _resolvedIdentities ?? ComputeFederatedIdentities();
+
+    private IReadOnlyList<AzureUserAssignedIdentityResource> ComputeFederatedIdentities()
     {
         var identities = new List<AzureUserAssignedIdentityResource>();
         foreach (var credential in ClientCredentials.OfType<EntraIdFederatedIdentityCredential>())

@@ -189,6 +189,7 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         var identity = Assert.Single(model.Resources.OfType<AzureUserAssignedIdentityResource>());
         Assert.Equal("web-identity", identity.Name);
+        Assert.True(entra.Resource.IdentitiesResolved);
         Assert.Same(identity, Assert.Single(entra.Resource.GetFederatedIdentities()));
         // GetBicepTemplateString caches the first template, which pipeline resolution generates before the preparer runs.
         // Provisioning writes a fresh template file instead.
