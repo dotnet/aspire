@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": 16189,
+  "issue_url": "https://github.com/microsoft/aspire/issues/16189",
+  "phase": "ready",
+  "created_at": "2026-10-21T20:33:06.496822+00:00",
+  "base_sha": "2015b1f0a997cf68d0582de62c912e3e419d880a",
+  "control_sha": "8e88c59dea4df119df959cb648c32f73a919bd68",
+  "agent_sha": "515cac42dc95f703735d9f6bbe17bf7db879c871",
+  "worker_sha": "a1cdf22f3bc201bc6ab3c4061a72332124d2301d",
+  "agent_workflow": "reproduce-flaky-tests.yml",
+  "used": {
+    "models": 0,
+    "workers": 0,
+    "fixes": 0,
+    "runner_iterations": 0
+  },
+  "history": [],
+  "notes": [],
+  "candidate": null,
+  "target": null,
+  "local_precheck": null,
+  "outcome": null,
+  "updated_at": "2026-10-21T20:33:06.496855+00:00"
+}
