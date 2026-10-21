@@ -3,8 +3,10 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Projects;
 using Aspire.Shared;
 using Microsoft.Extensions.Logging;
@@ -46,6 +48,7 @@ internal sealed partial class GoAppHostToolingCheck : IEnvironmentCheck
         ILanguageDiscovery languageDiscovery,
         CliExecutionContext executionContext,
         IEnvironment environment,
+        IProcessExecutionFactory processExecutionFactory,
         ILogger<GoAppHostToolingCheck> logger)
         : this(
             projectLocator,
@@ -53,8 +56,8 @@ internal sealed partial class GoAppHostToolingCheck : IEnvironmentCheck
             executionContext,
             environment,
             PathLookupHelper.FindFullPathFromPath,
-            (path, cancellationToken) => RunProbeAsync(CreateVersionProbeStartInfo(path), logger, cancellationToken),
-            (path, workingDirectory, cancellationToken) => RunProbeAsync(CreateToolchainProbeStartInfo(path, workingDirectory), logger, cancellationToken))
+            (path, cancellationToken) => RunProbeAsync(processExecutionFactory, CreateVersionProbeStartInfo(path), s_probeTimeout, logger, cancellationToken),
+            (path, workingDirectory, cancellationToken) => RunProbeAsync(processExecutionFactory, CreateToolchainProbeStartInfo(path, workingDirectory), s_probeTimeout, logger, cancellationToken))
     {
     }
 
@@ -319,12 +322,7 @@ internal sealed partial class GoAppHostToolingCheck : IEnvironmentCheck
     // toolchain without touching the network.
     internal static ProcessStartInfo CreateVersionProbeStartInfo(string executablePath)
     {
-        var startInfo = new ProcessStartInfo(executablePath, ["version"])
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            CreateNoWindow = true
-        };
+        var startInfo = new ProcessStartInfo(executablePath, ["version"]);
 
         startInfo.Environment[ToolchainVariable] = "local";
 
@@ -332,45 +330,64 @@ internal sealed partial class GoAppHostToolingCheck : IEnvironmentCheck
     }
 
     // Unlike the version probe, this one must not override GOTOOLCHAIN: it reads the effective setting.
-    private static ProcessStartInfo CreateToolchainProbeStartInfo(string executablePath, string workingDirectory)
+    internal static ProcessStartInfo CreateToolchainProbeStartInfo(string executablePath, string workingDirectory)
     {
         return new ProcessStartInfo(executablePath, ["env", ToolchainVariable])
         {
-            WorkingDirectory = workingDirectory,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            CreateNoWindow = true
+            WorkingDirectory = workingDirectory
         };
     }
 
-    private static async Task<string?> RunProbeAsync(
+    // The factory launches go like every other CLI child process (pinned output encoding, ASPIRE_CLI_*
+    // identity variables stripped, debug logging) and force-kills it when the timeout cancels the wait.
+    // Only the command line, environment and working directory of the start info are used. The output
+    // streams get separate buffers: go reports notices such as a toolchain download on standard error,
+    // and they must not end up in the answer that the callers parse.
+    internal static async Task<string?> RunProbeAsync(
+        IProcessExecutionFactory processExecutionFactory,
         ProcessStartInfo startInfo,
+        TimeSpan timeout,
         ILogger logger,
         CancellationToken cancellationToken)
     {
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeoutCts.CancelAfter(s_probeTimeout);
+        timeoutCts.CancelAfter(timeout);
 
         var arguments = string.Join(' ', startInfo.ArgumentList);
+        var standardOutput = new StringBuilder();
+        var standardError = new StringBuilder();
 
         try
         {
-            var result = await Process.RunAndCaptureTextAsync(startInfo, timeoutCts.Token).ConfigureAwait(false);
+            await using var process = processExecutionFactory.CreateExecution(
+                startInfo,
+                new ProcessInvocationOptions
+                {
+                    StandardOutputCallback = line => standardOutput.AppendLine(line),
+                    StandardErrorCallback = line => standardError.AppendLine(line)
+                });
 
-            if (result.ExitStatus.ExitCode == 0)
+            if (!await process.StartAsync(timeoutCts.Token).ConfigureAwait(false))
             {
-                return result.StandardOutput;
+                return null;
+            }
+
+            var exitCode = await process.WaitForExitAsync(timeoutCts.Token).ConfigureAwait(false);
+
+            if (exitCode == 0)
+            {
+                return standardOutput.ToString();
             }
 
             logger.LogDebug(
                 "'go {Arguments}' failed with exit code {ExitCode}: {Error}",
                 arguments,
-                result.ExitStatus.ExitCode,
-                result.StandardError.Trim());
+                exitCode,
+                standardError.ToString().Trim());
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            logger.LogDebug("'go {Arguments}' timed out after {Timeout}s.", arguments, s_probeTimeout.TotalSeconds);
+            logger.LogDebug("'go {Arguments}' timed out after {Timeout}s.", arguments, timeout.TotalSeconds);
         }
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or IOException)
         {

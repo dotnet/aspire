@@ -1,12 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.ComponentModel;
 using System.Text.RegularExpressions;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils.EnvironmentChecker;
 using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Tests.Commands;
 
@@ -409,6 +412,131 @@ public sealed class GoAppHostToolingCheckTests(ITestOutputHelper outputHelper)
         Assert.Equal("local", startInfo.Environment["GOTOOLCHAIN"]);
     }
 
+    [Fact]
+    public void CreateToolchainProbeStartInfo_DoesNotOverrideToolchain()
+    {
+        var startInfo = GoAppHostToolingCheck.CreateToolchainProbeStartInfo("/usr/bin/go", "/tmp/aspire-go-doctor");
+
+        Assert.Equal("/usr/bin/go", startInfo.FileName);
+        Assert.Equal(["env", "GOTOOLCHAIN"], startInfo.ArgumentList);
+        Assert.Equal("/tmp/aspire-go-doctor", startInfo.WorkingDirectory);
+
+        // The probe reports the effective setting, so the child must inherit the caller's value untouched.
+        startInfo.Environment.TryGetValue("GOTOOLCHAIN", out var toolchain);
+        Assert.Equal(Environment.GetEnvironmentVariable("GOTOOLCHAIN"), toolchain);
+    }
+
+    [Fact]
+    public async Task RunProbeAsync_ReturnsStandardOutput_WhenGoSucceeds()
+    {
+        var processExecutionFactory = new TestProcessExecutionFactory
+        {
+            AttemptCallback = (_, options) =>
+            {
+                // Go reports notices such as a toolchain download on standard error; they must not reach the parsed answer.
+                options.StandardErrorCallback?.Invoke("go: downloading go1.26.1");
+                return (0, "go version go1.26.1 windows/amd64");
+            }
+        };
+
+        var output = await RunVersionProbeAsync(processExecutionFactory, new CapturingLogger<GoAppHostToolingCheck>());
+
+        Assert.Equal($"go version go1.26.1 windows/amd64{Environment.NewLine}", output);
+        var execution = Assert.IsType<TestProcessExecution>(Assert.Single(processExecutionFactory.CreatedExecutions));
+        Assert.Equal("/usr/bin/go", execution.FileName);
+        Assert.Equal(["version"], execution.Arguments);
+        Assert.Equal("local", execution.EnvironmentVariables["GOTOOLCHAIN"]);
+        Assert.Equal(1, execution.DisposeCount);
+    }
+
+    [Fact]
+    public async Task RunProbeAsync_ReturnsNullAndLogsStandardError_WhenGoFails()
+    {
+        var processExecutionFactory = new TestProcessExecutionFactory
+        {
+            AttemptCallback = (_, options) =>
+            {
+                options.StandardErrorCallback?.Invoke("go: cannot find main module");
+                return (2, null);
+            }
+        };
+        var logger = new CapturingLogger<GoAppHostToolingCheck>();
+
+        var output = await RunVersionProbeAsync(processExecutionFactory, logger);
+
+        Assert.Null(output);
+        var entry = Assert.Single(logger.Entries);
+        Assert.Equal(LogLevel.Debug, entry.Level);
+        Assert.Equal("'go version' failed with exit code 2: go: cannot find main module", entry.Message);
+    }
+
+    [Fact]
+    public async Task RunProbeAsync_ReturnsNull_WhenGoDoesNotStart()
+    {
+        var processExecutionFactory = CreateProbeFactory(startReturnValue: false);
+
+        var output = await RunVersionProbeAsync(processExecutionFactory, new CapturingLogger<GoAppHostToolingCheck>());
+
+        Assert.Null(output);
+    }
+
+    [Theory]
+    [InlineData(typeof(Win32Exception))]
+    [InlineData(typeof(InvalidOperationException))]
+    [InlineData(typeof(IOException))]
+    public async Task RunProbeAsync_ReturnsNullAndLogs_WhenGoCannotBeStarted(Type exceptionType)
+    {
+        var exception = (Exception)Activator.CreateInstance(exceptionType, "go could not be started")!;
+        var processExecutionFactory = CreateProbeFactory(startException: exception);
+        var logger = new CapturingLogger<GoAppHostToolingCheck>();
+
+        var output = await RunVersionProbeAsync(processExecutionFactory, logger);
+
+        Assert.Null(output);
+        var entry = Assert.Single(logger.Entries);
+        Assert.Equal(LogLevel.Debug, entry.Level);
+        Assert.Equal("Could not start 'go version' using '/usr/bin/go'.", entry.Message);
+    }
+
+    [Fact]
+    public async Task RunProbeAsync_ReturnsNullAndLogs_WhenGoOutlastsTimeout()
+    {
+        var processExecutionFactory = CreateProbeFactory(waitForExitAsyncCallback: async (_, cancellationToken) =>
+        {
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            return 0;
+        });
+        var logger = new CapturingLogger<GoAppHostToolingCheck>();
+
+        var output = await RunVersionProbeAsync(processExecutionFactory, logger, timeout: TimeSpan.FromMilliseconds(100));
+
+        Assert.Null(output);
+        var entry = Assert.Single(logger.Entries);
+        Assert.Equal(LogLevel.Debug, entry.Level);
+        Assert.Equal("'go version' timed out after 0.1s.", entry.Message);
+        var execution = Assert.IsType<TestProcessExecution>(Assert.Single(processExecutionFactory.CreatedExecutions));
+        Assert.Equal(1, execution.DisposeCount);
+    }
+
+    [Fact]
+    public async Task RunProbeAsync_PropagatesCancellation_WhenCallerCancels()
+    {
+        using var cts = new CancellationTokenSource();
+        var processExecutionFactory = CreateProbeFactory(waitForExitAsyncCallback: async (_, cancellationToken) =>
+        {
+            await cts.CancelAsync();
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            return 0;
+        });
+        var logger = new CapturingLogger<GoAppHostToolingCheck>();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => RunVersionProbeAsync(processExecutionFactory, logger, cancellationToken: cts.Token));
+
+        Assert.Empty(logger.Entries);
+        var execution = Assert.IsType<TestProcessExecution>(Assert.Single(processExecutionFactory.CreatedExecutions));
+        Assert.Equal(1, execution.DisposeCount);
+    }
+
     [Theory]
     [InlineData("AtsGoCodeGenerator.cs")]
     [InlineData("GoLanguageSupport.cs")]
@@ -465,6 +593,34 @@ public sealed class GoAppHostToolingCheckTests(ITestOutputHelper outputHelper)
             versionResolver ?? ReturnsVersion("go version go1.26.1 windows/amd64"),
             toolchainResolver ?? ThrowsIfToolchainIsProbed);
     }
+
+    private static Task<string?> RunVersionProbeAsync(
+        TestProcessExecutionFactory processExecutionFactory,
+        CapturingLogger<GoAppHostToolingCheck> logger,
+        TimeSpan? timeout = null,
+        CancellationToken cancellationToken = default) =>
+        GoAppHostToolingCheck.RunProbeAsync(
+            processExecutionFactory,
+            GoAppHostToolingCheck.CreateVersionProbeStartInfo("/usr/bin/go"),
+            timeout ?? TimeSpan.FromMinutes(1),
+            logger,
+            cancellationToken).DefaultTimeout();
+
+    // Scenarios that need to control how the fake process starts or waits; the default attempt callback is never used.
+    private static TestProcessExecutionFactory CreateProbeFactory(
+        bool startReturnValue = true,
+        Exception? startException = null,
+        Func<ProcessInvocationOptions, CancellationToken, Task<int>>? waitForExitAsyncCallback = null) =>
+        new()
+        {
+            CreateExecutionWithFileNameCallback = (fileName, args, env, workingDirectory, options) =>
+                new TestProcessExecution(fileName, args, env, options, (_, _, _) => Task.FromResult((0, (string?)null)), () => 1)
+                {
+                    StartReturnValue = startReturnValue,
+                    StartException = startException,
+                    WaitForExitAsyncCallback = waitForExitAsyncCallback
+                }
+        };
 
     private static Func<string, CancellationToken, Task<string?>> ReturnsVersion(string? versionOutput) =>
         (_, _) => Task.FromResult(versionOutput);
