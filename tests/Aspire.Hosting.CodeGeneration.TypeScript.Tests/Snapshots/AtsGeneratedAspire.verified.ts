@@ -888,8 +888,10 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
     async _addTestRedisInternal(name: string, port?: number | null): Promise<TestRedisResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
         if (port !== undefined) rpcArgs.port = port;
-        const resourceSource = getResourceSourceLocation();
-        if (resourceSource) { rpcArgs['$source'] = resourceSource; }
+        {
+            const resourceSource = getResourceSourceLocation();
+            if (resourceSource) { rpcArgs['$source'] = resourceSource; }
+        }
         const result = await this._client.invokeCapability<TestRedisResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestRedis',
             rpcArgs
@@ -911,8 +913,10 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
     /** @internal */
     async _addTestMarkerInternal(name: string): Promise<TestMarkerResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
-        const resourceSource = getResourceSourceLocation();
-        if (resourceSource) { rpcArgs['$source'] = resourceSource; }
+        {
+            const resourceSource = getResourceSourceLocation();
+            if (resourceSource) { rpcArgs['$source'] = resourceSource; }
+        }
         const result = await this._client.invokeCapability<ITestMarkerResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestMarker',
             rpcArgs
@@ -928,8 +932,10 @@ class DistributedApplicationBuilderImpl implements DistributedApplicationBuilder
     /** @internal */
     async _addTestVaultInternal(name: string): Promise<TestVaultResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
-        const resourceSource = getResourceSourceLocation();
-        if (resourceSource) { rpcArgs['$source'] = resourceSource; }
+        {
+            const resourceSource = getResourceSourceLocation();
+            if (resourceSource) { rpcArgs['$source'] = resourceSource; }
+        }
         const result = await this._client.invokeCapability<TestVaultResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestVault',
             rpcArgs
@@ -1876,8 +1882,10 @@ class TestRedisResourceImpl extends ResourceBuilderBase<TestRedisResourceHandle>
     private async _addTestChildDatabaseInternal(name: string, databaseName?: string): Promise<TestDatabaseResource> {
         const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
         if (databaseName !== undefined) rpcArgs.databaseName = databaseName;
-        const resourceSource = getResourceSourceLocation();
-        if (resourceSource) { rpcArgs['$source'] = resourceSource; }
+        {
+            const resourceSource = getResourceSourceLocation();
+            if (resourceSource) { rpcArgs['$source'] = resourceSource; }
+        }
         const result = await this._client.invokeCapability<TestDatabaseResourceHandle>(
             'Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestChildDatabase',
             rpcArgs

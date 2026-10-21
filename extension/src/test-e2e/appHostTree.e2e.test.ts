@@ -443,8 +443,16 @@ suite('Aspire AppHost tree E2E', function () {
                 line.includes('builder.AddProject<Projects.AspireE2E_Worker>("e2e-worker")') ? [index] : []);
             assert.strictEqual(workerDeclarationLines.length, 2);
             const activeDeclarationLine = workerDeclarationLines[process.env.ASPIRE_E2E_ALTERNATE_WORKER === 'true' ? 1 : 0];
-            const worker = getResources(workerState.state).find(resource => (resource.displayName ?? resource.name) === 'e2e-worker');
+            const workerMetadata = await waitForExtensionState(file => {
+                const resource = getResources(file.state).find(candidate => (candidate.displayName ?? candidate.name) === 'e2e-worker');
+                return resource?.commands?.['disabled-e2e-command']?.state === 'Disabled'
+                    && resource.urls?.some(url => url.name === 'http') === true;
+            }, 'worker endpoint and command metadata', 60000);
+            const worker = getResources(workerMetadata.state).find(resource => (resource.displayName ?? resource.name) === 'e2e-worker');
             assert.ok(worker);
+            assert.ok(worker.commands?.['echo-arguments']);
+            assert.strictEqual(worker.commands?.['disabled-e2e-command']?.state, 'Disabled');
+            assert.ok(worker.urls?.some(url => url.name === 'http'));
             await executeE2eControlCommand({ name: 'openFile', filePath: sourcePath });
 
             const waitForWorkerActionLens = async (action: string) => {

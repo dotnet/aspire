@@ -107,6 +107,7 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     /// from the same context so documentation cannot drift from emitted source.
     /// </summary>
     private TypeScriptApiProjector _projector = null!;
+    private HashSet<string> _resourceTypeIds = null!;
 
     private void WriteCapabilityDocComment(
         string indent,
@@ -517,6 +518,12 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         // same projector, so documented signatures cannot drift from the signatures emitted here.
         _projector = new TypeScriptApiProjector(context);
         var resolved = _projector.Resolved;
+
+        // External manifests carry type IDs without CLR types, so use the scanned resource identities.
+        _resourceTypeIds = context.HandleTypes
+            .Where(type => type.IsResourceBuilder)
+            .Select(type => type.AtsTypeId)
+            .ToHashSet(StringComparer.Ordinal);
 
         var dtoTypes = context.DtoTypes;
         var enumTypes = context.EnumTypes;
@@ -1084,7 +1091,7 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
     private void GenerateBuilderMethod(BuilderModel builder, AtsCapabilityInfo capability)
     {
         var methodName = capability.MethodName;
-        var captureResourceSource = capability.ReturnType.IsResourceBuilder
+        var captureResourceSource = (capability.ReturnType.IsResourceBuilder || _resourceTypeIds.Contains(capability.ReturnType.TypeId))
             && methodName.StartsWith("add", StringComparison.OrdinalIgnoreCase);
         var internalMethodName = $"_{methodName}Internal";
         var targetParamName = capability.TargetParameterName ?? "builder";
@@ -1245,8 +1252,10 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         GenerateArgsObjectWithConditionals(targetParamName, requiredParams, optionalParams);
         if (captureResourceSource)
         {
-            WriteLine("        const resourceSource = getResourceSourceLocation();");
-            WriteLine("        if (resourceSource) { rpcArgs['$source'] = resourceSource; }");
+            WriteLine("        {");
+            WriteLine("            const resourceSource = getResourceSourceLocation();");
+            WriteLine("            if (resourceSource) { rpcArgs['$source'] = resourceSource; }");
+            WriteLine("        }");
         }
 
         if (returnsBuilder)
@@ -2850,7 +2859,7 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
         var methodName = !string.IsNullOrEmpty(capability.OwningTypeName) && capability.MethodName.Contains('.')
             ? capability.MethodName[(capability.MethodName.LastIndexOf('.') + 1)..]
             : TypeScriptApiProjector.GetTypeScriptMethodName(capability.MethodName);
-        var captureResourceSource = capability.ReturnType.IsResourceBuilder
+        var captureResourceSource = (capability.ReturnType.IsResourceBuilder || _resourceTypeIds.Contains(capability.ReturnType.TypeId))
             && methodName.StartsWith("add", StringComparison.OrdinalIgnoreCase);
 
         var internalMethodName = $"_{methodName}Internal";
@@ -2913,8 +2922,10 @@ internal sealed class AtsTypeScriptCodeGenerator : ICodeGenerator
             GenerateArgsObjectWithConditionals(targetParamName, requiredParams, optionalParams);
             if (captureResourceSource)
             {
-                WriteLine("        const resourceSource = getResourceSourceLocation();");
-                WriteLine("        if (resourceSource) { rpcArgs['$source'] = resourceSource; }");
+                WriteLine("        {");
+                WriteLine("            const resourceSource = getResourceSourceLocation();");
+                WriteLine("            if (resourceSource) { rpcArgs['$source'] = resourceSource; }");
+                WriteLine("        }");
             }
 
             WriteLine($"        const result = await this._client.invokeCapability<{returnHandleType}>(");

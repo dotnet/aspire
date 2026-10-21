@@ -2775,6 +2775,17 @@ internal sealed class TestResourceBuilder<T> : IResourceBuilder<T> where T : IRe
         => throw new NotImplementedException();
 }
 
+internal readonly struct TestValueResource(string name) : IResource
+{
+    public string Name { get; } = name;
+    public ResourceAnnotationCollection Annotations { get; } = new();
+
+    // Equal values must not make independently owned annotation collections the same resource.
+    public override bool Equals(object? other) => other is TestValueResource resource && Name == resource.Name;
+
+    public override int GetHashCode() => StringComparer.Ordinal.GetHashCode(Name);
+}
+
 /// <summary>
 /// Test resource type with properties that should be accessible via builder handles.
 /// </summary>

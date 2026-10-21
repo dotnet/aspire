@@ -140,6 +140,103 @@ public class ResourceSourceLocationGeneratorTests
         Assert.Empty(annotations);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ConfigurationCallsDoNotClaimUntrackedValueResources(bool newBuilder)
+    {
+        var source = """
+            using Aspire.Hosting.ApplicationModel;
+            public static class SourceCases
+            {
+                public static Resource Run(bool condition)
+                {
+                    var resource = new ValueResource { Annotations = new() };
+                    var existing = new ResourceBuilder<ValueResource>(resource);
+                    var result = Factory.AddTag(existing, condition);
+                    return new Resource { Annotations = result.Resource.Annotations };
+                }
+            }
+            public static class Factory
+            {
+                public static IResourceBuilder<ValueResource> AddTag(IResourceBuilder<ValueResource> builder, bool newBuilder) =>
+                    newBuilder ? new ResourceBuilder<ValueResource>(builder.Resource) : builder;
+            }
+            """ + Types;
+
+        var resource = Execute(source, newBuilder, expectInterception: true)!;
+        var annotations = (System.Collections.IEnumerable)resource.GetType().GetProperty("Annotations")!.GetValue(resource)!;
+
+        Assert.Empty(annotations);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NullableInputsPreserveValueResourceCreationSemantics(bool hasInput)
+    {
+        var source = """
+            using Aspire.Hosting.ApplicationModel;
+            public static class SourceCases
+            {
+                public static Resource Run(bool condition)
+                {
+                    IResourceBuilder<ValueResource>? input = condition
+                        ? new ResourceBuilder<ValueResource>(new ValueResource { Annotations = new() })
+                        : null;
+                    var resource = Factory.AddWorker(input).Resource;
+                    return new Resource { Annotations = resource.Annotations };
+                }
+            }
+            public static class Factory
+            {
+                public static IResourceBuilder<ValueResource> AddWorker(IResourceBuilder<ValueResource>? builder) =>
+                    builder ?? new ResourceBuilder<ValueResource>(new ValueResource { Annotations = new() });
+            }
+            """ + Types;
+
+        if (hasInput)
+        {
+            var resource = Execute(source, true, expectInterception: true)!;
+            var annotations = (System.Collections.IEnumerable)resource.GetType().GetProperty("Annotations")!.GetValue(resource)!;
+            Assert.Empty(annotations);
+        }
+        else
+        {
+            AssertSourceLocation(source, false, "AddWorker(input)");
+        }
+    }
+
+    [Fact]
+    public void FactoriesDoNotUseValueEqualityForResourceIdentity()
+    {
+        var source = """
+            using Aspire.Hosting.ApplicationModel;
+            public static class SourceCases
+            {
+                public static Resource Run(bool condition)
+                {
+                    var input = new ResourceBuilder<EqualResource>(new EqualResource { Annotations = new() });
+                    var result = Factory.AddWorker(input);
+                    return new Resource { Annotations = result.Resource.Annotations };
+                }
+            }
+            public static class Factory
+            {
+                public static IResourceBuilder<EqualResource> AddWorker(IResourceBuilder<EqualResource> builder) =>
+                    new ResourceBuilder<EqualResource>(new EqualResource { Annotations = new() });
+            }
+            public readonly struct EqualResource : IResource
+            {
+                public System.Collections.Generic.List<object> Annotations { get; init; }
+                public override bool Equals(object? other) => other is EqualResource;
+                public override int GetHashCode() => 0;
+            }
+            """ + Types;
+
+        AssertSourceLocation(source, true, "AddWorker(input)");
+    }
+
     [Fact]
     public void PreservesBaseQualifiedVirtualDispatch()
     {
@@ -311,6 +408,60 @@ public class ResourceSourceLocationGeneratorTests
             """ + Types;
 
         AssertSourceLocation(source, true, "AddValueResource(\"same\")");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DoesNotInterceptFactoriesInFileLocalTypes(bool nested)
+    {
+        var source = $$"""
+            using Aspire.Hosting.ApplicationModel;
+            public static class SourceCases
+            {
+                public static Resource Run(bool condition) =>
+                    {{(nested ? "Outer." : "")}}Factory.AddWorker("same").Resource;
+            }
+            {{(nested ? "file static class Outer {" : "")}}
+            {{(nested ? "public" : "file")}} static class Factory
+            {
+                public static IResourceBuilder<Resource> AddWorker(string name) =>
+                    new ResourceBuilder<Resource>(new Resource());
+            }
+            {{(nested ? "}" : "")}}
+            """ + Types;
+
+        var resource = Execute(source, true, expectInterception: false)!;
+        var annotations = (System.Collections.IEnumerable)resource.GetType().GetProperty("Annotations")!.GetValue(resource)!;
+
+        Assert.Empty(annotations);
+    }
+
+    [Fact]
+    public void SupportsExplicitResourceAnnotationImplementations()
+    {
+        var source = """
+            using Aspire.Hosting.ApplicationModel;
+            public static class SourceCases
+            {
+                public static Resource Run(bool condition)
+                {
+                    var resource = Factory.AddWorker("same").Resource;
+                    return new Resource { Annotations = ((IResource)resource).Annotations };
+                }
+            }
+            public static class Factory
+            {
+                public static IResourceBuilder<ExplicitResource> AddWorker(string name) =>
+                    new ResourceBuilder<ExplicitResource>(new ExplicitResource());
+            }
+            public sealed class ExplicitResource : IResource
+            {
+                System.Collections.Generic.List<object> IResource.Annotations { get; } = new();
+            }
+            """ + Types;
+
+        AssertSourceLocation(source, true, "AddWorker(\"same\")");
     }
 
     [Theory]

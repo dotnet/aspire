@@ -382,9 +382,9 @@ Older AppHosts and SDKs can omit it.
 Generated SDKs capture source only for resource-returning `add*` methods, not for
 unrelated capabilities that happen to have an `add*` name.
 
-C# leaves local functions, base-qualified calls, and static abstract/virtual
-interface calls uninstrumented so source capture cannot change their dispatch
-or prevent otherwise valid code from compiling.
+C# leaves local functions, factories in file-local types, base-qualified calls,
+and static abstract/virtual interface calls uninstrumented so source capture
+cannot change their dispatch or prevent otherwise valid code from compiling.
 
 When an external integration factory receives source metadata, its returned
 resource is attributed to the outer AppHost call rather than an internal

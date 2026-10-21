@@ -676,17 +676,6 @@ internal sealed class CapabilityDispatcher
             return;
         }
 
-        // Add-style modifiers may return a new builder handle for the same input resource.
-        foreach (var argument in args)
-        {
-            if (HandleRef.FromJsonNode(argument.Value) is { } input
-                && _handles.TryGet(input.HandleId, out var inputValue, out _) && inputValue is not null
-                && ReferenceEquals(resource, GetResource(inputValue)))
-            {
-                return;
-            }
-        }
-
         var resourceType = resource.GetType().GetInterfaces().First(type => type.FullName == "Aspire.Hosting.ApplicationModel.IResource");
         var annotationType = resourceType.Assembly.GetType("Aspire.Hosting.ApplicationModel.ResourceSourceLocationAnnotation");
         if (annotationType is null)
@@ -694,7 +683,31 @@ internal sealed class CapabilityDispatcher
             _logger.LogDebug("The application's Hosting version does not support resource source locations.");
             return;
         }
-        var annotations = (System.Collections.IList)resourceType.GetProperty("Annotations")!.GetValue(resource)!;
+        var annotationsProperty = resourceType.GetProperty("Annotations")!;
+        var annotations = (System.Collections.IList)annotationsProperty.GetValue(resource)!;
+
+        // Modifiers can return the same builder or another builder for the same resource.
+        // Struct copies box separately but retain their annotation collection; value equality is not identity.
+        foreach (var argument in args)
+        {
+            if (HandleRef.FromJsonNode(argument.Value) is not { } input
+                || !_handles.TryGet(input.HandleId, out var inputValue, out _) || inputValue is null)
+            {
+                continue;
+            }
+            if (ReferenceEquals(value, inputValue))
+            {
+                return;
+            }
+            var inputResource = GetResource(inputValue);
+            if (ReferenceEquals(resource, inputResource)
+                || (resource.GetType().IsValueType && resourceType.IsInstanceOfType(inputResource)
+                    && ReferenceEquals(annotations, annotationsProperty.GetValue(inputResource))))
+            {
+                return;
+            }
+        }
+
         lock (annotations)
         {
             if (!overrideExisting && annotations.Cast<object>().Any(annotationType.IsInstanceOfType))

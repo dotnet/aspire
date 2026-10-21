@@ -444,7 +444,9 @@ internal sealed class AtsRustCodeGenerator : ICodeGenerator
             {
                 foreach (var method in methods)
                 {
-                    GenerateCapabilityMethod(handleType.StructName, method);
+                    var returnsResource = method.ReturnType.IsResourceBuilder
+                        || handleTypes.Any(type => type.TypeId == method.ReturnType.TypeId && type.IsResourceBuilder);
+                    GenerateCapabilityMethod(handleType.StructName, method, returnsResource);
                 }
             }
 
@@ -453,11 +455,11 @@ internal sealed class AtsRustCodeGenerator : ICodeGenerator
         }
     }
 
-    private void GenerateCapabilityMethod(string structName, AtsCapabilityInfo capability)
+    private void GenerateCapabilityMethod(string structName, AtsCapabilityInfo capability, bool returnsResource)
     {
         var targetParamName = capability.TargetParameterName ?? "builder";
         var methodName = ToSnakeCase(capability.MethodName);
-        var captureResourceSource = capability.ReturnType.IsResourceBuilder
+        var captureResourceSource = returnsResource
             && methodName.StartsWith("add_", StringComparison.Ordinal);
         var parameters = capability.Parameters
             .Where(p => !string.Equals(p.Name, targetParamName, StringComparison.Ordinal))

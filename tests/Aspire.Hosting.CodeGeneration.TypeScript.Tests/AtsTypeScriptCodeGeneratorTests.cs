@@ -1473,8 +1473,10 @@ public class AtsTypeScriptCodeGeneratorTests
             """
                 async _addTestVaultInternal(name: string): Promise<TestVaultResource> {
                     const rpcArgs: Record<string, unknown> = { builder: this._handle, name };
-                    const resourceSource = getResourceSourceLocation();
-                    if (resourceSource) { rpcArgs['$source'] = resourceSource; }
+                    {
+                        const resourceSource = getResourceSourceLocation();
+                        if (resourceSource) { rpcArgs['$source'] = resourceSource; }
+                    }
                     const result = await this._client.invokeCapability<TestVaultResourceHandle>(
                         'Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestVault',
                         rpcArgs
@@ -1486,6 +1488,47 @@ public class AtsTypeScriptCodeGeneratorTests
         Assert.Equal(0, CountOccurrences(
             aspireTs,
             "invokeCapability<ITestVaultResourceHandle>"));
+    }
+
+    [Fact]
+    public async Task GenerateDistributedApplication_ScopesSourceMetadataAwayFromFactoryParameters()
+    {
+        var context = CreateContextFromTestAssembly();
+        var resourceType = CreateResourceTypeRef<TestRedisResource>();
+        var builderType = context.Capabilities
+            .First(capability => capability.CapabilityId == "Aspire.Hosting.CodeGeneration.TypeScript.Tests/addTestRedis")
+            .TargetType!;
+        var capabilities = new[] { builderType, resourceType }
+            .Select((target, index) => new AtsCapabilityInfo
+            {
+                CapabilityId = $"Aspire.Hosting.CodeGeneration.TypeScript.Tests/addWithSource{index}",
+                MethodName = $"addWithSource{index}",
+                TargetTypeId = target.TypeId,
+                TargetType = target,
+                TargetParameterName = "builder",
+                Parameters =
+                [
+                    new AtsParameterInfo
+                    {
+                        Name = "resourceSource",
+                        Type = new AtsTypeRef { TypeId = AtsConstants.String, Category = AtsTypeCategory.Primitive }
+                    }
+                ],
+                ReturnType = resourceType,
+                ReturnsBuilder = true
+            }).ToArray();
+        var files = _generator.GenerateDistributedApplication(WithAdditionalCapabilities(context, capabilities));
+
+        // Capture both method shapes, e.g. async _addWithSource0Internal(resourceSource: string) { ... },
+        // including nested metadata blocks but stopping at the method's four-space closing brace.
+        var methods = Regex.Matches(files["aspire.mts"],
+            @"^    (?:private )?async _addWithSource[01]Internal\b.*?^    \}",
+            RegexOptions.Multiline | RegexOptions.Singleline)
+            .Select(match => match.Value)
+            .ToArray();
+
+        Assert.Equal(2, methods.Length);
+        await Verify(string.Join(Environment.NewLine + Environment.NewLine, methods), "ts");
     }
 
     [Fact]

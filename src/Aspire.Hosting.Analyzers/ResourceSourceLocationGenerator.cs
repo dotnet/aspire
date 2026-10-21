@@ -90,6 +90,15 @@ public sealed class ResourceSourceLocationGenerator : IIncrementalGenerator
             return null;
         }
 
+        // Assembly accessibility does not make file-local types visible from the generated file.
+        for (var type = method.ContainingType; type is not null; type = type.ContainingType)
+        {
+            if (type.IsFileLocal)
+            {
+                return null;
+            }
+        }
+
         var compilation = context.SemanticModel.Compilation;
         var builderType = compilation.GetTypeByMetadataName(BuilderType);
         if (builderType is null
@@ -264,7 +273,7 @@ public sealed class ResourceSourceLocationGenerator : IIncrementalGenerator
                 .AppendLine("                return result;")
                 .AppendLine("            }");
         }
-        source.Append("            var resource = ((").Append(TypeName(invocation.ResourceBuilderType.WithNullableAnnotation(NullableAnnotation.NotAnnotated))).AppendLine(")result).Resource;");
+        source.Append("            global::Aspire.Hosting.ApplicationModel.IResource resource = ((").Append(TypeName(invocation.ResourceBuilderType.WithNullableAnnotation(NullableAnnotation.NotAnnotated))).AppendLine(")result).Resource;");
 
         // Add-style configuration methods can return an existing, untracked builder.
         // Returning the receiver is not evidence that this call created its resource.
@@ -300,16 +309,32 @@ public sealed class ResourceSourceLocationGenerator : IIncrementalGenerator
 
         void WriteExistingResourceGuard(string name, INamedTypeSymbol builder, NullableAnnotation nullableAnnotation)
         {
-            source.Append("            if (");
+            var indent = "            ";
             if (nullableAnnotation == NullableAnnotation.Annotated)
             {
-                source.Append(name).Append(" is not null && ");
+                source.Append(indent).Append("if (").Append(name).AppendLine(" is not null)")
+                    .Append(indent).AppendLine("{");
+                indent += "    ";
             }
-            source.Append("global::System.Object.ReferenceEquals(resource, ((")
-                .Append(TypeName(builder)).Append(')').Append(name).AppendLine(").Resource))")
-                .AppendLine("            {")
-                .AppendLine("                return result;")
-                .AppendLine("            }");
+
+            source.Append(indent).Append("if (global::System.Object.ReferenceEquals(result, ").Append(name).AppendLine("))")
+                .Append(indent).AppendLine("{")
+                .Append(indent).AppendLine("    return result;")
+                .Append(indent).AppendLine("}")
+                .Append(indent).Append("global::Aspire.Hosting.ApplicationModel.IResource ").Append(name).Append("Resource = ((")
+                .Append(TypeName(builder.WithNullableAnnotation(NullableAnnotation.NotAnnotated))).Append(')').Append(name).AppendLine(").Resource;");
+
+            // Boxed copies of struct resources retain annotation ownership, not reference identity.
+            source.Append(indent).Append("if (global::System.Object.ReferenceEquals(resource, ").Append(name).AppendLine("Resource)")
+                .Append(indent).Append("    || (resource.GetType().IsValueType && global::System.Object.ReferenceEquals(resource.Annotations, ")
+                .Append(name).AppendLine("Resource.Annotations)))")
+                .Append(indent).AppendLine("{")
+                .Append(indent).AppendLine("    return result;")
+                .Append(indent).AppendLine("}");
+            if (nullableAnnotation == NullableAnnotation.Annotated)
+            {
+                source.AppendLine("            }");
+            }
         }
     }
 

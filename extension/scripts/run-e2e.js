@@ -1742,14 +1742,23 @@ ${winUiProjectReference}${azureFunctionsPackageReference}  </ItemGroup>
 #pragma warning disable ASPIREPIPELINES001 // Older published SDKs still mark pipeline APIs experimental.
 #pragma warning disable ASPIRETERMINAL001
 
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Pipelines;
 
 // The E2E fixture intentionally covers interaction command arguments and terminal metadata while those APIs are still experimental.
 var builder = DistributedApplication.CreateBuilder(args);
 
+IResourceBuilder<ProjectResource> worker;
 if (Environment.GetEnvironmentVariable("ASPIRE_E2E_ALTERNATE_WORKER") != "true")
 {
-    builder.AddProject<Projects.AspireE2E_Worker>("e2e-worker")
+    worker = builder.AddProject<Projects.AspireE2E_Worker>("e2e-worker");
+}
+else
+{
+    worker = builder.AddProject<Projects.AspireE2E_Worker>("e2e-worker");
+}
+
+worker
     .WithHttpEndpoint(name: "http")
     .WithCommand(
         "echo-arguments",
@@ -1812,11 +1821,6 @@ if (Environment.GetEnvironmentVariable("ASPIRE_E2E_ALTERNATE_WORKER") != "true")
             Description = "Unknown-state command excluded from the VS Code tree.",
             UpdateState = _ => (ResourceCommandState)999,
         });
-}
-else
-{
-    builder.AddProject<Projects.AspireE2E_Worker>("e2e-worker");
-}
 
 builder.AddResource(new NoCommandsResource("e2e-no-commands"));
 
