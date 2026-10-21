@@ -1184,13 +1184,16 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         Assert.Empty(context.Home.EnumerateFileSystemInfos());
     }
 
-    [Fact]
-    public async Task Native_OpenCodeSkillsAndMcpUseIndependentRepresentations()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Native_OpenCodeSkillsAndMcpUseIndependentRepresentations(bool array)
     {
         using var context = new AgentConfigurationTestContext(outputHelper);
         var path = Path.Combine(context.Project.FullName, "opencode.json");
-        var original = JsonNode.Parse(
-            """{"skills":{"paths":["./team-skills"]},"mcp":{"servers":{"aspire":{"type":"local","command":["pinned-aspire"],"disabled":true}}}}""")!;
+        var original = JsonNode.Parse(array
+            ? """{"skills":["./team-skills"],"mcp":{"servers":{"aspire":{"type":"local","command":["pinned-aspire"],"disabled":true}}}}"""
+            : """{"skills":{"paths":["./team-skills"]},"mcp":{"servers":{"aspire":{"type":"local","command":["pinned-aspire"],"disabled":true}}}}""")!;
         await File.WriteAllTextAsync(path, original.ToJsonString());
         using var provider = context.CreateServiceCollection(outputHelper).BuildServiceProvider();
 
@@ -1198,12 +1201,61 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
             "agent init --agents opencode --scope project --skills aspire --aspire-source native --mcp");
 
         Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
-        var configured = JsonNode.Parse(await File.ReadAllTextAsync(path))!;
+        var content = await File.ReadAllTextAsync(path);
+        var configured = JsonNode.Parse(content)!;
         Assert.True(JsonNode.DeepEquals(original["mcp"], configured["mcp"]));
-        Assert.Equal(["./team-skills"], configured["skills"]!["paths"]!.AsArray().Select(value => (string)value!));
-        Assert.Equal(["https://raw.githubusercontent.com/microsoft/aspire-skills/main/opencode/v1/"],
-            configured["skills"]!["urls"]!.AsArray().Select(value => (string)value!));
+        if (!array)
+        {
+            Assert.Equal(["./team-skills"], configured["skills"]!["paths"]!.AsArray().Select(value => (string)value!));
+        }
+        var sources = array ? configured["skills"]!.AsArray() : configured["skills"]!["urls"]!.AsArray();
+        Assert.Equal(array
+            ? ["./team-skills", "https://raw.githubusercontent.com/microsoft/aspire-skills/main/opencode/v2/"]
+            : new[] { "https://raw.githubusercontent.com/microsoft/aspire-skills/main/opencode/v1/" },
+            sources.Select(value => (string)value!));
+        var repeated = provider.GetRequiredService<RootCommand>().Parse(
+            "agent init --agents opencode --scope project --skills aspire --aspire-source native --mcp");
+        Assert.Equal(CliExitCodes.Success, await repeated.InvokeAsync().DefaultTimeout());
+        Assert.Equal(content, await File.ReadAllTextAsync(path));
         Assert.Equal([path], context.Project.EnumerateFiles().Select(file => file.FullName));
+        Assert.Empty(context.Home.EnumerateFileSystemInfos());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Native_WarnsForConfiguredOpenCodeSkillRootsAndPreservesTheCopy(bool array)
+    {
+        using var context = new AgentConfigurationTestContext(outputHelper);
+        var configPath = Path.Combine(context.Project.FullName, ".opencode", "opencode.jsonc");
+        var skillPath = Path.Combine(context.Project.FullName, "team-skills", "aspire", "SKILL.md");
+        await AgentConfigurationTestContext.WriteAsync(configPath, array
+            ? """{"skills":["./team-skills"]}"""
+            : """{"skills":{"paths":["./team-skills"]}}""");
+        const string skill = "My customized Aspire instructions.";
+        await AgentConfigurationTestContext.WriteAsync(skillPath, skill);
+        var interaction = new TestInteractionService();
+        using var provider = context.CreateServiceCollection(outputHelper, options =>
+        {
+            options.InteractionServiceFactory = _ => interaction;
+        }).BuildServiceProvider();
+
+        var result = provider.GetRequiredService<RootCommand>().Parse(
+            "agent init --agents opencode --scope project --skills aspire --aspire-source native --mcp=false");
+
+        Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
+        Assert.Empty(interaction.DisplayedErrors);
+        Assert.Contains(interaction.DisplayedMessages, message => message.Emoji.Equals(KnownEmojis.Warning) &&
+            message.Message == string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_LocalSkillsConflict,
+                "  team-skills/aspire/SKILL.md"));
+        Assert.Equal(skill, await File.ReadAllTextAsync(skillPath));
+        var config = JsonNode.Parse(await File.ReadAllTextAsync(configPath))!;
+        var sources = array ? config["skills"]!.AsArray() : config["skills"]!["urls"]!.AsArray();
+        Assert.Equal(array
+            ? ["./team-skills", "https://raw.githubusercontent.com/microsoft/aspire-skills/main/opencode/v2/"]
+            : new[] { "https://raw.githubusercontent.com/microsoft/aspire-skills/main/opencode/v1/" },
+            sources.Select(value => (string)value!));
+        Assert.Null(config["mcp"]);
         Assert.Empty(context.Home.EnumerateFileSystemInfos());
     }
 
@@ -1255,8 +1307,9 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         });
         using var provider = services.BuildServiceProvider();
 
+        var clients = clientId == "opencode" ? "opencode,copilot" : clientId;
         var result = provider.GetRequiredService<RootCommand>().Parse(
-            $"agent init --agents {clientId} --scope project --skills aspire --aspire-source native --mcp");
+            $"agent init --agents {clients} --scope project --skills aspire --aspire-source native --mcp");
 
         Assert.Equal(CliExitCodes.InvalidCommand, await result.InvokeAsync().DefaultTimeout());
         Assert.Single(interaction.DisplayedErrors);
@@ -1264,6 +1317,8 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
             client.GetMcpConfigPath(AgentConfigurationScope.Project, context.Project)))!;
         if (clientId == "opencode")
         {
+            Assert.True(File.Exists(context.Copilot.GetIntegrationConfigPath(AgentConfigurationScope.Project, context.Project)));
+            Assert.True(File.Exists(context.Copilot.GetMcpConfigPath(AgentConfigurationScope.Project, context.Project)));
             Assert.Equal([true], config["skills"]!.AsArray().Select(value => (bool)value!));
             var server = config["mcp"]!["servers"]!["aspire"]!;
             Assert.Equal(["aspire", "agent", "mcp"], server["command"]!.AsArray().Select(value => (string)value!));

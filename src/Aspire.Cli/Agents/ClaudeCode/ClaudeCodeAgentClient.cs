@@ -53,7 +53,7 @@ internal sealed class ClaudeCodeAgentClient(CliExecutionContext context, IEnviro
         => [(GetMcpConfigPath(scope, workspaceRoot), true)];
 
     public async Task<(JsonObject Config, string Path)> ReadMcpConfigAsync(
-        string configFilePath, AgentConfigurationScope scope, CancellationToken cancellationToken)
+        string configFilePath, DirectoryInfo workspaceRoot, AgentConfigurationScope scope, CancellationToken cancellationToken)
         => (await McpConfigFileHelper.ReadConfigAsync(configFilePath, s_mcp.JsonDocumentOptions, cancellationToken), configFilePath);
 
     public (bool Repaired, bool Added) UpdateMcpConfig(

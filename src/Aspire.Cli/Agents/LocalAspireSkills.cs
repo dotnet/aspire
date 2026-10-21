@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using System.Text.Json;
 using Aspire.Cli.Resources;
 
 namespace Aspire.Cli.Agents;
@@ -21,7 +22,7 @@ internal static class LocalAspireSkills
         "aspireify"
     ];
 
-    internal static (IReadOnlyList<string> Files, IReadOnlyList<string> Errors) Find(
+    internal static (IReadOnlyList<string> Files, IReadOnlyList<string> Errors, bool HasFileErrors) Find(
         DirectoryInfo workingDirectory,
         DirectoryInfo workspaceRoot,
         IEnumerable<IAgentClient> agents,
@@ -35,6 +36,7 @@ internal static class LocalAspireSkills
         var files = new Dictionary<string, string>(AgentPath.Comparer);
         var errors = new HashSet<string>(StringComparer.Ordinal);
         var inspected = new HashSet<string>(AgentPath.Comparer);
+        var hasFileErrors = false;
         foreach (var agent in agents)
         {
             foreach (var scope in new[] { AgentConfigurationScope.Project, AgentConfigurationScope.Global })
@@ -47,8 +49,15 @@ internal static class LocalAspireSkills
                         ? projectDirectories.SelectMany(directory => agent.GetLocalSkillDirectories(scope, directory)).ToArray()
                         : agent.GetLocalSkillDirectories(scope, workspaceRoot).ToArray();
                 }
+                catch (Exception ex) when (ex is JsonException or InvalidOperationException or ArgumentNullException)
+                {
+                    // Invalid skill settings block plugin setup, not independently selected MCP.
+                    errors.Add(string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.LocalSkills_ReadFailed, agent.DisplayName, ex.Message));
+                    continue;
+                }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
                 {
+                    hasFileErrors = true;
                     errors.Add(string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.LocalSkills_ReadFailed, agent.DisplayName, ex.Message));
                     continue;
                 }
@@ -79,6 +88,7 @@ internal static class LocalAspireSkills
                         }
                         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
                         {
+                            hasFileErrors = true;
                             errors.Add(string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.LocalSkills_ReadFailed, path, ex.Message));
                         }
                     }
@@ -86,6 +96,6 @@ internal static class LocalAspireSkills
             }
         }
 
-        return (files.Values.Order(AgentPath.Comparer).ToArray(), errors.Order(StringComparer.Ordinal).ToArray());
+        return (files.Values.Order(AgentPath.Comparer).ToArray(), errors.Order(StringComparer.Ordinal).ToArray(), hasFileErrors);
     }
 }

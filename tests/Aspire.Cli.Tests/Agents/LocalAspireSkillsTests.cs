@@ -116,6 +116,58 @@ public class LocalAspireSkillsTests(ITestOutputHelper output) : IDisposable
         Assert.Equal(paths.Order(AgentPath.Comparer), result.Files);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task Find_RecognizesConfiguredOpenCodeSkillRootsWithoutChangingFiles(bool array, bool global)
+    {
+        var configPath = global
+            ? Path.Combine(_context.OpenCodeDirectory, "opencode.jsonc")
+            : Path.Combine(_context.Project.FullName, ".opencode", "opencode.jsonc");
+        var paths = new[]
+        {
+            Path.Combine(_context.Project.FullName, "team-skills", "aspire", "SKILL.md"),
+            Path.Combine(_context.Home.FullName, "shared-skills", "aspireify", "SKILL.md")
+        };
+        var config = array
+            ? """{"skills":["./team-skills","~/shared-skills","https://example.test/skills/"]}"""
+            : """{"skills":{"paths":["./team-skills","~/shared-skills"],"urls":["https://example.test/skills/"]}}""";
+        await AgentConfigurationTestContext.WriteAsync(configPath, config);
+        foreach (var path in paths)
+        {
+            await AgentConfigurationTestContext.WriteAsync(path, "local");
+        }
+
+        var result = Scan([_context.OpenCode]);
+
+        Assert.Empty(result.Errors);
+        Assert.Equal(paths.Order(AgentPath.Comparer), result.Files);
+        Assert.Equal(config, await File.ReadAllTextAsync(configPath));
+        foreach (var path in paths)
+        {
+            Assert.Equal("local", await File.ReadAllTextAsync(path));
+        }
+    }
+
+    [Theory]
+    [InlineData("{broken")]
+    [InlineData("""{"skills":{"paths":[true]}}""")]
+    [InlineData("""{"skills":[false]}""")]
+    public async Task Find_ReportsInvalidOpenCodeSkillConfiguration(string config)
+    {
+        var path = Path.Combine(_context.Project.FullName, "opencode.json");
+        await AgentConfigurationTestContext.WriteAsync(path, config);
+
+        var result = Scan([_context.OpenCode]);
+
+        Assert.Empty(result.Files);
+        Assert.Contains("OpenCode", Assert.Single(result.Errors));
+        Assert.False(result.HasFileErrors);
+        Assert.Equal(config, await File.ReadAllTextAsync(path));
+    }
+
     [Fact]
     public async Task Find_DoesNotReadPluginCachesOrNestedUnrelatedProjects()
     {
@@ -186,6 +238,7 @@ public class LocalAspireSkillsTests(ITestOutputHelper output) : IDisposable
 
         Assert.Single(result.Files);
         Assert.Contains(path, Assert.Single(result.Errors));
+        Assert.True(result.HasFileErrors);
         Assert.True(Directory.Exists(path));
     }
 
@@ -198,7 +251,7 @@ public class LocalAspireSkillsTests(ITestOutputHelper output) : IDisposable
         Assert.Empty(_context.Home.EnumerateFileSystemInfos());
     }
 
-    private (IReadOnlyList<string> Files, IReadOnlyList<string> Errors) Scan(IEnumerable<IAgentClient> agents)
+    private (IReadOnlyList<string> Files, IReadOnlyList<string> Errors, bool HasFileErrors) Scan(IEnumerable<IAgentClient> agents)
         => LocalAspireSkills.Find(_context.Project, _context.Project, agents, TestContext.Current.CancellationToken);
 
     public void Dispose() => _context.Dispose();

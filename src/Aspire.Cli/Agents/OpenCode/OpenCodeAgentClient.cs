@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
@@ -63,10 +64,73 @@ internal sealed class OpenCodeAgentClient(CliExecutionContext context, IEnvironm
             yield return Path.Combine(custom, "skill");
             yield return Path.Combine(custom, "skills");
         }
+
+        var settingsPaths = scope is AgentConfigurationScope.Project
+            ? OpenCodePaths.GetProjectConfigPaths(workspaceRoot)
+            : GlobalCatalogSettings();
+        foreach (var path in settingsPaths)
+        {
+            JsonObject config;
+            try
+            {
+                config = AgentConfigurationJson.ParseObject(File.ReadAllBytes(path));
+            }
+            catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+            {
+                continue;
+            }
+            catch (Exception ex) when (ex is JsonException or InvalidOperationException or ArgumentException)
+            {
+                throw new InvalidOperationException($"{path}: {ex.Message}", ex);
+            }
+
+            foreach (var directory in GetConfiguredSkillDirectories(config))
+            {
+                yield return directory;
+            }
+        }
+
+        if (scope is AgentConfigurationScope.Global &&
+            environment.GetEnvironmentVariable("OPENCODE_CONFIG_CONTENT") is { Length: > 0 } inline)
+        {
+            foreach (var directory in GetConfiguredSkillDirectories(AgentConfigurationJson.ParseObject(Encoding.UTF8.GetBytes(inline))))
+            {
+                yield return directory;
+            }
+        }
+    }
+
+    private IEnumerable<string> GetConfiguredSkillDirectories(JsonObject config)
+    {
+        if (!config.TryGetPropertyValue("skills", out var skills))
+        {
+            yield break;
+        }
+
+        ArgumentNullException.ThrowIfNull(skills);
+        // V1 {"skills":{"paths":["./team-skills"]}} and V2 {"skills":["./team-skills"]}
+        // resolve local paths from the active working directory, not the config file.
+        // HTTP catalogs are not local copies. https://opencode.ai/docs/skills/#sources
+        var paths = skills is JsonObject v1
+            ? AgentConfigurationJson.OptionalStrings(v1, "paths")
+            : AgentConfigurationJson.Strings(skills.AsArray());
+        foreach (var node in paths ?? [])
+        {
+            var value = node!.GetValue<string>();
+            if (Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https")
+            {
+                continue;
+            }
+
+            var expanded = value.StartsWith("~/", StringComparison.Ordinal)
+                ? Path.Combine(context.HomeDirectory.FullName, value[2..])
+                : value;
+            yield return Path.GetFullPath(expanded.Length == 0 ? "." : expanded, context.WorkingDirectory.FullName);
+        }
     }
 
     public string GetMcpConfigPath(AgentConfigurationScope scope, DirectoryInfo workspaceRoot)
-        => scope is AgentConfigurationScope.Project ? OpenCodePaths.GetMcpConfigPath(workspaceRoot)
+        => scope is AgentConfigurationScope.Project ? OpenCodePaths.GetProjectConfigPath(workspaceRoot)
             : OpenCodePaths.GetGlobalMcpConfigPath(context, environment);
 
     public IEnumerable<(string Path, bool ConfigureServer)> GetMcpConfigPaths(
@@ -74,40 +138,48 @@ internal sealed class OpenCodeAgentClient(CliExecutionContext context, IEnvironm
         => [(GetMcpConfigPath(scope, workspaceRoot), true)];
 
     public async Task<(JsonObject Config, string Path)> ReadMcpConfigAsync(
-        string configFilePath, AgentConfigurationScope scope, CancellationToken cancellationToken)
+        string configFilePath, DirectoryInfo workspaceRoot, AgentConfigurationScope scope, CancellationToken cancellationToken)
     {
         var config = await McpConfigFileHelper.ReadConfigAsync(configFilePath, s_mcp.JsonDocumentOptions, cancellationToken);
-        var discoverSiblings = scope is AgentConfigurationScope.Project ||
-            environment.GetEnvironmentVariable("OPENCODE_CONFIG") is not { Length: > 0 };
-        if (discoverSiblings && Path.GetFileName(configFilePath) == "opencode.jsonc")
+        // JSONC {"mcp":{"aspire":{"enabled":true}}} inherits its command from a
+        // lower-precedence document. Repair that owner without shadowing pins or
+        // overrides in JSONC or .opencode settings. Explicit OPENCODE_CONFIG files
+        // never enable sibling discovery. https://opencode.ai/docs/config/#locations
+        var candidates = scope is AgentConfigurationScope.Project
+            ? OpenCodePaths.GetProjectConfigPaths(workspaceRoot)
+            : environment.GetEnvironmentVariable("OPENCODE_CONFIG") is not { Length: > 0 }
+                ? OpenCodePaths.GetConfigPaths(Path.GetDirectoryName(configFilePath)!)
+                : [configFilePath];
+        var result = (Config: config, Path: configFilePath);
+        var foundAspire = false;
+        foreach (var candidate in candidates.Reverse())
         {
-            var (servers, native) = GetMcpServerContainer(config, configFilePath);
-            // Remote servers use their URL instead of an inherited local command.
-            if (servers is not null &&
-                servers.TryGetPropertyValue("aspire", out var server) &&
-                (native ||
+            var candidateConfig = AgentPath.Comparer.Equals(candidate, configFilePath)
+                ? config
+                : await McpConfigFileHelper.ReadConfigAsync(candidate, s_mcp.JsonDocumentOptions, cancellationToken);
+            var (servers, native) = GetMcpServerContainer(candidateConfig, candidate);
+            if (servers is not null && servers.TryGetPropertyValue("aspire", out var server))
+            {
+                if (!foundAspire)
+                {
+                    result = (candidateConfig, candidate);
+                    foundAspire = true;
+                }
+
+                // Remote servers use their URL instead of an inherited local command.
+                if (native ||
                     server is not JsonObject aspire ||
                     aspire.ContainsKey("command") ||
                     (aspire["type"] is JsonValue type &&
                         type.TryGetValue<string>(out var connectionType) &&
-                        connectionType == "remote")))
-            {
-                return (config, configFilePath);
-            }
-
-            // JSONC {"mcp":{"aspire":{"enabled":true}}} inherits its command from
-            // opencode.json. Repair that owner without shadowing pins or overrides.
-            // Explicit OPENCODE_CONFIG files never enable sibling discovery.
-            // https://opencode.ai/docs/config/#locations
-            var jsonPath = Path.ChangeExtension(configFilePath, ".json");
-            var jsonConfig = await McpConfigFileHelper.ReadConfigAsync(jsonPath, s_mcp.JsonDocumentOptions, cancellationToken);
-            if (GetMcpServerContainer(jsonConfig, jsonPath).Servers?.ContainsKey("aspire") is true)
-            {
-                return (jsonConfig, jsonPath);
+                        connectionType == "remote"))
+                {
+                    return (candidateConfig, candidate);
+                }
             }
         }
 
-        return (config, configFilePath);
+        return result;
     }
 
     public (bool Repaired, bool Added) UpdateMcpConfig(
@@ -200,6 +272,11 @@ internal sealed class OpenCodeAgentClient(CliExecutionContext context, IEnvironm
     }
 
     private IEnumerable<string> CatalogSettings(DirectoryInfo workspaceRoot)
+        => AgentPath.ProjectDirectories(context.WorkingDirectory, workspaceRoot).Reverse()
+            .SelectMany(OpenCodePaths.GetProjectConfigPaths)
+            .Concat(GlobalCatalogSettings()).Distinct(AgentPath.Comparer);
+
+    private IEnumerable<string> GlobalCatalogSettings()
     {
         var defaultPaths = OpenCodePaths.GetConfigPaths(OpenCodePaths.GetConfigDirectory(context, environment));
         var customDirectory = OpenCodePaths.GetOverride("OPENCODE_CONFIG_DIR", context, environment);
@@ -208,7 +285,7 @@ internal sealed class OpenCodeAgentClient(CliExecutionContext context, IEnvironm
             ? new[] { OpenCodePaths.GetGlobalMcpConfigPath(context, environment) }.Concat(customPaths).Concat(defaultPaths)
             : defaultPaths.Concat(customPaths);
 
-        return OpenCodePaths.GetProjectConfigPaths(workspaceRoot).Concat(globalPaths)
+        return globalPaths
             .Concat(OpenCodePaths.GetConfigPaths(OpenCodePaths.GetManagedSettingsDirectory(context, environment))).Distinct(AgentPath.Comparer);
     }
 }

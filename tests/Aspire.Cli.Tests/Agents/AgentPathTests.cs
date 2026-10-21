@@ -32,13 +32,21 @@ public class AgentPathTests(ITestOutputHelper output) : IDisposable
         Assert.Empty(_context.Home.EnumerateFileSystemInfos());
     }
 
-    [Fact]
-    public void CopilotDirectory_ExpandsHomeOverride()
+    [Theory]
+    [InlineData("~/custom-config")]
+    [InlineData(@"~\custom-config")]
+    public void CopilotDirectory_ExpandsHomeOverrideForNativeSettingsAndMcp(string value)
     {
-        _context.SetVariable("COPILOT_HOME", @"~\custom-config");
+        _context.SetVariable("COPILOT_HOME", value);
         var expected = Path.Combine(_context.Home.FullName, "custom-config");
 
         Assert.Equal(expected, _context.CopilotDirectory);
+        Assert.Equal(Path.Combine(expected, "settings.json"),
+            _context.Copilot.GetIntegrationConfigPath(AgentConfigurationScope.Global, _context.Project));
+        Assert.Equal(Path.Combine(expected, "mcp-config.json"),
+            _context.Copilot.GetMcpConfigPath(AgentConfigurationScope.Global, _context.Project));
+        Assert.Empty(_context.Project.EnumerateFileSystemInfos());
+        Assert.Empty(_context.Home.EnumerateFileSystemInfos());
     }
 
     [Fact]

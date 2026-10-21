@@ -474,7 +474,9 @@ internal sealed class AgentInitCommand : BaseCommand
             {
                 var local = LocalAspireSkills.Find(ExecutionContext.WorkingDirectory, workspaceRoot,
                     selectedClients, cancellationToken);
-                if (local.Errors.Count > 0)
+                // Malformed settings are reported per target below, so other clients and
+                // independently requested MCP remain configurable.
+                if (local.HasFileErrors)
                 {
                     conflict = string.Join(System.Environment.NewLine, local.Errors);
                 }
@@ -645,7 +647,7 @@ internal sealed class AgentInitCommand : BaseCommand
                 try
                 {
                     var (config, configFilePath) = await firstTarget.Client.ReadMcpConfigAsync(
-                        targets.Key, scope, cancellationToken);
+                        targets.Key, workspaceRoot, scope, cancellationToken);
                     var notifications = new List<(KnownEmoji Emoji, string Message)>();
                     // Legacy repairs share the same selection, scope, and consent as new configuration.
                     foreach (var (client, _, configureServer) in targets)

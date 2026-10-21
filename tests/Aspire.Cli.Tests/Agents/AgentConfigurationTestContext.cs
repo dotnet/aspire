@@ -74,7 +74,7 @@ internal sealed class AgentConfigurationTestContext : IDisposable
         IAgentClient client, AgentConfigurationScope scope, CancellationToken cancellationToken = default)
     {
         var (config, path) = await client.ReadMcpConfigAsync(
-            client.GetMcpConfigPath(scope, Project), scope, cancellationToken);
+            client.GetMcpConfigPath(scope, Project), Project, scope, cancellationToken);
         var (repaired, added) = client.UpdateMcpConfig(config, path, configureServer: true, scope);
         if (repaired || added)
         {

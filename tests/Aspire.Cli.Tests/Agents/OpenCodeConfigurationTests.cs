@@ -3,6 +3,8 @@
 
 using System.Text.Json.Nodes;
 using Aspire.Cli.Agents;
+using Aspire.Cli.Agents.OpenCode;
+using Aspire.Cli.Tests.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Cli.Tests.Agents;
@@ -10,6 +12,59 @@ namespace Aspire.Cli.Tests.Agents;
 public class OpenCodeConfigurationTests(ITestOutputHelper output) : IDisposable
 {
     private readonly AgentConfigurationTestContext _context = new(output);
+
+    [Fact]
+    public async Task CatalogDiscovery_UsesActiveDirectoriesWithoutChangingTheSelectedWriteTarget()
+    {
+        var workingDirectory = _context.Project.CreateSubdirectory(Path.Combine("apps", "api"));
+        var executionContext = TestExecutionContextHelper.CreateExecutionContext(workingDirectory, homeDirectory: _context.Home);
+        var client = new OpenCodeAgentClient(executionContext, _context.Environment);
+        var nestedConfig = Path.Combine(workingDirectory.FullName, "opencode.json");
+        const string existing = """{"skills":{"urls":["https://raw.githubusercontent.com/microsoft/aspire-skills/v0.0.3/opencode/v1/"]}}""";
+        await AgentConfigurationTestContext.WriteAsync(nestedConfig, existing);
+        var target = client.GetIntegrationConfigPath(AgentConfigurationScope.Project, _context.Project);
+
+        Assert.True(await client.HasIntegrationRegistrationAsync(_context.Project, TestContext.Current.CancellationToken));
+        Assert.Equal(Path.Combine(_context.Project.FullName, "opencode.jsonc"), target);
+        Assert.False(File.Exists(target));
+        Assert.Equal(existing, await File.ReadAllTextAsync(nestedConfig));
+        var configured = await _context.ConfigureIntegrationAsync(AgentConfigurationScope.Project, [client]);
+        Assert.Equal(AgentConfigurationStatus.Configured, Assert.Single(configured).Status);
+        Assert.Equal(target, configured[0].TargetPath);
+        var config = JsonNode.Parse(await File.ReadAllTextAsync(target))!;
+        Assert.Equal(["https://raw.githubusercontent.com/microsoft/aspire-skills/v0.0.3/opencode/v1/"],
+            config["skills"]!["urls"]!.AsArray().Select(value => (string)value!));
+        Assert.Equal(existing, await File.ReadAllTextAsync(nestedConfig));
+        Assert.Empty(_context.Home.EnumerateFileSystemInfos());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task McpEdit_ProjectConfigDirectoryRepairsTheEffectiveOwner(bool nativeHigher)
+    {
+        var lowerPath = Path.Combine(_context.Project.FullName, "opencode.json");
+        var ownerPath = Path.Combine(_context.Project.FullName, ".opencode", "opencode.json");
+        var higherPath = Path.ChangeExtension(ownerPath, ".jsonc");
+        const string legacy = """{"mcp":{"aspire":{"type":"local","command":["aspire","mcp","start"],"enabled":false}}}""";
+        const string native = """{"mcp":{"servers":{"aspire":{"type":"local","command":["aspire","mcp","start"],"disabled":true}}}}""";
+        var lower = nativeHigher ? legacy : native;
+        const string higher = """{"model":"preserved"}""";
+        await AgentConfigurationTestContext.WriteAsync(lowerPath, lower);
+        await AgentConfigurationTestContext.WriteAsync(ownerPath, nativeHigher ? native : legacy);
+        await AgentConfigurationTestContext.WriteAsync(higherPath, higher);
+
+        var result = await _context.ConfigureMcpAsync(_context.OpenCode, AgentConfigurationScope.Project);
+
+        Assert.Equal(ownerPath, result.Path);
+        Assert.True(result.Repaired);
+        Assert.False(result.Added);
+        Assert.Equal(lower, await File.ReadAllTextAsync(lowerPath));
+        Assert.Equal(higher, await File.ReadAllTextAsync(higherPath));
+        await Verify(await File.ReadAllTextAsync(ownerPath), "json")
+            .UseFileName($"{nameof(OpenCodeConfigurationTests)}.{nameof(McpEdit_DocumentPrecedenceOutranksServerRepresentation)}_nativeHigher={nativeHigher}")
+            .DisableRequireUniquePrefix();
+    }
 
     [Theory]
     [InlineData(false)]

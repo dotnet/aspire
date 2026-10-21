@@ -32,7 +32,7 @@ internal interface IAgentClient
         AgentConfigurationScope scope, DirectoryInfo workspaceRoot);
 
     Task<(JsonObject Config, string Path)> ReadMcpConfigAsync(
-        string configFilePath, AgentConfigurationScope scope, CancellationToken cancellationToken);
+        string configFilePath, DirectoryInfo workspaceRoot, AgentConfigurationScope scope, CancellationToken cancellationToken);
 
     (bool Repaired, bool Added) UpdateMcpConfig(
         JsonObject config, string configFilePath, bool configureServer, AgentConfigurationScope scope);

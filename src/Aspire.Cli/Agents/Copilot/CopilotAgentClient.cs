@@ -63,7 +63,7 @@ internal sealed class CopilotAgentClient(CliExecutionContext context, IEnvironme
 
     public string GetMcpConfigPath(AgentConfigurationScope scope, DirectoryInfo workspaceRoot)
         => scope is AgentConfigurationScope.Project ? Path.Combine(workspaceRoot.FullName, ".mcp.json")
-            : Path.Combine(CopilotPaths.GetConfigDirectory(context.HomeDirectory, environment), "mcp-config.json");
+            : Path.Combine(GetSettingsDirectory(), "mcp-config.json");
 
     public IEnumerable<(string Path, bool ConfigureServer)> GetMcpConfigPaths(
         AgentConfigurationScope scope, DirectoryInfo workspaceRoot)
@@ -80,7 +80,7 @@ internal sealed class CopilotAgentClient(CliExecutionContext context, IEnvironme
     }
 
     public async Task<(JsonObject Config, string Path)> ReadMcpConfigAsync(
-        string configFilePath, AgentConfigurationScope scope, CancellationToken cancellationToken)
+        string configFilePath, DirectoryInfo workspaceRoot, AgentConfigurationScope scope, CancellationToken cancellationToken)
         => (await McpConfigFileHelper.ReadConfigAsync(configFilePath, s_mcp.JsonDocumentOptions, cancellationToken), configFilePath);
 
     public (bool Repaired, bool Added) UpdateMcpConfig(
