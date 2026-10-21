@@ -4,6 +4,7 @@
 using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization.Metadata;
 using Aspire.Cli.Agents;
 using Aspire.Cli.Tests.TestServices;
 using Microsoft.AspNetCore.InternalTesting;
@@ -226,6 +227,74 @@ public class AgentConfigurationPublicationTests(ITestOutputHelper output) : IDis
         Assert.Equal(before, TestPosixAcl.Get(path));
         Assert.Equal(mode, File.GetUnixFileMode(path));
         Assert.Equal("replacement", JsonNode.Parse(await File.ReadAllTextAsync(path))!["token"]!.GetValue<string>());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task UnixPublication_RefusesPermissionsChangedDuringStaging(bool accessAcl)
+    {
+        if (OperatingSystem.IsWindows() || accessAcl && !OperatingSystem.IsLinux())
+        {
+            Assert.Skip("Unix mode validation; extended ACL validation requires Linux.");
+            return;
+        }
+        var path = Path.Combine(_context.Project.FullName, "settings.json");
+        const string original = """{"token":"original"}""";
+        await File.WriteAllTextAsync(path, original);
+        if (accessAcl)
+        {
+            TestPosixAcl.Set(path, "user::rw-,user:65534:r--,group::---,mask::r--,other::---");
+        }
+        else
+        {
+            File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite |
+                UnixFileMode.GroupRead | UnixFileMode.OtherRead);
+        }
+        var mode = File.GetUnixFileMode(path);
+        const string restrictedAcl = "user::rw-,user:65534:---,group::---,mask::r--,other::---";
+        string? expectedAcl = null;
+        var converter = new InterceptingStringJsonConverter(() =>
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                throw new PlatformNotSupportedException();
+            }
+
+            // Serialization runs after the writer has copied permissions into staging.
+            if (accessAcl)
+            {
+                TestPosixAcl.Set(path, restrictedAcl);
+                expectedAcl = TestPosixAcl.Get(path);
+            }
+            else
+            {
+                File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+            }
+        });
+        // Use the writer's options so JsonNode retains this converter during serialization.
+        var settings = new JsonObject
+        {
+            ["token"] = JsonValue.Create("replacement",
+                JsonMetadataServices.CreateValueInfo<string>(JsonSourceGenerationContext.Default.Options, converter))
+        };
+        var reads = new AgentConfigurationReadContext();
+        await reads.ReadAsync(path, CancellationToken.None);
+
+        await Assert.ThrowsAsync<IOException>(() => AgentConfigurationFile.WriteAsync(
+            path, settings, reads, CancellationToken.None)).DefaultTimeout();
+
+        Assert.Equal(original, await File.ReadAllTextAsync(path));
+        if (accessAcl)
+        {
+            Assert.Equal(mode, File.GetUnixFileMode(path));
+            Assert.Equal(expectedAcl, TestPosixAcl.Get(path));
+        }
+        else
+        {
+            Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(path));
+        }
+        Assert.Equal([path], Directory.GetFiles(_context.Project.FullName));
     }
 
     public void Dispose() => _context.Dispose();

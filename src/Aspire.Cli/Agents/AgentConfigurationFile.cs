@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Security.AccessControl;
 using System.Security.Principal;
@@ -15,7 +16,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Cli.Agents;
 
-internal static class AgentConfigurationFile
+internal static partial class AgentConfigurationFile
 {
     public static async Task WriteAsync(
         string path, JsonObject settings, AgentConfigurationReadContext reads, CancellationToken cancellationToken)
@@ -42,6 +43,7 @@ internal static class AgentConfigurationFile
         var existed = File.Exists(path);
         var temporary = Path.Combine(Path.GetDirectoryName(path)!, $".{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
         var created = false;
+        string? unixMetadata = null;
         try
         {
             await using (var stream = CreateStagingFile(temporary, path, existed))
@@ -49,6 +51,7 @@ internal static class AgentConfigurationFile
                 created = true;
                 if (existed && !OperatingSystem.IsWindows())
                 {
+                    unixMetadata = await ReadUnixMetadataAsync(path, cancellationToken);
                     await PreserveUnixMetadataAsync(path, temporary, cancellationToken);
                     stream.SetLength(0);
                 }
@@ -56,7 +59,11 @@ internal static class AgentConfigurationFile
                 await JsonSerializer.SerializeAsync(stream, settings, JsonSourceGenerationContext.Default.JsonObject, cancellationToken);
             }
 
-            // Recheck file bytes, missing inputs and policy-fragment membership after staging.
+            // Recheck destination permissions, file bytes, missing inputs and policy fragments after staging.
+            if (unixMetadata is not null && unixMetadata != await ReadUnixMetadataAsync(path, cancellationToken))
+            {
+                throw Refused(path);
+            }
             await reads.ValidateAsync(path, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             RejectSymbolicLink(path);
@@ -137,6 +144,39 @@ internal static class AgentConfigurationFile
         }
     }
 
+    private static async Task<string> ReadUnixMetadataAsync(string path, CancellationToken cancellationToken)
+    {
+        // Compare actual ACLs rather than ctime, which can have coarse filesystem precision.
+        if (OperatingSystem.IsMacOS())
+        {
+            // -e includes access ACL entries; -n includes numeric ownership alongside the mode.
+            // https://github.com/apple-oss-distributions/file_cmds/blob/main/ls/ls.1
+            return await RunMetadataToolAsync("/bin/ls", ["-lnde", path], path, cancellationToken);
+        }
+
+        var metadata = await RunMetadataToolAsync("/usr/bin/stat", ["-c", "%u:%g:%a", path], path, cancellationToken);
+        const string aclAttribute = "system.posix_acl_access";
+        var size = GetExtendedAttribute(path, aclAttribute, null, 0);
+        if (size < 0)
+        {
+            // Linux ENODATA/EOPNOTSUPP mean there is no POSIX ACL to preserve.
+            // https://man7.org/linux/man-pages/man2/getxattr.2.html
+            if (Marshal.GetLastPInvokeError() is 61 or 95)
+            {
+                return metadata;
+            }
+            throw Refused(path);
+        }
+
+        var acl = new byte[checked((int)size)];
+        if (GetExtendedAttribute(path, aclAttribute, acl, (nuint)acl.Length) != size)
+        {
+            throw Refused(path);
+        }
+
+        return metadata + Convert.ToHexString(acl);
+    }
+
     private static async Task<string> RunMetadataToolAsync(
         string executable, string[] arguments, string source, CancellationToken cancellationToken)
     {
@@ -174,4 +214,8 @@ internal static class AgentConfigurationFile
 
     private static IOException Refused(string path)
         => new(string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.ConfigurationWriteRefused, path));
+
+    [LibraryImport("libc", EntryPoint = "getxattr", StringMarshalling = StringMarshalling.Utf8, SetLastError = true)]
+    private static partial nint GetExtendedAttribute(
+        string path, string name, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)] byte[]? value, nuint size);
 }
