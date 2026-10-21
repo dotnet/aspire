@@ -33,13 +33,13 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         var root = provider.GetRequiredService<RootCommand>();
         var defaults = root.Parse(command);
         Assert.Empty(defaults.Errors);
-        Assert.Equal(AspireSkillsMode.Embedded, defaults.GetValue<AspireSkillsMode>("--aspire-source"));
+        Assert.Equal("embedded", defaults.GetValue<string>("--aspire-source"));
 
-        foreach (var (source, mode) in new[] { ("embedded", AspireSkillsMode.Embedded), ("native", AspireSkillsMode.Native) })
+        foreach (var source in new[] { "embedded", "native" })
         {
             var result = root.Parse($"{command} --skills aspire,playwright-cli,dotnet-inspect --aspire-source {source.ToUpperInvariant()}");
             Assert.Empty(result.Errors);
-            Assert.Equal(mode, result.GetValue<AspireSkillsMode>("--aspire-source"));
+            Assert.Equal(source.ToUpperInvariant(), result.GetValue<string>("--aspire-source"));
         }
 
         foreach (var skills in new[] { "aspire", "playwright-cli", "PLAYWRIGHT-CLI", "dotnet-inspect", "ASPIRE,aspire,Playwright-CLI", "all", "none" })
@@ -87,6 +87,9 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
     [Theory]
     [InlineData("aspire", true)]
     [InlineData("aspire,dotnet-inspect", true)]
+    [InlineData("all", true)]
+    [InlineData("playwright-cli", false)]
+    [InlineData("playwright-cli,dotnet-inspect", false)]
     [InlineData("dotnet-inspect", false)]
     [InlineData("none", false)]
     public async Task AgentInit_PromptsForSourceOnlyWhenAspireIsSelected(string skills, bool expectSourcePrompt)
@@ -100,17 +103,18 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         interaction.PromptForSelectionCallback = (prompt, choices, formatter, _) =>
         {
             Assert.Equal(AgentCommandStrings.InitCommand_ConfigureAspireSourcePrompt, prompt);
-            Assert.Equal([AspireSkillsMode.Embedded, AspireSkillsMode.Native], choices.Cast<AspireSkillsMode>());
+            Assert.Equal(["embedded", "native"], choices.Cast<string>());
             Assert.Equal([AgentCommandStrings.InitCommand_EmbeddedSkillsChoice, AgentCommandStrings.InitCommand_NativeSkillsChoice],
                 choices.Cast<object>().Select(formatter));
             Assert.Equal(riskWarning, Assert.Single(interaction.DisplayedMessages).Message);
             sourcePrompts++;
-            return AspireSkillsMode.Native;
+            return "native";
         };
         var services = context.CreateServiceCollection(outputHelper, options =>
         {
             options.CliHostEnvironmentFactory = _ => TestHelpers.CreateInteractiveHostEnvironment();
             options.InteractionServiceFactory = _ => interaction;
+            options.NpmRunnerFactory = _ => new FakeNpmRunner { IsAvailable = false };
             options.AspireSkillsInstallerFactory = _ => new FakeAspireSkillsInstaller(context.ExecutionContext,
                 AspireSkillsInstallResult.Failed("Only embedded source may acquire a bundle."));
         });
@@ -128,9 +132,11 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Theory]
-    [InlineData("native")]
-    [InlineData("embedded")]
-    public async Task AgentInit_ExplicitSourceDoesNotEnableUnselectedAspire(string source)
+    [InlineData("native", true)]
+    [InlineData("embedded", true)]
+    [InlineData("native", false)]
+    [InlineData("embedded", false)]
+    public async Task AgentInit_ExplicitSourceDoesNotEnableUnselectedAspire(string source, bool interactive)
     {
         using var context = new AgentConfigurationTestContext(outputHelper);
         var hooks = new TestTelemetryHookConfigurator();
@@ -140,7 +146,9 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         };
         var services = context.CreateServiceCollection(outputHelper, options =>
         {
-            options.CliHostEnvironmentFactory = _ => TestHelpers.CreateInteractiveHostEnvironment();
+            options.CliHostEnvironmentFactory = _ => interactive
+                ? TestHelpers.CreateInteractiveHostEnvironment()
+                : TestHelpers.CreateNonInteractiveHostEnvironment();
             options.InteractionServiceFactory = _ => interaction;
             options.TelemetryHookConfiguratorFactory = _ => hooks;
             options.AspireSkillsInstallerFactory = _ => new FakeAspireSkillsInstaller(context.ExecutionContext,
@@ -156,6 +164,90 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(AgentEnvironment.None, hooks.ConfiguredEnvironments);
         Assert.Empty(interaction.DisplayedErrors);
         Assert.Empty(interaction.DisplayedMessages);
+    }
+
+    [Theory]
+    [InlineData("agent init", "", "", false)]
+    [InlineData("agent init", "aspire", "embedded", false)]
+    [InlineData("agent init", "aspire", "NATIVE", true)]
+    [InlineData("agent init", "all", "native", true)]
+    [InlineData("agent init", "all", "embedded", false)]
+    [InlineData("mcp init", "", "", false)]
+    [InlineData("mcp init", "aspire", "native", true)]
+    [InlineData("mcp init", "aspire", "embedded", false)]
+    public async Task AgentInit_ResolvesSourceWithoutInteractiveInput(string command, string skills, string source, bool native)
+    {
+        using var context = new AgentConfigurationTestContext(outputHelper);
+        var services = context.CreateServiceCollection(outputHelper, options =>
+        {
+            options.CliHostEnvironmentFactory = _ => TestHelpers.CreateNonInteractiveHostEnvironment();
+            options.NpmRunnerFactory = _ => new FakeNpmRunner { IsAvailable = false };
+            options.AspireSkillsInstallerFactory = _ => new FakeAspireSkillsInstaller(context.ExecutionContext);
+        });
+        using var provider = services.BuildServiceProvider();
+        var skillsArgument = skills.Length == 0 ? "" : $" --skills {skills}";
+        var sourceArgument = source.Length == 0 ? "" : $" --aspire-source {source}";
+        var result = provider.GetRequiredService<RootCommand>().Parse(
+            $"{command} --agents copilot --scope project --mcp=false --non-interactive{skillsArgument}{sourceArgument}");
+
+        Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
+        Assert.Equal(native, File.Exists(context.Copilot.GetIntegrationConfigPath(AgentConfigurationScope.Project, context.Project)));
+        Assert.Equal(!native, File.Exists(Path.Combine(context.Project.FullName, ".agents", "skills", "aspire", "SKILL.md")));
+        Assert.Empty(context.Home.EnumerateFileSystemInfos());
+    }
+
+    [Fact]
+    public async Task AgentInit_KeepsExistingCliSkillLabels()
+    {
+        using var context = new AgentConfigurationTestContext(outputHelper);
+        await File.WriteAllTextAsync(Path.Combine(context.Project.FullName, "apphost.cs"), string.Empty);
+        var labels = new List<string>();
+        var interaction = new TestInteractionService
+        {
+            PromptForSelectionsCallback = (prompt, choices, formatter, _) =>
+            {
+                Assert.Equal(AgentCommandStrings.InitCommand_SelectSkills, prompt);
+                labels.AddRange(choices.Cast<object>().Select(formatter));
+                return [];
+            },
+            PromptForSelectionCallback = (_, _, _, _) => throw new InvalidOperationException("No source is needed without Aspire.")
+        };
+        var services = context.CreateServiceCollection(outputHelper, options =>
+        {
+            options.CliHostEnvironmentFactory = _ => TestHelpers.CreateInteractiveHostEnvironment();
+            options.InteractionServiceFactory = _ => interaction;
+        });
+        using var provider = services.BuildServiceProvider();
+        var result = provider.GetRequiredService<RootCommand>().Parse("agent init --agents copilot --mcp=false");
+
+        Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
+        Assert.Equal(
+            [AgentCommandStrings.InitCommand_AspireSkillChoice,
+                $"{SkillDefinition.PlaywrightCli.Name} — {AgentCommandStrings.SkillDescription_PlaywrightCli}",
+                $"{SkillDefinition.DotnetInspect.Name} — {AgentCommandStrings.SkillDescription_DotnetInspect}"],
+            labels);
+        Assert.Empty(context.Home.EnumerateFileSystemInfos());
+    }
+
+    [Theory]
+    [InlineData("", "")]
+    [InlineData("   ", "   ")]
+    [InlineData("Short description", "Short description")]
+    [InlineData("Short description.", "Short description.")]
+    [InlineData("First sentence. Second sentence.", "First sentence.")]
+    [InlineData("**WORKFLOW SKILL** - Top-level router for Aspire 13.4 distributed apps. Detects the AppHost.", "Top-level router for Aspire 13.4 distributed apps.")]
+    [InlineData("**ANALYSIS SKILL** — Observe Aspire apps. USE FOR: aspire logs.", "Observe Aspire apps.")]
+    [InlineData("**SETUP SKILL**: One-time setup of resources. INVOKES: aspire add.", "One-time setup of resources.")]
+    [InlineData("Visit github.com for docs. Then run the tool.", "Visit github.com for docs.")]
+    [InlineData("**TYPE** -", "")]
+    // Fix 1 regression: a leading separator that does NOT follow a "**TYPE**" prefix must be preserved.
+    // The earlier implementation unconditionally trimmed leading separators after the bold-prefix
+    // branch, which silently mutated bundle descriptions that happened to start with '-' or ':'.
+    [InlineData("-Quickly do X.", "-Quickly do X.")]
+    [InlineData(":memo notes", ":memo notes")]
+    public void SimplifyDescription_ProducesExpectedSummary(string input, string expected)
+    {
+        Assert.Equal(expected, AgentInitCommand.SimplifyDescription(input));
     }
 
     [Fact]
@@ -587,7 +679,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
             PromptBinding.CreateDefault(true),
             PromptBinding.CreateDefault<string?>(null),
             PromptBinding.CreateDefault<string?>(CommonAgentApplicators.AspireSkillName),
-            PromptBinding.CreateDefault(AspireSkillsMode.Embedded),
+            PromptBinding.CreateDefault<string?>("embedded"),
             PromptBinding.CreateDefault(AgentConfigurationScope.Project),
             CancellationToken.None).DefaultTimeout();
 
@@ -620,7 +712,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
             PromptBinding.CreateDefault(true),
             PromptBinding.CreateDefault<string?>(null),
             PromptBinding.CreateDefault<string?>(CommonAgentApplicators.AspireSkillName),
-            PromptBinding.CreateDefault(AspireSkillsMode.Embedded),
+            PromptBinding.CreateDefault<string?>("embedded"),
             PromptBinding.CreateDefault(AgentConfigurationScope.Project),
             CancellationToken.None).DefaultTimeout();
 

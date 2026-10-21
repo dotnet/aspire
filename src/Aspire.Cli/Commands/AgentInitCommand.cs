@@ -74,7 +74,7 @@ internal sealed class AgentInitCommand : BaseCommand
     };
 
     internal static readonly Option<string?> s_skillsOption = CreateSkillsOption();
-    internal static readonly Option<AspireSkillsMode> s_aspireSourceOption = CreateAspireSourceOption();
+    internal static readonly Option<string?> s_aspireSourceOption = CreateAspireSourceOption();
 
     /// <summary>
     /// Confirms whether standalone <c>aspire agent init</c> configures the Aspire MCP server for
@@ -120,36 +120,30 @@ internal sealed class AgentInitCommand : BaseCommand
             }
         };
         option.CompletionSources.Clear();
-        option.CompletionSources.Add(_ =>
-            [.. s_skillChoices.Select(static name => new CompletionItem(name)),
-                new CompletionItem(ConsoleInteractionService.AllChoice), new CompletionItem(ConsoleInteractionService.NoneChoice)]);
+        option.CompletionSources.Add([.. s_skillChoices, ConsoleInteractionService.AllChoice, ConsoleInteractionService.NoneChoice]);
 
         return option;
     }
 
-    private static Option<AspireSkillsMode> CreateAspireSourceOption()
+    private static Option<string?> CreateAspireSourceOption()
     {
-        var option = new Option<AspireSkillsMode>("--aspire-source")
+        var option = new Option<string?>("--aspire-source")
         {
             HelpName = "native|embedded",
             Description = AgentCommandStrings.InitCommand_AspireSourceOptionDescription,
             Recursive = true,
             Arity = ArgumentArity.ExactlyOne,
-            DefaultValueFactory = static _ => AspireSkillsMode.Embedded,
+            DefaultValueFactory = static _ => "embedded",
             CustomParser = result =>
             {
                 var value = string.Join(",", result.Tokens.Select(static token => token.Value));
-                if (string.Equals(value, "embedded", StringComparison.OrdinalIgnoreCase))
+                if (!string.Equals(value, "embedded", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(value, "native", StringComparison.OrdinalIgnoreCase))
                 {
-                    return AspireSkillsMode.Embedded;
-                }
-                if (string.Equals(value, "native", StringComparison.OrdinalIgnoreCase))
-                {
-                    return AspireSkillsMode.Native;
+                    result.AddError(string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_InvalidAspireSource, value));
                 }
 
-                result.AddError(string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_InvalidAspireSource, value));
-                return AspireSkillsMode.None;
+                return value;
             }
         };
         option.CompletionSources.Clear();
@@ -243,7 +237,7 @@ internal sealed class AgentInitCommand : BaseCommand
         PromptBinding<bool> agentInitBinding,
         PromptBinding<string?> agentsBinding,
         PromptBinding<string?> skillsBinding,
-        PromptBinding<AspireSkillsMode> aspireSourceBinding,
+        PromptBinding<string?> aspireSourceBinding,
         PromptBinding<AgentConfigurationScope> scopeBinding,
         CancellationToken cancellationToken)
     {
@@ -277,7 +271,7 @@ internal sealed class AgentInitCommand : BaseCommand
             workspaceRoot,
             PromptBinding.Create(parseResult, AgentsOption),
             PromptBinding.Create(parseResult, s_skillsOption, CommonAgentApplicators.AspireSkillName),
-            PromptBinding.Create(parseResult, s_aspireSourceOption, AspireSkillsMode.Embedded),
+            PromptBinding.Create(parseResult, s_aspireSourceOption, "embedded"),
             PromptBinding.Create(parseResult, s_scopeOption, AgentConfigurationScope.Project),
             PromptBinding.CreateBoolConfirm(parseResult, s_mcpOption, defaultValue: false),
             cancellationToken);
@@ -318,7 +312,7 @@ internal sealed class AgentInitCommand : BaseCommand
         DirectoryInfo workspaceRoot,
         PromptBinding<string?> agentsBinding,
         PromptBinding<string?> skillsBinding,
-        PromptBinding<AspireSkillsMode> aspireSourceBinding,
+        PromptBinding<string?> aspireSourceBinding,
         PromptBinding<AgentConfigurationScope> scopeBinding,
         PromptBinding<bool>? mcpBinding,
         CancellationToken cancellationToken)
@@ -391,9 +385,7 @@ internal sealed class AgentInitCommand : BaseCommand
             availableSkillChoices,
             name => name == CommonAgentApplicators.AspireSkillName
                 ? AgentCommandStrings.InitCommand_AspireSkillChoice
-                : name == SkillDefinition.PlaywrightCli.Name
-                    ? AgentCommandStrings.InitCommand_PlaywrightSkillChoice
-                    : AgentCommandStrings.InitCommand_DotnetInspectSkillChoice,
+                : $"{name.EscapeMarkup()} — {SimplifyDescription(SkillDefinition.CliDefined.Single(skill => skill.HasName(name)).Description).EscapeMarkup()}",
             preSelected: [CommonAgentApplicators.AspireSkillName],
             optional: true,
             binding: skillsBinding,
@@ -406,25 +398,29 @@ internal sealed class AgentInitCommand : BaseCommand
 
         if (selectedSkillNames.Contains(CommonAgentApplicators.AspireSkillName))
         {
-            var (sourceProvided, requestedSource) = aspireSourceBinding.Resolve();
-            skillsMode = sourceProvided ? requestedSource : aspireSourceBinding.DefaultValue;
-            var promptForSource = !sourceProvided && _hostEnvironment.SupportsInteractiveInput;
-            if (promptForSource || skillsMode is AspireSkillsMode.Native)
+            var (sourceProvided, requestedSource, defaultSource) = PromptBinding.Resolve(aspireSourceBinding);
+            if ((!sourceProvided && _hostEnvironment.SupportsInteractiveInput) ||
+                string.Equals(sourceProvided ? requestedSource : defaultSource, "native", StringComparison.OrdinalIgnoreCase))
             {
                 InteractionService.DisplayMessage(KnownEmojis.Warning, string.Format(CultureInfo.CurrentCulture,
                     AgentCommandStrings.InitCommand_PluginRiskWarning, AspireSkillsConfiguration.RepositoryUrl));
                 InteractionService.DisplayEmptyLine();
             }
-            if (promptForSource)
+
+            var source = await InteractionService.PromptForSelectionAsync(
+                AgentCommandStrings.InitCommand_ConfigureAspireSourcePrompt,
+                new[] { "embedded", "native" },
+                value => value == "embedded"
+                    ? AgentCommandStrings.InitCommand_EmbeddedSkillsChoice
+                    : AgentCommandStrings.InitCommand_NativeSkillsChoice,
+                binding: aspireSourceBinding,
+                cancellationToken: cancellationToken);
+            skillsMode = source switch
             {
-                skillsMode = await InteractionService.PromptForSelectionAsync(
-                    AgentCommandStrings.InitCommand_ConfigureAspireSourcePrompt,
-                    new[] { AspireSkillsMode.Embedded, AspireSkillsMode.Native },
-                    mode => mode is AspireSkillsMode.Embedded
-                        ? AgentCommandStrings.InitCommand_EmbeddedSkillsChoice
-                        : AgentCommandStrings.InitCommand_NativeSkillsChoice,
-                    cancellationToken: cancellationToken);
-            }
+                "embedded" => AspireSkillsMode.Embedded,
+                "native" => AspireSkillsMode.Native,
+                _ => throw new UnreachableException($"Unexpected Aspire source: '{source}'.")
+            };
         }
 
         // `mcpBinding` is only supplied by standalone `aspire agent init` (see s_mcpOption).
@@ -486,16 +482,9 @@ internal sealed class AgentInitCommand : BaseCommand
                 {
                     InteractionService.DisplayMessage(KnownEmojis.Warning,
                         string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_LocalSkillsConflict,
-                            string.Join(System.Environment.NewLine, local.Files.Select(path =>
-                            {
-                                var displayPath = GetDisplayConfigurationPath(path, AgentConfigurationScope.Project, workspaceRoot);
-                                if (Path.IsPathRooted(displayPath))
-                                {
-                                    displayPath = GetDisplayConfigurationPath(path, AgentConfigurationScope.Global, workspaceRoot);
-                                }
-
-                                return $"  {displayPath}";
-                            }).Order(StringComparer.Ordinal))));
+                            string.Join(System.Environment.NewLine, local.Files
+                                .Select(path => $"  {GetDisplayConfigurationPath(path, workspaceRoot)}")
+                                .Order(StringComparer.Ordinal))));
                     InteractionService.DisplayEmptyLine();
                 }
             }
@@ -784,6 +773,66 @@ internal sealed class AgentInitCommand : BaseCommand
     }
 
     /// <summary>
+    /// Extracts the single short sentence from a skill description so the selection prompt
+    /// stays readable.
+    /// </summary>
+    /// <remarks>
+    /// Bundle manifest descriptions can include a bold skill-type prefix followed by a
+    /// short tagline and additional usage guidance, for example:
+    ///   "**WORKFLOW SKILL** - Top-level router for Aspire 13.4 distributed apps. Detects the AppHost. USE FOR: ..."
+    /// This trims the prefix and returns only the first sentence. Inputs without the prefix
+    /// or sentence terminator are returned trimmed-but-otherwise-unchanged so CLI-defined
+    /// short descriptions are preserved as-is.
+    /// </remarks>
+    internal static string SimplifyDescription(string description)
+    {
+        if (string.IsNullOrWhiteSpace(description))
+        {
+            return description;
+        }
+
+        var simplified = description.Trim();
+
+        // Strip the leading bold "TYPE SKILL" prefix when present, and only then strip the
+        // separator characters that typically follow it. Gating the separator strip on the
+        // prefix match avoids silently mutating descriptions that legitimately start with
+        // a dash, em-dash, or colon (e.g. "-mode flag explained" or ":memo notes").
+        var strippedBoldPrefix = false;
+        if (simplified.StartsWith("**", StringComparison.Ordinal))
+        {
+            var endBold = simplified.IndexOf("**", 2, StringComparison.Ordinal);
+            if (endBold > 0)
+            {
+                simplified = simplified[(endBold + 2)..].TrimStart();
+                strippedBoldPrefix = true;
+            }
+        }
+
+        if (strippedBoldPrefix)
+        {
+            // Separators that typically follow the bold prefix (" - ", " — ", " – ", ": ").
+            while (simplified.Length > 0 && simplified[0] is '-' or '\u2013' or '\u2014' or ':')
+            {
+                simplified = simplified[1..].TrimStart();
+            }
+        }
+
+        // Return up to and including the first sentence-ending punctuation followed by
+        // whitespace or end-of-string. This avoids splitting on inline punctuation such
+        // as "13.4" or "github.com" inside the first sentence.
+        for (var i = 0; i < simplified.Length; i++)
+        {
+            if (simplified[i] is '.' or '!' or '?'
+                && (i + 1 >= simplified.Length || char.IsWhiteSpace(simplified[i + 1])))
+            {
+                return simplified[..(i + 1)];
+            }
+        }
+
+        return simplified;
+    }
+
+    /// <summary>
     /// Installs the files for a skill at the specified location, creating or updating them as needed.
     /// </summary>
     /// <returns>The install result, including the skill/location pair when files were updated.</returns>
@@ -886,14 +935,15 @@ internal sealed class AgentInitCommand : BaseCommand
                 ? entries.Select(entry =>
                 {
                     var target = string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_ConfigurationTarget,
-                        entry.Client.DisplayName, DisplayPath(entry.Result.TargetPath));
+                        entry.Client.DisplayName, GetDisplayConfigurationPath(entry.Result.TargetPath, workspaceRoot));
 
                     return entry.Result.Message is null ? target : $"{target}{Environment.NewLine}  {entry.Result.Message}";
                 })
                 : entries.GroupBy(entry => entry.Client.Id, StringComparer.Ordinal).Select(agent =>
                     string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_ConfigurationTarget,
                         agent.First().Client.DisplayName,
-                        string.Join(", ", agent.Select(entry => entry.Result.TargetPath).Distinct(AgentPath.Comparer).Select(DisplayPath))));
+                        string.Join(", ", agent.Select(entry => entry.Result.TargetPath).Distinct(AgentPath.Comparer)
+                            .Select(path => GetDisplayConfigurationPath(path, workspaceRoot)))));
             var format = resultGroup.Key ? AgentCommandStrings.InitCommand_FailedTarget : AgentCommandStrings.InitCommand_ConfiguredTargets;
             var message = string.Format(CultureInfo.CurrentCulture, format, string.Join($"{Environment.NewLine}  ", targets));
             if (resultGroup.Key)
@@ -908,15 +958,15 @@ internal sealed class AgentInitCommand : BaseCommand
         }
 
         return hasErrors;
+    }
 
-        string DisplayPath(string path)
-        {
-            var displayPath = GetDisplayConfigurationPath(path, AgentConfigurationScope.Project, workspaceRoot);
+    private string GetDisplayConfigurationPath(string path, DirectoryInfo workspaceRoot)
+    {
+        var displayPath = GetDisplayConfigurationPath(path, AgentConfigurationScope.Project, workspaceRoot);
 
-            return Path.IsPathRooted(displayPath)
-                ? GetDisplayConfigurationPath(path, AgentConfigurationScope.Global, workspaceRoot)
-                : displayPath;
-        }
+        return Path.IsPathRooted(displayPath)
+            ? GetDisplayConfigurationPath(path, AgentConfigurationScope.Global, workspaceRoot)
+            : displayPath;
     }
 
     private string GetDisplayConfigurationPath(string path, AgentConfigurationScope scope, DirectoryInfo workspaceRoot)

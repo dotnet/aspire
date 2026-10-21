@@ -615,7 +615,7 @@ internal sealed class NewCommand : BaseCommand
             agentInitBinding,
             PromptBinding.Create(parseResult, _agentInitCommand.AgentsOption),
             PromptBinding.Create(parseResult, AgentInitCommand.s_skillsOption, CommonAgentApplicators.AspireSkillName),
-            PromptBinding.Create(parseResult, AgentInitCommand.s_aspireSourceOption, AspireSkillsMode.Embedded),
+            PromptBinding.Create(parseResult, AgentInitCommand.s_aspireSourceOption, "embedded"),
             PromptBinding.Create(parseResult, AgentInitCommand.s_scopeOption, AgentConfigurationScope.Project),
             cancellationToken);
 

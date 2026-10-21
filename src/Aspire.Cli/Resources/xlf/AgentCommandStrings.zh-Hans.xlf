@@ -128,8 +128,8 @@
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_AspireSourceOptionDescription">
-        <source>Source for the selected Aspire integration: native (register the complete plugin) or embedded (install bundled skill files). Prompts when interactive; defaults to embedded otherwise</source>
-        <target state="new">Source for the selected Aspire integration: native (register the complete plugin) or embedded (install bundled skill files). Prompts when interactive; defaults to embedded otherwise</target>
+        <source>Source for the selected Aspire integration: native (plugin) or embedded (bundled skill files)</source>
+        <target state="new">Source for the selected Aspire integration: native (plugin) or embedded (bundled skill files)</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_ConfigurationTarget">
@@ -162,11 +162,6 @@
       <trans-unit id="InitCommand_Description">
         <source>Initialize configuration and skills for selected agent clients</source>
         <target state="needs-review-translation">初始化检测到的智能体的智能体环境配置。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="InitCommand_DotnetInspectSkillChoice">
-        <source>dotnet-inspect bootstrap skill</source>
-        <target state="new">dotnet-inspect bootstrap skill</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_EmbeddedSkillsChoice">
@@ -293,11 +288,6 @@
         <target state="new">Playwright CLI requires npm, which was not found on PATH. Skipping installation.</target>
         <note />
       </trans-unit>
-      <trans-unit id="InitCommand_PlaywrightSkillChoice">
-        <source>Playwright CLI and skills</source>
-        <target state="new">Playwright CLI and skills</target>
-        <note />
-      </trans-unit>
       <trans-unit id="InitCommand_PluginRiskWarning">
         <source>Use the Aspire plugin at your own risk.
 Review the source before enabling it.
@@ -345,8 +335,8 @@ Prefer skill files only? Choose Embedded, or install skills directly from {0}.</
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_SkillsOptionDescription">
-        <source>Comma-separated skill/tool IDs ({0}), '{1}', or '{2}'. Aspire represents the complete integration; use --aspire-source to choose native or embedded (default: aspire)</source>
-        <target state="new">Comma-separated skill/tool IDs ({0}), '{1}', or '{2}'. Aspire represents the complete integration; use --aspire-source to choose native or embedded (default: aspire)</target>
+        <source>Comma-separated skill/tool IDs ({0}), '{1}', or '{2}' (default: aspire)</source>
+        <target state="new">Comma-separated skill/tool IDs ({0}), '{1}', or '{2}' (default: aspire)</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_TelemetryHookSkippedMalformedConfig">

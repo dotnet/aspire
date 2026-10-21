@@ -467,8 +467,8 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
                 {
                     Assert.Equal([string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_PluginRiskWarning,
                         AspireSkillsConfiguration.RepositoryUrl)], riskWarnings);
-                    Assert.Equal([AspireSkillsMode.Embedded, AspireSkillsMode.Native], choices.Cast<AspireSkillsMode>());
-                    return AspireSkillsMode.Embedded;
+                    Assert.Equal(["embedded", "native"], choices.Cast<string>());
+                    return "embedded";
                 }
                 Assert.Equal([AgentConfigurationScope.Project, AgentConfigurationScope.Global], choices.Cast<AgentConfigurationScope>());
                 Assert.Empty(homeDirectory.GetFileSystemInfos());

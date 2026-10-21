@@ -271,7 +271,7 @@
     <value>Invalid scope '{0}'. Use 'project' or 'global'.</value>
   </data>
   <data name="InitCommand_SkillsOptionDescription" xml:space="preserve">
-    <value>Comma-separated skill/tool IDs ({0}), '{1}', or '{2}'. Aspire represents the complete integration; use --aspire-source to choose native or embedded (default: aspire)</value>
+    <value>Comma-separated skill/tool IDs ({0}), '{1}', or '{2}' (default: aspire)</value>
   </data>
   <data name="InitCommand_McpOptionDescription" xml:space="preserve">
     <value>Configure the Aspire MCP server for selected agent environments. Omit to leave MCP unconfigured, pass '--mcp' to opt in, or pass '--mcp=false' to explicitly opt out</value>
@@ -305,7 +305,7 @@
     <comment>{0} identifies the conflicting JSON setting or environment override.</comment>
   </data>
   <data name="InitCommand_AspireSourceOptionDescription" xml:space="preserve">
-    <value>Source for the selected Aspire integration: native (register the complete plugin) or embedded (install bundled skill files). Prompts when interactive; defaults to embedded otherwise</value>
+    <value>Source for the selected Aspire integration: native (plugin) or embedded (bundled skill files)</value>
   </data>
   <data name="InitCommand_EmbeddedSkillsChoice" xml:space="preserve">
     <value>Embedded (bundled skill files)</value>
@@ -318,12 +318,6 @@
   </data>
   <data name="InitCommand_AspireSkillChoice" xml:space="preserve">
     <value>Aspire (remote plugin or embedded skills)</value>
-  </data>
-  <data name="InitCommand_PlaywrightSkillChoice" xml:space="preserve">
-    <value>Playwright CLI and skills</value>
-  </data>
-  <data name="InitCommand_DotnetInspectSkillChoice" xml:space="preserve">
-    <value>dotnet-inspect bootstrap skill</value>
   </data>
   <data name="InitCommand_FailedTarget" xml:space="preserve">
     <value>Failed to configure Aspire plugin:

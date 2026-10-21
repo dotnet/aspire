@@ -484,7 +484,7 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Comma-separated skill/tool IDs ({0}), &apos;{1}&apos;, or &apos;{2}&apos;. Aspire represents the complete integration; use --aspire-source to choose native or embedded (default: aspire).
+        ///   Looks up a localized string similar to Comma-separated skill/tool IDs ({0}), &apos;{1}&apos;, or &apos;{2}&apos; (default: aspire).
         /// </summary>
         internal static string InitCommand_SkillsOptionDescription {
             get {
@@ -786,8 +786,6 @@ namespace Aspire.Cli.Resources {
         internal static string InitCommand_ConfigureAspireSourcePrompt => ResourceManager.GetString("InitCommand_ConfigureAspireSourcePrompt", resourceCulture);
         internal static string InitCommand_InvalidSkills => ResourceManager.GetString("InitCommand_InvalidSkills", resourceCulture);
         internal static string InitCommand_AspireSkillChoice => ResourceManager.GetString("InitCommand_AspireSkillChoice", resourceCulture);
-        internal static string InitCommand_PlaywrightSkillChoice => ResourceManager.GetString("InitCommand_PlaywrightSkillChoice", resourceCulture);
-        internal static string InitCommand_DotnetInspectSkillChoice => ResourceManager.GetString("InitCommand_DotnetInspectSkillChoice", resourceCulture);
         internal static string InitCommand_FailedTarget => ResourceManager.GetString("InitCommand_FailedTarget", resourceCulture);
         internal static string InitCommand_InvalidAspireSource => ResourceManager.GetString("InitCommand_InvalidAspireSource", resourceCulture);
         internal static string InitCommand_LocalSkillsConflict => ResourceManager.GetString("InitCommand_LocalSkillsConflict", resourceCulture);
