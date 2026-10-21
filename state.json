@@ -2,7 +2,7 @@
   "version": 1,
   "issue": 16189,
   "issue_url": "https://github.com/microsoft/aspire/issues/16189",
-  "phase": "agent",
+  "phase": "ready",
   "created_at": "2026-10-21T20:33:06.496822+00:00",
   "base_sha": "2015b1f0a997cf68d0582de62c912e3e419d880a",
   "control_sha": "8e88c59dea4df119df959cb648c32f73a919bd68",
@@ -16,17 +16,67 @@
     "runner_iterations": 0
   },
   "history": [],
-  "notes": [],
+  "notes": [
+    {
+      "run_id": 39671306099,
+      "action": "select",
+      "explanation": "Issue uniquely identifies Aspire.Hosting.Tests.ExecutableResourceFailureLoggingTests.ExecutableExitsImmediately (quarantined, Partition 2). Failure on windows-latest: Assert.Contains() Failure on log lines where 'Hello from Stdout' was captured but 'Hello from Stderr' missing (stack line 40). Likely log-collection race: the resource reaches Finished and the app is disposed before stderr log lines are consumed. Quarantine report shows windows-only failures (~12-15%), linux 0/100. Historical CI logs were not available locally (no evidence dir); only the issue body/comments were read. Next: hosted windows reproduction.",
+      "evidence_read": [
+        "/tmp/gh-aw/flaky-investigation/context.json (issue body, comments incl. CI insights report)",
+        "tests/Aspire.Hosting.Tests/ResourceFailureLoggingTests.cs lines 1-70 (ExecutableExitsImmediately, QuarantinedTest attribute)"
+      ]
+    }
+  ],
   "candidate": null,
-  "target": null,
-  "local_precheck": null,
+  "target": {
+    "source": "tests/Aspire.Hosting.Tests/ResourceFailureLoggingTests.cs",
+    "project": "tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj",
+    "class_name": "Aspire.Hosting.Tests.ExecutableResourceFailureLoggingTests",
+    "method": "ExecutableExitsImmediately",
+    "oses": [
+      "windows-latest"
+    ],
+    "failure_signature": "Assert.Contains() Failure: Filter not matched in collection",
+    "quarantined": true
+  },
+  "local_precheck": {
+    "status": "skipped",
+    "reason": "Runner OS is Linux but the issue only fails on windows-latest (linux 0/100); test also requires pwsh and a built Aspire.Hosting.Tests project, so no local repeated run was attempted."
+  },
   "outcome": null,
-  "updated_at": "2026-10-21T20:33:16.709276+00:00",
+  "updated_at": "2026-10-21T20:39:27.493497+00:00",
   "agent": {
     "sha": "515cac42dc95f703735d9f6bbe17bf7db879c871",
     "workflow": "reproduce-flaky-tests.yml",
     "branch": "ankj/flaky-test-16189-agent-1",
     "id": 39671306099,
     "revision": "38fedfb0168fb0cbb3c9b37db35445eb6442cd72"
-  }
+  },
+  "repair_scope": [
+    "src/Aspire.Dashboard/",
+    "src/Aspire.Hosting.Analyzers/",
+    "src/Aspire.Hosting.AppHost/",
+    "src/Aspire.Hosting.Azure.AppContainers/",
+    "src/Aspire.Hosting.Azure.ContainerRegistry/",
+    "src/Aspire.Hosting.Azure.OperationalInsights/",
+    "src/Aspire.Hosting.Azure/",
+    "src/Aspire.Hosting.DevTunnels/",
+    "src/Aspire.Hosting.JavaScript/",
+    "src/Aspire.Hosting.Python/",
+    "src/Aspire.Hosting.Tasks/",
+    "src/Aspire.Hosting.Testing/",
+    "src/Aspire.Hosting.Yarp/",
+    "src/Aspire.Hosting/",
+    "src/Aspire.TypeSystem/",
+    "tests/Aspire.Components.Common.TestUtilities/",
+    "tests/Aspire.Hosting.TestUtilities/",
+    "tests/Aspire.Hosting.Tests/",
+    "tests/Aspire.TestUtilities/",
+    "tests/testproject/TestProject.AppHost/",
+    "tests/testproject/TestProject.IntegrationServiceA/",
+    "tests/testproject/TestProject.ServiceA/",
+    "tests/testproject/TestProject.ServiceB/",
+    "tests/testproject/TestProject.ServiceC/",
+    "tests/testproject/TestProject.WorkerA/"
+  ]
 }
