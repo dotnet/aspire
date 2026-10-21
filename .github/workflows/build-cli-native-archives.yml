@@ -81,6 +81,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Verify Windows ARM Dev Drive build paths
+        if: matrix.targets.runner == 'windows-11-vs2026-arm' && matrix.targets.rids == 'win-arm64'
+        shell: powershell
+        run: ./eng/scripts/prepare-windows-arm-dev-drive.ps1 -VerifyOnly
+
       # Node.js is required because PackDotnetTool now depends on PackNpmPackage,
       # which shells out to `npm pack` to produce the @microsoft/aspire-cli npm
       # tarballs alongside the existing dotnet tool packages. GitHub-hosted

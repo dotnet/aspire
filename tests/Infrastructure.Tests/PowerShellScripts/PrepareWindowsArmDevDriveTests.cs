@@ -197,6 +197,63 @@ public sealed class PrepareWindowsArmDevDriveTests(ITestOutputHelper output) : I
         Assert.Equal("host validation", report.RootElement.GetProperty("stage").GetString());
     }
 
+    [Theory]
+    [InlineData("", "")]
+    [InlineData("$env:TEMP = 'C:\\fallback'", "TEMP must be")]
+    [InlineData("$env:TMP = ''", "TMP must be")]
+    [InlineData("$env:TMP = 'C:\\fallback'", "TMP must be")]
+    [InlineData("$global:linkType = 'SymbolicLink'", "Workspace must remain a junction")]
+    [InlineData("$global:linkTarget = 'C:\\fallback'", "Workspace must remain a junction")]
+    [InlineData("$env:GITHUB_WORKSPACE = Join-Path $env:RUNNER_TEMP 'missing'", "Cannot find path")]
+    [InlineData("$env:GITHUB_WORKSPACE = $env:RUNNER_TEMP", "Cannot find path")]
+    [InlineData("$global:denyTempWrite = $true", "Temporary directory is not writable")]
+    [RequiresTools(["pwsh"])]
+    public async Task VerificationEntryPointChecksInheritedBuildPaths(string change, string error)
+    {
+        var result = await RunFunctions($$"""
+            # Use a process-local provider drive and real file I/O, without touching physical disks.
+            Remove-PSDrive D -ErrorAction SilentlyContinue
+            New-PSDrive -Name D -PSProvider FileSystem -Root $env:RUNNER_TEMP | Out-Null
+            New-Item -ItemType Directory -Path D:\aspire-build\workspace, D:\aspire-build\tmp | Out-Null
+            $env:GITHUB_WORKSPACE = 'D:\aspire-build\workspace'
+            $env:TEMP = 'D:\aspire-build\tmp'
+            $env:TMP = 'D:\aspire-build\tmp'
+            $global:linkType = 'Junction'
+            $global:linkTarget = 'D:\aspire-build\workspace'
+            $global:denyTempWrite = $false
+            # Junction metadata is Windows-specific; writes and cleanup still use the real provider.
+            function Get-Item {
+                param([string]$LiteralPath, [switch]$Force)
+                Microsoft.PowerShell.Management\Get-Item -LiteralPath $LiteralPath -Force | Out-Null
+                return [pscustomobject]@{ LinkType = $global:linkType; Target = $global:linkTarget }
+            }
+            function Set-Content {
+                param([string]$LiteralPath, [string]$Value, [switch]$NoNewline)
+                if ($global:denyTempWrite -and $LiteralPath.Replace('\', '/').StartsWith($env:TEMP.Replace('\', '/'))) {
+                    throw [UnauthorizedAccessException]::new('Temporary directory is not writable')
+                }
+                Microsoft.PowerShell.Management\Set-Content -LiteralPath $LiteralPath -Value $Value -NoNewline:$NoNewline
+            }
+            function Get-Disk { throw 'Verification must not access disk provisioning' }
+            function Initialize-Disk { throw 'Verification must not initialize disks' }
+            {{change}}
+            & $env:DEV_DRIVE_SCRIPT -VerifyOnly
+            """);
+
+        if (change.Length == 0)
+        {
+            result.EnsureSuccessful();
+            Assert.Contains("Dev Drive build paths verified", result.Output);
+            Assert.Empty(Directory.GetFiles(Path.Combine(_workspace.Path, "aspire-build", "workspace")));
+            Assert.Empty(Directory.GetFiles(Path.Combine(_workspace.Path, "aspire-build", "tmp")));
+        }
+        else
+        {
+            Assert.NotEqual(0, result.ExitCode);
+            Assert.Contains(error, result.Output);
+        }
+    }
+
     private async Task<CommandResult> RunFunctions(string body, string? variable = null, string? value = null)
     {
         var harness = Path.Combine(_workspace.Path, "harness.ps1");

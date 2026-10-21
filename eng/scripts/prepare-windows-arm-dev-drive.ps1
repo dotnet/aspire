@@ -1,5 +1,7 @@
+# Prepare Windows ARM build storage, or verify inherited build paths without provisioning.
 param(
-    [string]$RunnerEnvironment
+    [string]$RunnerEnvironment,
+    [switch]$VerifyOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -174,8 +176,52 @@ function Invoke-PrepareDevDrive
     }
 }
 
+function Assert-DevDriveBuildPath
+{
+    $target = 'D:\aspire-build\workspace'
+    $temp = 'D:\aspire-build\tmp'
+    $workspace = Get-Item -LiteralPath $env:GITHUB_WORKSPACE -Force
+    if ($workspace.LinkType -ne 'Junction' -or @($workspace.Target).Count -ne 1 -or
+        $workspace.Target -ne $target)
+    {
+        throw "Workspace must remain a junction to $target."
+    }
+    if ($env:TEMP -ne $temp) { throw "TEMP must be $temp; got '$env:TEMP'." }
+    if ($env:TMP -ne $temp) { throw "TMP must be $temp; got '$env:TMP'." }
+
+    # Probe the paths inherited by this later process, not setup's in-memory environment.
+    foreach ($placement in @(
+        @{ Path = $env:GITHUB_WORKSPACE; Target = $target },
+        @{ Path = $env:TEMP; Target = $env:TMP }
+    ))
+    {
+        $name = "dev-drive-probe-$([guid]::NewGuid())"
+        $probe = Join-Path $placement.Path $name
+        try
+        {
+            Set-Content -LiteralPath $probe -Value $name -NoNewline
+            if ((Get-Content -LiteralPath (Join-Path $placement.Target $name) -Raw) -cne $name)
+            {
+                throw "Build path write did not reach $($placement.Target)."
+            }
+        }
+        finally
+        {
+            if (Test-Path -LiteralPath $probe) { Remove-Item -LiteralPath $probe }
+        }
+    }
+    Write-Output "Dev Drive build paths verified: workspace -> $target; TEMP/TMP -> $temp"
+}
+
 # Tests dot-source the production functions without accessing physical disks.
 if ($MyInvocation.InvocationName -eq '.') { return }
-Invoke-PrepareDevDrive -RunnerEnvironment $RunnerEnvironment
+if ($VerifyOnly)
+{
+    Assert-DevDriveBuildPath
+}
+else
+{
+    Invoke-PrepareDevDrive -RunnerEnvironment $RunnerEnvironment
+}
 # A diagnostic native command's exit code must not override successful verification.
 exit 0
