@@ -641,30 +641,6 @@ public sealed class SqliteTelemetryPersistenceTests(ITestOutputHelper testOutput
     }
 
     [Fact]
-    public async Task Metrics_TimeIndexes_OnlyEndTimeIndexIncludesMutableEndTime()
-    {
-        using var workspace = TemporaryWorkspace.Create(testOutputHelper);
-        using var repositoryContext = await CreateRepositoryAsync(workspace.Path);
-        using var connection = repositoryContext.Database.OpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            SELECT indexes.name
-            FROM pragma_index_list('telemetry_metric_points') indexes
-            JOIN pragma_index_info(indexes.name) columns
-            WHERE columns.name = 'end_time_unix_nano'
-            ORDER BY indexes.name;
-            """;
-        using var reader = command.ExecuteReader();
-        var indexes = new List<string>();
-        while (reader.Read())
-        {
-            indexes.Add(reader.GetString(0));
-        }
-
-        Assert.Equal(["ix_telemetry_metric_points_end_time"], indexes);
-    }
-
-    [Fact]
     public async Task Scopes_AreSharedAcrossLogsTracesAndMetrics()
     {
         using var workspace = TemporaryWorkspace.Create(testOutputHelper);

@@ -241,7 +241,7 @@ Cumulative bucket layouts must remain stable within an aggregation. Charts combi
 
 Indexes support instrument lookup, dimension matching, time-window queries, retention, and exemplar lookup.
 
-Repeated metric values extend the latest point's end time without inserting a new point. The start-time index contains only the dimension and start time so these updates do not rewrite it. The separate end-time index retains both interval bounds for recent-window lookups. Exemplar window queries explicitly use that index to filter intervals before loading points and exemplars, avoiding history scans through the narrower start-time index. Repeats still update the end-time index and commit a transaction; avoiding the second index rewrite reduces write amplification without deferring telemetry persistence or changing retention.
+Repeated metric values extend the latest point's end time without inserting a new point. The time-window index retains both interval bounds, ordered by dimension and end time; there is no separate start-time index to maintain on inserts and deletes. Exemplar window queries explicitly use the time-window index to filter intervals before loading points and exemplars. Repeats still update this index and commit a transaction; retaining a single time-window index limits write amplification without deferring telemetry persistence or changing retention.
 
 ## Repository behavior
 

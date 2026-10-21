@@ -473,8 +473,8 @@ public sealed partial class SqliteTelemetryRepository
         IReadOnlyList<MetricPointDataRecord> points,
         bool populateExemplarAttributes)
     {
-        // The start-time index does not cover the mutable end time. Filter intervals through the
-        // end-time index before loading points and exemplars, rather than scanning their history.
+        // Filter intervals through the time-window index before loading points and exemplars
+        // to avoid scanning their history.
         var records = connection.Query<MetricExemplarRecord>($"""
             WITH {dimensionQueryRangesCteSql}
             SELECT
@@ -488,7 +488,7 @@ public sealed partial class SqliteTelemetryRepository
                 e.span_id AS SpanId,
                 e.trace_id AS TraceId
             FROM telemetry_metric_exemplars e
-            JOIN telemetry_metric_points source INDEXED BY ix_telemetry_metric_points_end_time ON source.point_id = e.point_id
+            JOIN telemetry_metric_points source INDEXED BY ix_telemetry_metric_points_time ON source.point_id = e.point_id
             JOIN metric_dimension_query_ranges r ON r.dimension_id = source.dimension_id
             WHERE {MetricSourcePointRangeFilterSql}
               AND e.time_unix_nano >= r.start_time_unix_nano
