@@ -7,7 +7,8 @@ their existing storage.
 
 `eng/scripts/prepare-windows-arm-dev-drive.ps1` runs with Windows PowerShell's
 Storage module. The workflow downloads it from the contents API at the caller's
-immutable `github.sha`, using the caller repository and read-only job token.
+immutable `github.sha`, using the caller repository and job token. Token
+permissions remain inherited from the caller.
 For fork pull requests this is the upstream repository's merge commit, not a
 mutable fork branch. Local reusable-workflow callers use that same source.
 
