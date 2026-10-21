@@ -62,6 +62,16 @@ than claiming labels pin hardware. Report every sample, median and range, and
 wins per matched round.
 Do not claim meaningful tail-latency statistics from five samples.
 
+For acceptance, each treatment uses its first five eligible contemporaneous pairs
+with baseline, ordered by dispatch. Within a pair, require the same source SHA,
+runner image/version, CPU model/count and RAM, OS, resolved SDK/MSVC toolchain,
+Node/PowerShell/Visual Studio versions, and recorded Defender state/exclusions.
+Image/tool drift excludes the pair from acceptance, regardless of its speed;
+retain it as exploratory evidence. Compare treatment and baseline medians over
+those same five pairs. Preserve image strata when images change between rounds.
+Allow at most three replacement rounds beyond the initial five; if that cannot
+produce five comparable pairs, the corresponding treatment is inconclusive.
+
 Use the Actions jobs API for whole-job and per-step timestamps, including setup,
 checkout, builds, verification, and artifact upload. Report queue time separately.
 These timestamps do not measure pre-job VM allocation time. Save raw jobs by run ID
@@ -84,6 +94,23 @@ resource readiness and stop on `windows-11-arm`. Use the existing
 `eng/scripts/cli-starter-validation.ps1 -ValidationRoot` parameter to place
 generated apps on the selected disk. Persist consumer results before recommending
 rollout. Existing Windows ARM64 tray UI smoke remains disabled and unvalidated.
+
+Dispatch the consumer job separately after selecting an artifact:
+
+```shell
+gh workflow run build-cli-native-archives.yml --repo radical/aspire --ref <benchmark-branch> \
+  -f validationRunId=<successful-run-id> -f validationMode=<mode> -f validationSample=<sample>
+```
+
+This skips native builds, provisions the selected storage mode on `windows-11-arm`,
+downloads that exact archive and its treatment evidence, and checks the installed
+CLI version against its archive name. These `-ci` builds omit commit metadata from
+`--version`; source provenance is verified through the artifact run and matching
+checkout reports, not by inventing an overridden CLI identity.
+The existing starter scenarios exercise creation, startup,
+resource readiness and shutdown for C# and TypeScript AppHosts. They use published
+daily templates and dependencies, not a same-commit managed-package build; record
+this boundary alongside the exact native artifact provenance.
 
 ## Decision
 

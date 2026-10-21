@@ -23,6 +23,31 @@ public class WindowsStorageBenchmarkTests(ITestOutputHelper output)
         Assert.Contains("Storage provisioning is restricted", result.Output);
     }
 
+    [Fact]
+    [RequiresTools(["pwsh"])]
+    public async Task RefusesArtifactsFromAnUnsuccessfulRun()
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        var script = Path.Combine(RepoRoot.Path, "eng", "scripts", "install-windows-storage-benchmark-cli.ps1");
+        var fixture = Path.Combine(workspace.Path, "reject-artifact.ps1");
+        File.WriteAllText(fixture, """
+            param([string]$Script)
+            function gh {
+                if ($args[0] -ne 'api') { throw 'Unexpected artifact download.' }
+                '{"conclusion":"failure","path":".github/workflows/build-cli-native-archives.yml"}'
+            }
+            & $Script -RunId 42 -Mode ntfs -Sample 1
+            """);
+        using var command = new PowerShellCommand(fixture, output)
+            .WithEnvironmentVariable("GITHUB_REPOSITORY", "radical/aspire")
+            .WithEnvironmentVariable("GITHUB_EVENT_NAME", "workflow_dispatch")
+            .WithTimeout(TimeSpan.FromMinutes(1));
+        var result = await command.ExecuteAsync("-Script", $"\"{script}\"");
+
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains("Consumer validation requires a successful", result.Output);
+    }
+
     [Theory]
     [InlineData("self-hosted")]
     [InlineData("")]

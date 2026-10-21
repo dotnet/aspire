@@ -1,10 +1,14 @@
 #!/usr/bin/env pwsh
 
-[CmdletBinding()]
+[CmdletBinding(DefaultParameterSetName = 'PullRequest')]
 param(
-    [Parameter(Mandatory = $true, HelpMessage = "Pull request number used to select the PR dogfood channel")]
+    [Parameter(Mandatory = $true, ParameterSetName = 'PullRequest', HelpMessage = "Pull request number used to select the PR dogfood channel")]
     [ValidateRange(1, [int]::MaxValue)]
     [int]$PRNumber,
+
+    [Parameter(Mandatory = $true, ParameterSetName = 'Channel', HelpMessage = "Template channel for an already installed CLI")]
+    [ValidateNotNullOrEmpty()]
+    [string]$Channel,
 
     [Parameter(HelpMessage = "Maximum number of seconds allowed for aspire start to complete")]
     [ValidateRange(1, [int]::MaxValue)]
@@ -238,6 +242,7 @@ function Invoke-DetachedAspireCommand
 }
 
 $validationRootPath = Get-ValidationRoot
+$templateChannel = if ($PSCmdlet.ParameterSetName -eq 'PullRequest') { "pr-$PRNumber" } else { $Channel }
 Remove-Item -Recurse -Force $validationRootPath -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path $validationRootPath -Force | Out-Null
 
@@ -279,7 +284,7 @@ foreach ($template in $templates)
         {
             $newStartedAt = Get-Date
             Write-DiagnosticMessage "${templateId}: invoking aspire new."
-            aspire new $templateId --name $projectName --output $projectRoot --channel "pr-$PRNumber" --non-interactive --nologo --suppress-agent-init
+            aspire new $templateId --name $projectName --output $projectRoot --channel $templateChannel --non-interactive --nologo --suppress-agent-init
             Write-DiagnosticMessage "${templateId}: aspire new returned after $([math]::Round(((Get-Date) - $newStartedAt).TotalSeconds, 1)) seconds."
 
             Push-Location $projectRoot

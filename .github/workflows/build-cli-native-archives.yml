@@ -17,6 +17,20 @@ on:
             {"storage":"ntfs","sample":1,"benchmarkSuffix":"-ntfs-1"},
             {"storage":"devdrive","sample":1,"benchmarkSuffix":"-devdrive-1"}
           ]
+      validationRunId:
+        description: Optional successful benchmark run to consume instead of building
+        type: string
+        default: ''
+      validationMode:
+        description: Storage mode and artifact to validate on windows-11-arm
+        type: choice
+        options: [baseline, ntfs, devdrive]
+        default: ntfs
+      validationSample:
+        description: Artifact sample from the selected benchmark run
+        type: choice
+        options: ['1', '2', '3', '4', '5']
+        default: '1'
   workflow_call:
     inputs:
       versionOverrideArg:
@@ -48,7 +62,7 @@ jobs:
   build_cli_archives:
     name: Build CLI (${{ matrix.targets.rids || 'win-arm64' }})${{ matrix.targets.benchmarkSuffix }}
     # Manual storage experiments are confined to the fork; normal callers retain their existing gate.
-    if: ${{ (github.repository == 'microsoft/aspire' && !inputs.benchmarkTargets) || (github.repository == 'radical/aspire' && github.event_name == 'workflow_dispatch') }}
+    if: ${{ (github.repository == 'microsoft/aspire' && !inputs.benchmarkTargets) || (github.repository == 'radical/aspire' && github.event_name == 'workflow_dispatch' && !inputs.validationRunId) }}
     runs-on: ${{ (github.repository == 'radical/aspire' && github.event_name == 'workflow_dispatch') && 'windows-11-vs2026-arm' || matrix.targets.runner }}
     timeout-minutes: ${{ github.repository == 'radical/aspire' && 60 || 360 }}
     strategy:
@@ -402,4 +416,74 @@ jobs:
         with:
           name: windows-storage${{ matrix.targets.benchmarkSuffix }}
           path: ${{ runner.temp }}/windows-storage-benchmark/
+          if-no-files-found: error
+
+  validate_benchmark_cli:
+    name: Validate benchmark CLI on Windows ARM
+    if: github.repository == 'radical/aspire' && github.event_name == 'workflow_dispatch' && inputs.validationRunId
+    runs-on: windows-11-arm
+    timeout-minutes: 45
+    permissions:
+      actions: read
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BENCHMARK_RUN_ID: ${{ inputs.validationRunId }}
+      BENCHMARK_MODE: ${{ inputs.validationMode }}
+      BENCHMARK_SAMPLE: ${{ inputs.validationSample }}
+    steps:
+      - name: Prepare consumer storage
+        shell: powershell
+        env:
+          BENCHMARK_RUNNER_ENVIRONMENT: ${{ runner.environment }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $script = Join-Path $env:RUNNER_TEMP 'prepare-windows-storage-benchmark.ps1'
+          $uri = "https://raw.githubusercontent.com/$env:GITHUB_REPOSITORY/$env:GITHUB_SHA/eng/scripts/prepare-windows-storage-benchmark.ps1"
+          Invoke-WebRequest -UseBasicParsing -Uri $uri -OutFile $script
+          & $script -Mode $env:BENCHMARK_MODE -Sample ([int]$env:BENCHMARK_SAMPLE) -Suffix "-$env:BENCHMARK_MODE-$env:BENCHMARK_SAMPLE" -RunnerEnvironment $env:BENCHMARK_RUNNER_ENVIRONMENT
+
+      - name: Checkout consumer validation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+
+      - name: Install exact benchmark CLI
+        shell: pwsh
+        run: |
+          ./eng/scripts/install-windows-storage-benchmark-cli.ps1 -RunId ([long]$env:BENCHMARK_RUN_ID) -Mode $env:BENCHMARK_MODE -Sample ([int]$env:BENCHMARK_SAMPLE)
+
+      - name: Validate generated AppHosts
+        timeout-minutes: 35
+        shell: pwsh
+        run: |
+          ./eng/scripts/cli-starter-validation.ps1 -Channel daily -MaxStartupSeconds 180 -ResourceReadyTimeoutSeconds 300 -ValidationRoot "$env:GITHUB_WORKSPACE/artifacts/storage-consumer"
+
+      - name: Collect consumer CLI logs
+        if: always()
+        shell: pwsh
+        run: |
+          $logs = Join-Path $HOME '.aspire/logs'
+          if (Test-Path $logs) {
+            Copy-Item $logs (Join-Path $env:RUNNER_TEMP 'windows-storage-benchmark/cli-logs') -Recurse
+          }
+
+      - name: Upload consumer evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: windows-storage-consumer-${{ inputs.validationMode }}-${{ inputs.validationSample }}
+          path: |
+            ${{ runner.temp }}/windows-storage-benchmark/
+            artifacts/storage-consumer/**/diagnostics/**
           if-no-files-found: error
