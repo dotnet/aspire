@@ -217,6 +217,23 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task PublishWithFederatedManagedIdentityCredential_ExistingApplication_UsesConsumerIdentityWithoutProvisioning()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var identity = builder.AddAzureUserAssignedIdentity("web-identity");
+        var entra = builder.AddExistingEntraApplication("entra-web", tenantId: TenantId, clientId: ClientId)
+            .PublishWithFederatedManagedIdentityCredential();
+        var web = builder.AddResource(new ProjectResource("web")).WithAzureUserAssignedIdentity(identity).WithReference(entra);
+
+        var env = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+            web.Resource, DistributedApplicationOperation.Publish, TestServiceProvider.Instance);
+
+        Assert.Equal("{web-identity.outputs.clientId}", env["AzureAd__ClientCredentials__0__ManagedIdentityClientId"]);
+        Assert.True(entra.Resource.IsExistingApplication);
+        Assert.False(entra.Resource.TryGetAnnotationsOfType<PipelineStepAnnotation>(out _));
+    }
+
+    [Fact]
     public async Task WithFederatedManagedIdentityCredential_Identity_IsSkippedInRunMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
