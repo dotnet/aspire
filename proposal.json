@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "issue_url": "https://github.com/microsoft/aspire/issues/9671",
+  "state_revision": "44291f466c1de99ca8c8cc3c63ecff7b43088730",
+  "action": "reproduce",
+  "explanation": "The checkpoint target (SlimTestProgramTests.TestPortOnEndpointAnnotationAndAllocatedEndpointAnnotationMatch, quarantined, fixture InitializeAsync failure) is set and no candidate exists, so the next step is hosted baseline reproduction on ubuntu-latest and windows-latest. No evidence/ directory was supplied, and the local precheck was skipped earlier (linux runner, no built repo or DCP/container runtime). CI insights reported 0 failures over 215 runs in 30 days, so not-reproduced is a plausible outcome; no fix should be proposed unless matching failure and pass evidence appears.",
+  "evidence_read": ["/tmp/gh-aw/flaky-investigation/context.json (checkpoint, target, prior notes, issue); evidence/ directory absent"]
+}
