@@ -1,5 +1,13 @@
 # GitHub Workflows
 
+## Issue-driven flaky-test investigations
+
+`flaky-test-investigation.yml` enrolls an issue URL and advances immutable
+checkpoints. `flaky-test-investigator.md` runs fresh bounded phases using the
+`fix-flaky-test` skill; checkpoint-validated investigation inputs on the fixed
+`reproduce-flaky-tests.yml` provide read-only reproduction and verification. See
+[operations, evidence, and deployment boundaries](../../docs/ci/flaky-test-investigation.md).
+
 ## Agentic workflow maintenance
 
 Agentic workflows are authored in `.github/workflows/*.md`. Upgrade the active
