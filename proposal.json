@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "issue_url": "https://github.com/microsoft/aspire/issues/9671",
+  "state_revision": "6de2bb938345db853a2e138557a071f4b4fcbc92",
+  "action": "reproduce",
+  "explanation": "Round 1 (run 39676627511, ubuntu-latest and windows-latest, 3 runners x 3 iterations): 18/18 target results Passed, 0 failures, no fixture InitializeAsync error. Issue CI insights also report 0/215 failures in 30 days. Fewer than three baseline rounds have run, so not-reproduced is premature. Request another baseline round, escalating to contention if supported. No fix is proposed without matching failure evidence.",
+  "evidence_read": ["/tmp/gh-aw/flaky-investigation/context.json", "evidence/39676627511/*/*/iteration-*/Aspire.Hosting.Tests_net10.0_x64.trx: 18 Passed outcomes for target, 0 failed"]
+}
