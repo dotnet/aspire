@@ -423,6 +423,30 @@ public class EntraIdResourceBuilderTests
         Assert.Equal(nameof(EntraIdFederatedIdentityCredential.ManagedIdentityClientId), exception.ParamName);
     }
 
+    [Theory]
+    [InlineData(DistributedApplicationOperation.Run)]
+    [InlineData(DistributedApplicationOperation.Publish)]
+    public async Task WithFederatedManagedIdentityCredential_ClientId_ExistingApplication_InjectsEnvironmentVariables(DistributedApplicationOperation operation)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(operation);
+        var entra = builder.AddExistingEntraApplication("entra-web", tenantId: TenantId, clientId: ClientId)
+            .WithFederatedManagedIdentityCredential("11112222-aaaa-3333-bbbb-4444cccc5555");
+        var web = builder.AddResource(new ProjectResource("web")).WithReference(entra);
+
+        var env = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+            web.Resource, operation, TestServiceProvider.Instance);
+
+        // A client ID needs no Aspire identity, so it applies in both modes and does not require the consumer to have one.
+        Assert.Equal(new Dictionary<string, string>
+        {
+            ["AzureAd__Instance"] = "https://login.microsoftonline.com/",
+            ["AzureAd__TenantId"] = TenantId,
+            ["AzureAd__ClientId"] = ClientId,
+            ["AzureAd__ClientCredentials__0__SourceType"] = "SignedAssertionFromManagedIdentity",
+            ["AzureAd__ClientCredentials__0__ManagedIdentityClientId"] = "11112222-aaaa-3333-bbbb-4444cccc5555"
+        }, env);
+    }
+
     [Fact]
     public void AddEntraIdApplication_MultipleCredentials()
     {
