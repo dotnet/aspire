@@ -7,6 +7,7 @@
     <IsAspirePolyglotCompatible>false</IsAspirePolyglotCompatible>
     <EnablePackageValidation>false</EnablePackageValidation>
     <PublishAot>true</PublishAot>
+    <PublishDocumentationFile>false</PublishDocumentationFile>
     <IsAotCompatible>true</IsAotCompatible>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>

@@ -6,6 +6,7 @@
     <IsPackable>false</IsPackable>
     <IsShipping>false</IsShipping>
     <PublishAot>true</PublishAot>
+    <PublishDocumentationFile>false</PublishDocumentationFile>
     <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
   </PropertyGroup>
   <ItemGroup>
