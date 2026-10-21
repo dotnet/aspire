@@ -54,7 +54,7 @@ public class EntraIdApplicationResource : AzureProvisioningResource
             [EntraIdBicepConstants.ServicePrincipalResourceType] = EntraIdBicepConstants.ServicePrincipalIdOutputName
         }));
         Parameters[KnownParameters.TenantResourceSuffix] = null;
-        // Existing registrations are never provisioned, so SetExistingApplication removes these along with the base annotations.
+        // Existing registrations are never provisioned, so SetExistingApplication removes this along with the base annotations.
         Annotations.Add(new PipelineStepAnnotation(_ => new PipelineStep
         {
             Name = $"validate-{name}-managed-identities",
@@ -72,17 +72,6 @@ public class EntraIdApplicationResource : AzureProvisioningResource
             },
             DependsOnSteps = [AzureEnvironmentResource.PrepareResourcesStepName],
             RequiredBySteps = [WellKnownPipelineSteps.BeforeStart]
-        }));
-
-        // The registration's federated credentials use the identities' principal IDs, so the identities must be
-        // provisioned first. The Bicep parameters would imply this, but only as a side effect of generating the template.
-        Annotations.Add(new PipelineConfigurationAnnotation(context =>
-        {
-            var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
-            foreach (var identity in GetFederatedIdentities())
-            {
-                provisionSteps.DependsOn(context.GetSteps(identity, WellKnownPipelineTags.ProvisionInfrastructure));
-            }
         }));
 
         _provisioningAnnotations = [.. Annotations.Where(annotation => annotation is PipelineStepAnnotation or PipelineConfigurationAnnotation)];
