@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "issue_url": "https://github.com/microsoft/aspire/issues/9671",
+  "state_revision": "a9ee9468826a2f032f4c1bf706c4ae864afe6567",
+  "action": "select",
+  "explanation": "Issue 9671 is a flaky-test report for a single uniquely named test, SlimTestProgramTests.TestPortOnEndpointAnnotationAndAllocatedEndpointAnnotationMatch (quarantined with the issue URL). The failure is a TaskCanceledException thrown from SlimTestProgramFixture.WaitReadyStateAsync during collection fixture InitializeAsync. The fixture waits sequentially on log text 'Application started.' for servicea, serviceb and servicec, all under one shared timeout token that also covers StartAsync. The fixture uses randomizePorts: false, which matches the flaky patterns in the test guidelines. The issue does not name an OS; the CI report lists linux and windows, so both are targeted. The report shows 0/100 failures on each OS and 0/215 over 30 days, so reproduction may well end not-reproduced. Next action: reproduce on hosted runners. The checkpoint base_sha object is not present in the local clone, so I read the agent-branch working tree at HEAD 902476384f. That tree may differ from base_sha, and the controller should confirm the selection against base_sha.",
+  "evidence_read": [
+    "/tmp/gh-aw/flaky-investigation/context.json (issue body, stack trace, CI insights comment). No evidence/ directory was supplied, so no historical logs or TRX were available.",
+    "tests/Aspire.Hosting.Tests/SlimTestProgramTests.cs: [Collection(\"SlimTestProgram\")], [QuarantinedTest(\".../issues/9671\")] on TestPortOnEndpointAnnotationAndAllocatedEndpointAnnotationMatch",
+    "tests/Aspire.Hosting.Tests/TestProgramFixture.cs: InitializeAsync, SlimTestProgramFixture.CreateTestProgram(randomizePorts: false), WaitReadyStateAsync (sequential WaitForTextAsync on 'Application started.' with a shared CTS)"
+  ],
+  "selection": {
+    "source": "tests/Aspire.Hosting.Tests/SlimTestProgramTests.cs",
+    "project": "tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj",
+    "class_name": "Aspire.Hosting.Tests.SlimTestProgramTests",
+    "method": "TestPortOnEndpointAnnotationAndAllocatedEndpointAnnotationMatch",
+    "oses": ["ubuntu-latest", "windows-latest"],
+    "failure_signature": "Collection fixture type 'Aspire.Hosting.Tests.SlimTestProgramFixture' threw in InitializeAsync"
+  },
+  "local_precheck": {
+    "status": "skipped",
+    "reason": "Runner OS is linux. The repo is not built or restored, and this investigation phase is not set up to run Aspire.Hosting.Tests, which needs a DCP orchestrator and container runtime. Windows behavior cannot be checked locally. A build failure would not count as test evidence, so hosted reproduction is needed."
+  }
+}
