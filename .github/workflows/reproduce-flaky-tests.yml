@@ -63,6 +63,9 @@ jobs:
       ASPIRE_EXTENSION_E2E_SPEC: out/test-e2e/test-e2e/javaStarterProjectModel.e2e.test.js
       ASPIRE_EXTENSION_E2E_SKIP_CURRENT_CLI_REGRESSIONS: "false"
       ASPIRE_EXTENSION_E2E_APPHOST_SDK_VERSION: 17.0.0-ci
+      # ExTester's native launch must retain setup-java's JDK instead of the login-shell PATH.
+      # https://github.com/microsoft/vscode/blob/1.130.0/src/vs/platform/shell/node/shellEnv.ts
+      VSCODE_CLI: "1"
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -188,7 +191,13 @@ jobs:
           echo "ASPIRE_JAVA_VALIDATION_INSIDERS_DIR=$app" >> "$GITHUB_ENV"
       - name: Exercise semantic imports and the complete Java starter runtime
         working-directory: extension
-        run: corepack yarn node scripts/run-e2e.js
+        run: |
+          set -euo pipefail
+          command -v java
+          command -v javac
+          java -version
+          javac -version
+          corepack yarn node scripts/run-e2e.js
       - name: Upload editor and runtime evidence
         if: ${{ always() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
