@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Text.Json;
 using Aspire.Cli.Agents;
+using Aspire.Cli.Agents.AspireSkills;
 using Aspire.Cli.Agents.OpenCode;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Interaction;
@@ -466,7 +467,7 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
                 if (prompt == AgentCommandStrings.InitCommand_ConfigureAspireSourcePrompt)
                 {
                     Assert.Equal([string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_PluginRiskWarning,
-                        AspireSkillsConfiguration.RepositoryUrl)], riskWarnings);
+                        AspireSkillsRemoteConfiguration.RepositoryUrl)], riskWarnings);
                     Assert.Equal(["embedded", "native"], choices.Cast<string>());
                     return "embedded";
                 }

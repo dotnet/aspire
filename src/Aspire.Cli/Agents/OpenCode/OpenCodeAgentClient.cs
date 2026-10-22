@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Aspire.Cli.Agents.AspireSkills;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 
@@ -73,7 +74,7 @@ internal sealed class OpenCodeAgentClient(CliExecutionContext context, IEnvironm
             JsonObject config;
             try
             {
-                config = AgentConfigurationJson.ParseObject(File.ReadAllBytes(path));
+                config = AgentConfiguration.ParseObject(File.ReadAllBytes(path));
             }
             catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
             {
@@ -93,7 +94,7 @@ internal sealed class OpenCodeAgentClient(CliExecutionContext context, IEnvironm
         if (scope is AgentConfigurationScope.Global &&
             environment.GetEnvironmentVariable("OPENCODE_CONFIG_CONTENT") is { Length: > 0 } inline)
         {
-            foreach (var directory in GetConfiguredSkillDirectories(AgentConfigurationJson.ParseObject(Encoding.UTF8.GetBytes(inline))))
+            foreach (var directory in GetConfiguredSkillDirectories(AgentConfiguration.ParseObject(Encoding.UTF8.GetBytes(inline))))
             {
                 yield return directory;
             }
@@ -112,8 +113,8 @@ internal sealed class OpenCodeAgentClient(CliExecutionContext context, IEnvironm
         // resolve local paths from the active working directory, not the config file.
         // HTTP catalogs are not local copies. https://opencode.ai/docs/skills/#sources
         var paths = skills is JsonObject v1
-            ? AgentConfigurationJson.OptionalStrings(v1, "paths")
-            : AgentConfigurationJson.Strings(skills.AsArray());
+            ? AspireSkillsRemoteConfiguration.OptionalStrings(v1, "paths")
+            : AspireSkillsRemoteConfiguration.Strings(skills.AsArray());
         foreach (var node in paths ?? [])
         {
             var value = node!.GetValue<string>();
@@ -139,9 +140,9 @@ internal sealed class OpenCodeAgentClient(CliExecutionContext context, IEnvironm
 
     public async Task<(JsonObject Config, string Path)> ReadMcpConfigAsync(
         string configFilePath, DirectoryInfo workspaceRoot, AgentConfigurationScope scope,
-        AgentConfigurationReadContext reads, CancellationToken cancellationToken)
+        AgentConfiguration edit, CancellationToken cancellationToken)
     {
-        var config = await McpConfigFileHelper.ReadConfigAsync(configFilePath, s_mcp.JsonDocumentOptions, reads, cancellationToken);
+        var config = await McpConfigFileHelper.ReadConfigAsync(configFilePath, s_mcp.JsonDocumentOptions, edit, cancellationToken);
         // JSONC {"mcp":{"aspire":{"enabled":true}}} inherits its command from a
         // lower-precedence document. Repair that owner without shadowing pins or
         // overrides in JSONC or .opencode settings. Explicit OPENCODE_CONFIG files
@@ -157,7 +158,7 @@ internal sealed class OpenCodeAgentClient(CliExecutionContext context, IEnvironm
         {
             var candidateConfig = AgentPath.Comparer.Equals(candidate, configFilePath)
                 ? config
-                : await McpConfigFileHelper.ReadConfigAsync(candidate, s_mcp.JsonDocumentOptions, reads, cancellationToken);
+                : await McpConfigFileHelper.ReadConfigAsync(candidate, s_mcp.JsonDocumentOptions, edit, cancellationToken);
             var (servers, native) = GetMcpServerContainer(candidateConfig, candidate);
             if (servers is not null && servers.TryGetPropertyValue("aspire", out var server))
             {
@@ -211,7 +212,7 @@ internal sealed class OpenCodeAgentClient(CliExecutionContext context, IEnvironm
             // file precedence is handled separately by ReadMcpConfigAsync.
             // https://github.com/anomalyco/opencode/blob/52a10f573f1da5103c85990da9341e3645a39365/packages/core/src/config/normalize.ts
             var legacyServer = servers is JsonObject server &&
-                (AgentConfigurationJson.String(server["type"]) is "local" or "remote" ||
+                (AspireSkillsRemoteConfiguration.String(server["type"]) is "local" or "remote" ||
                     server["enabled"] is JsonValue enabled && enabled.TryGetValue<bool>(out _));
             if (!legacyServer)
             {
@@ -240,14 +241,14 @@ internal sealed class OpenCodeAgentClient(CliExecutionContext context, IEnvironm
     {
         // Inline settings can activate skills, but are not a writable registration target.
         if (environment.GetEnvironmentVariable("OPENCODE_CONFIG_CONTENT") is { Length: > 0 } inline &&
-            AspireSkillsConfiguration.HasOpenCodeCatalog(AgentConfigurationJson.ParseObject(Encoding.UTF8.GetBytes(inline))))
+            AspireSkillsRemoteConfiguration.HasOpenCodeCatalog(AgentConfiguration.ParseObject(Encoding.UTF8.GetBytes(inline))))
         {
             return true;
         }
 
         foreach (var path in scope is AgentConfigurationScope.Project ? CatalogSettings(workspaceRoot) : GlobalCatalogSettings())
         {
-            if (await AgentConfigurationJson.ReadAsync(path, cancellationToken) is { } config && AspireSkillsConfiguration.HasOpenCodeCatalog(config))
+            if (await AgentConfiguration.ReadObjectAsync(path, cancellationToken) is { } config && AspireSkillsRemoteConfiguration.HasOpenCodeCatalog(config))
             {
                 return true;
             }
@@ -258,21 +259,21 @@ internal sealed class OpenCodeAgentClient(CliExecutionContext context, IEnvironm
 
     public async Task UpdateIntegrationConfigAsync(
         JsonObject config, DirectoryInfo workspaceRoot, AgentConfigurationScope scope,
-        AgentConfigurationReadContext reads, CancellationToken cancellationToken)
+        AgentConfiguration edit, CancellationToken cancellationToken)
     {
-        var configs = await AgentConfigurationJson.ReadSettingsAsync(
+        var configs = await AspireSkillsRemoteConfiguration.ReadSettingsAsync(
             scope is AgentConfigurationScope.Project ? CatalogSettings(workspaceRoot) : GlobalCatalogSettings(),
-            GetIntegrationConfigPath(scope, workspaceRoot), reads, cancellationToken);
+            GetIntegrationConfigPath(scope, workspaceRoot), edit, cancellationToken);
         if (environment.GetEnvironmentVariable("OPENCODE_CONFIG_CONTENT") is { Length: > 0 } inline)
         {
-            var inlineConfig = AgentConfigurationJson.ParseObject(Encoding.UTF8.GetBytes(inline));
+            var inlineConfig = AgentConfiguration.ParseObject(Encoding.UTF8.GetBytes(inline));
             if (inlineConfig.ContainsKey("skills"))
             {
-                throw AspireSkillsConfiguration.ExistingConfiguration("OPENCODE_CONFIG_CONTENT.skills");
+                throw AspireSkillsRemoteConfiguration.ExistingConfiguration("OPENCODE_CONFIG_CONTENT.skills");
             }
         }
 
-        AspireSkillsConfiguration.ApplyOpenCodeCatalog(config, configs.Append(config));
+        AspireSkillsRemoteConfiguration.ApplyOpenCodeCatalog(config, configs.Append(config));
     }
 
     private IEnumerable<string> CatalogSettings(DirectoryInfo workspaceRoot)

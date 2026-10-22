@@ -618,6 +618,8 @@ public class Program
         builder.Services.AddSingleton<IAspireSkillsInstaller, AspireSkillsInstaller>();
         builder.Services.AddSingleton<IPlaywrightCliRunner, PlaywrightCliRunner>();
         builder.Services.AddSingleton<PlaywrightCliInstaller>();
+        builder.Services.AddTransient<AgentConfiguration>();
+        builder.Services.AddSingleton<Func<AgentConfiguration>>(sp => sp.GetRequiredService<AgentConfiguration>);
         builder.Services.AddSingleton<IAgentClient, CopilotAgentClient>();
         builder.Services.AddSingleton<IAgentClient, ClaudeCodeAgentClient>();
         builder.Services.AddSingleton<IAgentClient, OpenCodeAgentClient>();

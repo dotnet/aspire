@@ -26,7 +26,7 @@ internal interface IAgentClient
 
     Task UpdateIntegrationConfigAsync(
         JsonObject config, DirectoryInfo workspaceRoot, AgentConfigurationScope scope,
-        AgentConfigurationReadContext reads, CancellationToken cancellationToken);
+        AgentConfiguration edit, CancellationToken cancellationToken);
 
     string GetMcpConfigPath(AgentConfigurationScope scope, DirectoryInfo workspaceRoot);
 
@@ -35,7 +35,7 @@ internal interface IAgentClient
 
     Task<(JsonObject Config, string Path)> ReadMcpConfigAsync(
         string configFilePath, DirectoryInfo workspaceRoot, AgentConfigurationScope scope,
-        AgentConfigurationReadContext reads, CancellationToken cancellationToken);
+        AgentConfiguration edit, CancellationToken cancellationToken);
 
     (bool Repaired, bool Added) UpdateMcpConfig(
         JsonObject config, string configFilePath, bool configureServer, AgentConfigurationScope scope);

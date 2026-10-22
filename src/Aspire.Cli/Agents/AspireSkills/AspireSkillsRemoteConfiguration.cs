@@ -5,12 +5,12 @@ using System.Globalization;
 using System.Text.Json.Nodes;
 using Aspire.Cli.Resources;
 
-namespace Aspire.Cli.Agents;
+namespace Aspire.Cli.Agents.AspireSkills;
 
 /// <summary>
 /// Aspire plugin and OpenCode catalog registration without acquiring their content.
 /// </summary>
-internal static class AspireSkillsConfiguration
+internal static class AspireSkillsRemoteConfiguration
 {
     internal const string MarketplaceName = "aspire-skills";
     internal const string PluginName = "aspire@aspire-skills";
@@ -25,9 +25,9 @@ internal static class AspireSkillsConfiguration
         var enabled = false;
         foreach (var path in settings)
         {
-            if (await AgentConfigurationJson.ReadAsync(path, cancellationToken) is { } config &&
-                AgentConfigurationJson.OptionalObject(config, "enabledPlugins") is { } plugins &&
-                AgentConfigurationJson.Boolean(plugins, PluginName) is { } value)
+            if (await AgentConfiguration.ReadObjectAsync(path, cancellationToken) is { } config &&
+                OptionalObject(config, "enabledPlugins") is { } plugins &&
+                Boolean(plugins, PluginName) is { } value)
             {
                 enabled = value;
             }
@@ -43,7 +43,7 @@ internal static class AspireSkillsConfiguration
         foreach (var config in configs)
         {
             var sources = ReadOpenCodeSkills(config);
-            if (sources?.Select(AgentConfigurationJson.String).FirstOrDefault(IsOpenCodeCatalog) is { } existing &&
+            if (sources?.Select(String).FirstOrDefault(IsOpenCodeCatalog) is { } existing &&
                 (preferred is null || preferred.Contains("/main/opencode/", StringComparison.Ordinal)))
             {
                 preferred = existing;
@@ -58,16 +58,16 @@ internal static class AspireSkillsConfiguration
         {
             // With no skills setting, use the object form supported by both clients.
             target = new JsonArray();
-            AgentConfigurationJson.Object(root, "skills")["urls"] = target;
+            Object(root, "skills")["urls"] = target;
         }
-        if (!target.Any(value => IsOpenCodeCatalog(AgentConfigurationJson.String(value))))
+        if (!target.Any(value => IsOpenCodeCatalog(String(value))))
         {
             target.Add((JsonNode?)preferred);
         }
     }
 
     public static bool HasOpenCodeCatalog(JsonObject root)
-        => ReadOpenCodeSkills(root)?.Any(value => IsOpenCodeCatalog(AgentConfigurationJson.String(value))) is true;
+        => ReadOpenCodeSkills(root)?.Any(value => IsOpenCodeCatalog(String(value))) is true;
 
     private static JsonArray? ReadOpenCodeSkills(JsonObject root)
     {
@@ -78,11 +78,11 @@ internal static class AspireSkillsConfiguration
 
         if (skills is JsonObject v1)
         {
-            AgentConfigurationJson.OptionalStrings(v1, "paths");
-            return AgentConfigurationJson.OptionalStrings(v1, "urls");
+            OptionalStrings(v1, "paths");
+            return OptionalStrings(v1, "urls");
         }
         ArgumentNullException.ThrowIfNull(skills);
-        return AgentConfigurationJson.Strings(skills.AsArray());
+        return Strings(skills.AsArray());
     }
 
     private static bool IsOpenCodeCatalog(string? source)
@@ -101,23 +101,23 @@ internal static class AspireSkillsConfiguration
 
     public static async Task ApplyPluginAsync(
         JsonObject root, IEnumerable<string> settingsPaths, string targetPath,
-        AgentConfigurationReadContext reads, CancellationToken cancellationToken)
+        AgentConfiguration edit, CancellationToken cancellationToken)
     {
-        var settings = await AgentConfigurationJson.ReadSettingsAsync(settingsPaths, targetPath, reads, cancellationToken);
+        var settings = await ReadSettingsAsync(settingsPaths, targetPath, edit, cancellationToken);
         JsonObject? selectedSource = null;
         foreach (var config in settings.Append(root))
         {
-            var plugins = AgentConfigurationJson.OptionalObject(config, "enabledPlugins");
-            if (plugins is not null && AgentConfigurationJson.Boolean(plugins, PluginName) is false)
+            var plugins = OptionalObject(config, "enabledPlugins");
+            if (plugins is not null && Boolean(plugins, PluginName) is false)
             {
                 throw ExistingConfiguration($"enabledPlugins.{PluginName}");
             }
 
-            var marketplaces = AgentConfigurationJson.OptionalObject(config, "extraKnownMarketplaces");
+            var marketplaces = OptionalObject(config, "extraKnownMarketplaces");
             if (marketplaces is not null && marketplaces.TryGetPropertyValue(MarketplaceName, out var marketplaceNode))
             {
                 ArgumentNullException.ThrowIfNull(marketplaceNode);
-                var source = AgentConfigurationJson.OptionalObject(marketplaceNode.AsObject(), "source");
+                var source = OptionalObject(marketplaceNode.AsObject(), "source");
                 ArgumentNullException.ThrowIfNull(source);
 
                 if (!IsOfficialSource(source))
@@ -150,7 +150,7 @@ internal static class AspireSkillsConfiguration
             }
         }
 
-        var targetMarketplaces = AgentConfigurationJson.Object(root, "extraKnownMarketplaces");
+        var targetMarketplaces = Object(root, "extraKnownMarketplaces");
         if (!targetMarketplaces.ContainsKey(MarketplaceName))
         {
             targetMarketplaces[MarketplaceName] = new JsonObject
@@ -161,11 +161,86 @@ internal static class AspireSkillsConfiguration
 
         // No autoUpdate opt-in and no installedPlugins/cache metadata: registration is not
         // acquisition. Existing entries, including explicit false, were checked above.
-        var targetPlugins = AgentConfigurationJson.Object(root, "enabledPlugins");
+        var targetPlugins = Object(root, "enabledPlugins");
         if (!targetPlugins.ContainsKey(PluginName))
         {
             targetPlugins[PluginName] = true;
         }
+    }
+
+    public static async Task<IReadOnlyList<JsonObject>> ReadSettingsAsync(
+        IEnumerable<string> paths, string targetPath, AgentConfiguration edit, CancellationToken cancellationToken)
+    {
+        var settings = new List<JsonObject>();
+        foreach (var path in paths.Distinct(AgentPath.Comparer))
+        {
+            if (!AgentPath.Comparer.Equals(path, targetPath) &&
+                await edit.ReadObjectForEditAsync(path, cancellationToken) is { } root)
+            {
+                settings.Add(root);
+            }
+        }
+
+        return settings;
+    }
+
+    public static JsonObject? OptionalObject(JsonObject parent, string key)
+    {
+        if (!parent.TryGetPropertyValue(key, out var node))
+        {
+            return null;
+        }
+
+        ArgumentNullException.ThrowIfNull(node, key);
+        return node.AsObject();
+    }
+
+    public static JsonObject Object(JsonObject parent, string key)
+    {
+        var value = OptionalObject(parent, key);
+        if (value is null)
+        {
+            value = new JsonObject();
+            parent[key] = value;
+        }
+
+        return value;
+    }
+
+    public static JsonArray? OptionalStrings(JsonObject parent, string key)
+    {
+        if (!parent.TryGetPropertyValue(key, out var node))
+        {
+            return null;
+        }
+
+        ArgumentNullException.ThrowIfNull(node, key);
+        return Strings(node.AsArray());
+    }
+
+    public static JsonArray Strings(JsonArray array)
+    {
+        foreach (var value in array)
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _ = value.GetValue<string>();
+        }
+
+        return array;
+    }
+
+    public static string? String(JsonNode? node)
+        => node is JsonValue value && value.TryGetValue<string>(out var text) ? text : null;
+
+    public static bool? Boolean(JsonObject parent, string key)
+    {
+        if (!parent.TryGetPropertyValue(key, out var node))
+        {
+            return null;
+        }
+
+        ArgumentNullException.ThrowIfNull(node, key);
+        return node.GetValue<bool>();
     }
 
     internal static InvalidOperationException ExistingConfiguration(string key)
@@ -173,10 +248,10 @@ internal static class AspireSkillsConfiguration
 
     private static bool IsOfficialSource(JsonObject source)
     {
-        return AgentConfigurationJson.String(source["source"]) switch
+        return String(source["source"]) switch
         {
-            "github" => string.Equals(AgentConfigurationJson.String(source["repo"]), Repository, StringComparison.OrdinalIgnoreCase),
-            "git" => AgentConfigurationJson.String(source["url"]) is { } url &&
+            "github" => string.Equals(String(source["repo"]), Repository, StringComparison.OrdinalIgnoreCase),
+            "git" => String(source["url"]) is { } url &&
                 (string.Equals(url.TrimEnd('/'), $"https://github.com/{Repository}", StringComparison.OrdinalIgnoreCase) ||
                  string.Equals(url.TrimEnd('/'), $"https://github.com/{Repository}.git", StringComparison.OrdinalIgnoreCase)),
             _ => false

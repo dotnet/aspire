@@ -34,21 +34,25 @@ internal sealed class TelemetryHookConfigurator : ITelemetryHookConfigurator
     private readonly ITelemetryHookInstaller _installer;
     private readonly CliExecutionContext _executionContext;
     private readonly IEnvironment _environment;
+    private readonly Func<AgentConfiguration> _createConfiguration;
     private readonly ILogger<TelemetryHookConfigurator> _logger;
 
     public TelemetryHookConfigurator(
         ITelemetryHookInstaller installer,
         CliExecutionContext executionContext,
         IEnvironment environment,
+        Func<AgentConfiguration> createConfiguration,
         ILogger<TelemetryHookConfigurator> logger)
     {
         ArgumentNullException.ThrowIfNull(installer);
         ArgumentNullException.ThrowIfNull(executionContext);
         ArgumentNullException.ThrowIfNull(environment);
+        ArgumentNullException.ThrowIfNull(createConfiguration);
         ArgumentNullException.ThrowIfNull(logger);
         _installer = installer;
         _executionContext = executionContext;
         _environment = environment;
+        _createConfiguration = createConfiguration;
         _logger = logger;
     }
 
@@ -138,9 +142,9 @@ internal sealed class TelemetryHookConfigurator : ITelemetryHookConfigurator
                 },
             };
 
-            var reads = new AgentConfigurationReadContext();
-            await reads.ReadAsync(filePath, cancellationToken);
-            await AgentConfigurationFile.WriteAsync(filePath, config, reads, cancellationToken);
+            var edit = _createConfiguration();
+            await edit.ReadBytesForEditAsync(filePath, cancellationToken);
+            await edit.PublishAsync(filePath, config, cancellationToken);
             return true;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -155,11 +159,11 @@ internal sealed class TelemetryHookConfigurator : ITelemetryHookConfigurator
         var claudeDirectory = ClaudeCodePaths.GetConfigDirectory(_executionContext, _environment);
         var settingsPath = Path.Combine(claudeDirectory, ClaudeSettingsFileName);
 
-        var reads = new AgentConfigurationReadContext();
+        var edit = _createConfiguration();
         byte[]? bytes;
         try
         {
-            bytes = await reads.ReadAsync(settingsPath, cancellationToken);
+            bytes = await edit.ReadBytesForEditAsync(settingsPath, cancellationToken);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -264,7 +268,7 @@ internal sealed class TelemetryHookConfigurator : ITelemetryHookConfigurator
         try
         {
             Directory.CreateDirectory(claudeDirectory);
-            await AgentConfigurationFile.WriteAsync(settingsPath, settings, reads, cancellationToken);
+            await edit.PublishAsync(settingsPath, settings, cancellationToken);
             return null;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)

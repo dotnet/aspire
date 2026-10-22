@@ -98,7 +98,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         await File.WriteAllTextAsync(Path.Combine(context.Project.FullName, "apphost.cs"), string.Empty);
         var sourcePrompts = 0;
         var riskWarning = string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_PluginRiskWarning,
-            AspireSkillsConfiguration.RepositoryUrl);
+            AspireSkillsRemoteConfiguration.RepositoryUrl);
         var interaction = new TestInteractionService();
         interaction.PromptForSelectionCallback = (prompt, choices, formatter, _) =>
         {
@@ -1100,7 +1100,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
             {
                 Assert.Equal(KnownEmojis.Warning, message.Emoji);
                 Assert.Equal(string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_PluginRiskWarning,
-                    AspireSkillsConfiguration.RepositoryUrl), message.Message);
+                    AspireSkillsRemoteConfiguration.RepositoryUrl), message.Message);
             },
             message =>
             {

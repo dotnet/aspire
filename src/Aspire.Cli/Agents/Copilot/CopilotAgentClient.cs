@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json.Nodes;
+using Aspire.Cli.Agents.AspireSkills;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 
@@ -47,7 +48,7 @@ internal sealed class CopilotAgentClient(CliExecutionContext context, IEnvironme
 
     public Task<bool> HasIntegrationRegistrationAsync(
         DirectoryInfo workspaceRoot, AgentConfigurationScope scope, CancellationToken cancellationToken)
-        => AspireSkillsConfiguration.HasPluginRegistrationAsync(GetSettingsFiles(workspaceRoot, scope), cancellationToken);
+        => AspireSkillsRemoteConfiguration.HasPluginRegistrationAsync(GetSettingsFiles(workspaceRoot, scope), cancellationToken);
 
     public string GetIntegrationConfigPath(AgentConfigurationScope scope, DirectoryInfo workspaceRoot)
     {
@@ -59,9 +60,9 @@ internal sealed class CopilotAgentClient(CliExecutionContext context, IEnvironme
 
     public Task UpdateIntegrationConfigAsync(
         JsonObject config, DirectoryInfo workspaceRoot, AgentConfigurationScope scope,
-        AgentConfigurationReadContext reads, CancellationToken cancellationToken)
-        => AspireSkillsConfiguration.ApplyPluginAsync(config, GetSettingsFiles(workspaceRoot, scope),
-            GetIntegrationConfigPath(scope, workspaceRoot), reads, cancellationToken);
+        AgentConfiguration edit, CancellationToken cancellationToken)
+        => AspireSkillsRemoteConfiguration.ApplyPluginAsync(config, GetSettingsFiles(workspaceRoot, scope),
+            GetIntegrationConfigPath(scope, workspaceRoot), edit, cancellationToken);
 
     public string GetMcpConfigPath(AgentConfigurationScope scope, DirectoryInfo workspaceRoot)
         => scope is AgentConfigurationScope.Project ? Path.Combine(workspaceRoot.FullName, ".mcp.json")
@@ -83,8 +84,8 @@ internal sealed class CopilotAgentClient(CliExecutionContext context, IEnvironme
 
     public async Task<(JsonObject Config, string Path)> ReadMcpConfigAsync(
         string configFilePath, DirectoryInfo workspaceRoot, AgentConfigurationScope scope,
-        AgentConfigurationReadContext reads, CancellationToken cancellationToken)
-        => (await McpConfigFileHelper.ReadConfigAsync(configFilePath, s_mcp.JsonDocumentOptions, reads, cancellationToken), configFilePath);
+        AgentConfiguration edit, CancellationToken cancellationToken)
+        => (await McpConfigFileHelper.ReadConfigAsync(configFilePath, s_mcp.JsonDocumentOptions, edit, cancellationToken), configFilePath);
 
     public (bool Repaired, bool Added) UpdateMcpConfig(
         JsonObject config, string configFilePath, bool configureServer, AgentConfigurationScope scope)

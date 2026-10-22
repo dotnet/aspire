@@ -5,7 +5,7 @@ using System.Globalization;
 using System.Text.Json;
 using Aspire.Cli.Resources;
 
-namespace Aspire.Cli.Agents;
+namespace Aspire.Cli.Agents.AspireSkills;
 
 internal static class LocalAspireSkills
 {

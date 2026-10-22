@@ -27,9 +27,9 @@ internal sealed class InterceptingAgentClient(IAgentClient inner, Func<Task> aft
 
     public async Task UpdateIntegrationConfigAsync(
         JsonObject config, DirectoryInfo workspaceRoot, AgentConfigurationScope scope,
-        AgentConfigurationReadContext reads, CancellationToken cancellationToken)
+        AgentConfiguration edit, CancellationToken cancellationToken)
     {
-        await inner.UpdateIntegrationConfigAsync(config, workspaceRoot, scope, reads, cancellationToken);
+        await inner.UpdateIntegrationConfigAsync(config, workspaceRoot, scope, edit, cancellationToken);
         await afterUpdate();
     }
 
@@ -41,8 +41,8 @@ internal sealed class InterceptingAgentClient(IAgentClient inner, Func<Task> aft
 
     public Task<(JsonObject Config, string Path)> ReadMcpConfigAsync(
         string configFilePath, DirectoryInfo workspaceRoot, AgentConfigurationScope scope,
-        AgentConfigurationReadContext reads, CancellationToken cancellationToken)
-        => inner.ReadMcpConfigAsync(configFilePath, workspaceRoot, scope, reads, cancellationToken);
+        AgentConfiguration edit, CancellationToken cancellationToken)
+        => inner.ReadMcpConfigAsync(configFilePath, workspaceRoot, scope, edit, cancellationToken);
 
     public (bool Repaired, bool Added) UpdateMcpConfig(
         JsonObject config, string configFilePath, bool configureServer, AgentConfigurationScope scope)

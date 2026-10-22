@@ -28,6 +28,7 @@ internal sealed class AgentInitCommand : BaseCommand
 {
     private readonly IAgentEnvironmentDetector _agentEnvironmentDetector;
     private readonly IReadOnlyList<IAgentClient> _clients;
+    private readonly Func<AgentConfiguration> _createConfiguration;
     private readonly IAspireSkillsInstaller _aspireSkillsInstaller;
     private readonly PlaywrightCliInstaller _playwrightCliInstaller;
     private readonly IGitRepository _gitRepository;
@@ -40,6 +41,7 @@ internal sealed class AgentInitCommand : BaseCommand
     public AgentInitCommand(
         IAgentEnvironmentDetector agentEnvironmentDetector,
         IEnumerable<IAgentClient> clients,
+        Func<AgentConfiguration> createConfiguration,
         IAspireSkillsInstaller aspireSkillsInstaller,
         PlaywrightCliInstaller playwrightCliInstaller,
         IGitRepository gitRepository,
@@ -50,6 +52,7 @@ internal sealed class AgentInitCommand : BaseCommand
     {
         _agentEnvironmentDetector = agentEnvironmentDetector;
         _clients = clients.ToArray();
+        _createConfiguration = createConfiguration;
         AgentsOption = CreateAgentsOption(_clients);
         _aspireSkillsInstaller = aspireSkillsInstaller;
         _playwrightCliInstaller = playwrightCliInstaller;
@@ -403,7 +406,7 @@ internal sealed class AgentInitCommand : BaseCommand
                 string.Equals(sourceProvided ? requestedSource : defaultSource, "native", StringComparison.OrdinalIgnoreCase))
             {
                 InteractionService.DisplayMessage(KnownEmojis.Warning, string.Format(CultureInfo.CurrentCulture,
-                    AgentCommandStrings.InitCommand_PluginRiskWarning, AspireSkillsConfiguration.RepositoryUrl));
+                    AgentCommandStrings.InitCommand_PluginRiskWarning, AspireSkillsRemoteConfiguration.RepositoryUrl));
                 InteractionService.DisplayEmptyLine();
             }
 
@@ -557,7 +560,7 @@ internal sealed class AgentInitCommand : BaseCommand
         if (skillsMode is AspireSkillsMode.Native)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var results = await AgentConfigurationEditor.ApplyAsync(selectedClients, workspaceRoot, scope, cancellationToken);
+            var results = await AgentConfiguration.ApplyNativeAsync(selectedClients, workspaceRoot, scope, _createConfiguration, cancellationToken);
             hasErrors |= DisplayNativeConfigurationResults(results, workspaceRoot);
         }
 
@@ -646,9 +649,9 @@ internal sealed class AgentInitCommand : BaseCommand
                     AgentCommandStrings.InitCommand_McpConfigurationDescription, firstTarget.Client.DisplayName, targets.Key);
                 try
                 {
-                    var reads = new AgentConfigurationReadContext();
+                    var edit = _createConfiguration();
                     var (config, configFilePath) = await firstTarget.Client.ReadMcpConfigAsync(
-                        targets.Key, workspaceRoot, scope, reads, cancellationToken);
+                        targets.Key, workspaceRoot, scope, edit, cancellationToken);
                     var notifications = new List<(KnownEmoji Emoji, string Message)>();
                     // Legacy repairs share the same selection, scope, and consent as new configuration.
                     foreach (var (client, _, configureServer) in targets)
@@ -669,7 +672,7 @@ internal sealed class AgentInitCommand : BaseCommand
 
                     if (notifications.Count > 0)
                     {
-                        await AgentConfigurationFile.WriteAsync(configFilePath, config, reads, cancellationToken);
+                        await edit.PublishAsync(configFilePath, config, cancellationToken);
                     }
 
                     foreach (var (emoji, message) in notifications)

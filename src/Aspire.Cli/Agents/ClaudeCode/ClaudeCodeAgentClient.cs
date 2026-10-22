@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json.Nodes;
+using Aspire.Cli.Agents.AspireSkills;
 using Aspire.Cli.Resources;
 
 namespace Aspire.Cli.Agents.ClaudeCode;
@@ -29,8 +30,9 @@ internal sealed class ClaudeCodeAgentClient(CliExecutionContext context, IEnviro
 
     public Task<bool> HasIntegrationRegistrationAsync(
         DirectoryInfo workspaceRoot, AgentConfigurationScope scope, CancellationToken cancellationToken)
-        => AspireSkillsConfiguration.HasPluginRegistrationAsync(
-            GetSettingsFiles(workspaceRoot, scope, new AgentConfigurationReadContext()), cancellationToken);
+        => AspireSkillsRemoteConfiguration.HasPluginRegistrationAsync(
+            GetSettingsFiles(workspaceRoot, scope,
+                AgentConfiguration.EnumerateJsonFiles(Path.Combine(ManagedSettingsDirectory, "managed-settings.d"))), cancellationToken);
 
     public string GetIntegrationConfigPath(AgentConfigurationScope scope, DirectoryInfo workspaceRoot)
     {
@@ -43,9 +45,11 @@ internal sealed class ClaudeCodeAgentClient(CliExecutionContext context, IEnviro
 
     public Task UpdateIntegrationConfigAsync(
         JsonObject config, DirectoryInfo workspaceRoot, AgentConfigurationScope scope,
-        AgentConfigurationReadContext reads, CancellationToken cancellationToken)
-        => AspireSkillsConfiguration.ApplyPluginAsync(config, GetSettingsFiles(workspaceRoot, scope, reads),
-            GetIntegrationConfigPath(scope, workspaceRoot), reads, cancellationToken);
+        AgentConfiguration edit, CancellationToken cancellationToken)
+        => AspireSkillsRemoteConfiguration.ApplyPluginAsync(config,
+            GetSettingsFiles(workspaceRoot, scope,
+                edit.GetJsonFilesForEdit(Path.Combine(ManagedSettingsDirectory, "managed-settings.d"))),
+            GetIntegrationConfigPath(scope, workspaceRoot), edit, cancellationToken);
 
     public string GetMcpConfigPath(AgentConfigurationScope scope, DirectoryInfo workspaceRoot)
         => scope is AgentConfigurationScope.Project ? Path.Combine(workspaceRoot.FullName, ".mcp.json")
@@ -57,8 +61,8 @@ internal sealed class ClaudeCodeAgentClient(CliExecutionContext context, IEnviro
 
     public async Task<(JsonObject Config, string Path)> ReadMcpConfigAsync(
         string configFilePath, DirectoryInfo workspaceRoot, AgentConfigurationScope scope,
-        AgentConfigurationReadContext reads, CancellationToken cancellationToken)
-        => (await McpConfigFileHelper.ReadConfigAsync(configFilePath, s_mcp.JsonDocumentOptions, reads, cancellationToken), configFilePath);
+        AgentConfiguration edit, CancellationToken cancellationToken)
+        => (await McpConfigFileHelper.ReadConfigAsync(configFilePath, s_mcp.JsonDocumentOptions, edit, cancellationToken), configFilePath);
 
     public (bool Repaired, bool Added) UpdateMcpConfig(
         JsonObject config, string configFilePath, bool configureServer, AgentConfigurationScope scope)
@@ -71,8 +75,11 @@ internal sealed class ClaudeCodeAgentClient(CliExecutionContext context, IEnviro
 
     public override string ToString() => Id;
 
+    private string ManagedSettingsDirectory
+        => AgentPath.GetManagedSettingsDirectory(context, environment, "ClaudeCode", "claude-code");
+
     private IEnumerable<string> GetSettingsFiles(
-        DirectoryInfo workspaceRoot, AgentConfigurationScope scope, AgentConfigurationReadContext reads)
+        DirectoryInfo workspaceRoot, AgentConfigurationScope scope, IEnumerable<string> fragments)
     {
         yield return Path.Combine(ClaudeCodePaths.GetConfigDirectory(context, environment), "settings.json");
         if (scope is AgentConfigurationScope.Project)
@@ -80,10 +87,8 @@ internal sealed class ClaudeCodeAgentClient(CliExecutionContext context, IEnviro
             yield return Path.Combine(workspaceRoot.FullName, ".claude", "settings.json");
             yield return Path.Combine(workspaceRoot.FullName, ".claude", "settings.local.json");
         }
-        var managed = AgentPath.GetManagedSettingsDirectory(context, environment, "ClaudeCode", "claude-code");
-        yield return Path.Combine(managed, "managed-settings.json");
-        var fragments = Path.Combine(managed, "managed-settings.d");
-        foreach (var path in reads.GetJsonFiles(fragments))
+        yield return Path.Combine(ManagedSettingsDirectory, "managed-settings.json");
+        foreach (var path in fragments)
         {
             yield return path;
         }

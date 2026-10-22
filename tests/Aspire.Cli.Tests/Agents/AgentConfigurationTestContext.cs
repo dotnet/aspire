@@ -67,18 +67,18 @@ internal sealed class AgentConfigurationTestContext : IDisposable
 
     public Task<IReadOnlyList<AgentTargetResult>> ConfigureIntegrationAsync(
         AgentConfigurationScope scope, IReadOnlyList<IAgentClient> clients, CancellationToken cancellationToken = default)
-        => AgentConfigurationEditor.ApplyAsync(clients, Project, scope, cancellationToken);
+        => AgentConfiguration.ApplyNativeAsync(clients, Project, scope, static () => new AgentConfiguration(), cancellationToken);
 
     public async Task<(string Path, bool Repaired, bool Added)> ConfigureMcpAsync(
         IAgentClient client, AgentConfigurationScope scope, CancellationToken cancellationToken = default)
     {
-        var reads = new AgentConfigurationReadContext();
+        var edit = new AgentConfiguration();
         var (config, path) = await client.ReadMcpConfigAsync(
-            client.GetMcpConfigPath(scope, Project), Project, scope, reads, cancellationToken);
+            client.GetMcpConfigPath(scope, Project), Project, scope, edit, cancellationToken);
         var (repaired, added) = client.UpdateMcpConfig(config, path, configureServer: true, scope);
         if (repaired || added)
         {
-            await AgentConfigurationFile.WriteAsync(path, config, reads, cancellationToken);
+            await edit.PublishAsync(path, config, cancellationToken);
         }
 
         return (path, repaired, added);

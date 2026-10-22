@@ -111,18 +111,18 @@ public class AgentConfigurationPublicationTests(ITestOutputHelper output) : IDis
     {
         var path = _context.OpenCode.GetIntegrationConfigPath(AgentConfigurationScope.Global, _context.Project);
         await AgentConfigurationTestContext.WriteAsync(path, "{}");
-        var nativeReads = new AgentConfigurationReadContext();
-        var native = (await AgentConfigurationJson.ReadAsync(path, nativeReads, CancellationToken.None))!;
+        var nativeEdit = new AgentConfiguration();
+        var native = (await nativeEdit.ReadObjectForEditAsync(path, CancellationToken.None))!;
         await _context.OpenCode.UpdateIntegrationConfigAsync(
-            native, _context.Project, AgentConfigurationScope.Global, nativeReads, CancellationToken.None);
-        var mcpReads = new AgentConfigurationReadContext();
+            native, _context.Project, AgentConfigurationScope.Global, nativeEdit, CancellationToken.None);
+        var mcpEdit = new AgentConfiguration();
         var (mcp, mcpPath) = await _context.OpenCode.ReadMcpConfigAsync(
-            path, _context.Project, AgentConfigurationScope.Global, mcpReads, CancellationToken.None);
+            path, _context.Project, AgentConfigurationScope.Global, mcpEdit, CancellationToken.None);
         _context.OpenCode.UpdateMcpConfig(mcp, mcpPath, configureServer: true, AgentConfigurationScope.Global);
         Task[] writes =
         [
-            AgentConfigurationFile.WriteAsync(path, native, nativeReads, CancellationToken.None),
-            AgentConfigurationFile.WriteAsync(mcpPath, mcp, mcpReads, CancellationToken.None)
+            nativeEdit.PublishAsync(path, native, CancellationToken.None),
+            mcpEdit.PublishAsync(mcpPath, mcp, CancellationToken.None)
         ];
         var errors = await Task.WhenAll(writes.Select(write => Record.ExceptionAsync(() => write).AsTask())).DefaultTimeout();
         Assert.Single(errors, error => error is null);
@@ -145,11 +145,11 @@ public class AgentConfigurationPublicationTests(ITestOutputHelper output) : IDis
             await File.WriteAllTextAsync(target, "{}");
         }
         TestSymlinkHelper.TryCreateSymlink(path, target, isDirectory: false);
-        var reads = new AgentConfigurationReadContext();
-        await reads.ReadAsync(path, CancellationToken.None);
+        var edit = new AgentConfiguration();
+        await edit.ReadBytesForEditAsync(path, CancellationToken.None);
 
-        await Assert.ThrowsAsync<IOException>(() => AgentConfigurationFile.WriteAsync(
-            path, new JsonObject(), reads, CancellationToken.None)).DefaultTimeout();
+        await Assert.ThrowsAsync<IOException>(() => edit.PublishAsync(
+            path, new JsonObject(), CancellationToken.None)).DefaultTimeout();
 
         Assert.Equal(target, new FileInfo(path).LinkTarget);
         Assert.Equal(!dangling, File.Exists(target));
@@ -183,11 +183,11 @@ public class AgentConfigurationPublicationTests(ITestOutputHelper output) : IDis
         security.AddAccessRule(new FileSystemAccessRule(identity.User!, FileSystemRights.FullControl, AccessControlType.Allow));
         new FileInfo(path).SetAccessControl(security);
         var before = new FileInfo(path).GetAccessControl();
-        var reads = new AgentConfigurationReadContext();
-        await reads.ReadAsync(path, CancellationToken.None);
+        var edit = new AgentConfiguration();
+        await edit.ReadBytesForEditAsync(path, CancellationToken.None);
         // An open reader that does not share deletion forces ReplaceFile to fail after staging.
         using var reader = publicationFails ? File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read) : null;
-        var write = AgentConfigurationFile.WriteAsync(path, new JsonObject { ["token"] = "replacement" }, reads, CancellationToken.None);
+        var write = edit.PublishAsync(path, new JsonObject { ["token"] = "replacement" }, CancellationToken.None);
         if (publicationFails)
         {
             await Assert.ThrowsAsync<IOException>(() => write).DefaultTimeout();
@@ -225,11 +225,11 @@ public class AgentConfigurationPublicationTests(ITestOutputHelper output) : IDis
             TestPosixAcl.SetDefault(_context.Project.FullName, "user::rwx,user:65534:r-x,group::---,mask::r-x,other::---");
             acl = TestPosixAcl.Get(path);
         }
-        var reads = new AgentConfigurationReadContext();
-        await reads.ReadAsync(path, CancellationToken.None);
+        var edit = new AgentConfiguration();
+        await edit.ReadBytesForEditAsync(path, CancellationToken.None);
 
-        await AgentConfigurationFile.WriteAsync(path, new JsonObject { ["token"] = "replacement" },
-            reads, CancellationToken.None).DefaultTimeout();
+        await edit.PublishAsync(path, new JsonObject { ["token"] = "replacement" },
+            CancellationToken.None).DefaultTimeout();
 
         Assert.Equal(mode, File.GetUnixFileMode(path));
         if (parentAcl)
@@ -254,11 +254,11 @@ public class AgentConfigurationPublicationTests(ITestOutputHelper output) : IDis
         TestPosixAcl.Set(path, "user::rw-,user:65534:r--,group::---,mask::r--,other::---");
         var before = TestPosixAcl.Get(path);
         var mode = File.GetUnixFileMode(path);
-        var reads = new AgentConfigurationReadContext();
-        await reads.ReadAsync(path, CancellationToken.None);
+        var edit = new AgentConfiguration();
+        await edit.ReadBytesForEditAsync(path, CancellationToken.None);
 
-        await AgentConfigurationFile.WriteAsync(path, new JsonObject { ["token"] = "replacement" },
-            reads, CancellationToken.None).DefaultTimeout();
+        await edit.PublishAsync(path, new JsonObject { ["token"] = "replacement" },
+            CancellationToken.None).DefaultTimeout();
 
         Assert.Equal(before, TestPosixAcl.Get(path));
         Assert.Equal(mode, File.GetUnixFileMode(path));
@@ -314,11 +314,11 @@ public class AgentConfigurationPublicationTests(ITestOutputHelper output) : IDis
             ["token"] = JsonValue.Create("replacement",
                 JsonMetadataServices.CreateValueInfo<string>(JsonSourceGenerationContext.Default.Options, converter))
         };
-        var reads = new AgentConfigurationReadContext();
-        await reads.ReadAsync(path, CancellationToken.None);
+        var edit = new AgentConfiguration();
+        await edit.ReadBytesForEditAsync(path, CancellationToken.None);
 
-        await Assert.ThrowsAsync<IOException>(() => AgentConfigurationFile.WriteAsync(
-            path, settings, reads, CancellationToken.None)).DefaultTimeout();
+        await Assert.ThrowsAsync<IOException>(() => edit.PublishAsync(
+            path, settings, CancellationToken.None)).DefaultTimeout();
 
         Assert.Equal(original, await File.ReadAllTextAsync(path));
         if (accessAcl)

@@ -387,6 +387,7 @@ public class TelemetryHookConfiguratorTests(ITestOutputHelper outputHelper)
             homeDirectory: home);
         var environment = new TestEnvironment(environmentVariables);
         var installer = new TelemetryHookInstaller(executionContext, NullLogger<TelemetryHookInstaller>.Instance);
-        return new TelemetryHookConfigurator(installer, executionContext, environment, NullLogger<TelemetryHookConfigurator>.Instance);
+        return new TelemetryHookConfigurator(installer, executionContext, environment,
+            static () => new AgentConfiguration(), NullLogger<TelemetryHookConfigurator>.Instance);
     }
 }

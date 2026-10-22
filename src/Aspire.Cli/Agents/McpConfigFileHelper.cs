@@ -31,7 +31,7 @@ internal static class McpConfigFileHelper
     /// </summary>
     /// <param name="configFilePath">The path to the MCP configuration file.</param>
     /// <param name="documentOptions">The JSON parsing options for this configuration format.</param>
-    /// <param name="reads">Tracks configuration inputs until publication.</param>
+    /// <param name="edit">Owns configuration inputs and publication for this update.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>The parsed <see cref="JsonObject"/> from the file, or a new empty <see cref="JsonObject"/> if the file doesn't exist.</returns>
     /// <exception cref="InvalidOperationException">
@@ -40,9 +40,9 @@ internal static class McpConfigFileHelper
     /// </exception>
     public static async Task<JsonObject> ReadConfigAsync(
         string configFilePath, JsonDocumentOptions documentOptions,
-        AgentConfigurationReadContext reads, CancellationToken cancellationToken)
+        AgentConfiguration edit, CancellationToken cancellationToken)
     {
-        var content = await reads.ReadAsync(configFilePath, cancellationToken);
+        var content = await edit.ReadBytesForEditAsync(configFilePath, cancellationToken);
         if (content is null)
         {
             return new JsonObject();

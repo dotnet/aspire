@@ -17,12 +17,111 @@ using Microsoft.Win32.SafeHandles;
 
 namespace Aspire.Cli.Agents;
 
-internal static partial class AgentConfigurationFile
+internal sealed partial class AgentConfiguration
 {
-    public static async Task WriteAsync(
-        string path, JsonObject settings, AgentConfigurationReadContext reads, CancellationToken cancellationToken)
+    private readonly Dictionary<string, byte[]?> _files = new(AgentPath.Comparer);
+    private readonly Dictionary<string, (bool Exists, string[] Files)> _directories = new(AgentPath.Comparer);
+
+    public static async Task<IReadOnlyList<AgentTargetResult>> ApplyNativeAsync(
+        IEnumerable<IAgentClient> clients, DirectoryInfo workspaceRoot, AgentConfigurationScope scope,
+        Func<AgentConfiguration> createConfiguration, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var results = new List<AgentTargetResult>();
+        foreach (var targets in clients.Distinct().GroupBy(client => Path.GetFullPath(client.GetIntegrationConfigPath(scope, workspaceRoot)), AgentPath.Comparer))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var status = AgentConfigurationStatus.Configured;
+            string? message = null;
+            try
+            {
+                var edit = createConfiguration();
+                var original = await edit.ReadObjectForEditAsync(targets.Key, cancellationToken);
+                var root = original?.DeepClone().AsObject() ?? new JsonObject();
+                foreach (var client in targets)
+                {
+                    await client.UpdateIntegrationConfigAsync(root, workspaceRoot, scope, edit, cancellationToken);
+                }
+
+                if (JsonNode.DeepEquals(original ?? new JsonObject(), root))
+                {
+                    await edit.ValidateAsync(targets.Key, cancellationToken);
+                    status = AgentConfigurationStatus.Unchanged;
+                }
+                else
+                {
+                    await edit.PublishAsync(targets.Key, root, cancellationToken);
+                }
+            }
+            catch (Exception ex) when (ex is JsonException or InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+            {
+                status = AgentConfigurationStatus.Failed;
+                message = ex.Message;
+            }
+
+            results.Add(new(targets.ToArray(), targets.Key, status, message));
+        }
+
+        return results;
+    }
+
+    public static JsonObject ParseObject(ReadOnlySpan<byte> content)
+    {
+        // Files and inline settings use the same UTF-8 JSONC contract, including a BOM.
+        if (content.StartsWith(new byte[] { 0xef, 0xbb, 0xbf }))
+        {
+            content = content[3..];
+        }
+
+        var parseOptions = ConfigurationHelper.ParseOptions;
+        parseOptions.AllowDuplicateProperties = false;
+        var root = JsonNode.Parse(content, documentOptions: parseOptions);
+        ArgumentNullException.ThrowIfNull(root);
+
+        return root.AsObject();
+    }
+
+    public static async Task<JsonObject?> ReadObjectAsync(string path, CancellationToken cancellationToken)
+        => ParseFile(path, await ReadFileAsync(Path.GetFullPath(path), cancellationToken));
+
+    public static IEnumerable<string> EnumerateJsonFiles(string directory)
+        => ReadDirectory(Path.GetFullPath(directory)).Files;
+
+    public async Task<byte[]?> ReadBytesForEditAsync(string path, CancellationToken cancellationToken)
     {
         path = Path.GetFullPath(path);
+        if (!_files.TryGetValue(path, out var content))
+        {
+            content = await ReadFileAsync(path, cancellationToken);
+            _files.Add(path, content);
+        }
+
+        return content;
+    }
+
+    public async Task<JsonObject?> ReadObjectForEditAsync(string path, CancellationToken cancellationToken)
+        => ParseFile(path, await ReadBytesForEditAsync(path, cancellationToken));
+
+    public IEnumerable<string> GetJsonFilesForEdit(string directory)
+    {
+        directory = Path.GetFullPath(directory);
+        if (!_directories.TryGetValue(directory, out var contents))
+        {
+            contents = ReadDirectory(directory);
+            _directories.Add(directory, contents);
+        }
+
+        return contents.Files;
+    }
+
+    public async Task PublishAsync(string path, JsonObject settings, CancellationToken cancellationToken)
+    {
+        path = Path.GetFullPath(path);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!_files.ContainsKey(path))
+        {
+            throw Refused(path);
+        }
         RejectSymbolicLink(path);
         // All agent settings writers use the same sidecar, including MCP and user hooks.
         // Acquire only after read-only configuration validation, so refused setup creates no files.
@@ -38,7 +137,7 @@ internal static partial class AgentConfigurationFile
             throw new IOException(ex.Message, ex);
         }
         using var lease = fileLock;
-        await reads.ValidateAsync(path, cancellationToken);
+        await ValidateAsync(path, cancellationToken);
         RejectSymbolicLink(path);
 
         var existed = File.Exists(path);
@@ -65,7 +164,7 @@ internal static partial class AgentConfigurationFile
             {
                 throw Refused(path);
             }
-            await reads.ValidateAsync(path, cancellationToken);
+            await ValidateAsync(path, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             RejectSymbolicLink(path);
             if (existed && OperatingSystem.IsWindows())
@@ -88,6 +187,81 @@ internal static partial class AgentConfigurationFile
             }
         }
     }
+
+    private async Task ValidateAsync(string targetPath, CancellationToken cancellationToken)
+    {
+        foreach (var (path, content) in _files)
+        {
+            if (!AgentPath.Comparer.Equals(path, targetPath) &&
+                !Equal(content, await ReadFileAsync(path, cancellationToken)))
+            {
+                throw Refused(path);
+            }
+        }
+
+        // Check the destination last, not before awaiting inherited settings reads.
+        if (_files.TryGetValue(targetPath, out var original) &&
+            !Equal(original, await ReadFileAsync(targetPath, cancellationToken)))
+        {
+            throw Refused(targetPath);
+        }
+
+        foreach (var (path, previous) in _directories)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var current = ReadDirectory(path);
+            if (previous.Exists != current.Exists || !previous.Files.SequenceEqual(current.Files, AgentPath.Comparer))
+            {
+                throw Refused(path);
+            }
+        }
+    }
+
+    private static JsonObject? ParseFile(string path, byte[]? bytes)
+    {
+        if (bytes is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            return ParseObject(bytes);
+        }
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException or ArgumentException)
+        {
+            throw new InvalidOperationException($"{path}: {ex.Message}", ex);
+        }
+    }
+
+    private static async Task<byte[]?> ReadFileAsync(string path, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await File.ReadAllBytesAsync(path, cancellationToken);
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        {
+            return null;
+        }
+    }
+
+    private static (bool Exists, string[] Files) ReadDirectory(string path)
+    {
+        try
+        {
+            return (true, Directory.EnumerateFiles(path, "*.json")
+                .Where(file => !Path.GetFileName(file).StartsWith('.'))
+                .Order(StringComparer.Ordinal).ToArray());
+        }
+        catch (DirectoryNotFoundException)
+        {
+            return (false, []);
+        }
+    }
+
+    private static bool Equal(byte[]? left, byte[]? right)
+        => left is null ? right is null : right is not null && left.AsSpan().SequenceEqual(right);
 
     private static FileStream CreateStagingFile(string temporary, string destination, bool existed)
     {
@@ -267,3 +441,16 @@ internal static partial class AgentConfigurationFile
     [LibraryImport("libc", EntryPoint = "fchown", SetLastError = true)]
     private static partial int ChangeOwner(SafeFileHandle descriptor, uint owner, uint group);
 }
+
+internal enum AgentConfigurationStatus
+{
+    Configured,
+    Unchanged,
+    Failed
+}
+
+internal sealed record AgentTargetResult(
+    IReadOnlyList<IAgentClient> Clients,
+    string TargetPath,
+    AgentConfigurationStatus Status,
+    string? Message);
