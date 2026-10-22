@@ -72,8 +72,8 @@ jobs:
             set -euo pipefail
           fi
 
-          # Keep main's best-effort API review behavior; release baselines must be complete.
-          find src -name '*.csproj' | grep -Ev 'Aspire.ProjectTemplates|Aspire.Cli' | while IFS= read -r proj; do
+          # Exclude projects that do not generate an API baseline for the product framework.
+          find src -name '*.csproj' | grep -Ev '/(Aspire.ProjectTemplates|Aspire.Cli|Aspire.Dashboard|Aspire.Hosting.Analyzers|Aspire.Hosting.Azure.Provisioning.Generators|Aspire.Hosting.Integration.Analyzers|Aspire.Hosting.Native[^/]*|Aspire.Hosting.RemoteHost|Aspire.Managed|Aspire.AppHost.Sdk|Aspire.TerminalHost|Tools)/' | while IFS= read -r proj; do
             ./dotnet.sh build "$proj" -f "$API_TARGET_FRAMEWORK" --configuration Release --no-incremental /t:"Build;GenAPIGenerateReferenceAssemblySource"
           done
         continue-on-error: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.dry_run == false) }}
