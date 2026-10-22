@@ -468,7 +468,7 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
                 {
                     Assert.Equal([string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_PluginRiskWarning,
                         AspireSkillsRemoteConfiguration.RepositoryUrl)], riskWarnings);
-                    Assert.Equal(["embedded", "native"], choices.Cast<string>());
+                    Assert.Equal(["embedded", "remote"], choices.Cast<string>());
                     return "embedded";
                 }
                 Assert.Equal([AgentConfigurationScope.Project, AgentConfigurationScope.Global], choices.Cast<AgentConfigurationScope>());
@@ -1309,12 +1309,12 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
     }
 
     [Theory]
-    [InlineData("native", "copied")]
-    [InlineData("native", "shared")]
-    [InlineData("native", "unreadable")]
-    [InlineData("embedded", "native")]
+    [InlineData("remote", "copied")]
+    [InlineData("remote", "shared")]
+    [InlineData("remote", "unreadable")]
+    [InlineData("embedded", "remote")]
     [InlineData("embedded", "malformed")]
-    public async Task ExistingSources_WarnForCopiedSkillsButStopForInvalidOrEnabledNativeSettings(string source, string existing)
+    public async Task ExistingSources_WarnForCopiedSkillsButStopForInvalidOrEnabledRemoteSettings(string source, string existing)
     {
         using var context = new AgentConfigurationTestContext(outputHelper);
         var hasCopiedSkills = existing is "copied" or "shared";
@@ -1324,7 +1324,7 @@ public class AgentInitClientSelectionTests(ITestOutputHelper outputHelper)
         var content = existing switch
         {
             "copied" or "shared" => "My customized Aspire instructions.",
-            "native" => """{"enabledPlugins":{"aspire@aspire-skills":true}}""",
+            "remote" => """{"enabledPlugins":{"aspire@aspire-skills":true}}""",
             _ => "{broken"
         };
         if (existing == "unreadable")

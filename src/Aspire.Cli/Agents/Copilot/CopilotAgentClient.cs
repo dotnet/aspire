@@ -3,12 +3,15 @@
 
 using System.Text.Json.Nodes;
 using Aspire.Cli.Agents.AspireSkills;
+using Aspire.Cli.Agents.Hooks;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Agents.Copilot;
 
-internal sealed class CopilotAgentClient(CliExecutionContext context, IEnvironment environment)
+internal sealed class CopilotAgentClient(
+    CliExecutionContext context, IEnvironment environment, ILogger<CopilotAgentClient> logger)
     : IAgentClient
 {
     public const string ClientId = "copilot";
@@ -95,6 +98,60 @@ internal sealed class CopilotAgentClient(CliExecutionContext context, IEnvironme
         var added = configureServer && McpConfigFileHelper.ConfigureMcpServer(config, configuration, scope, configFilePath);
 
         return (repaired, added);
+    }
+
+    public async Task<TelemetryHookConfigurationResult> ConfigureTelemetryHooksAsync(
+        AgentEnvironment detectedEnvironments, CancellationToken cancellationToken)
+    {
+        var targetEnvironment = detectedEnvironments & (AgentEnvironment.CopilotApp | AgentEnvironment.CopilotCli);
+        // App and CLI share one user hook. Prefer the App display name when both are detected.
+        // Canonical scripts still attribute App events to copilot-cli:
+        // https://github.com/microsoft/aspire-skills/issues/71.
+        if (targetEnvironment.HasFlag(AgentEnvironment.CopilotApp))
+        {
+            targetEnvironment = AgentEnvironment.CopilotApp;
+        }
+        if (targetEnvironment == AgentEnvironment.None)
+        {
+            return new TelemetryHookConfigurationResult(AgentEnvironment.None, []);
+        }
+
+        try
+        {
+            // Copilot reads Claude settings only at project scope, so these user hooks cannot
+            // duplicate Claude's user hook. Direct exec also avoids a shell launch per tool call.
+            // https://docs.github.com/en/copilot/reference/hooks-reference#command-hooks
+            var hooksDirectory = Path.Combine(GetSettingsDirectory(), "hooks");
+            Directory.CreateDirectory(hooksDirectory);
+            var filePath = Path.Combine(hooksDirectory, "aspire-telemetry.json");
+            var (command, args) = AgentTelemetryHook.GetCommand(AgentTelemetryProtocol.HookOptionName);
+            var config = new JsonObject
+            {
+                ["version"] = 1,
+                ["hooks"] = new JsonObject
+                {
+                    ["postToolUse"] = new JsonArray(
+                        new JsonObject
+                        {
+                            ["type"] = "command",
+                            ["exec"] = command,
+                            ["args"] = new JsonArray(args.Select(arg => (JsonNode?)JsonValue.Create(arg)).ToArray()),
+                            ["timeoutSec"] = 30,
+                        }),
+                },
+            };
+            var edit = new AgentConfiguration();
+            await edit.ReadBytesForEditAsync(filePath, cancellationToken);
+            await edit.PublishAsync(filePath, config, cancellationToken);
+
+            return new TelemetryHookConfigurationResult(targetEnvironment, []);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            logger.LogDebug(ex, "Failed to write Copilot CLI telemetry hook configuration.");
+            return new TelemetryHookConfigurationResult(AgentEnvironment.None,
+                [new TelemetryHookSkip(targetEnvironment, TelemetryHookSkipReason.WriteFailed)]);
+        }
     }
 
     public override string ToString() => Id;

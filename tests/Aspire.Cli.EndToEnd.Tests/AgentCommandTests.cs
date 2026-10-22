@@ -404,7 +404,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
 
     [Fact]
     [CaptureWorkspaceOnFailure]
-    public async Task AgentInit_Native_RegistersAllClientsOfflineAndPreservesSettingsOnRepeat()
+    public async Task AgentInit_Remote_RegistersAllClientsOfflineAndPreservesSettingsOnRepeat()
     {
         var repoRoot = CliE2ETestHelpers.GetRepoRoot();
         var strategy = CliInstallStrategy.Detect(output.WriteLine);
@@ -448,7 +448,7 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
               }
             }
             """;
-        // Opt-out suppresses emission, but global setup still registers the native hook.
+        // Opt-out suppresses emission, but global setup still registers the CLI hook.
         var expectedClaudeGlobalSettings = JsonNode.Parse(expectedPluginSettings)!;
         expectedClaudeGlobalSettings["hooks"] = JsonNode.Parse($$"""
             {
@@ -495,14 +495,14 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
                 await File.WriteAllTextAsync(path, original, TestContext.Current.CancellationToken);
             }
 
-            var command = $"aspire agent init --workspace-root . --agents all --scope {scope} --skills aspire --aspire-source native --mcp=false --non-interactive";
+            var command = $"aspire agent init --workspace-root . --agents all --scope {scope} --skills aspire --aspire-source remote --mcp=false --non-interactive";
             await auto.RunCommandAsync(command, counter, TimeSpan.FromSeconds(60));
             var configured = new Dictionary<string, byte[]>();
             foreach (var (path, _, expected) in files)
             {
                 var bytes = await File.ReadAllBytesAsync(path, TestContext.Current.CancellationToken);
                 Assert.True(JsonNode.DeepEquals(JsonNode.Parse(expected), JsonNode.Parse(bytes)),
-                    $"Unexpected native registration in {path}: {System.Text.Encoding.UTF8.GetString(bytes)}");
+                    $"Unexpected remote registration in {path}: {System.Text.Encoding.UTF8.GetString(bytes)}");
                 configured.Add(path, bytes);
             }
 

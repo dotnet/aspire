@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.InternalTesting;
 
 namespace Aspire.Cli.Tests.Agents;
 
-public class OpenCodeConfigurationTests(ITestOutputHelper output) : IDisposable
+public class OpenCodeAgentClientTests(ITestOutputHelper output) : IDisposable
 {
     private readonly AgentConfigurationTestContext _context = new(output);
 
@@ -62,7 +62,7 @@ public class OpenCodeConfigurationTests(ITestOutputHelper output) : IDisposable
         Assert.Equal(lower, await File.ReadAllTextAsync(lowerPath));
         Assert.Equal(higher, await File.ReadAllTextAsync(higherPath));
         await Verify(await File.ReadAllTextAsync(ownerPath), "json")
-            .UseFileName($"{nameof(OpenCodeConfigurationTests)}.{nameof(McpEdit_DocumentPrecedenceOutranksServerRepresentation)}_nativeHigher={nativeHigher}")
+            .UseFileName($"{nameof(OpenCodeAgentClientTests)}.{nameof(McpEdit_DocumentPrecedenceOutranksServerRepresentation)}_nativeHigher={nativeHigher}")
             .DisableRequireUniquePrefix();
     }
 
@@ -179,7 +179,7 @@ public class OpenCodeConfigurationTests(ITestOutputHelper output) : IDisposable
         Assert.Equal(AgentConfigurationStatus.Unchanged, Assert.Single(repeated).Status);
         Assert.Equal(content, await File.ReadAllTextAsync(results[0].TargetPath));
         await Verify(content, "json")
-            .UseFileName($"{nameof(OpenCodeConfigurationTests)}.{nameof(FreshUndetectedClient_RegistersOnlyTheStableV1Catalog)}")
+            .UseFileName($"{nameof(OpenCodeAgentClientTests)}.{nameof(FreshUndetectedClient_RegistersOnlyTheStableV1Catalog)}")
             .DisableRequireUniquePrefix();
         Assert.Empty((scope is AgentConfigurationScope.Project ? _context.Home : _context.Project).EnumerateFileSystemInfos());
     }
@@ -316,7 +316,7 @@ public class OpenCodeConfigurationTests(ITestOutputHelper output) : IDisposable
         Assert.Equal(jsonc, results[0].TargetPath);
         Assert.Equal(pinned, await File.ReadAllTextAsync(json));
         await Verify(await File.ReadAllTextAsync(jsonc), "json")
-            .UseFileName($"{nameof(OpenCodeConfigurationTests)}.{nameof(JsoncSelection_PreservesInheritedCatalogPinsAndUnrelatedMcp)}")
+            .UseFileName($"{nameof(OpenCodeAgentClientTests)}.{nameof(JsoncSelection_PreservesInheritedCatalogPinsAndUnrelatedMcp)}")
             .DisableRequireUniquePrefix();
     }
 

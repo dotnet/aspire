@@ -798,8 +798,8 @@ namespace Aspire.Cli.Resources {
         internal static string InitCommand_FailedTarget => ResourceManager.GetString("InitCommand_FailedTarget", resourceCulture);
         internal static string InitCommand_InvalidAspireSource => ResourceManager.GetString("InitCommand_InvalidAspireSource", resourceCulture);
         internal static string InitCommand_LocalSkillsConflict => ResourceManager.GetString("InitCommand_LocalSkillsConflict", resourceCulture);
-        internal static string InitCommand_NativeSkillsChoice => ResourceManager.GetString("InitCommand_NativeSkillsChoice", resourceCulture);
-        internal static string InitCommand_NativeSkillsConflict => ResourceManager.GetString("InitCommand_NativeSkillsConflict", resourceCulture);
+        internal static string InitCommand_RemoteSkillsChoice => ResourceManager.GetString("InitCommand_RemoteSkillsChoice", resourceCulture);
+        internal static string InitCommand_RemoteSkillsConflict => ResourceManager.GetString("InitCommand_RemoteSkillsConflict", resourceCulture);
         internal static string InitCommand_PluginRiskWarning => ResourceManager.GetString("InitCommand_PluginRiskWarning", resourceCulture);
         internal static string InitCommand_ConfiguredTargets => ResourceManager.GetString("InitCommand_ConfiguredTargets", resourceCulture);
         internal static string InitCommand_ConfigurationTarget => ResourceManager.GetString("InitCommand_ConfigurationTarget", resourceCulture);

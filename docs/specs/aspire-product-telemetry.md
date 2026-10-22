@@ -180,8 +180,6 @@ Dashboard shutdown retains its service-style policy, even when the host's cancel
 
 `aspire agent init` registers all-tool post-invocation hooks for supported Copilot and Claude clients through [TelemetryHookConfigurator](../../src/Aspire.Cli/Agents/Hooks/TelemetryHookConfigurator.cs). Hooks invoke `aspire agent telemetry --hook` directly through the CLI executable or its managed entry point, without launching PowerShell or Bash. Re-running initialization refreshes Aspire's registration while preserving unrelated user hooks.
 
-Agent setup preserves unrelated settings and existing file permissions. It refuses updates when it detects concurrent changes or a symbolic-link destination.
-
 [AgentTelemetryHook](../../src/Aspire.Cli/Agents/Hooks/AgentTelemetryHook.cs) classifies incoming tool invocations before initializing telemetry. It reports only the Aspire-owned catalog:
 
 | Event type | Eligible action |

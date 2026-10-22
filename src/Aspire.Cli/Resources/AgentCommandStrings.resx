@@ -308,7 +308,7 @@
     <comment>{0} identifies the conflicting JSON setting or environment override.</comment>
   </data>
   <data name="InitCommand_AspireSourceOptionDescription" xml:space="preserve">
-    <value>Source for the selected Aspire integration: native (plugin) or embedded (bundled skill files)</value>
+    <value>Source for the selected Aspire integration: remote (plugin) or embedded (bundled skill files)</value>
   </data>
   <data name="InitCommand_EmbeddedSkillsChoice" xml:space="preserve">
     <value>Embedded (bundled skill files)</value>
@@ -328,17 +328,17 @@
     <comment>{0} lists each agent's configuration path and failure details, one target per line.</comment>
   </data>
   <data name="InitCommand_InvalidAspireSource" xml:space="preserve">
-    <value>Invalid Aspire source '{0}'. Choose either 'native' or 'embedded'.</value>
+    <value>Invalid Aspire source '{0}'. Choose either 'remote' or 'embedded'.</value>
   </data>
   <data name="InitCommand_LocalSkillsConflict" xml:space="preserve">
     <value>Local Aspire skill files may override plugin skills:
 {0}</value>
     <comment>{0} lists the local skill entry-point paths, one per line.</comment>
   </data>
-  <data name="InitCommand_NativeSkillsChoice" xml:space="preserve">
+  <data name="InitCommand_RemoteSkillsChoice" xml:space="preserve">
     <value>Remote (plugin)</value>
   </data>
-  <data name="InitCommand_NativeSkillsConflict" xml:space="preserve">
+  <data name="InitCommand_RemoteSkillsConflict" xml:space="preserve">
     <value>The Aspire plugin is already enabled. Embedded skills were not installed and no configuration was changed. Keep the plugin, or disable its Aspire registration before choosing embedded skills.</value>
   </data>
   <data name="InitCommand_PluginRiskWarning" xml:space="preserve">

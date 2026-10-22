@@ -189,8 +189,6 @@ internal static class CliTestHelper
         services.AddSingleton(options.AspireSkillsInstallerFactory);
         services.AddSingleton(options.PlaywrightCliRunnerFactory);
         services.AddSingleton<PlaywrightCliInstaller>();
-        services.AddTransient<AgentConfiguration>();
-        services.AddSingleton<Func<AgentConfiguration>>(sp => sp.GetRequiredService<AgentConfiguration>);
         services.AddSingleton<IAgentClient, CopilotAgentClient>();
         services.AddSingleton<IAgentClient, ClaudeCodeAgentClient>();
         services.AddSingleton<IAgentClient, OpenCodeAgentClient>();

@@ -22,9 +22,9 @@ internal sealed partial class AgentConfiguration
     private readonly Dictionary<string, byte[]?> _files = new(AgentPath.Comparer);
     private readonly Dictionary<string, (bool Exists, string[] Files)> _directories = new(AgentPath.Comparer);
 
-    public static async Task<IReadOnlyList<AgentTargetResult>> ApplyNativeAsync(
+    public static async Task<IReadOnlyList<AgentTargetResult>> ApplyRemoteAsync(
         IEnumerable<IAgentClient> clients, DirectoryInfo workspaceRoot, AgentConfigurationScope scope,
-        Func<AgentConfiguration> createConfiguration, CancellationToken cancellationToken)
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var results = new List<AgentTargetResult>();
@@ -35,7 +35,7 @@ internal sealed partial class AgentConfiguration
             string? message = null;
             try
             {
-                var edit = createConfiguration();
+                var edit = new AgentConfiguration();
                 var original = await edit.ReadObjectForEditAsync(targets.Key, cancellationToken);
                 var root = original?.DeepClone().AsObject() ?? new JsonObject();
                 foreach (var client in targets)

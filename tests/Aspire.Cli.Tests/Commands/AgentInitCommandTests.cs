@@ -35,7 +35,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         Assert.Empty(defaults.Errors);
         Assert.Equal("embedded", defaults.GetValue<string>("--aspire-source"));
 
-        foreach (var source in new[] { "embedded", "native" })
+        foreach (var source in new[] { "embedded", "remote" })
         {
             var result = root.Parse($"{command} --skills aspire,playwright-cli,dotnet-inspect --aspire-source {source.ToUpperInvariant()}");
             Assert.Empty(result.Errors);
@@ -49,10 +49,10 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
 
         foreach (var options in new[]
         {
-            "--aspire-source", "--aspire-source none", "--aspire-source bundled", "--aspire-source true", "--aspire-source 0",
-            "--aspire-source native,embedded", "--aspire-source native --aspire-source embedded",
+            "--aspire-source", "--aspire-source none", "--aspire-source bundled", "--aspire-source true", "--aspire-source 0", "--aspire-source native",
+            "--aspire-source remote,embedded", "--aspire-source remote --aspire-source embedded",
             "--skills", "--skills unsupported", "--skills aspire,none", "--skills mcp", "--skills playwright", "--skills \"\"",
-            "--aspire-skills native", "--playwright", "--dotnet-inspect"
+            "--aspire-skills remote", "--playwright", "--dotnet-inspect"
         })
         {
             Assert.NotEmpty(root.Parse($"{command} {options}").Errors);
@@ -60,7 +60,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
 
         Assert.Equal(["all", "aspire", "dotnet-inspect", "none", "playwright-cli"],
             root.Parse($"{command} --skills ").GetCompletions().Select(item => item.Label).Order(StringComparer.Ordinal));
-        Assert.Equal(["embedded", "native"],
+        Assert.Equal(["embedded", "remote"],
             root.Parse($"{command} --aspire-source ").GetCompletions().Select(item => item.Label).Order(StringComparer.Ordinal));
     }
 
@@ -103,12 +103,12 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         interaction.PromptForSelectionCallback = (prompt, choices, formatter, _) =>
         {
             Assert.Equal(AgentCommandStrings.InitCommand_ConfigureAspireSourcePrompt, prompt);
-            Assert.Equal(["embedded", "native"], choices.Cast<string>());
-            Assert.Equal([AgentCommandStrings.InitCommand_EmbeddedSkillsChoice, AgentCommandStrings.InitCommand_NativeSkillsChoice],
+            Assert.Equal(["embedded", "remote"], choices.Cast<string>());
+            Assert.Equal([AgentCommandStrings.InitCommand_EmbeddedSkillsChoice, AgentCommandStrings.InitCommand_RemoteSkillsChoice],
                 choices.Cast<object>().Select(formatter));
             Assert.Equal(riskWarning, Assert.Single(interaction.DisplayedMessages).Message);
             sourcePrompts++;
-            return "native";
+            return "remote";
         };
         var services = context.CreateServiceCollection(outputHelper, options =>
         {
@@ -132,9 +132,9 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Theory]
-    [InlineData("native", true)]
+    [InlineData("remote", true)]
     [InlineData("embedded", true)]
-    [InlineData("native", false)]
+    [InlineData("remote", false)]
     [InlineData("embedded", false)]
     public async Task AgentInit_ExplicitSourceDoesNotEnableUnselectedAspire(string source, bool interactive)
     {
@@ -169,13 +169,13 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
     [Theory]
     [InlineData("agent init", "", "", false)]
     [InlineData("agent init", "aspire", "embedded", false)]
-    [InlineData("agent init", "aspire", "NATIVE", true)]
-    [InlineData("agent init", "all", "native", true)]
+    [InlineData("agent init", "aspire", "REMOTE", true)]
+    [InlineData("agent init", "all", "remote", true)]
     [InlineData("agent init", "all", "embedded", false)]
     [InlineData("mcp init", "", "", false)]
-    [InlineData("mcp init", "aspire", "native", true)]
+    [InlineData("mcp init", "aspire", "remote", true)]
     [InlineData("mcp init", "aspire", "embedded", false)]
-    public async Task AgentInit_ResolvesSourceWithoutInteractiveInput(string command, string skills, string source, bool native)
+    public async Task AgentInit_ResolvesSourceWithoutInteractiveInput(string command, string skills, string source, bool remote)
     {
         using var context = new AgentConfigurationTestContext(outputHelper);
         var services = context.CreateServiceCollection(outputHelper, options =>
@@ -191,8 +191,8 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
             $"{command} --agents copilot --scope project --mcp=false --non-interactive{skillsArgument}{sourceArgument}");
 
         Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
-        Assert.Equal(native, File.Exists(context.Copilot.GetIntegrationConfigPath(AgentConfigurationScope.Project, context.Project)));
-        Assert.Equal(!native, File.Exists(Path.Combine(context.Project.FullName, ".agents", "skills", "aspire", "SKILL.md")));
+        Assert.Equal(remote, File.Exists(context.Copilot.GetIntegrationConfigPath(AgentConfigurationScope.Project, context.Project)));
+        Assert.Equal(!remote, File.Exists(Path.Combine(context.Project.FullName, ".agents", "skills", "aspire", "SKILL.md")));
         Assert.Empty(context.Home.EnumerateFileSystemInfos());
     }
 
@@ -1065,7 +1065,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
     [InlineData("claude", "global", ".claude/settings.json")]
     [InlineData("opencode", "project", "opencode.jsonc")]
     [InlineData("opencode", "global", ".config/opencode/opencode.jsonc")]
-    public async Task Native_RegistersSelectedUndetectedClientsWithoutBundleOrMcp(string client, string scope, string relativePath)
+    public async Task Remote_RegistersSelectedUndetectedClientsWithoutBundleOrMcp(string client, string scope, string relativePath)
     {
         using var context = new AgentConfigurationTestContext(outputHelper);
         var messages = new List<string>();
@@ -1079,12 +1079,12 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
             options.CliHostEnvironmentFactory = _ => TestHelpers.CreateInteractiveHostEnvironment();
             options.InteractionServiceFactory = _ => interaction;
             options.AspireSkillsInstallerFactory = _ => new FakeAspireSkillsInstaller(context.ExecutionContext,
-                AspireSkillsInstallResult.Failed("Native source must not acquire a bundle."));
+                AspireSkillsInstallResult.Failed("Remote source must not acquire a bundle."));
         });
         using var provider = services.BuildServiceProvider();
 
         var result = provider.GetRequiredService<RootCommand>().Parse(
-            $"agent init --agents {client} --scope {scope} --skills aspire --aspire-source native");
+            $"agent init --agents {client} --scope {scope} --skills aspire --aspire-source remote");
 
         Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
         var root = scope == "project" ? context.Project : context.Home;
@@ -1116,7 +1116,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
     [Theory]
     [InlineData(nameof(AgentConfigurationScope.Project))]
     [InlineData(nameof(AgentConfigurationScope.Global))]
-    public async Task Native_CombinesNewAndExistingRegistrationsWithOneRowPerAgent(string scopeName)
+    public async Task Remote_CombinesNewAndExistingRegistrationsWithOneRowPerAgent(string scopeName)
     {
         using var context = new AgentConfigurationTestContext(outputHelper);
         var scope = Enum.Parse<AgentConfigurationScope>(scopeName);
@@ -1139,7 +1139,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         {
             var previousMessageCount = interaction.DisplayedMessages.Count;
             var result = provider.GetRequiredService<RootCommand>().Parse(
-                $"agent init --agents copilot,claude,opencode --scope {scope} --skills aspire --aspire-source native --mcp=false");
+                $"agent init --agents copilot,claude,opencode --scope {scope} --skills aspire --aspire-source remote --mcp=false");
 
             Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
             var messages = interaction.DisplayedMessages.Skip(previousMessageCount).ToArray();
@@ -1152,50 +1152,8 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         }
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void Native_ListsEachAgentsSettingsOnOneRowAndKeepsFailuresSeparate(bool projectInsideHome)
-    {
-        using var context = new AgentConfigurationTestContext(outputHelper);
-        var interaction = new TestInteractionService();
-        using var provider = context.CreateServiceCollection(outputHelper, options =>
-        {
-            options.InteractionServiceFactory = _ => interaction;
-        }).BuildServiceProvider();
-        var workspaceRoot = projectInsideHome ? context.Home.CreateSubdirectory("project") : context.Project;
-        var projectPath = context.Copilot.GetIntegrationConfigPath(AgentConfigurationScope.Project, workspaceRoot);
-        var userPath = context.Copilot.GetIntegrationConfigPath(AgentConfigurationScope.Global, workspaceRoot);
-        var sharedPath = context.ClaudeCode.GetIntegrationConfigPath(AgentConfigurationScope.Project, workspaceRoot);
-        var failedPath = context.OpenCode.GetIntegrationConfigPath(AgentConfigurationScope.Project, workspaceRoot);
-        const string reason = "Could not write settings.";
-        AgentTargetResult[] results =
-        [
-            new([context.Copilot], projectPath, AgentConfigurationStatus.Configured, null),
-            new([context.Copilot], userPath, AgentConfigurationStatus.Unchanged, null),
-            new([context.Copilot, context.ClaudeCode], sharedPath, AgentConfigurationStatus.Unchanged, null),
-            new([context.Copilot], projectPath, AgentConfigurationStatus.Unchanged, null),
-            new([context.OpenCode], failedPath, AgentConfigurationStatus.Failed, reason)
-        ];
-
-        var hasErrors = provider.GetRequiredService<AgentInitCommand>().DisplayNativeConfigurationResults(
-            results, workspaceRoot);
-
-        Assert.True(hasErrors);
-        var message = Assert.Single(interaction.DisplayedMessages);
-        Assert.Equal(KnownEmojis.Robot, message.Emoji);
-        Assert.Equal(string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_ConfiguredTargets,
-            "GitHub Copilot: .github/copilot/settings.json, ~/.copilot/settings.json, .claude/settings.json" +
-            $"{System.Environment.NewLine}  Claude Code: .claude/settings.json"), message.Message);
-        Assert.Equal(string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_FailedTarget,
-            $"OpenCode: opencode.jsonc{System.Environment.NewLine}  {reason}"),
-            Assert.Single(interaction.DisplayedErrors));
-        Assert.Empty(workspaceRoot.EnumerateFileSystemInfos());
-        Assert.Empty(context.Home.EnumerateFiles("*", SearchOption.AllDirectories));
-    }
-
     [Fact]
-    public async Task Native_FailedRegistrationsKeepEachTargetWithItsReason()
+    public async Task Remote_FailedRegistrationsKeepEachTargetWithItsReason()
     {
         using var context = new AgentConfigurationTestContext(outputHelper);
         const string original = """{"enabledPlugins":{"aspire@aspire-skills":false}}""";
@@ -1212,7 +1170,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         }).BuildServiceProvider();
 
         var result = provider.GetRequiredService<RootCommand>().Parse(
-            "agent init --agents copilot,claude --scope project --skills aspire --aspire-source native --mcp=false");
+            "agent init --agents copilot,claude --scope project --skills aspire --aspire-source remote --mcp=false");
 
         Assert.Equal(CliExitCodes.InvalidCommand, await result.InvokeAsync().DefaultTimeout());
         var reason = string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_ExistingConfigurationConflict,
@@ -1232,7 +1190,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task Native_OpenCodeSkillsAndMcpUseIndependentRepresentations(bool array)
+    public async Task Remote_OpenCodeSkillsAndMcpUseIndependentRepresentations(bool array)
     {
         using var context = new AgentConfigurationTestContext(outputHelper);
         var path = Path.Combine(context.Project.FullName, "opencode.json");
@@ -1243,7 +1201,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         using var provider = context.CreateServiceCollection(outputHelper).BuildServiceProvider();
 
         var result = provider.GetRequiredService<RootCommand>().Parse(
-            "agent init --agents opencode --scope project --skills aspire --aspire-source native --mcp");
+            "agent init --agents opencode --scope project --skills aspire --aspire-source remote --mcp");
 
         Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
         var content = await File.ReadAllTextAsync(path);
@@ -1259,7 +1217,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
             : new[] { "https://raw.githubusercontent.com/microsoft/aspire-skills/main/opencode/v1/" },
             sources.Select(value => (string)value!));
         var repeated = provider.GetRequiredService<RootCommand>().Parse(
-            "agent init --agents opencode --scope project --skills aspire --aspire-source native --mcp");
+            "agent init --agents opencode --scope project --skills aspire --aspire-source remote --mcp");
         Assert.Equal(CliExitCodes.Success, await repeated.InvokeAsync().DefaultTimeout());
         Assert.Equal(content, await File.ReadAllTextAsync(path));
         Assert.Equal([path], context.Project.EnumerateFiles().Select(file => file.FullName));
@@ -1269,7 +1227,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task Native_WarnsForConfiguredOpenCodeSkillRootsAndPreservesTheCopy(bool array)
+    public async Task Remote_WarnsForConfiguredOpenCodeSkillRootsAndPreservesTheCopy(bool array)
     {
         using var context = new AgentConfigurationTestContext(outputHelper);
         var configPath = Path.Combine(context.Project.FullName, ".opencode", "opencode.jsonc");
@@ -1286,7 +1244,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
         }).BuildServiceProvider();
 
         var result = provider.GetRequiredService<RootCommand>().Parse(
-            "agent init --agents opencode --scope project --skills aspire --aspire-source native --mcp=false");
+            "agent init --agents opencode --scope project --skills aspire --aspire-source remote --mcp=false");
 
         Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
         Assert.Empty(interaction.DisplayedErrors);
@@ -1339,7 +1297,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
     [InlineData("copilot", "{broken")]
     [InlineData("claude", "{broken")]
     [InlineData("opencode", """{"skills":[true],"mcp":{"servers":{}}}""")]
-    public async Task Native_FailedRegistration_StillConfiguresIndependentlyRequestedMcp(string clientId, string malformed)
+    public async Task Remote_FailedRegistration_StillConfiguresIndependentlyRequestedMcp(string clientId, string malformed)
     {
         using var context = new AgentConfigurationTestContext(outputHelper);
         var client = context.Clients.Single(client => client.Id == clientId);
@@ -1354,7 +1312,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
 
         var clients = clientId == "opencode" ? "opencode,copilot" : clientId;
         var result = provider.GetRequiredService<RootCommand>().Parse(
-            $"agent init --agents {clients} --scope project --skills aspire --aspire-source native --mcp");
+            $"agent init --agents {clients} --scope project --skills aspire --aspire-source remote --mcp");
 
         Assert.Equal(CliExitCodes.InvalidCommand, await result.InvokeAsync().DefaultTimeout());
         Assert.Single(interaction.DisplayedErrors);

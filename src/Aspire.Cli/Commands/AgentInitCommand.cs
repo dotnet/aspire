@@ -28,7 +28,6 @@ internal sealed class AgentInitCommand : BaseCommand
 {
     private readonly IAgentEnvironmentDetector _agentEnvironmentDetector;
     private readonly IReadOnlyList<IAgentClient> _clients;
-    private readonly Func<AgentConfiguration> _createConfiguration;
     private readonly IAspireSkillsInstaller _aspireSkillsInstaller;
     private readonly PlaywrightCliInstaller _playwrightCliInstaller;
     private readonly IGitRepository _gitRepository;
@@ -41,7 +40,6 @@ internal sealed class AgentInitCommand : BaseCommand
     public AgentInitCommand(
         IAgentEnvironmentDetector agentEnvironmentDetector,
         IEnumerable<IAgentClient> clients,
-        Func<AgentConfiguration> createConfiguration,
         IAspireSkillsInstaller aspireSkillsInstaller,
         PlaywrightCliInstaller playwrightCliInstaller,
         IGitRepository gitRepository,
@@ -52,7 +50,6 @@ internal sealed class AgentInitCommand : BaseCommand
     {
         _agentEnvironmentDetector = agentEnvironmentDetector;
         _clients = clients.ToArray();
-        _createConfiguration = createConfiguration;
         AgentsOption = CreateAgentsOption(_clients);
         _aspireSkillsInstaller = aspireSkillsInstaller;
         _playwrightCliInstaller = playwrightCliInstaller;
@@ -132,7 +129,7 @@ internal sealed class AgentInitCommand : BaseCommand
     {
         var option = new Option<string?>("--aspire-source")
         {
-            HelpName = "native|embedded",
+            HelpName = "remote|embedded",
             Description = AgentCommandStrings.InitCommand_AspireSourceOptionDescription,
             Recursive = true,
             Arity = ArgumentArity.ExactlyOne,
@@ -141,7 +138,7 @@ internal sealed class AgentInitCommand : BaseCommand
             {
                 var value = string.Join(",", result.Tokens.Select(static token => token.Value));
                 if (!string.Equals(value, "embedded", StringComparison.OrdinalIgnoreCase) &&
-                    !string.Equals(value, "native", StringComparison.OrdinalIgnoreCase))
+                    !string.Equals(value, "remote", StringComparison.OrdinalIgnoreCase))
                 {
                     result.AddError(string.Format(CultureInfo.CurrentCulture, AgentCommandStrings.InitCommand_InvalidAspireSource, value));
                 }
@@ -150,7 +147,7 @@ internal sealed class AgentInitCommand : BaseCommand
             }
         };
         option.CompletionSources.Clear();
-        option.CompletionSources.Add("native", "embedded");
+        option.CompletionSources.Add("remote", "embedded");
 
         return option;
     }
@@ -403,7 +400,7 @@ internal sealed class AgentInitCommand : BaseCommand
         {
             var (sourceProvided, requestedSource, defaultSource) = PromptBinding.Resolve(aspireSourceBinding);
             if ((!sourceProvided && _hostEnvironment.SupportsInteractiveInput) ||
-                string.Equals(sourceProvided ? requestedSource : defaultSource, "native", StringComparison.OrdinalIgnoreCase))
+                string.Equals(sourceProvided ? requestedSource : defaultSource, "remote", StringComparison.OrdinalIgnoreCase))
             {
                 InteractionService.DisplayMessage(KnownEmojis.Warning, string.Format(CultureInfo.CurrentCulture,
                     AgentCommandStrings.InitCommand_PluginRiskWarning, AspireSkillsRemoteConfiguration.RepositoryUrl));
@@ -412,16 +409,16 @@ internal sealed class AgentInitCommand : BaseCommand
 
             var source = await InteractionService.PromptForSelectionAsync(
                 AgentCommandStrings.InitCommand_ConfigureAspireSourcePrompt,
-                new[] { "embedded", "native" },
+                new[] { "embedded", "remote" },
                 value => value == "embedded"
                     ? AgentCommandStrings.InitCommand_EmbeddedSkillsChoice
-                    : AgentCommandStrings.InitCommand_NativeSkillsChoice,
+                    : AgentCommandStrings.InitCommand_RemoteSkillsChoice,
                 binding: aspireSourceBinding,
                 cancellationToken: cancellationToken);
             skillsMode = source switch
             {
                 "embedded" => AspireSkillsMode.Embedded,
-                "native" => AspireSkillsMode.Native,
+                "remote" => AspireSkillsMode.Remote,
                 _ => throw new UnreachableException($"Unexpected Aspire source: '{source}'.")
             };
         }
@@ -473,7 +470,7 @@ internal sealed class AgentInitCommand : BaseCommand
         try
         {
             string? conflict = null;
-            if (skillsMode is AspireSkillsMode.Native)
+            if (skillsMode is AspireSkillsMode.Remote)
             {
                 var local = LocalAspireSkills.Find(ExecutionContext.WorkingDirectory, workspaceRoot,
                     selectedClients, cancellationToken);
@@ -499,7 +496,7 @@ internal sealed class AgentInitCommand : BaseCommand
                 {
                     if (await client.HasIntegrationRegistrationAsync(workspaceRoot, scope, cancellationToken))
                     {
-                        conflict = AgentCommandStrings.InitCommand_NativeSkillsConflict;
+                        conflict = AgentCommandStrings.InitCommand_RemoteSkillsConflict;
                         break;
                     }
                 }
@@ -557,11 +554,11 @@ internal sealed class AgentInitCommand : BaseCommand
                 .Select(client => client.GetSkillBaseDirectory(scope, workspaceRoot)));
         }
 
-        if (skillsMode is AspireSkillsMode.Native)
+        if (skillsMode is AspireSkillsMode.Remote)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var results = await AgentConfiguration.ApplyNativeAsync(selectedClients, workspaceRoot, scope, _createConfiguration, cancellationToken);
-            hasErrors |= DisplayNativeConfigurationResults(results, workspaceRoot);
+            var results = await AgentConfiguration.ApplyRemoteAsync(selectedClients, workspaceRoot, scope, cancellationToken);
+            hasErrors |= DisplayRemoteConfigurationResults(results, workspaceRoot);
         }
 
         // --- Phase 3: Apply copied skill files at each unique destination ---
@@ -649,7 +646,7 @@ internal sealed class AgentInitCommand : BaseCommand
                     AgentCommandStrings.InitCommand_McpConfigurationDescription, firstTarget.Client.DisplayName, targets.Key);
                 try
                 {
-                    var edit = _createConfiguration();
+                    var edit = new AgentConfiguration();
                     var (config, configFilePath) = await firstTarget.Client.ReadMcpConfigAsync(
                         targets.Key, workspaceRoot, scope, edit, cancellationToken);
                     var notifications = new List<(KnownEmoji Emoji, string Message)>();
@@ -926,7 +923,7 @@ internal sealed class AgentInitCommand : BaseCommand
         return uniqueValues;
     }
 
-    internal bool DisplayNativeConfigurationResults(IReadOnlyList<AgentTargetResult> results, DirectoryInfo workspaceRoot)
+    private bool DisplayRemoteConfigurationResults(IReadOnlyList<AgentTargetResult> results, DirectoryInfo workspaceRoot)
     {
         var hasErrors = false;
         foreach (var resultGroup in results.GroupBy(result => result.Status switch
@@ -1075,6 +1072,6 @@ internal readonly record struct AgentInitExecutionResult(
 internal enum AspireSkillsMode
 {
     Embedded,
-    Native,
+    Remote,
     None
 }

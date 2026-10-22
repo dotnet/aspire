@@ -133,8 +133,8 @@
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_AspireSourceOptionDescription">
-        <source>Source for the selected Aspire integration: native (plugin) or embedded (bundled skill files)</source>
-        <target state="new">Source for the selected Aspire integration: native (plugin) or embedded (bundled skill files)</target>
+        <source>Source for the selected Aspire integration: remote (plugin) or embedded (bundled skill files)</source>
+        <target state="new">Source for the selected Aspire integration: remote (plugin) or embedded (bundled skill files)</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_ConfigurationTarget">
@@ -232,8 +232,8 @@
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_InvalidAspireSource">
-        <source>Invalid Aspire source '{0}'. Choose either 'native' or 'embedded'.</source>
-        <target state="new">Invalid Aspire source '{0}'. Choose either 'native' or 'embedded'.</target>
+        <source>Invalid Aspire source '{0}'. Choose either 'remote' or 'embedded'.</source>
+        <target state="new">Invalid Aspire source '{0}'. Choose either 'remote' or 'embedded'.</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_InvalidEnvironments">
@@ -273,16 +273,6 @@
         <target state="new">Configure the Aspire MCP server for selected agent environments. Omit to leave MCP unconfigured, pass '--mcp' to opt in, or pass '--mcp=false' to explicitly opt out</target>
         <note />
       </trans-unit>
-      <trans-unit id="InitCommand_NativeSkillsChoice">
-        <source>Remote (plugin)</source>
-        <target state="new">Remote (plugin)</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="InitCommand_NativeSkillsConflict">
-        <source>The Aspire plugin is already enabled. Embedded skills were not installed and no configuration was changed. Keep the plugin, or disable its Aspire registration before choosing embedded skills.</source>
-        <target state="new">The Aspire plugin is already enabled. Embedded skills were not installed and no configuration was changed. Keep the plugin, or disable its Aspire registration before choosing embedded skills.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="InitCommand_NoConfigurationSelected">
         <source>No agent configuration selected. Existing configuration was left unchanged.</source>
         <target state="new">No agent configuration selected. Existing configuration was left unchanged.</target>
@@ -307,6 +297,16 @@ Prefer skill files only? Choose Embedded, or install skills directly from {0}.</
       <trans-unit id="InitCommand_ProjectScope">
         <source>Project (Install in your workspace root; committed with your project)</source>
         <target state="new">Project (Install in your workspace root; committed with your project)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_RemoteSkillsChoice">
+        <source>Remote (plugin)</source>
+        <target state="new">Remote (plugin)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InitCommand_RemoteSkillsConflict">
+        <source>The Aspire plugin is already enabled. Embedded skills were not installed and no configuration was changed. Keep the plugin, or disable its Aspire registration before choosing embedded skills.</source>
+        <target state="new">The Aspire plugin is already enabled. Embedded skills were not installed and no configuration was changed. Keep the plugin, or disable its Aspire registration before choosing embedded skills.</target>
         <note />
       </trans-unit>
       <trans-unit id="InitCommand_ScopeOptionDescription">

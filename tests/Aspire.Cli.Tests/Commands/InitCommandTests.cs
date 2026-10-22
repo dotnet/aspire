@@ -682,7 +682,7 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
 
     [Theory]
     [InlineData("none")]
-    [InlineData("native")]
+    [InlineData("remote")]
     public async Task InitCommand_WhenAspireifyNotInstalled_DoesNotPrintFollowUpCommands(string skillsMode)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
@@ -707,7 +707,7 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
         using var serviceProvider = services.BuildServiceProvider();
         var initCommand = serviceProvider.GetRequiredService<InitCommand>();
 
-        var skillsOptions = skillsMode == "none" ? "--skills none" : "--skills aspire --aspire-source native";
+        var skillsOptions = skillsMode == "none" ? "--skills none" : "--skills aspire --aspire-source remote";
         var parseResult = initCommand.Parse($"init --language typescript {skillsOptions}");
         var exitCode = await parseResult.InvokeAsync().DefaultTimeout();
 

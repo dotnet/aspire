@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Cli.Agents.AspireSkills;
+using Aspire.Cli.Agents.Hooks;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 
@@ -199,6 +200,11 @@ internal sealed class OpenCodeAgentClient(CliExecutionContext context, IEnvironm
 
         return (repaired, added);
     }
+
+    // OpenCode does not yet have a verified telemetry hook schema.
+    public Task<TelemetryHookConfigurationResult> ConfigureTelemetryHooksAsync(
+        AgentEnvironment detectedEnvironments, CancellationToken cancellationToken)
+        => Task.FromResult(new TelemetryHookConfigurationResult(AgentEnvironment.None, []));
 
     public override string ToString() => Id;
 

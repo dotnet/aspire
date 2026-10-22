@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json.Nodes;
+using Aspire.Cli.Agents.Hooks;
 
 namespace Aspire.Cli.Agents;
 
@@ -39,6 +40,9 @@ internal interface IAgentClient
 
     (bool Repaired, bool Added) UpdateMcpConfig(
         JsonObject config, string configFilePath, bool configureServer, AgentConfigurationScope scope);
+
+    Task<TelemetryHookConfigurationResult> ConfigureTelemetryHooksAsync(
+        AgentEnvironment detectedEnvironments, CancellationToken cancellationToken);
 }
 
 internal enum AgentConfigurationScope
