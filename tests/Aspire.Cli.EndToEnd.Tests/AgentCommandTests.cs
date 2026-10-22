@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json.Nodes;
 using Aspire.Cli.EndToEnd.Tests.Helpers;
 using Hex1b.Automation;
 using Xunit;
@@ -398,6 +399,97 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
 
         Assert.True(File.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, "StarterApp", ".claude", "skills", "aspireify", "SKILL.md")));
         Assert.Equal(originalMcpConfig, await File.ReadAllTextAsync(mcpConfigPath));
+    }
+
+    [Fact]
+    [CaptureWorkspaceOnFailure]
+    public async Task AgentInit_Native_RegistersAllClientsOfflineAndPreservesSettingsOnRepeat()
+    {
+        var repoRoot = CliE2ETestHelpers.GetRepoRoot();
+        var strategy = CliInstallStrategy.Detect(output.WriteLine);
+        var workspace = TemporaryWorkspace.Create(output);
+        var project = workspace.CreateDirectory("project");
+        var home = workspace.CreateDirectory("home");
+
+        using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(
+            repoRoot, strategy, output, mountDockerSocket: true, workspace: workspace);
+        var counter = new SequenceCounter();
+        var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
+        await using var terminalRun = CliE2ETestHelpers.StartRun(
+            terminal, workspace, auto, counter, output, TestContext.Current.CancellationToken);
+
+        await auto.PrepareDockerEnvironmentAsync(counter, workspace);
+        await auto.InstallAspireCliAsync(strategy, counter);
+
+        await auto.RunCommandAsync("docker network disconnect bridge \"$HOSTNAME\"", counter);
+        var containerHome = CliE2ETestHelpers.ToContainerPath(home.FullName, workspace);
+        await auto.RunCommandAsync(
+            $"export HOME={AspireCliShellCommandHelpers.QuoteBashArg(containerHome)} " +
+            $"XDG_CONFIG_HOME={AspireCliShellCommandHelpers.QuoteBashArg($"{containerHome}/.config")} " +
+            $"COPILOT_HOME={AspireCliShellCommandHelpers.QuoteBashArg($"{containerHome}/.copilot")} " +
+            $"CLAUDE_CONFIG_DIR={AspireCliShellCommandHelpers.QuoteBashArg($"{containerHome}/.claude")} " +
+            "ASPIRE_CLI_TELEMETRY_OPTOUT=true", counter);
+        var containerProject = CliE2ETestHelpers.ToContainerPath(project.FullName, workspace);
+        await auto.RunCommandAsync($"cd {AspireCliShellCommandHelpers.QuoteBashArg(containerProject)}", counter);
+
+        const string pluginSettings = """{"theme":"dark","enabledPlugins":{"team@team":false}}""";
+        const string expectedPluginSettings = """
+            {
+              "theme": "dark",
+              "enabledPlugins": { "team@team": false, "aspire@aspire-skills": true },
+              "extraKnownMarketplaces": {
+                "aspire-skills": { "source": { "source": "github", "repo": "microsoft/aspire-skills" } }
+              }
+            }
+            """;
+        const string openCodeSettings = """
+            {"theme":"dark","mcp":{"custom":{"type":"remote","url":"https://example.test/mcp"}},"skills":{"paths":["./team-skills"],"urls":["https://example.test/skills/"]}}
+            """;
+        const string expectedOpenCodeSettings = """
+            {
+              "theme": "dark",
+              "mcp": { "custom": { "type": "remote", "url": "https://example.test/mcp" } },
+              "skills": {
+                "paths": ["./team-skills"],
+                "urls": ["https://example.test/skills/", "https://raw.githubusercontent.com/microsoft/aspire-skills/main/opencode/v1/"]
+              }
+            }
+            """;
+
+        foreach (var scope in new[] { "project", "global" })
+        {
+            var root = scope == "project" ? project.FullName : home.FullName;
+            var copilotDirectory = scope == "project" ? Path.Combine(root, ".github", "copilot") : Path.Combine(root, ".copilot");
+            (string Path, string Original, string Expected)[] files =
+            [
+                (Path.Combine(copilotDirectory, "settings.json"), pluginSettings, expectedPluginSettings),
+                (Path.Combine(root, ".claude", "settings.json"), pluginSettings, expectedPluginSettings),
+                (Path.Combine(scope == "project" ? root : Path.Combine(root, ".config", "opencode"), "opencode.jsonc"),
+                    openCodeSettings, expectedOpenCodeSettings)
+            ];
+            foreach (var (path, original, _) in files)
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                await File.WriteAllTextAsync(path, original, TestContext.Current.CancellationToken);
+            }
+
+            var command = $"aspire agent init --workspace-root . --agents all --scope {scope} --skills aspire --aspire-source native --mcp=false --non-interactive";
+            await auto.RunCommandAsync(command, counter, TimeSpan.FromSeconds(60));
+            var configured = new Dictionary<string, byte[]>();
+            foreach (var (path, _, expected) in files)
+            {
+                var bytes = await File.ReadAllBytesAsync(path, TestContext.Current.CancellationToken);
+                Assert.True(JsonNode.DeepEquals(JsonNode.Parse(expected), JsonNode.Parse(bytes)),
+                    $"Unexpected native registration in {path}: {System.Text.Encoding.UTF8.GetString(bytes)}");
+                configured.Add(path, bytes);
+            }
+
+            await auto.RunCommandAsync(command, counter, TimeSpan.FromSeconds(60));
+            foreach (var (path, bytes) in configured)
+            {
+                Assert.Equal(bytes, await File.ReadAllBytesAsync(path, TestContext.Current.CancellationToken));
+            }
+        }
     }
 
     private static void RequireCurrentAspireSkillsBundle(CliInstallStrategy strategy)
