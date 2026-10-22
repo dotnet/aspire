@@ -156,10 +156,12 @@ internal static class CliTestHelper
         services.AddSingleton(options.NuGetClientFactory);
         services.AddTransient(options.NuGetPackageCacheFactory);
         services.AddSingleton<TemplateNuGetConfigService>();
-        services.AddSingleton<LocalTemplateFactory>();
         services.AddSingleton(options.TemplateProviderFactory);
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, DotNetTemplateFactory>());
+        // Template registration checks the real PATH, independently of command-specific environment fakes.
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, DotNetTemplateFactory>(sp =>
+            ActivatorUtilities.CreateInstance<DotNetTemplateFactory>(sp, new HostEnvironment())));
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, CliTemplateFactory>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, TemplateEngineFactory>());
         services.AddSingleton(options.ConfigurationServiceFactory);
         services.AddSingleton(options.FeatureFlagsFactory);
         services.AddSingleton(options.CliUpdateNotifierFactory);
@@ -641,26 +643,7 @@ internal sealed class CliServiceCollectionTestOptions
 
     public Func<IServiceProvider, ITemplateProvider> TemplateProviderFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
-        var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
-        var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
-        var certificateService = serviceProvider.GetRequiredService<ICertificateService>();
-        var packagingService = serviceProvider.GetRequiredService<IPackagingService>();
-        var prompter = serviceProvider.GetRequiredService<INewCommandPrompter>();
-        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
-        var features = serviceProvider.GetRequiredService<IFeatures>();
-        var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
-        var hostEnvironment = serviceProvider.GetRequiredService<ICliHostEnvironment>();
-        var sdkInstaller = serviceProvider.GetRequiredService<IDotNetSdkInstaller>();
-        var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
-        var templateVersionPrompter = serviceProvider.GetRequiredService<ITemplateVersionPrompter>();
-        var languageDiscovery = serviceProvider.GetRequiredService<ILanguageDiscovery>();
-        var scaffoldingService = serviceProvider.GetRequiredService<IScaffoldingService>();
-        var cliTemplateLogger = serviceProvider.GetRequiredService<ILogger<CliTemplateFactory>>();
-        var templateNuGetConfigService = serviceProvider.GetRequiredService<TemplateNuGetConfigService>();
-        var dotNetFactory = new DotNetTemplateFactory(interactionService, runner, certificateService, prompter, executionContext, sdkInstaller, features, telemetry, hostEnvironment, templateNuGetConfigService, new HostEnvironment());
-        var projectFactory = serviceProvider.GetRequiredService<IAppHostProjectFactory>();
-        var cliFactory = new CliTemplateFactory(languageDiscovery, projectFactory, scaffoldingService, prompter, executionContext, interactionService, hostEnvironment, serviceProvider.GetRequiredService<IEnvironment>(), templateNuGetConfigService, cliTemplateLogger);
-        return new TemplateProvider([dotNetFactory, cliFactory]);
+        return new TemplateProvider(serviceProvider.GetServices<ITemplateFactory>());
     };
 
     public Func<IServiceProvider, IPackagingService> PackagingServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>

@@ -36,7 +36,7 @@ aspire <command> [options]
 
 C# AppHosts created with Aspire 17 or later use package directives instead of the obsolete AppHost SDK. When targeting an earlier Aspire release, the empty template retains its SDK directive so it does not require the newer `Aspire.Hosting.Dotnet` package.
 
-### Local templates
+### Directory and Git templates
 
 Use an unpacked .NET template package without installing it into `dotnet new`:
 
@@ -44,6 +44,27 @@ Use an unpacked .NET template package without installing it into `dotnet new`:
 aspire new --template-path ./my-template
 aspire new --template-path ./my-template --name MyApp --output ./MyApp
 ```
+
+To use a template from a Git repository:
+
+```bash
+aspire new --template-repository https://github.com/example/templates.git --template-path templates/my-template
+aspire new --template-repository git@github.com:example/templates.git --template-path templates/my-template --name MyApp --output ./MyApp
+```
+
+With `--template-repository`, `--template-path` is relative to the repository
+root and defaults to `.` when omitted. It cannot be absolute, escape the
+repository, or traverse symbolic links. Without `--template-repository`, paths
+remain relative to the working directory or absolute.
+
+Git must be on `PATH`. Each repository invocation performs a fresh shallow
+clone of the default branch into a unique directory under
+`~/.aspire/cache/templates/`. The checkout stays available through template
+discovery and generation, then is removed when the invocation ends, including
+on failure or cancellation. Git's normal authentication configuration applies;
+Git terminal credential prompts are disabled in non-interactive mode. Branch
+selection, persistent checkout reuse, submodule cloning, and repository catalogs
+are not supported.
 
 The directory must contain `.template.config/template.json`, either directly or
 under its template subdirectories. If it contains multiple templates, Aspire
@@ -70,11 +91,12 @@ build metadata (`+...`). It also honors CLI identity overrides. For example:
 }
 ```
 
-Paths are relative to the working directory. Existing non-empty output directories
-are rejected. `--template-path` cannot be combined with a built-in template name,
-`--source`, `--version`, `--channel`, or `--language`. It does not resolve template
-packages from feeds or require the .NET SDK. Normal optional agent setup still
-applies; use `--suppress-agent-init` to skip it.
+Existing non-empty output directories are rejected. `--template-path` and
+`--template-repository` cannot be combined with a built-in template name,
+`--source`, `--version`, `--channel`, or `--language`. These sources are discovered
+through `ITemplateProvider` and the engine-backed `ITemplateFactory`; they do not
+resolve template packages from feeds or require the .NET SDK. Normal optional
+agent setup still applies; use `--suppress-agent-init` to skip it.
 
 In non-interactive mode, point to a single template and provide `--name` and
 `--output` as needed. Other template parameters use their engine-defined defaults;

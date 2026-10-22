@@ -304,7 +304,7 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Create a project from an unpacked .NET template package directory.
+        ///   Looks up a localized string similar to Path to an unpacked .NET template package directory (relative to the repository when --template-repository is specified).
         /// </summary>
         internal static string TemplatePathOptionDescription {
             get {
@@ -313,11 +313,65 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to --template-path requires a non-empty directory path and cannot be combined with a template subcommand, --source, --version, --channel, or --language..
+        ///   Looks up a localized string similar to --template-path and --template-repository require non-empty values and cannot be combined with a template subcommand, --source, --version, --channel, or --language..
         /// </summary>
         internal static string TemplatePathConflictingOptions {
             get {
                 return ResourceManager.GetString("TemplatePathConflictingOptions", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Clone a Git repository containing templates; --template-path is relative to its root.
+        /// </summary>
+        internal static string TemplateRepositoryOptionDescription {
+            get {
+                return ResourceManager.GetString("TemplateRepositoryOptionDescription", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Cloning template repository....
+        /// </summary>
+        internal static string CloningTemplateRepository {
+            get {
+                return ResourceManager.GetString("CloningTemplateRepository", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Could not clone the template repository: {0}.
+        /// </summary>
+        internal static string TemplateRepositoryCloneFailed {
+            get {
+                return ResourceManager.GetString("TemplateRepositoryCloneFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Git clone failed with exit code {0}: {1}.
+        /// </summary>
+        internal static string TemplateRepositoryCloneExited {
+            get {
+                return ResourceManager.GetString("TemplateRepositoryCloneExited", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Git could not be started. Install Git and ensure it is on PATH..
+        /// </summary>
+        internal static string TemplateRepositoryGitUnavailable {
+            get {
+                return ResourceManager.GetString("TemplateRepositoryGitUnavailable", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to When --template-repository is specified, --template-path must be relative and stay within the repository without traversing symbolic links..
+        /// </summary>
+        internal static string TemplateRepositoryPathInvalid {
+            get {
+                return ResourceManager.GetString("TemplateRepositoryPathInvalid", resourceCulture);
             }
         }
 

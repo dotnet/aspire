@@ -1,0 +1,341 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.CommandLine;
+using System.ComponentModel;
+using System.Globalization;
+using System.Text;
+using Aspire.Cli.Commands;
+using Aspire.Cli.DotNet;
+using Aspire.Cli.Interaction;
+using Aspire.Cli.Resources;
+using Aspire.Cli.Utils;
+using Microsoft.Extensions.Logging;
+using Microsoft.TemplateEngine.Abstractions;
+using Microsoft.TemplateEngine.Abstractions.Installer;
+using Microsoft.TemplateEngine.Edge;
+using Microsoft.TemplateEngine.Edge.Settings;
+using Microsoft.TemplateEngine.Edge.Template;
+using Spectre.Console;
+
+namespace Aspire.Cli.Templating;
+
+internal sealed class TemplateEngineFactory(
+    CliExecutionContext executionContext,
+    IInteractionService interactionService,
+    INewCommandPrompter prompter,
+    ICliHostEnvironment hostEnvironment,
+    IProcessExecutionFactory processExecutionFactory,
+    ILogger<TemplateEngineFactory> logger) : ITemplateFactory, IDisposable
+{
+    private readonly List<IDisposable> _resources = [];
+    private bool _disposed;
+
+    public IEnumerable<ITemplate> GetTemplates() => [];
+
+    public Task<IEnumerable<ITemplate>> GetInitTemplatesAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult<IEnumerable<ITemplate>>([]);
+
+    public async Task<IEnumerable<ITemplate>> GetTemplatesAsync(TemplateSource? source, CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (source is null)
+        {
+            return [];
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        var fullPath = source.Repository is null
+            ? Path.GetFullPath(source.Path, executionContext.WorkingDirectory.FullName)
+            : await CloneRepositoryAsync(source.Repository, source.Path, cancellationToken);
+        if (!Directory.Exists(fullPath))
+        {
+            throw new TemplateDiscoveryException(CliExitCodes.InvalidCommand,
+                string.Format(CultureInfo.CurrentCulture, NewCommandStrings.TemplateDirectoryNotFound, fullPath));
+        }
+
+        // Register concrete built-ins instead of loading engine extensions dynamically, which
+        // Native AOT cannot support. A virtual hive keeps these templates out of dotnet new's state.
+        // https://github.com/dotnet/templating/blob/main/src/Microsoft.TemplateEngine.Edge/DefaultTemplateEngineHost.cs
+        var components = Microsoft.TemplateEngine.Edge.Components.AllComponents
+            .Concat(Microsoft.TemplateEngine.Orchestrator.RunnableProjects.Components.AllComponents).ToList();
+        var host = new DefaultTemplateEngineHost("aspire", "1.0.0", builtIns: components);
+        _resources.Add(host);
+        var settings = new EngineEnvironmentSettings(host, virtualizeSettings: true);
+        _resources.Add(settings);
+        var manager = new TemplatePackageManager(settings);
+        _resources.Add(manager);
+        var installed = await manager.GetBuiltInManagedProvider().InstallAsync([new InstallRequest(fullPath)], cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        var failures = installed.Where(result => !result.Success).ToArray();
+        if (failures.Length > 0)
+        {
+            throw new TemplateDiscoveryException(CliExitCodes.FailedToInstallTemplates,
+                string.Format(CultureInfo.CurrentCulture, NewCommandStrings.LocalTemplateLoadFailed,
+                    string.Join(", ", failures.Select(result => result.Error))));
+        }
+
+        var creator = new TemplateCreator(settings);
+        var templates = (await manager.GetTemplatesAsync(cancellationToken))
+            .OrderBy(template => template.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(template => new CallbackTemplate(
+                GetTemplateName(template),
+                template.Name,
+                (context, name) => OutputPathHelper.GetUniqueDefaultOutputPath(name, context.WorkingDirectory.FullName),
+                _ => { },
+                (_, templateInputs, result, token) => ApplyAsync(creator, template, templateInputs, result, token)))
+            .ToArray();
+        cancellationToken.ThrowIfCancellationRequested();
+        if (templates.Length == 0)
+        {
+            throw new TemplateDiscoveryException(CliExitCodes.InvalidCommand,
+                string.Format(CultureInfo.CurrentCulture, NewCommandStrings.NoLocalTemplatesFound, fullPath));
+        }
+
+        // The returned callbacks still use the engine's mounts and, for repository sources,
+        // the checkout. Keep both alive until the invocation's service provider is disposed.
+        return templates;
+    }
+
+    private async Task<string> CloneRepositoryAsync(string repository, string templatePath, CancellationToken cancellationToken)
+    {
+        var cacheRoot = Path.Combine(executionContext.CacheDirectory.FullName, "templates");
+        Directory.CreateDirectory(cacheRoot);
+        var checkout = TemporaryCacheDirectory.Create(cacheRoot, "repo", DeleteCheckout, DeleteLease);
+        _resources.Add(checkout);
+        var repositoryRoot = Path.Combine(checkout.FullName, "repository");
+        var fullPath = Path.GetFullPath(templatePath, repositoryRoot);
+        var relativePath = Path.GetRelativePath(repositoryRoot, fullPath);
+        if (Path.IsPathRooted(templatePath) || relativePath == ".." ||
+            relativePath.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+        {
+            throw new TemplateDiscoveryException(CliExitCodes.InvalidCommand, NewCommandStrings.TemplateRepositoryPathInvalid);
+        }
+
+        var errors = new StringBuilder();
+        try
+        {
+            // Independent object files let cleanup clear read-only attributes without
+            // changing a local source repository through Git's default hard links.
+            await using var process = processExecutionFactory.CreateExecution(
+                "git", ["clone", "--depth", "1", "--no-hardlinks", "--", repository, repositoryRoot],
+                hostEnvironment.SupportsInteractiveInput ? null : new Dictionary<string, string> { ["GIT_TERMINAL_PROMPT"] = "0" },
+                executionContext.WorkingDirectory,
+                new ProcessInvocationOptions { StandardErrorCallback = line => errors.AppendLine(line) });
+            var exitCode = await interactionService.ShowStatusAsync(NewCommandStrings.CloningTemplateRepository, async () =>
+            {
+                if (!await process.StartAsync(cancellationToken))
+                {
+                    throw new TemplateDiscoveryException(CliExitCodes.FailedToInstallTemplates, NewCommandStrings.TemplateRepositoryGitUnavailable);
+                }
+
+                return await process.WaitForExitAsync(cancellationToken);
+            });
+            cancellationToken.ThrowIfCancellationRequested();
+            if (exitCode != 0)
+            {
+                throw new TemplateDiscoveryException(CliExitCodes.FailedToInstallTemplates,
+                    string.Format(CultureInfo.CurrentCulture, NewCommandStrings.TemplateRepositoryCloneExited, exitCode, errors.ToString().Trim()));
+            }
+        }
+        catch (Win32Exception ex)
+        {
+            throw new TemplateDiscoveryException(CliExitCodes.FailedToInstallTemplates,
+                string.Format(CultureInfo.CurrentCulture, NewCommandStrings.TemplateRepositoryCloneFailed, ex.Message));
+        }
+
+        // Root templates must not copy the clone's history, remote URLs, or Git configuration
+        // into the generated project. Preserve that metadata outside the template tree.
+        Directory.Move(Path.Combine(repositoryRoot, ".git"), Path.Combine(checkout.FullName, ".git"));
+
+        // A repository-relative path must not escape through a checked-out symbolic link.
+        for (var directory = new DirectoryInfo(fullPath); directory is not null && directory.FullName != repositoryRoot; directory = directory.Parent)
+        {
+            if (directory.LinkTarget is not null)
+            {
+                throw new TemplateDiscoveryException(CliExitCodes.InvalidCommand, NewCommandStrings.TemplateRepositoryPathInvalid);
+            }
+        }
+
+        return fullPath;
+    }
+
+    private void DeleteCheckout(string path)
+    {
+        try
+        {
+            if (Directory.Exists(path))
+            {
+                // Git object files can be read-only on Windows. Do not follow repository
+                // symlinks while clearing that bit or touch files outside this checkout.
+                foreach (var file in Directory.EnumerateFiles(path, "*", new EnumerationOptions
+                {
+                    RecurseSubdirectories = true,
+                    AttributesToSkip = FileAttributes.ReparsePoint
+                }))
+                {
+                    var attributes = File.GetAttributes(file);
+                    if ((attributes & FileAttributes.ReadOnly) != 0)
+                    {
+                        File.SetAttributes(file, attributes & ~FileAttributes.ReadOnly);
+                    }
+                }
+
+                Directory.Delete(path, recursive: true);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            logger.LogWarning(ex, "Could not delete template checkout {Path}.", path);
+        }
+    }
+
+    private void DeleteLease(string path)
+    {
+        try
+        {
+            File.Delete(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            logger.LogWarning(ex, "Could not delete template checkout lease {Path}.", path);
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        for (var i = _resources.Count - 1; i >= 0; i--)
+        {
+            _resources[i].Dispose();
+        }
+
+        _resources.Clear();
+    }
+
+    private async Task<TemplateResult> ApplyAsync(TemplateCreator creator, ITemplateInfo template, TemplateInputs inputs, ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        var name = inputs.Name is { } explicitName && ProjectNameValidator.IsProjectNameValid(explicitName)
+            ? explicitName
+            : await prompter.PromptForProjectNameAsync(
+                string.IsNullOrWhiteSpace(template.DefaultName) ? GetTemplateName(template) : template.DefaultName, parseResult, cancellationToken);
+        var isExtensionHost = ExtensionHelper.IsExtensionHost(interactionService, out _, out _);
+        var createSubdirectory = await OutputPathHelper.PromptExtensionCreateProjectNameSubdirectoryAsync(
+            interactionService, isExtensionHost, inputs.Output is not null, name, cancellationToken);
+        var outputPath = await OutputPathHelper.ResolveOutputPathAsync(
+            inputs.Output,
+            executionContext.WorkingDirectory.FullName,
+            () => prompter.PromptForOutputPath(
+                OutputPathHelper.GetUniqueDefaultOutputPath(name, executionContext.WorkingDirectory.FullName),
+                parseResult,
+                OutputPathHelper.CreateOutputPathValidator(executionContext.WorkingDirectory.FullName),
+                OutputPathHelper.CreateProjectNameSubdirectoryOutputPathResolver(createSubdirectory, name),
+                cancellationToken),
+            interactionService);
+        if (outputPath is null)
+        {
+            return new TemplateResult(CliExitCodes.FailedToCreateNewProject);
+        }
+
+        var parameters = new Dictionary<string, string?>(StringComparer.Ordinal);
+        foreach (var parameter in template.ParameterDefinitions)
+        {
+            if (parameter.IsName || parameter.Type != "parameter" ||
+                parameter.Precedence.PrecedenceDefinition is PrecedenceDefinition.Implicit or PrecedenceDefinition.Disabled)
+            {
+                continue;
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            if (parameter.Name.Equals("AspireVersion", StringComparison.OrdinalIgnoreCase))
+            {
+                parameters[parameter.Name] = executionContext.IdentitySdkVersion;
+                continue;
+            }
+
+            if (!hostEnvironment.SupportsInteractiveInput)
+            {
+                // Leave unset values to the engine, including conditional requirements and defaults.
+                continue;
+            }
+
+            parameters[parameter.Name] = await PromptForParameterAsync(parameter, cancellationToken);
+        }
+
+        // Validate through the engine before it creates the output directory. TemplateCreator
+        // returns post-actions as metadata; this flow deliberately does not execute them.
+        var preview = await creator.InstantiateAsync(template, name, null, outputPath, parameters, dryRun: true, cancellationToken: cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (preview.Status != CreationResultStatus.Success)
+        {
+            return CreationFailed(preview);
+        }
+
+        var result = await interactionService.ShowStatusAsync(
+            TemplatingStrings.CreatingNewProject,
+            () => creator.InstantiateAsync(template, name, null, outputPath, parameters, cancellationToken: cancellationToken),
+            emoji: KnownEmojis.Rocket);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (result.Status != CreationResultStatus.Success)
+        {
+            return CreationFailed(result);
+        }
+
+        interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.ProjectCreatedSuccessfully, outputPath));
+        return new TemplateResult(CliExitCodes.Success, outputPath);
+    }
+
+    private async Task<string> PromptForParameterAsync(ITemplateParameter parameter, CancellationToken cancellationToken)
+    {
+        var prompt = (!string.IsNullOrWhiteSpace(parameter.DisplayName)
+            ? parameter.DisplayName
+            : !string.IsNullOrWhiteSpace(parameter.Description) ? parameter.Description : parameter.Name).EscapeMarkup();
+        if (parameter.DataType.Equals("bool", StringComparison.OrdinalIgnoreCase))
+        {
+            var value = await interactionService.PromptConfirmAsync(
+                prompt,
+                binding: PromptBinding.CreateDefault(bool.TryParse(parameter.DefaultValue, out var defaultValue) && defaultValue),
+                cancellationToken: cancellationToken);
+            return value ? "true" : "false";
+        }
+
+        if (parameter.Choices is { Count: > 0 } choices)
+        {
+            // The engine represents multi-choice values as "red|blue", not comma-separated input.
+            var defaults = parameter.DefaultValue?.Split('|') ?? [];
+            var keys = choices.Keys.OrderByDescending(key => defaults.Contains(key, StringComparer.OrdinalIgnoreCase)).ToArray();
+            string FormatChoice(string key) => (string.IsNullOrWhiteSpace(choices[key].DisplayName) ? key : choices[key].DisplayName).EscapeMarkup();
+            if (parameter.AllowMultipleValues)
+            {
+                var selected = await interactionService.PromptForSelectionsAsync(
+                    prompt, keys, FormatChoice,
+                    preSelected: keys.Where(key => defaults.Contains(key, StringComparer.OrdinalIgnoreCase)),
+                    optional: !parameter.Precedence.IsRequired,
+                    cancellationToken: cancellationToken);
+                return string.Join('|', selected);
+            }
+
+            return await interactionService.PromptForSelectionAsync(prompt, keys, FormatChoice, cancellationToken: cancellationToken);
+        }
+
+        return await interactionService.PromptForStringAsync(
+            prompt,
+            required: parameter.Precedence.IsRequired,
+            binding: PromptBinding.CreateDefault<string?>(parameter.DefaultValue ?? string.Empty),
+            cancellationToken: cancellationToken);
+    }
+
+    private TemplateResult CreationFailed(ITemplateCreationResult result)
+    {
+        interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, NewCommandStrings.LocalTemplateCreationFailed, result.Status, result.ErrorMessage));
+        return new TemplateResult(CliExitCodes.FailedToCreateNewProject);
+    }
+
+    private static string GetTemplateName(ITemplateInfo template) =>
+        template.ShortNameList.Count > 0 ? template.ShortNameList[0] : template.Identity;
+}

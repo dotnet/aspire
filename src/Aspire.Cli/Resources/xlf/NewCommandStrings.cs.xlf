@@ -12,6 +12,11 @@
         <target state="translated">Kanál, který se má použít pro šablony (stabilní, příprava, denní)</target>
         <note />
       </trans-unit>
+      <trans-unit id="CloningTemplateRepository">
+        <source>Cloning template repository...</source>
+        <target state="new">Cloning template repository...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CreateProjectDirectlyInSelectedFolderChoice">
         <source>Directly in the selected folder</source>
         <target state="new">Directly in the selected folder</target>
@@ -158,13 +163,38 @@
         <note />
       </trans-unit>
       <trans-unit id="TemplatePathConflictingOptions">
-        <source>--template-path requires a non-empty directory path and cannot be combined with a template subcommand, --source, --version, --channel, or --language.</source>
-        <target state="new">--template-path requires a non-empty directory path and cannot be combined with a template subcommand, --source, --version, --channel, or --language.</target>
+        <source>--template-path and --template-repository require non-empty values and cannot be combined with a template subcommand, --source, --version, --channel, or --language.</source>
+        <target state="new">--template-path and --template-repository require non-empty values and cannot be combined with a template subcommand, --source, --version, --channel, or --language.</target>
         <note />
       </trans-unit>
       <trans-unit id="TemplatePathOptionDescription">
-        <source>Create a project from an unpacked .NET template package directory</source>
-        <target state="new">Create a project from an unpacked .NET template package directory</target>
+        <source>Path to an unpacked .NET template package directory (relative to the repository when --template-repository is specified)</source>
+        <target state="new">Path to an unpacked .NET template package directory (relative to the repository when --template-repository is specified)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TemplateRepositoryCloneExited">
+        <source>Git clone failed with exit code {0}: {1}</source>
+        <target state="new">Git clone failed with exit code {0}: {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TemplateRepositoryCloneFailed">
+        <source>Could not clone the template repository: {0}</source>
+        <target state="new">Could not clone the template repository: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TemplateRepositoryGitUnavailable">
+        <source>Git could not be started. Install Git and ensure it is on PATH.</source>
+        <target state="new">Git could not be started. Install Git and ensure it is on PATH.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TemplateRepositoryOptionDescription">
+        <source>Clone a Git repository containing templates; --template-path is relative to its root</source>
+        <target state="new">Clone a Git repository containing templates; --template-path is relative to its root</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TemplateRepositoryPathInvalid">
+        <source>When --template-repository is specified, --template-path must be relative and stay within the repository without traversing symbolic links.</source>
+        <target state="new">When --template-repository is specified, --template-path must be relative and stay within the repository without traversing symbolic links.</target>
         <note />
       </trans-unit>
       <trans-unit id="UsePrereleaseTemplates">
