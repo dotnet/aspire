@@ -184,6 +184,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.AuxiliaryBackchannelMonitorFactory);
         services.AddSingleton(options.AgentEnvironmentDetectorFactory);
         services.AddSingleton(options.GitRepositoryFactory);
+        services.AddSingleton(options.GitRunnerFactory);
         services.AddSingleton(options.NpmRunnerFactory);
         services.AddSingleton(options.NpmProvenanceCheckerFactory);
         services.AddSingleton(options.AspireSkillsInstallerFactory);
@@ -683,6 +684,9 @@ internal sealed class CliServiceCollectionTestOptions
         var profilingTelemetry = serviceProvider.GetRequiredService<ProfilingTelemetry>();
         return new GitRepository(executionContext, serviceProvider.GetRequiredService<IEnvironment>(), logger, profilingTelemetry);
     };
+
+    public Func<IServiceProvider, IGitRunner> GitRunnerFactory { get; set; } = serviceProvider =>
+        ActivatorUtilities.CreateInstance<GitRunner>(serviceProvider);
 
     public Func<IServiceProvider, INpmRunner> NpmRunnerFactory { get; set; } = _ => new FakeNpmRunner();
 

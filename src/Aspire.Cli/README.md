@@ -66,6 +66,10 @@ Git terminal credential prompts are disabled in non-interactive mode. Branch
 selection, persistent checkout reuse, submodule cloning, and repository catalogs
 are not supported.
 
+Git process execution is isolated behind `Aspire.Cli.Git.IGitRunner`, backed by
+`IProcessExecutionFactory`. The template factory owns checkout lifetime, template
+path validation, Git metadata exclusion, and template-engine discovery.
+
 The directory must contain `.template.config/template.json`, either directly or
 under its template subdirectories. If it contains multiple templates, Aspire
 prompts for a selection. Template parameter metadata drives text, Boolean,

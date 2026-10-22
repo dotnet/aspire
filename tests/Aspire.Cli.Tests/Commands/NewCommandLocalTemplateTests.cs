@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Text.Json;
 using Aspire.Cli.Commands;
 using Aspire.Cli.DotNet;
+using Aspire.Cli.Git;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Tests.TestServices;
@@ -332,9 +333,9 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         await CreateTemplateAsync(workspace, "template");
         var interaction = new TestInteractionService();
-        var processFactory = new TestProcessExecutionFactory();
+        var gitRunner = new TestGitRunner();
         var services = CreateServices(workspace, interaction, interactive: false);
-        services.AddSingleton<IProcessExecutionFactory>(processFactory);
+        services.AddSingleton<IGitRunner>(gitRunner);
         using var provider = services.BuildServiceProvider();
 
         var exitCode = await provider.GetRequiredService<RootCommand>().Parse(
@@ -342,7 +343,7 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
             .InvokeAsync().DefaultTimeout();
 
         Assert.Equal(CliExitCodes.Success, exitCode);
-        Assert.Empty(processFactory.CreatedExecutions);
+        Assert.Empty(gitRunner.CloneCalls);
         Assert.Empty(interaction.DisplayedErrors);
         await Verify(ReadOutput(workspace)).ScrubInlineGuids();
     }
@@ -390,27 +391,26 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task RepositoryTemplate_CloneFailureIsReportedAndCleanedUp(bool gitMissing)
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task RepositoryTemplate_CloneFailureIsReportedAndCleanedUp(int failure)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var interaction = new TestInteractionService();
-        var processFactory = new TestProcessExecutionFactory
+        var exception = failure switch
         {
-            AttemptCallback = (_, options) =>
-            {
-                options.StandardErrorCallback?.Invoke("fatal: repository not found");
-                return (128, null);
-            }
+            0 => new GitCloneException("fatal: repository not found", 128, null),
+            1 => new GitCloneException(new Win32Exception(2).Message, null, new Win32Exception(2)),
+            _ => new GitCloneException("Git could not be started.", null, null)
         };
-        if (gitMissing)
+        var gitRunner = new TestGitRunner
         {
-            processFactory.CreateExecutionWithFileNameCallback = (_, _, _, _, _) => throw new Win32Exception(2);
-        }
+            CloneAsyncCallback = (_, _, _) => throw exception
+        };
 
         var services = CreateServices(workspace, interaction, interactive: false);
-        services.AddSingleton<IProcessExecutionFactory>(processFactory);
+        services.AddSingleton<IGitRunner>(gitRunner);
         using (var provider = services.BuildServiceProvider())
         {
             var exitCode = await provider.GetRequiredService<RootCommand>()
@@ -418,11 +418,14 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
                 .InvokeAsync().DefaultTimeout();
 
             Assert.Equal(CliExitCodes.FailedToInstallTemplates, exitCode);
-            var expectedError = gitMissing
-                ? string.Format(NewCommandStrings.TemplateRepositoryCloneFailed, new Win32Exception(2).Message)
-                : string.Format(NewCommandStrings.TemplateRepositoryCloneExited, 128, "fatal: repository not found");
+            var expectedError = failure switch
+            {
+                0 => string.Format(NewCommandStrings.TemplateRepositoryCloneExited, 128, "fatal: repository not found"),
+                1 => string.Format(NewCommandStrings.TemplateRepositoryCloneFailed, new Win32Exception(2).Message),
+                _ => NewCommandStrings.TemplateRepositoryGitUnavailable
+            };
             Assert.Equal(expectedError, Assert.Single(interaction.DisplayedErrors));
-            Assert.Equal(1, processFactory.AttemptCount);
+            Assert.Single(gitRunner.CloneCalls);
             Assert.False(Directory.Exists(Path.Combine(workspace.Path, "out")));
         }
 
@@ -438,9 +441,9 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var interaction = new TestInteractionService();
-        var processFactory = new TestProcessExecutionFactory();
+        var gitRunner = new TestGitRunner();
         var services = CreateServices(workspace, interaction, interactive: false);
-        services.AddSingleton<IProcessExecutionFactory>(processFactory);
+        services.AddSingleton<IGitRunner>(gitRunner);
         using (var provider = services.BuildServiceProvider())
         {
             var exitCode = await provider.GetRequiredService<RootCommand>().Parse(
@@ -450,7 +453,7 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
 
             Assert.Equal(CliExitCodes.InvalidCommand, exitCode);
             Assert.Equal(NewCommandStrings.TemplateRepositoryPathInvalid, Assert.Single(interaction.DisplayedErrors));
-            Assert.Empty(processFactory.CreatedExecutions);
+            Assert.Empty(gitRunner.CloneCalls);
             Assert.False(Directory.Exists(Path.Combine(workspace.Path, "out")));
         }
 
@@ -462,23 +465,25 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var interaction = new TestInteractionService();
-        var processFactory = new TestProcessExecutionFactory
+        var gitRunner = new TestGitRunner
         {
-            FileNameAssertionCallback = (_, arguments, _, _, _) =>
+            CloneAsyncCallback = (_, destination, _) =>
             {
-                Directory.CreateDirectory(Path.Combine(arguments[^1], ".git"));
+                Directory.CreateDirectory(Path.Combine(destination.FullName, ".git"));
                 try
                 {
-                    Directory.CreateSymbolicLink(Path.Combine(arguments[^1], "template"), workspace.Path);
+                    Directory.CreateSymbolicLink(Path.Combine(destination.FullName, "template"), workspace.Path);
                 }
                 catch (UnauthorizedAccessException)
                 {
                     Assert.Skip("Creating symbolic links requires additional privileges on this platform.");
                 }
+
+                return Task.CompletedTask;
             }
         };
         var services = CreateServices(workspace, interaction, interactive: false);
-        services.AddSingleton<IProcessExecutionFactory>(processFactory);
+        services.AddSingleton<IGitRunner>(gitRunner);
         using (var provider = services.BuildServiceProvider())
         {
             var exitCode = await provider.GetRequiredService<RootCommand>()
@@ -495,28 +500,28 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task RepositoryTemplate_CloneCancellationDisposesProcessAndCheckout()
+    public async Task RepositoryTemplate_CloneCancellationDisposesCheckout()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         using var cancellation = new CancellationTokenSource();
         var interaction = new TestInteractionService();
-        var processFactory = new TestProcessExecutionFactory
+        var gitRunner = new TestGitRunner
         {
-            AsyncAttemptCallback = (_, _, token) =>
+            CloneAsyncCallback = (_, _, token) =>
             {
                 cancellation.Cancel();
-                return Task.FromCanceled<(int ExitCode, string? Stdout)>(token);
+                return Task.FromCanceled(token);
             }
         };
         var services = CreateServices(workspace, interaction, interactive: false);
-        services.AddSingleton<IProcessExecutionFactory>(processFactory);
+        services.AddSingleton<IGitRunner>(gitRunner);
         using (var provider = services.BuildServiceProvider())
         {
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
                 provider.GetRequiredService<ITemplateProvider>().GetTemplatesAsync(
                     new TemplateSource("template", "https://example.test/templates.git"), cancellation.Token));
 
-            Assert.Equal(1, Assert.IsType<TestProcessExecution>(Assert.Single(processFactory.CreatedExecutions)).DisposeCount);
+            Assert.Single(gitRunner.CloneCalls);
             Assert.False(Directory.Exists(Path.Combine(workspace.Path, "out")));
         }
 
@@ -529,29 +534,21 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var interaction = new TestInteractionService();
         List<string> checkouts = [];
-        var processFactory = new TestProcessExecutionFactory
+        var gitRunner = new TestGitRunner
         {
-            FileNameAssertionCallback = (fileName, arguments, environment, workingDirectory, _) =>
+            CloneAsyncCallback = async (repository, destination, token) =>
             {
-                Assert.Equal("git", fileName);
-                Assert.Equal(["clone", "--depth", "1", "--no-hardlinks", "--", "-repository", arguments[^1]], arguments);
-                Assert.NotNull(environment);
-                Assert.Equal("0", environment["GIT_TERMINAL_PROMPT"]);
-                Assert.Equal(workspace.WorkspaceRoot.FullName, workingDirectory.FullName);
-                checkouts.Add(arguments[^1]);
+                Assert.Equal("-repository", repository);
+                checkouts.Add(destination.FullName);
+                Directory.CreateDirectory(Path.Combine(destination.FullName, ".git"));
+                var readOnlyFile = Path.Combine(destination.FullName, ".git", "read-only-object");
+                await File.WriteAllTextAsync(readOnlyFile, "object content", token);
+                File.SetAttributes(readOnlyFile, FileAttributes.ReadOnly);
+                await CreateTemplateAsync(workspace, Path.GetRelativePath(workspace.Path, Path.Combine(destination.FullName, "template")));
             }
         };
-        processFactory.AsyncAttemptCallback = async (_, _, token) =>
-        {
-            Directory.CreateDirectory(Path.Combine(checkouts[^1], ".git"));
-            var readOnlyFile = Path.Combine(checkouts[^1], ".git", "read-only-object");
-            await File.WriteAllTextAsync(readOnlyFile, "object content", token);
-            File.SetAttributes(readOnlyFile, FileAttributes.ReadOnly);
-            await CreateTemplateAsync(workspace, Path.GetRelativePath(workspace.Path, Path.Combine(checkouts[^1], "template")));
-            return (0, null);
-        };
         var services = CreateServices(workspace, interaction, interactive: false);
-        services.AddSingleton<IProcessExecutionFactory>(processFactory);
+        services.AddSingleton<IGitRunner>(gitRunner);
         using (var provider = services.BuildServiceProvider())
         {
             var templates = provider.GetRequiredService<ITemplateProvider>();
@@ -582,9 +579,9 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var interaction = new TestInteractionService();
-        var processFactory = new TestProcessExecutionFactory();
+        var gitRunner = new TestGitRunner();
         var services = CreateServices(workspace, interaction, interactive: false);
-        services.AddSingleton<IProcessExecutionFactory>(processFactory);
+        services.AddSingleton<IGitRunner>(gitRunner);
         using var provider = services.BuildServiceProvider();
 
         var exitCode = await provider.GetRequiredService<RootCommand>()
@@ -592,7 +589,7 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
 
         Assert.Equal(CliExitCodes.InvalidCommand, exitCode);
         Assert.Equal(NewCommandStrings.TemplatePathConflictingOptions, Assert.Single(interaction.DisplayedErrors));
-        Assert.Empty(processFactory.CreatedExecutions);
+        Assert.Empty(gitRunner.CloneCalls);
     }
 
     [Theory]
@@ -620,16 +617,16 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var interaction = new TestInteractionService();
-        var processFactory = new TestProcessExecutionFactory();
+        var gitRunner = new TestGitRunner();
         var services = CreateServices(workspace, interaction, interactive: false);
-        services.AddSingleton<IProcessExecutionFactory>(processFactory);
+        services.AddSingleton<IGitRunner>(gitRunner);
         using var provider = services.BuildServiceProvider();
 
         var exitCode = await provider.GetRequiredService<RootCommand>()
             .Parse("new --template-repository https://example.test/templates.git --help").InvokeAsync().DefaultTimeout();
 
         Assert.Equal(CliExitCodes.Success, exitCode);
-        Assert.Empty(processFactory.CreatedExecutions);
+        Assert.Empty(gitRunner.CloneCalls);
         Assert.False(Directory.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "templates")));
     }
 

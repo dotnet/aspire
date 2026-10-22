@@ -2,11 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.ComponentModel;
 using System.Globalization;
-using System.Text;
 using Aspire.Cli.Commands;
-using Aspire.Cli.DotNet;
+using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
@@ -25,7 +23,7 @@ internal sealed class TemplateEngineFactory(
     IInteractionService interactionService,
     INewCommandPrompter prompter,
     ICliHostEnvironment hostEnvironment,
-    IProcessExecutionFactory processExecutionFactory,
+    IGitRunner gitRunner,
     ILogger<TemplateEngineFactory> logger) : ITemplateFactory, IDisposable
 {
     private readonly List<IDisposable> _resources = [];
@@ -112,36 +110,23 @@ internal sealed class TemplateEngineFactory(
             throw new TemplateDiscoveryException(CliExitCodes.InvalidCommand, NewCommandStrings.TemplateRepositoryPathInvalid);
         }
 
-        var errors = new StringBuilder();
         try
         {
-            // Independent object files let cleanup clear read-only attributes without
-            // changing a local source repository through Git's default hard links.
-            await using var process = processExecutionFactory.CreateExecution(
-                "git", ["clone", "--depth", "1", "--no-hardlinks", "--", repository, repositoryRoot],
-                hostEnvironment.SupportsInteractiveInput ? null : new Dictionary<string, string> { ["GIT_TERMINAL_PROMPT"] = "0" },
-                executionContext.WorkingDirectory,
-                new ProcessInvocationOptions { StandardErrorCallback = line => errors.AppendLine(line) });
-            var exitCode = await interactionService.ShowStatusAsync(NewCommandStrings.CloningTemplateRepository, async () =>
+            await interactionService.ShowStatusAsync(NewCommandStrings.CloningTemplateRepository, async () =>
             {
-                if (!await process.StartAsync(cancellationToken))
-                {
-                    throw new TemplateDiscoveryException(CliExitCodes.FailedToInstallTemplates, NewCommandStrings.TemplateRepositoryGitUnavailable);
-                }
-
-                return await process.WaitForExitAsync(cancellationToken);
+                await gitRunner.CloneAsync(repository, new DirectoryInfo(repositoryRoot), cancellationToken);
+                return true;
             });
             cancellationToken.ThrowIfCancellationRequested();
-            if (exitCode != 0)
-            {
-                throw new TemplateDiscoveryException(CliExitCodes.FailedToInstallTemplates,
-                    string.Format(CultureInfo.CurrentCulture, NewCommandStrings.TemplateRepositoryCloneExited, exitCode, errors.ToString().Trim()));
-            }
         }
-        catch (Win32Exception ex)
+        catch (GitCloneException ex)
         {
-            throw new TemplateDiscoveryException(CliExitCodes.FailedToInstallTemplates,
-                string.Format(CultureInfo.CurrentCulture, NewCommandStrings.TemplateRepositoryCloneFailed, ex.Message));
+            var message = ex.ExitCode is int exitCode
+                ? string.Format(CultureInfo.CurrentCulture, NewCommandStrings.TemplateRepositoryCloneExited, exitCode, ex.Message)
+                : ex.InnerException is not null
+                    ? string.Format(CultureInfo.CurrentCulture, NewCommandStrings.TemplateRepositoryCloneFailed, ex.Message)
+                    : NewCommandStrings.TemplateRepositoryGitUnavailable;
+            throw new TemplateDiscoveryException(CliExitCodes.FailedToInstallTemplates, message);
         }
 
         // Root templates must not copy the clone's history, remote URLs, or Git configuration
