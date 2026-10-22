@@ -22,7 +22,7 @@ if (useExistingApplication)
 else
 {
     entraWeb = builder.AddEntraIdApplication("entra-web")
-        .PublishWithFederatedManagedIdentityCredential();
+        .WithIdTokenIssuance();
 }
 
 var webFrontend = builder.AddProject<Projects.EntraId_Web>("webfrontend")
