@@ -254,29 +254,42 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p all-results
-          CANDIDATE_ROOT=$(mktemp -d "${RUNNER_TEMP}/aspire-daily-sdk.XXXXXX")
-          ARCHIVE="$CANDIDATE_ROOT/sdk.tar.gz"
+          DOWNLOADED_ROOT=$(mktemp -d "${RUNNER_TEMP}/aspire-daily-sdk.XXXXXX")
+          CANDIDATE_ROOT=$(mktemp -d "${RUNNER_TEMP}/aspire-runtime-comparison.XXXXXX")
+          ARCHIVE="$DOWNLOADED_ROOT/sdk.tar.gz"
           # Pin the daily alias's resolved archive so all paired runners use identical bits.
           DAILY_URL="https://ci.dot.net/public/Sdk/11.0.100-rtm.26520.139/dotnet-sdk-11.0.100-osx-arm64.tar.gz"
           CHECKSUM_URL="https://ci.dot.net/public-checksums/Sdk/11.0.100-rtm.26520.139/dotnet-sdk-11.0.100-osx-arm64.tar.gz.sha512"
           curl --fail --location --retry 3 "$DAILY_URL" --output "$ARCHIVE" \
             --write-out '%{url_effective}\n' > all-results/sdk-download-url.txt
-          curl --fail --location --retry 3 "$CHECKSUM_URL" --output "$CANDIDATE_ROOT/sdk.sha512"
-          cp "$CANDIDATE_ROOT/sdk.sha512" all-results/candidate-sdk.sha512
-          EXPECTED=$(awk '{print $1}' "$CANDIDATE_ROOT/sdk.sha512")
+          curl --fail --location --retry 3 "$CHECKSUM_URL" --output "$DOWNLOADED_ROOT/sdk.sha512"
+          cp "$DOWNLOADED_ROOT/sdk.sha512" all-results/candidate-sdk.sha512
+          EXPECTED=$(awk '{print $1}' "$DOWNLOADED_ROOT/sdk.sha512")
           printf '%s  %s\n' "$EXPECTED" "$ARCHIVE" | shasum -a 512 -c -
-          tar -xzf "$ARCHIVE" -C "$CANDIDATE_ROOT"
+          tar -xzf "$ARCHIVE" -C "$DOWNLOADED_ROOT"
           rm "$ARCHIVE"
-          (cd "$CANDIDATE_ROOT" && ./dotnet --info) > all-results/candidate-dotnet-info.txt
-          "$CANDIDATE_ROOT/dotnet" --list-sdks > all-results/candidate-sdks.txt
-          "$DOTNET_ROOT/dotnet" --info > all-results/baseline-dotnet-info.txt
-          cat all-results/candidate-dotnet-info.txt
+          (cd "$DOWNLOADED_ROOT" && ./dotnet --info) > all-results/downloaded-dotnet-info.txt
 
-          CANDIDATE_VERSION=$("$CANDIDATE_ROOT/dotnet" --list-runtimes |
+          CANDIDATE_VERSION=$("$DOWNLOADED_ROOT/dotnet" --list-runtimes |
             awk '$1 == "Microsoft.NETCore.App" && $2 ~ /^11[.]0[.]/ { print $2 }')
           test -n "$CANDIDATE_VERSION"
           test "$CANDIDATE_VERSION" != "11.0.0-rc.2.26504.105"
           test "$(printf '%s\n' "$CANDIDATE_VERSION" | wc -l | tr -d ' ')" = 1
+          # Keep SDKs, targeting packs, host binaries, and fixture runtimes identical.
+          # Child builds otherwise resolve SDK/pack inputs from the comparison root.
+          cp -R "$DOTNET_ROOT/." "$CANDIDATE_ROOT/"
+          cp -R "$DOWNLOADED_ROOT/shared/Microsoft.NETCore.App/$CANDIDATE_VERSION" \
+            "$CANDIDATE_ROOT/shared/Microsoft.NETCore.App/"
+          (cd "$CANDIDATE_ROOT" && ./dotnet --info) > all-results/candidate-dotnet-info.txt
+          "$CANDIDATE_ROOT/dotnet" --list-sdks > all-results/candidate-sdks.txt
+          "$DOTNET_ROOT/dotnet" --list-sdks > all-results/baseline-sdks.txt
+          "$DOTNET_ROOT/dotnet" --info > all-results/baseline-dotnet-info.txt
+          diff <(awk '{print $1}' all-results/baseline-sdks.txt) \
+            <(awk '{print $1}' all-results/candidate-sdks.txt)
+          cmp "$DOTNET_ROOT/dotnet" "$CANDIDATE_ROOT/dotnet"
+          diff -qr "$DOTNET_ROOT/sdk" "$CANDIDATE_ROOT/sdk"
+          diff -qr "$DOTNET_ROOT/packs" "$CANDIDATE_ROOT/packs"
+          cat all-results/candidate-dotnet-info.txt
           cat "$CANDIDATE_ROOT/shared/Microsoft.NETCore.App/$CANDIDATE_VERSION/.version" |
             tee all-results/candidate-runtime-version.txt
           cat "$DOTNET_ROOT/shared/Microsoft.NETCore.App/11.0.0-rc.2.26504.105/.version" |
@@ -291,15 +304,6 @@ jobs:
           echo "CANDIDATE_DOTNET_ROOT=$CANDIDATE_ROOT" >> "$GITHUB_ENV"
           echo "CANDIDATE_RUNTIME_VERSION=$CANDIDATE_VERSION" >> "$GITHUB_ENV"
 
-          # Preserve the net10 runtime used by child fixtures; only the net11 host is varied.
-          for framework in Microsoft.NETCore.App Microsoft.AspNetCore.App; do
-            for version in "$DOTNET_ROOT/shared/$framework"/10.*; do
-              if [ -d "$version" ]; then
-                mkdir -p "$CANDIDATE_ROOT/shared/$framework"
-                cp -R "$version" "$CANDIDATE_ROOT/shared/$framework/"
-              fi
-            done
-          done
           "$DOTNET_ROOT/dotnet" msbuild "$TEST_PROJECT_PATH" \
             -getProperty:TargetPath -getProperty:MtpBaseArgs > all-results/test-properties.json
 
