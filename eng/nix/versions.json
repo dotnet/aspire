@@ -1,30 +1,30 @@
 {
-  "version": "13.6.1",
-  "releaseTag": "v13.6.1",
+  "version": "13.6.3",
+  "releaseTag": "v13.6.3",
   "systems": {
     "aarch64-darwin": {
       "rid": "osx-arm64",
-      "archiveName": "aspire-cli-osx-arm64-13.6.1.tar.gz",
-      "url": "https://github.com/microsoft/aspire/releases/download/v13.6.1/aspire-cli-osx-arm64-13.6.1.tar.gz",
-      "hash": "sha512-SrnFWDHhnZnDoAu0dLHkEXfjdf5vzKOPMNsXE6aMIKZMRN021ZQJxOh7FTBgWQFvbE/auMYHU1/EoVmSUxxikQ=="
+      "archiveName": "aspire-cli-osx-arm64-13.6.3.tar.gz",
+      "url": "https://github.com/microsoft/aspire/releases/download/v13.6.3/aspire-cli-osx-arm64-13.6.3.tar.gz",
+      "hash": "sha512-Hogq/rJp1mdMzZS0yPWKhSOT1UEo5Eth1/026jFuqcaPL6wGnveYzUWXHaKCYCumnN830pC3Qz5+rbtgZ4rsLQ=="
     },
     "aarch64-linux": {
       "rid": "linux-arm64",
-      "archiveName": "aspire-cli-linux-arm64-13.6.1.tar.gz",
-      "url": "https://github.com/microsoft/aspire/releases/download/v13.6.1/aspire-cli-linux-arm64-13.6.1.tar.gz",
-      "hash": "sha512-JfE7BpKu57vWtOYQldjR1hfaYmjWXkFmyIKndtjfrt4vrNRzi8nhPNAVSzsOHFgWsB0L/a4Pg/ORbjiA6FIh0g=="
+      "archiveName": "aspire-cli-linux-arm64-13.6.3.tar.gz",
+      "url": "https://github.com/microsoft/aspire/releases/download/v13.6.3/aspire-cli-linux-arm64-13.6.3.tar.gz",
+      "hash": "sha512-611D65IsDQn9rkTsFg5arpREp+z7rviKYQzfAIALkkc6KzQ5Jp+qQMgKcbWSDYPuYHtWFZlN45AM1gzSTd9A9Q=="
     },
     "x86_64-darwin": {
       "rid": "osx-x64",
-      "archiveName": "aspire-cli-osx-x64-13.6.1.tar.gz",
-      "url": "https://github.com/microsoft/aspire/releases/download/v13.6.1/aspire-cli-osx-x64-13.6.1.tar.gz",
-      "hash": "sha512-amPp26v+gBQlzMXffLLZC6HAnmbsQFkfASGLXNe8RQhauro6tPjNdZBou6kDDyvbSBH/GOc1Gobg9NynEdFe+Q=="
+      "archiveName": "aspire-cli-osx-x64-13.6.3.tar.gz",
+      "url": "https://github.com/microsoft/aspire/releases/download/v13.6.3/aspire-cli-osx-x64-13.6.3.tar.gz",
+      "hash": "sha512-KLd1i7ARE63ELTY3scoFDX7TSJ5/eaJ1BZJBK5uxsQ/8rRGp+v/sYHLafkoYbNsQK8I7K8J65/rvhyKS9AbXYw=="
     },
     "x86_64-linux": {
       "rid": "linux-x64",
-      "archiveName": "aspire-cli-linux-x64-13.6.1.tar.gz",
-      "url": "https://github.com/microsoft/aspire/releases/download/v13.6.1/aspire-cli-linux-x64-13.6.1.tar.gz",
-      "hash": "sha512-tRKul3xi87g/WWNrTQNmDZYoTbpJG9f58HAAaohA5PG6it3FtKyxHq3QH6tDEAJwPxZVwQxv2RP3e6pYDG+ioQ=="
+      "archiveName": "aspire-cli-linux-x64-13.6.3.tar.gz",
+      "url": "https://github.com/microsoft/aspire/releases/download/v13.6.3/aspire-cli-linux-x64-13.6.3.tar.gz",
+      "hash": "sha512-ex2H5R3nuvJH3XUeDdHMs/lLj622fHGvmL7Ze0r2vIS7dhtJKTZEfZw5XYjj/uJ9Q4CfQJQ5+8p2XhAcaRD8TQ=="
     }
   }
 }
