@@ -282,6 +282,10 @@ jobs:
           cp -R "$DOTNET_ROOT/." "$CANDIDATE_ROOT/"
           cp -R "$DOWNLOADED_ROOT/shared/Microsoft.NETCore.App/$CANDIDATE_VERSION" \
             "$CANDIDATE_ROOT/shared/Microsoft.NETCore.App/"
+          # MTP relaunches the worker using runtimeconfig rather than exec's --fx-version.
+          # Do not leave RC2 selectable in the candidate root; fixtures retain the same SDK/packs.
+          mv "$CANDIDATE_ROOT/shared/Microsoft.NETCore.App/11.0.0-rc.2.26504.105" \
+            "$DOWNLOADED_ROOT/baseline-core-runtime"
           (cd "$CANDIDATE_ROOT" && ./dotnet --info) > all-results/candidate-dotnet-info.txt
           "$CANDIDATE_ROOT/dotnet" --list-sdks > all-results/candidate-sdks.txt
           "$DOTNET_ROOT/dotnet" --list-sdks > all-results/baseline-sdks.txt
@@ -370,8 +374,11 @@ jobs:
                 RESULT=8
               fi
               EXPECTED_IDENTITY="RUNTIME_COMPARISON framework=.NET $VERSION processAssembly=$ROOT/shared/Microsoft.NETCore.App/$VERSION/System.Diagnostics.Process.dll processVersion=$VERSION+$COMMIT"
-              if ! grep -Fxq "$EXPECTED_IDENTITY" "$RESULTS/console.log"; then
-                echo "::error::$mode iteration $i: Loaded test-host runtime/Process assembly identity did not match verified source."
+              # The first two initializers belong to the MTP controller and test worker.
+              # A later fixture's matching line cannot validate an incorrectly relaunched worker.
+              IDENTITIES=$(awk '/^RUNTIME_COMPARISON / { if (++count <= 2) print }' "$RESULTS/console.log")
+              if [ "$IDENTITIES" != "$(printf '%s\n%s' "$EXPECTED_IDENTITY" "$EXPECTED_IDENTITY")" ]; then
+                echo "::error::$mode iteration $i: Controller/worker runtime and Process identities did not both match verified source."
                 RESULT=1
               fi
               echo "$RESULT" > "$RESULTS/exit-code.txt"
