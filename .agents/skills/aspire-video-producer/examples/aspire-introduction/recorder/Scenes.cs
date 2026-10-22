@@ -500,6 +500,10 @@ public static class Scenes
             WorkingDirectory = App,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
+            // The Aspire CLI writes UTF-8 (it sets Console.OutputEncoding): decoding it with the console's code page
+            // (on Windows, often not UTF-8) breaks the "│" separators that WaitForHealthyAsync counts.
+            StandardOutputEncoding = System.Text.Encoding.UTF8,
+            StandardErrorEncoding = System.Text.Encoding.UTF8,
         };
         using var process = Process.Start(info)!;
 

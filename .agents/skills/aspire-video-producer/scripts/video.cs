@@ -12,11 +12,10 @@
 //   assemble <workspace>                   assembles the video, its renditions and its captions
 //   review <workspace> <clip> [seconds...] writes a contact sheet of a recording to shots/<clip>.jpg
 //
-// The package versions are pinned, so every run uses the same packages. Dependabot updates them (see
-// .github/dependabot.yml); cgmanifest.json registers them for component governance: change both together.
-#:package SkiaSharp@4.153.1
-#:package SkiaSharp.NativeAssets.Linux@4.153.1
-#:package TextMateSharp.Grammars@2.0.4
+// The package versions are in Directory.Packages.props, pinned with the recorder's.
+#:package SkiaSharp
+#:package SkiaSharp.NativeAssets.Linux
+#:package TextMateSharp.Grammars
 #:include Brand.cs
 #:include Slides.cs
 #:include Media.cs

@@ -12,7 +12,7 @@ sealed class VideoException(string message) : Exception(message);
 static partial class Media
 {
     public const int MinimumFfmpegMajor = 7;
-    public const int MinimumNodeMajor = 24;
+    public const int MinimumNodeMajor = 22;
 
     public static string Ffmpeg { get; } = Environment.GetEnvironmentVariable("FFMPEG") is { Length: > 0 } ffmpeg ? ffmpeg : "ffmpeg";
 
@@ -25,6 +25,9 @@ static partial class Media
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             RedirectStandardInput = input is not null,
+            // tts.mjs reads and writes UTF-8, and ffmpeg prints UTF-8 paths: the console's code page (on Windows, often
+            // not UTF-8) would corrupt non-ASCII narration, such as Spanish. BOM-free, so stdin doesn't start with one.
+            StandardInputEncoding = input is not null ? new System.Text.UTF8Encoding(false) : null,
             StandardOutputEncoding = System.Text.Encoding.UTF8,
             StandardErrorEncoding = System.Text.Encoding.UTF8,
             UseShellExecute = false,
@@ -89,14 +92,14 @@ static partial class Media
         }
     }
 
-    /// <summary>Checks that Node.js is installed, at a long-term support version or later.</summary>
+    /// <summary>Checks that Node.js is installed, at a supported long-term support version or later.</summary>
     public static void CheckNode()
     {
         var (_, version, _) = Run(Node, ["--version"]);
         // "v24.22.1"
         if (!int.TryParse(version.TrimStart('v').Split('.')[0], CultureInfo.InvariantCulture, out var major) || major < MinimumNodeMajor)
         {
-            throw new VideoException($"Node.js {version.Trim()} is too old: install Node.js {MinimumNodeMajor} (LTS) or later.");
+            throw new VideoException($"Node.js {version.Trim()} is too old: install Node.js {MinimumNodeMajor} or later (24 LTS recommended).");
         }
 
         if (!File.Exists(Path.Combine(Brand.SkillTools, "tts", "node_modules", "msedge-tts", "package.json")))

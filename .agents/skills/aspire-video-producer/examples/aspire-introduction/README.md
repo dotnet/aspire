@@ -16,10 +16,9 @@ the recorder.
 |---|---|
 | `storyboard.json`, `storyboard.es.json` | Chapters 00 to 99, with `voice`, `rate`, `chapter` and `spoken` |
 | `recorder/Scenes.cs` | The clips. Reusable helpers: `OpenVsCodeAsync` (seeds the browser's user settings, closes editors), `TypeWithSuggestionAsync`, `HighlightLinesAsync`, `ClickLineEndAsync`, `OpenTerminalAsync`, `TypeInTerminalAsync`, `ExpectAppHostAsync`, `WaitForHealthyAsync`, `DismissUnsecuredBannerAsync`, `Text(en, es)` for localized highlight captions |
-| `vscode-user-settings.json` | The user settings written into IndexedDB before each VS Code scene (trust off, TypeScript on the server) |
+| `vscode-user-settings.json` | The user settings written into IndexedDB before each VS Code scene: trust off, TypeScript on the server, the look of the editor, the terminal profile (with anonymous dashboard access), `files.exclude` |
 | `apphost.start.mts`, `apphost.final.mts` | The AppHost before and after the typing of chapter 1 (the clip copies the start version into `app/apphost.mts`, and checks the result) |
-| `app/` | The sample app, "Contoso": a TypeScript AppHost (`aspire.config.json`), the Node.js `catalog` (Express, Redis from `CACHE_URI`), the .NET `Api` (Npgsql, OpenTelemetry, creates its database outside `aspire run`), and the Vite `frontend` |
-| `app/.vscode/settings.json` | The look of the editor, the terminal profile (with anonymous dashboard access), `files.exclude` |
+| `app/` | The sample app, "Contoso": a TypeScript AppHost (`aspire.config.json`), the Node.js `catalog` (Express, Redis from `CACHE_URI`), the .NET `Api` (Npgsql, OpenTelemetry, creates its database outside `aspire run`), and the Vite `frontend`. Its package versions are pinned: NuGet in `Directory.Packages.props`, npm in the three `package-lock.json` files |
 
 ## Set up the app
 
@@ -32,7 +31,7 @@ on Node's built-in TypeScript support. Set it up outside any repository, so no r
 cp -R <skill>/examples/aspire-introduction <shared>
 cd <shared>/app
 cp ../apphost.final.mts apphost.mts      # the clips copy the right version in before recording
-npm install && (cd catalog && npm install) && (cd frontend && npm install)
+npm ci && (cd catalog && npm ci) && (cd frontend && npm ci)   # the versions of the lockfiles
 aspire restore                           # generates .aspire/modules, the typed AppHost API
 aspire run                               # once, to check that the six resources are Running and Healthy
 ```
@@ -45,7 +44,7 @@ The recorder expects fixed addresses, set in the app:
 | API `https://localhost:7180` (traffic before recording) | `Api/Properties/launchSettings.json` |
 | VS Code `http://localhost:8123` | `code serve-web --port 8123 --without-connection-token`, started from `<shared>/app` |
 
-The terminal profile in `app/.vscode/settings.json` is for macOS (`terminal.integrated.profiles.osx`, zsh); on Windows
+The terminal profile in `vscode-user-settings.json` is for macOS (`terminal.integrated.profiles.osx`, zsh); on Windows
 or Linux, add the same profile under `profiles.windows` or `profiles.linux`, with its `env`. Run `aspire deploy` once
 before recording chapter 3: the first deploy builds the images, and takes much longer than the others.
 

@@ -47,7 +47,7 @@ public static class Scenes
         await scene.OpenAsync("/");
         await scene.StartCaptureAsync();
 
-        // Check selectors with "Recorder probe" first: the dashboard's markup can change between versions.
+        // Check selectors with "recorder.cs probe" first: the dashboard's markup can change between versions.
         ILocator Row(string resource)
             => scene.Page.GetByRole(AriaRole.Row).Filter(new() { HasText = resource }).First;
 

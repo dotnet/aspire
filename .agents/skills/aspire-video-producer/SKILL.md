@@ -46,10 +46,10 @@ The full specification, with every value and the reasons behind them, is in `ref
 
 ## Prerequisites
 
-- .NET SDK 10.0.300 or later: the tools are a .NET file-based app (`scripts/video.cs`, with `#:include`) and the
-  recorder (Playwright for .NET). Install the recorder's browser once, after building it: `pwsh
-  <bin>/playwright.ps1 install chromium` (the Chromium build pinned by the recorder's Playwright version).
-- Node.js 24 (LTS) or later, for the voice. Its package, `msedge-tts`, is pinned in `scripts/tts/package.json` and
+- .NET SDK 10.0.300 or later: the tools (`scripts/video.cs`) and the recorder (`scripts/recorder/recorder.cs`, with
+  Playwright for .NET) are .NET file-based apps, split with `#:include`. Install the recorder's browser once: `dotnet
+  run <tools>/recorder/recorder.cs -- install` (the Chromium build of the recorder's Playwright version).
+- Node.js 22 or later (24 LTS recommended), for the voice. Its package, `msedge-tts`, is pinned in `scripts/tts/package.json` and
   `package-lock.json`, and installed from the lockfile: `npm ci --prefix <tools>/tts`. Microsoft changes the speech
   service's handshake from time to time: when every request fails with a 403, update `msedge-tts` (Dependabot
   proposes new versions).
@@ -62,8 +62,9 @@ The full specification, with every value and the reasons behind them, is in `ref
 Check these first. If one is missing, tell the user what to install rather than working around it.
 
 `<skill>` below is the folder of this skill, and `<tools>` the copy of its `scripts` folder in the workspace (step 1).
-Every package the tools use is pinned to an exact version: `#:package` in `scripts/video.cs`, `Recorder.csproj`, and
-`scripts/tts/package-lock.json`. Run the tools with `dotnet run <tools>/video.cs -- <command> ...`; the first run
+Every package the tools use is pinned to an exact version: the NuGet packages in `scripts/Directory.Packages.props`
+(central package management, for both file-based apps), the npm packages in `scripts/tts/package-lock.json`. Nothing
+installs a missing prerequisite on its own: the tools stop and say what to install. Run the tools with `dotnet run <tools>/video.cs -- <command> ...`; the first run
 builds them (a few seconds), and later runs reuse the build.
 
 ## Workflow
@@ -164,16 +165,14 @@ Start the sample app (`aspire run`), then write one method per "clip" in `tools/
 to record, the scene API, and the pitfalls. Wait until every resource is Running and healthy, and generate some
 traffic so logs, traces and metrics have data. Then:
 
-`dotnet build` prints where the recorder is: `Recorder -> <bin>/Recorder.dll`. Each workspace's copy builds into its
-own folder, so several videos can be recorded side by side.
+Each workspace's copy of the recorder builds into its own folder, so several videos can be recorded side by side.
 
 ```bash
-cd <workspace>/tools/recorder && dotnet build
 export VIDEO_ROOT=<workspace> VIDEO_BASE_URL=https://localhost:17010
 export VIDEO_LOGIN_URL='<the dashboard login URL that aspire run prints>'
-<bin>/Recorder setup          # logs in to the dashboard, once per run of the app
-<bin>/Recorder probe / "..."  # checks each selector of Scenes.cs before recording
-<bin>/Recorder record all     # or the names of some clips
+dotnet run <tools>/recorder/recorder.cs -- setup          # logs in to the dashboard, once per run of the app
+dotnet run <tools>/recorder/recorder.cs -- probe / "..."  # checks each selector of Scenes.cs before recording
+dotnet run <tools>/recorder/recorder.cs -- record all     # or the names of some clips
 dotnet run <tools>/video.cs -- review <workspace> <clip>
 ```
 
@@ -240,7 +239,7 @@ Give the user `<output>.mp4` (send the file when the session can), and end with 
 - **Shared files**, when several videos use them: the sample app, the recorder, and any settings or AppHost versions
   the clips copy in.
 
-End with the commands that produce a video again from its workspace (`video.cs narrate`, `Recorder record`, `video.cs
+End with the commands that produce a video again from its workspace (`video.cs narrate`, `recorder.cs record`, `video.cs
 assemble`).
 
 ## Improving the skill

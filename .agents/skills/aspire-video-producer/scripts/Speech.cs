@@ -38,14 +38,17 @@ static class Speech
 
     private static string ApplySpoken(string text, JsonObject? overrides)
     {
-        foreach (var (written, said) in s_spoken)
-        {
-            text = text.Replace(written, said, StringComparison.Ordinal);
-        }
-
+        // The storyboard's entries replace the built-in ones for the same word, such as a Spanish "ASP.NET": merged
+        // first, then applied once, so a built-in replacement can't hide the word from the storyboard's.
+        var spoken = new Dictionary<string, string>(s_spoken);
         foreach (var (written, said) in overrides ?? [])
         {
-            text = text.Replace(written, (string)said!, StringComparison.Ordinal);
+            spoken[written] = (string)said!;
+        }
+
+        foreach (var (written, said) in spoken)
+        {
+            text = text.Replace(written, said, StringComparison.Ordinal);
         }
 
         return text;

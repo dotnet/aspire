@@ -13,7 +13,7 @@ and the typing helpers) **and `examples/aspire-introduction/vscode-user-settings
 |---|---|---|
 | IntelliSense shows only words of the file (the "abc" icon), or "No suggestions." after `builder.`; typing ends as `addDocker ("compose")` | The TypeScript extension isn't running with the project. (1) It doesn't run in Restricted Mode (`untrustedWorkspaces: false`). (2) In the browser it runs in a web worker, in a partial mode that doesn't resolve imports, such as `.aspire/modules/aspire.mjs` | Write the user settings into the browser before the workbench loads: `"security.workspace.trust.enabled": false` and `"remote.extensionKind": { "vscode.typescript-language-features": ["workspace"] }` (see below) |
 | Settings in `<server-data-dir>/data/User/settings.json` have no effect | In the browser, user settings live in IndexedDB, not on the server | Put them in IndexedDB: database `vscode-web-db` (version 3; stores `vscode-userdata-store`, `vscode-logs-store`, `vscode-filehandles-store`), store `vscode-userdata-store`, key `/User/settings.json`, value the UTF-8 bytes. Do it from any page of the VS Code origin (`/manifest.json` works, even as a 404), before opening `/?folder=...`. Each scene is a new browser context: do it in every scene |
-| Terminal profile, `env` and trust ignored from `.vscode/settings.json` or `data/Machine/settings.json` | Restricted settings (terminal profiles and env) aren't read in Restricted Mode; trust and `remote.extensionKind` are application settings | Turn trust off in the user settings above; keep the look of the editor and the terminal profile in the app's `.vscode/settings.json` |
+| Terminal profile, `env` and trust ignored from `.vscode/settings.json` or `data/Machine/settings.json` | Restricted settings (terminal profiles and env) aren't read in Restricted Mode; trust and `remote.extensionKind` are application settings | Put every setting in the user settings above, written to IndexedDB: trust off, the look of the editor, and the terminal profile |
 | How to check where TypeScript runs | | `ls <server-data-dir>/data/logs/<latest>/exthost*/`: a `vscode.typescript-language-features` folder means it runs on the server. Without it, it runs in the browser |
 | The first suggestions are slow, or missing | The TypeScript server loads the generated `aspire.mts` (tens of thousands of lines) | Open the file a few seconds before the capture; `TypeWithSuggestionAsync` presses Ctrl+Space when the list doesn't come |
 | After an identifier (`await builder`), the dot doesn't open the member list | The list of words for the identifier is still open | Press Escape, pause, then type `.addDocker` |
@@ -68,7 +68,7 @@ and the typing helpers) **and `examples/aspire-introduction/vscode-user-settings
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `Recorder probe` fails: "storage state file does not exist" | | Fixed: it runs without `state.json` (anonymous dashboards, VS Code) |
+| `recorder.cs probe` fails: "storage state file does not exist" | | Fixed: it runs without `state.json` (anonymous dashboards, VS Code) |
 | `timeout: command not found` | macOS has no `timeout` | Use the tool's own timeout |
 
 ## Recording native desktop apps (macOS menu bar, a remote Windows desktop)

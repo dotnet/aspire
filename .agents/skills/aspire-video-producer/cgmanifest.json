@@ -16,6 +16,16 @@
       "component": {
         "type": "nuget",
         "nuget": {
+          "name": "Microsoft.Playwright",
+          "version": "1.64.0"
+        }
+      },
+      "developmentDependency": true
+    },
+    {
+      "component": {
+        "type": "nuget",
+        "nuget": {
           "name": "SkiaSharp",
           "version": "4.153.1"
         }

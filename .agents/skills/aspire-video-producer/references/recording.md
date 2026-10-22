@@ -17,7 +17,7 @@ Record a throwaway sample app, never an app with real data or real cloud resourc
   `https://localhost:17010;http://localhost:15010`.
 - Start it with `aspire run` from `<workspace>/app`, in the background. It prints the dashboard's login URL, with a
   token (`https://localhost:17010/login?t=...`): pass it to the recorder as `VIDEO_LOGIN_URL`, and run
-  `Recorder setup`. The token changes on every run, so run `setup` again after restarting the app. Don't show the
+  `recorder.cs setup`. The token changes on every run, so run `setup` again after restarting the app. Don't show the
   token on camera.
 - Use realistic but fake data: names such as `apiservice`, `webfrontend`, `cache`, `catalogdb`; values such as
   `noreply@contoso.com`, `Contoso`, `sk_test_51HxQ2`. When the subject needs a cloud service, use its local emulator
@@ -53,17 +53,19 @@ re-record everything, stop the app, remove its containers and volumes, and start
 
 ## The recorder
 
-`scripts/recorder` is a Playwright for .NET console app, copied into the workspace with the tools (`tools/recorder`). Add your clips to `Scenes.cs`,
-and build it there (its output goes to a short path in the user's profile, `~/.aspire-video/recorder/<hash>/bin`, as Playwright's files exceed `MAX_PATH` under deep folders
-on Windows).
+`scripts/recorder` is a Playwright for .NET file-based app (`recorder.cs`, with `Scene.cs` and `Scenes.cs`), copied into
+the workspace with the tools (`tools/recorder`). Add your clips to `Scenes.cs`. It builds into a short path in the
+user's profile, `~/.aspire-video/recorder/<hash>/bin`, as Playwright's files exceed `MAX_PATH` under deep folders on
+Windows.
 
 ```bash
 export VIDEO_ROOT=<workspace>                    # where state.json, durations.json and clips/ are
 export VIDEO_BASE_URL=https://localhost:17010    # the dashboard
 export VIDEO_LOGIN_URL='https://localhost:17010/login?t=...'
-Recorder setup                                   # logs in, and saves the session in state.json
-Recorder probe /structuredlogs "() => document.title"   # inspects a page (PROBE_SHOT=x.png saves a screenshot)
-Recorder record all                              # or: Recorder record 02-resources 03-traces
+dotnet run <tools>/recorder/recorder.cs -- install   # once: the browser of this Playwright version
+dotnet run <tools>/recorder/recorder.cs -- setup     # logs in, and saves the session in state.json
+dotnet run <tools>/recorder/recorder.cs -- probe /structuredlogs "() => document.title"   # inspects a page (PROBE_SHOT=x.png saves a screenshot)
+dotnet run <tools>/recorder/recorder.cs -- record all   # or: ... record 02-resources 03-traces
 ```
 
 In Git Bash on Windows, set `MSYS_NO_PATHCONV=1`, or paths such as `/structuredlogs` are turned into Windows paths.
@@ -144,4 +146,4 @@ await scene.StepAsync("resources-2", async () =>
 - **Problems with external tools** (VS Code, the Aspire CLI, packages, the voice): see `references/troubleshooting.md`.
 - **Look at every contact sheet** (`video.cs review`): an error, an unhealthy resource or an empty list is easy to miss in
   the logs.
-- **Restart the app** after changing its code, and run `Recorder setup` again with the new login URL.
+- **Restart the app** after changing its code, and run `recorder.cs setup` again with the new login URL.
