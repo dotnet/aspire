@@ -581,7 +581,8 @@ public class AtsJavaCodeGeneratorTests
                             entry.getKey().getName().equals("aspire-client-reader")
                                 && Arrays.stream(entry.getValue()).anyMatch(frame ->
                                     (frame.isNativeMethod() && (frame.getClassName().equals("java.io.FileInputStream")
-                                        || frame.getClassName().equals("sun.nio.ch.Net")))
+                                        || frame.getClassName().equals("sun.nio.ch.Net")
+                                        || frame.getClassName().equals("sun.nio.ch.SocketDispatcher")))
                                         || frame.getClassName().equals("sun.nio.ch.PendingFuture")));
                         Thread.onSpinWait();
                     }
