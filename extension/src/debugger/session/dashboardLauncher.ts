@@ -390,8 +390,11 @@ export class DashboardLauncher implements vscode.Disposable {
   /**
    * Dashboard browsers are optional UI children. Give their launch/stop a smaller share of the
    * shutdown budget so a wedged browser adapter cannot starve AppHost and parent teardown.
+   * js-debug can take more than two seconds to publish root-session termination on a loaded
+   * Windows runner after accepting the stop request. Five seconds still fits inside the six-second
+   * resource phase while leaving the AppHost and parent reserve untouched.
    */
-  private static readonly _dashboardStopTimeoutMs = 2000;
+  private static readonly _dashboardStopTimeoutMs = 5000;
   // Keep the listener beyond js-debug's launch timeout so shutdown can still adopt and stop a
   // browser whose start event races the launch request settling.
   private static readonly _dashboardLateStartListenerTimeoutMs = dashboardDebugBrowserStartTimeoutMs + 5000;
