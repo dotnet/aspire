@@ -364,6 +364,20 @@ The repository-development path uses project references and local artifacts wher
 
 [eng/Bundle.proj](../../eng/Bundle.proj) orchestrates local bundle creation. Restore the repository toolchain first and install the target platform's Native AOT prerequisites.
 
+The bundle build validates its configuration and restores the target RID's DCP package
+before publishing components. A failed DCP restore stops the build before any
+component is published. Component publishing is ordered: Managed, Dashboard,
+TerminalHost, AppHost Server, then the platform tray.
+
+For signed distributions, a shared component-binary signing pass precedes the
+separate macOS tray app signing, notarization, and restoration. Payload assembly
+consumes the prepared files without republishing them. Dashboard and optional DCP
+distribution packages are created before payload assembly; CLI distribution
+packaging follows assembly and embeds the payload in the CLI. Later signing-tool
+restores intentionally run in fresh child evaluations; they are not another DCP
+restore. Direct payload-packaging calls also restore DCP before creating packages
+or assembling the archive.
+
 ```powershell
 # Windows example, from the repository root
 .\restore.cmd
@@ -376,22 +390,40 @@ dotnet msbuild eng/Bundle.proj /t:Build /p:TargetRid=win-x64 /p:Configuration=Re
 dotnet msbuild eng/Bundle.proj /t:Build /p:TargetRid=osx-arm64 /p:Configuration=Release
 ```
 
-`Build` is the default entry point. `Pack` defaults to `false`, producing the
-payload and native CLI without distribution packages. GitHub Actions and Azure
-Pipelines use `Build /p:Pack=true` to additionally produce Dashboard and CLI
+`Build` is the default entry point. `BuildDistributionPackages` defaults to
+`false`, producing the payload archive and native CLI without distribution
+packages. Set `BuildDistributionPackages=true` to additionally produce Dashboard and CLI
 archive/tool/npm packages; `PackDcpPackage=true` also requests the DCP package.
-Signing requires `Pack=true` and the existing `Sign` and `DotNetSignType` settings.
+Dashboard packaging produces a NuGet package and runtime ZIP. CLI packaging
+produces a platform archive, .NET tool NuGet packages, and npm packages.
+Signing requires `BuildDistributionPackages=true` and the existing `Sign` and `DotNetSignType` settings.
 Signed macOS jobs in Azure Pipelines allow two hours to accommodate signing and notarization latency.
+
+`Pack` remains a compatibility input for `BuildDistributionPackages`, including
+in existing CI callers. Supplying both with different values fails validation.
+The internal payload archive is created regardless of this setting.
 
 The assembled directories are under `artifacts/bundle/{rid}/`; the payload archive is `artifacts/bundle/aspire-{version}-{rid}.tar.gz`. The self-extracting CLI is in the CLI project's publish output, not in the payload directory.
 
 `Configuration` defaults to Debug for local bundle builds. The GitHub Actions native-archive workflow defaults to Release and passes it explicitly; CI bundle creation rejects non-Release configurations so distributed payloads use Native AOT optimizations. CI identity does not enable packaging.
 
 `SkipManagedBuild=true` reuses existing Managed, Dashboard, and TerminalHost publishes.
-`SkipNativeBuild=true` skips the final CLI and its packages, but still assembles
+`SkipNativeCliBuild=true` skips the final CLI and its packages, but still assembles
 the payload and produces and signs requested payload packages. These switches do
 not make missing payload components optional. `CliPublishDir` overrides the
 lightweight CLI publish directory only; distribution outputs keep their standard paths.
+
+`SkipNativeBuild` remains a compatibility input for `SkipNativeCliBuild`.
+Supplying both with different values fails validation. This bundle-level switch
+does not skip native Dashboard, TerminalHost, AppHost Server, or tray publishing;
+their existing skip options remain independent. Child build projects can give
+`SkipNativeBuild` a broader meaning, so the bundle does not forward this input
+to those projects.
+
+Distribution builds also run the stricter Dashboard warning check and prepared
+input preflight. Local bundle assembly retains CreateLayout's input validation
+without requiring the distribution warning-check toolchain. Both modes verify
+the macOS or Windows tray payload in the assembled archive.
 
 `SkipDashboardPublish=true` reuses an existing Dashboard publish for the requested RID and configuration. Missing required assets fail the build.
 

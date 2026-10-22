@@ -10,6 +10,34 @@ namespace Infrastructure.Tests;
 
 public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
 {
+    [Fact]
+    public async Task DcpRestoreFailureStopsBeforePublishingAnyComponents()
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        var project = CreateProject(workspace.Path, "linux-x64");
+        File.WriteAllText(Path.Combine(workspace.Path, "fail-restore"), "");
+
+        var result = await ExecuteAsync(project, "Build", "linux-x64", "SkipNativeCliBuild=true");
+
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains("Failed publishing restore", result.Output);
+        Assert.False(File.Exists(Path.Combine(workspace.Path, "events")));
+    }
+
+    [Theory]
+    [InlineData("BuildDistributionPackages=invalid", "BuildDistributionPackages must be true or false.")]
+    [InlineData("SkipNativeCliBuild=invalid", "SkipNativeCliBuild must be true or false.")]
+    [InlineData("BuildDistributionPackages=true;Pack=false", "Pack and BuildDistributionPackages must agree")]
+    [InlineData("SkipNativeCliBuild=true;SkipNativeBuild=false", "SkipNativeBuild and SkipNativeCliBuild must agree")]
+    public async Task BundleRejectsInvalidOrConflictingBuildSwitches(string settings, string message)
+    {
+        var result = await ExecuteAsync(Path.Combine(RepoRoot.Path, "eng", "Bundle.proj"),
+            "_ShowBanner", "linux-x64", settings.Split(';'));
+
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains(message, result.Output);
+    }
+
     [Theory]
     [InlineData("linux-x64", "", false)]
     [InlineData("win-x64", "test", true)]
@@ -39,10 +67,9 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         await RunAsync(project, "Build", rid, "Pack=true",
             $"Sign={sign}", $"DotNetSignType={signType}",
             $"SkipManagedBuild={windows}", $"SkipAppHostServerBuild={windows}", $"SkipTrayBuild={windows}", "SkipNativeBuild=false",
-            "BundleVersion=ci-bundlepayload", "RestorePackagesPath=" + Path.Combine(root, "restore cache"), "PackDcpPackage=true",
-            "RequireMacTraySignature=false", "RequireWindowsTraySignature=false");
+            "BundleVersion=ci-bundlepayload", "RestorePackagesPath=" + Path.Combine(root, "restore cache"), "PackDcpPackage=true");
 
-        var expected = new List<string>();
+        var expected = new List<string> { "restore" };
         if (!windows)
         {
             expected.AddRange(["managed", "dashboard", "terminalhost", "apphost-server"]);
@@ -65,7 +92,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         {
             expected.AddRange(["sign-tray", "notarize-tray", "restore-tray"]);
         }
-        expected.AddRange(["package", "dcp-package", "restore", "layout"]);
+        expected.AddRange(["package", "dcp-package", "layout"]);
         if (!rid.StartsWith("linux-", StringComparison.Ordinal))
         {
             expected.Add("verify");
@@ -127,13 +154,13 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
     [InlineData("restore-tray", "notarize-tray")]
     [InlineData("package", "restore-tray")]
     [InlineData("dcp-package", "package")]
-    [InlineData("restore", "dcp-package")]
-    [InlineData("layout", "restore")]
+    [InlineData("restore", null)]
+    [InlineData("layout", "dcp-package")]
     [InlineData("verify", "layout")]
     [InlineData("cli", "verify")]
     [InlineData("sign-archive", "cli")]
     [InlineData("cli-pack", "sign-archive")]
-    public async Task NativeOrchestrationStopsOnFailedPhase(string phase, string lastEvent)
+    public async Task NativeOrchestrationStopsOnFailedPhase(string phase, string? lastEvent)
     {
         using var workspace = TemporaryWorkspace.Create(output);
         const string rid = "osx-arm64";
@@ -144,17 +171,23 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
             "Sign=true", "DotNetSignType=real", "PackDcpPackage=true", "BundleVersion=ci-bundlepayload");
 
         Assert.NotEqual(0, result.ExitCode);
-        Assert.Equal(lastEvent, File.ReadAllLines(Path.Combine(workspace.Path, "events"))[^1]);
+        if (lastEvent is null)
+        {
+            Assert.False(File.Exists(Path.Combine(workspace.Path, "events")));
+        }
+        else
+        {
+            Assert.Equal(lastEvent, File.ReadAllLines(Path.Combine(workspace.Path, "events"))[^1]);
+        }
     }
 
     [Theory]
     [InlineData("Pack=invalid", "Pack must be true or false.")]
-    [InlineData("Pack=false", "Signing requires Pack=true.")]
+    [InlineData("Pack=false", "Signing requires BuildDistributionPackages=true")]
     [InlineData("Sign=invalid", "Sign must be true or false.")]
     [InlineData("Sign=true", "Signing requires DotNetSignType")]
     [InlineData("DotNetSignType=invalid", "DotNetSignType must be")]
     [InlineData("DotNetSignType=real", "Real signing requires")]
-    [InlineData("RequireMacTraySignature=true", "Tray signature verification requires")]
     [InlineData("VersionSuffix=unsafe&argument", "VersionSuffix must contain")]
     [InlineData("AspireCliChannel=unsafe&argument", "AspireCliChannel must contain")]
     public async Task NativeOrchestrationRejectsInconsistentInputsBeforePublishing(string property, string message)
@@ -211,7 +244,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
 
         Assert.NotEqual(0, result.ExitCode);
         Assert.Contains("Signing child requires the MicroBuild plugin.", result.Output);
-        Assert.Equal(["managed", "dashboard", "terminalhost", "apphost-server", "tray", "adhoc", "prepare-tray"],
+        Assert.Equal(["restore", "managed", "dashboard", "terminalhost", "apphost-server", "tray", "adhoc", "prepare-tray"],
             File.ReadAllLines(Path.Combine(workspace.Path, "events")));
     }
 
@@ -284,12 +317,12 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         {
             expected.Add("tray");
         }
-        expected.Add("package");
+        expected.AddRange(["restore", "package"]);
         if (packDcp)
         {
             expected.Add("dcp-package");
         }
-        expected.AddRange(["restore", "layout"]);
+        expected.Add("layout");
         if (rid.StartsWith("osx-", StringComparison.Ordinal))
         {
             expected.Add("verify");
@@ -400,7 +433,8 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
 
         await RunAsync(project, "PackageBundlePayload", rid, "Pack=true", "SkipNativeBuild=true");
 
-        Assert.Equal(["package", "restore", "layout", "verify"],
+        Assert.Equal("false", File.ReadAllText(Path.Combine(root, "require-tray-signature")).Trim());
+        Assert.Equal(["restore", "package", "layout", "verify"],
             File.ReadAllLines(Path.Combine(root, "events")));
         Assert.Equal("signed prepared bytes", File.ReadAllText(Path.Combine(root, "package-dashboard")));
         Assert.Equal("signed prepared bytes", File.ReadAllText(Path.Combine(root, "layout-dashboard")));
@@ -422,7 +456,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         const string rid = "linux-x64";
         var project = CreateProject(workspace.Path, rid);
         await RunAsync(project, "Build", rid, "SkipNativeBuild=true");
-        Assert.Equal(["managed", "dashboard", "terminalhost", "apphost-server", "restore", "layout"],
+        Assert.Equal(["restore", "managed", "dashboard", "terminalhost", "apphost-server", "layout"],
             File.ReadAllLines(Path.Combine(workspace.Path, "events")).Select(line => line.Split('|')[0]));
 
         File.Delete(Path.Combine(workspace.Path, "events"));
@@ -432,11 +466,15 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(false, true)]
-    [InlineData(true, false)]
-    [InlineData(true, true)]
-    public async Task BuildSelectsExactlyOneCliBackendUnlessNativeBuildIsSkipped(bool pack, bool skipNative)
+    [InlineData(false, false, true)]
+    [InlineData(false, true, true)]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, true)]
+    [InlineData(false, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(true, false, false)]
+    [InlineData(true, true, false)]
+    public async Task BuildSelectsExactlyOneCliBackendUnlessNativeBuildIsSkipped(bool pack, bool skipNative, bool legacyNames)
     {
         using var workspace = TemporaryWorkspace.Create(output);
         const string rid = "linux-x64";
@@ -446,19 +484,21 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
             Write(Path.Combine(workspace.Path, "distribution-cli"), "distribution CLI")));
         bundle.Save(project);
 
-        // Omit both target and Pack in the default case. CI identity and a
+        // Omit both target and the packaging switch in the default case. CI identity and a
         // distribution-only modifier must not implicitly enable packaging.
+        var packagingProperty = legacyNames ? "Pack" : "BuildDistributionPackages";
+        var skipProperty = legacyNames ? "SkipNativeBuild" : "SkipNativeCliBuild";
         string[] properties = pack
-            ? ["Pack=true", $"SkipNativeBuild={skipNative}", "PackDcpPackage=true"]
-            : [$"SkipNativeBuild={skipNative}", "PackDcpPackage=true"];
+            ? [$"{packagingProperty}=true", $"{skipProperty}={skipNative}", "PackDcpPackage=true"]
+            : [$"{skipProperty}={skipNative}", "PackDcpPackage=true"];
         await RunAsync(project, pack ? "Build" : "", rid, properties);
 
-        var expected = new List<string> { "managed", "dashboard", "terminalhost", "apphost-server" };
+        var expected = new List<string> { "restore", "managed", "dashboard", "terminalhost", "apphost-server" };
         if (pack)
         {
             expected.AddRange(["package", "dcp-package"]);
         }
-        expected.AddRange(["restore", "layout"]);
+        expected.Add("layout");
         if (!pack && !skipNative)
         {
             expected.Add("cli");
@@ -498,7 +538,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         {
             target.Remove();
         }
-        bundle.Root.Element("PropertyGroup")!.Add(Property("CliProjectPath", cli));
+        bundle.Root.Element("PropertyGroup")!.Add(Property("_CliProjectPath", cli));
         bundle.Save(project);
         File.WriteAllText(Path.Combine(root, "fail-warning"), "");
         File.WriteAllText(Path.Combine(root, "fail-adhoc"), "");
@@ -512,15 +552,21 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         Assert.Equal(Path.GetFullPath(archive), Path.GetFullPath(properties[2]));
         Assert.Equal(Path.GetFullPath(publish), Path.TrimEndingDirectorySeparator(Path.GetFullPath(properties[3])));
         Assert.Equal("", properties[4]);
+        foreach (var name in new[] { "PublishManaged", "PublishDashboard", "PublishTerminalHost", "PublishAppHostServer", "RestoreDcp", "PublishCli" })
+        {
+            var binlog = Path.Combine(root, "artifacts", "log", "Release", name + ".binlog");
+            Assert.True(File.Exists(binlog), $"Missing local build binlog: {binlog}");
+            Assert.True(new FileInfo(binlog).Length > 0, $"Empty local build binlog: {binlog}");
+        }
         var assembly = System.Reflection.Assembly.Load(File.ReadAllBytes(Path.Combine(publish, assemblyName + ".dll")));
         using var payload = assembly.GetManifestResourceStream("bundle.tar.gz");
         Assert.NotNull(payload);
         using var reader = new StreamReader(payload);
         Assert.Equal(File.ReadAllText(archive), await reader.ReadToEndAsync());
         Assert.Equal(rid.StartsWith("linux-", StringComparison.Ordinal)
-                ? ["managed", "dashboard", "terminalhost", "apphost-server", "restore", "layout"]
-                : ["managed", "dashboard", "terminalhost", "apphost-server",
-                    rid.StartsWith("win-", StringComparison.Ordinal) ? "windows-tray" : "tray", "restore", "layout", "verify"],
+                ? ["restore", "managed", "dashboard", "terminalhost", "apphost-server", "layout"]
+                : ["restore", "managed", "dashboard", "terminalhost", "apphost-server",
+                    rid.StartsWith("win-", StringComparison.Ordinal) ? "windows-tray" : "tray", "layout", "verify"],
             File.ReadAllLines(Path.Combine(root, "events")));
     }
 
@@ -570,8 +616,8 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
             $"SkipManagedBuild={skipManaged}", $"SkipDashboardPublish={!skipManaged}");
 
         Assert.Equal(skipManaged
-                ? ["apphost-server", "package", "restore", "layout"]
-                : ["managed", "terminalhost", "apphost-server", "package", "restore", "layout"],
+                ? ["restore", "apphost-server", "package", "layout"]
+                : ["restore", "managed", "terminalhost", "apphost-server", "package", "layout"],
             File.ReadAllLines(Path.Combine(workspace.Path, "events")));
         Assert.False(File.Exists(Path.Combine(workspace.Path, "artifacts", "log", "Release", "PublishNativeDashboard.log")));
     }
@@ -592,14 +638,14 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
 
         var expected = new List<string>
         {
-            "managed", "dashboard", "terminalhost", "apphost-server", "tray", "adhoc", "prepare-tray",
+            "restore", "managed", "dashboard", "terminalhost", "apphost-server", "tray", "adhoc", "prepare-tray",
             "sign-components", "sign-tray", "notarize-tray", "restore-tray", "package"
         };
         if (packDcp)
         {
             expected.Add("dcp-package");
         }
-        expected.AddRange(["restore", "layout", "verify", "sign-packages"]);
+        expected.AddRange(["layout", "verify", "sign-packages"]);
         Assert.Equal(expected, File.ReadAllLines(Path.Combine(workspace.Path, "events")));
         Assert.Equal("signed Dashboard package", File.ReadAllText(Path.Combine(workspace.Path, "shipping", "dashboard.nupkg")).Trim());
         Assert.Equal(packDcp, File.Exists(Path.Combine(workspace.Path, "shipping", "dcp.nupkg")));
@@ -645,7 +691,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         File.Delete(Path.Combine(workspace.Path, "events"));
         await RunAsync(project, "Build", rid, "SkipManagedBuild=true", "SkipNativeBuild=true", "SkipTrayBuild=true");
 
-        Assert.Equal(["apphost-server", "restore", "layout"],
+        Assert.Equal(["restore", "apphost-server", "layout"],
             File.ReadAllLines(Path.Combine(workspace.Path, "events")));
     }
 
@@ -656,7 +702,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         const string rid = "osx-arm64";
         var project = CreateProject(workspace.Path, rid);
         await RunAsync(project, "Build", rid, "SkipNativeBuild=true");
-        Assert.Equal(["managed", "dashboard", "terminalhost", "apphost-server", "tray", "restore", "layout", "verify"],
+        Assert.Equal(["restore", "managed", "dashboard", "terminalhost", "apphost-server", "tray", "layout", "verify"],
             File.ReadAllLines(Path.Combine(workspace.Path, "events")));
 
         File.Delete(Path.Combine(workspace.Path, "events"));
@@ -723,11 +769,11 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [InlineData("managed", "")]
-    [InlineData("dashboard", "managed")]
-    [InlineData("terminalhost", "managed,dashboard")]
-    [InlineData("apphost-server", "managed,dashboard,terminalhost")]
-    [InlineData("tray", "managed,dashboard,terminalhost,apphost-server")]
+    [InlineData("managed", "restore")]
+    [InlineData("dashboard", "restore,managed")]
+    [InlineData("terminalhost", "restore,managed,dashboard")]
+    [InlineData("apphost-server", "restore,managed,dashboard,terminalhost")]
+    [InlineData("tray", "restore,managed,dashboard,terminalhost,apphost-server")]
     public async Task PublishFailureStopsBeforeLaterComponentsSigningAndPackaging(string component, string expected)
     {
         using var workspace = TemporaryWorkspace.Create(output);
@@ -834,7 +880,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
             }
             """);
         var bundle = XDocument.Load(project);
-        bundle.Root!.Element("PropertyGroup")!.Element("DashboardProjectPath")!.Value = dashboardProject;
+        bundle.Root!.Element("PropertyGroup")!.Element("_DashboardProjectPath")!.Value = dashboardProject;
         bundle.Save(project);
 
         // Let Arcade select its real import root. Hardcoding NuGetPackageRoot
@@ -843,7 +889,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         {
             ["NUGET_PACKAGES"] = environmentCache ? Path.Combine(root, "environment cache") : null
         };
-        var properties = new List<string> { "RepoRoot=" + root + Path.DirectorySeparatorChar };
+        var properties = new List<string> { "_RepoRoot=" + root + Path.DirectorySeparatorChar };
         if (explicitRestoreCache)
         {
             properties.Add("RestorePackagesPath=" + Path.Combine(root, "explicit restore cache"));
@@ -941,7 +987,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         var bundle = XDocument.Load(project);
         bundle.Root!.Elements("Target").Single(target => target.Attribute("Name")!.Value == "_RunCreateLayout").Remove();
         bundle.Root.Element("PropertyGroup")!.Add(
-            Property("CreateLayoutProjectPath", Path.Combine(RepoRoot.Path, "tools", "CreateLayout", "CreateLayout.csproj")));
+            Property("_CreateLayoutProjectPath", Path.Combine(RepoRoot.Path, "tools", "CreateLayout", "CreateLayout.csproj")));
         bundle.Save(project);
         var home = workspace.CreateDirectory("cold-home").FullName;
         var environment = new Dictionary<string, string?>
@@ -953,7 +999,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         };
 
         var result = await ExecuteAsync(project, "PackageBundlePayload", rid, environment, "Pack=true",
-            "RepoRoot=" + root + Path.DirectorySeparatorChar, "BundleVersion=cold-cache");
+            "_RepoRoot=" + root + Path.DirectorySeparatorChar, "BundleVersion=cold-cache");
 
         Assert.True(result.ExitCode == 0, result.Output);
         Assert.Equal("DCP from the restore cache",
@@ -983,8 +1029,8 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         var bundle = XDocument.Load(project);
         bundle.Root!.Elements("Target").Single(target => target.Attribute("Name")!.Value == "_RunCreateLayout").Remove();
         bundle.Root.Element("PropertyGroup")!.Add(
-            Property("CreateLayoutProjectPath", Path.Combine(RepoRoot.Path, "tools", "CreateLayout", "CreateLayout.csproj")),
-            Property("BundleOutputDir", Path.Combine(root, "artifacts", "bundle", rid)));
+            Property("_CreateLayoutProjectPath", Path.Combine(RepoRoot.Path, "tools", "CreateLayout", "CreateLayout.csproj")),
+            Property("_BundleOutputDir", Path.Combine(root, "artifacts", "bundle", rid)));
         bundle.Save(project);
         return cache;
     }
@@ -1038,24 +1084,24 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         new XDocument(new XElement("Project",
             new XElement("Import", new XAttribute("Project", Path.Combine(RepoRoot.Path, "eng", "Bundle.proj"))),
             new XElement("PropertyGroup",
-                Property("ArtifactsDir", Path.Combine(root, "artifacts") + Path.DirectorySeparatorChar),
-                Property("ArtifactsLogDir", Path.Combine(root, "artifacts", "log", "Release") + Path.DirectorySeparatorChar),
+                Property("_ArtifactsDir", Path.Combine(root, "artifacts") + Path.DirectorySeparatorChar),
+                Property("_ArtifactsLogDir", Path.Combine(root, "artifacts", "log", "Release") + Path.DirectorySeparatorChar),
                 Property("DashboardPublishLogPath", Path.Combine(root, "artifacts", "log", "Release", "PublishNativeDashboard.log")),
-                Property("ManagedPublishDir", Path.GetDirectoryName(ManagedPath(root, rid))!),
-                Property("DashboardPublishDir", dashboardDirectory),
-                Property("TerminalHostPublishDir", Path.GetDirectoryName(TerminalHostPath(root, rid))!),
-                Property("AppHostServerPublishDir", Path.GetDirectoryName(AppHostServerPath(root, rid))! + Path.DirectorySeparatorChar),
-                Property("ManagedProjectPath", managed),
-                Property("DashboardProjectPath", dashboard),
-                Property("TerminalHostProjectPath", terminal),
-                Property("AppHostServerProjectPath", server),
-                Property("DashboardPackProjectPath", package),
-                Property("DcpPackProjectPath", dcp),
-                Property("TrayProjectPath", tray),
-                Property("WindowsTrayProjectPath", windowsTray),
+                Property("_ManagedPublishDir", Path.GetDirectoryName(ManagedPath(root, rid))!),
+                Property("_DashboardPublishDir", dashboardDirectory),
+                Property("_TerminalHostPublishDir", Path.GetDirectoryName(TerminalHostPath(root, rid))!),
+                Property("_AppHostServerPublishDir", Path.GetDirectoryName(AppHostServerPath(root, rid))! + Path.DirectorySeparatorChar),
+                Property("_ManagedProjectPath", managed),
+                Property("_DashboardProjectPath", dashboard),
+                Property("_TerminalHostProjectPath", terminal),
+                Property("_AppHostServerProjectPath", server),
+                Property("_DashboardPackProjectPath", package),
+                Property("_DcpPackProjectPath", dcp),
+                Property("_TrayProjectPath", tray),
+                Property("_TrayWindowsProjectPath", windowsTray),
                 Property("TrayAppPath", trayApp),
                 Property("WindowsTrayPath", Path.Combine(root, "artifacts", "tray")),
-                Property("AppHostProjectPath", apphost)),
+                Property("_AppHostProjectPath", apphost)),
             // Test-only aliases exercise the production phases in isolation.
             new XElement("Target", new XAttribute("Name", "PublishBundleComponents"),
                 new XAttribute("DependsOnTargets", "_PublishBundleComponents")),
@@ -1080,7 +1126,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
                     new XAttribute("Text", "Failed verify")),
                 rid.StartsWith("linux-", StringComparison.Ordinal) ? null : Record("verify"),
                 rid.StartsWith("linux-", StringComparison.Ordinal) ? null : Write(Path.Combine(root, "require-tray-signature"),
-                    rid.StartsWith("osx-", StringComparison.Ordinal) ? "$(RequireMacTraySignature)" : "$(RequireWindowsTraySignature)")),
+                    rid.StartsWith("osx-", StringComparison.Ordinal) ? "$(_RequireMacTraySignature)" : "$(_RequireWindowsTraySignature)")),
             new XElement("Target", new XAttribute("Name", "_PublishNativeCli"), Record("cli")),
             new XElement("Target", new XAttribute("Name", "_CleanCaches")))).Save(projectPath);
         return projectPath;
@@ -1144,9 +1190,9 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
             new XElement("PropertyGroup", Property("MicroBuild_SigningEnabled", "true")))).Save(signingPlugin);
         var bundle = XDocument.Load(project);
         bundle.Root!.Element("PropertyGroup")!.Add(
-            Property("BuildScriptPath", Path.Combine(root, OperatingSystem.IsWindows() ? "build.cmd" : "build.sh")),
-            Property("TraySigningArchive", trayArchive),
-            Property("TraySigningProjectPath", signer));
+            Property("_BuildScriptPath", Path.Combine(root, OperatingSystem.IsWindows() ? "build.cmd" : "build.sh")),
+            Property("_TraySigningArchivePath", trayArchive),
+            Property("_TraySigningProjectPath", signer));
         // The final CLI wrapper, not _PublishNativeCli, must be the only CLI owner.
         bundle.Root.Add(new XElement("Target", new XAttribute("Name", "_PublishNativeCli"),
             new XElement("Error", new XAttribute("Text", "The CLI must not publish twice."))));

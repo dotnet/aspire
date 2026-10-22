@@ -96,7 +96,7 @@ public sealed class Hex1bNativePublishingTests : IDisposable
         var result = await RunDotNetAsync(
             ["msbuild", Path.Combine(RepoRoot.Path, "eng", "Bundle.proj"), "-nologo", "-t:_ShowBanner",
              $"-p:Configuration={configuration}", $"-p:ContinuousIntegrationBuild={ci}",
-             $"-p:ArtifactsLogDir={Path.Combine(_workspace.Path, "logs")}"]);
+             $"-p:_ArtifactsLogDir={Path.Combine(_workspace.Path, "logs")}"]);
 
         Assert.Equal(succeeds, result.ExitCode == 0);
         if (!succeeds)
@@ -377,9 +377,9 @@ public sealed class Hex1bNativePublishingTests : IDisposable
         var result = await RunDotNetAsync(
             ["msbuild", Path.Combine(RepoRoot.Path, "eng", "Bundle.proj"), "-nologo",
              "-t:_RemoveMacOSBundleDebugSymbols", "-p:TargetRid=osx-arm64", "-p:Sign=true", "-p:Pack=true",
-             $"-p:DashboardPublishDir={dashboard}{(trailingSeparator ? Path.DirectorySeparatorChar.ToString() : "")}",
-             $"-p:TerminalHostPublishDir={terminal}{(trailingSeparator ? Path.DirectorySeparatorChar.ToString() : "")}",
-             $"-p:AppHostServerPublishDir={server}{(trailingSeparator ? Path.DirectorySeparatorChar.ToString() : "")}"]);
+             $"-p:_DashboardPublishDir={dashboard}{(trailingSeparator ? Path.DirectorySeparatorChar.ToString() : "")}",
+             $"-p:_TerminalHostPublishDir={terminal}{(trailingSeparator ? Path.DirectorySeparatorChar.ToString() : "")}",
+             $"-p:_AppHostServerPublishDir={server}{(trailingSeparator ? Path.DirectorySeparatorChar.ToString() : "")}"]);
 
         Assert.True(result.ExitCode == 0, result.Output);
         Assert.Equal(["Aspire.Dashboard"], Directory.GetFileSystemEntries(dashboard).Select(Path.GetFileName));
@@ -398,14 +398,14 @@ public sealed class Hex1bNativePublishingTests : IDisposable
         var result = await RunDotNetAsync(
             ["msbuild", Path.Combine(RepoRoot.Path, "eng", "Bundle.proj"), "-nologo",
              $"-p:Configuration={configuration}", $"-p:TargetRid={rid}",
-             "-getProperty:TrayProjectPath,TrayAppPath,DefaultTargetFramework"]);
+             "-getProperty:_TrayProjectPath,TrayAppPath,DefaultTargetFramework"]);
 
         Assert.True(result.ExitCode == 0, result.Output);
         using var document = JsonDocument.Parse(result.StandardOutput);
         var properties = document.RootElement.GetProperty("Properties");
         Assert.Equal(
             Path.Combine(RepoRoot.Path, "src", "Aspire.Tray", "Mac", "Aspire.Tray.Mac.csproj"),
-            Path.GetFullPath(properties.GetProperty("TrayProjectPath").GetString()!));
+            Path.GetFullPath(properties.GetProperty("_TrayProjectPath").GetString()!));
         Assert.Equal(
             Path.Combine(RepoRoot.Path, "artifacts", "bin", "Aspire.Tray.Mac", configuration,
                 properties.GetProperty("DefaultTargetFramework").GetString()!, rid, "app", "Aspire Tray.app"),
@@ -482,11 +482,11 @@ public sealed class Hex1bNativePublishingTests : IDisposable
         new XDocument(new XElement("Project",
             new XElement("Import", new XAttribute("Project", Path.Combine(RepoRoot.Path, "eng", "Bundle.proj"))),
             new XElement("PropertyGroup",
-                new XElement("ArtifactsDir", Path.Combine(_workspace.Path, "artifacts") + Path.DirectorySeparatorChar),
-                new XElement("DashboardPublishDir", Path.GetDirectoryName(dashboard) + Path.DirectorySeparatorChar),
-                new XElement("ManagedProjectPath", Path.Combine(_workspace.Path, "managed.proj")),
-                new XElement("DashboardProjectPath", Path.Combine(_workspace.Path, "dashboard.proj")),
-                new XElement("TerminalHostProjectPath", Path.Combine(_workspace.Path, "terminalhost.proj")))))
+                new XElement("_ArtifactsDir", Path.Combine(_workspace.Path, "artifacts") + Path.DirectorySeparatorChar),
+                new XElement("_DashboardPublishDir", Path.GetDirectoryName(dashboard) + Path.DirectorySeparatorChar),
+                new XElement("_ManagedProjectPath", Path.Combine(_workspace.Path, "managed.proj")),
+                new XElement("_DashboardProjectPath", Path.Combine(_workspace.Path, "dashboard.proj")),
+                new XElement("_TerminalHostProjectPath", Path.Combine(_workspace.Path, "terminalhost.proj")))))
             .Save(project);
         return project;
     }
