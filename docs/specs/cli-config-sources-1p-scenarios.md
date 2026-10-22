@@ -1,12 +1,12 @@
 # Config-source scenarios for Microsoft first-party developers
 
-This companion to the [CLI config-source specification](cli-config-sources.md) follows hypothetical Microsoft first-party (1P) developers. It describes the implemented configuration-acquisition flow, not the proposed skills, template, or integration customization schema.
+This companion to the [CLI config-source specification](cli-config-sources.md) follows hypothetical Microsoft first-party (1P) developers. It describes the revised, proposed materialization flow; the implementation has not yet been updated to match. Skills, template, and integration customization schemas remain separate future work.
 
 The Microsoft default configuration repository is `https://msft.ghe.com/coreai/aspire-1p-init`. The developers, application names, team-specific configuration paths, and documentation URLs below are illustrative. The `.example` documentation hosts do not identify actual Microsoft services.
 
 ## Scenario 1: Maya creates her first Aspire app
 
-Maya is a Microsoft developer creating an Inventory application on her development machine. She has an Aspire CLI version that supports config sources, Git on `PATH`, and the normal prerequisites for her chosen Aspire template.
+Maya is a Microsoft developer creating an Inventory application on her development machine. Inventory is an illustrative application name that she supplies to `aspire new`, not an application provided by the configuration repository. Assume a future Aspire CLI implementing the revised design, Git on `PATH`, and the normal prerequisites for her chosen Aspire template.
 
 ### Prepare Git authentication
 
@@ -44,11 +44,12 @@ Maya runs:
 aspire new aspire-starter --name Inventory --output .\Inventory
 ```
 
-Assume employee detection succeeds and neither initialization environment variable is set. Before generating the app, Aspire proposes:
+Assume employee detection succeeds and none of the initialization-source environment variables are set. Before generating the app, Aspire proposes:
 
 ```text
 Configuration source: https://msft.ghe.com/coreai/aspire-1p-init
 Configuration file: aspire.config.json
+Configuration ref: default branch
 Source origin: Microsoft employee default
 
 Use configuration from this source?
@@ -58,13 +59,15 @@ Use configuration from this source?
 
 Detection only chooses a candidate. Maya's **Yes** is the project's consent to use it.
 
+If Maya sets `ASPIRE_INIT_SOURCE_PATH` or `ASPIRE_INIT_SOURCE_REF` without explicitly setting `ASPIRE_INIT_SOURCE_URL`, both overrides are ignored, even if their values are invalid. The inferred Microsoft source still uses the root `aspire.config.json` on the default branch. Customizing that source requires explicitly setting its URL, as in scenario 6.
+
 After she accepts, Aspire:
 
-1. Checks the local cache for this repository and configuration-file path.
-2. If acquisition is needed, uses Git to resolve the repository's default branch and read `aspire.config.json` from that commit, without checking out a working tree.
-3. Validates the JSON and publishes a private cached snapshot before applying its settings.
-4. Continues app creation with those shared defaults.
-5. After successful creation, saves the source binding in `Inventory\aspire.config.json`, alongside the generated project settings.
+1. Uses Git to fetch the repository's current default-branch snapshot and read `aspire.config.json`, without checking out a working tree.
+2. Validates the source and selects only the settings on the specification's allowlist.
+3. Creates the app from the selected starter.
+4. Merges the allowed values into `Inventory\aspire.config.json`, saving the source binding and applied source-file version alongside the generated settings.
+5. Retains the fetched source and fetch metadata in Maya's Aspire home for tracking, not for supplying runtime configuration.
 
 For this scenario, suppose the repository initially supplies:
 
@@ -86,9 +89,9 @@ There are three different things to distinguish:
 
 | Item | Location | Purpose |
 |---|---|---|
-| Organization-owned configuration | `aspire.config.json` in the configuration repository | Versioned shared defaults maintained by the organization |
-| Project binding | The application's `Inventory\aspire.config.json` | Records which repository and file the project uses |
-| Local acquired snapshot | The resolved Aspire home's `configsources` directory | Private cached configuration, commit metadata, and bare Git repository |
+| Organization-owned configuration | `aspire.config.json` in the configuration repository | Versioned settings proposed by the organization |
+| App configuration | The application's `Inventory\aspire.config.json` | Contains copied allowlisted values, app-owned settings, source identity, and applied version |
+| Local tracking copy | The resolved Aspire home's `configsources` directory | Records the source last fetched and its metadata; separate check metadata records update availability |
 
 The relevant excerpt from the project's file is:
 
@@ -96,20 +99,27 @@ The relevant excerpt from the project's file is:
 {
   "configSource": {
     "repository": "https://msft.ghe.com/coreai/aspire-1p-init",
-    "path": "aspire.config.json"
+    "path": "aspire.config.json",
+    "appliedVersion": "<initial-source-file-version>"
+  },
+  "docs": {
+    "llmsTxtUrl": "https://aspire-docs.example/llms-full.txt"
   }
 }
 ```
 
 This is an excerpt, not a replacement for the generated file. Maya keeps its AppHost, SDK, package, and other project-owned settings.
 
-The shared JSON is not pasted into that project file. The binding contains neither Git credentials nor an absolute cache path, so it can be committed with the application and used on another machine.
+Only [allowlisted settings](cli-config-sources.md#materialize-an-allowlist-into-the-app-configuration) are copied, not the entire source JSON. Initially these are `docs.llmsTxtUrl` and `docs.api.sitemapUrl`. Other source values, including AppHost paths, SDK/channel selection, packages, and arbitrary feature settings, are not imported.
 
-The acquired snapshot is stored separately:
+Maya commits the resulting app file with the application. It contains neither Git credentials nor an absolute tracking path, so another machine can use the saved values immediately.
+
+The fetched source is retained separately:
 
 ```text
 <AspireHome>\configsources\<source-key>\
   cache.lock
+  check.json
   current
   <snapshot-id>\
     aspire.config.json
@@ -117,11 +127,13 @@ The acquired snapshot is stored separately:
     repository.git\
 ```
 
-Aspire home is normally `<user-profile>\.aspire`; the resolved location honors `ASPIRE_HOME` and the installation's home resolution. The source key distinguishes the repository and upstream file path. The cached filename is always `aspire.config.json`, even when the upstream file has another name.
+Aspire home is normally `<user-profile>\.aspire`; the resolved location honors `ASPIRE_HOME` and the installation's home resolution. The source key distinguishes the repository, upstream file path, and selected ref (or default-branch behavior). Different branch/commit selections do not share check state. The retained filename is always `aspire.config.json`, even when the upstream file has another name.
 
-`metadata.json` records the source identity, resolved Git commit, and successful refresh time. The `current` pointer selects the published snapshot. Configuration and matching metadata are published together, so an interrupted refresh does not expose a half-written snapshot.
+`metadata.json` records the source identity, selected-file version, resolved Git commit, and successful fetch time. `current` selects the published tracking snapshot. `check.json` separately records the last successful version check and observed source-file version; a check does not pretend the source was fetched or applied.
 
-Maya does not commit this cache or edit it to customize the app. Git credentials remain managed by her credential helper or SSH setup, not by these files.
+Only initial creation/initialization and an explicit `aspire update --config-source` replace the retained source JSON. Ordinary commands do not load it as configuration or rewrite it when checking for updates. Deleting or losing this tracking copy does not remove the settings already saved in Inventory.
+
+Maya does not commit the tracking directory or edit it to customize the app. Git credentials remain managed by her credential helper or SSH setup, not by these files.
 
 ## Scenario 3: Leo expands the shared configuration, and Maya overrides one setting
 
@@ -138,33 +150,24 @@ Leo maintains the organization's configuration repository. He expands its config
 }
 ```
 
-He commits the change to the repository's default branch. This makes it available for acquisition; it does not push changes into every developer's application immediately.
+He commits the change to the repository's default branch. This makes it available for an explicit configuration update; it does not change settings in developers' apps.
 
-Maya refreshes her source as described in scenario 5. She then wants Inventory to use a team-specific general documentation source while keeping the organization's API documentation source:
+Maya explicitly applies the update as described in scenario 5. Both allowed URLs are now saved in Inventory's app file. She then wants Inventory to use a team-specific general documentation source while keeping the organization's API documentation source:
 
 ```powershell
 Set-Location .\Inventory
 aspire config set docs.llmsTxtUrl https://inventory-docs.example/llms-full.txt
 ```
 
-Her project file now contains the saved binding and her local override, in addition to its other project settings:
+Her project file now contains both documentation settings, with her edit to the general documentation URL, in addition to its other project settings:
 
 ```json
 {
   "configSource": {
     "repository": "https://msft.ghe.com/coreai/aspire-1p-init",
-    "path": "aspire.config.json"
+    "path": "aspire.config.json",
+    "appliedVersion": "<expanded-source-file-version>"
   },
-  "docs": {
-    "llmsTxtUrl": "https://inventory-docs.example/llms-full.txt"
-  }
-}
-```
-
-Aspire expands the effective configuration in memory by merging **global settings, shared defaults, then the selected project's settings**. The resulting `docs` section is:
-
-```json
-{
   "docs": {
     "llmsTxtUrl": "https://inventory-docs.example/llms-full.txt",
     "api": {
@@ -174,7 +177,9 @@ Aspire expands the effective configuration in memory by merging **global setting
 }
 ```
 
-The local `llmsTxtUrl` wins, but the unmodified API setting remains inherited. Objects merge by key; local arrays and explicit nulls replace inherited values. The expanded result is not written back into the application's configuration file.
+There is no extra source-defaults merge at command execution. The normal CLI configuration system reads these saved app values alongside its usual sources, such as global settings and explicit command options. The API URL is a copied setting in this file, not a value inherited from the user-directory source copy.
+
+Maya's edit takes effect for subsequent commands. It is not a protected override against a future explicit source update: if that update supplies `docs.llmsTxtUrl`, it replaces her edit. Keys omitted by the source and settings outside the allowlist are preserved.
 
 Maya can inspect these effective values and use them:
 
@@ -185,13 +190,13 @@ aspire docs search "service discovery"
 aspire docs api list csharp
 ```
 
-Documentation consumers resolve their URLs and cache identities after project configuration is applied. Git authentication for the config repository is not forwarded to documentation hosts; those hosts must be independently accessible.
+Documentation consumers use the URLs saved in the app's configuration. Git authentication for the config repository is not forwarded to documentation hosts; those hosts must be independently accessible.
 
-Shared defaults cannot select the project's AppHost, SDK/channel, package references, or launch profiles. Those remain project-owned. In particular, existing SDK lookups that explicitly inherit parent settings still search those parents before falling back to global settings.
+The source allowlist does not permit changing the project's AppHost, SDK/channel, package references, or launch profiles. Existing SDK lookups that explicitly inherit parent settings still search those parents before falling back to global settings.
 
 ## Scenario 4: Noah clones Inventory and uses its saved source
 
-Noah joins Maya's team and clones the application repository, including its `aspire.config.json`. He prepares his own Git access to the configuration repository, using the same authentication checks as Maya.
+Noah joins Maya's team and clones the application repository, including its materialized `aspire.config.json`. He already has the saved documentation settings, even though his own Aspire home has no source tracking copy.
 
 From Inventory's project directory, he runs:
 
@@ -199,30 +204,45 @@ From Inventory's project directory, he runs:
 aspire docs list
 ```
 
-The saved binding is enough to identify the source. Noah does not need `ASPIRE_INIT_SOURCE`, and Aspire does not repeat employee detection or the creation-time source prompt. On his first use, a missing cache is acquired using his credentials and stored in his Aspire home.
+The command reads Inventory's saved documentation settings. It does not fetch configuration to fill in runtime values, and it does not copy Maya's tracking directory.
+
+The saved binding identifies the source for an advisory version check. Noah does not need `ASPIRE_INIT_SOURCE_URL`, and Aspire does not repeat employee detection or the creation-time consent prompt. With no prior check metadata on his machine, the CLI checks the source's version and compares it with Inventory's saved `appliedVersion`, without writing a fetched JSON snapshot or changing the app file.
+
+Noah can prepare Git authentication as Maya did. If access is unavailable or the check fails, the CLI reports that failure and continues the requested operation with the saved app configuration. Documentation hosts still need to be independently accessible.
 
 The behavior is project-scoped:
 
-- A bound project resolves its saved source before project-scoped commands, including lifecycle, inspection, and content commands.
-- A project without a binding does not acquire a source merely because Noah is a Microsoft employee or another project uses one.
+- A bound project's ordinary commands use its app file and only check the source for update availability.
+- A project without a binding does not check or acquire a source merely because Noah is a Microsoft employee or another project uses one.
 - Changing initialization environment variables does not retarget Inventory's saved binding.
-- Having an entry in the shared local cache does not opt an unrelated project into using it.
+- Having a tracking entry does not opt another project into using the source or supply that project's settings.
 
-For example, subsequent `aspire start`, `aspire logs`, and `aspire docs search` invocations check source freshness before doing their normal work. Aspire reports the source, commit, and whether it used cached or refreshed configuration. The human-readable notice goes to stderr so machine-readable stdout remains usable.
+For example, subsequent `aspire start`, `aspire logs`, and `aspire docs search` invocations check when due and report a newer version or check failure on stderr. They do not automatically merge new source values into Inventory.
 
-The binding follows the repository's current default branch when refreshed; it is not a project-level commit pin.
+The binding's applied version records what was copied into this app, not which branch or commit to follow. Inventory has no explicit `ref`, so its checks and updates follow the repository's current default branch. An explicit branch tracks that branch; an explicit commit SHA pins the source, as shown in scenario 6.
 
 ## Scenario 5: Maya needs Leo's latest change immediately
 
-Maya has a valid cache from an hour ago. A normal project command reuses that snapshot without fetching, so it does not yet see Leo's new commit.
+Maya's app still contains the documentation settings she last saved. Leo publishes a new source-file version. On the next due version check, an ordinary command reports:
 
-She forces a refresh from Inventory's project directory:
+```text
+A new version of this project's configuration source is available.
+Run `aspire update --config-source` to apply it.
+```
+
+The command continues using Inventory's saved values. It writes neither new source values into the app file nor a new fetched JSON tracking copy.
+
+Maya chooses to apply the update from Inventory's project directory:
 
 ```powershell
 aspire update --config-source
 ```
 
-This fetches and validates the saved source even though its cache is fresh. It does not update the CLI, SDK, or packages, overwrite the project binding, regenerate application files, or reinstall skills. Her local documentation override still wins.
+This fetches and validates the source regardless of the last check time. It merges supplied allowlisted values into Inventory's `aspire.config.json`, records the newly applied version in that same file, and updates the fetched tracking copy and fetch time in Aspire home.
+
+If Leo's source supplies `docs.llmsTxtUrl`, this explicit operation replaces Maya's team-specific edit. Other app settings are not imported or overwritten, and an allowlisted setting omitted by the source is left unchanged.
+
+The command does not update the CLI, SDK, or packages, change the source repository/path/ref, regenerate AppHost or application code, or reinstall skills. Updating the app's configuration file is intentional.
 
 For an explicitly selected AppHost, she can pass `--apphost` with that AppHost's path. For unattended refresh, the command is:
 
@@ -230,23 +250,26 @@ For an explicitly selected AppHost, she can pass `--apphost` with that AppHost's
 aspire update --config-source --yes --non-interactive
 ```
 
-The ordinary freshness behavior is:
+Ordinary-command checks follow this cadence:
 
 | Situation on a project-scoped invocation | Result |
 |---|---|
-| No cached snapshot | Acquire the configuration before continuing |
-| Successful refresh less than 24 hours ago | Reuse the cached snapshot without a Git fetch |
-| Successful refresh at least 24 hours ago | Refresh before continuing |
-| Forced refresh | Fetch regardless of cache age |
-| Acquisition or refresh fails | Fail the operation and preserve the previous valid snapshot and refresh time |
+| No successful check recorded | Check the remote source-file version; do not materialize settings |
+| Successful check less than 24 hours ago | Reuse the observed version from check metadata, not cached configuration values |
+| Successful check at least 24 hours ago | Check the remote source-file version again |
+| Newer version observed | Print the update instruction and continue with saved app settings |
+| Check fails, including offline or authentication failure | Report the check failure and continue with saved app settings |
+| Explicit configuration update | Fetch and apply allowed values regardless of check age |
 
-There is no background refresh timer. If Maya is offline, a fresh snapshot can satisfy the config-source check, although the command may have other network requirements. Once that snapshot requires refresh, the check fails rather than silently falling back to stale or standard configuration.
+There is no background update timer. Availability notices can be repeated from check metadata without another network check. Changes to unrelated files in Leo's repository do not count as a new version of the selected configuration file.
 
-A successful forced refresh advances freshness even when the upstream commit is unchanged. Other projects on Maya's machine using the same repository and file benefit from the refreshed cache on their next invocation. Already-running commands keep their existing snapshot.
+An ordinary check failure is visible but does not change the requested operation's exit code. That operation may still fail for its own reasons, such as an inaccessible documentation host. A failed source check must not be presented as an "up to date" result.
 
-If authentication expires, Maya repairs Git access, verifies it with `git ls-remote`, and retries. If Leo publishes invalid configuration, he fixes the upstream file; a failed refresh does not replace Maya's last valid snapshot.
+A successful explicit fetch records the fetch time even if the source-file version is unchanged. Another app bound to the same source still keeps its own saved values and applied version; updating Inventory does not silently update it or suppress its update notice.
 
-`aspire update --config-source` is not a way to enable a source on an unbound project. That operation fails without a saved binding, and the option cannot be combined with CLI self-update, migration, or channel/package-source overrides.
+If authentication expires, Maya repairs Git access, verifies it with `git ls-remote`, and retries. If acquisition or validation fails during an explicit update, the update exits nonzero and preserves the previous app configuration, applied version, and fetched tracking copy. This is different from an advisory check failure.
+
+`aspire update --config-source` is not a way to enable a source on an unbound project. That operation fails without a saved binding, and the option cannot be combined with CLI self-update, migration, or channel/package-source overrides. A legacy binding without an applied version gets instructions to run this explicit update rather than having source values silently loaded.
 
 ## Scenario 6: Priya explicitly selects a team configuration during initialization
 
@@ -255,21 +278,48 @@ Priya adds Aspire to an existing application that has no saved source binding. H
 She first prepares Git access. Then, from the application directory, she explicitly identifies the source:
 
 ```powershell
-$env:ASPIRE_INIT_SOURCE = 'https://msft.ghe.com/coreai/aspire-1p-init'
-$env:ASPIRE_INIT_CONFIG = 'teams/inventory.json'
+$env:ASPIRE_INIT_SOURCE_URL = 'https://msft.ghe.com/coreai/aspire-1p-init'
+$env:ASPIRE_INIT_SOURCE_PATH = 'teams/inventory.json'
+$env:ASPIRE_INIT_SOURCE_REF = 'config-preview'
 aspire init
 ```
 
-The team must actually publish `teams/inventory.json`; this path is illustrative. It is repository-relative and uses `/` separators, including on Windows.
+The team must actually publish `teams/inventory.json` on the `config-preview` branch; both are illustrative. The path is repository-relative and uses `/` separators, including on Windows.
 
-The explicit repository bypasses employee detection, but not authentication, validation, or consent. Priya accepts the proposed source. After successful initialization, her project's binding records that repository and `teams/inventory.json`. Its cache entry is separate from the entry for the repository's root configuration.
+The explicit repository bypasses employee detection, but not authentication, validation, or consent. The prompt identifies `config-preview` as the selected ref. Priya accepts the proposed source. Initial materialization writes only allowed values into her app's configuration, together with this binding:
+
+```json
+{
+  "configSource": {
+    "repository": "https://msft.ghe.com/coreai/aspire-1p-init",
+    "path": "teams/inventory.json",
+    "ref": "config-preview",
+    "appliedVersion": "<preview-source-file-version>"
+  }
+}
+```
+
+Its tracking entry is separate from entries for other paths or refs. Ordinary checks look for changes on `config-preview`, and `aspire update --config-source` applies that branch's current version, not the default branch's configuration.
+
+For a reproducible source pinned to a reviewed commit, Priya can instead set the same variable to a full commit SHA before initializing a different app, keeping the explicit source URL set:
+
+```powershell
+$env:ASPIRE_INIT_SOURCE_REF = '0123456789abcdef0123456789abcdef01234567'
+aspire init
+```
+
+This SHA is illustrative and must be replaced with an actual commit available from the repository. The new app saves that SHA in `configSource.ref`. Later checks do not announce updates just because a branch moved, and explicit updates reapply the pinned commit rather than advancing it. A commit unavailable from the server is an explicit acquisition failure, not a reason to fall back to the default branch.
+
+Leaving `ASPIRE_INIT_SOURCE_REF` unset follows the repository's current default branch instead. If `ASPIRE_INIT_SOURCE_URL` is unset, both `ASPIRE_INIT_SOURCE_PATH` and `ASPIRE_INIT_SOURCE_REF` are ignored, including when employee detection selects the Microsoft repository. Priya must keep the URL explicitly set to customize that repository's path or ref.
 
 For scripted creation or initialization, `--use-config-source true` explicitly accepts the candidate and `--use-config-source false` explicitly declines it. `--non-interactive` alone is not consent; when a candidate exists, omitting that choice fails with instructions. Other creation or initialization choices must also be supplied as needed for non-interactive execution.
 
-The variables affect source selection for creation and initialization, not later commands on a bound project. Re-initializing an already-bound project reuses its saved source rather than replacing it with these variables.
+The variables affect initial source selection, not later commands on a bound project. Re-running initialization on an already-bound app does not retarget its source or implicitly apply new source values; it can perform the same advisory check as other ordinary commands.
 
 ## What these scenarios do not imply
 
-Acquiring and refreshing configuration is implemented separately from the proposed content-acquisition customizations. These scenarios do not promise organization-specific template catalogs, additional skill bundles, integration catalogs, or package feeds merely because a config source was accepted. Those details belong to the specification's future content schema.
+These scenarios describe proposed behavior, not an implementation change delivered by this documentation update. Configuration materialization is separate from future content-acquisition customizations. Accepting a source does not currently promise organization-specific template catalogs, additional skill bundles, integration catalogs, or package feeds. Those settings need a defined schema and explicit allowlist entries before they can be copied into apps.
+
+Ordinary commands, including plain `aspire update`, do not apply source updates. Runtime configuration comes from the saved app file and normal CLI configuration sources, never the retained source JSON in Aspire home.
 
 Repository access is also not authorization to private documentation or package services. Any later content acquisition retains its own authentication and validation requirements.

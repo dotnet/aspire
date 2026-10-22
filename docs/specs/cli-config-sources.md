@@ -1,19 +1,19 @@
 # Aspire CLI config sources
 
-**Status:** Configuration acquisition implemented; content-acquisition customizations proposed.
+**Status:** Revised design proposed. The current implementation still uses the previous runtime shared-defaults model and must be updated separately. Content-acquisition customizations remain proposed.
 
 For example developer journeys, see [Microsoft first-party config-source scenarios](cli-config-sources-1p-scenarios.md).
 
 Config sources let organizations provide shared Aspire CLI configuration through a Git-hosted `aspire.config.json`. There are two separate phases:
 
-1. **Acquire configuration:** select a remote source, ask the user whether to use it, acquire the file using Git, cache it in the Aspire home directory, and record the source in the project's `aspire.config.json`.
-2. **Acquire content:** use the effective project configuration to acquire skills, templates, and integrations.
+1. **Acquire configuration:** select a remote source, obtain consent, acquire the file using Git, and merge allowlisted values into the application's `aspire.config.json`. Retain the fetched source and metadata in Aspire home for tracking.
+2. **Acquire content:** use the application's saved configuration to acquire skills, templates, and integrations.
 
-This specification focuses on the first phase. Content acquisition is summarized at the end; its detailed schema and behavior are deferred. Shared CLI settings are resolved as defaults below project-owned settings. AppHost identity, SDK/channel selection, package references, and launch profiles remain project-owned and are not supplied by the remote defaults provider.
+This specification focuses on the first phase. Content acquisition is summarized at the end; its detailed schema and behavior are deferred.
 
-Effective settings combine global settings, shared defaults, and the selected project's local overrides, in that order. Objects merge by key; local arrays and explicit nulls replace inherited values. While applying a source, local settings come from the selected project rather than the launch directory. Selecting an unbound project clears any acquired shared defaults.
+The application's `aspire.config.json` is the runtime configuration, including values previously copied from a source. Normal CLI configuration precedence and explicit parent-setting inheritance continue to apply. The source is not an additional runtime configuration provider, and ordinary commands never load the cached source JSON to supply settings.
 
-Documentation services resolve their source URLs and cache identities on first use, after the command applies the project's configuration source. Directory-scoped lookups that explicitly inherit parent settings, such as SDK version selection, search those parents before falling back to global settings.
+Source-driven writes to the app configuration and the user-directory tracking copy happen only during initial materialization by `aspire new` or `aspire init`, or an explicit `aspire update --config-source`. Other commands may check for updates and report their availability, but must not apply them. This restriction does not prohibit explicit local configuration edits or a command's unrelated project bookkeeping.
 
 ## Phase 1: Acquire remote configuration
 
@@ -23,36 +23,55 @@ During `aspire new` or `aspire init`, resolve a candidate source:
 
 | Priority | Source |
 |---|---|
-| 1 | `ASPIRE_INIT_SOURCE`, when explicitly set |
+| 1 | `ASPIRE_INIT_SOURCE_URL`, when explicitly set |
 | 2 | `https://msft.ghe.com/coreai/aspire-1p-init`, when the existing Microsoft-employee detector reports an internal Microsoft user |
 | 3 | No remote source; continue with standard Aspire behavior |
 
 | Environment variable | Purpose | Default |
 |---|---|---|
-| `ASPIRE_INIT_SOURCE` | Git repository address, not a local file path or raw JSON URL | Microsoft repository for detected employees; otherwise none |
-| `ASPIRE_INIT_CONFIG` | Repository-relative configuration file path, allowing multiple configurations in one repository | `aspire.config.json` at the repository root |
+| `ASPIRE_INIT_SOURCE_URL` | Git repository address, not a local file path or raw JSON URL | Microsoft repository for detected employees; otherwise none |
+| `ASPIRE_INIT_SOURCE_PATH` | Repository-relative configuration file path; only applies when `ASPIRE_INIT_SOURCE_URL` is explicitly set | `aspire.config.json` at the repository root |
+| `ASPIRE_INIT_SOURCE_REF` | Branch name or full commit SHA; only applies when `ASPIRE_INIT_SOURCE_URL` is explicitly set | The repository's current default branch |
+
+When `ASPIRE_INIT_SOURCE_URL` is unset, ignore `ASPIRE_INIT_SOURCE_PATH` and `ASPIRE_INIT_SOURCE_REF`, including when employee detection selects the Microsoft repository. Do not validate ignored overrides. The inferred Microsoft source always uses the root `aspire.config.json` and the repository's current default branch. To customize its path or ref, explicitly set `ASPIRE_INIT_SOURCE_URL` to the Microsoft repository URL.
 
 For example:
 
 ```powershell
-$env:ASPIRE_INIT_SOURCE = 'https://git.acme.example/aspire-init'
-$env:ASPIRE_INIT_CONFIG = 'teams/platform.json'
+$env:ASPIRE_INIT_SOURCE_URL = 'https://git.acme.example/aspire-init'
+$env:ASPIRE_INIT_SOURCE_PATH = 'teams/platform.json'
+$env:ASPIRE_INIT_SOURCE_REF = 'main'
 aspire new
 ```
 
-The file-path override applies to either an explicit repository or the Microsoft default. Repository-relative paths use `/` separators on every platform. Reject empty or absolute paths, `.` or `..` segments, empty segments, backslashes, and control characters. Git addresses may use HTTPS, SSH URLs, or SCP-style SSH syntax. Local paths, Git remote-helper syntax, embedded passwords/tokens, query strings, and fragments are not supported.
+When enabled by an explicit source URL, repository-relative paths use `/` separators on every platform. Reject empty or absolute paths, `.` or `..` segments, empty segments, backslashes, and control characters. Git addresses may use HTTPS, SSH URLs, or SCP-style SSH syntax. Local paths, Git remote-helper syntax, embedded passwords/tokens, query strings, and fragments are not supported.
 
 Reuse `IInternalMicrosoftDetector` directly, independently of telemetry opt-in. An explicit source bypasses employee detection. Detection selects a default, not authorization or consent: Git still authenticates repository access. An inconclusive or failed detection does not select the Microsoft source.
 
 Keep this mechanism separate from Aspire SDK/channel identity and existing package-source flags. Invalid explicit source values produce an error rather than falling back to another source.
 
+#### Select a branch or commit
+
+When `ASPIRE_INIT_SOURCE_URL` is explicitly set, use one `ASPIRE_INIT_SOURCE_REF` value for either a branch name or a full commit SHA. Otherwise ignore this override, even for the inferred Microsoft source.
+
+| Selection | Acquisition and later updates |
+|---|---|
+| Variable unset | Resolve the repository's current default branch each time |
+| Branch name, such as `main`, `config-preview`, or `refs/heads/config-preview` | Resolve that branch's current commit each time |
+| Full commit SHA | Read that exact commit; do not follow subsequent branch changes |
+
+When the override applies, an explicitly empty or invalid value is an error. Require full commit IDs for commit selection rather than abbreviated hashes or arbitrary revision expressions. Resolve branch selectors as branch refs, not as tags or CLI options. If the selected branch or commit cannot be acquired, report the failure rather than falling back to the default branch.
+
+Git supports a ref name or a fully spelled object ID as the source of a [fetch refspec](https://git-scm.com/docs/git-fetch). A single logical selector can therefore cover both branches and commits, but acquisition must handle commit IDs explicitly rather than treating them as branch names. Whether a particular commit can be fetched depends on remote availability and server policy; a shallow default-branch clone alone does not guarantee that an older or different-branch commit is available.
+
 ### Prompt during project creation
 
-Before acquiring or using the remote configuration, `aspire new` and `aspire init` display the candidate repository, selected file path, and whether the repository came from the environment or employee detection:
+Before acquiring or using the remote configuration, `aspire new` and `aspire init` display the candidate repository, selected file path, branch/commit selector or default-branch behavior, and whether the repository came from the environment or employee detection:
 
 ```text
 Configuration source: https://msft.ghe.com/coreai/aspire-1p-init
 Configuration file: aspire.config.json
+Configuration ref: default branch
 Source origin: Microsoft employee default
 
 Use configuration from this source?
@@ -60,7 +79,7 @@ Use configuration from this source?
   No, use standard Aspire configuration
 ```
 
-- **Accept:** acquire and validate the remote file before using its configuration in the creation flow, then record `configSource` in the project's `aspire.config.json`.
+- **Accept:** acquire and validate the remote file, then materialize allowlisted values and a `configSource` binding in the created or initialized project's `aspire.config.json`.
 - **Decline:** continue normally, without Git acquisition or a `configSource` entry.
 - **Cancel:** stop without creating the application.
 
@@ -81,16 +100,62 @@ Use the user's Git installation and normal credential helpers or SSH authenticat
 
 Allow Git terminal credential prompts when the CLI host supports interactive input. Disable terminal prompts for `--non-interactive`, `ASPIRE_NON_INTERACTIVE`, and CI environments where the host disables input; those invocations need authentication configured beforehand. Keep the existing acquisition timeout and cancellation behavior, including while waiting for credentials.
 
-Resolve the repository's default branch to a commit and read the selected configuration file from that snapshot. Validate the configuration before publishing it to the cache or applying it to the project. Retain the repository, file path, and commit so relative content paths can later be resolved against the configuration file's directory in the same snapshot, without escaping the repository.
+For creation, initialization, and explicit updates, acquire the selected branch or exact commit, using the current default branch only when no ref was selected. Resolve a branch to one commit and read the selected configuration file from that snapshot. Validate it before applying values to the project or publishing a tracking copy. Record the configured selector, source-file version, and resolved commit separately; a branch name is not the immutable commit actually fetched. Do not turn the tracking copy into runtime configuration.
 
 Git acquisition supports cancellation and has a two-minute timeout. Read the Git blob without checking out the repository, reject symlink configuration entries, and validate the JSON object and known Aspire settings before use. Configuration files are limited to 4 MiB and cannot declare another configuration source. Report missing Git, authentication failures, inaccessible repositories, missing files, and invalid configuration distinctly. Do not silently substitute standard configuration after the user accepts a source.
 
-### Store and refresh in Aspire home
+### Materialize an allowlist into the app configuration
 
-Store acquired configuration centrally using the resolved Aspire home, including `ASPIRE_HOME` overrides:
+Only explicitly allowlisted leaf settings may be copied. The initial allowlist is:
+
+| Setting | Purpose |
+|---|---|
+| `docs.llmsTxtUrl` | General documentation source URL |
+| `docs.api.sitemapUrl` | API documentation sitemap URL |
+
+Normalize supported key notation before matching the allowlist, and match keys case-insensitively like other CLI settings. Allowing a leaf does not allow its entire parent object. Everything else is excluded unless a later specification change explicitly adds it to this list.
+
+In particular, do not copy `$schema`, `configSource`, AppHost identity or paths, SDK/channel selection, language, package references, launch profiles, or arbitrary feature/content settings. The CLI creates and maintains its own source binding; the remote file cannot supply or replace it. The proposed content schema does not implicitly extend this allowlist.
+
+Merge the allowed values into the selected application's file, not a configuration file in the CLI's launch directory when a different app is selected:
+
+- On initial creation or initialization, combine generated project settings with the supplied allowlisted source values and save the result in the application's `aspire.config.json`.
+- On explicit update, a supplied allowlisted value replaces the existing app value at that leaf, including a locally edited value. The explicit update/confirmation is the authorization to apply these changes.
+- Preserve unrelated app settings and allowlisted keys omitted by the new source. Omission does not delete a previously materialized value.
+- An explicit null is a supplied value and replaces the existing value where valid for that setting. Future allowlisted arrays replace the whole value rather than appending.
+- Do not merge a runtime view of global settings into the app file. Global settings remain separate.
+
+For example, after applying a source that supplies documentation URLs:
+
+```json
+{
+  "configSource": {
+    "repository": "https://git.acme.example/aspire-init",
+    "path": "teams/platform.json",
+    "ref": "main",
+    "appliedVersion": "<source-file-version>"
+  },
+  "docs": {
+    "llmsTxtUrl": "https://docs.acme.example/llms-full.txt",
+    "api": {
+      "sitemapUrl": "https://docs.acme.example/sitemap.xml"
+    }
+  }
+}
+```
+
+This is an excerpt; other generated or existing app settings remain in the same file. Once saved, these documentation settings are ordinary project settings. Editing them locally changes subsequent command behavior without editing the source or its tracking copy. A later explicit source update may overwrite them according to the rules above.
+
+Stage and validate an update before replacing the project file. Write the settings and their applied version together so the file cannot claim a version whose values were not saved. Acquisition, validation, or project-write failure must be reported, without claiming a successful update or leaving a partially written app file.
+
+### Store a tracking copy in Aspire home
+
+Retain fetched configuration centrally using the resolved Aspire home, including `ASPIRE_HOME` overrides:
 
 ```text
 <AspireHome>\configsources\<source-key>\
+  cache.lock
+  check.json
   current
   <snapshot-id>\
     aspire.config.json
@@ -98,76 +163,117 @@ Store acquired configuration centrally using the resolved Aspire home, including
     repository.git\
 ```
 
-The usual home is `<user-profile>\.aspire`. The source key distinguishes repository and upstream file path, so configurations in the same repository have separate cache entries. The cached filename remains `aspire.config.json`; metadata records the upstream identity, resolved commit, and last successful refresh time. Immutable snapshots retain the bare Git repository for later same-commit content resolution. Atomically replacing the `current` pointer publishes configuration and matching metadata together. The cache is shared storage, not a directory-scoped opt-in registry; project configuration determines whether a source applies.
+The usual home is `<user-profile>\.aspire`. The source key distinguishes repository, upstream file path, and configured ref (or an explicit default-branch marker when omitted). Different branch/commit selections have separate tracking and check records, even when they currently resolve to the same commit. The retained filename remains `aspire.config.json`, even for another upstream filename.
 
-Every command scoped to a project with `configSource` checks cache freshness before executing, even when it does not acquire skills, templates, or integrations.
+The retained JSON and `metadata.json` describe the last successfully fetched source: its identity, selected-file version, resolved commit, and fetch time. They are tracking data, not defaults for command execution. Only initial materialization and explicit config-source updates publish a new fetched snapshot or replace `current`; normal commands must not read this JSON to configure themselves or rewrite it while checking for updates.
 
-| Command scope | Config-source check/update trigger |
+Keep advisory check state separate in `check.json`: the last successful check time and last observed source-file version. A check is not a fetch-and-apply operation, and must not advance the fetched snapshot's timestamp or a project's applied version. Tracking records must distinguish an actually fetched source from one whose version was only checked.
+
+Use locks and atomic publication to prevent partially written tracking records. Retain user-scoped permissions for private content. Never store credentials in configuration or metadata, log them, or send private source details in ordinary telemetry.
+
+A tracking copy is shared by source identity, not a record of what every application has applied. An ordinary command must work from its app file even when this directory is missing, another app refreshed the same source, or the retained JSON is unreadable. Problems with the tracking/version check are reported separately; they do not make cached values a fallback runtime provider.
+
+### Check for updates without applying them
+
+For a source-bound app, ordinary commands continue checking for a newer version, including lifecycle, inspection, and content commands. The check is advisory: the requested operation uses the app's saved configuration whether the source is newer, unavailable, or has never been fetched on this machine.
+
+| Command scope | Source behavior |
 |---|---|
-| `aspire new` / `aspire init` creating or initializing a project | After the user accepts the source, check the cache and acquire or refresh as needed |
-| `aspire update --config-source` | Force acquisition or refresh of the project's saved source, regardless of cache age |
-| Any command scoped to an existing project with `configSource`, including lifecycle, inspection, and content commands | Resolve the project's saved source, check the cache, and acquire or refresh as needed before executing |
-| Commands scoped to a project without `configSource` | No remote-config check or acquisition |
-| Global commands not scoped to a project, help, and completion | No remote-config check or acquisition |
+| `aspire new` / `aspire init` initially creating source-bound app configuration | After consent, fetch, validate, and materialize allowed values; save the binding, applied version, and tracking copy |
+| `aspire update --config-source` | Fetch and explicitly apply allowed values, regardless of check age |
+| Other commands scoped to an existing source-bound app, including re-running initialization on an already-bound app | Check for updates when due; never apply source values or rewrite the fetched tracking copy |
+| Commands scoped to an app without `configSource` | No source check or acquisition |
+| Global commands not scoped to an app, help, and completion | No source check or acquisition |
 
-| Cache state at the check | Behavior |
+Compare the selected-file version at the binding's branch or commit with the application's `configSource.appliedVersion`, not with another app's latest fetch. The version identifies the selected file's contents, such as its Git blob identity; unrelated commits to other files do not constitute a configuration update.
+
+For a branch selection, checks follow that branch, not the repository's default branch. A commit-pinned source remains at the saved commit: newer commits on any branch do not produce an availability notice, and an explicit update must not move the pin.
+
+Preserve the 24-hour check cadence, measured from the last successful version check:
+
+| Tracking/check state | Ordinary-command behavior |
 |---|---|
-| Missing | Acquire and validate before use |
-| Refreshed less than 24 hours ago | Use the cached file without fetching, unless explicitly refreshing with `aspire update --config-source` |
-| Refreshed at least 24 hours ago | Refresh on this invocation before use |
-| Acquisition or refresh fails | Report the error and fail the affected operation; preserve the last valid cache |
+| Missing check state | Check the source's current version; do not acquire/apply a configuration snapshot |
+| Last successful check less than 24 hours ago | Reuse the observed version from check metadata, not settings from the retained JSON |
+| Last successful check at least 24 hours ago | Check the source's current version again |
+| Observed version differs from the app's applied version | Report that an update is available |
+| Version check fails | Report the check failure and continue the requested operation using the app's saved settings |
 
-Refresh is triggered by command invocation, not a background schedule. Publish validated configuration and matching metadata atomically under a cache lock, and advance freshness only after success. A creation flow and its chained commands use one consistent snapshot.
+If an update is available, emit a notice such as:
 
-Protect private cached content with user-scoped permissions. Never store credentials in configuration or metadata, log them, or send private source details in ordinary telemetry.
+```text
+A new version of this project's configuration source is available.
+Run `aspire update --config-source` to apply it.
+```
 
-### Force a configuration refresh
+Emit availability notices and check failures once per selected source per invocation on stderr, preserving machine-readable stdout. Report authentication, network, missing-file, and tracking errors explicitly and safely; do not report a failed check as "up to date" or advance its successful-check time. Advisory failure does not change the requested operation's exit code; its own success/failure still determines that code.
 
-Use `aspire update --config-source` to fetch the latest configuration without waiting for the 24-hour refresh window:
+A known newer version can be reported on later invocations within the check interval without another network check. No background timer applies settings. In particular, offline or unauthorized checks must not cause the CLI to substitute standard configuration, load cached defaults, or discard the app's saved values.
+
+### Explicitly update the app configuration
+
+Use `aspire update --config-source` to fetch the source at the saved branch or commit selection and merge allowed values into the app's `aspire.config.json`:
 
 ```shell
 aspire update --config-source
 aspire update --config-source --apphost MyApp.AppHost.csproj
 ```
 
-This is a refresh-only mode of `aspire update`, not an addition to its package-update workflow:
+This is a configuration-update mode of `aspire update`, separate from its package-update workflow:
 
 - Resolve the project using the existing project-selection behavior, including `--apphost`, and use its saved `configSource`. Do not select a source from environment variables or employee detection. If the project has no saved source, report an error and exit nonzero without Git acquisition.
-- Bypass the freshness check and fetch the repository's current default-branch snapshot, even when the cache was just refreshed. Acquire a missing cache entry the same way. Validate and atomically publish the configuration and metadata using the same cache lock and failure handling as automatic refresh.
-- If the upstream commit is unchanged, still record the successful refresh time. Report the source, resolved commit, and whether the configuration changed.
-- Do not update the CLI, SDK, packages, or project binding, regenerate application files, or reinstall content. Reject combinations with `--self`, `--migrate`, or channel/package-source overrides rather than silently ignoring those options. Plain `aspire update` retains its existing update behavior and the normal config-source freshness check.
+- Acquire the saved branch's current commit, the saved exact commit, or the repository's current default branch when the binding has no ref, even when a recent check found no update. Validate it, merge only supplied allowlisted values into the selected app file, and save its applied version with those values.
+- Publish the fetched source JSON and fetch metadata in Aspire home as tracking data. Record a successful fetch/check time even if the selected file's version is unchanged. If tracking publication fails, report it explicitly; do not use shared tracking as proof that an app was updated.
+- Report the source, resolved commit, and whether the app configuration changed. Make clear that supplied allowlisted values can replace local edits.
+- Do not update the CLI, SDK, or packages, change the binding's repository, path, or ref, regenerate AppHost source or application code, or reinstall content. The app configuration file and its applied-version stamp are intentionally updated. Reject combinations with `--self`, `--migrate`, or channel/package-source overrides. Plain `aspire update` retains its existing package-update behavior and only performs an advisory source check.
 - Follow `aspire update`'s existing non-interactive confirmation contract: automation uses `aspire update --config-source --yes --non-interactive`. The saved binding supplies source consent; this command does not establish a new binding or prompt to enable one.
 
-A failed or cancelled refresh must not replace the last valid cached configuration or advance its refresh time, and must not report success. Because the cache is shared by source identity, a successful refresh is available to other projects bound to that source on their next invocation; it does not change an already-running command's snapshot.
+Failed or cancelled acquisition or validation must not replace the app settings, applied version, or last valid fetched tracking copy, and must not report success. Unlike an advisory check failure, failure of this explicit update is an operation failure with a nonzero exit code.
 
-### Persist the project binding
+A successful update to one app must not change another app's file or make it appear updated. The other app keeps its own materialized settings and applied version until explicitly updated.
 
-The created or initialized project's `aspire.config.json` records the remote identity, not the machine-specific cache path:
+### Persist source identity and the app's applied version
+
+The app file records the remote identity and the selected-file version actually applied, never a machine-specific tracking path:
 
 ```json
 {
   "configSource": {
     "repository": "https://git.acme.example/aspire-init",
-    "path": "teams/platform.json"
+    "path": "teams/platform.json",
+    "ref": "main",
+    "appliedVersion": "<source-file-version>"
   }
 }
 ```
 
-Persist the selected file path even when it is the default. This makes the selection portable: another developer can acquire the same source using their own Git credentials and Aspire home. Later commands resolve the repository and file path from project configuration rather than re-running employee detection or replacing them with the current `ASPIRE_INIT_SOURCE` or `ASPIRE_INIT_CONFIG`.
+Persist the selected file path even when it is the default. Persist `ref` when a branch or commit was explicitly selected; omit it to keep following the repository's current default branch. Do not replace a branch selector with its resolved commit: branch tracking and commit pinning are intentionally different. Bindings that already omit `ref` retain default-branch behavior.
 
-The acquired file provides shared defaults; project-owned settings remain local overrides. Refresh must not overwrite the project's AppHost path, package selections, or launch settings. Content-specific merge rules remain to be defined alongside the content schema.
+Commit the materialized settings and binding with the app. A teammate uses the same saved settings immediately, without fetching configuration to supply runtime values, and uses their own Git access for version checks or explicit updates.
 
-Report actual remote-config use once per invocation, identifying the source and whether it was cached or refreshed. Preserve machine-readable stdout by routing human-readable notices to stderr where necessary.
+Later commands resolve source identity from this binding rather than repeating employee detection or using the current initialization environment variables. `appliedVersion` changes only when source values are successfully materialized in that app, not when a version check or another app's update succeeds.
+
+A pre-existing binding without an applied version must not trigger automatic materialization. Report that `aspire update --config-source` is needed to establish the applied version and saved values. Do not infer that app's state from the user-directory tracking copy.
 
 ### Validation
 
-Cover source precedence and telemetry-independent detection; default/custom file paths, path validation, and separate cache entries for files in one repository; accept/decline/cancel and non-interactive consent; project `configSource` persistence and portability; Git failures and configuration validation; home overrides, concurrent cache publication, and the exact 24-hour refresh boundary. Verify freshness checks for lifecycle, inspection, and content commands, and no remote-config checks for global commands, help, or completion. No-source and declined-source flows must preserve existing behavior and perform no remote-config acquisition.
+Cover source precedence and telemetry-independent detection; default/custom file paths, validation, consent, authentication modes, and failure handling. Verify that initial creation/initialization saves allowlisted values, binding identity, and applied version in the correct app file, while excluded settings are never copied.
 
-For `aspire update --config-source`, verify that a fresh cache still triggers Git acquisition, a missing cache is acquired, an unchanged upstream commit advances freshness, and a missing project binding fails without source detection or Git acquisition. Cover `--apphost` selection, non-interactive execution, incompatible-option errors, and failed or cancelled refreshes preserving the last valid cache and timestamp. Verify that refresh-only mode does not run package or CLI updates or reinstall content, and that plain `aspire update` retains its existing behavior.
+Cover the renamed environment variables and default/explicit ref selection when the source URL is explicit. Verify that path/ref overrides, including invalid values, are ignored without an explicit URL, both when Microsoft employee detection selects a source and when no source is selected. The inferred source must retain the root path and default-branch behavior. Explicitly setting the Microsoft URL enables both overrides.
+
+Verify non-default and slash-containing branch names, full commit IDs, acquisition of a commit absent from a shallow default-branch snapshot, and explicit errors for invalid/missing refs or server-denied commits without fallback. Verify persisted ref portability, separate tracking for different selectors, branch movement, default-branch changes, and commit pins remaining unchanged during checks and explicit updates. Initialization environment variables must not retarget a saved binding.
+
+Verify overwrite behavior for supplied allowlisted values, preservation of omitted and unrelated settings, valid null replacement, and no accidental copying of a parent section or normalized-key bypass. Verify atomic app-file updates and unchanged app/fetch state after failed or cancelled acquisition.
+
+For ordinary commands, verify the exact 24-hour check boundary, cached availability notices, file-version comparison instead of unrelated repository commits, and actionable stderr output. Confirm no source-driven app writes, fetched-JSON writes, or loading cached JSON as configuration. Cover missing/corrupt tracking, unavailable Git/authentication/network, and continued command execution with saved app values after a reported check failure.
+
+For explicit updates, cover fresh/missing tracking, unchanged source versions, `--apphost` selection, non-interactive confirmation, incompatible options, missing bindings, and bindings without an applied version. Verify that updating one app does not alter another app's settings or applied-version comparison, including on another machine with no tracking copy. Confirm no CLI/SDK/package updates, code regeneration, or content reinstallation.
+
+Keep no-source, declined-source, global-command, help, and completion paths free of source acquisition/checks. Verify plain `aspire update` does not implicitly materialize configuration-source changes.
 
 ## Phase 2: Acquire content from configuration
 
-After configuration is resolved, skills, templates, and integrations are acquired according to the effective `aspire.config.json`. These are separate operations from downloading the configuration file.
+Skills, templates, and integrations are acquired according to the application's saved configuration and normal CLI precedence. These are separate operations from fetching or materializing a configuration source, and must not load source settings from the user-directory tracking copy.
 
 | Content | Acquisition today | Possible configuration customizations |
 |---|---|---|
@@ -175,4 +281,4 @@ After configuration is resolved, skills, templates, and integrations are acquire
 | Templates | .NET templates are installed from NuGet; CLI-native starters use embedded files or scaffolding | Template catalogs, package identities, versions, and feeds; external starter content could follow later |
 | Integrations | Templates declare dependencies; `aspire add` and integration list/search discover NuGet packages | Additional catalog entries, package versions, feeds, and package-source mappings |
 
-Keep standard content available initially and preserve explicit user selections and suppression options. Configuration-source refresh changes future acquisition choices; it does not automatically regenerate applications or reinstall skills. Git access does not grant access to private package feeds, and all acquired content must retain its existing validation and authentication requirements.
+Keep standard content available initially and preserve explicit user selections and suppression options. Future source-driven content settings must be explicitly added to the allowlist and materialized before they affect acquisition choices. An availability notice never changes those choices. An explicit configuration update does not automatically regenerate applications or reinstall skills. Git access does not grant access to private package feeds, and all acquired content must retain its existing validation and authentication requirements.
