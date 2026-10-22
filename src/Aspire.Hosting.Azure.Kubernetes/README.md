@@ -130,7 +130,7 @@ const aks = await builder.addAzureKubernetesEnvironment("aks");
 await aks.withContainerRegistry(registry);
 ```
 
-Aspire grants the AKS kubelet identity `AcrPull` at the registry's scope. The deployment identity must have permission to create role assignments there, as well as push images to the registry.
+Aspire grants the AKS kubelet identity `AcrPull` at the registry's scope, independently of the cluster's resource group or subscription. This applies to both new and existing clusters and registries. For an existing cluster, Aspire reads its kubelet identity and deploys the grant in a separate module without creating a replacement identity. The deployment identity must have permission to create role assignments at the registry's scope, as well as push images to the registry.
 
 `aspire destroy` preserves the existing registry only when it is outside the application's resource group. It deletes the entire application resource group, including any existing resources in that group, even those configured with `PublishAsExisting`. A registry in that group and its images are deleted.
 

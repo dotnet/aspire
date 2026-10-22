@@ -121,10 +121,44 @@ public static class AzureKubernetesEnvironmentExtensions
                     return Task.CompletedTask;
                 }
 
+                var registry = resource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReference)
+                    ? registryReference.Registry as AzureContainerRegistryResource
+                    : null;
+
                 if (resource.IsExisting())
                 {
                     resource.References.Remove(controlPlaneIdentity.Resource);
                     resource.References.Remove(kubeletIdentity.Resource);
+
+                    if (registry is not null)
+                    {
+                        // The kubelet identity belongs to the external cluster, not this app model.
+                        // A separate role module can target the registry's scope after reading the cluster outputs.
+                        var roles = new AzureRoleAssignmentResource(
+                            $"{name}-kubelet-roles-{registry.Name}",
+                            registry,
+                            ownerResource: null,
+                            identityResource: null,
+                            infrastructure =>
+                            {
+                                var acr = (ContainerRegistryService)registry.AddAsExistingResource(infrastructure);
+                                var roleId = BicepFunction.GetSubscriptionResourceId(
+                                    "Microsoft.Authorization/roleDefinitions",
+                                    ContainerRegistryBuiltInRole.AcrPull.ToString());
+                                infrastructure.Add(new RoleAssignment("acrPullRole")
+                                {
+                                    Name = BicepFunction.CreateGuid(acr.Id, resource.Id.AsProvisioningParameter(infrastructure, "clusterId"), roleId),
+                                    Scope = new IdentifierExpression(acr.BicepIdentifier),
+                                    RoleDefinitionId = roleId,
+                                    PrincipalId = resource.KubeletIdentityObjectId.AsProvisioningParameter(infrastructure, "principalId"),
+                                    PrincipalType = RoleManagementPrincipalType.ServicePrincipal
+                                });
+                            });
+                        roles.References.Add(resource);
+                        context.Model.Resources.Add(roles);
+                    }
+
+                    identitiesPrepared = true;
                     return Task.CompletedTask;
                 }
 
@@ -145,8 +179,7 @@ public static class AzureKubernetesEnvironmentExtensions
 
                 // Resolve the final registry and subnet selections after model configuration.
                 // Standard Azure role preparation handles assignment scope and deployment ordering.
-                if (resource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReference) &&
-                    registryReference.Registry is AzureContainerRegistryResource registry)
+                if (registry is not null)
                 {
                     kubeletIdentity.WithRoleAssignments(builder.CreateResourceBuilder(registry), ContainerRegistryBuiltInRole.AcrPull);
                 }
@@ -876,41 +909,6 @@ public static class AzureKubernetesEnvironmentExtensions
         var aks = aksResource.IsExisting()
             ? (ContainerServiceManagedCluster)aksResource.AddAsExistingResource(infrastructure)
             : CreateAksCluster(infrastructure, aksResource);
-
-        // ACR pull role assignment for kubelet identity
-        if (aksResource.IsExisting() &&
-            aksResource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReference) &&
-            registryReference.Registry is AzureContainerRegistryResource registry)
-        {
-            var acr = ContainerRegistryService.FromExisting("acr");
-            acr.Name = registry.NameOutputReference.AsProvisioningParameter(infrastructure, "acrName");
-            infrastructure.Add(acr);
-
-            var acrPullRoleId = BicepFunction.GetSubscriptionResourceId(
-                "Microsoft.Authorization/roleDefinitions",
-                ContainerRegistryBuiltInRole.AcrPull.ToString());
-
-            // Access kubelet identity objectId via property path
-            var kubeletObjectId = new MemberExpression(
-                new MemberExpression(
-                    new MemberExpression(
-                        new MemberExpression(
-                            new IdentifierExpression(aks.BicepIdentifier),
-                            "properties"),
-                        "identityProfile"),
-                    "kubeletidentity"),
-                "objectId");
-
-            var roleAssignment = new RoleAssignment("acrPullRole")
-            {
-                Name = BicepFunction.CreateGuid(acr.Id, aks.Id, acrPullRoleId),
-                Scope = new IdentifierExpression(acr.BicepIdentifier),
-                RoleDefinitionId = acrPullRoleId,
-                PrincipalId = kubeletObjectId,
-                PrincipalType = RoleManagementPrincipalType.ServicePrincipal
-            };
-            infrastructure.Add(roleAssignment);
-        }
 
         // AGC ALB controller subnet role assignments. AKS auto-creates a managed identity
         // for the AGC ALB add-on (`applicationloadbalancer-{cluster-name}` in the MC_*

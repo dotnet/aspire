@@ -861,10 +861,123 @@ public class AzureKubernetesEnvironmentExtensionsTests(ITestOutputHelper outputH
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         Assert.Empty(model.Resources.OfType<AzureUserAssignedIdentityResource>());
-        Assert.Empty(model.Resources.OfType<AzureRoleAssignmentResource>());
+        var roles = Assert.Single(model.Resources.OfType<AzureRoleAssignmentResource>());
+        Assert.Same(aks.Resource.DefaultContainerRegistry, roles.TargetAzureResource);
+        Assert.Null(roles.IdentityResource);
+        Assert.Contains(aks.Resource, roles.References);
         Assert.Empty(aks.Resource.References.OfType<AzureUserAssignedIdentityResource>());
         var manifest = await AzureManifestUtils.GetManifestWithBicep(aks.Resource);
         await Verify(manifest.BicepText, "bicep");
+    }
+
+    [Theory]
+    [InlineData("new")]
+    [InlineData("existing")]
+    [InlineData("group")]
+    [InlineData("subscription")]
+    [InlineData("callback")]
+    [InlineData("new-scoped")]
+    public async Task ExistingCluster_RegistryRoleUsesRegistryScope(string registryScenario)
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var builder = AzureKubernetesTestBuilder.Create(outputHelper, workspace);
+        var registry = builder.AddAzureContainerRegistry("registry");
+        switch (registryScenario)
+        {
+            case "new":
+                break;
+            case "existing":
+                registry.PublishAsExisting("existingacr", resourceGroup: null);
+                break;
+            case "group":
+                registry.PublishAsExisting("existingacr", "registry-rg");
+                break;
+            case "subscription":
+                registry.PublishAsExistingInResourceGroup(
+                    builder.AddParameter("registry-name", "existingacr"),
+                    builder.AddParameter("registry-group", "registry-rg"),
+                    builder.AddParameter("registry-subscription", "00000000-0000-0000-0000-000000000002"));
+                break;
+            case "callback":
+            case "new-scoped":
+                if (registryScenario == "callback")
+                {
+                    registry.PublishAsExisting("existingacr", "annotation-rg");
+                }
+                registry.ConfigureInfrastructure(infrastructure =>
+                    infrastructure.AspireResource.Scope = new AzureBicepResourceScope(
+                        "registry-rg", "00000000-0000-0000-0000-000000000002"));
+                break;
+            default:
+                throw new InvalidOperationException($"Unexpected registry scenario '{registryScenario}'.");
+        }
+
+        var aks = builder.AddAzureKubernetesEnvironment("aks")
+            .AsExistingInResourceGroup(
+                builder.AddParameter("cluster-name", "existing-cluster"),
+                builder.AddParameter("cluster-group", "cluster-rg"),
+                builder.AddParameter("cluster-subscription", "00000000-0000-0000-0000-000000000001"))
+            .WithContainerRegistry(registry);
+
+        await using var app = builder.Build();
+        await app.RunAsync();
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var roles = Assert.Single(model.Resources.OfType<AzureRoleAssignmentResource>());
+        Assert.Same(registry.Resource, roles.TargetAzureResource);
+        Assert.Null(roles.IdentityResource);
+        Assert.Empty(model.Resources.OfType<AzureUserAssignedIdentityResource>());
+        Assert.Contains(aks.Resource, roles.References);
+        Assert.Contains(registry.Resource, roles.References);
+        Assert.Equal(aks.Resource.KubeletIdentityObjectId.ValueExpression,
+            Assert.IsType<BicepOutputReference>(roles.Parameters["principalId"]).ValueExpression);
+        Assert.False(aks.Resource.Parameters.ContainsKey("acrName"));
+
+        var mainBicep = await File.ReadAllTextAsync(Path.Combine(workspace.Path, "main.bicep"));
+        var aksBicep = await File.ReadAllTextAsync(Path.Combine(workspace.Path, "aks", "aks.bicep"));
+        var roleBicep = await File.ReadAllTextAsync(Path.Combine(workspace.Path, roles.Name, $"{roles.Name}.bicep"));
+        var registryBicep = await File.ReadAllTextAsync(Path.Combine(workspace.Path, "registry", "registry.bicep"));
+        await Verify(mainBicep, "bicep")
+            .UseParameters(registryScenario)
+            .AppendContentAsFile(aksBicep, "bicep")
+            .AppendContentAsFile(roleBicep, "bicep")
+            .AppendContentAsFile(registryBicep, "bicep");
+    }
+
+    [Fact]
+    public async Task ExistingClusters_SharedFinalRegistryPreparesRolesOncePerCluster()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var builder = AzureKubernetesTestBuilder.Create(outputHelper, workspace);
+        var firstRegistry = builder.AddAzureContainerRegistry("first").PublishAsExisting("firstacr", "first-rg");
+        var finalRegistry = builder.AddAzureContainerRegistry("final").PublishAsExisting("finalacr", "final-rg");
+        var first = builder.AddAzureKubernetesEnvironment("first-aks")
+            .AsExistingInResourceGroup("first-cluster", "cluster-rg", "cluster-subscription")
+            .WithContainerRegistry(firstRegistry)
+            .WithContainerRegistry(finalRegistry);
+        var second = builder.AddAzureKubernetesEnvironment("second-aks")
+            .AsExistingInResourceGroup("second-cluster", "cluster-rg", "cluster-subscription")
+            .WithContainerRegistry(finalRegistry);
+
+        await using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, default);
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        Assert.Empty(model.Resources.OfType<AzureUserAssignedIdentityResource>());
+        Assert.Collection(model.Resources.OfType<AzureRoleAssignmentResource>(),
+            role =>
+            {
+                Assert.Same(finalRegistry.Resource, role.TargetAzureResource);
+                Assert.Equal("final-rg", role.Scope!.ResourceGroup);
+                Assert.Contains(first.Resource, role.References);
+            },
+            role =>
+            {
+                Assert.Same(finalRegistry.Resource, role.TargetAzureResource);
+                Assert.Equal("final-rg", role.Scope!.ResourceGroup);
+                Assert.Contains(second.Resource, role.References);
+            });
     }
 
     [Fact]
