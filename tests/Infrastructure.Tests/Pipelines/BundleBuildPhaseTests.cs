@@ -452,6 +452,126 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
     }
 
     [Theory]
+    [InlineData(false, false, false, false, "managed,dashboard,terminalhost,apphost-server,tray")]
+    [InlineData(false, false, false, true, "managed,dashboard,terminalhost,apphost-server")]
+    [InlineData(false, false, true, false, "managed,dashboard,terminalhost,tray")]
+    [InlineData(false, false, true, true, "managed,dashboard,terminalhost")]
+    [InlineData(false, true, false, false, "managed,terminalhost,apphost-server,tray")]
+    [InlineData(false, true, false, true, "managed,terminalhost,apphost-server")]
+    [InlineData(false, true, true, false, "managed,terminalhost,tray")]
+    [InlineData(false, true, true, true, "managed,terminalhost")]
+    [InlineData(true, false, false, false, "apphost-server,tray")]
+    [InlineData(true, false, false, true, "apphost-server")]
+    [InlineData(true, false, true, false, "tray")]
+    [InlineData(true, false, true, true, "")]
+    [InlineData(true, true, false, false, "apphost-server,tray")]
+    [InlineData(true, true, false, true, "apphost-server")]
+    [InlineData(true, true, true, false, "tray")]
+    [InlineData(true, true, true, true, "")]
+    public async Task ComponentPublishSkipOptionsAreIndependent(
+        bool skipManaged, bool skipDashboard, bool skipServer, bool skipTray, string expected)
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        const string rid = "osx-arm64";
+        var project = CreateProject(workspace.Path, rid);
+        var dashboard = DashboardPath(workspace.Path, rid);
+        File.WriteAllText(dashboard, "prepared Dashboard");
+
+        await RunAsync(project, "PublishBundleComponents", rid,
+            $"SkipManagedBuild={skipManaged}", $"SkipDashboardPublish={skipDashboard}",
+            $"SkipAppHostServerBuild={skipServer}", $"SkipTrayBuild={skipTray}", "SkipNativeBuild=true");
+
+        var events = Path.Combine(workspace.Path, "events");
+        Assert.Equal(expected.Split(',', StringSplitOptions.RemoveEmptyEntries),
+            File.Exists(events) ? File.ReadAllLines(events) : []);
+        Assert.Equal(skipManaged || skipDashboard ? "prepared Dashboard" : "dashboard",
+            File.ReadAllText(dashboard).Trim());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task MissingPreparedDashboardIsCheckedOnlyWhenManagedPublishingIsEnabled(bool skipManaged)
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        const string rid = "linux-x64";
+        var project = CreateProject(workspace.Path, rid);
+
+        var result = await ExecuteAsync(project, "PublishBundleComponents", rid,
+            $"SkipManagedBuild={skipManaged}", "SkipDashboardPublish=true");
+
+        Assert.Equal(skipManaged, result.ExitCode == 0);
+        Assert.Equal(skipManaged ? ["apphost-server"] : ["managed"],
+            File.ReadAllLines(Path.Combine(workspace.Path, "events")));
+        if (!skipManaged)
+        {
+            Assert.Contains("Prepared Native AOT Dashboard was not found", result.Output);
+        }
+    }
+
+    [Theory]
+    [InlineData("managed", "")]
+    [InlineData("dashboard", "managed")]
+    [InlineData("terminalhost", "managed,dashboard")]
+    [InlineData("apphost-server", "managed,dashboard,terminalhost")]
+    [InlineData("tray", "managed,dashboard,terminalhost,apphost-server")]
+    public async Task PublishFailureStopsBeforeLaterComponentsSigningAndPackaging(string component, string expected)
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        const string rid = "osx-arm64";
+        var project = CreateOrchestrationProject(workspace.Path, rid);
+        File.WriteAllText(Path.Combine(workspace.Path, "fail-" + component), "");
+
+        var result = await ExecuteAsync(project, "BuildNativeBundle", rid, "Sign=true", "DotNetSignType=real");
+
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains("Failed publishing " + component, result.Output);
+        var events = Path.Combine(workspace.Path, "events");
+        Assert.Equal(expected.Split(',', StringSplitOptions.RemoveEmptyEntries),
+            File.Exists(events) ? File.ReadAllLines(events) : []);
+    }
+
+    [Theory]
+    [InlineData("win-x64")]
+    [InlineData("win-arm64")]
+    public async Task WindowsTrayPublishRequiresWindowsUnlessSkipped(string rid)
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "This exercises rejection on a non-Windows host.");
+        using var workspace = TemporaryWorkspace.Create(output);
+        var project = CreateProject(workspace.Path, rid);
+
+        var result = await ExecuteAsync(project, "PublishBundleComponents", rid,
+            "SkipManagedBuild=true", "SkipAppHostServerBuild=true");
+
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains("Windows NativeAOT tray publishing requires a Windows build lane.", result.Output);
+        Assert.False(File.Exists(Path.Combine(workspace.Path, "events")));
+        await RunAsync(project, "PublishBundleComponents", rid,
+            "SkipManagedBuild=true", "SkipAppHostServerBuild=true", "SkipTrayBuild=true");
+        Assert.False(File.Exists(Path.Combine(workspace.Path, "events")));
+    }
+
+    [Theory]
+    [InlineData("win-x64")]
+    [InlineData("win-arm64")]
+    public async Task WindowsTrayCanPublishWithoutOtherComponents(string rid)
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows tray publishing requires a Windows host.");
+        using var workspace = TemporaryWorkspace.Create(output);
+        var project = CreateProject(workspace.Path, rid);
+
+        await RunAsync(project, "PublishBundleComponents", rid,
+            "SkipManagedBuild=true", "SkipAppHostServerBuild=true", "SkipNativeBuild=true");
+
+        Assert.Equal(["windows-tray"], File.ReadAllLines(Path.Combine(workspace.Path, "events")));
+        Assert.Equal("windows-tray",
+            File.ReadAllText(Path.Combine(workspace.Path, "artifacts", "tray", "aspire-tray.exe")).Trim());
+        Assert.Equal(Path.GetFullPath(Path.Combine(workspace.Path, "artifacts", "tray")),
+            Path.TrimEndingDirectorySeparator(Path.GetFullPath(
+                File.ReadAllText(Path.Combine(workspace.Path, "windows-tray-publish-dir")).Trim())));
+    }
+
+    [Theory]
     [InlineData(false, false)]
     [InlineData(false, true)]
     [InlineData(true, false)]
@@ -574,6 +694,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         var dcp = Path.Combine(root, "dcp.proj");
         var apphost = Path.Combine(root, "apphost.proj");
         var tray = Path.Combine(root, "tray.proj");
+        var windowsTray = Path.Combine(root, "windows-tray.proj");
         var trayApp = Path.Combine(root, "artifacts", "tray", "Aspire Tray.app");
         var dashboardDirectory = Path.GetDirectoryName(DashboardPath(root, rid))!;
 
@@ -601,6 +722,9 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         WriteChild(tray, "Publish", "tray", Path.Combine(trayApp, "Contents", "MacOS", "aspire-tray"),
             Write(Path.Combine(trayApp, "Contents", "Info.plist"), "plist"),
             Write(Path.Combine(trayApp, "Contents", "Resources", "Aspire.icns"), "icon"));
+        WriteChild(windowsTray, "Publish", "windows-tray", Path.Combine(root, "artifacts", "tray", "aspire-tray.exe"),
+            Write(Path.Combine(root, "windows-tray-publish-dir"), "$(PublishDir)"),
+            Write(Path.Combine(root, "artifacts", "tray", "Aspire.ico"), "icon"));
 
         var projectPath = Path.Combine(root, "bundle.proj");
         new XDocument(new XElement("Project",
@@ -620,6 +744,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
                 Property("DashboardPackProjectPath", package),
                 Property("DcpPackProjectPath", dcp),
                 Property("TrayProjectPath", tray),
+                Property("WindowsTrayProjectPath", windowsTray),
                 Property("TrayAppPath", trayApp),
                 Property("WindowsTrayPath", Path.Combine(root, "artifacts", "tray")),
                 Property("AppHostProjectPath", apphost)),
@@ -666,6 +791,8 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
                 new XAttribute("DefaultTargets", target),
                 target == "Restore" ? null : new XElement("Target", new XAttribute("Name", "Restore")),
                 new XElement("Target", new XAttribute("Name", target),
+                    new XElement("Error", new XAttribute("Condition", $"Exists('{Path.Combine(root, "fail-" + component)}')"),
+                        new XAttribute("Text", "Failed publishing " + component)),
                     Record(component),
                     new XElement("WriteLinesToFile", new XAttribute("File", properties),
                         new XAttribute("Lines", $"{component}|{propertyRecord}"), new XAttribute("Overwrite", "false")),

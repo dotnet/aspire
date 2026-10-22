@@ -39,9 +39,7 @@
   <PropertyGroup>
     <PublishBundleComponentsDependsOn>
       _ValidateBundleConfiguration;
-      _PublishManagedProjects;
-      _PublishAppHostServer;
-      _PublishNativeTray
+      _PublishBundleComponents
     </PublishBundleComponentsDependsOn>
 
     <!-- Never add publishing here: republishing would overwrite signed inputs. -->
@@ -331,31 +329,54 @@
           EnvironmentVariables="$(_BundleChildEnvironment)" />
   </Target>
 
-  <Target Name="_PublishManagedProjects" Condition="'$(SkipManagedBuild)' != 'true'">
+  <Target Name="_PublishBundleComponents">
     <MakeDir Directories="$(ArtifactsLogDir)" />
     <PropertyGroup>
       <_ManagedBinlogArg Condition="'$(ContinuousIntegrationBuild)' == 'true'">-bl:$(ArtifactsLogDir)PublishManaged.binlog</_ManagedBinlogArg>
       <_DashboardBinlogArg Condition="'$(ContinuousIntegrationBuild)' == 'true'">-bl:$(ArtifactsLogDir)PublishDashboard.binlog</_DashboardBinlogArg>
       <_TerminalHostBinlogArg Condition="'$(ContinuousIntegrationBuild)' == 'true'">-bl:$(ArtifactsLogDir)PublishTerminalHost.binlog</_TerminalHostBinlogArg>
+      <_AppHostServerBinlogArg Condition="'$(ContinuousIntegrationBuild)' == 'true'">-bl:$(ArtifactsLogDir)PublishAppHostServer.binlog</_AppHostServerBinlogArg>
+      <_TrayBinlogArg Condition="'$(ContinuousIntegrationBuild)' == 'true'">-bl:$(ArtifactsLogDir)PublishTray.binlog</_TrayBinlogArg>
     </PropertyGroup>
-    <Message Importance="high" Text="Publishing aspire-managed (self-contained)..." />
+    <Message Importance="high" Text="Publishing aspire-managed (self-contained)..." Condition="'$(SkipManagedBuild)' != 'true'" />
     <!-- Publish as self-contained single-file for the target RID -->
     <Exec Command="dotnet publish &quot;$(ManagedProjectPath)&quot; -r $(TargetRid) --self-contained /p:GenerateDocumentationFile=false /p:EnforceCodeStyleInBuild=false $(_BundleChildArgs) &quot;$(_ManagedBinlogArg)&quot;"
-          EnvironmentVariables="$(_BundleChildEnvironment)" />
-    <PropertyGroup Condition="'$(SkipDashboardPublish)' == 'true'">
+          EnvironmentVariables="$(_BundleChildEnvironment)"
+          Condition="'$(SkipManagedBuild)' != 'true'" />
+    <PropertyGroup Condition="'$(SkipManagedBuild)' != 'true' and '$(SkipDashboardPublish)' == 'true'">
       <_DashboardExecutableName>Aspire.Dashboard</_DashboardExecutableName>
       <_DashboardExecutableName Condition="$(TargetRid.StartsWith('win-'))">Aspire.Dashboard.exe</_DashboardExecutableName>
       <_DashboardPublishPath>$([MSBuild]::NormalizePath('$(DashboardPublishDir)', '$(_DashboardExecutableName)'))</_DashboardPublishPath>
     </PropertyGroup>
-    <Error Condition="'$(SkipDashboardPublish)' == 'true' and !Exists('$(_DashboardPublishPath)')"
+    <Error Condition="'$(SkipManagedBuild)' != 'true' and '$(SkipDashboardPublish)' == 'true' and !Exists('$(_DashboardPublishPath)')"
            Text="Prepared Native AOT Dashboard was not found at '$(_DashboardPublishPath)'. Build the RID-specific Dashboard package before using SkipDashboardPublish=true." />
-    <Message Importance="high" Text="Publishing Aspire Dashboard (Native AOT)..." Condition="'$(SkipDashboardPublish)' != 'true'" />
+    <Message Importance="high" Text="Publishing Aspire Dashboard (Native AOT)..." Condition="'$(SkipManagedBuild)' != 'true' and '$(SkipDashboardPublish)' != 'true'" />
     <Exec Command="dotnet publish &quot;$(DashboardProjectPath)&quot; -r $(TargetRid) /p:PlatformName=$(TargetRid) /p:GenerateDocumentationFile=false /p:EnforceCodeStyleInBuild=false $(_BundleChildArgs) &quot;$(_DashboardBinlogArg)&quot; &quot;-flp:logfile=$(DashboardPublishLogPath);verbosity=normal&quot;"
           EnvironmentVariables="$(_BundleChildEnvironment)"
-          Condition="'$(SkipDashboardPublish)' != 'true'" />
-    <Message Importance="high" Text="Publishing Aspire TerminalHost (Native AOT)..." />
+          Condition="'$(SkipManagedBuild)' != 'true' and '$(SkipDashboardPublish)' != 'true'" />
+    <Message Importance="high" Text="Publishing Aspire TerminalHost (Native AOT)..." Condition="'$(SkipManagedBuild)' != 'true'" />
     <Exec Command="dotnet publish &quot;$(TerminalHostProjectPath)&quot; -r $(TargetRid) /p:GenerateDocumentationFile=false /p:EnforceCodeStyleInBuild=false $(_BundleChildArgs) &quot;$(_TerminalHostBinlogArg)&quot;"
-          EnvironmentVariables="$(_BundleChildEnvironment)" />
+          EnvironmentVariables="$(_BundleChildEnvironment)"
+          Condition="'$(SkipManagedBuild)' != 'true'" />
+
+    <!-- AppHost Server and tray reuse are independent of SkipManagedBuild. Never
+         republish these components after official signing. -->
+    <Exec Command="dotnet publish &quot;$(AppHostServerProjectPath)&quot; -r $(TargetRid) /p:UseLdClassicXCodeLinker=false $(_BundleChildArgs) &quot;$(_AppHostServerBinlogArg)&quot;"
+          EnvironmentVariables="$(_BundleChildEnvironment)"
+          Condition="'$(SkipAppHostServerBuild)' != 'true'" />
+
+    <Error Condition="'$(SkipTrayBuild)' != 'true' and $(TargetRid.StartsWith('win-')) and !$([MSBuild]::IsOSPlatform('Windows'))"
+           Text="Windows NativeAOT tray publishing requires a Windows build lane." />
+    <Error Condition="'$(SkipTrayBuild)' != 'true' and $(TargetRid.StartsWith('win-')) and '$(TargetRid)' != 'win-x64' and '$(TargetRid)' != 'win-arm64'"
+           Text="Windows tray supports only win-x64 and win-arm64." />
+    <Message Importance="high" Text="Publishing native tray for $(TargetRid)..."
+             Condition="'$(SkipTrayBuild)' != 'true' and ($(TargetRid.StartsWith('osx-')) or $(TargetRid.StartsWith('win-')))" />
+    <Exec Command="dotnet publish &quot;$(TrayProjectPath)&quot; -r $(TargetRid) /p:TrayAppPath=&quot;$(TrayAppPath.TrimEnd('\').TrimEnd('/'))/&quot; $(_BundleChildArgs) &quot;$(_TrayBinlogArg)&quot;"
+          EnvironmentVariables="$(_BundleChildEnvironment)"
+          Condition="'$(SkipTrayBuild)' != 'true' and $(TargetRid.StartsWith('osx-'))" />
+    <Exec Command="dotnet publish &quot;$(WindowsTrayProjectPath)&quot; -r $(TargetRid) --self-contained --output &quot;$(WindowsTrayPath.TrimEnd('\').TrimEnd('/'))/&quot; $(_BundleChildArgs) &quot;$(_TrayBinlogArg)&quot;"
+          EnvironmentVariables="$(_BundleChildEnvironment)"
+          Condition="'$(SkipTrayBuild)' != 'true' and $(TargetRid.StartsWith('win-'))" />
   </Target>
 
   <Target Name="_ValidatePreparedBundle">
@@ -386,36 +407,6 @@
   <Target Name="_PackDcpPackage" Condition="'$(PackDcpPackage)' == 'true'">
     <Exec Command="dotnet build &quot;$(DcpPackProjectPath)&quot; $(_BundleChildArgs)"
           EnvironmentVariables="$(_BundleChildEnvironment)" />
-  </Target>
-
-  <!-- Official builds reuse the signed publish output instead of republishing it. -->
-  <Target Name="_PublishAppHostServer" Condition="'$(SkipAppHostServerBuild)' != 'true'">
-    <MakeDir Directories="$(ArtifactsLogDir)" Condition="'$(ContinuousIntegrationBuild)' == 'true'" />
-    <PropertyGroup>
-      <_AppHostServerBinlog Condition="'$(ContinuousIntegrationBuild)' == 'true'">-bl:&quot;$(ArtifactsLogDir)PublishAppHostServer.binlog&quot;</_AppHostServerBinlog>
-    </PropertyGroup>
-    <Exec Command="dotnet publish &quot;$(AppHostServerProjectPath)&quot; -r $(TargetRid) /p:UseLdClassicXCodeLinker=false $(_BundleChildArgs) $(_AppHostServerBinlog)"
-          EnvironmentVariables="$(_BundleChildEnvironment)" />
-  </Target>
-
-  <!-- SkipNativeBuild skips the outer CLI publish, not native payload components.
-       Official builds publish/sign the app first, then reuse it with SkipTrayBuild. -->
-  <Target Name="_PublishNativeTray" Condition="($(TargetRid.StartsWith('osx-')) or $(TargetRid.StartsWith('win-'))) and '$(SkipTrayBuild)' != 'true'">
-    <MakeDir Directories="$(ArtifactsLogDir)" Condition="'$(ContinuousIntegrationBuild)' == 'true'" />
-    <PropertyGroup>
-      <_TrayBinlogArg Condition="'$(ContinuousIntegrationBuild)' == 'true'">-bl:$(ArtifactsLogDir)PublishTray.binlog</_TrayBinlogArg>
-    </PropertyGroup>
-    <Error Condition="$(TargetRid.StartsWith('win-')) and !$([MSBuild]::IsOSPlatform('Windows'))"
-           Text="Windows NativeAOT tray publishing requires a Windows build lane." />
-    <Error Condition="$(TargetRid.StartsWith('win-')) and '$(TargetRid)' != 'win-x64' and '$(TargetRid)' != 'win-arm64'"
-           Text="Windows tray supports only win-x64 and win-arm64." />
-    <Message Importance="high" Text="Publishing native tray for $(TargetRid)..." />
-    <Exec Command="dotnet publish &quot;$(TrayProjectPath)&quot; -r $(TargetRid) /p:TrayAppPath=&quot;$(TrayAppPath.TrimEnd('\').TrimEnd('/'))/&quot; $(_BundleChildArgs) &quot;$(_TrayBinlogArg)&quot;"
-          EnvironmentVariables="$(_BundleChildEnvironment)"
-          Condition="$(TargetRid.StartsWith('osx-'))" />
-    <Exec Command="dotnet publish &quot;$(WindowsTrayProjectPath)&quot; -r $(TargetRid) --self-contained --output &quot;$(WindowsTrayPath.TrimEnd('\').TrimEnd('/'))/&quot; $(_BundleChildArgs) &quot;$(_TrayBinlogArg)&quot;"
-          EnvironmentVariables="$(_BundleChildEnvironment)"
-          Condition="$(TargetRid.StartsWith('win-'))" />
   </Target>
 
   <Target Name="_RestoreDcpPackage">
