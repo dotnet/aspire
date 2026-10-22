@@ -933,12 +933,11 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
                 Property("TrayAppPath", trayApp),
                 Property("WindowsTrayPath", Path.Combine(root, "artifacts", "tray")),
                 Property("AppHostProjectPath", apphost)),
-            // Test-only entry points exercise the production dependency lists in
-            // isolation without copying their ordering into the fixture.
+            // Test-only aliases exercise the production phases in isolation.
             new XElement("Target", new XAttribute("Name", "PublishBundleComponents"),
-                new XAttribute("DependsOnTargets", "$(PublishBundleComponentsDependsOn)")),
+                new XAttribute("DependsOnTargets", "_PublishBundleComponents")),
             new XElement("Target", new XAttribute("Name", "PackageBundlePayload"),
-                new XAttribute("DependsOnTargets", "$(PackageBundlePayloadDependsOn)")),
+                new XAttribute("DependsOnTargets", "_PackageBundlePayload")),
             // Execute the production phase graph and child processes with tiny publish/pack
             // projects. Layout copying substitutes for native execution, not for phase ordering.
             new XElement("Target", new XAttribute("Name", "_RunCreateLayout"),

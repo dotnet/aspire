@@ -33,32 +33,18 @@
     <_BundleCliTarget Condition="'$(Pack)' == 'false' and '$(SkipNativeBuild)' != 'true'">_PublishNativeCli</_BundleCliTarget>
     <_BundleCliTarget Condition="'$(Pack)' == 'true' and '$(SkipNativeBuild)' != 'true'">_BuildNativePackages</_BundleCliTarget>
 
-    <PublishBundleComponentsDependsOn>
-      _ValidateBundleConfiguration;
-      _PublishBundleComponents
-    </PublishBundleComponentsDependsOn>
-
-    <!-- Never add publishing here: republishing would overwrite signed inputs. -->
-    <PackageBundlePayloadDependsOn>
-      _ValidateBundleConfiguration;
-      _ValidatePreparedBundle;
-      _PackDashboardPackage;
-      _PackDcpPackage;
-      _RestoreDcpPackage;
-      _RunCreateLayout
-    </PackageBundlePayloadDependsOn>
     <BuildDependsOn>
       _ValidateAndSetNativeBundleSigningProperties;
       _ShowBanner;
       _CleanCaches;
-      $(PublishBundleComponentsDependsOn);
+      _PublishBundleComponents;
       _ValidateDashboardWarnings;
       _PrepareMacOSBundleSigning;
       _RemoveMacOSBundleDebugSymbols;
       _SignBundleComponents;
       _SignMacOSBundleTray;
       _RestoreBundleExecutePermissions;
-      $(PackageBundlePayloadDependsOn);
+      _PackageBundlePayload;
       $(_BundleCliTarget);
       _SignBundlePayloadPackages
     </BuildDependsOn>
@@ -326,7 +312,7 @@
           EnvironmentVariables="$(_BundleChildEnvironment)" />
   </Target>
 
-  <Target Name="_PublishBundleComponents">
+  <Target Name="_PublishBundleComponents" DependsOnTargets="_ValidateBundleConfiguration">
     <MakeDir Directories="$(ArtifactsLogDir)" />
     <PropertyGroup>
       <_ManagedBinlogArg Condition="'$(ContinuousIntegrationBuild)' == 'true'">-bl:$(ArtifactsLogDir)PublishManaged.binlog</_ManagedBinlogArg>
@@ -335,6 +321,7 @@
       <_AppHostServerBinlogArg Condition="'$(ContinuousIntegrationBuild)' == 'true'">-bl:$(ArtifactsLogDir)PublishAppHostServer.binlog</_AppHostServerBinlogArg>
       <_TrayBinlogArg Condition="'$(ContinuousIntegrationBuild)' == 'true'">-bl:$(ArtifactsLogDir)PublishTray.binlog</_TrayBinlogArg>
     </PropertyGroup>
+
     <Message Importance="high" Text="Publishing aspire-managed (self-contained)..." Condition="'$(SkipManagedBuild)' != 'true'" />
     <!-- Publish as self-contained single-file for the target RID -->
     <Exec Command="dotnet publish &quot;$(ManagedProjectPath)&quot; -r $(TargetRid) --self-contained /p:GenerateDocumentationFile=false /p:EnforceCodeStyleInBuild=false $(_BundleChildArgs) &quot;$(_ManagedBinlogArg)&quot;"
@@ -347,10 +334,12 @@
     </PropertyGroup>
     <Error Condition="'$(SkipManagedBuild)' != 'true' and '$(SkipDashboardPublish)' == 'true' and !Exists('$(_DashboardPublishPath)')"
            Text="Prepared Native AOT Dashboard was not found at '$(_DashboardPublishPath)'. Build the RID-specific Dashboard package before using SkipDashboardPublish=true." />
+
     <Message Importance="high" Text="Publishing Aspire Dashboard (Native AOT)..." Condition="'$(SkipManagedBuild)' != 'true' and '$(SkipDashboardPublish)' != 'true'" />
     <Exec Command="dotnet publish &quot;$(DashboardProjectPath)&quot; -r $(TargetRid) /p:PlatformName=$(TargetRid) /p:GenerateDocumentationFile=false /p:EnforceCodeStyleInBuild=false $(_BundleChildArgs) &quot;$(_DashboardBinlogArg)&quot; &quot;-flp:logfile=$(DashboardPublishLogPath);verbosity=normal&quot;"
           EnvironmentVariables="$(_BundleChildEnvironment)"
           Condition="'$(SkipManagedBuild)' != 'true' and '$(SkipDashboardPublish)' != 'true'" />
+
     <Message Importance="high" Text="Publishing Aspire TerminalHost (Native AOT)..." Condition="'$(SkipManagedBuild)' != 'true'" />
     <Exec Command="dotnet publish &quot;$(TerminalHostProjectPath)&quot; -r $(TargetRid) /p:GenerateDocumentationFile=false /p:EnforceCodeStyleInBuild=false $(_BundleChildArgs) &quot;$(_TerminalHostBinlogArg)&quot;"
           EnvironmentVariables="$(_BundleChildEnvironment)"
@@ -396,14 +385,16 @@
            Text="Prepared bundle input is missing: %(_RequiredPreparedBundleFile.Identity). Publish bundle components before signing and packaging." />
   </Target>
 
-  <Target Name="_PackDashboardPackage" Condition="'$(Pack)' == 'true'">
+  <!-- Never publish here: republishing would overwrite signed inputs. -->
+  <Target Name="_PackageBundlePayload"
+          DependsOnTargets="_ValidateBundleConfiguration;_ValidatePreparedBundle;_PackBundleComponents;_RestoreDcpPackage;_RunCreateLayout" />
+
+  <Target Name="_PackBundleComponents" Condition="'$(Pack)' == 'true'">
     <Exec Command="dotnet build &quot;$(DashboardPackProjectPath)&quot; $(_BundleChildArgs) /p:SkipDashboardPublish=true"
           EnvironmentVariables="$(_BundleChildEnvironment)" />
-  </Target>
-
-  <Target Name="_PackDcpPackage" Condition="'$(Pack)' == 'true' and '$(PackDcpPackage)' == 'true'">
     <Exec Command="dotnet build &quot;$(DcpPackProjectPath)&quot; $(_BundleChildArgs)"
-          EnvironmentVariables="$(_BundleChildEnvironment)" />
+          EnvironmentVariables="$(_BundleChildEnvironment)"
+          Condition="'$(PackDcpPackage)' == 'true'" />
   </Target>
 
   <Target Name="_RestoreDcpPackage">
