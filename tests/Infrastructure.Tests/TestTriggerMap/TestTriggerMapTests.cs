@@ -815,6 +815,21 @@ public sealed class TestTriggerMapTests
     }
 
     [Theory]
+    [InlineData(".github/workflows/extension-unit-tests.yml")]
+    [InlineData(".github/workflows/extension-e2e-tests.yml")]
+    public void ExtensionWorkflowChangesSelectBothExtensionTestJobs(string path)
+    {
+        var result = SelectWithRealMap(path);
+
+        Assert.False(result.SelectsAll);
+        Assert.Empty(result.UnmatchedFiles);
+        Assert.Equal(["Infrastructure.Tests"], result.TestProjects.Order(StringComparer.Ordinal));
+        Assert.Equal(
+            ["job:extension-e2e", "job:extension-unit"],
+            result.Jobs.Order(StringComparer.Ordinal));
+    }
+
+    [Theory]
     [InlineData(".github/workflows/build-packages.yml")]
     [InlineData(".github/workflows/build-cli-native-archives.yml")]
     public void ArtifactProducerWorkflowSelectsEveryArtifactConsumingTestProject(string path)

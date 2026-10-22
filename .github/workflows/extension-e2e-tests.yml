@@ -4,9 +4,9 @@ on:
   workflow_call:
 
 jobs:
-  verify_extester_feed:
+  verify_prerequisites:
     if: ${{ github.repository == 'microsoft/aspire' }}
-    name: Verify ExTester internal feed availability
+    name: Verify extension E2E prerequisites
     runs-on: ubuntu-latest
     env:
       NPM_REGISTRY: https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/
@@ -14,6 +14,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Fail once before matrix fan-out when the producer could not publish the VSIX.
+      - name: Download VSIX
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: aspire-extension
+          path: extension/out
 
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -75,7 +82,7 @@ jobs:
   extension_e2e:
     if: ${{ github.repository == 'microsoft/aspire' }}
     name: VS Code extension E2E (${{ matrix.name }}, ${{ matrix.shardName }})
-    needs: verify_extester_feed
+    needs: verify_prerequisites
     runs-on: ${{ matrix.runner }}
     # The Java AppHost shard imports a multi-project Gradle build and then runs the whole
     # application under a debugger, so it needs more than the shared budget.

@@ -115,3 +115,4 @@ jobs:
         with:
           name: aspire-extension
           path: extension/out/aspire-extension.vsix
+          if-no-files-found: error
