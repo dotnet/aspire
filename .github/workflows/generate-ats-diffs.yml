@@ -54,6 +54,11 @@ jobs:
           ref: ${{ matrix.target_branch }}
           persist-credentials: false
 
+      - name: Read target branch framework
+        run: |
+          framework=$(python3 -c "import xml.etree.ElementTree as ET; print(ET.parse('eng/Versions.props').find('.//DefaultTargetFramework').text)")
+          echo "API_TARGET_FRAMEWORK=$framework" >> "$GITHUB_ENV"
+
       - name: Restore
         run: ./restore.sh
 
@@ -101,15 +106,30 @@ jobs:
           fi
 
           # Build an array of .csproj paths for all discovered projects,
-          # skipping any that don't have a matching csproj file.
+          # skipping projects that don't target the generated AppHost framework.
+          # MSBuild returns JSON such as {"Properties":{"TargetFramework":"net10.0","TargetFrameworks":""}}.
+          # Multi-target projects list their frameworks as semicolon-separated values in TargetFrameworks.
+          COMPATIBLE_PROJECTS=()
           CSPROJ_ARGS=()
           for proj in $PROJECTS; do
             proj_name=$(basename "$proj")
             csproj="$proj/$proj_name.csproj"
             if [ -f "$csproj" ]; then
-              CSPROJ_ARGS+=("$csproj")
+              project_frameworks=$(./dotnet.sh msbuild "$csproj" -nologo -getProperty:TargetFramework,TargetFrameworks \
+                | python3 -c 'import json,sys; p=json.load(sys.stdin)["Properties"]; f=p["TargetFrameworks"] or p["TargetFramework"]; print(" ".join(f.split(";")))')
+              if [[ " $project_frameworks " == *" $API_TARGET_FRAMEWORK "* ]]; then
+                COMPATIBLE_PROJECTS+=("$proj")
+                CSPROJ_ARGS+=("$csproj")
+              else
+                echo "Skipping $proj_name: target frameworks $project_frameworks do not include $API_TARGET_FRAMEWORK"
+              fi
             fi
           done
+
+          if [ "${#CSPROJ_ARGS[@]}" -eq 0 ]; then
+            echo "No compatible integration projects found for $API_TARGET_FRAMEWORK"
+            exit 0
+          fi
 
           # Dump all integrations in a single pass using --output-directory.
           # This builds ONE AppHost with all integrations instead of a separate AppHost per
@@ -128,7 +148,7 @@ jobs:
           # The CLI names each output file after the integration's assembly name, which for
           # Aspire.Hosting.* projects equals the project directory/csproj name.
           FAILURES=0
-          for proj in $PROJECTS; do
+          for proj in "${COMPATIBLE_PROJECTS[@]}"; do
             proj_name=$(basename "$proj")
             csproj="$proj/$proj_name.csproj"
             # Guard against the csproj having been removed between discovery and here.

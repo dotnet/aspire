@@ -68,12 +68,22 @@ jobs:
           # Keep scheduled and publishing runs best-effort; validation runs must fail on build errors.
           if [[ "$GITHUB_EVENT_NAME" == "schedule" || "$DRY_RUN" == "false" ]]; then
             set +e
+            project_exclusions='Aspire.ProjectTemplates|Aspire.Cli'
           else
             set -euo pipefail
+            # Strict validation only builds projects that produce the selected API baseline.
+            native_exclusion=''
+            native_project='src/Aspire.Hosting.Native.Server/Aspire.Hosting.Native.Server.csproj'
+            if [[ -f "$native_project" ]]; then
+              native_framework=$(./dotnet.sh msbuild "$native_project" -nologo -getProperty:TargetFramework)
+              if [[ "$native_framework" != "$API_TARGET_FRAMEWORK" ]]; then
+                native_exclusion='|Aspire.Hosting.Native[^/]*'
+              fi
+            fi
+            project_exclusions="/(Aspire.ProjectTemplates|Aspire.Cli|Aspire.Dashboard|Aspire.Hosting.Analyzers|Aspire.Hosting.Azure.Provisioning.Generators|Aspire.Hosting.Integration.Analyzers|Aspire.Hosting.RemoteHost|Aspire.Managed|Aspire.AppHost.Sdk|Aspire.TerminalHost|Tools${native_exclusion})/"
           fi
 
-          # Exclude projects that do not generate an API baseline for the product framework.
-          find src -name '*.csproj' | grep -Ev '/(Aspire.ProjectTemplates|Aspire.Cli|Aspire.Dashboard|Aspire.Hosting.Analyzers|Aspire.Hosting.Azure.Provisioning.Generators|Aspire.Hosting.Integration.Analyzers|Aspire.Hosting.Native[^/]*|Aspire.Hosting.RemoteHost|Aspire.Managed|Aspire.AppHost.Sdk|Aspire.TerminalHost|Tools)/' | while IFS= read -r proj; do
+          find src -name '*.csproj' | grep -Ev "$project_exclusions" | while IFS= read -r proj; do
             ./dotnet.sh build "$proj" -f "$API_TARGET_FRAMEWORK" --configuration Release --no-incremental /t:"Build;GenAPIGenerateReferenceAssemblySource"
           done
         continue-on-error: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.dry_run == false) }}
