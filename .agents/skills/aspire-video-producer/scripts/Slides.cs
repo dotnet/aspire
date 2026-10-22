@@ -147,7 +147,7 @@ static class Slides
         }
     }
 
-    /// <summary>Cards of { title, text } stacked in a box, next to a code panel.</summary>
+    /// <summary>Up to three cards of { title, text } stacked in a box, next to a code panel: a fourth runs off it.</summary>
     private static void Notes(SKCanvas canvas, JsonArray notes, SKRect box)
     {
         using var titleFont = Brand.Font(34, SKFontStyleWeight.Bold);

@@ -140,7 +140,7 @@ slides match. A heading, then one of: bullet cards, code panels, or code panels 
   `powershell`, `xml`, `html`; the colors are Visual Studio Code's Dark+ theme. `types`: the names to color as types,
   which the grammars can't tell from variables. `highlight`: the 1-based lines shown bright, the others dimmed.
   `size`: the font size, 22 or more (25 by default); keep at most about 20 lines per panel.
-- `notes`: up to four cards of `title` and `text`, beside the code.
+- `notes`: up to three cards of `title` and `text`, beside the code: a fourth doesn't fit next to the panel.
 - A text that runs off its card, its panel or the slide stops the build with a "Slide layout" error: shorten it, or
   split the slide. Render the slides before assembling, and look at them:
   `dotnet run <tools>/video.cs -- slides <workspace>` writes `shots/slides/<step>.png`.

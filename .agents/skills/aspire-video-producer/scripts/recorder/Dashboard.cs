@@ -10,10 +10,12 @@ namespace Recorder;
 /// </summary>
 public static class Dashboard
 {
-    /// <summary>The row of a resource on the Resources page, by its name.</summary>
+    /// <summary>The row of a resource on the Resources page, by its exact name.</summary>
     public static ILocator Row(Scene scene, string resource)
         => scene.Page.GetByRole(AriaRole.Row)
-            .Filter(new() { Has = scene.Page.GetByRole(AriaRole.Gridcell).First.Filter(new() { HasTextRegex = new Regex($"^\\s*{Regex.Escape(resource)}\\b") }) })
+            // The name, then whitespace or the end of the cell's text: a word boundary (\b) would also match before a
+            // hyphen, so "apiservice" would find "apiservice-worker" too.
+            .Filter(new() { Has = scene.Page.GetByRole(AriaRole.Gridcell).First.Filter(new() { HasTextRegex = new Regex($"^\\s*{Regex.Escape(resource)}(\\s|$)") }) })
             .First;
 
     // The columns of the Resources page: Name, State, Start time, Source, URLs, Actions.
