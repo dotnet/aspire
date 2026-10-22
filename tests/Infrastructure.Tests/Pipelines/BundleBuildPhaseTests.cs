@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Xml.Linq;
+using Aspire.TestUtilities;
 using Xunit;
 
 namespace Infrastructure.Tests;
@@ -118,7 +119,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [InlineData("warning", "tray")]
+    [InlineData("warning", "dashboard")]
     [InlineData("adhoc", "tray")]
     [InlineData("sign-components", "prepare-tray")]
     [InlineData("sign-tray", "sign-components")]
@@ -526,6 +527,35 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public async Task DistributionPublishingVerifiesNativeDashboardWarnings(bool unexpectedWarning)
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        const string rid = "linux-x64";
+        var project = CreateProject(workspace.Path, rid);
+        if (unexpectedWarning)
+        {
+            File.WriteAllText(Path.Combine(workspace.Path, "fail-warning"), "");
+        }
+
+        var result = await ExecuteAsync(project, "PublishBundleComponents", rid, "Pack=true");
+
+        if (unexpectedWarning)
+        {
+            Assert.NotEqual(0, result.ExitCode);
+            Assert.Contains("Expected exactly one IL2026 warning", result.Output);
+        }
+        else
+        {
+            Assert.True(result.ExitCode == 0, result.Output);
+            Assert.Contains("Verified the expected Native AOT Dashboard IL2026 warning", result.Output);
+        }
+        Assert.Equal(unexpectedWarning ? ["managed", "dashboard"] : ["managed", "dashboard", "terminalhost", "apphost-server"],
+            File.ReadAllLines(Path.Combine(workspace.Path, "events")));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public async Task DistributionDashboardReuseDoesNotRequireAPublishWarningLog(bool skipManaged)
     {
         using var workspace = TemporaryWorkspace.Create(output);
@@ -826,6 +856,71 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
     }
 
     [Theory]
+    [RequiresTools(["pwsh", "tar"])]
+    [InlineData("win-x64", false, false)]
+    [InlineData("win-arm64", false, true)]
+    [InlineData("win-x64", true, false)]
+    [InlineData("win-arm64", true, true)]
+    public async Task RealWindowsLayoutVerifiesArchiveBeforeCli(string rid, bool invalidIcon, bool skipNative)
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        var root = workspace.Path;
+        var project = CreateProject(root, rid);
+        await RunAsync(project, "PublishBundleComponents", rid, "SkipTrayBuild=true");
+        var tray = Path.Combine(root, "artifacts", "tray");
+        WindowsTrayTestPayload.Create(tray, rid);
+        if (!invalidIcon)
+        {
+            File.Copy(Path.Combine(RepoRoot.Path, "src", "Shared", "Aspire.ico"),
+                Path.Combine(tray, "Aspire.ico"), overwrite: true);
+        }
+        File.Delete(Path.Combine(root, "events"));
+        var cache = PrepareRealLayout(project, root, rid);
+
+        var result = await ExecuteAsync(project, "Build", rid, "Pack=false",
+            "SkipManagedBuild=true", "SkipAppHostServerBuild=true", "SkipTrayBuild=true",
+            $"SkipNativeBuild={skipNative}", "BundleVersion=verifier-test", "RestorePackagesPath=" + cache);
+
+        Assert.True(File.Exists(Path.Combine(root, "artifacts", "bundle", $"aspire-verifier-test-{rid}.tar.gz")), result.Output);
+        if (invalidIcon)
+        {
+            Assert.NotEqual(0, result.ExitCode);
+            Assert.Contains("Windows tray must contain the original", result.Output);
+        }
+        else
+        {
+            Assert.True(result.ExitCode == 0, result.Output);
+            Assert.Contains($"Verified {rid} Windows tray payload", result.Output);
+        }
+        Assert.Equal(!invalidIcon && !skipNative ? ["restore", "cli"] : ["restore"],
+            File.ReadAllLines(Path.Combine(root, "events")));
+    }
+
+    [Fact]
+    [RequiresTools(["bash", "lipo", "tar"])]
+    public async Task RealMacLayoutVerificationRejectsInvalidArchivedExecutableBeforeCli()
+    {
+        Assert.SkipUnless(OperatingSystem.IsMacOS(), "macOS archive verification requires macOS tools.");
+        using var workspace = TemporaryWorkspace.Create(output);
+        var root = workspace.Path;
+        const string rid = "osx-arm64";
+        var project = CreateProject(root, rid);
+        await RunAsync(project, "PublishBundleComponents", rid, "SkipTrayBuild=true");
+        var tray = MacTrayTestPayload.Create(root);
+        File.Delete(Path.Combine(root, "events"));
+        var cache = PrepareRealLayout(project, root, rid);
+
+        var result = await ExecuteAsync(project, "Build", rid, "Pack=false",
+            "SkipManagedBuild=true", "SkipAppHostServerBuild=true", "SkipTrayBuild=true",
+            "TrayAppPath=" + tray, "BundleVersion=verifier-test", "RestorePackagesPath=" + cache);
+
+        Assert.True(File.Exists(Path.Combine(root, "artifacts", "bundle", $"aspire-verifier-test-{rid}.tar.gz")), result.Output);
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains("Tray executable does not contain the required arm64 architecture", result.Output);
+        Assert.Equal(["restore"], File.ReadAllLines(Path.Combine(root, "events")));
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task RealLayoutUsesTheRestoreCacheWhenTheUserDcpCacheIsCold(bool customCache)
@@ -864,6 +959,34 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         Assert.Equal("DCP from the restore cache",
             File.ReadAllText(Path.Combine(root, "artifacts", "bundle", rid, "dcp", "dcp")));
         Assert.True(File.Exists(Path.Combine(root, "artifacts", "bundle", "aspire-cold-cache-linux-x64.tar.gz")));
+    }
+
+    private static string PrepareRealLayout(string project, string root, string rid)
+    {
+        foreach (var file in Aspire.Shared.TerminalHostPayload.GetRequiredFiles(rid))
+        {
+            var path = Path.Combine(Path.GetDirectoryName(TerminalHostPath(root, rid))!, file);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, "terminal payload");
+        }
+        var cache = Path.Combine(root, "layout-cache");
+        var dcpRid = rid switch
+        {
+            "win-x64" => "windows-amd64",
+            "win-arm64" => "windows-arm64",
+            "osx-arm64" => "darwin-arm64",
+            _ => throw new ArgumentOutOfRangeException(nameof(rid))
+        };
+        var dcp = Path.Combine(cache, "microsoft.developercontrolplane." + dcpRid, "1.2.3", "tools");
+        Directory.CreateDirectory(dcp);
+        File.WriteAllText(Path.Combine(dcp, "dcp"), "DCP payload");
+        var bundle = XDocument.Load(project);
+        bundle.Root!.Elements("Target").Single(target => target.Attribute("Name")!.Value == "_RunCreateLayout").Remove();
+        bundle.Root.Element("PropertyGroup")!.Add(
+            Property("CreateLayoutProjectPath", Path.Combine(RepoRoot.Path, "tools", "CreateLayout", "CreateLayout.csproj")),
+            Property("BundleOutputDir", Path.Combine(root, "artifacts", "bundle", rid)));
+        bundle.Save(project);
+        return cache;
     }
 
     private static string CreateProject(string root, string rid)
@@ -938,23 +1061,27 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
                 new XAttribute("DependsOnTargets", "_PublishBundleComponents")),
             new XElement("Target", new XAttribute("Name", "PackageBundlePayload"),
                 new XAttribute("DependsOnTargets", "_PackageBundlePayload")),
-            // Execute the production phase graph and child processes with tiny publish/pack
-            // projects. Layout copying substitutes for native execution, not for phase ordering.
+            // Native layout and verification are substituted together here.
+            // Separate real-layout tests exercise the production target and verifiers.
             new XElement("Target", new XAttribute("Name", "_RunCreateLayout"),
                 new XElement("Error", new XAttribute("Condition", $"Exists('{Path.Combine(root, "fail-layout")}')"),
                     new XAttribute("Text", "Failed layout")),
                 Copy(DashboardPath(root, rid), Path.Combine(root, "layout-dashboard")),
                 Copy(AppHostServerPath(root, rid), Path.Combine(root, "layout-apphost-server")),
                 rid.StartsWith("win-", StringComparison.Ordinal)
-                    ? Copy(Path.Combine(root, "artifacts", "tray", "aspire-tray.exe"), Path.Combine(root, "layout-tray")) : null,
-                Record("layout")),
+                    ? Copy(Path.Combine(root, "artifacts", "tray", "aspire-tray.exe"), Path.Combine(root, "layout-tray"))
+                    : rid.StartsWith("osx-", StringComparison.Ordinal)
+                        ? Copy(Path.Combine(trayApp, "Contents", "MacOS", "aspire-tray"), Path.Combine(root, "layout-tray")) : null,
+                Copy(Path.Combine(root, "layout-dashboard"),
+                    Path.Combine(root, "artifacts", "bundle", "aspire-$(BundleVersion)-$(TargetRid).tar.gz")),
+                Record("layout"),
+                rid.StartsWith("linux-", StringComparison.Ordinal) ? null : new XElement("Error",
+                    new XAttribute("Condition", $"Exists('{Path.Combine(root, "fail-verify")}')"),
+                    new XAttribute("Text", "Failed verify")),
+                rid.StartsWith("linux-", StringComparison.Ordinal) ? null : Record("verify"),
+                rid.StartsWith("linux-", StringComparison.Ordinal) ? null : Write(Path.Combine(root, "require-tray-signature"),
+                    rid.StartsWith("osx-", StringComparison.Ordinal) ? "$(RequireMacTraySignature)" : "$(RequireWindowsTraySignature)")),
             new XElement("Target", new XAttribute("Name", "_PublishNativeCli"), Record("cli")),
-            new XElement("Target", new XAttribute("Name", "_VerifyNativeTrayArchive"),
-                new XAttribute("AfterTargets", "_RunCreateLayout"),
-                new XAttribute("Condition", "$(TargetRid.StartsWith('osx-'))"), Record("verify")),
-            new XElement("Target", new XAttribute("Name", "_VerifyWindowsTrayArchive"),
-                new XAttribute("AfterTargets", "_RunCreateLayout"),
-                new XAttribute("Condition", "$(TargetRid.StartsWith('win-'))"), Record("verify")),
             new XElement("Target", new XAttribute("Name", "_CleanCaches")))).Save(projectPath);
         return projectPath;
 
@@ -1020,23 +1147,9 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
             Property("BuildScriptPath", Path.Combine(root, OperatingSystem.IsWindows() ? "build.cmd" : "build.sh")),
             Property("TraySigningArchive", trayArchive),
             Property("TraySigningProjectPath", signer));
-        var layout = bundle.Root.Elements("Target").Single(target => target.Attribute("Name")!.Value == "_RunCreateLayout");
-        layout.Add(Copy(Path.Combine(root, "layout-dashboard"),
-            Path.Combine(root, "artifacts", "bundle", "aspire-$(BundleVersion)-$(TargetRid).tar.gz")));
-        if (rid.StartsWith("osx-", StringComparison.Ordinal))
-        {
-            layout.Add(Copy(trayExecutable, Path.Combine(root, "layout-tray")));
-        }
         // The final CLI wrapper, not _PublishNativeCli, must be the only CLI owner.
         bundle.Root.Add(new XElement("Target", new XAttribute("Name", "_PublishNativeCli"),
             new XElement("Error", new XAttribute("Text", "The CLI must not publish twice."))));
-        foreach (var target in bundle.Root.Elements("Target").Where(target =>
-            target.Attribute("Name")!.Value is "_VerifyNativeTrayArchive" or "_VerifyWindowsTrayArchive"))
-        {
-            target.AddFirst(Fail("verify"));
-            target.Add(Write(Path.Combine(root, "require-tray-signature"),
-                rid.StartsWith("osx-", StringComparison.Ordinal) ? "$(RequireMacTraySignature)" : "$(RequireWindowsTraySignature)"));
-        }
         bundle.Save(project);
         var trayProject = XDocument.Load(tray);
         trayProject.Root!.Add(Phase("PrepareTraySigning", "prepare-tray", Copy(trayExecutable, "$(TraySigningArchive)")),

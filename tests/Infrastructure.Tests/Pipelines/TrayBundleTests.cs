@@ -194,17 +194,8 @@ public sealed class TrayBundleTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void NativePayloadVerificationRunsAfterLayoutAndSharedTestsUseCentralMatrix()
+    public void SharedTestsUseCentralMatrix()
     {
-        var project = LoadProject("eng/Bundle.proj");
-        var verification = Target(project, "_VerifyNativeTrayArchive");
-        Assert.Equal("_RunCreateLayout", verification.Attribute("AfterTargets")!.Value);
-        Assert.Equal("$(TargetRid.StartsWith('osx-'))", verification.Attribute("Condition")!.Value);
-        var command = Assert.Single(verification.Elements("Exec")).Attribute("Command")!.Value;
-        Assert.Contains("verify-tray-payload.sh", command);
-        Assert.Contains("aspire-$(BundleVersion)-$(TargetRid).tar.gz", command);
-        Assert.Contains("\"$(RequireMacTraySignature)\"", command);
-
         const string testProjectPath = "tests/Aspire.Tray.Tests/Aspire.Tray.Tests.csproj";
         var solution = LoadProject("Aspire.slnx");
         Assert.Contains(solution.Descendants("Project"), entry => entry.Attribute("Path")?.Value == testProjectPath);
@@ -309,19 +300,13 @@ public sealed class TrayBundleTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void WindowsSigningAndArchiveVerificationUsePublishedPayloadBeforeEmbedding()
+    public void WindowsSigningSelectsPublishedTrayPayload()
     {
         var signing = LoadProject("eng/Signing.props");
         Assert.Equal("Microsoft400", Assert.Single(signing.Descendants("FileSignInfo"),
             element => element.Attribute("Include")?.Value == "aspire-tray.exe").Attribute("CertificateName")!.Value);
         Assert.Contains(signing.Descendants("ItemsToSign"),
             element => element.Attribute("Include")?.Value == @"$(ArtifactsBinDir)Aspire.Tray.Windows\**\publish\aspire-tray.exe");
-        var bundle = LoadProject("eng/Bundle.proj");
-        var verify = Target(bundle, "_VerifyWindowsTrayArchive");
-        Assert.Equal("_RunCreateLayout", verify.Attribute("AfterTargets")!.Value);
-        Assert.Equal("$(TargetRid.StartsWith('win-'))", verify.Attribute("Condition")!.Value);
-        Assert.All(verify.Elements("Exec"),
-            exec => Assert.Contains("verify-windows-tray-payload.ps1", exec.Attribute("Command")!.Value));
     }
 
     [Fact]
