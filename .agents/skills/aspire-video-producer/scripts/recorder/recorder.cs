@@ -19,6 +19,8 @@
 // folder keeps the recorders of different workspaces apart.
 #:property BaseOutputPath="$([System.IO.Path]::Combine($([System.Environment]::GetFolderPath(SpecialFolder.UserProfile)), '.aspire-video', 'recorder', $([MSBuild]::StableStringHash($(MSBuildProjectDirectory)).ToString('x8')), 'bin'))$([System.IO.Path]::DirectorySeparatorChar)"
 #:include Scene.cs
+#:include VsCode.cs
+#:include Dashboard.cs
 #:include Scenes.cs
 
 using System.Text.Json;

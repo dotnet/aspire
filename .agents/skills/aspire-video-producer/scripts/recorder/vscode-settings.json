@@ -40,6 +40,36 @@
       }
     }
   },
+  "terminal.integrated.defaultProfile.linux": "demo",
+  "terminal.integrated.profiles.linux": {
+    "demo": {
+      "path": "/bin/bash",
+      "args": [
+        "--noprofile",
+        "--norc"
+      ],
+      "env": {
+        "PS1": "\\[\\e[38;5;141m\\]contoso\\[\\e[0m\\] \\[\\e[38;5;245m\\]$\\[\\e[0m\\] ",
+        "ASPIRE_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS": "true"
+      }
+    }
+  },
+  "terminal.integrated.defaultProfile.windows": "demo",
+  "terminal.integrated.profiles.windows": {
+    "demo": {
+      "path": "pwsh.exe",
+      "args": [
+        "-NoLogo",
+        "-NoProfile",
+        "-NoExit",
+        "-Command",
+        "function prompt { \"`e[38;5;141mcontoso`e[0m `e[38;5;245m>`e[0m \" }"
+      ],
+      "env": {
+        "ASPIRE_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS": "true"
+      }
+    }
+  },
   "terminal.integrated.shellIntegration.enabled": false,
   "terminal.integrated.enablePersistentSessions": false,
   "terminal.integrated.tabs.enabled": false,
@@ -53,7 +83,6 @@
     "**/tsconfig*.json": true,
     "**/package-lock.json": true,
     "**/.dockerignore": true,
-    "frontend/public": true,
     "**/*.d.ts": true,
     "aspire-output": true,
     "**/.vscode": true

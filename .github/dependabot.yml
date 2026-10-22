@@ -28,12 +28,10 @@ updates:
     cooldown:
       default-days: 7
   # The aspire-video-producer agent skill: the packages of its file-based apps (Directory.Packages.props, for video.cs
-  # and the recorder), the voice's npm package, and the introduction example's sample app. They run on the user's
-  # machine, outside the build, so they follow the latest stable versions.
+  # and the recorder) and the voice's npm package. They run on the user's machine, outside the build, so they follow
+  # the latest stable versions.
   - package-ecosystem: "nuget"
-    directories:
-      - "/.agents/skills/aspire-video-producer/scripts"
-      - "/.agents/skills/aspire-video-producer/examples/aspire-introduction/app"
+    directory: "/.agents/skills/aspire-video-producer/scripts"
     groups:
       aspire-video-producer:
         patterns: ["*"]
@@ -42,11 +40,7 @@ updates:
     cooldown:
       default-days: 7
   - package-ecosystem: "npm"
-    directories:
-      - "/.agents/skills/aspire-video-producer/scripts/tts"
-      - "/.agents/skills/aspire-video-producer/examples/aspire-introduction/app"
-      - "/.agents/skills/aspire-video-producer/examples/aspire-introduction/app/catalog"
-      - "/.agents/skills/aspire-video-producer/examples/aspire-introduction/app/frontend"
+    directory: "/.agents/skills/aspire-video-producer/scripts/tts"
     groups:
       aspire-video-producer-npm:
         patterns: ["*"]

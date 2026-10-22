@@ -65,19 +65,21 @@ Record a throwaway sample app, never an app with real data or real cloud resourc
 
 - **aspire.dev pages**: set `VIDEO_BASE_URL=https://aspire.dev`; no `setup` needed.
 - **The Aspire CLI**: the recorder only records a browser. Show commands and their output as slides with a code
-  panel (`draw_code(image, box, "Terminal", "bash", ...)`), with the real output trimmed to what the narration talks
-  about, or run them live in the terminal of VS Code in the browser (below).
+  panel (a `"code"` of the slide, titled "Terminal", with `"language": "bash"`), with the real output trimmed to what
+  the narration talks about, or run them live in the terminal of VS Code in the browser (below).
 - **Code in VS Code, and a live terminal**: run `code serve-web --port 8123 --without-connection-token
   --accept-server-license-terms --server-data-dir <workspace>/vscode-data --default-folder <app>` and record
-  `http://localhost:8123/?folder=<app>` (`Scene.StartAsync` takes the base URL). Start from
-  `examples/aspire-introduction` (its `recorder/Scenes.cs` and `vscode-user-settings.json`), and read the VS Code
-  section of `references/troubleshooting.md` first: without its settings, IntelliSense doesn't work.
+  it with the `VsCode` helpers of the recorder (below): create the scene with `VsCode.Url` as its base URL, and open
+  the app with `VsCode.OpenAsync(scene, <app>)`. Read the VS Code section of `references/troubleshooting.md` first:
+  without the settings it writes (`vscode-settings.json`), IntelliSense doesn't work. Its terminal profile starts
+  with anonymous dashboard access, so `aspire run` in it prints a URL without a token; the profile is set for macOS
+  (zsh), Linux (bash) and Windows (PowerShell), and was tested on macOS.
 
 ### Snapshots
 
 Clips run in order, each one starting from the state the previous one left. Before recording, put the app in the
 starting state (resources running, data seeded) with a `prepare` command that you add to the recorder's
-`Program.cs`, or with a script. To re-record one clip, make sure the app is in the state that clip expects; to
+`recorder.cs`, or with a script. To re-record one clip, make sure the app is in the state that clip expects; to
 re-record everything, stop the app, remove its containers and volumes, and start it again.
 
 ## The recorder
@@ -135,6 +137,25 @@ await scene.StepAsync("resources-2", async () =>
 | `AutoZoom` | `false` keeps a scene wide: `HighlightAsync` and `TypeAsync` don't zoom. |
 | `SwitchToAsync(page)` | Records another tab, such as an endpoint opened from the Resources page. |
 | `PauseAsync(ms)` / `HoldAsync(seconds)` | Waits, while frames keep coming. |
+
+### Helpers for VS Code and the dashboard
+
+For clips in VS Code (`VsCode.cs`) and on the dashboard (`Dashboard.cs`), in any video's `Scenes.cs`:
+
+| Helper | Use |
+|---|---|
+| `VsCode.OpenAsync(scene, folder)` | Writes the settings, opens a folder, and closes what VS Code opens on its own, before the capture. |
+| `VsCode.OpenFileAsync(scene, name)` | Opens a file of the explorer. |
+| `VsCode.HighlightLinesAsync(scene, first, last, caption)` | Rings lines of the editor, with a caption, and zooms on them. |
+| `VsCode.ClickLineEndAsync(scene, line)` / `VsCode.TypeWithSuggestionAsync(scene, ".withRef", "(cache)")` | Types code with IntelliSense, as a person would. |
+| `VsCode.ExpectFileAsync(path, text, exact)` | Checks what was typed, once saved: a bad take stops the recording. |
+| `VsCode.OpenTerminalAsync(scene)` / `VsCode.TypeInTerminalAsync(scene, "aspire run")` / `VsCode.WaitForTerminalAsync(scene, text)` | Runs commands in its terminal, and waits for a text of their output that the command line doesn't contain. |
+| `VsCode.TerminalRow(scene, pattern)` | A row of the terminal, to highlight. |
+| `VsCode.OpenTerminalLinkAsync(scene, pattern)` | Opens a link printed in the terminal (Cmd or Ctrl+click), such as the dashboard's; record it with `scene.SwitchToAsync`. |
+| `VsCode.RunCommandAsync(page, command)` | Runs a command of the command palette, such as "View: Toggle Maximized Panel". |
+| `Dashboard.NameCell(scene, resource)` / `Dashboard.StateCell` / `Dashboard.Row` | A resource on the Resources page; highlight a cell, not the row. |
+| `Dashboard.DismissUnsecuredBannerAsync(scene)` | Hides the banner of a dashboard with anonymous access. |
+| `Dashboard.WaitForHealthyAsync(app, resources)` / `Dashboard.AspireAsync(app, "stop")` | Runs `aspire wait` or another command from the app's folder, such as for an app started in a clip. |
 
 ## Pitfalls
 

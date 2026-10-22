@@ -278,11 +278,9 @@ user's agreement.
   `review`. `Brand.cs` holds the branding and layout, `Slides.cs` the slides, `Speech.cs` the voice, `Assembly.cs` the
   assembly, and `Media.cs` the calls to ffmpeg and Node.js.
 - `scripts/tts/`: the voice (`tts.mjs`), with its pinned npm package.
-- `scripts/recorder/`: the recorder, a Playwright for .NET app.
+- `scripts/recorder/`: the recorder, a Playwright for .NET file-based app, with helpers for VS Code in the browser
+  (`VsCode.cs`, `vscode-settings.json`) and for the dashboard (`Dashboard.cs`).
 - `scripts/assets/`: the Aspire logo, from aspire.dev.
 - `cgmanifest.json`: the components the skill uses that component detection can't find: the packages of `video.cs`,
   and Orchard Core, which the skill is adapted from.
 - `examples/dashboard-tour/`: a complete storyboard, with slides.
-- `examples/aspire-introduction/`: a video with no slides: the AppHost typed in VS Code with IntelliSense, `aspire run`
-  in its terminal, the dashboard, and `aspire deploy`, in English and Spanish. **Start from it for any video
-  that shows VS Code or a terminal.**

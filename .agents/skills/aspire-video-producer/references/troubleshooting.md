@@ -1,13 +1,13 @@
 # Troubleshooting external tools
 
 Problems met with the tools a video depends on, with their symptom, cause and fix. Check here before debugging, and
-add what you find. The worked example that applies these fixes is `examples/aspire-introduction` (VS Code, terminal,
-dashboard, Docker Compose).
+add what you find. The recorder's helpers apply these fixes: `scripts/recorder/VsCode.cs` (with
+`vscode-settings.json`) and `scripts/recorder/Dashboard.cs`.
 
 ## VS Code in the browser (`code serve-web`)
 
-**For any video that shows VS Code, start from `examples/aspire-introduction/recorder/Scenes.cs`** (`OpenVsCodeAsync`
-and the typing helpers) **and `examples/aspire-introduction/vscode-user-settings.json`.**
+**For any video that shows VS Code, use the recorder's `VsCode` helpers** (`VsCode.OpenAsync`, the typing and terminal
+helpers), which write `scripts/recorder/vscode-settings.json` into VS Code before each scene.
 
 | Symptom | Cause | Fix |
 |---|---|---|
@@ -15,10 +15,10 @@ and the typing helpers) **and `examples/aspire-introduction/vscode-user-settings
 | Settings in `<server-data-dir>/data/User/settings.json` have no effect | In the browser, user settings live in IndexedDB, not on the server | Put them in IndexedDB: database `vscode-web-db` (version 3; stores `vscode-userdata-store`, `vscode-logs-store`, `vscode-filehandles-store`), store `vscode-userdata-store`, key `/User/settings.json`, value the UTF-8 bytes. Do it from any page of the VS Code origin (`/manifest.json` works, even as a 404), before opening `/?folder=...`. Each scene is a new browser context: do it in every scene |
 | Terminal profile, `env` and trust ignored from `.vscode/settings.json` or `data/Machine/settings.json` | Restricted settings (terminal profiles and env) aren't read in Restricted Mode; trust and `remote.extensionKind` are application settings | Put every setting in the user settings above, written to IndexedDB: trust off, the look of the editor, and the terminal profile |
 | How to check where TypeScript runs | | `ls <server-data-dir>/data/logs/<latest>/exthost*/`: a `vscode.typescript-language-features` folder means it runs on the server. Without it, it runs in the browser |
-| The first suggestions are slow, or missing | The TypeScript server loads the generated `aspire.mts` (tens of thousands of lines) | Open the file a few seconds before the capture; `TypeWithSuggestionAsync` presses Ctrl+Space when the list doesn't come |
+| The first suggestions are slow, or missing | The TypeScript server loads the generated `aspire.mts` (tens of thousands of lines) | Open the file a few seconds before the capture; `VsCode.TypeWithSuggestionAsync` presses Ctrl+Space when the list doesn't come |
 | After an identifier (`await builder`), the dot doesn't open the member list | The list of words for the identifier is still open | Press Escape, pause, then type `.addDocker` |
 | Before checking the generated API, make sure the method exists | | `aspire restore`, then `grep -n "addDockerComposeEnvironment(" .aspire/modules/aspire.mts` (it should be on `DistributedApplicationBuilder`) |
-| A typing take is wrong, but the clip records anyway | | Check the file on disk after typing (`ExpectAppHostAsync`), with `files.autoSave` on; Cmd+S isn't reliable |
+| A typing take is wrong, but the clip records anyway | | Check the file on disk after typing (`VsCode.ExpectFileAsync`), with `files.autoSave` on; Cmd+S isn't reliable |
 | The "Trust" button of the trust editor can't be clicked; the trust editor stays open as an overlay | It isn't a `button` role; it opens as a modal editor | Avoid it: turn trust off in the user settings. Otherwise Cmd+Enter trusts, Escape closes it |
 | Text typed into a modal editor (the user settings JSON) instead of running F1 or Cmd+S | Modal editors take those keys | Don't edit settings through the UI: use IndexedDB |
 | Adding COOP/COEP headers through `Context.RouteAsync` (to isolate the page for the web TypeScript server) leaves the workbench unloaded | | Don't. `?vscode-coi=` doesn't add the headers in serve-web either. Run TypeScript on the server instead |
