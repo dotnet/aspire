@@ -246,6 +246,7 @@ export type AspireExtensionE2EControlCommand =
     | { name: 'getExtensionFileStatus'; relativePaths: readonly string[] }
     | { name: 'getDiagnostics'; filePath: string }
     | { name: 'getDefinitions'; filePath: string; line: number; character: number }
+    | { name: 'getCompletions'; filePath: string; line: number; character: number }
     | { name: 'getJavaProjects' }
     | { name: 'getCodeLenses'; filePath: string }
     | { name: 'snapshotClipboard' }

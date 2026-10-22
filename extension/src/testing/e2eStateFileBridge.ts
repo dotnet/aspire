@@ -949,6 +949,19 @@ export async function executeE2eControlCommand(
           : definition.range.start.line,
       }));
     }
+    case 'getCompletions': {
+      const filePath = getE2eRunPath(command.filePath, command.name);
+      markStarted();
+      const completions = await vscode.commands.executeCommand<vscode.CompletionList>(
+        'vscode.executeCompletionItemProvider',
+        vscode.Uri.file(filePath),
+        new vscode.Position(command.line, command.character));
+
+      return (completions?.items ?? []).map(item => ({
+        label: typeof item.label === 'string' ? item.label : item.label.label,
+        kind: item.kind,
+      }));
+    }
     case 'getJavaProjects': {
       markStarted();
       const projects = await vscode.commands.executeCommand<Array<vscode.Uri | string>>('java.project.getAll');

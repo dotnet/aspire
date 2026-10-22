@@ -1,0 +1,10 @@
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
+rootProject.name = '{{projectNameLower}}-apphost'
+
+// JDT stops scanning at the first Gradle root. A composite keeps the API discoverable without
+// making it a subproject or sharing the AppHost's plugins and dependencies.
+// https://docs.gradle.org/current/userguide/composite_builds.html
+includeBuild('api')

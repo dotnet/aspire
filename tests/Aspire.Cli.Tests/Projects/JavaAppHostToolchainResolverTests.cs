@@ -235,13 +235,21 @@ public class JavaAppHostToolchainResolverTests(ITestOutputHelper outputHelper)
         Assert.Equal([Path.Combine(expectedClassesDirectory, "AppHost.class")], check.Outputs!);
     }
 
-    [Fact]
-    public void ApplyToRuntimeSpec_ForGradle_UsesTheGradleOutputLayout()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ApplyToRuntimeSpec_ForGradle_UsesTheGradleOutputLayout(bool withIndependentApi)
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
 
         File.WriteAllText(Path.Combine(workspace.Path, "build.gradle"), "");
         var wrapper = WriteWrapper(workspace.Path, OperatingSystem.IsWindows() ? "gradlew.bat" : "gradlew");
+        if (withIndependentApi)
+        {
+            var apiDirectory = workspace.CreateDirectory("api");
+            File.WriteAllText(Path.Combine(apiDirectory.FullName, "build.gradle"), "");
+            WriteWrapper(apiDirectory.FullName, OperatingSystem.IsWindows() ? "gradlew.bat" : "gradlew");
+        }
 
         var spec = JavaAppHostToolchainResolver.ApplyToRuntimeSpec(CreateJavacRuntimeSpec(), JavaAppHostToolchainResolver.Resolve(workspace.WorkspaceRoot), workspace.WorkspaceRoot);
 

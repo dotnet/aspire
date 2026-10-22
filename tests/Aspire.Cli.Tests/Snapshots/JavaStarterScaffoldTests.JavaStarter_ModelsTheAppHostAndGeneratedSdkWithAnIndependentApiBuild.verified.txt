@@ -1,0 +1,58 @@
+﻿{
+  Build:
+plugins {
+    id 'java'
+}
+
+java {
+    toolchain {
+        // AppHost.java uses instance main methods, finalized in Java 25 (https://openjdk.org/jeps/512).
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+
+    // Buildship uses these to set the language server's compliance level; the toolchain alone
+    // does not tell the editor to accept Java 25 syntax.
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+repositories {
+    mavenCentral()
+}
+
+sourceSets {
+    main {
+        java {
+            // The generated SDK declares package aspire, so its package paths must be relative to
+            // .aspire/modules, not the workspace root that holds AppHost.java.
+            srcDirs = ['.', '.aspire/modules']
+
+            // Exclusions are relative to each source root. Keep the SDK out of '.', and leave the
+            // nested API's sources and build outputs to its independent Gradle project.
+            exclude 'api/**', 'frontend/**', 'src/**', 'build/**', 'bin/**', '.gradle/**', '.aspire/**'
+
+            // Eclipse copies non-Java inputs from source folders into bin/main unless restricted.
+            include '**/*.java'
+        }
+
+        // The AppHost has no resources. Do not copy wrappers, caches, or generated SDK inputs
+        // into build output while Gradle and the language server refresh the workspace.
+        resources {
+            srcDirs = []
+        }
+    }
+}
+,
+  Settings:
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
+rootProject.name = 'javastarterout-apphost'
+
+// JDT stops scanning at the first Gradle root. A composite keeps the API discoverable without
+// making it a subproject or sharing the AppHost's plugins and dependencies.
+// https://docs.gradle.org/current/userguide/composite_builds.html
+includeBuild('api')
+
+}

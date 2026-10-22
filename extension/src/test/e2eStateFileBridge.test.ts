@@ -46,6 +46,71 @@ suite('E2E state file bridge', () => {
         removeDirectorySafely(runRoot);
     });
 
+    test('serializes semantic completion labels and kinds from the requested document position', async () => {
+        const filePath = path.join(runRoot, 'AppHost.java');
+        fs.writeFileSync(filePath, 'class AppHost {}');
+        const completions: vscode.CompletionList = {
+            isIncomplete: false,
+            items: [
+                { label: 'build()', kind: vscode.CompletionItemKind.Method },
+                { label: { label: 'addSpringBootApp', description: 'Aspire SDK' }, kind: vscode.CompletionItemKind.Method },
+            ],
+        };
+        const execute = sandbox.stub(vscode.commands, 'executeCommand').resolves(completions);
+        const markStarted = sandbox.spy();
+
+        const result = await dispatchControlCommand(
+            { name: 'getCompletions', filePath, line: 4, character: 16 },
+            createRepository([]),
+            createLaunchService(),
+            {} as AspireAppHostTreeProvider,
+            {} as AspireTerminalProvider,
+            markStarted);
+
+        assert.deepStrictEqual(result, [
+            { label: 'build()', kind: vscode.CompletionItemKind.Method },
+            { label: 'addSpringBootApp', kind: vscode.CompletionItemKind.Method },
+        ]);
+        assert.strictEqual(execute.callCount, 1);
+        assert.deepStrictEqual(execute.firstCall.args, [
+            'vscode.executeCompletionItemProvider',
+            vscode.Uri.file(filePath),
+            new vscode.Position(4, 16),
+        ]);
+        assert.strictEqual(markStarted.callCount, 1);
+    });
+
+    for (const completions of [undefined, { items: [], isIncomplete: false }]) {
+        test(`returns no completion items when the provider returns ${completions ? 'an empty list' : 'no result'}`, async () => {
+            const filePath = path.join(runRoot, 'AppHost.java');
+            fs.writeFileSync(filePath, 'class AppHost {}');
+            sandbox.stub(vscode.commands, 'executeCommand').resolves(completions);
+
+            const result = await dispatchControlCommand(
+                { name: 'getCompletions', filePath, line: 0, character: 0 },
+                createRepository([]),
+                createLaunchService(),
+                {} as AspireAppHostTreeProvider,
+                {} as AspireTerminalProvider);
+
+            assert.deepStrictEqual(result, []);
+        });
+    }
+
+    test('propagates completion provider failures instead of reporting an empty result', async () => {
+        const filePath = path.join(runRoot, 'AppHost.java');
+        fs.writeFileSync(filePath, 'class AppHost {}');
+        const failure = new Error('Java language server request failed');
+        sandbox.stub(vscode.commands, 'executeCommand').rejects(failure);
+
+        await assert.rejects(dispatchControlCommand(
+            { name: 'getCompletions', filePath, line: 0, character: 0 },
+            createRepository([]),
+            createLaunchService(),
+            {} as AspireAppHostTreeProvider,
+            {} as AspireTerminalProvider), error => error === failure);
+    });
+
     for (const route of [
         { invocation: 'vscode.lm.invokeTool', direct: false, canceled: false },
         { invocation: 'registeredToolDirect', direct: true, canceled: false },

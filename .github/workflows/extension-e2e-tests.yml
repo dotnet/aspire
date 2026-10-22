@@ -741,7 +741,7 @@ jobs:
           # to rotate when the Maven version changes. Otherwise the key would still hit exactly after a
           # version bump, actions/cache would skip the save, and the newly downloaded distribution would
           # never make it into the cache.
-          key: java-e2e-${{ runner.os }}-${{ hashFiles('playground/JavaSpringBoot/**/pom.xml', 'playground/JavaSpringBoot/**/build.gradle*', 'playground/JavaSpringBoot/**/gradle-wrapper.properties', 'playground/JavaSpringBoot/**/maven-wrapper.properties', 'src/Aspire.Cli/Templating/Templates/java-starter/api/build.gradle', 'src/Aspire.Cli/Templating/Templates/java-starter/api/gradle/wrapper/gradle-wrapper.properties') }}
+          key: java-e2e-${{ runner.os }}-${{ hashFiles('playground/JavaSpringBoot/**/pom.xml', 'playground/JavaSpringBoot/**/build.gradle*', 'playground/JavaSpringBoot/**/gradle-wrapper.properties', 'playground/JavaSpringBoot/**/maven-wrapper.properties', 'src/Aspire.Cli/Templating/Templates/java-starter/**/build.gradle', 'src/Aspire.Cli/Templating/Templates/java-starter/**/settings.gradle', 'src/Aspire.Cli/Templating/Templates/java-starter/**/gradle-wrapper.properties') }}
           restore-keys: |
             java-e2e-${{ runner.os }}-
 

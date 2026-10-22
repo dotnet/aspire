@@ -28,14 +28,16 @@ public class JavaStarterScaffoldTests(ITestOutputHelper outputHelper)
     /// why this needs its own test: the AppHost keeps working while everything a developer types by
     /// hand does not.
     /// </summary>
-    [Fact]
+    [Theory]
+    [InlineData("")]
+    [InlineData("api")]
     [SkipOnPlatform(TestPlatforms.Windows, "File modes are a Unix concept; the wrapper is invoked as gradlew.bat on Windows.")]
-    public async Task JavaStarter_ScaffoldsAnExecutableGradleWrapper()
+    public async Task JavaStarter_ScaffoldsAnExecutableGradleWrapper(string projectDirectory)
     {
         using var scaffold = await ScaffoldJavaStarterAsync();
         var outputDirectory = scaffold.OutputDirectory;
 
-        var wrapperPath = Path.Combine(outputDirectory, "api", "gradlew");
+        var wrapperPath = Path.Combine(outputDirectory, projectDirectory, "gradlew");
         Assert.True(File.Exists(wrapperPath), $"Expected the scaffolded Gradle wrapper at {wrapperPath}");
 
         var mode = GetUnixFileMode(wrapperPath);
@@ -97,15 +99,43 @@ public class JavaStarterScaffoldTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task JavaStarter_ScaffoldsRootJavaProjectWithoutChangingCliOwnership()
+    public async Task JavaStarter_ScaffoldsIndependentGradleBuildsWithoutMovingTheAppHost()
     {
         using var scaffold = await ScaffoldJavaStarterAsync();
         var outputDirectory = scaffold.OutputDirectory;
 
-        Assert.True(File.Exists(Path.Combine(outputDirectory, ".project")));
-        Assert.True(File.Exists(Path.Combine(outputDirectory, ".classpath")));
-        Assert.True(File.Exists(Path.Combine(outputDirectory, ".settings", "org.eclipse.jdt.core.prefs")));
-        Assert.Contains("<name>JavaStarterOut</name>", File.ReadAllText(Path.Combine(outputDirectory, ".project")));
+        var rootFiles = Directory
+            .EnumerateFiles(outputDirectory, "*", SearchOption.AllDirectories)
+            .Select(path => Path.GetRelativePath(outputDirectory, path).Replace(Path.DirectorySeparatorChar, '/'))
+            .Where(path => !path.StartsWith("api/", StringComparison.Ordinal)
+                && !path.StartsWith("frontend/", StringComparison.Ordinal))
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+        Assert.Equal(
+            [
+                ".gitignore",
+                ".vscode/extensions.json",
+                "AppHost.java",
+                "aspire.config.json",
+                "build.gradle",
+                "gradle/wrapper/gradle-wrapper.jar",
+                "gradle/wrapper/gradle-wrapper.properties",
+                "gradlew",
+                "gradlew.bat",
+                "settings.gradle",
+            ],
+            rootFiles);
+
+        foreach (var relativePath in new[] { "gradlew", "gradlew.bat", "gradle/wrapper/gradle-wrapper.properties" })
+        {
+            Assert.Equal(
+                File.ReadAllText(Path.Combine(outputDirectory, "api", relativePath)).ReplaceLineEndings(),
+                File.ReadAllText(Path.Combine(outputDirectory, relativePath)).ReplaceLineEndings());
+        }
+
+        Assert.Equal(
+            File.ReadAllBytes(Path.Combine(outputDirectory, "api", "gradle", "wrapper", "gradle-wrapper.jar")),
+            File.ReadAllBytes(Path.Combine(outputDirectory, "gradle", "wrapper", "gradle-wrapper.jar")));
 
         using var config = JsonDocument.Parse(File.ReadAllText(Path.Combine(outputDirectory, "aspire.config.json")));
         var appHost = config.RootElement.GetProperty("appHost");
@@ -113,8 +143,29 @@ public class JavaStarterScaffoldTests(ITestOutputHelper outputHelper)
         Assert.Equal("java", appHost.GetProperty("language").GetString());
 
         var toolchain = JavaAppHostToolchainResolver.Resolve(new DirectoryInfo(outputDirectory));
-        Assert.Equal(JavaAppHostToolchain.Javac, toolchain.Toolchain);
+        Assert.Equal(JavaAppHostToolchain.Gradle, toolchain.Toolchain);
         Assert.Equal(outputDirectory, toolchain.ProjectDirectory.FullName);
+
+        var apiDirectory = Path.Combine(outputDirectory, "api");
+        var apiToolchain = JavaAppHostToolchainResolver.Resolve(new DirectoryInfo(apiDirectory));
+        Assert.Equal(JavaAppHostToolchain.Gradle, apiToolchain.Toolchain);
+        Assert.Equal(apiDirectory, apiToolchain.ProjectDirectory.FullName);
+    }
+
+    [Fact]
+    public async Task JavaStarter_ModelsTheAppHostAndGeneratedSdkWithAnIndependentApiBuild()
+    {
+        using var scaffold = await ScaffoldJavaStarterAsync();
+        var buildPath = Path.Combine(scaffold.OutputDirectory, "build.gradle");
+        var settingsPath = Path.Combine(scaffold.OutputDirectory, "settings.gradle");
+        Assert.True(File.Exists(buildPath), $"Expected the root AppHost's Gradle build at {buildPath}");
+        Assert.True(File.Exists(settingsPath), $"Expected the root AppHost's Gradle settings at {settingsPath}");
+
+        await Verify(new
+        {
+            Build = File.ReadAllText(buildPath),
+            Settings = File.ReadAllText(settingsPath),
+        });
     }
 
     private async Task<ScaffoldedTemplate> ScaffoldJavaStarterAsync()

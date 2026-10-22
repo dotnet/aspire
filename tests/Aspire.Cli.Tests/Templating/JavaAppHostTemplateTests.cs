@@ -32,31 +32,7 @@ public class JavaAppHostTemplateTests
     }
 
     /// <summary>
-    /// The generated SDK declares <c>package aspire;</c>, so an editor can only resolve it when
-    /// <c>.aspire/modules</c> is a source root. javac does not need this because the CLI names every
-    /// generated file explicitly in its argument file, but the Java language server builds from the
-    /// project model instead and reports "package aspire does not exist" against an AppHost that runs
-    /// perfectly well. The template recommends the Java extension pack, so the scaffolded project has
-    /// to arrive with the source root already registered.
-    /// </summary>
-    [Fact]
-    public void JavaStarterTemplate_RegistersTheGeneratedSdkAsASourceRoot()
-    {
-        var path = Path.Combine(GetJavaStarterDirectory(), ".vscode", "settings.json");
-        Assert.True(File.Exists(path), $"Expected the java-starter VS Code settings at {path}");
-
-        using var document = System.Text.Json.JsonDocument.Parse(File.ReadAllText(path));
-        var sourcePaths = document.RootElement
-            .GetProperty("java.project.sourcePaths")
-            .EnumerateArray()
-            .Select(element => element.GetString() ?? string.Empty)
-            .ToArray();
-
-        Assert.Equal([".", ".aspire/modules"], sourcePaths);
-    }
-
-    /// <summary>
-    /// The three tests above each assert one property the runner depends on, so between them a
+    /// The tests above each assert one property the runner depends on, so between them a
     /// template that had lost its entire class body still passed: nothing checked that the file
     /// declares an AppHost at all, or that the sample it scaffolds still builds a real application.
     /// Snapshotting the whole file closes that gap and makes any edit to the first thing a Java user
@@ -126,18 +102,20 @@ public class JavaAppHostTemplateTests
     /// resolver prefers a wrapper over whatever <c>gradle</c> happens to be on PATH. Pinning the
     /// distribution and its checksum keeps every scaffold on the same verified Gradle version.
     /// </summary>
-    [Fact]
-    public void JavaStarterTemplate_ShipsAPinnedGradleWrapper()
+    [Theory]
+    [InlineData("")]
+    [InlineData("api")]
+    public void JavaStarterTemplate_ShipsAPinnedGradleWrapper(string projectDirectory)
     {
-        var apiDirectory = Path.Combine(GetJavaStarterDirectory(), "api");
+        var directory = Path.Combine(GetJavaStarterDirectory(), projectDirectory);
 
         foreach (var relativePath in new[] { "gradlew", "gradlew.bat", "gradle/wrapper/gradle-wrapper.jar" })
         {
-            var path = Path.Combine(apiDirectory, relativePath);
+            var path = Path.Combine(directory, relativePath);
             Assert.True(File.Exists(path), $"Expected the java-starter Gradle wrapper at {path}");
         }
 
-        var propertiesPath = Path.Combine(apiDirectory, "gradle", "wrapper", "gradle-wrapper.properties");
+        var propertiesPath = Path.Combine(directory, "gradle", "wrapper", "gradle-wrapper.properties");
         Assert.True(File.Exists(propertiesPath), $"Expected the java-starter wrapper properties at {propertiesPath}");
 
         var properties = File.ReadAllText(propertiesPath);
@@ -146,7 +124,7 @@ public class JavaAppHostTemplateTests
 
         foreach (var relativePath in new[] { "pom.xml", "mvnw", "mvnw.cmd", ".mvn" })
         {
-            var path = Path.Combine(apiDirectory, relativePath);
+            var path = Path.Combine(directory, relativePath);
             Assert.False(File.Exists(path) || Directory.Exists(path), $"Did not expect a Maven build or wrapper path at {path}");
         }
     }

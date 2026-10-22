@@ -6,7 +6,7 @@
 node_modules/
 dist/
 
-# Gradle cache and build output for the api service, including the OpenTelemetry agent
+# Gradle cache and build output for the AppHost and API, including the OpenTelemetry agent
 # downloaded into build/agent during the build.
 .gradle/
 build/
