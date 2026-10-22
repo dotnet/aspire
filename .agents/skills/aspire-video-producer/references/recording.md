@@ -1,5 +1,33 @@
 # Recording
 
+## Which Aspire runs the app
+
+The video shows the Aspire that runs the sample app: its dashboard, its CLI, its integrations. Pick it in step 0:
+
+- **The installed CLI** (the default): `aspire` on the `PATH`, with the channel it's set to (`aspire --version`).
+  Templates follow the channel: a `daily` CLI creates apps on the next preview. When the CLI can't create or run
+  the app it made (for example, `aspire run` finds no AppHost), update it (`aspire update --self`), pick the
+  version explicitly (`aspire new ... --version <version>`), or run a C# AppHost directly (below).
+- **A released version**: `aspire new ... --channel stable`, or `--version <version>`, so the video matches what
+  users have.
+- **The current branch** of the Aspire repository, to show a feature still in development. From the repository's
+  root, build a local hive into its own folder, and put its CLI first on the `PATH` for every command that creates
+  or runs the sample app (see "Creating a local Aspire build with `localhive`" in `docs/contributing.md`):
+
+  ```bash
+  ./localhive.sh -c Release -n video -o ./artifacts/localhive/video     # .\localhive.ps1 on Windows
+  export PATH="$PWD/artifacts/localhive/video/bin:$PATH"
+  aspire --version                                                        # the local build: a "local" version
+  aspire new aspire-starter --channel video ...                           # the app uses the branch's packages
+  ```
+
+  The build takes several minutes, and must be redone after each change to the branch that the video shows. Keep
+  the sample app in the video workspace, outside the repository, as always. Never say the version on camera:
+  describe the feature as it is.
+
+A C# AppHost also runs without the CLI: `dotnet run --project <AppHost> --launch-profile https` prints the same
+dashboard login URL. Use it when the CLI can't run the app, with the packages the app already references.
+
 ## The app to record
 
 Record a throwaway sample app, never an app with real data or real cloud resources:
@@ -123,7 +151,8 @@ await scene.StepAsync("resources-2", async () =>
 - **Zooms**: they're rendered by the assembly, so the contact sheets of `video.cs review` show the page wide. Check them in
   the assembled video. Zoom on what the narration names, about once a step: a zoom on every action makes the video
   restless. A step starts wide: zoom again in each step that needs it. Don't zoom on something larger than about
-  two thirds of the page: it gets a smaller zoom, or none.
+  two thirds of the page: it gets a smaller zoom, or none. In a grid, highlight a cell (such as the resource's
+  name), not the row: a row spans the page.
 - **The dashboard's markup** (checked with Aspire 13.6):
   - The rows of its grids have `display: contents`: they have no box of their own. `MoveToAsync`, `ClickAsync` and
     `HighlightAsync` use the union of their cells (`BoxOfAsync`). To point at one cell, use

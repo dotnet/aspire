@@ -51,10 +51,14 @@ public static class Scenes
         ILocator Row(string resource)
             => scene.Page.GetByRole(AriaRole.Row).Filter(new() { HasText = resource }).First;
 
+        // The name cell, rather than the whole row: a row spans the page, too wide to zoom on.
+        ILocator Name(string resource)
+            => Row(resource).GetByRole(AriaRole.Gridcell).First;
+
         await scene.StepAsync("resources-1", async () =>
         {
-            await scene.MoveToAsync(Row("apiservice"), -300);
-            await scene.HighlightAsync(Row("apiservice"), "A project resource");
+            await scene.MoveToAsync(Name("apiservice"));
+            await scene.HighlightAsync(Name("apiservice"), "A project resource");
         });
 
         await scene.ClearHighlightsAsync();

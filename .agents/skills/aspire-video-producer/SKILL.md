@@ -77,6 +77,9 @@ The user describes what the video is about; everything else comes from this skil
 - **The kind**: an overview (4 to 9 minutes, the outline of `references/storyboard.md`) or a pull request demo
   (shorter: an opening card, the recordings, a closing card).
 - **What to show**: the app or the pull request branch to record, and the code for the slides.
+- **Which Aspire runs it**: the installed `aspire` CLI (the default), a released version, or the current branch of
+  the Aspire repository, to show a feature still in development. See "Which Aspire runs the app" in
+  `references/recording.md`. Ask when the subject is new or unreleased: recording it needs the current branch.
 - **Where it goes**: aspire.dev, a pull request, or only the file.
 
 Ask only about what you can't infer. Then ask the user these three, together, as multiple-choice questions (with the
@@ -217,7 +220,9 @@ and look at them: a recording, a slide with code, a card, and a recording while 
 
 ### 7. Clean up
 
-Stop the app you recorded (`aspire stop` from `<workspace>/app`, or Ctrl+C in the terminal running `aspire run`).
+Stop the app you recorded: `aspire stop` from `<workspace>/app`, or Ctrl+C in the terminal running it. An app
+started in the background may ignore an interrupt (SIGINT): stop its processes with SIGTERM, and only those whose
+command line names its workspace.
 Its containers can outlive it: check `docker ps -a` and remove them (`docker rm -f <name>`, such as `cache-<suffix>`).
 Keep the throwaway project and the workspace until step 8 has copied their sources and the user has accepted the
 video, in case a step must be re-recorded; remove the project after that.
