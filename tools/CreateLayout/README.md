@@ -54,6 +54,11 @@ Unsupported runtime identifiers, including `win-x86`, are rejected before the ou
 | `--bundle-version <ver>` | Version string for the layout (default: `0.0.0-dev`) |
 | `--archive` | Create a `.tar.gz` archive after building, including on Windows |
 | `--verbose` | Enable verbose output |
+| `--dashboard <directory>` | Exact Dashboard publish directory, not an executable path. Overrides artifact discovery. |
+
+When `--dashboard` is omitted, Dashboard discovery uses the existing RID-specific `net11.0` paths for the requested configuration, preferring platform-scoped output, then RID publish output, then native output. An explicit directory never falls back to discovery, even if discoverable output exists. Empty or whitespace arguments are rejected. Explicit and discovered payloads receive the same asset validation and debug-symbol filtering.
+
+`eng/Bundle.proj` passes its RID- and configuration-specific Dashboard publish directory explicitly, including when publishing is skipped or layout assembly is invoked directly. With `SkipDashboardPublish=true`, it also retains the early prepared-executable check unless `SkipManagedBuild=true` skips the publishing targets.
 
 ### Examples
 
