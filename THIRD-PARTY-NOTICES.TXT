@@ -368,7 +368,7 @@ License notice for Orchard Core
 
 https://github.com/OrchardCMS/OrchardCore
 
-The aspire-video-producer agent skill (.agents/skills/aspire-video-producer) is adapted from the Orchard Core video
+The create-video agent skill (.agents/skills/create-video) is adapted from the Orchard Core video
 producer skill (.agents/skills/orchardcore-video-producer).
 
 BSD 3-Clause License

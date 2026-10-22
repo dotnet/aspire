@@ -1,5 +1,5 @@
 #!/usr/bin/env dotnet
-// The Aspire video producer: narration, voice and pronunciation samples, slides, assembly and review of a video
+// The video tools of the create-video skill: narration, voice and pronunciation samples, slides, assembly and review of a video
 // workspace. A .NET file-based app: run it from a copy of this folder outside any repository (see SKILL.md), with
 //   dotnet run <tools>/video.cs -- <command> <arguments>
 //

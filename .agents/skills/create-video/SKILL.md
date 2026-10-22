@@ -1,5 +1,5 @@
 ---
-name: aspire-video-producer
+name: create-video
 description: >-
   Produces narrated Aspire videos (feature walkthroughs, dashboard tours, integration overviews, pull request demos)
   with one unified look and specification - 1080p, the Aspire logo and purple palette from aspire.dev, a neural voice
@@ -8,7 +8,7 @@ description: >-
   branded by default, or silent or unbranded when the user asks for a simpler video.
 ---
 
-# Aspire Video Producer
+# Create an Aspire video
 
 Every Aspire video looks the same: the same branding, layout, captions, zooms, and encodings. The user picks the
 narrator, the renditions, and whether sections get chapter cards (step 0).
