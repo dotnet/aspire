@@ -255,7 +255,9 @@ jobs:
           set -euo pipefail
           mkdir -p all-results
           DOWNLOADED_ROOT=$(mktemp -d "${RUNNER_TEMP}/aspire-daily-sdk.XXXXXX")
-          CANDIDATE_ROOT=$(mktemp -d "${RUNNER_TEMP}/aspire-runtime-comparison.XXXXXX")
+          # Dev-mode discovery walks upward from the dotnet executable, as with .dotnet.
+          mkdir -p "$GITHUB_WORKSPACE/artifacts/tmp"
+          CANDIDATE_ROOT=$(mktemp -d "$GITHUB_WORKSPACE/artifacts/tmp/runtime-comparison.XXXXXX")
           ARCHIVE="$DOWNLOADED_ROOT/sdk.tar.gz"
           # Pin the daily alias's resolved archive so all paired runners use identical bits.
           DAILY_URL="https://ci.dot.net/public/Sdk/11.0.100-rtm.26520.139/dotnet-sdk-11.0.100-osx-arm64.tar.gz"
