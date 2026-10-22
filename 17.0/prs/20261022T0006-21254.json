@@ -1,0 +1,9 @@
+{
+  "author": "danegsta",
+  "comment": "Test-only change",
+  "mergedAt": "2026-10-22T00:06:07Z",
+  "number": 21254,
+  "runDate": "2026-10-22T06:05:33Z",
+  "status": "excluded",
+  "title": "Fix Java container telemetry test for runtime-specific hostnames"
+}
