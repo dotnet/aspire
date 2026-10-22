@@ -29,7 +29,7 @@ resource servicePrincipal 'Microsoft.Graph/servicePrincipals@v1.0' = {
 }
 
 resource federatedCredential_web_identity 'Microsoft.Graph/applications/federatedIdentityCredentials@v1.0' = {
-  name: '${application.uniqueName}/entra-web-web-identity'
+  name: '${application.uniqueName}/web-identity'
   issuer: 'https://login.microsoftonline.com/${tenant().tenantId}/v2.0'
   subject: web_identity_principalId
   audiences: [
@@ -38,7 +38,7 @@ resource federatedCredential_web_identity 'Microsoft.Graph/applications/federate
 }
 
 resource federatedCredential_api_identity 'Microsoft.Graph/applications/federatedIdentityCredentials@v1.0' = {
-  name: '${application.uniqueName}/entra-web-api-identity'
+  name: '${application.uniqueName}/api-identity'
   issuer: 'https://login.microsoftonline.com/${tenant().tenantId}/v2.0'
   subject: api_identity_principalId
   audiences: [

@@ -693,6 +693,14 @@ public static class EntraIdResourceExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ThrowIfExistingApplication(builder);
 
+        // Managed identities exist only in Azure, and the identity may not be part of the model when running, so the trust is
+        // a publish-time concern. Adding it when running would make the registration's Bicep reference an identity that
+        // is never provisioned.
+        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            return builder;
+        }
+
         builder.Resource.ClientCredentials.Add(new EntraIdFederatedIdentityCredential());
 
         foreach (var consumer in builder.Resource.Consumers)
@@ -740,6 +748,14 @@ public static class EntraIdResourceExtensions
         ArgumentNullException.ThrowIfNull(computeResource);
         ThrowIfExistingApplication(builder);
 
+        // Managed identities exist only in Azure, and the identity may not be part of the model when running, so the trust is
+        // a publish-time concern. Adding it when running would make the registration's Bicep reference an identity that
+        // is never provisioned.
+        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            return builder;
+        }
+
         builder.Resource.ClientCredentials.Add(new EntraIdFederatedIdentityCredential
         {
             ComputeTarget = computeResource.Resource
@@ -782,6 +798,14 @@ public static class EntraIdResourceExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(identity);
         ThrowIfExistingApplication(builder);
+
+        // Managed identities exist only in Azure, and the identity may not be part of the model when running, so the trust is
+        // a publish-time concern. Adding it when running would make the registration's Bicep reference an identity that
+        // is never provisioned.
+        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            return builder;
+        }
 
         builder.Resource.ClientCredentials.Add(new EntraIdFederatedIdentityCredential
         {

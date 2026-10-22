@@ -197,6 +197,12 @@ public class EntraIdApplicationResource : AzureProvisioningResource
             IEnumerable<IResource> targets = credential.ComputeTarget is { } target ? [target] : Consumers;
             foreach (var resource in targets)
             {
+                // A resource excluded from the manifest is not deployed, so the Azure resource preparer never gives it an identity.
+                if (resource.IsExcludedFromPublish())
+                {
+                    continue;
+                }
+
                 credential.ValidateConsumer(this, resource);
             }
         }
@@ -220,14 +226,14 @@ public class EntraIdApplicationResource : AzureProvisioningResource
             else if (credential.ComputeTarget is { } target)
             {
                 // Resolved after the Azure resource preparer has attached the target's identity. It is absent when running locally.
-                if (EntraIdFederatedIdentityCredential.GetConsumerIdentity(target) is { } targetIdentity)
+                if (!target.IsExcludedFromPublish() && EntraIdFederatedIdentityCredential.GetConsumerIdentity(target) is { } targetIdentity)
                 {
                     identities.Add(targetIdentity);
                 }
             }
             else if (credential.UsesConsumerIdentity)
             {
-                identities.AddRange(Consumers.Select(EntraIdFederatedIdentityCredential.GetConsumerIdentity).OfType<AzureUserAssignedIdentityResource>());
+                identities.AddRange(Consumers.Where(c => !c.IsExcludedFromPublish()).Select(EntraIdFederatedIdentityCredential.GetConsumerIdentity).OfType<AzureUserAssignedIdentityResource>());
             }
         }
 
@@ -356,19 +362,36 @@ public class EntraIdApplicationResource : AzureProvisioningResource
         }
         infrastructure.Add(servicePrincipal);
 
+        // A parameter name must not collide with another parameter in the template, such as a user-supplied redirect URI
+        // parameter named "web-identity-principalId" and an identity named "web-identity". Only this generation's parameters
+        // count: resource.Parameters keeps the names from earlier generations, and reserving those would change the names
+        // every time the template is generated.
+        var usedParameterNames = new HashSet<string>(
+            infrastructure.GetProvisionableResources().OfType<ProvisioningParameter>().Select(p => p.BicepIdentifier),
+            StringComparer.Ordinal);
+
         foreach (var identity in resource.GetFederatedIdentities())
         {
             // The subject is the identity's object (principal) ID; the client ID is what consumers pass to Microsoft.Identity.Web.
             var identifier = Infrastructure.NormalizeBicepIdentifier(identity.Name);
-            var principalId = identity.PrincipalId.AsProvisioningParameter(infrastructure, $"{identifier}_principalId");
-            var credentialName = $"{resource.Name}-{identity.Name}";
+            var parameterName = $"{identifier}_principalId";
+            for (var suffix = 2; !usedParameterNames.Add(parameterName); suffix++)
+            {
+                parameterName = $"{identifier}_principalId_{suffix}";
+            }
+
+            var principalId = identity.PrincipalId.AsProvisioningParameter(infrastructure, parameterName);
+
+            // The identity's name is unique in the model and, unlike one that also includes the registration's name, always
+            // fits Microsoft Graph's 120-character limit on a federated credential's name.
+            var credentialName = identity.Name;
             // The Graph extension names a child as '{applicationUniqueName}/{credentialName}'. Referencing the
             // application's property, rather than reusing its name expression, makes the child depend on the application.
             BicepValue<string> applicationUniqueName = application.UniqueName.ToBicepExpression();
             infrastructure.Add(new FederatedIdentityCredential($"federatedCredential_{identifier}")
             {
                 Name = BicepFunction.Interpolate($"{applicationUniqueName}/{credentialName}").Compile(),
-                Issuer = BicepFunction.Interpolate($"{resource.Instance.TrimEnd('/')}/{BicepFunction.GetTenant().TenantId}/v2.0").Compile(),
+                Issuer = BicepFunction.Interpolate($"{EntraIdFederation.GetIssuerPrefix(resource.Instance)}/{BicepFunction.GetTenant().TenantId}/v2.0").Compile(),
                 Subject = principalId,
                 Audiences = [EntraIdFederation.GetTokenExchangeAudience(resource.Instance)!]
             });
@@ -744,6 +767,7 @@ public sealed class EntraIdFederatedIdentityCredential : EntraIdClientCredential
                 $"but the resource does not use that identity. Call WithAzureUserAssignedIdentity on '{consumer.Name}' with that identity.");
         }
     }
+
     private sealed class ManagedIdentityClientIdValue(
         EntraIdFederatedIdentityCredential credential,
         EntraIdApplicationResource application,
