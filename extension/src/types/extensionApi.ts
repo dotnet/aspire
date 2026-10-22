@@ -277,6 +277,7 @@ export type AspireExtensionE2EControlCommand =
         debuggers?: Readonly<Record<string, DebugLaunchSettings>>;
         environmentKeys?: readonly string[];
         csharpExtensionVersion?: string | null;
+        expectedErrorMessage?: string;
     }
     | {
         name: 'proveAttachedResourceDebugging';

@@ -1,3 +1,4 @@
+import * as assert from 'assert';
 import * as fs from 'fs';
 import * as https from 'https';
 import * as path from 'path';
@@ -884,7 +885,7 @@ export async function executeE2eControlCommand(
           program: '',
           debuggers: command.debuggers ? { ...command.debuggers } : undefined,
         };
-        const debugConfiguration = await createDebugSessionConfiguration(
+        const pendingConfiguration = createDebugSessionConfiguration(
           debugSessionConfiguration,
           launchConfig,
           getE2eStringArray(command.args, 'args'),
@@ -898,7 +899,13 @@ export async function executeE2eControlCommand(
             debugSession: { configuration: debugSessionConfiguration } as AspireDebugSession
           },
           debuggerExtension);
+        if (command.expectedErrorMessage !== undefined) {
+          // Compare in the host so raw diagnostics never enter the exported state file.
+          await assert.rejects(pendingConfiguration, { message: command.expectedErrorMessage });
+          return;
+        }
 
+        const debugConfiguration = await pendingConfiguration;
         const loggableConfiguration = getLoggableDebugConfiguration(debugConfiguration, false);
         const environmentKeys = getE2eStringArray(command.environmentKeys, 'environmentKeys');
         return environmentKeys

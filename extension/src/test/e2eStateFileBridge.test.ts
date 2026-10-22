@@ -10,9 +10,11 @@ import WebSocket from 'ws';
 
 import { AspireExtensionContext } from '../AspireExtensionContext';
 import { registerTreeViewCommands } from '../activation/registerTreeViewCommands';
-import { csharpExtensionId, getCsharpBlazorWasmDebuggingSupport, useCsharpExtensionVersionProviderForTests } from '../capabilities';
+import { csharpExtensionId, getCsharpBlazorWasmDebuggingSupport, minimumCsharpBlazorWasmDebuggingVersion, useCsharpExtensionVersionProviderForTests } from '../capabilities';
 import { AppHostDataRepository, ViewMode } from '../data/AppHostDataRepository';
+import type { BrowserLaunchConfiguration } from '../dcp/types';
 import type { ResourceDebugger } from '../debugger/resourceDebugContracts';
+import { csharpExtensionMissingForBlazorDebugging } from '../loc/strings';
 import { AppHostLaunchService } from '../services/AppHostLaunchService';
 import { executeE2eControlCommand, isBrowserDebugSessionType } from '../testing/e2eStateFileBridge';
 import { pipelineInteractionCapability } from '../types/configInfo';
@@ -334,6 +336,35 @@ suite('E2E state file bridge', () => {
         finally {
             installedVersion.dispose();
         }
+    });
+
+    test('checks expected resource configuration diagnostics without returning errors', async () => {
+        const launchConfig: BrowserLaunchConfiguration = {
+            type: 'browser',
+            url: 'https://localhost:7001',
+            browser: 'chrome',
+            web_root: path.resolve(__dirname, '..', '..', '..', 'src', 'Aspire.Cli', 'Aspire.Cli.csproj'),
+        };
+        const command = {
+            name: 'createResourceDebugConfiguration',
+            launchConfig,
+            expectedErrorMessage: csharpExtensionMissingForBlazorDebugging(csharpExtensionId, minimumCsharpBlazorWasmDebuggingVersion),
+        } satisfies AspireExtensionE2EControlCommand;
+        const repository = createRepository([]);
+        const launchService = createLaunchService();
+        const provider = {} as AspireAppHostTreeProvider;
+        const terminalProvider = {} as AspireTerminalProvider;
+
+        const result = await dispatchControlCommand({
+            ...command,
+            csharpExtensionVersion: null,
+        }, repository, launchService, provider, terminalProvider);
+        assert.strictEqual(result, undefined);
+
+        await assert.rejects(dispatchControlCommand({
+            ...command,
+            csharpExtensionVersion: '2.145.15',
+        }, repository, launchService, provider, terminalProvider), assert.AssertionError);
     });
 
     test('recognizes managed Blazor roots and supported browser children without recognizing Firefox', () => {
