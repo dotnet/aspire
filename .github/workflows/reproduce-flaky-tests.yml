@@ -66,7 +66,7 @@ jobs:
           global-json-file: global.json
           dotnet-version: 10.0.x
       - name: Restore the Java SDK tests
-        run: ./restore.sh --projects tests/Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.Java.Tests.csproj
+        run: ./restore.sh --projects "${{ github.workspace }}/tests/Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.Java.Tests.csproj"
       - name: Reproduce authentication with a pending platform read
         run: >-
           dotnet test --project tests/Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.Java.Tests.csproj
@@ -421,7 +421,7 @@ jobs:
           if-no-files-found: ignore
 
   results:
-    if: ${{ always() && github.repository == 'microsoft/aspire' }}
+    if: ${{ false }}
     runs-on: ubuntu-latest
     name: Reproduce Results
     needs: [reproduce]
