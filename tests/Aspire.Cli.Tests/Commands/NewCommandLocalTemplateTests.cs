@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Templating;
@@ -66,6 +67,57 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
         Assert.Empty(interaction.BooleanPromptCalls);
         Assert.Empty(interaction.DisplayedErrors);
         await Verify(ReadOutput(workspace)).ScrubInlineGuids();
+    }
+
+    [Theory]
+    [InlineData(true, "AspireVersion", false)]
+    [InlineData(false, "AspireVersion", false)]
+    [InlineData(true, "AspireVersion", true)]
+    [InlineData(false, "AspireVersion", true)]
+    [InlineData(true, "aspireVersion", true)]
+    [InlineData(false, "aspireVersion", true)]
+    public async Task LocalTemplate_InjectsCurrentAspireVersionWithoutPrompting(bool interactive, string parameterName, bool hasDefault)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var config = workspace.CreateDirectory("template/.template.config");
+        var defaultProperty = hasDefault ? "\"defaultValue\": \"1.0.0\"," : "";
+        await File.WriteAllTextAsync(Path.Combine(config.FullName, "template.json"), $$"""
+            {
+              "identity": "Aspire.Local.Version",
+              "name": "Versioned template",
+              "shortName": "versioned",
+              "symbols": {
+                "{{parameterName}}": {
+                  "type": "parameter",
+                  "datatype": "string",
+                  "isRequired": true,
+                  {{defaultProperty}}
+                  "replaces": "AspireVersionValue"
+                }
+              }
+            }
+            """);
+        await File.WriteAllTextAsync(Path.Combine(workspace.Path, "template", "aspire.config.json"), """
+            { "packages": { "Aspire.Hosting.JavaScript": "AspireVersionValue" } }
+            """);
+
+        const string packageVersion = "17.0.0-pr.12345.gabcdef12";
+        var interaction = new TestInteractionService();
+        var services = CreateServices(workspace, interaction, interactive);
+        services.AddSingleton(workspace.CreateExecutionContext(
+            identityChannel: "pr-12345",
+            identityVersion: $"{packageVersion}+abcdef123456",
+            identityOverridden: true));
+        using var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+
+        var exitCode = await command.Parse("new --template-path template --name Demo --output out --suppress-agent-init").InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(CliExitCodes.Success, exitCode);
+        Assert.Empty(interaction.DisplayedErrors);
+        Assert.Empty(interaction.StringPromptCalls);
+        using var generatedConfig = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(workspace.Path, "out", "aspire.config.json")));
+        Assert.Equal(packageVersion, generatedConfig.RootElement.GetProperty("packages").GetProperty("Aspire.Hosting.JavaScript").GetString());
     }
 
     [Fact]

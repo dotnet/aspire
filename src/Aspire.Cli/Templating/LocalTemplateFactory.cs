@@ -118,6 +118,12 @@ internal sealed class LocalTemplateFactory(
             }
 
             cancellationToken.ThrowIfCancellationRequested();
+            if (parameter.Name.Equals("AspireVersion", StringComparison.OrdinalIgnoreCase))
+            {
+                parameters[parameter.Name] = executionContext.IdentitySdkVersion;
+                continue;
+            }
+
             if (!hostEnvironment.SupportsInteractiveInput)
             {
                 // Leave unset values to the engine, including conditional requirements and defaults.

@@ -52,6 +52,24 @@ single-choice, and multiple-choice prompts. The .NET template engine handles
 defaults, replacements, generated symbols, conditional content, and file renames.
 Template post-actions (including restore and scripts) are not executed.
 
+`AspireVersion` is a well-known template parameter (case-insensitive). When a
+template declares it as a parameter symbol, Aspire supplies the running CLI's
+package version automatically instead of prompting, overriding any template
+default. This includes the full prerelease or PR suffix and excludes SemVer
+build metadata (`+...`). It also honors CLI identity overrides. For example:
+
+```json
+{
+  "symbols": {
+    "AspireVersion": {
+      "type": "parameter",
+      "datatype": "string",
+      "replaces": "{{aspireVersion}}"
+    }
+  }
+}
+```
+
 Paths are relative to the working directory. Existing non-empty output directories
 are rejected. `--template-path` cannot be combined with a built-in template name,
 `--source`, `--version`, `--channel`, or `--language`. It does not resolve template
@@ -59,7 +77,7 @@ packages from feeds or require the .NET SDK. Normal optional agent setup still
 applies; use `--suppress-agent-init` to skip it.
 
 In non-interactive mode, point to a single template and provide `--name` and
-`--output` as needed. Template parameters use their engine-defined defaults;
+`--output` as needed. Other template parameters use their engine-defined defaults;
 missing required values produce an error. Custom parameter values are currently
 collected interactively, not through dynamically generated CLI options.
 
