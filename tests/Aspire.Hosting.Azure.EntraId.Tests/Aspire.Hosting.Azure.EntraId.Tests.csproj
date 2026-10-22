@@ -15,6 +15,7 @@
     <Compile Include="$(TestsSharedDir)\TestPipelineActivityReporter.cs" />
     <PackageReference Include="Verify.XunitV3" />
     <PackageReference Include="Microsoft.Identity.Web" />
+    <PackageReference Include="Microsoft.Identity.Web.DownstreamApi" />    <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
   </ItemGroup>
 
 </Project>

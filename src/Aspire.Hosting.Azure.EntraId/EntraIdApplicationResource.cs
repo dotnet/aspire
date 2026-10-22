@@ -121,6 +121,37 @@ public class EntraIdApplicationResource : AzureProvisioningResource
         ? (object?)ClientIdParameter ?? ClientId
         : ClientIdOutputReference;
 
+    /// <summary>
+    /// Creates the application ID URI that prefixes this registration's scopes.
+    /// </summary>
+    /// <remarks>
+    /// The expression keeps parameter and output references unresolved so values supplied at deployment time or by
+    /// provisioning flow through to the consuming resource.
+    /// </remarks>
+    internal ReferenceExpression CreateApplicationIdUriExpression()
+    {
+        if (ApplicationIdUriParameter is { } uriParameter)
+        {
+            return ReferenceExpression.Create($"{uriParameter}");
+        }
+
+        if (!string.IsNullOrEmpty(ApplicationIdUri))
+        {
+            // Scopes are joined with a "/" separator, so a trailing slash in the configured URI would double it.
+            return ReferenceExpression.Create($"{ApplicationIdUri.TrimEnd('/')}");
+        }
+
+        return ClientIdValue switch
+        {
+            ParameterResource clientIdParameter => ReferenceExpression.Create($"api://{clientIdParameter}"),
+            BicepOutputReference clientIdOutput => ReferenceExpression.Create($"api://{clientIdOutput}"),
+            string clientId => ReferenceExpression.Create($"api://{clientId}"),
+            _ => throw new InvalidOperationException(
+                $"Resource '{Name}' has no application ID URI or client ID. Configure a client ID, or call " +
+                $"{nameof(EntraIdResourceExtensions.WithApplicationIdUri)} to set the URI that its scopes use.")
+        };
+    }
+
     /// <inheritdoc />
     public override string GetBicepTemplateString()
     {
@@ -479,6 +510,38 @@ public class EntraIdApplicationResource : AzureProvisioningResource
     /// <see cref="ClientIdParameter"/> takes precedence.
     /// </remarks>
     public string? ClientId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the parameter resource for the application ID URI that identifies this registration as a web API.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The application ID URI is the prefix of the scopes that the API exposes, such as
+    /// <c>api://00001111-aaaa-2222-bbbb-3333cccc4444/access_as_user</c>. It is shown as "Application ID URI"
+    /// on the app registration's <b>Expose an API</b> page.
+    /// </para>
+    /// <para>
+    /// Aspire only reads this value to qualify scopes for <c>WithDownstreamApi</c>. It does not modify the registration.
+    /// When both <see cref="ApplicationIdUriParameter"/> and <see cref="ApplicationIdUri"/> are set,
+    /// <see cref="ApplicationIdUriParameter"/> takes precedence.
+    /// </para>
+    /// </remarks>
+    public ParameterResource? ApplicationIdUriParameter { get; set; }
+
+    /// <summary>
+    /// Gets or sets a fixed application ID URI that identifies this registration as a web API.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// When neither this property nor <see cref="ApplicationIdUriParameter"/> is set, the default
+    /// <c>api://{clientId}</c> is used.
+    /// Set it for registrations that use a different URI, such as <c>https://contoso.onmicrosoft.com/my-api</c>.
+    /// </para>
+    /// <para>
+    /// Aspire only reads this value to qualify scopes for <c>WithDownstreamApi</c>. It does not modify the registration.
+    /// </para>
+    /// </remarks>
+    public string? ApplicationIdUri { get; set; }
 
     /// <summary>
     /// Gets or sets which accounts can sign in to the application.
