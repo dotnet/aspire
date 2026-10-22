@@ -77,7 +77,7 @@ public partial class MainLayoutTests : DashboardTestContext
     [Theory]
     [InlineData(AspireKeyboardShortcut.GoToResources, "/resources?pane=resources")]
     [InlineData(AspireKeyboardShortcut.GoToParameters, "/parameters")]
-    [InlineData(AspireKeyboardShortcut.GoToGraph, "/graph")]
+    [InlineData(AspireKeyboardShortcut.GoToGraph, "/resources?pane=resources")]
     [InlineData(AspireKeyboardShortcut.GoToExtensions, "/extensions")]
     [InlineData(AspireKeyboardShortcut.GoToTelemetrySources, "/structuredlogs?pane=telemetry")]
     [InlineData(AspireKeyboardShortcut.GoToConsoleLogs, "/consolelogs")]

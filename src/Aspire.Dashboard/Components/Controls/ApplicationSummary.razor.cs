@@ -4,14 +4,18 @@
 using System.Collections.Concurrent;
 using System.Globalization;
 using Aspire.Dashboard.Components.Layout;
+using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
+using Aspire.Dashboard.Model.ResourceGraph;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
+using Microsoft.JSInterop;
+using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Controls;
 
@@ -21,6 +25,7 @@ namespace Aspire.Dashboard.Components.Controls;
 /// </summary>
 public sealed partial class ApplicationSummary : ComponentBase, IAsyncDisposable
 {
+    private const string GraphContainerId = "overviewResourcesGraphContainer";
     private const int RecentItemCount = 5;
     private const int InsightItemCount = 4;
     internal const int ActivityBucketCount = 30;
@@ -48,7 +53,11 @@ public sealed partial class ApplicationSummary : ComponentBase, IAsyncDisposable
     private int _telemetryRefreshPending;
     private bool _isLoaded;
     private IReadOnlyList<string>? _scopedResourceNames;
-
+    private DotNetObjectReference<ApplicationSummaryInterop>? _resourcesInteropReference;
+    private IJSObjectReference? _jsModule;
+    private bool _graphInitializing;
+    private bool _graphInitialized;
+    private bool _isDisposing;
     /// <summary>
     /// Gets or sets the resources to summarize, by name. <see langword="null"/> summarizes every resource.
     /// </summary>
@@ -88,7 +97,22 @@ public sealed partial class ApplicationSummary : ComponentBase, IAsyncDisposable
     [Inject]
     public required IStringLocalizer<Dashboard.Resources.ControlsStrings> ControlsStringsLoc { get; init; }
 
+    [Inject]
+    public required IStringLocalizer<Dashboard.Resources.Dialogs> DialogsLoc { get; init; }
+
+    [Inject]
+    public required IJSRuntime JS { get; init; }
+
+    [Inject]
+    public required DashboardDialogService DialogService { get; init; }
+
     private ITelemetryRepository TelemetryRepository => DataSource.TelemetryRepository;
+    private IReadOnlyList<IconToggleOption<GroupOverview>> OverviewOptions =>
+    [
+        new(GroupOverview.Resources, new Icons.Regular.Size20.AppsListDetail(), DialogsLoc[nameof(Dashboard.Resources.Dialogs.SettingsDialogGroupOverviewResources)]),
+        new(GroupOverview.Graph, new Icons.Regular.Size20.ShareAndroid(), Loc[nameof(Dashboard.Resources.Resources.GraphPageTitle)]),
+        new(GroupOverview.Summary, new Icons.Regular.Size20.Home(), DialogsLoc[nameof(Dashboard.Resources.Dialogs.SettingsDialogGroupOverviewSummary)])
+    ];
 
     protected override async Task OnInitializedAsync()
     {
@@ -129,9 +153,52 @@ public sealed partial class ApplicationSummary : ComponentBase, IAsyncDisposable
                     }
                 }
 
-                await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+                await InvokeAsync(async () =>
+                {
+                    StateHasChanged();
+                    await UpdateResourceGraphResourcesAsync();
+                }).ConfigureAwait(false);
             }
         });
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_isDisposing || ViewPreferences.GroupOverview != GroupOverview.Graph || _graphInitialized || _graphInitializing)
+        {
+            return;
+        }
+
+        _graphInitializing = true;
+        try
+        {
+            _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", $"/{Assets["js/app-resourcegraph.js"]}");
+            _resourcesInteropReference = DotNetObjectReference.Create(new ApplicationSummaryInterop(this));
+
+            var graphIcons = new GraphIconsDto(
+                new GraphMenuIconDto(
+                    Path: ResourceGraphMapper.GetIconPathData(new Icons.Regular.Size16.Settings()),
+                    LabelFormat: Loc[nameof(Dashboard.Resources.Resources.ResourcesGraphResourceActionsButton)].Value),
+                new GraphHiddenIconDto(
+                    Path: ResourceGraphMapper.GetIconPathData(new Icons.Regular.Size16.EyeOff()),
+                    Tooltip: ColumnsLoc[nameof(Dashboard.Resources.Columns.HiddenResourceIconTooltip)].Value));
+
+            await _jsModule.InvokeVoidAsync("initializeResourcesGraph", _resourcesInteropReference, graphIcons);
+            _graphInitialized = true;
+            await UpdateResourceGraphResourcesAsync();
+        }
+        catch (JSDisconnectedException ex)
+        {
+            Logger.LogDebug(ex, "Application overview graph rendering stopped because the circuit disconnected.");
+        }
+        catch (ObjectDisposedException ex) when (_isDisposing)
+        {
+            Logger.LogDebug(ex, "Application overview graph rendering stopped because the component was disposed.");
+        }
+        finally
+        {
+            _graphInitializing = false;
+        }
     }
 
     protected override void OnParametersSet()
@@ -470,6 +537,48 @@ public sealed partial class ApplicationSummary : ComponentBase, IAsyncDisposable
             .ToList();
     }
 
+    private async Task UpdateResourceGraphResourcesAsync()
+    {
+        if (ViewPreferences.GroupOverview != GroupOverview.Graph || !_graphInitialized || _jsModule is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _jsModule.InvokeVoidAsync("updateResourcesGraph", GetResourceGraphResources());
+        }
+        catch (JSDisconnectedException ex)
+        {
+            Logger.LogDebug(ex, "Application overview graph update stopped because the circuit disconnected.");
+        }
+        catch (ObjectDisposedException ex) when (_isDisposing)
+        {
+            Logger.LogDebug(ex, "Application overview graph update stopped because the component was disposed.");
+        }
+    }
+
+    private List<ResourceDto> GetResourceGraphResources()
+    {
+        var resources = GetResources();
+        return resources
+            .Select(resource => ResourceGraphMapper.MapResource(resource, resources, _resourceByName, ColumnsLoc, showHiddenResources: false, IconResolver))
+            .ToList();
+    }
+
+    private Task ExportResourceGraphAsync()
+    {
+        return TextVisualizerDialog.OpenDialogAsync(new OpenTextVisualizerDialogOptions
+        {
+            DialogService = DialogService,
+            ValueDescription = Loc[nameof(Dashboard.Resources.Resources.ResourcesGraphExportMermaidButton)],
+            MarkdownDescription = Loc[nameof(Dashboard.Resources.Resources.ResourcesGraphExportMermaidDescription)],
+            Value = ResourceGraphMermaidExporter.Export(GetResourceGraphResources()),
+            DownloadFileName = "resources.mmd",
+            FixedFormat = DashboardUIHelpers.PlaintextFormat
+        });
+    }
+
     /// <summary>
     /// Gets the health state bucket of a resource, as counted by the health bar.
     /// </summary>
@@ -569,17 +678,44 @@ public sealed partial class ApplicationSummary : ComponentBase, IAsyncDisposable
     private string GetLogResourceName(OtlpResource resource) => OtlpHelpers.GetResourceName(resource, TelemetryRepository.GetResources());
 
     // The settings panel changes what the overview shows while it's displayed.
-    private void OnViewPreferencesChanged() => _ = InvokeAsync(StateHasChanged);
+    private void OnViewPreferencesChanged() => _ = InvokeAsync(async () =>
+    {
+        StateHasChanged();
+        await UpdateResourceGraphResourcesAsync();
+    });
 
     public async ValueTask DisposeAsync()
     {
+        _isDisposing = true;
         ViewPreferences.Changed -= OnViewPreferencesChanged;
         _cts.Cancel();
         _logsSubscription?.Dispose();
         _tracesSubscription?.Dispose();
         _metricsSubscription?.Dispose();
         await TaskHelpers.WaitIgnoreCancelAsync(_resourceSubscriptionTask);
+        _resourcesInteropReference?.Dispose();
+        if (_jsModule is not null)
+        {
+            await _jsModule.DisposeAsync().AsTask().ConfigureAwait(false);
+        }
         _cts.Dispose();
+    }
+
+    private sealed class ApplicationSummaryInterop(ApplicationSummary summary)
+    {
+        [JSInvokable]
+        public Task SelectResource(string id) => summary.SelectResourceAsync(id);
+
+        [JSInvokable]
+        public Task ResourceContextMenu(string id, int _, int __, string? ___) => summary.SelectResourceAsync(id);
+    }
+
+    private async Task SelectResourceAsync(string id)
+    {
+        if (_resourceByName.TryGetValue(id, out var resource))
+        {
+            await InvokeAsync(() => NavigateToResource(resource));
+        }
     }
 
     private enum HealthBucket

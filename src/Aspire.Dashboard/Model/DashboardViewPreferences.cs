@@ -17,6 +17,11 @@ public enum ResourceListDensity
     Comfortable,
 
     /// <summary>
+    /// Three lines per resource: the name, state and type, then health and primary endpoint details.
+    /// </summary>
+    Spacious,
+
+    /// <summary>
     /// One line per resource, with its state, type and persistence in aligned columns on the right.
     /// </summary>
     Compact
@@ -28,14 +33,19 @@ public enum ResourceListDensity
 public enum GroupOverview
 {
     /// <summary>
-    /// The app's health, live activity, insights and recent problems.
-    /// </summary>
-    Summary,
-
-    /// <summary>
     /// A table of the resources, with their state, endpoints and actions.
     /// </summary>
-    Resources
+    Resources,
+
+    /// <summary>
+    /// A relationship graph of the resources.
+    /// </summary>
+    Graph,
+
+    /// <summary>
+    /// The app's health, live activity, insights and recent problems.
+    /// </summary>
+    Summary
 }
 
 /// <summary>

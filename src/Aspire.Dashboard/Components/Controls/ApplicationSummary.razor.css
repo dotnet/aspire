@@ -12,6 +12,157 @@
     padding: 48px 16px;
 }
 
+.home-resource-graph-layout {
+    --resource-hidden-background: color-mix(in srgb, var(--colorNeutralBackground3) 50%, var(--aspire-page-background));
+    width: 100%;
+    height: max(600px, calc(100vh - 220px));
+}
+
+.resource-graph-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.resource-graph {
+    width: 100%;
+    height: 100%;
+}
+
+.resource-graph-controls {
+    position: absolute;
+    right: 24px;
+    bottom: 24px;
+    display: flex;
+    column-gap: 10px;
+}
+
+.resource-graph-controls fluent-button {
+    --aspire-button-background: var(--aspire-page-background);
+    --aspire-button-border-color: transparent;
+    border: var(--strokeWidthThin) solid var(--aspire-button-border-color);
+    background-color: var(--aspire-button-background);
+}
+
+.resource-graph-controls fluent-button:hover {
+    background-color: var(--colorNeutralBackground3);
+}
+
+.resource-graph-controls fluent-button:active,
+.resource-graph-controls fluent-button:hover:active {
+    background-color: var(--resource-graph-secondary-hover-background);
+}
+
+.resource-graph-controls fluent-button > svg {
+    width: 24px;
+    height: 24px;
+}
+
+::deep .resource-graph .texts,
+::deep .resource-graph .nodes {
+    cursor: pointer;
+}
+
+::deep .resource-name {
+    fill: var(--colorNeutralForeground1);
+    font-size: 15px;
+    text-anchor: middle;
+}
+
+::deep .resource-name > text {
+    stroke: var(--colorNeutralBackground1);
+    stroke-width: 4px;
+    paint-order: stroke;
+    stroke-linejoin: round;
+    text-decoration: none;
+}
+
+::deep .resource-name-hitbox,
+::deep .resource-hidden-icon-hitbox {
+    fill: transparent;
+    stroke: none;
+    pointer-events: all;
+}
+
+::deep .resource-node {
+    fill: var(--aspire-page-background);
+    stroke: var(--aspire-page-background);
+}
+
+::deep .resource-group-hover .resource-node {
+    fill: var(--resource-graph-hover-background) !important;
+}
+
+::deep .resource-group-selected .resource-scale {
+    transform: scale(1.2);
+}
+
+::deep .resource-group-selected .resource-node {
+    fill: var(--colorNeutralBackground3) !important;
+}
+
+::deep .resource-group-highlight .resource-node {
+    fill: url(#highlighted-pattern);
+}
+
+::deep .resource-node-border {
+    fill: transparent;
+    stroke: var(--colorNeutralStroke1);
+    stroke-width: 1;
+}
+
+::deep .resource-group-selected .resource-node-border,
+::deep .resource-group-highlight .resource-node-border,
+::deep .resource-group-hover .resource-node-border {
+    stroke: var(--aspire-button-hover-border);
+}
+
+::deep .resource-endpoint {
+    fill: var(--foreground-subtext-rest);
+    font-size: 11px;
+    text-anchor: middle;
+}
+
+::deep .resource-status-circle {
+    fill: var(--aspire-page-background);
+}
+
+/* The overview graph opens resource details directly, so the separate actions affordance isn't shown here. */
+::deep .resource-menu-cog {
+    display: none;
+}
+
+::deep .resource-link {
+    stroke: var(--colorNeutralStroke1);
+    stroke-width: 1;
+    marker-end: url(#arrow-normal);
+}
+
+::deep .arrow-normal {
+    fill: var(--colorNeutralStroke1);
+}
+
+::deep .arrow-highlight,
+::deep .arrow-highlight-expand {
+    fill: var(--aspire-button-hover-border);
+}
+
+::deep .resource-link-highlight,
+::deep .resource-link-highlight-expand {
+    stroke: var(--aspire-button-hover-border);
+    stroke-dasharray: 5,5;
+    stroke-width: 2;
+}
+
+::deep .resource-link-highlight {
+    marker-end: url(#arrow-highlight);
+}
+
+::deep .resource-link-highlight-expand {
+    marker-end: url(#arrow-highlight-expand);
+}
+
 /* Shared state palette. Only swatches and icons use it, since status colors don't reach text contrast on every theme. */
 .state-success {
     --home-state-color: var(--success);

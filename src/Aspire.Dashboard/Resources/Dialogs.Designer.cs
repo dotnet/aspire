@@ -1452,6 +1452,15 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Spacious.
+        /// </summary>
+        public static string SettingsDialogResourceListDensitySpacious {
+            get {
+                return ResourceManager.GetString("SettingsDialogResourceListDensitySpacious", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Time format.
         /// </summary>
         public static string SettingsDialogTimeFormat {

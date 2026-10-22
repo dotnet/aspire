@@ -40,14 +40,14 @@ public class DesktopNavMenuTests : DashboardTestContext
         var expected = new List<string>();
         if (enabled)
         {
-            expected.AddRange([DashboardUrls.ResourceListUrl(), DashboardUrls.ParametersUrl(), DashboardUrls.GraphUrl()]);
+            expected.AddRange([DashboardUrls.ResourceListUrl(), DashboardUrls.ParametersUrl()]);
             if (hasTerminals)
             {
                 expected.Add(DashboardUrls.TerminalsUrl());
             }
         }
         expected.Add(DashboardUrls.TelemetrySourcesUrl());
-        var links = cut.FindAll("nav.main-rail > a");
+        var links = cut.FindAll("nav.desktop-nav-menu > a");
         Assert.Equal(expected, links.Select(link => link.GetAttribute("href")));
         if (enabled && hasTerminals)
         {
@@ -74,8 +74,8 @@ public class DesktopNavMenuTests : DashboardTestContext
         RenderNavMenu(url);
         var cut = Render<DesktopNavMenu>();
 
-        // The pages of a selection are icons at the top of the resources view, so the rail has no entries for them.
-        Assert.Equal("main-rail-resources", cut.Find("a[aria-current='page']").Id);
+        // The pages of a selection have their own entries in the top navigation, so the app navigation has no entries for them.
+        Assert.Equal("desktop-nav-resources", cut.Find("a[aria-current='page']").Id);
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public class DesktopNavMenuTests : DashboardTestContext
         RenderNavMenu(DashboardUrls.AddResourceSelection(DashboardUrls.ConsoleLogsUrl(), selection));
         var cut = Render<DesktopNavMenu>();
 
-        Assert.Equal(DashboardUrls.AddResourceSelection(DashboardUrls.ResourceOverviewUrl(), selection), cut.Find("#main-rail-resources").GetAttribute("href"));
+        Assert.Equal(DashboardUrls.AddResourceSelection(DashboardUrls.ResourceOverviewUrl(), selection), cut.Find("#desktop-nav-resources").GetAttribute("href"));
     }
 
     [Fact]
@@ -94,18 +94,19 @@ public class DesktopNavMenuTests : DashboardTestContext
         RenderNavMenu(DashboardUrls.ResourceListUrl());
         var cut = Render<DesktopNavMenu>(builder => builder.Add(p => p.Availability, new NavigationAvailability(HasResourceTerminals: false, HasParameters: false, HasTelemetrySources: false)));
 
-        Assert.Equal(["main-rail-parameters", "main-rail-telemetry"], cut.FindAll(".main-rail-item.disabled").Select(item => item.Id));
-        var parameters = cut.Find("#main-rail-parameters");
+        Assert.Equal(["desktop-nav-parameters", "desktop-nav-telemetry"], cut.FindAll(".desktop-nav-item.disabled").Select(item => item.Id));
+        var parameters = cut.Find("#desktop-nav-parameters");
         Assert.Equal("span", parameters.LocalName);
+        Assert.Equal(Resources.Layout.NavMenuParametersTab, parameters.TextContent.Trim());
         Assert.Equal("true", parameters.GetAttribute("aria-disabled"));
         Assert.Equal(Resources.Layout.NavMenuParametersTab, parameters.GetAttribute("aria-label"));
         Assert.Equal(Resources.Layout.NavMenuNoParameters, parameters.GetAttribute("aria-description"));
-        Assert.Equal(Resources.Layout.TelemetryPaneNoSources, cut.Find("#main-rail-telemetry").GetAttribute("aria-description"));
+        Assert.Equal(Resources.Layout.TelemetryPaneNoSources, cut.Find("#desktop-nav-telemetry").GetAttribute("aria-description"));
 
         cut.Render(builder => builder.Add(p => p.Availability, new NavigationAvailability(HasResourceTerminals: false, HasParameters: true, HasTelemetrySources: true)));
 
-        Assert.Empty(cut.FindAll(".main-rail-item.disabled"));
-        Assert.Equal(DashboardUrls.ParametersUrl(), cut.Find("#main-rail-parameters").GetAttribute("href"));
+        Assert.Empty(cut.FindAll(".desktop-nav-item.disabled"));
+        Assert.Equal(DashboardUrls.ParametersUrl(), cut.Find("#desktop-nav-parameters").GetAttribute("href"));
     }
 
     private void RenderNavMenu(string url)

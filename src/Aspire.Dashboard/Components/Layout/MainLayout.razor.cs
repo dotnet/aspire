@@ -48,7 +48,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     internal const string AspireRepoUrl = "https://aka.ms/aspire/repo";
 
     /// <summary>
-    /// Name of the section in the desktop top bar where nested layouts can render page context, such as the selected resource.
+    /// Name of the section in the desktop navigation row where nested layouts can render page navigation.
     /// </summary>
     internal const string HeaderContextSectionName = "header-context";
 
@@ -583,7 +583,8 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
                 NavigationManager.NavigateTo(DashboardUrls.ParametersUrl());
                 break;
             case AspireKeyboardShortcut.GoToGraph when DashboardClient.IsEnabled && Options.CurrentValue.UI.DisableResourceGraph != true:
-                NavigationManager.NavigateTo(DashboardUrls.GraphUrl());
+                await ViewPreferences.SetGroupOverviewAsync(GroupOverview.Graph);
+                NavigationManager.NavigateTo(DashboardUrls.ResourceListUrl());
                 break;
             case AspireKeyboardShortcut.GoToExtensions when DashboardClient.IsEnabled:
                 NavigationManager.NavigateTo(DashboardUrls.ExtensionsUrl());

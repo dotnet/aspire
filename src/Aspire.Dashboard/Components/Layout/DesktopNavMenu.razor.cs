@@ -1,19 +1,17 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Routing;
-using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Layout;
 
 /// <summary>
-/// The top-level navigation displayed as a vertical icon rail on the left of the desktop layout. With a resource
+/// The top-level navigation displayed across the top of the desktop layout. With a resource
 /// service the dashboard is organized around the app model (Resources, Parameters, Graph, Terminals) and
 /// telemetry is reached from the pages of a resource selection. Telemetry-only services have a separate section
 /// in both AppHost and standalone mode.
@@ -76,9 +74,6 @@ public partial class DesktopNavMenu : ComponentBase, IDisposable
 
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
-
-    [Inject]
-    public required IOptionsMonitor<DashboardOptions> DashboardOptions { get; init; }
 
     [Inject]
     public required ResourcePaneState ResourcePaneState { get; init; }
@@ -146,14 +141,10 @@ public partial class DesktopNavMenu : ComponentBase, IDisposable
         if (DashboardClient.IsEnabled)
         {
             // The pages of a selection (overview, console logs, structured logs, traces and metrics) are icons at the
-            // top of the resources view, so the rail has a single entry for them.
+            // top of the resources view, so the app navigation has a single entry for them.
             yield return new NavItem(NavSection.Resources, GetSelectionPageUrl(NavigationManager, ResourcesLayout.ResourceTab.Overview), Loc[nameof(Resources.Layout.NavMenuResourcesTab)], ResourcesIcon(), ResourcesIcon(active: true));
             yield return new NavItem(NavSection.Parameters, DashboardUrls.ParametersUrl(), Loc[nameof(Resources.Layout.NavMenuParametersTab)], ParametersIcon(), ParametersIcon(active: true),
                 DisabledText: Availability.HasParameters ? null : Loc[nameof(Resources.Layout.NavMenuNoParameters)].Value);
-            if (DashboardOptions.CurrentValue.UI.DisableResourceGraph != true)
-            {
-                yield return new NavItem(NavSection.Graph, DashboardUrls.GraphUrl(), Loc[nameof(Resources.Layout.NavMenuGraphTab)], GraphIcon(), GraphIcon(active: true));
-            }
             if (HasResourceTerminals)
             {
                 yield return new NavItem(NavSection.Terminals, DashboardUrls.TerminalsUrl(), Loc[nameof(Resources.Layout.NavMenuTerminalsTab)], TerminalsIcon(), TerminalsIcon(active: true));

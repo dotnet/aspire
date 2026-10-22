@@ -140,6 +140,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     [DynamicDependency(RuntimeActivatedComponentMembers, typeof(ConsoleLogs))]
     [DynamicDependency(RuntimeActivatedComponentMembers, typeof(Error))]
     [DynamicDependency(RuntimeActivatedComponentMembers, typeof(Components.Pages.Extensions))]
+    [DynamicDependency(RuntimeActivatedComponentMembers, typeof(GraphRedirect))]
     [DynamicDependency(RuntimeActivatedComponentMembers, typeof(Home))]
     [DynamicDependency(RuntimeActivatedComponentMembers, typeof(Login))]
     [DynamicDependency(RuntimeActivatedComponentMembers, typeof(Metrics))]

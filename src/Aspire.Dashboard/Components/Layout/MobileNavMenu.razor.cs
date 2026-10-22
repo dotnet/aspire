@@ -3,12 +3,10 @@
 
 using System.Text.RegularExpressions;
 using Aspire.Dashboard.Components.CustomIcons;
-using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
-using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
@@ -55,9 +53,6 @@ public partial class MobileNavMenu : ComponentBase, IAsyncDisposable
 
     [Inject]
     public required IDashboardClient DashboardClient { get; init; }
-
-    [Inject]
-    public required IOptionsMonitor<DashboardOptions> DashboardOptions { get; init; }
 
     [Inject]
     public required IStringLocalizer<Resources.Layout> Loc { get; init; }
@@ -180,17 +175,6 @@ public partial class MobileNavMenu : ComponentBase, IAsyncDisposable
                 LinkMatchRegex: GetNonIndexPageRegex(DashboardUrls.ParametersUrl()),
                 DisabledText: Availability.HasParameters ? null : Loc[nameof(Resources.Layout.NavMenuNoParameters)].Value
             );
-
-            if (DashboardOptions.CurrentValue.UI.DisableResourceGraph != true)
-            {
-                yield return new MobileNavMenuEntry(
-                    Loc[nameof(Resources.Layout.NavMenuGraphTab)],
-                    () => NavigateToAsync(DashboardUrls.GraphUrl()),
-                    DesktopNavMenu.GraphIcon(),
-                    ActiveIcon: DesktopNavMenu.GraphIcon(active: true),
-                    LinkMatchRegex: GetNonIndexPageRegex(DashboardUrls.GraphUrl())
-                );
-            }
 
             if (HasResourceTerminals)
             {

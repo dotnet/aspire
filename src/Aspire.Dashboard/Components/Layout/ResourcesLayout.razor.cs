@@ -170,6 +170,11 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
     internal const string TabToolbarSectionName = "resource-tab-toolbar";
 
     /// <summary>
+    /// The name of the section where the current page renders actions beside the resource title.
+    /// </summary>
+    internal const string HeaderActionsSectionName = "resource-header-actions";
+
+    /// <summary>
     /// Gets the app model resource that matches <see cref="SelectedResourceName"/>, if any.
     /// </summary>
     internal ResourceViewModel? SelectedResource { get; private set; }
@@ -1194,6 +1199,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
     private void OnViewPreferencesChanged() => InvokeAsync(StateHasChanged);
 
     private bool IsCompact => ViewPreferences.Density == ResourceListDensity.Compact;
+    private bool IsSpacious => ViewPreferences.Density == ResourceListDensity.Spacious;
 
     private static IEnumerable<CommandViewModel> GetHighlightedCommands(ResourceViewModel resource) => resource.Commands
         .Where(c => c.IsHighlighted && c.State != CommandViewModelState.Hidden)
@@ -1584,7 +1590,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
 
     private static string GetTabId(ResourceTab tab) => $"tab-{tab}";
 
-    private void OnTabChanged(FluentTab? newTab)
+    private void OnTabChanged(FluentTab? newTab, bool isDesktop)
     {
         // FluentTabs also raises this when a tab is disposed, for example when leaving the resources view, and
         // when it syncs with ActiveTabId after a navigation. Only a change made while this layout shows the current
@@ -1592,6 +1598,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
         // Switching between the live view and a recording re-creates the page, and the outgoing layout's tabs
         // raise changes while they're torn down, which would otherwise navigate to another tab.
         if (_isDisposed
+            || isDesktop != ViewportInformation.IsDesktop
             || !string.Equals(NavigationManager.Uri, _lastLocation, StringComparison.Ordinal)
             || newTab?.Id is not { } id
             || !id.StartsWith("tab-", StringComparison.Ordinal)

@@ -3,6 +3,16 @@
 @using Aspire.Shared
 @using Aspire.Dashboard.Components.ResourcesGridColumns
 
+<StableSectionContent SectionName="@ResourcesLayout.HeaderActionsSectionName">
+    <IconToggleGroup TValue="GroupOverview"
+                     Label="@Loc[nameof(Dashboard.Resources.Resources.LayoutLabel)]"
+                     Options="@OverviewOptions"
+                     Value="@ViewPreferences.GroupOverview"
+                     ValueChanged="@ViewPreferences.SetGroupOverviewAsync"
+                     ShowLabel="true"
+                     ShowCurrentLabel="false" />
+</StableSectionContent>
+
 @* The application summary shown by the resource overview when several or all resources are selected. *@
 <div class="home">
 
@@ -23,7 +33,7 @@
         {
             @ResourceTableSection(resources)
         }
-        else
+        else if (ViewPreferences.GroupOverview == GroupOverview.Summary)
         {
             @HeroSection(summary)
             @ActivitySection()
@@ -33,6 +43,44 @@
                 @RecentTracesSection()
             </div>
         }
+
+        <div class="resources-summary-layout home-resource-graph-layout"
+             hidden="@(ViewPreferences.GroupOverview != GroupOverview.Graph)">
+            <div id="@GraphContainerId"
+                 class="resource-graph-container"
+                 tabindex="0"
+                 role="region"
+                 aria-label="@ControlsStringsLoc[nameof(ControlsStrings.ChartContainerGraphAccessibleLabel)]">
+                <svg class="resource-graph"></svg>
+                <div class="resource-graph-controls">
+                    <FluentButton Appearance="ButtonAppearance.Transparent"
+                                  Class="aspire-icon-button graph-export"
+                                  data-tooltip="@Loc[nameof(Dashboard.Resources.Resources.ResourcesGraphExportMermaidButton)]"
+                                  aria-label="@Loc[nameof(Dashboard.Resources.Resources.ResourcesGraphExportMermaidButton)]"
+                                  OnClick="@ExportResourceGraphAsync">
+                        <FluentIcon Value="new Icons.Regular.Size24.ArrowDownload()" Color="Color.Primary" />
+                    </FluentButton>
+                    <FluentButton Appearance="ButtonAppearance.Transparent"
+                                  Class="aspire-icon-button graph-zoom-in"
+                                  data-tooltip="@Loc[nameof(Dashboard.Resources.Resources.ResourcesGraphZoomInButton)]"
+                                  aria-label="@Loc[nameof(Dashboard.Resources.Resources.ResourcesGraphZoomInButton)]">
+                        <FluentIcon Value="new Icons.Regular.Size24.ZoomIn()" Color="Color.Primary" />
+                    </FluentButton>
+                    <FluentButton Appearance="ButtonAppearance.Transparent"
+                                  Class="aspire-icon-button graph-zoom-out"
+                                  data-tooltip="@Loc[nameof(Dashboard.Resources.Resources.ResourcesGraphZoomOutButton)]"
+                                  aria-label="@Loc[nameof(Dashboard.Resources.Resources.ResourcesGraphZoomOutButton)]">
+                        <FluentIcon Value="new Icons.Regular.Size24.ZoomOut()" Color="Color.Primary" />
+                    </FluentButton>
+                    <FluentButton Appearance="ButtonAppearance.Transparent"
+                                  Class="aspire-icon-button graph-reset"
+                                  data-tooltip="@Loc[nameof(Dashboard.Resources.Resources.ResourcesGraphResetButton)]"
+                                  aria-label="@Loc[nameof(Dashboard.Resources.Resources.ResourcesGraphResetButton)]">
+                        <FluentIcon Value="new Icons.Regular.Size24.ArrowReset()" Color="Color.Primary" />
+                    </FluentButton>
+                </div>
+            </div>
+        </div>
     }
 </div>
 

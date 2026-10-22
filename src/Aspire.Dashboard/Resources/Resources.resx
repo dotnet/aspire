@@ -461,6 +461,9 @@
   <data name="GraphPageTitle" xml:space="preserve">
     <value>Graph</value>
   </data>
+  <data name="LayoutLabel" xml:space="preserve">
+    <value>Layout</value>
+  </data>
   <data name="ResourceOverviewRelationshipGraph" xml:space="preserve">
     <value>Relationship graph</value>
   </data>

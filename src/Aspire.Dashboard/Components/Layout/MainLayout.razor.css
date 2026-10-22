@@ -11,19 +11,12 @@
     white-space: nowrap;
 }
 
-::deep.layout > header > .header-context {
-    display: flex;
-    flex: 1 1 auto;
-    align-items: center;
-    min-width: 0;
-    height: 100%;
-}
-
 ::deep.layout > header > a.application-name {
     display: flex;
     align-items: center;
     flex: 0 1 auto;
     min-width: 0;
+    max-width: min(180px, 18vw);
     height: 28px;
     padding: 0 2px;
     overflow: hidden;
@@ -172,25 +165,27 @@
 
 @media (min-width: 768px) {
     ::deep.layout {
-        grid-template-columns: 48px minmax(0, 1fr);
-        grid-template-rows: auto auto 1fr;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto auto auto minmax(0, 1fr);
         grid-template-areas:
-            "head head"
-            "rail messagebar"
-            "rail main";
+            "head"
+            "nav"
+            "messagebar"
+            "main";
     }
 
     ::deep.layout > header {
-        padding-left: 0;
+        padding-left: 12px;
     }
 
     ::deep.layout > header > .brand-logo-container {
         display: flex;
         align-items: center;
         justify-content: center;
-        flex: 0 0 48px;
-        width: 48px;
+        flex: 0 0 24px;
+        width: 24px;
         height: 100%;
+        transform: translateX(4px);
     }
 
     ::deep.layout > header > .brand-logo-container > a.logo {
@@ -198,68 +193,144 @@
         flex: 0 0 24px;
     }
 
-    ::deep.layout > .main-rail {
-        grid-area: rail;
+    ::deep.layout > .contextual-navigation {
+        grid-area: nav;
         display: flex;
-        flex-direction: column;
         align-items: center;
-        gap: 4px;
-        width: 48px;
-        padding: 8px 0;
-        /* The rail continues the header's surface so the two read as one frame around the content. */
-        background-color: var(--colorNeutralBackground4);
-        overflow-y: auto;
-        overflow-x: hidden;
-        scrollbar-width: none;
+        min-width: 0;
+        min-height: 44px;
+        padding: 0 12px;
+        border-bottom: 1px solid var(--colorNeutralStroke1);
+        background-color: var(--colorNeutralBackground2);
     }
 
-    ::deep.layout > .main-rail > .main-rail-item {
+    ::deep.layout > header > .desktop-nav-menu {
+        position: relative;
+        display: flex;
+        flex: 0 0 auto;
+        align-items: center;
+        gap: 4px;
+        min-width: 0;
+        height: 100%;
+        margin-left: 16px;
+        margin-right: auto;
+        padding-left: 16px;
+    }
+
+    ::deep.layout > header > .desktop-nav-menu::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 50%;
+        width: 1px;
+        height: 24px;
+        background: var(--colorNeutralStroke2);
+        transform: translateY(-50%);
+    }
+
+    ::deep.layout > header > .desktop-nav-menu > .desktop-nav-item {
         position: relative;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        flex: 0 0 40px;
-        width: 40px;
-        height: 40px;
+        gap: 6px;
+        flex: 0 0 auto;
+        height: 32px;
+        padding: 0 10px;
         border-radius: 8px;
         color: var(--colorNeutralForeground2);
+        font-size: 13px;
+        font-weight: var(--fontWeightSemibold);
         text-decoration: none;
+        white-space: nowrap;
     }
 
-    ::deep.layout > .main-rail > .main-rail-item:hover {
+    ::deep.layout > header > .desktop-nav-menu > .desktop-nav-item:hover {
         background: var(--colorNeutralBackground3);
         color: var(--colorNeutralForeground1);
     }
 
-    ::deep.layout > .main-rail > .main-rail-item:focus-visible {
+    ::deep.layout > header > .desktop-nav-menu > .desktop-nav-item:focus-visible {
         outline: 2px solid var(--colorStrokeFocus2);
         outline-offset: -2px;
     }
 
-    ::deep.layout > .main-rail > .main-rail-item.disabled,
-    ::deep.layout > .main-rail > .main-rail-item.disabled:hover {
+    ::deep.layout > header > .desktop-nav-menu > .desktop-nav-item.disabled,
+    ::deep.layout > header > .desktop-nav-menu > .desktop-nav-item.disabled:hover {
         background: transparent;
         color: var(--colorNeutralForegroundDisabled);
         cursor: default;
     }
 
-    ::deep.layout > .main-rail > .main-rail-item.active {
+    ::deep.layout > header > .desktop-nav-menu > .desktop-nav-item.active {
         background: var(--colorNeutralBackground3);
         color: var(--colorBrandForeground1);
     }
 
-    ::deep.layout > .main-rail > .main-rail-item.active svg {
+    ::deep.layout > header > .desktop-nav-menu > .desktop-nav-item.active svg {
         fill: var(--colorBrandForeground1) !important;
     }
 
-    ::deep.layout > .main-rail > .main-rail-item.active::before {
+    ::deep.layout > .contextual-navigation > .header-context {
+        display: flex;
+        flex: 1 1 auto;
+        align-items: center;
+        min-width: 0;
+        height: 100%;
+    }
+
+    ::deep.layout > .contextual-navigation .resource-tabs-nav {
+        height: 100%;
+    }
+
+    ::deep.layout > .contextual-navigation .resources-tab-header {
+        align-self: stretch;
+        align-items: center;
+        min-height: 44px;
+        gap: 6px;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+    }
+
+    ::deep.layout > .contextual-navigation .resources-tab-header fluent-tab {
+        position: relative;
+        height: 32px;
+        padding: 0 10px;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        font-weight: var(--fontWeightSemibold);
+    }
+
+    ::deep.layout > .contextual-navigation .resources-tab-header fluent-tab[aria-selected="true"] {
+        color: var(--colorBrandForeground1);
+        background: transparent;
+    }
+
+    ::deep.layout > .contextual-navigation .resources-tab-header fluent-tab[aria-selected="true"]::after {
         content: "";
         position: absolute;
-        inset-block: 10px;
-        inset-inline-start: -4px;
-        width: 3px;
-        border-radius: 0 2px 2px 0;
+        inset-inline: 8px;
+        bottom: -6px;
+        display: block;
+        height: 3px;
+        border-radius: 2px 2px 0 0;
         background: var(--colorBrandBackground);
+    }
+
+    ::deep.layout > .contextual-navigation .resources-tab-header fluent-tab[aria-selected="false"] {
+        color: var(--colorNeutralForeground2);
+    }
+
+    ::deep.layout > .contextual-navigation .resources-tab-header fluent-tab[aria-selected="false"] svg {
+        color: var(--colorNeutralForeground2);
+    }
+
+    ::deep.layout > .contextual-navigation .resources-tab-header fluent-tab[aria-selected="false"]:hover {
+        background: var(--colorNeutralBackground3);
+        color: var(--colorNeutralForeground1);
     }
 
     ::deep.layout > .layout-body-container {

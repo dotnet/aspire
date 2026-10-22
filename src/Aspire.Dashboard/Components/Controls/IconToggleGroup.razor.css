@@ -13,6 +13,12 @@
     background: var(--colorNeutralBackground2);
 }
 
+.icon-toggle-label {
+    color: var(--colorNeutralForeground2);
+    font-size: var(--fontSizeBase300);
+    font-weight: 600;
+}
+
 .icon-toggle {
     display: inline-flex;
     align-items: center;
@@ -46,4 +52,18 @@
 .icon-toggle-current {
     color: var(--colorNeutralForeground2);
     font-size: var(--fontSizeBase200);
+}
+
+.icon-toggle-group.prominent {
+    gap: 8px;
+}
+
+.icon-toggle-group.prominent .icon-toggle-buttons {
+    gap: 3px;
+    padding: 3px;
+}
+
+.icon-toggle-group.prominent .icon-toggle {
+    width: 38px;
+    height: 34px;
 }

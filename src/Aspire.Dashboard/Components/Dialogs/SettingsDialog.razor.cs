@@ -7,6 +7,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Localization;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Dialogs;
@@ -47,6 +48,9 @@ public partial class SettingsDialog : IDisposable
     [Inject]
     public required IDashboardRunStore RunStore { get; init; }
 
+    [Inject]
+    public required IStringLocalizer<Dashboard.Resources.Resources> ResourcesLoc { get; init; }
+
     protected override void OnInitialized()
     {
         _languageOptions = GlobalizationHelpers.OrderedLocalizedCultures;
@@ -59,13 +63,15 @@ public partial class SettingsDialog : IDisposable
         _timeFormat = TimeProvider.ConfiguredTimeFormat;
         _densityOptions =
         [
+            new(ResourceListDensity.Spacious, new Icons.Regular.Size20.TextBulletListLtr(), Loc[nameof(Dashboard.Resources.Dialogs.SettingsDialogResourceListDensitySpacious)]),
             new(ResourceListDensity.Comfortable, new Icons.Regular.Size20.AppsListDetail(), Loc[nameof(Dashboard.Resources.Dialogs.SettingsDialogResourceListDensityComfortable)]),
             new(ResourceListDensity.Compact, new Icons.Regular.Size20.AppsList(), Loc[nameof(Dashboard.Resources.Dialogs.SettingsDialogResourceListDensityCompact)]),
         ];
         _groupOverviewOptions =
         [
-            new(GroupOverview.Summary, new Icons.Regular.Size20.Board(), Loc[nameof(Dashboard.Resources.Dialogs.SettingsDialogGroupOverviewSummary)]),
-            new(GroupOverview.Resources, new Icons.Regular.Size20.TableSimple(), Loc[nameof(Dashboard.Resources.Dialogs.SettingsDialogGroupOverviewResources)]),
+            new(GroupOverview.Resources, new Icons.Regular.Size20.AppsListDetail(), Loc[nameof(Dashboard.Resources.Dialogs.SettingsDialogGroupOverviewResources)]),
+            new(GroupOverview.Graph, new Icons.Regular.Size20.ShareAndroid(), ResourcesLoc[nameof(Dashboard.Resources.Resources.GraphPageTitle)]),
+            new(GroupOverview.Summary, new Icons.Regular.Size20.Home(), Loc[nameof(Dashboard.Resources.Dialogs.SettingsDialogGroupOverviewSummary)]),
         ];
         _recordingsStyleOptions =
         [

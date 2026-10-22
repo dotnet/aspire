@@ -219,8 +219,8 @@
     min-width: 20px;
     padding: 0 6px;
     border-radius: 10px;
-    background-color: var(--colorNeutralBackground4);
-    color: var(--colorNeutralForeground3);
+    background-color: var(--colorNeutralBackground3);
+    color: var(--colorNeutralForeground2);
     font-size: var(--type-ramp-minus-1-font-size);
     line-height: 18px;
     text-align: center;

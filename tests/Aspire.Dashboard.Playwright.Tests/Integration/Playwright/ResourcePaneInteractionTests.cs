@@ -226,14 +226,14 @@ public sealed class ResourcePaneInteractionTests : PlaywrightTestsBase<Dashboard
             await input.PressAsync("Escape");
             await Assertions.Expect(page.Locator(".tag-chip-name")).ToHaveTextAsync(tag);
 
-            var rail = page.Locator(".main-rail");
+            var navigation = page.Locator(".desktop-nav-menu");
             await page.Locator("#resourcePaneGroupingButton").ClickAsync();
             await page.GetByRole(AriaRole.Menuitemradio, new PageGetByRoleOptions { Name = Resources.Layout.NavMenuTagsTab, Exact = true }).ClickAsync();
 
             var pane = page.Locator(".resource-pane");
             var tagGroup = pane.GetByRole(AriaRole.Group, new LocatorGetByRoleOptions { Name = tag });
             await Assertions.Expect(tagGroup.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = resourceName })).ToBeVisibleAsync();
-            await Assertions.Expect(rail.Locator("a[aria-current='page']")).ToHaveAccessibleNameAsync(Resources.Layout.NavMenuResourcesTab);
+            await Assertions.Expect(navigation.Locator("a[aria-current='page']")).ToHaveAccessibleNameAsync(Resources.Layout.NavMenuResourcesTab);
 
             // Grouping is remembered when reloading a resource URL.
             await page.GotoAsync($"/resources/{resourceName}");
@@ -243,7 +243,7 @@ public sealed class ResourcePaneInteractionTests : PlaywrightTestsBase<Dashboard
             await page.GetByRole(AriaRole.Menuitemradio, new PageGetByRoleOptions { Name = Resources.Layout.ResourcePaneGroupingNone, Exact = true }).ClickAsync();
             await Assertions.Expect(tagGroup).ToHaveCountAsync(0);
             await Assertions.Expect(pane.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = resourceName })).ToBeVisibleAsync();
-            await Assertions.Expect(rail.Locator("a[aria-current='page']")).ToHaveAccessibleNameAsync(Resources.Layout.NavMenuResourcesTab);
+            await Assertions.Expect(navigation.Locator("a[aria-current='page']")).ToHaveAccessibleNameAsync(Resources.Layout.NavMenuResourcesTab);
         });
     }
 

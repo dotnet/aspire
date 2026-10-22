@@ -212,9 +212,10 @@ public class ResourcesTests : PlaywrightTestsBase<ResourcesTests.ResourcesDashbo
 
             var navigationCount = await page.EvaluateAsync<int>("() => performance.getEntriesByType('navigation').length");
 
-            var graphLink = page.Locator(".main-rail").GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = Dashboard.Resources.Layout.NavMenuGraphTab, Exact = true });
-            await graphLink.ClickAsync();
-            await Assertions.Expect(graphLink).ToHaveAttributeAsync("aria-current", "page");
+            var layoutSelector = page.GetByRole(AriaRole.Group, new PageGetByRoleOptions { Name = Dashboard.Resources.Resources.LayoutLabel, Exact = true });
+            var graphButton = layoutSelector.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = Dashboard.Resources.Layout.NavMenuGraphTab, Exact = true });
+            await graphButton.ClickAsync();
+            await Assertions.Expect(graphButton).ToHaveAttributeAsync("aria-pressed", "true");
 
             var graphContainer = page.Locator("#resourcesGraphContainer");
             await Assertions.Expect(graphContainer).ToBeVisibleAsync();

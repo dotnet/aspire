@@ -22,9 +22,7 @@
             <a href="/" class="application-name" @onclick="GoToAllResourcesAsync" @onclick:preventDefault="true">
                 <ApplicationName/>
             </a>
-            <div class="header-context">
-                <SectionOutlet SectionName="@HeaderContextSectionName" />
-            </div>
+            <DesktopNavMenu HasResourceTerminals="@_navigationAvailability.HasResourceTerminals" Availability="@_navigationAvailability" />
             @if (RunStore.SupportsRunSelection && UseRunMenu)
             {
                 @* The "Live run" dropdown from before recordings had their own panel, at the same place in the header. *@
@@ -62,7 +60,11 @@
             </FluentButton>
             <UserProfile/>
         </header>
-        <DesktopNavMenu HasResourceTerminals="@_navigationAvailability.HasResourceTerminals" Availability="@_navigationAvailability" />
+        <div class="contextual-navigation">
+            <div class="header-context">
+                <SectionOutlet SectionName="@HeaderContextSectionName" />
+            </div>
+        </div>
     }
     else
     {

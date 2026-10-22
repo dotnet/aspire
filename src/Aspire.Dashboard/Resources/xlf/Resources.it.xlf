@@ -122,6 +122,11 @@
         <target state="new">{0} unviewed error logs</target>
         <note />
       </trans-unit>
+      <trans-unit id="LayoutLabel">
+        <source>Layout</source>
+        <target state="new">Layout</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ParametersPageTitle">
         <source>Parameters</source>
         <target state="new">Parameters</target>

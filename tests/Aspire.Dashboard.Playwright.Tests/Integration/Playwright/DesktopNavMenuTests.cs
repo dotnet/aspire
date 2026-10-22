@@ -20,7 +20,7 @@ public sealed class DesktopNavMenuTests : PlaywrightTestsBase<DashboardServerFix
 
     [Fact]
     [OuterloopTest("Resource-intensive Playwright browser test")]
-    public async Task MainRail_NavigatesBetweenSectionsAndMarksActiveItem()
+    public async Task MainNavigation_NavigatesBetweenSectionsAndMarksActiveItem()
     {
         await RunTestAsync(async page =>
         {
@@ -28,7 +28,7 @@ public sealed class DesktopNavMenuTests : PlaywrightTestsBase<DashboardServerFix
 
             // The root URL opens the resources, with all resources selected.
             await page.WaitForURLAsync(url => new Uri(url).AbsolutePath.StartsWith("/resources", StringComparison.Ordinal));
-            var nav = page.Locator(".main-rail");
+            var nav = page.Locator(".desktop-nav-menu");
             await AssertActiveItemAsync(Resources.Layout.NavMenuResourcesTab);
 
             var navigationCount = await page.EvaluateAsync<int>("() => performance.getEntriesByType('navigation').length");
@@ -40,31 +40,13 @@ public sealed class DesktopNavMenuTests : PlaywrightTestsBase<DashboardServerFix
             await nav.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = Resources.Layout.NavMenuParametersTab, Exact = true }).ClickAsync();
             await page.WaitForURLAsync(url => new Uri(url).AbsolutePath == "/parameters");
             await AssertActiveItemAsync(Resources.Layout.NavMenuParametersTab);
+            await Assertions.Expect(nav.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = Resources.Layout.NavMenuGraphTab, Exact = true })).ToHaveCountAsync(0);
 
-            // Parameters and Graph share a page component, so switching between them must update the displayed view.
-            var gridContainer = page.Locator(".resources-grid-container");
-            var graphContainer = page.Locator(".resource-graph-container");
-            await Assertions.Expect(gridContainer).ToBeVisibleAsync();
-            await Assertions.Expect(graphContainer).ToBeHiddenAsync();
-
-            await nav.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = Resources.Layout.NavMenuGraphTab, Exact = true }).ClickAsync();
-            await page.WaitForURLAsync(url => new Uri(url).AbsolutePath == "/graph");
-            await AssertActiveItemAsync(Resources.Layout.NavMenuGraphTab);
-            await Assertions.Expect(graphContainer).ToBeVisibleAsync();
-            await Assertions.Expect(gridContainer).ToBeHiddenAsync();
-
-            await nav.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = Resources.Layout.NavMenuParametersTab, Exact = true }).ClickAsync();
-            await page.WaitForURLAsync(url => new Uri(url).AbsolutePath == "/parameters");
-            await AssertActiveItemAsync(Resources.Layout.NavMenuParametersTab);
-            await Assertions.Expect(gridContainer).ToBeVisibleAsync();
-            await Assertions.Expect(graphContainer).ToBeHiddenAsync();
-
-            // Rail links are handled by Blazor's router, so switching sections doesn't reload the document.
+            // Navigation links are handled by Blazor's router, so switching sections doesn't reload the document.
             Assert.Equal(navigationCount, await page.EvaluateAsync<int>("() => performance.getEntriesByType('navigation').length"));
 
             async Task AssertActiveItemAsync(string expectedName)
             {
-                // Rail items are icon-only, so their label is the accessible name rather than the text content.
                 var activeItem = nav.Locator("a[aria-current='page']");
                 await Assertions.Expect(activeItem).ToHaveCountAsync(1);
                 await Assertions.Expect(activeItem).ToHaveAccessibleNameAsync(expectedName);

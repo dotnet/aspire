@@ -70,6 +70,15 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Layout.
+        /// </summary>
+        public static string LayoutLabel {
+            get {
+                return ResourceManager.GetString("LayoutLabel", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to {0} (just now).
         /// </summary>
         public static string HealthCheckStatusJustNowFormat {

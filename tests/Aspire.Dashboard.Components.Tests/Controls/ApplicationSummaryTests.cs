@@ -18,9 +18,10 @@ namespace Aspire.Dashboard.Components.Tests.Controls;
 public class ApplicationSummaryTests : DashboardTestContext
 {
     [Fact]
-    public void Render_SummarizesTheAppWithoutListingResources()
+    public async Task Render_SummarySetting_SummarizesTheAppWithoutListingResources()
     {
         var cut = RenderSummary();
+        await cut.InvokeAsync(() => Services.GetRequiredService<DashboardViewPreferences>().SetGroupOverviewAsync(GroupOverview.Summary));
 
         cut.WaitForAssertion(() => Assert.Single(cut.FindAll(".home-hero")));
         Assert.Equal("1 of 2 resources need attention", cut.Find(".home-hero-headline").TextContent);
@@ -32,13 +33,9 @@ public class ApplicationSummaryTests : DashboardTestContext
     }
 
     [Fact]
-    public async Task Render_ResourcesSetting_ShowsOnlyTheResourceTable()
+    public void Render_DefaultSetting_ShowsOnlyTheResourceTable()
     {
         var cut = RenderSummary();
-        cut.WaitForAssertion(() => Assert.Single(cut.FindAll(".home-hero")));
-
-        // The setting applies right away, without reloading the page.
-        await cut.InvokeAsync(() => Services.GetRequiredService<DashboardViewPreferences>().SetGroupOverviewAsync(GroupOverview.Resources));
 
         cut.WaitForAssertion(() => Assert.Single(cut.FindAll(".home-resource-table")));
         Assert.Empty(cut.FindAll(".home-hero"));
@@ -53,6 +50,22 @@ public class ApplicationSummaryTests : DashboardTestContext
             ["Container", "Project"],
             cut.FindAll(".home-resource-table tbody .home-table-type").Select(type => type.TextContent));
         Assert.Equal(2, cut.FindComponents<ResourceActions>().Count);
+    }
+
+    [Fact]
+    public async Task Render_GraphSetting_ShowsTheResourceGraph()
+    {
+        var module = JSInterop.SetupModule("/js/app-resourcegraph.js");
+        module.Mode = JSRuntimeMode.Loose;
+        var cut = RenderSummary();
+
+        await cut.InvokeAsync(() => Services.GetRequiredService<DashboardViewPreferences>().SetGroupOverviewAsync(GroupOverview.Graph));
+
+        cut.WaitForAssertion(() => Assert.False(cut.Find(".home-resource-graph-layout").HasAttribute("hidden")));
+        Assert.Empty(cut.FindAll(".home-hero"));
+        Assert.Empty(cut.FindAll(".home-resource-table"));
+        Assert.Single(module.Invocations, invocation => invocation.Identifier == "initializeResourcesGraph");
+        Assert.Contains(module.Invocations, invocation => invocation.Identifier == "updateResourcesGraph");
     }
 
     private IRenderedComponent<ApplicationSummary> RenderSummary()

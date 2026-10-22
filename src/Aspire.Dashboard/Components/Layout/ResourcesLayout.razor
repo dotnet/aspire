@@ -70,7 +70,7 @@
                 }
             </div>
 
-            <nav class="resource-pane-list @(IsCompact ? "density-compact" : null)"
+            <nav class="resource-pane-list @(IsCompact ? "density-compact" : IsSpacious ? "density-spacious" : null)"
                  data-reorder-enabled="@CanReorderResources.ToString().ToLowerInvariant()"
                  data-group-reorder-enabled="@CanReorderGroups.ToString().ToLowerInvariant()"
                  aria-label="@Loc[IsTelemetryPane ? nameof(Dashboard.Resources.Layout.NavMenuTelemetrySourcesTab) : nameof(Dashboard.Resources.Layout.ResourcePaneLandmark)]">
@@ -225,16 +225,19 @@
                 }
             </nav>
 
-            <div class="resource-pane-foot">
-                <span>@GetPaneCountText(paneResourceCount)</span>
-                @if (!IsTelemetryPane)
-                {
-                    <AspireMenuButton ButtonAppearance="ButtonAppearance.Transparent"
-                                      Icon="@(new Icons.Regular.Size16.MoreHorizontal())"
-                                      ItemsProvider="@(() => _paneMenuItems)"
-                                      Title="@ResourcesLoc[nameof(Dashboard.Resources.Resources.ResourcesChangeViewOptions)]" />
-                }
-            </div>
+            @if (!isDesktop)
+            {
+                <div class="resource-pane-foot">
+                    <span>@GetPaneCountText(paneResourceCount)</span>
+                    @if (!IsTelemetryPane)
+                    {
+                        <AspireMenuButton ButtonAppearance="ButtonAppearance.Transparent"
+                                          Icon="@(new Icons.Regular.Size16.MoreHorizontal())"
+                                          ItemsProvider="@(() => _paneMenuItems)"
+                                          Title="@ResourcesLoc[nameof(Dashboard.Resources.Resources.ResourcesChangeViewOptions)]" />
+                    }
+                </div>
+            }
 
             @if (isDesktop)
             {
@@ -252,78 +255,21 @@
 
         <section class="resource-content">
             <header class="resource-header">
+                @{ RenderHeaderRow(__builder, isDesktop); }
+
                 @if (isDesktop)
                 {
-                    @* On desktop the resource identity and actions live in the app top bar, next to the app name. *@
                     <StableSectionContent SectionName="@MainLayout.HeaderContextSectionName">
-                        @((RenderFragment)(builder => RenderHeaderRow(builder, isDesktop)))
+                        @((RenderFragment)(builder => RenderTabNavigation(builder, isDesktop: true)))
                     </StableSectionContent>
                 }
-                else
-                {
-                    RenderHeaderRow(__builder, isDesktop);
-                }
 
-                <div class="resource-tabs" @key="typeof(ResourcesLayout)">
-                    @if (isDesktop)
-                    {
-                        @* Always the first control in the content area, so it stays easy to find whether the pane is shown or hidden. *@
-                        <FluentButton Class="resource-pane-toggle-button"
-                                      Appearance="ButtonAppearance.Default"
-                                      IconOnly="true"
-                                      IconStart="@(showCollapsedPane ? new Icons.Regular.Size20.PanelLeftExpand() : new Icons.Regular.Size20.PanelLeftContract())"
-                                      OnClick="TogglePaneCollapsedAsync"
-                                      data-tooltip="@(showCollapsedPane ? Loc[nameof(Dashboard.Resources.Layout.ResourcePaneExpand)] : Loc[nameof(Dashboard.Resources.Layout.ResourcePaneCollapse)])"
-                                      aria-label="@(showCollapsedPane ? Loc[nameof(Dashboard.Resources.Layout.ResourcePaneExpand)] : Loc[nameof(Dashboard.Resources.Layout.ResourcePaneCollapse)])"
-                                      aria-expanded="@((!showCollapsedPane).ToString().ToLowerInvariant())" />
-                    }
-                    @{
-                        // When the tab row no longer has room for every label (e.g. a wide resource pane leaves
-                        // little space on a narrower window), the ".resource-tabs-nav" container query below swaps
-                        // this for the compact dropdown instead of letting the row grow its own scrollbar.
-                        var currentTabItem = GetTabs().FirstOrDefault(t => t.Tab == CurrentTab);
-                    }
-                    <div class="resource-tabs-nav">
-                        <FluentTabs Class="resources-tab-header"
-                                    ActiveTabId="@GetTabId(CurrentTab)"
-                                    ActiveTabChanged="@OnTabChanged"
-                                    aria-label="@Loc[nameof(Dashboard.Resources.Layout.ResourceTabsLandmark)]"
-                                    Size="null">
-                            @foreach (var tab in GetTabs())
-                            {
-                                <FluentTab HeaderClass="tab-label"
-                                           Id="@GetTabId(tab.Tab)"
-                                           Visible="@tab.IsVisible"
-                                           Disabled="@(tab.Href is null)"
-                                           data-tooltip="@(tab.Href is null ? Loc[nameof(Dashboard.Resources.Layout.ResourceTabUnavailable)] : null)"
-                                           IconStart="@tab.Icon">
-                                    <HeaderTemplate>
-                                        <span>@tab.Text</span>
-                                        @if (tab.ErrorCount > 0)
-                                        {
-                                            <FluentBadge Class="resource-tab-error-count" Appearance="BadgeAppearance.Tint" Circular="true">@tab.ErrorCount</FluentBadge>
-                                        }
-                                    </HeaderTemplate>
-                                </FluentTab>
-                            }
-                        </FluentTabs>
-                        @* The button already shows the current view, so a tooltip would only cover the controls above it. *@
-                        <AspireMenuButton ButtonClass="resource-tabs-compact-button"
-                                          Text="@currentTabItem?.Text"
-                                          IconStart="@currentTabItem?.Icon"
-                                          ButtonAppearance="ButtonAppearance.Default"
-                                          ItemsProvider="@GetTabMenuItems"
-                                          Title="@Loc[nameof(Dashboard.Resources.Layout.ResourceTabsLandmark)]"
-                                          data-tooltip="" />
+                @if (!isDesktop)
+                {
+                    <div class="resource-tabs" @key="typeof(ResourcesLayout)">
+                        @((RenderFragment)(builder => RenderTabNavigation(builder, isDesktop: false)))
                     </div>
-                    @if (isDesktop)
-                    {
-                        @* Tab pages can render their filter controls here so they share the tabs row. *@
-                        <div class="resource-tab-toolbar">
-                            <SectionOutlet SectionName="@TabToolbarSectionName" />
-                        </div>
-                    }
-                </div>
+                }
             </header>
 
             <div class="resource-tab-body">
@@ -332,6 +278,43 @@
                 </CascadingValue>
             </div>
         </section>
+
+        @if (isDesktop)
+        {
+            <footer class="resource-workspace-foot">
+                @if (!_isPaneCollapsed)
+                {
+                    <div class="resource-pane-foot">
+                        <span>@GetPaneCountText(paneResourceCount)</span>
+                        <div class="resource-pane-foot-actions">
+                            @if (!IsTelemetryPane)
+                            {
+                                <AspireMenuButton ButtonAppearance="ButtonAppearance.Transparent"
+                                                  Icon="@(new Icons.Regular.Size16.MoreHorizontal())"
+                                                  ItemsProvider="@(() => _paneMenuItems)"
+                                                  Title="@ResourcesLoc[nameof(Dashboard.Resources.Resources.ResourcesChangeViewOptions)]" />
+                            }
+                        </div>
+                    </div>
+                }
+                <div class="resource-content-foot">
+                    <FluentButton Class="resource-pane-toggle-button"
+                                  Appearance="ButtonAppearance.Transparent"
+                                  IconOnly="true"
+                                  IconStart="@(_isPaneCollapsed ? new Icons.Regular.Size20.PanelLeftExpand() : new Icons.Regular.Size20.PanelLeftContract())"
+                                  OnClick="TogglePaneCollapsedAsync"
+                                  data-tooltip="@Loc[_isPaneCollapsed ? nameof(Dashboard.Resources.Layout.ResourcePaneExpand) : nameof(Dashboard.Resources.Layout.ResourcePaneCollapse)]"
+                                  aria-label="@Loc[_isPaneCollapsed ? nameof(Dashboard.Resources.Layout.ResourcePaneExpand) : nameof(Dashboard.Resources.Layout.ResourcePaneCollapse)]"
+                                  aria-expanded="@((!_isPaneCollapsed).ToString().ToLowerInvariant())" />
+                    @if (SelectedResource is { } footerResource)
+                    {
+                        <div class="resource-footer-status">
+                            @{ RenderSelectedResourceMeta(__builder, footerResource); }
+                        </div>
+                    }
+                </div>
+            </footer>
+        }
     </div>
 }
 
@@ -397,9 +380,9 @@
                 aria-expanded="@(_isDrawerOpen ? "true" : "false")"
                 aria-description="@Loc[nameof(Dashboard.Resources.Layout.ResourcePaneOpen)]"
                 @onclick="OpenDrawer">
-            <FluentIcon Value="@(new Icons.Regular.Size20.TextBulletListLtr())" Width="20px" Color="Color.Primary" />
+            <FluentIcon Class="resource-picker-leading-icon" Value="@(new Icons.Regular.Size20.TextBulletListLtr())" Width="20px" Color="Color.Primary" />
             <span class="resource-picker-text">@text</span>
-            <FluentIcon Value="@(new Icons.Regular.Size16.ChevronDown())" Width="16px" Color="Color.Default" />
+            <FluentIcon Class="resource-picker-chevron" Value="@(new Icons.Regular.Size16.ChevronDown())" Width="16px" Color="Color.Custom" CustomColor="currentColor" />
         </button>
     </h1>
         }
@@ -407,56 +390,35 @@
 
     private void RenderHeaderRow(RenderTreeBuilder __builder, bool isDesktop)
     {
-    <div class="resource-header-row @(isDesktop ? "in-top-bar" : null)">
+    <div class="resource-header-row">
         @if (SelectedResource is { } selected)
         {
             var selectedName = GetResourceName(selected);
-            var selectedState = ResourceStateViewModel.GetStateViewModel(selected, ColumnsLoc);
             <span class="resource-header-icon">
-                <FluentIcon Width="24px"
+                <FluentIcon Width="20px"
                             Color="Color.Custom"
                             CustomColor="@ColorGenerator.Instance.GetColorVariableByKey(selectedName)"
-                            Value="@ResourceIconHelpers.GetIconForResource(IconResolver, selected, IconSize.Size24)" />
+                            Value="@ResourceIconHelpers.GetIconForResource(IconResolver, selected, IconSize.Size20)" />
             </span>
             <div class="resource-header-text">
                 <div class="resource-header-title">
                     @{ RenderTitle(__builder, selectedName, isDesktop); }
                 </div>
-                @* State, type, start time and URLs are already shown on the Overview tab, so the compact top-bar header omits them. *@
                 @if (!isDesktop)
                 {
-                <div class="resource-header-meta">
-                    <span class="state-pill @GetStateClass(selected)">
-                        <FluentIcon Value="@selectedState.Icon" Width="12px" Color="Color.Custom" CustomColor="currentColor" />
-                        @selectedState.Text
-                    </span>
-                    <span>@selected.ResourceType</span>
-                    @if (selected.StartTimeStamp is not null)
-                    {
-                        <span class="resource-header-sep" aria-hidden="true">·</span>
-                        <span>@Loc[nameof(Dashboard.Resources.Layout.ResourceHeaderStarted)] <StartTimeColumnDisplay Resource="@selected" /></span>
-                    }
-                    @{
-                        var urls = ResourceUrlHelpers.GetUrls(selected, includeInternalUrls: false, includeNonEndpointUrls: true);
-                    }
-                    @if (urls.Count > 0)
-                    {
-                        <span class="resource-header-sep" aria-hidden="true">·</span>
-                        <span class="resource-header-urls">
-                            <UrlsColumnDisplay Resource="@selected" HasMultipleReplicas="@HasMultipleReplicas(selected)" DisplayedUrls="@urls" />
-                        </span>
-                    }
-                </div>
+                    <div class="resource-header-meta">
+                        @{ RenderSelectedResourceMeta(__builder, selected); }
+                    </div>
                 }
             </div>
         }
         else if (SelectedTelemetryOnlyResource is { } telemetryOnly)
         {
             <span class="resource-header-icon">
-                <FluentIcon Width="24px"
+                <FluentIcon Width="20px"
                             Color="Color.Custom"
                             CustomColor="@ColorGenerator.Instance.GetColorVariableByKey(telemetryOnly.Name)"
-                            Value="@(new Icons.Regular.Size24.DataUsage())" />
+                            Value="@(new Icons.Regular.Size20.DataUsage())" />
             </span>
             <div class="resource-header-text">
                 <div class="resource-header-title">
@@ -467,7 +429,7 @@
         else if (IsMultiSelection)
         {
             <span class="resource-header-icon">
-                <FluentIcon Width="24px" Value="@(new Icons.Regular.Size24.Stack())" Color="Color.Primary" />
+                <FluentIcon Width="20px" Value="@(new Icons.Regular.Size20.Stack())" Color="Color.Primary" />
             </span>
             <div class="resource-header-text">
                 <div class="resource-header-title">
@@ -478,7 +440,7 @@
         else if (SelectedResourceName is not null && _isLoaded)
         {
             <span class="resource-header-icon neutral">
-                <FluentIcon Width="24px" Value="@(new Icons.Regular.Size24.QuestionCircle())" Color="Color.Default" />
+                <FluentIcon Width="20px" Value="@(new Icons.Regular.Size20.QuestionCircle())" Color="Color.Default" />
             </span>
             <div class="resource-header-text">
                 <div class="resource-header-title">
@@ -490,7 +452,7 @@
         else
         {
             <span class="resource-header-icon neutral">
-                <FluentIcon Width="24px" Value="@(new Icons.Regular.Size24.AppsList())" Color="Color.Default" />
+                <FluentIcon Width="20px" Value="@(new Icons.Regular.Size20.AppsList())" Color="Color.Default" />
             </span>
             <div class="resource-header-text">
                 <div class="resource-header-title">
@@ -498,6 +460,81 @@
                 </div>
             </div>
         }
+        <div class="resource-header-controls">
+            <div class="resource-header-actions">
+                <SectionOutlet SectionName="@HeaderActionsSectionName" />
+            </div>
+            @if (isDesktop)
+            {
+                <div class="resource-tab-toolbar">
+                    <SectionOutlet SectionName="@TabToolbarSectionName" />
+                </div>
+            }
+        </div>
+    </div>
+    }
+
+    private void RenderSelectedResourceMeta(RenderTreeBuilder __builder, ResourceViewModel resource)
+    {
+        var selectedState = ResourceStateViewModel.GetStateViewModel(resource, ColumnsLoc);
+        var urls = ResourceUrlHelpers.GetUrls(resource, includeInternalUrls: false, includeNonEndpointUrls: true);
+
+        <span class="state-pill @GetStateClass(resource)">
+            <FluentIcon Value="@selectedState.Icon" Width="12px" Color="Color.Custom" CustomColor="currentColor" />
+            @selectedState.Text
+        </span>
+        <span class="resource-status-type">@resource.ResourceType</span>
+        @if (resource.StartTimeStamp is not null)
+        {
+            <span class="resource-header-sep" aria-hidden="true">·</span>
+            <span>@Loc[nameof(Dashboard.Resources.Layout.ResourceHeaderStarted)] <StartTimeColumnDisplay Resource="@resource" /></span>
+        }
+        @if (urls.Count > 0)
+        {
+            <span class="resource-header-sep" aria-hidden="true">·</span>
+            <span class="resource-header-urls">
+                <UrlsColumnDisplay Resource="@resource" HasMultipleReplicas="@HasMultipleReplicas(resource)" DisplayedUrls="@urls" />
+            </span>
+        }
+    }
+
+    private void RenderTabNavigation(RenderTreeBuilder __builder, bool isDesktop)
+    {
+        // When the row no longer has room for every label, the container query swaps this for the compact dropdown
+        // instead of letting the top navigation grow its own scrollbar.
+        var currentTabItem = GetTabs().FirstOrDefault(t => t.Tab == CurrentTab);
+    <div class="resource-tabs-nav">
+        <FluentTabs Class="resources-tab-header"
+                    ActiveTabId="@GetTabId(CurrentTab)"
+                    ActiveTabChanged="@(tab => OnTabChanged(tab, isDesktop))"
+                    aria-label="@Loc[nameof(Dashboard.Resources.Layout.ResourceTabsLandmark)]"
+                    Size="null">
+            @foreach (var tab in GetTabs())
+            {
+                <FluentTab HeaderClass="tab-label"
+                           Id="@GetTabId(tab.Tab)"
+                           Visible="@tab.IsVisible"
+                           Disabled="@(tab.Href is null)"
+                           data-tooltip="@(tab.Href is null ? Loc[nameof(Dashboard.Resources.Layout.ResourceTabUnavailable)] : null)"
+                           IconStart="@tab.Icon">
+                    <HeaderTemplate>
+                        <span>@tab.Text</span>
+                        @if (tab.ErrorCount > 0)
+                        {
+                            <FluentBadge Class="resource-tab-error-count" Appearance="BadgeAppearance.Tint" Circular="true">@tab.ErrorCount</FluentBadge>
+                        }
+                    </HeaderTemplate>
+                </FluentTab>
+            }
+        </FluentTabs>
+        @* The button already shows the current view, so a tooltip would only cover the controls above it. *@
+        <AspireMenuButton ButtonClass="resource-tabs-compact-button"
+                          Text="@currentTabItem?.Text"
+                          IconStart="@currentTabItem?.Icon"
+                          ButtonAppearance="ButtonAppearance.Default"
+                          ItemsProvider="@GetTabMenuItems"
+                          Title="@Loc[nameof(Dashboard.Resources.Layout.ResourceTabsLandmark)]"
+                          data-tooltip="" />
     </div>
     }
 
@@ -509,6 +546,9 @@
         var stateViewModel = ResourceStateViewModel.GetStateViewModel(resource, ColumnsLoc);
         var errorCount = GetUnviewedErrorCount(resource);
         var depth = row?.Depth ?? 0;
+        var primaryUrl = IsSpacious
+            ? ResourceUrlHelpers.GetUrls(resource, includeInternalUrls: false, includeNonEndpointUrls: true).FirstOrDefault()
+            : null;
         // The whole row is the drag source, so reordering doesn't need a separate grip.
         var canReorder = CanReorderResources;
 
@@ -528,10 +568,10 @@
                @onclick="@(e => OnRowClickAsync(e, resourceName))"
                @onclick:preventDefault="true">
                 <span class="resource-row-icon">
-                    <FluentIcon Width="16px"
+                    <FluentIcon Width="@(IsSpacious ? "20px" : "16px")"
                                 Color="Color.Custom"
                                 CustomColor="@ColorGenerator.Instance.GetColorVariableByKey(resourceName)"
-                                Value="@ResourceIconHelpers.GetIconForResource(IconResolver, resource, IconSize.Size16)" />
+                                Value="@ResourceIconHelpers.GetIconForResource(IconResolver, resource, IsSpacious ? IconSize.Size20 : IconSize.Size16)" />
                 </span>
                 @if (IsCompact)
                 {
@@ -596,6 +636,23 @@
                             <span class="resource-row-sep" aria-hidden="true">·</span>
                             <span class="resource-row-type">@resource.ResourceType</span>
                         </span>
+                        @if (IsSpacious && (resource.HealthStatus is not null || primaryUrl is not null))
+                        {
+                            <span class="resource-row-detail">
+                                @if (resource.HealthStatus is { } healthStatus)
+                                {
+                                    <span>@healthStatus.Humanize()</span>
+                                }
+                                @if (resource.HealthStatus is not null && primaryUrl is not null)
+                                {
+                                    <span class="resource-row-sep" aria-hidden="true">·</span>
+                                }
+                                @if (primaryUrl is not null)
+                                {
+                                    <span class="resource-row-endpoint" data-tooltip="@primaryUrl.Text">@primaryUrl.Text</span>
+                                }
+                            </span>
+                        }
                     </span>
                     @if (errorCount > 0)
                     {
