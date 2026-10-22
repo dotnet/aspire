@@ -2,6 +2,11 @@ name: VS Code extension E2E tests
 
 on:
   workflow_call:
+    inputs:
+      extensionVersionOverride:
+        required: false
+        type: string
+        default: ''
 
 jobs:
   verify_prerequisites:
@@ -14,13 +19,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      # Fail once before matrix fan-out when the producer could not publish the VSIX.
-      - name: Download VSIX
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: aspire-extension
-          path: extension/out
 
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -78,6 +76,41 @@ jobs:
       - name: Verify locked ExTester
         working-directory: extension
         run: node scripts/run-e2e.js --verify-extester-feed
+
+      # This job owns the VSIX installed by the matrix, so fan-out starts only
+      # after the package has been built, validated, and uploaded successfully.
+      - name: Override extension version for PR builds
+        if: ${{ inputs.extensionVersionOverride != '' }}
+        working-directory: extension
+        run: corepack yarn version --new-version "${{ inputs.extensionVersionOverride }}" --no-git-tag-version
+
+      - name: Package VSIX
+        working-directory: extension
+        env:
+          ASPIRE_EXTENSION_E2E_INCLUDE_BRIDGE: "true"
+        run: corepack yarn run vsce package --pre-release -o out/aspire-extension.vsix
+
+      - name: Assert E2E VSIX contains bridge
+        working-directory: extension
+        run: ../.github/scripts/assert-extension-e2e-bridge-vsix.ps1 -VsixPath out/aspire-extension.vsix -Expected Present
+
+      # Packaged separately because the E2E VSIX intentionally contains the bridge.
+      # No env override here reproduces the shipping build, where webpack stubs the
+      # bridge in production mode and step-scoped env values do not leak.
+      - name: Package production VSIX
+        working-directory: extension
+        run: corepack yarn run vsce package --pre-release -o out/aspire-extension-production.vsix
+
+      - name: Assert production VSIX excludes bridge
+        working-directory: extension
+        run: ../.github/scripts/assert-extension-e2e-bridge-vsix.ps1 -VsixPath out/aspire-extension-production.vsix -Expected Absent
+
+      - name: Upload VSIX
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: aspire-extension
+          path: extension/out/aspire-extension.vsix
+          if-no-files-found: error
 
   extension_e2e:
     if: ${{ github.repository == 'microsoft/aspire' }}

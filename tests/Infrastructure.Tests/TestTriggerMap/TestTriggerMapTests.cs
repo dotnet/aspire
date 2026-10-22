@@ -120,7 +120,7 @@ public sealed class TestTriggerMapTests
         },
         {
             ".github/scripts/assert-extension-e2e-bridge-vsix.ps1",
-            ["job:extension-unit"]
+            ["job:extension-e2e"]
         },
         {
             ".vscode/launch.json",
