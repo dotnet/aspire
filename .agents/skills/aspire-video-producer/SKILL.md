@@ -1,6 +1,11 @@
 ---
 name: aspire-video-producer
-description: Produces narrated Aspire videos (feature walkthroughs, dashboard tours, integration overviews, pull request demos) with one unified look and specification - 1080p, the Aspire logo and purple palette from aspire.dev, a neural voice picked from a shortlist, captions, slight dynamic zooms on demos, and renditions for GitHub, aspire.dev, YouTube or chat apps. Use when asked to record, narrate, or produce a video of Aspire, its dashboard or its CLI: narrated and branded by default, or silent or unbranded when the user asks for a simpler video.
+description: >-
+  Produces narrated Aspire videos (feature walkthroughs, dashboard tours, integration overviews, pull request demos)
+  with one unified look and specification - 1080p, the Aspire logo and purple palette from aspire.dev, a neural voice
+  picked from a shortlist, captions, slight dynamic zooms on demos, and renditions for GitHub, aspire.dev, YouTube or
+  chat apps. Use when asked to record, narrate, or produce a video of Aspire, its dashboard or its CLI: narrated and
+  branded by default, or silent or unbranded when the user asks for a simpler video.
 ---
 
 # Aspire Video Producer
