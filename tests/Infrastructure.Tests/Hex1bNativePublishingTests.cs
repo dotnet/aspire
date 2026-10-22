@@ -354,6 +354,143 @@ public sealed class Hex1bNativePublishingTests : IDisposable
         Assert.Contains("win-arm64", result.Output);
     }
 
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    public async Task MacOSNativeBundleDebugSymbolsAreRemovedWithoutChangingPayloads(bool terminalSymbols, bool trailingSeparator)
+    {
+        var dashboard = Path.Combine(_workspace.Path, "Dashboard publish");
+        var terminal = Path.Combine(_workspace.Path, "TerminalHost publish");
+        var server = Path.Combine(_workspace.Path, "AppHost Server publish");
+        WriteFile(Path.Combine(dashboard, "Aspire.Dashboard"), "dashboard payload");
+        WriteFile(Path.Combine(terminal, "Aspire.TerminalHost"), "terminal payload");
+        WriteFile(Path.Combine(server, "Aspire.Hosting.Native.Server"), "server payload");
+        WriteFile(Path.Combine(server, "Aspire.Hosting.Native.Server.dSYM", "Contents", "Resources", "DWARF", "Aspire.Hosting.Native.Server"), "server symbols");
+        WriteFile(Path.Combine(dashboard, "Aspire.Dashboard.dSYM", "Contents", "Resources", "DWARF", "Aspire.Dashboard"), "dashboard symbols");
+        if (terminalSymbols)
+        {
+            WriteFile(Path.Combine(terminal, "Aspire.TerminalHost.dSYM", "Contents", "Resources", "DWARF", "Aspire.TerminalHost"), "terminal symbols");
+        }
+
+        var result = await RunDotNetAsync(
+            ["msbuild", Path.Combine(RepoRoot.Path, "eng", "Bundle.proj"), "-nologo",
+             "-t:_RemoveMacOSBundleDebugSymbols", "-p:TargetRid=osx-arm64", "-p:Sign=true",
+             $"-p:DashboardPublishDir={dashboard}{(trailingSeparator ? Path.DirectorySeparatorChar.ToString() : "")}",
+             $"-p:TerminalHostPublishDir={terminal}{(trailingSeparator ? Path.DirectorySeparatorChar.ToString() : "")}",
+             $"-p:AppHostServerPublishDir={server}{(trailingSeparator ? Path.DirectorySeparatorChar.ToString() : "")}"]);
+
+        Assert.True(result.ExitCode == 0, result.Output);
+        Assert.Equal(["Aspire.Dashboard"], Directory.GetFileSystemEntries(dashboard).Select(Path.GetFileName));
+        Assert.Equal(["Aspire.TerminalHost"], Directory.GetFileSystemEntries(terminal).Select(Path.GetFileName));
+        Assert.Equal(["Aspire.Hosting.Native.Server"], Directory.GetFileSystemEntries(server).Select(Path.GetFileName));
+        Assert.Equal("dashboard payload", await File.ReadAllTextAsync(Path.Combine(dashboard, "Aspire.Dashboard")));
+        Assert.Equal("terminal payload", await File.ReadAllTextAsync(Path.Combine(terminal, "Aspire.TerminalHost")));
+        Assert.Equal("server payload", await File.ReadAllTextAsync(Path.Combine(server, "Aspire.Hosting.Native.Server")));
+    }
+
+    [Theory]
+    [InlineData("Debug", "osx-arm64")]
+    [InlineData("Release", "osx-x64")]
+    public async Task BundleResolvesProductTrayProjectAndOutputDirectory(string configuration, string rid)
+    {
+        var result = await RunDotNetAsync(
+            ["msbuild", Path.Combine(RepoRoot.Path, "eng", "Bundle.proj"), "-nologo",
+             $"-p:Configuration={configuration}", $"-p:TargetRid={rid}",
+             "-getProperty:TrayProjectPath,TrayAppPath,DefaultTargetFramework"]);
+
+        Assert.True(result.ExitCode == 0, result.Output);
+        using var document = JsonDocument.Parse(result.StandardOutput);
+        var properties = document.RootElement.GetProperty("Properties");
+        Assert.Equal(
+            Path.Combine(RepoRoot.Path, "src", "Aspire.Tray", "Mac", "Aspire.Tray.Mac.csproj"),
+            Path.GetFullPath(properties.GetProperty("TrayProjectPath").GetString()!));
+        Assert.Equal(
+            Path.Combine(RepoRoot.Path, "artifacts", "bin", "Aspire.Tray.Mac", configuration,
+                properties.GetProperty("DefaultTargetFramework").GetString()!, rid, "app", "Aspire Tray.app"),
+            Path.TrimEndingDirectorySeparator(Path.GetFullPath(properties.GetProperty("TrayAppPath").GetString()!)));
+    }
+
+    [Theory]
+    [InlineData("linux-x64", false)]
+    [InlineData("win-arm64", false)]
+    [InlineData("osx-arm64", false)]
+    [InlineData("linux-x64", true)]
+    public async Task BundleReusesPreparedDashboardWithoutRepublishing(string rid, bool missingDashboard)
+    {
+        var dashboard = Path.Combine(_workspace.Path, "artifacts", "bin", "Aspire.Dashboard", rid,
+            "Release", "net11.0", rid, "publish",
+            rid.StartsWith("win-", StringComparison.Ordinal) ? "Aspire.Dashboard.exe" : "Aspire.Dashboard");
+        if (!missingDashboard)
+        {
+            WriteFile(dashboard, "prepared Dashboard");
+        }
+        var project = CreateBundlePublishProject(dashboard);
+        var result = await RunDotNetAsync(
+            ["msbuild", project, "-nologo", "-t:_PublishManagedProjects", "-p:Configuration=Release",
+             $"-p:TargetRid={rid}", "-p:AspireDashboardTargetFramework=net11.0", "-p:SkipDashboardPublish=true"]);
+
+        Assert.Equal(!missingDashboard, result.ExitCode == 0);
+        Assert.Equal(missingDashboard ? ["managed"] : ["managed", "terminalhost"],
+            File.ReadAllLines(Path.Combine(_workspace.Path, "published.txt")));
+        if (missingDashboard)
+        {
+            Assert.Contains("Prepared Native AOT Dashboard was not found", result.Output);
+        }
+        else
+        {
+            Assert.Equal("prepared Dashboard", File.ReadAllText(dashboard));
+        }
+    }
+
+    [Fact]
+    public async Task StandaloneBundleStillPublishesDashboardByDefault()
+    {
+        var dashboard = Path.Combine(_workspace.Path, "dashboard");
+        var project = CreateBundlePublishProject(dashboard);
+        var result = await RunDotNetAsync(
+            ["msbuild", project, "-nologo", "-t:_PublishManagedProjects", "-p:Configuration=Release"]);
+
+        Assert.True(result.ExitCode == 0, result.Output);
+        Assert.Equal(["managed", "dashboard", "terminalhost"],
+            File.ReadAllLines(Path.Combine(_workspace.Path, "published.txt")));
+        Assert.Equal("new Dashboard", File.ReadAllText(dashboard).Trim());
+    }
+
+    private string CreateBundlePublishProject(string dashboard)
+    {
+        foreach (var component in new[] { "managed", "dashboard", "terminalhost" })
+        {
+            var publish = new XElement("Target", new XAttribute("Name", "Publish"),
+                new XElement("WriteLinesToFile",
+                    new XAttribute("File", Path.Combine(_workspace.Path, "published.txt")),
+                    new XAttribute("Lines", component)));
+            if (component == "dashboard")
+            {
+                publish.Add(new XElement("WriteLinesToFile",
+                    new XAttribute("File", dashboard),
+                    new XAttribute("Lines", "new Dashboard"),
+                    new XAttribute("Overwrite", "true")));
+            }
+            new XDocument(new XElement("Project",
+                new XElement("Target", new XAttribute("Name", "Restore")), publish))
+                .Save(Path.Combine(_workspace.Path, component + ".proj"));
+        }
+
+        var project = Path.Combine(_workspace.Path, "BundlePublish.proj");
+        new XDocument(new XElement("Project",
+            new XElement("Import", new XAttribute("Project", Path.Combine(RepoRoot.Path, "eng", "Bundle.proj"))),
+            new XElement("PropertyGroup",
+                new XElement("ArtifactsDir", Path.Combine(_workspace.Path, "artifacts") + Path.DirectorySeparatorChar),
+                new XElement("DashboardPublishDir", Path.GetDirectoryName(dashboard) + Path.DirectorySeparatorChar),
+                new XElement("ManagedProjectPath", Path.Combine(_workspace.Path, "managed.proj")),
+                new XElement("DashboardProjectPath", Path.Combine(_workspace.Path, "dashboard.proj")),
+                new XElement("TerminalHostProjectPath", Path.Combine(_workspace.Path, "terminalhost.proj")))))
+            .Save(project);
+        return project;
+    }
+
     private string CreatePublishProject(string rid, bool singleFile, bool duplicateUnrelatedAsset)
     {
         var nativeItems = new XElement("ItemGroup");
