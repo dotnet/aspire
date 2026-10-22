@@ -1,0 +1,9 @@
+{
+  "author": "app/dependabot",
+  "comment": "Bot dependency bump in playground",
+  "mergedAt": "2026-10-22T13:06:41Z",
+  "number": 21162,
+  "runDate": "2026-10-22T18:06:00Z",
+  "status": "excluded",
+  "title": "Bump the uv group across 1 directory with 2 updates"
+}

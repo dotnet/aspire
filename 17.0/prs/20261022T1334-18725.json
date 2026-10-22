@@ -1,0 +1,9 @@
+{
+  "author": "app/aspire-repo-bot",
+  "comment": "Automated generated VM size data refresh",
+  "mergedAt": "2026-10-22T13:34:00Z",
+  "number": 18725,
+  "runDate": "2026-10-22T18:06:00Z",
+  "status": "excluded",
+  "title": "[Automated] Update Azure VM Sizes"
+}

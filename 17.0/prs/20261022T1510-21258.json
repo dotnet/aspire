@@ -1,0 +1,9 @@
+{
+  "author": "sebastienros",
+  "comment": "Tray flyout alignment refinement; grouped with tray companion entry",
+  "mergedAt": "2026-10-22T15:10:55Z",
+  "number": 21258,
+  "runDate": "2026-10-22T18:06:00Z",
+  "status": "included",
+  "title": "Aspire Tray: align the flyout on one grid and place text by baseline on macOS and Windows"
+}

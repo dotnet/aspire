@@ -1,0 +1,9 @@
+{
+  "author": "IEvangelist",
+  "comment": "Docs site infrastructure change",
+  "mergedAt": "2026-10-22T14:55:32Z",
+  "number": 1937,
+  "runDate": "2026-10-22T18:06:00Z",
+  "status": "excluded",
+  "title": "Remove Front Door route cache and make /healthz no-store"
+}

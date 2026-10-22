@@ -1,0 +1,9 @@
+{
+  "author": "app/dependabot",
+  "comment": "Bot dependency bump in playground",
+  "mergedAt": "2026-10-22T13:06:53Z",
+  "number": 20715,
+  "runDate": "2026-10-22T18:06:00Z",
+  "status": "excluded",
+  "title": "Bump serialize-javascript from 7.1.1 to 7.1.2 in /playground/AspireWithJavaScript/AspireJavaScript.Angular in the npm_and_yarn group across 1 directory"
+}
