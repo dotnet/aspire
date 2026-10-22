@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Cli.EndToEnd.Tests.Helpers;
 using Hex1b.Automation;
@@ -421,6 +422,11 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
         await auto.PrepareDockerEnvironmentAsync(counter, workspace);
         await auto.InstallAspireCliAsync(strategy, counter);
 
+        var executablePathFile = Path.Combine(workspace.WorkspaceRoot.FullName, "cli-executable.txt");
+        await auto.RunCommandAsync(
+            $"readlink -f \"$(command -v aspire)\" > {AspireCliShellCommandHelpers.QuoteBashArg(CliE2ETestHelpers.ToContainerPath(executablePathFile, workspace))}",
+            counter);
+        var executablePath = (await File.ReadAllTextAsync(executablePathFile, TestContext.Current.CancellationToken)).Trim();
         await auto.RunCommandAsync("docker network disconnect bridge \"$HOSTNAME\"", counter);
         var containerHome = CliE2ETestHelpers.ToContainerPath(home.FullName, workspace);
         await auto.RunCommandAsync(
@@ -442,6 +448,21 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
               }
             }
             """;
+        // Opt-out suppresses emission, but global setup still registers the native hook.
+        var expectedClaudeGlobalSettings = JsonNode.Parse(expectedPluginSettings)!;
+        expectedClaudeGlobalSettings["hooks"] = JsonNode.Parse($$"""
+            {
+              "PostToolUse": [{
+                "matcher": "*",
+                "hooks": [{
+                  "type": "command",
+                  "command": {{JsonSerializer.Serialize(executablePath)}},
+                  "args": ["agent", "telemetry", "--hook"],
+                  "timeout": 30
+                }]
+              }]
+            }
+            """);
         const string openCodeSettings = """
             {"theme":"dark","mcp":{"custom":{"type":"remote","url":"https://example.test/mcp"}},"skills":{"paths":["./team-skills"],"urls":["https://example.test/skills/"]}}
             """;
@@ -463,7 +484,8 @@ public sealed class AgentCommandTests(ITestOutputHelper output)
             (string Path, string Original, string Expected)[] files =
             [
                 (Path.Combine(copilotDirectory, "settings.json"), pluginSettings, expectedPluginSettings),
-                (Path.Combine(root, ".claude", "settings.json"), pluginSettings, expectedPluginSettings),
+                (Path.Combine(root, ".claude", "settings.json"), pluginSettings,
+                    scope == "global" ? expectedClaudeGlobalSettings.ToJsonString() : expectedPluginSettings),
                 (Path.Combine(scope == "project" ? root : Path.Combine(root, ".config", "opencode"), "opencode.jsonc"),
                     openCodeSettings, expectedOpenCodeSettings)
             ];
