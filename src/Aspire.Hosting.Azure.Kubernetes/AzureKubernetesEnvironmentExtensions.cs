@@ -997,7 +997,15 @@ public static class AzureKubernetesEnvironmentExtensions
         var aksId = new IdentifierExpression(aks.BicepIdentifier);
         infrastructure.Add(new ProvisioningOutput("clusterFqdn", typeof(string))
         {
-            Value = new MemberExpression(new MemberExpression(aksId, "properties"), "fqdn")
+            Value = aksResource.IsExisting()
+                ? new BinaryExpression(
+                    new BinaryExpression(
+                        new SafeMemberExpression(new MemberExpression(aksId, "properties"), "fqdn"),
+                        BinaryBicepOperator.Coalesce,
+                        new SafeMemberExpression(new MemberExpression(aksId, "properties"), "privateFQDN")),
+                    BinaryBicepOperator.Coalesce,
+                    new StringLiteralExpression(""))
+                : new MemberExpression(new MemberExpression(aksId, "properties"), "fqdn")
         });
         // Existing clusters can omit the OIDC profile or issuer URL when OIDC is disabled.
         // Federated credentials below still require an issuer when workload identity is used.

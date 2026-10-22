@@ -16,7 +16,7 @@ output id string = aks.id
 
 output name string = aks.name
 
-output clusterFqdn string = aks.properties.fqdn
+output clusterFqdn string = ((aks.properties.?fqdn ?? aks.properties.?privateFQDN) ?? '')
 
 output oidcIssuerUrl string = (aks.properties.?oidcIssuerProfile.?issuerURL ?? '')
 
