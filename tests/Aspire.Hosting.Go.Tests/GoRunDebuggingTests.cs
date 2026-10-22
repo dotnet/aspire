@@ -303,7 +303,9 @@ public class GoRunDebuggingTests(ITestOutputHelper outputHelper)
     [InlineData(false, "-ldflags=--s=0", "unset", false, true, true)]
     [InlineData(false, "\"-ldflags=-s -s=false\"", "unset", false, true, true)]
     [InlineData(false, "\"-ldflags=-w -w=false\"", "unset", false, true, true)]
-    [InlineData(false, "\"-ldflags=-s -w=false\"", "unset", false, false, true)]
+    // null uses native go run because Windows Go releases differ on whether -s -w=false preserves DWARF.
+    // https://github.com/golang/go/blob/go1.24.13/src/cmd/link/internal/ld/pe.go
+    [InlineData(false, "\"-ldflags=-s -w=false\"", "unset", false, false, null)]
     [InlineData(false, "\"-ldflags=-L -s\"", "unset", false, true, true)]
     [InlineData(false, "'-ldflags=-L \"-w\"'", "unset", false, true, true)]
     [InlineData(false, "-ldflags=-L=-s", "unset", false, true, true)]
@@ -317,7 +319,7 @@ public class GoRunDebuggingTests(ITestOutputHelper outputHelper)
     [InlineData(true, "-ldflags=-X=main.version=a'\"b", "a'\"b", false, false, false)]
     [RequiresTools(["go"])]
     public async Task GoRunPreservesVersionStampAndDebugSymbolsWhenSupported(
-        bool persisted, string flags, string expectedVersion, bool expectedTagged, bool expectedSymbols, bool expectedDwarf)
+        bool persisted, string flags, string expectedVersion, bool expectedTagged, bool expectedSymbols, bool? expectedDwarf)
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         File.WriteAllText(Path.Combine(workspace.Path, "go.mod"), "module example.com/debugflags\n\ngo 1.18\n");
@@ -412,27 +414,43 @@ public class GoRunDebuggingTests(ITestOutputHelper outputHelper)
             app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
         var environment = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(go.Resource, serviceProvider: app.Services);
         var arguments = await ArgumentEvaluator.GetArgumentListAsync(go.Resource, app.Services);
-        var output = new StringBuilder();
-        var (resultTask, process) = app.Services.GetRequiredService<IProcessRunner>().Run(new ProcessSpec(go.Resource.Command)
+        var processRunner = app.Services.GetRequiredService<IProcessRunner>();
+        using var document = await RunGoAsync(processRunner, go.Resource, arguments, environment);
+        if (expectedDwarf is null)
         {
-            WorkingDirectory = go.Resource.WorkingDirectory,
+            var nativeEnvironment = new Dictionary<string, string>(environment, environment.Comparer)
+            {
+                ["GOFLAGS"] = flags
+            };
+            using var nativeDocument = await RunGoAsync(processRunner, go.Resource, ["run", "."], nativeEnvironment);
+            expectedDwarf = nativeDocument.RootElement.GetProperty("dwarf").GetBoolean();
+        }
+
+        Assert.Equal(expectedVersion, document.RootElement.GetProperty("version").GetString());
+        Assert.Equal(expectedDwarf.Value, document.RootElement.GetProperty("dwarf").GetBoolean());
+        Assert.Equal(expectedSymbols, document.RootElement.GetProperty("symbols").GetBoolean());
+        Assert.Equal(expectedTagged, document.RootElement.GetProperty("tagged").GetBoolean());
+    }
+
+    private static async Task<JsonDocument> RunGoAsync(
+        IProcessRunner processRunner, GoAppResource resource, IReadOnlyList<string> arguments, Dictionary<string, string> environment)
+    {
+        var output = new StringBuilder();
+        var (resultTask, process) = processRunner.Run(new ProcessSpec(resource.Command)
+        {
+            WorkingDirectory = resource.WorkingDirectory,
             ArgumentList = arguments,
             EnvironmentVariables = environment,
             ResolveExecutablePath = true,
             OnOutputData = line => output.AppendLine(line)
         });
-
         await using (process)
         {
             var result = await resultTask.WaitAsync(TimeSpan.FromMinutes(2));
             Assert.Equal(0, result.ExitCode);
         }
 
-        using var document = JsonDocument.Parse(output.ToString());
-        Assert.Equal(expectedVersion, document.RootElement.GetProperty("version").GetString());
-        Assert.Equal(expectedDwarf, document.RootElement.GetProperty("dwarf").GetBoolean());
-        Assert.Equal(expectedSymbols, document.RootElement.GetProperty("symbols").GetBoolean());
-        Assert.Equal(expectedTagged, document.RootElement.GetProperty("tagged").GetBoolean());
+        return JsonDocument.Parse(output.ToString());
     }
 
     private static async Task<Dictionary<string, string>> GetEnvironmentAsync(
