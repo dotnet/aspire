@@ -108,13 +108,18 @@ Write the answers into the storyboard: `renditions`, `voice`, `chapterCards`. To
 ### 1. Create a workspace outside any repository
 
 Use the session's scratchpad or a temp folder, never a repository: frames and audio are large, and the tools must not
-pick up a repository's build settings or package sources. Copy the skill's `scripts` folder into it as `tools`, and
-install the voice package:
+pick up a repository's build settings or package sources. Copy the skill's `scripts` folder into it as `tools`,
+install the voice package, and work from the workspace:
 
 ```bash
 cp -R <skill>/scripts <workspace>/tools
 npm ci --prefix <workspace>/tools/tts
+cd <workspace>
 ```
+
+**Run every command of the steps below from the workspace.** The .NET CLI picks its SDK from the `global.json`
+nearest the current directory, not the script's: from inside a repository, such as the Aspire checkout (which pins a
+preview SDK), `dotnet run <tools>/...` would use that repository's SDK, or fail without it.
 
 ```text
 <workspace>/

@@ -18,6 +18,7 @@ The video shows the Aspire that runs the sample app: its dashboard, its CLI, its
   ./localhive.sh -c Release -n video -o ./artifacts/localhive/video     # .\localhive.ps1 on Windows
   export PATH="$PWD/artifacts/localhive/video/bin:$PATH"
   aspire --version                                                        # the local build: a "local" version
+  cd <workspace>                                                          # back to the workspace, outside the repository
   aspire new aspire-starter --channel video ...                           # the app uses the branch's packages
   ```
 
