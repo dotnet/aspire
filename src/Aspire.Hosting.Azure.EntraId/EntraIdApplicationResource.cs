@@ -813,10 +813,19 @@ public sealed class EntraIdFederatedIdentityCredential : EntraIdClientCredential
         var tokenExchangeUrl = TokenExchangeUrl;
         if (IsResourceBacked)
         {
-            // An environment callback runs once and its result is cached. The Azure resource preparer runs it to discover
-            // dependencies before it attaches the compute resource's identity, so the identity cannot be read here. The
-            // value looks it up when it is read; the validation step that runs after the preparer reports a missing one.
-            envVars[$"{prefix}{separator}ManagedIdentityClientId"] = new ManagedIdentityClientIdValue(this, application, consumer);
+            // An identity passed in is known now, so its output is used as is. The validation step that runs after the
+            // Azure resource preparer reports a consumer that does not use it.
+            if (ManagedIdentity is { } identity)
+            {
+                envVars[$"{prefix}{separator}ManagedIdentityClientId"] = identity.ClientId;
+            }
+            else
+            {
+                // A consumer's own identity does not exist yet: an environment callback runs once and its result is cached,
+                // and the Azure resource preparer runs it to discover dependencies before it attaches the identity. A
+                // ReferenceExpression takes its providers when it is created, so this looks the identity up when read.
+                envVars[$"{prefix}{separator}ManagedIdentityClientId"] = new ManagedIdentityClientIdValue(this, application, consumer);
+            }
 
             // Sovereign clouds use their own token exchange audience, which Microsoft.Identity.Web reads from TokenExchangeUrl.
             if (tokenExchangeUrl is null &&

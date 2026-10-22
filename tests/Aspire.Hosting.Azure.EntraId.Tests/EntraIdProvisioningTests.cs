@@ -150,9 +150,10 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         var web = builder.AddResource(new ProjectResource("web")).WithAzureUserAssignedIdentity(other).WithReference(entra);
 
         Assert.Contains("WithAzureUserAssignedIdentity", Assert.Throws<InvalidOperationException>(entra.Resource.ValidateManagedIdentities).Message);
-        var exception = await Assert.ThrowsAsync<AggregateException>(async () => await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
-            web.Resource, DistributedApplicationOperation.Publish, TestServiceProvider.Instance));
-        Assert.Contains("WithAzureUserAssignedIdentity", exception.Message);
+        // The identity that was passed in is used as the value without looking the consumer up.
+        var env = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+            web.Resource, DistributedApplicationOperation.Publish, TestServiceProvider.Instance);
+        Assert.Equal("{trusted-identity.outputs.clientId}", env["AzureAd__ClientCredentials__0__ManagedIdentityClientId"]);
     }
 
     [Fact]
