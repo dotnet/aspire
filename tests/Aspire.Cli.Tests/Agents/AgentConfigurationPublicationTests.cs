@@ -204,6 +204,42 @@ public class AgentConfigurationPublicationTests(ITestOutputHelper output) : IDis
         Assert.Equal([path], Directory.GetFiles(_context.Project.FullName));
     }
 
+    // Keep the basic rewrite case runnable on BusyBox installations without libacl.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task UnixPublication_UpdatesExistingPrivateFileWithSystemMetadataTools(bool parentAcl)
+    {
+        if (OperatingSystem.IsWindows() || parentAcl && !OperatingSystem.IsLinux())
+        {
+            Assert.Skip("Unix metadata tools validation.");
+            return;
+        }
+        var path = Path.Combine(_context.Project.FullName, "settings.json");
+        await File.WriteAllTextAsync(path, """{"token":"original"}""");
+        var mode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+        File.SetUnixFileMode(path, mode);
+        string? acl = null;
+        if (parentAcl)
+        {
+            TestPosixAcl.SetDefault(_context.Project.FullName, "user::rwx,user:65534:r-x,group::---,mask::r-x,other::---");
+            acl = TestPosixAcl.Get(path);
+        }
+        var reads = new AgentConfigurationReadContext();
+        await reads.ReadAsync(path, CancellationToken.None);
+
+        await AgentConfigurationFile.WriteAsync(path, new JsonObject { ["token"] = "replacement" },
+            reads, CancellationToken.None).DefaultTimeout();
+
+        Assert.Equal(mode, File.GetUnixFileMode(path));
+        if (parentAcl)
+        {
+            Assert.Equal(acl, TestPosixAcl.Get(path));
+        }
+        Assert.Equal("replacement", JsonNode.Parse(await File.ReadAllTextAsync(path))!["token"]!.GetValue<string>());
+        Assert.Equal([path], Directory.GetFiles(_context.Project.FullName));
+    }
+
     [Fact]
     public async Task LinuxPublication_PreservesAnExtendedAclRatherThanOnlyItsMode()
     {

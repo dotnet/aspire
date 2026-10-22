@@ -13,6 +13,7 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using Aspire.Shared;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Win32.SafeHandles;
 
 namespace Aspire.Cli.Agents;
 
@@ -52,7 +53,7 @@ internal static partial class AgentConfigurationFile
                 if (existed && !OperatingSystem.IsWindows())
                 {
                     unixMetadata = await ReadUnixMetadataAsync(path, cancellationToken);
-                    await PreserveUnixMetadataAsync(path, temporary, cancellationToken);
+                    await PreserveUnixMetadataAsync(path, temporary, stream, cancellationToken);
                     stream.SetLength(0);
                 }
 
@@ -127,15 +128,43 @@ internal static partial class AgentConfigurationFile
     }
 
     [UnsupportedOSPlatform("windows")]
-    private static async Task PreserveUnixMetadataAsync(string source, string destination, CancellationToken cancellationToken)
+    private static async Task PreserveUnixMetadataAsync(
+        string source, string destination, FileStream stream, CancellationToken cancellationToken)
     {
-        // chmod alone drops extended ACLs and can grant access through an ACL mask.
-        // Both GNU and macOS cp -p preserve access ACLs. Check ownership separately:
-        // macOS can report success even when the caller cannot preserve uid/gid.
-        // https://www.gnu.org/software/coreutils/manual/html_node/cp-invocation.html
+        if (OperatingSystem.IsLinux())
+        {
+            // BusyBox cp replaces the staging inode and drops ACLs. Set metadata on the
+            // open, still-empty file instead, before writing any credential-bearing JSON.
+            var owner = await RunMetadataToolAsync(StatPath, ["-c", "%u:%g", source], source, cancellationToken);
+            // stat emits numeric "uid:gid\n", for example "1000:1000\n".
+            var parts = owner.Split(':', StringSplitOptions.TrimEntries);
+            if (parts.Length != 2 ||
+                !uint.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out var uid) ||
+                !uint.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var gid) ||
+                ChangeOwner(stream.SafeFileHandle, uid, gid) != 0)
+            {
+                throw Refused(source);
+            }
+            File.SetUnixFileMode(stream.SafeFileHandle, File.GetUnixFileMode(source));
+            var acl = ReadLinuxAccessAcl(source);
+            if (acl.Length > 0 && SetExtendedAttribute(stream.SafeFileHandle, "system.posix_acl_access", acl, (nuint)acl.Length, 0) != 0)
+            {
+                throw Refused(source);
+            }
+            // A source without an ACL must not inherit named entries from the staging directory.
+            if (acl.Length == 0 && RemoveExtendedAttribute(stream.SafeFileHandle, "system.posix_acl_access") != 0 &&
+                Marshal.GetLastPInvokeError() is not (61 or 95))
+            {
+                throw Refused(source);
+            }
+
+            return;
+        }
+
+        // macOS cp -p preserves ACLs but can report success without preserving uid/gid.
         // https://www.manpagez.com/man/1/cp/
         await RunMetadataToolAsync("/bin/cp", ["-p", source, destination], source, cancellationToken);
-        var owners = await RunMetadataToolAsync("/usr/bin/stat",
+        var owners = await RunMetadataToolAsync(StatPath,
             [OperatingSystem.IsMacOS() ? "-f" : "-c", "%u:%g", source, destination], source, cancellationToken);
         var values = owners.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         if (values.Length != 2 || values[0] != values[1] || File.GetUnixFileMode(source) != File.GetUnixFileMode(destination))
@@ -154,7 +183,13 @@ internal static partial class AgentConfigurationFile
             return await RunMetadataToolAsync("/bin/ls", ["-lnde", path], path, cancellationToken);
         }
 
-        var metadata = await RunMetadataToolAsync("/usr/bin/stat", ["-c", "%u:%g:%a", path], path, cancellationToken);
+        var metadata = await RunMetadataToolAsync(StatPath, ["-c", "%u:%g:%a", path], path, cancellationToken);
+
+        return metadata + Convert.ToHexString(ReadLinuxAccessAcl(path));
+    }
+
+    private static byte[] ReadLinuxAccessAcl(string path)
+    {
         const string aclAttribute = "system.posix_acl_access";
         var size = GetExtendedAttribute(path, aclAttribute, null, 0);
         if (size < 0)
@@ -163,7 +198,7 @@ internal static partial class AgentConfigurationFile
             // https://man7.org/linux/man-pages/man2/getxattr.2.html
             if (Marshal.GetLastPInvokeError() is 61 or 95)
             {
-                return metadata;
+                return [];
             }
             throw Refused(path);
         }
@@ -174,8 +209,11 @@ internal static partial class AgentConfigurationFile
             throw Refused(path);
         }
 
-        return metadata + Convert.ToHexString(acl);
+        return acl;
     }
+
+    // BusyBox installs stat in /bin. Keep metadata tools independent of the caller's PATH.
+    private static string StatPath => File.Exists("/usr/bin/stat") ? "/usr/bin/stat" : "/bin/stat";
 
     private static async Task<string> RunMetadataToolAsync(
         string executable, string[] arguments, string source, CancellationToken cancellationToken)
@@ -218,4 +256,14 @@ internal static partial class AgentConfigurationFile
     [LibraryImport("libc", EntryPoint = "getxattr", StringMarshalling = StringMarshalling.Utf8, SetLastError = true)]
     private static partial nint GetExtendedAttribute(
         string path, string name, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)] byte[]? value, nuint size);
+
+    [LibraryImport("libc", EntryPoint = "fsetxattr", StringMarshalling = StringMarshalling.Utf8, SetLastError = true)]
+    private static partial int SetExtendedAttribute(
+        SafeFileHandle descriptor, string name, byte[] value, nuint size, int flags);
+
+    [LibraryImport("libc", EntryPoint = "fremovexattr", StringMarshalling = StringMarshalling.Utf8, SetLastError = true)]
+    private static partial int RemoveExtendedAttribute(SafeFileHandle descriptor, string name);
+
+    [LibraryImport("libc", EntryPoint = "fchown", SetLastError = true)]
+    private static partial int ChangeOwner(SafeFileHandle descriptor, uint owner, uint group);
 }

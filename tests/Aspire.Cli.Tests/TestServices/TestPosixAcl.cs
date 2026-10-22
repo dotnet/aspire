@@ -9,7 +9,11 @@ internal static class TestPosixAcl
 {
     private const int AclTypeAccess = 0x8000;
 
-    public static void Set(string path, string text)
+    public static void Set(string path, string text) => Set(path, text, AclTypeAccess);
+
+    public static void SetDefault(string path, string text) => Set(path, text, 0x4000);
+
+    private static void Set(string path, string text, int type)
     {
         if (!NativeLibrary.TryLoad("libacl.so.1", out var library))
         {
@@ -20,7 +24,7 @@ internal static class TestPosixAcl
         Assert.NotEqual(IntPtr.Zero, acl);
         try
         {
-            Assert.Equal(0, acl_set_file(path, AclTypeAccess, acl));
+            Assert.Equal(0, acl_set_file(path, type, acl));
         }
         finally
         {
