@@ -6,7 +6,7 @@ namespace Aspire.Cli.Tests.Templating;
 public class JavaAppHostTemplateTests
 {
     /// <summary>
-    /// The Java runtime spec launches the AppHost with <c>java -cp .java-build AppHost</c>, which names
+    /// The Java runtime spec launches the AppHost by its unqualified main-class name, which names
     /// the class in the default package. A <c>package</c> declaration compiles the class into a
     /// subdirectory instead, so the launch fails with <c>ClassNotFoundException: AppHost</c> even though
     /// compilation succeeded.

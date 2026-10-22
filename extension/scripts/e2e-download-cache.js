@@ -1253,7 +1253,7 @@ function discoverCacheArtifacts(rootDirectory, platform, architecture, _extester
 function getVsCodeDirectoryName(platform, architecture) {
   switch (platform) {
     case 'darwin':
-      return process.env.ASPIRE_JAVA_VALIDATION_INSIDERS_DIR ? 'Visual Studio Code - Insiders.app' : 'Visual Studio Code.app';
+      return 'Visual Studio Code.app';
     case 'linux':
       return `VSCode-linux-${architecture}`;
     case 'win32':
@@ -1272,7 +1272,7 @@ function getVsCodeExecutableRelativePaths(platform, architecture) {
 
   switch (platform) {
     case 'darwin':
-      return [path.join(vscodeDirectory, 'Contents', 'MacOS', process.env.ASPIRE_JAVA_VALIDATION_INSIDERS_DIR ? 'Code - Insiders' : 'Code')];
+      return [path.join(vscodeDirectory, 'Contents', 'MacOS', 'Code')];
     case 'linux':
       return [path.join(vscodeDirectory, 'code')];
     case 'win32':

@@ -79,13 +79,8 @@ const downloadCacheRoot = verifyExtesterFeedOnly ? '' : resolveDownloadCacheRoot
 // Contents/MacOS/Code plus an Electron -> Code compatibility symlink, but VS Code 1.131.0 removes
 // that legacy path and ExTester 8.23.0 only launches it. ExTester 8.24.0 adds the fallback, but its
 // tarball is not anonymously available from dotnet-public-npm yet.
-const validationInsidersDirectory = process.env.ASPIRE_JAVA_VALIDATION_INSIDERS_DIR;
-const vscodeVersion = validationInsidersDirectory
-  ? '1.144.0-insider'
-  : resolveCachedVsCodeVersion(process.env.ASPIRE_EXTENSION_E2E_VSCODE_VERSION || '1.130.0');
-if (!validationInsidersDirectory) {
-  assertVsCodeVersionCompatibleWithExtester(vscodeVersion, extesterVersion);
-}
+const vscodeVersion = resolveCachedVsCodeVersion(process.env.ASPIRE_EXTENSION_E2E_VSCODE_VERSION || '1.130.0');
+assertVsCodeVersionCompatibleWithExtester(vscodeVersion, extesterVersion);
 if (!verifyExtesterFeedOnly) {
   fs.mkdirSync(requestedTempRoot, { recursive: true });
 }
@@ -723,7 +718,7 @@ async function main() {
       // The cache discovers stable install layouts (`VSCode-linux-x64`, `Visual Studio Code.app`)
       // and the stream is not part of its key, so an ambient CODE_TYPE=insider would download an
       // Insiders build that artifact discovery then cannot find. Nothing here asks for Insiders.
-      CODE_TYPE: validationInsidersDirectory ? 'insider' : 'stable',
+      CODE_TYPE: 'stable',
     });
     if (process.env.ASPIRE_EXTENSION_E2E_UNSET_CLI_START_TIMEOUT === 'true') {
       extestEnv.ASPIRE_CLI_START_TIMEOUT = undefined;
@@ -739,16 +734,7 @@ async function main() {
         const downloadDirectory = projectCommandSafeStagingDirectory(stagingDirectory);
         const setupDownloadRetryOptions = getSetupDownloadRetryOptions(stagingDirectory, downloadDirectory);
         logStep('Downloading VS Code');
-        if (validationInsidersDirectory) {
-          const product = JSON.parse(fs.readFileSync(path.join(validationInsidersDirectory, 'Contents', 'Resources', 'app', 'product.json'), 'utf8'));
-          if (product.quality !== 'insider' || product.commit !== '58173d0ebc1838579e3c331e0a47e365904a6456') {
-            throw new Error(`Unexpected Insiders product identity: ${JSON.stringify(product)}`);
-          }
-          console.log(`Testing genuine ${product.nameLong}: quality=${product.quality}, commit=${product.commit}`);
-          fs.cpSync(validationInsidersDirectory, path.join(stagingDirectory, 'Visual Studio Code - Insiders.app'), { recursive: true, verbatimSymlinks: true });
-        } else {
-          runWithRetry(process.execPath, [extesterCli, 'get-vscode', '--storage', downloadDirectory, '--code_version', vscodeVersion], extestEnv, setupDownloadRetryOptions);
-        }
+        runWithRetry(process.execPath, [extesterCli, 'get-vscode', '--storage', downloadDirectory, '--code_version', vscodeVersion], extestEnv, setupDownloadRetryOptions);
         logStep('Downloading ChromeDriver');
         runWithRetry(process.execPath, [extesterCli, 'get-chromedriver', '--storage', downloadDirectory, '--code_version', vscodeVersion], extestEnv, setupDownloadRetryOptions);
       },
@@ -1444,18 +1430,6 @@ function verifyExtesterFeed() {
 // reload path and removes a startup race where discovery begins in an empty window.
 // Remove this patch when ExTester exposes a stable launch option for a folder/workspace.
 function patchExtesterLaunchLocale() {
-  if (validationInsidersDirectory) {
-    const codeUtilPath = path.join(extesterModule, 'out', 'util', 'codeUtil.js');
-    let codeUtil = fs.readFileSync(codeUtilPath, 'utf8');
-    const executable = "this.executablePath = path.join(this.codeFolder, 'Contents', 'MacOS', 'Electron');";
-    const manifest = 'const url = `https://raw.githubusercontent.com/Microsoft/vscode/${revision}/cgmanifest.json`;';
-    if (!codeUtil.includes(executable) || !codeUtil.includes(manifest)) {
-      throw new Error('The temporary Insiders adapter no longer matches the pinned ExTester.');
-    }
-    codeUtil = codeUtil.replace(executable, "this.executablePath = path.join(this.codeFolder, 'Contents', 'MacOS', this.releaseType === ReleaseQuality.Insider ? 'Code - Insiders' : 'Electron');");
-    codeUtil = codeUtil.replace(manifest, "const url = 'https://raw.githubusercontent.com/microsoft/vscode/58173d0ebc1838579e3c331e0a47e365904a6456/cgmanifest.json';");
-    fs.writeFileSync(codeUtilPath, codeUtil);
-  }
   const browserPath = path.join(extesterModule, 'out', 'browser.js');
   const source = fs.readFileSync(browserPath, 'utf8');
   const workspaceArgument = JSON.stringify(workspaceRoot);
