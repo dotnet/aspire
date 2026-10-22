@@ -56,6 +56,8 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
     private readonly Dictionary<(string Expression, string Format), string> _formattedReferences = [];
 
+    private readonly Dictionary<string, FormattedManifestValue> _formattedValues = new(StringComparer.Ordinal);
+
     private readonly Dictionary<IValueProvider, string> _concreteManifestReferences = new(ReferenceEqualityComparer.Instance);
 
     private readonly Dictionary<string, string> _resolvedManifestValues = new(StringComparer.Ordinal);
@@ -103,6 +105,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         _manifestValues.Clear();
         _formattedExpressions.Clear();
         _formattedReferences.Clear();
+        _formattedValues.Clear();
         _concreteManifestReferences.Clear();
         _resolvedManifestValues.Clear();
         _loweredManifestValues.Clear();
@@ -141,6 +144,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         _manifestValues.Clear();
         _formattedExpressions.Clear();
         _formattedReferences.Clear();
+        _formattedValues.Clear();
         _concreteManifestReferences.Clear();
         _resolvedManifestValues.Clear();
         _loweredManifestValues.Clear();
@@ -824,11 +828,18 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
     private string LowerManifestReferences(object source, string expression)
     {
+        // A wrapper can expose a complete structured expression. Preserve its ordered provider
+        // occurrences and formats rather than guessing which object each repeated token denotes.
+        if (FindManifestReference(source, expression, structuredOnly: true) is ReferenceExpression structured)
+        {
+            return GetManifestExpression(structured, structured.ValueExpression);
+        }
+
         var builder = new StringBuilder();
         var position = 0;
         foreach (var token in ManifestExpression.GetTokens(expression))
         {
-            var referenced = FindManifestReference(source, token.Text, new HashSet<object>(ReferenceEqualityComparer.Instance));
+            var referenced = FindManifestReference(source, token.Text, structuredOnly: false);
             string lowered;
             if (referenced is IManifestExpressionProvider provider)
             {
@@ -857,39 +868,49 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         return builder.Append(expression, position, expression.Length - position).ToString();
     }
 
-    private static object? FindManifestReference(object source, string expression, HashSet<object> visited)
+    private static object? FindManifestReference(object source, string expression, bool structuredOnly)
     {
-        if (!visited.Add(source) || source is IResource || source is not IValueWithReferences references)
+        var visited = new HashSet<object>(ReferenceEqualityComparer.Instance);
+        var matches = new HashSet<object>(ReferenceEqualityComparer.Instance);
+        Collect(source);
+        return matches.Count switch
         {
-            return null;
-        }
+            0 => null,
+            1 => matches.Single(),
+            _ => throw new InvalidOperationException(
+                $"Manifest expression '{expression}' matches multiple distinct providers without unambiguous expression structure.")
+        };
 
-        foreach (var reference in references.References)
+        void Collect(object current)
         {
-            if (ReferenceEquals(source, reference))
+            if (!visited.Add(current) || current is IResource || current is not IValueWithReferences references)
             {
-                continue;
+                return;
             }
 
-            if (reference is IManifestExpressionProvider provider && provider.ValueExpression == expression)
+            foreach (var reference in references.References)
             {
-                return reference;
-            }
+                if (ReferenceEquals(current, reference))
+                {
+                    continue;
+                }
 
-            // A conditional's dependencies include both branches. Its manifest alias is sufficient
-            // until that conditional is selected; resources likewise publish their own contents.
-            if (reference is IResource or BrowserOriginReference or ReferenceExpression { IsConditional: true })
-            {
-                continue;
-            }
+                if ((!structuredOnly || reference is ReferenceExpression) &&
+                    reference is IManifestExpressionProvider provider && provider.ValueExpression == expression)
+                {
+                    matches.Add(reference);
+                    continue;
+                }
 
-            if (FindManifestReference(reference, expression, visited) is { } nested)
-            {
-                return nested;
+                // Conditional dependencies include both branches; only a selected alias may expand them.
+                if (reference is IResource or BrowserOriginReference or ReferenceExpression { IsConditional: true })
+                {
+                    continue;
+                }
+
+                Collect(reference);
             }
         }
-
-        return null;
     }
 
     private string RegisterFormattedExpression(string expression, string format)
@@ -908,6 +929,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             var hash = XxHash3.HashToUInt64(Encoding.UTF8.GetBytes(expression)).ToString("x16", CultureInfo.InvariantCulture);
             name = CreateFormattedParameterResourceName($"value-{hash}", key.Item2);
             _formattedExpressions.Add(key, name);
+            _formattedValues.Add($"{{{name}.connectionString}}", new FormattedManifestValue(expression, key.Item2));
         }
 
         return $"{{{name}.connectionString}}";
@@ -917,7 +939,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     {
         foreach (var ((expression, format), name) in _formattedExpressions)
         {
-            var formatted = FormatManifestExpression(expression, format, new HashSet<string>(StringComparer.Ordinal));
+            var formatted = FormatManifestExpression(expression, [format], new HashSet<string>(StringComparer.Ordinal));
             Writer.WriteStartObject(name);
             Writer.WriteString("type", "value.v0");
             Writer.WriteString("connectionString", formatted);
@@ -934,7 +956,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         }
     }
 
-    private string FormatManifestExpression(string expression, string format, HashSet<string> visited)
+    private string FormatManifestExpression(string expression, IReadOnlyList<string> formats, HashSet<string> visited)
     {
         var builder = new StringBuilder();
         var position = 0;
@@ -943,7 +965,19 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             AppendLiteral(expression[position..token.Start]);
             if (_resolvedManifestValues.TryGetValue(token.Text, out var resolved))
             {
-                builder.Append(EscapeManifestLiteral(FormattingHelpers.FormatValue(resolved, format)));
+                builder.Append(FormatLiteral(resolved));
+            }
+            else if (_formattedValues.TryGetValue(token.Text, out var formatted))
+            {
+                if (!visited.Add(token.Text))
+                {
+                    throw new InvalidOperationException("A cycle was encountered while formatting a manifest expression.");
+                }
+
+                // Retain the inner operation, then apply the outer operations. For example, a
+                // query value encoded inside a redirect URL must turn a space into "%2520".
+                builder.Append(FormatManifestExpression(formatted.Expression, [formatted.Format, .. formats], visited));
+                visited.Remove(token.Text);
             }
             else if (_loweredManifestValues.TryGetValue(token.Text, out var lowered))
             {
@@ -954,22 +988,29 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
                 // These bodies have already been selected/lowered. Do not revisit conditions or
                 // resolve deployment values just to format an alias.
-                builder.Append(FormatManifestExpression(lowered, format, visited));
+                builder.Append(FormatManifestExpression(lowered, formats, visited));
                 visited.Remove(token.Text);
             }
             else if (IsDeferredFormattingReference(token.Text))
             {
                 // azd's URI filter encodes substitutions, not surrounding literals. Give it one
                 // deferred value at a time and encode the literal segments in this publisher.
-                var key = (token.Text, format);
-                if (!_formattedReferences.TryGetValue(key, out var name))
+                var reference = token.Text;
+                foreach (var format in formats)
                 {
-                    var hash = XxHash3.HashToUInt64(Encoding.UTF8.GetBytes(token.Text)).ToString("x16", CultureInfo.InvariantCulture);
-                    name = CreateFormattedParameterResourceName($"value-{hash}", format);
-                    _formattedReferences.Add(key, name);
+                    var key = (reference, format);
+                    if (!_formattedReferences.TryGetValue(key, out var name))
+                    {
+                        var hash = XxHash3.HashToUInt64(Encoding.UTF8.GetBytes(reference)).ToString("x16", CultureInfo.InvariantCulture);
+                        name = CreateFormattedParameterResourceName($"value-{hash}", format);
+                        _formattedReferences.Add(key, name);
+                        _formattedValues.Add($"{{{name}.value}}", new FormattedManifestValue(reference, format));
+                    }
+
+                    reference = $"{{{name}.value}}";
                 }
 
-                builder.Append(CultureInfo.InvariantCulture, $"{{{name}.value}}");
+                builder.Append(reference);
             }
             else
             {
@@ -987,7 +1028,17 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         void AppendLiteral(string value)
         {
             var literal = value.Replace("{{", "{", StringComparison.Ordinal).Replace("}}", "}", StringComparison.Ordinal);
-            builder.Append(EscapeManifestLiteral(FormattingHelpers.FormatValue(literal, format)));
+            builder.Append(FormatLiteral(literal));
+        }
+
+        string FormatLiteral(string value)
+        {
+            foreach (var format in formats)
+            {
+                value = FormattingHelpers.FormatValue(value, format);
+            }
+
+            return EscapeManifestLiteral(value);
         }
     }
 
@@ -1035,6 +1086,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         {
             resourceName = CreateFormattedParameterResourceName(parameter.Name, format);
             formats[format] = resourceName;
+            _formattedValues.Add($"{{{resourceName}.value}}", new FormattedManifestValue(parameter.ValueExpression, format));
         }
 
         return resourceName;
@@ -1252,4 +1304,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     }
 
     private sealed record ManifestValue(IValueProvider Provider, bool ResolveValue);
+
+    private sealed record FormattedManifestValue(string Expression, string Format);
 }

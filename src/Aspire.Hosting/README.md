@@ -101,6 +101,11 @@ and infrastructure outputs deferred through the manifest's existing URI filter. 
 conditional alias uses its already-selected expression; it does not evaluate inactive branches. Opaque symbolic
 compositions that cannot preserve URI formatting report an unsupported-formatting error instead of partially
 encoding the value or forcing deployment outputs to resolve during publication.
+Publisher-generated formatting aliases retain their source expression and format, so nested URI formatting
+preserves every encoding pass without resolving deployment parameters. Wrappers exposing a complete
+`ReferenceExpression` preserve its ordered provider occurrences and formats. If an opaque wrapper exposes
+multiple distinct providers for the same token without enough expression structure to distinguish them,
+publication reports an ambiguity error instead of silently choosing a provider.
 
 ## Feedback & contributing
 

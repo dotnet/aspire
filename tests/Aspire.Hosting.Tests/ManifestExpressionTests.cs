@@ -150,6 +150,68 @@ public class ManifestExpressionTests(ITestOutputHelper outputHelper)
         await Verify(manifest.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), "json");
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task WrappedStructuredExpressionsPreserveProviderOccurrencesAndFormats(bool reverseOrder)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var first = new TestManifestValue("{opaque}", (_, _) => ValueTask.FromResult<string?>("first value"));
+        var second = new TestManifestValue("{opaque}", (_, _) => ValueTask.FromResult<string?>("second/value"));
+        var inner = reverseOrder
+            ? ReferenceExpression.Create($"{second:uri}|{first}|{second}")
+            : ReferenceExpression.Create($"{first}|{second:uri}|{first}");
+        var wrapper = new TestManifestValue(inner.ValueExpression, (_, _) =>
+            throw new InvalidOperationException("A structured wrapper must not be resolved."), inner);
+        builder.AddContainer("backend", "image").WithEnvironment("VALUES", wrapper);
+        using var app = builder.Build();
+
+        var manifest = await ManifestUtils.GetManifestForModel(app.Services.GetRequiredService<DistributedApplicationModel>());
+
+        await Verify(manifest.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), "json")
+            .UseParameters(reverseOrder);
+    }
+
+    [Fact]
+    public async Task WrappedRepeatedProviderIsNotAmbiguous()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var calls = 0;
+        var provider = new TestManifestValue("{opaque}", (_, _) =>
+        {
+            calls++;
+            return ValueTask.FromResult<string?>("value");
+        });
+        var wrapper = new TestManifestValue("prefix/{opaque}/{opaque}", (_, _) =>
+            throw new InvalidOperationException("An explainable wrapper must not be resolved."), provider, provider);
+        builder.AddContainer("backend", "image").WithEnvironment("VALUES", wrapper);
+        using var app = builder.Build();
+
+        var manifest = await ManifestUtils.GetManifestForModel(app.Services.GetRequiredService<DistributedApplicationModel>());
+
+        Assert.Equal(1, calls);
+        await Verify(manifest.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), "json");
+    }
+
+    [Fact]
+    public async Task AmbiguousWrapperTokensFailWithoutSelectingAProvider()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var first = new TestManifestValue("{opaque}", (_, _) => throw new InvalidOperationException("Do not resolve first."));
+        var second = new TestManifestValue("{opaque}", (_, _) => throw new InvalidOperationException("Do not resolve second."));
+        var wrapper = new TestManifestValue("prefix/{opaque}/{opaque}", (_, _) =>
+            throw new InvalidOperationException("Do not resolve the ambiguous wrapper."), first, second);
+        builder.AddContainer("backend", "image").WithEnvironment("VALUES", wrapper);
+        using var app = builder.Build();
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => ManifestUtils.GetManifestForModel(
+            app.Services.GetRequiredService<DistributedApplicationModel>()));
+
+        Assert.Equal(
+            "Manifest expression '{opaque}' matches multiple distinct providers without unambiguous expression structure.",
+            error.Message);
+    }
+
     [Fact]
     public async Task ConcreteNamesAvoidExistingModelResourceNames()
     {
@@ -269,6 +331,56 @@ public class ManifestExpressionTests(ITestOutputHelper outputHelper)
         var manifest = await ManifestUtils.GetManifestForModel(
             app.Services.GetRequiredService<DistributedApplicationModel>(), workspace.Path);
 
+        await Verify(manifest.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), "json");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task NestedUriFormattingPreservesParameterAndCompositeAliasOperations(bool composite)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var query = new ParameterResource("query", _ =>
+            throw new InvalidOperationException("A deployment parameter must remain deferred."));
+        var frontend = builder.AddContainer("frontend", "image").WithHttpEndpoint(targetPort: 8080);
+        var wrapper = new TestManifestValue("segment/{query.value}", (_, _) =>
+            throw new InvalidOperationException("A symbolic wrapper must not be resolved."), query);
+        var inner = composite
+            ? ReferenceExpression.Create($"https://example/?q={wrapper:uri}")
+            : ReferenceExpression.Create($"https://example/?q={query:uri}");
+        var inactive = new ParameterResource("inactive", _ =>
+            throw new InvalidOperationException("An inactive branch must not be resolved."));
+        var conditional = ReferenceExpression.CreateConditional(frontend.GetEndpoint("http").Property(EndpointProperty.TlsEnabled),
+            bool.FalseString, inner, ReferenceExpression.Create($"{inactive}"));
+        var browser = frontend.GetBrowserOrigin("http").WithPublishExpression(conditional);
+        builder.AddContainer("backend", "image").WithEnvironment("ENCODED", ReferenceExpression.Create($"{browser:uri}"));
+        using var app = builder.Build();
+
+        var manifest = await ManifestUtils.GetManifestForModel(app.Services.GetRequiredService<DistributedApplicationModel>());
+
+        await Verify(manifest.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), "json")
+            .UseParameters(composite);
+    }
+
+    [Fact]
+    public async Task NestedUriFormattingPreservesConcreteEncodingPasses()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var calls = 0;
+        var concrete = new TestManifestValue("{opaque}", (_, _) =>
+        {
+            calls++;
+            return ValueTask.FromResult<string?>("one two/%");
+        });
+        var frontend = builder.AddContainer("frontend", "image").WithHttpEndpoint(targetPort: 8080);
+        var browser = frontend.GetBrowserOrigin("http")
+            .WithPublishExpression(ReferenceExpression.Create($"https://example/?q={concrete:uri}"));
+        builder.AddContainer("backend", "image").WithEnvironment("ENCODED", ReferenceExpression.Create($"{browser:uri}"));
+        using var app = builder.Build();
+
+        var manifest = await ManifestUtils.GetManifestForModel(app.Services.GetRequiredService<DistributedApplicationModel>());
+
+        Assert.Equal(1, calls);
         await Verify(manifest.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), "json");
     }
 
