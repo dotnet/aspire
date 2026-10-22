@@ -655,6 +655,9 @@ suite('E2E launch profile', () => {
         assert.ok(workflow.includes('Verify locked ExTester'));
         assert.ok(workflow.includes('run: node scripts/run-e2e.js --verify-extester-feed'));
         assert.ok(prerequisiteJob.includes('- name: Package VSIX'));
+        const createOutputDirectory = prerequisiteJob.indexOf('mkdir -p out');
+        const packageVsix = prerequisiteJob.indexOf('corepack yarn run vsce package --pre-release -o out/aspire-extension.vsix');
+        assert.ok(createOutputDirectory >= 0 && packageVsix > createOutputDirectory);
         assert.ok(prerequisiteJob.includes('- name: Upload VSIX'));
         assert.ok(prerequisiteJob.includes('if-no-files-found: error'));
         assert.ok(!prerequisiteJob.includes('- name: Download VSIX'));

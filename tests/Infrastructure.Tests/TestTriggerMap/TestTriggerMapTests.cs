@@ -123,6 +123,14 @@ public sealed class TestTriggerMapTests
             ["job:extension-e2e"]
         },
         {
+            ".github/workflows/extension-unit-tests.yml",
+            ["test:Infrastructure.Tests", "job:extension-unit"]
+        },
+        {
+            ".github/workflows/extension-e2e-tests.yml",
+            ["test:Infrastructure.Tests", "job:extension-unit", "job:extension-e2e"]
+        },
+        {
             ".vscode/launch.json",
             ["job:extension-unit"]
         },
