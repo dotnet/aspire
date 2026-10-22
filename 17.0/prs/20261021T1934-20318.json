@@ -1,0 +1,9 @@
+{
+  "author": "ellahathaway",
+  "comment": "Internal extension telemetry context fix; not notable to users",
+  "mergedAt": "2026-10-21T19:34:28Z",
+  "number": 20318,
+  "runDate": "2026-10-22T00:10:00Z",
+  "status": "excluded",
+  "title": "Fix stale AppHost telemetry context in the VS Code extension"
+}

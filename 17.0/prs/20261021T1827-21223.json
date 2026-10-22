@@ -1,0 +1,9 @@
+{
+  "author": "eerhardt",
+  "comment": "Entra service principals tagged as integrated apps",
+  "mergedAt": "2026-10-21T18:27:45Z",
+  "number": 21223,
+  "runDate": "2026-10-22T00:10:00Z",
+  "status": "included",
+  "title": "Tag Entra service principals as integrated enterprise applications"
+}

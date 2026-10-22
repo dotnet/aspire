@@ -1,0 +1,9 @@
+{
+  "author": "ellahathaway",
+  "comment": "More reliable Blazor WASM debugging",
+  "mergedAt": "2026-10-21T19:03:19Z",
+  "number": 20404,
+  "runDate": "2026-10-22T00:10:00Z",
+  "status": "included",
+  "title": "Guard native Blazor WASM debugging against abandoned connections"
+}

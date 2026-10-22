@@ -1,0 +1,19 @@
+{
+  "area": "AppHost",
+  "areaEmoji": "🏠",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Improvements",
+  "communityContributors": [],
+  "description": "Service principals created by the Entra ID integration now carry the `WindowsAzureActiveDirectoryIntegratedApp` tag, so they appear in the Enterprise applications list and the access package application picker.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "🏷️",
+  "firstMergedAt": "2026-10-21T18:27:45Z",
+  "lastMergedAt": "2026-10-21T18:27:45Z",
+  "name": "Entra service principals tagged as integrated apps",
+  "owner": "eerhardt",
+  "prs": [
+    21223
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "area": "Extensions",
+  "areaEmoji": "🧩",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Bug fixes",
+  "communityContributors": [],
+  "description": "Native Blazor WebAssembly debugging no longer breaks when VS Code abandons a slow debugger connection and retries, so launches succeed reliably.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "🐞",
+  "firstMergedAt": "2026-10-21T19:03:19Z",
+  "lastMergedAt": "2026-10-21T19:03:19Z",
+  "name": "More reliable Blazor WASM debugging in VS Code",
+  "owner": "ellahathaway",
+  "prs": [
+    20404
+  ]
+}

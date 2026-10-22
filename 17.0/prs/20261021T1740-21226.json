@@ -1,0 +1,9 @@
+{
+  "author": "eerhardt",
+  "comment": "Deployment test-only changes",
+  "mergedAt": "2026-10-21T17:40:26Z",
+  "number": 21226,
+  "runDate": "2026-10-22T00:10:00Z",
+  "status": "excluded",
+  "title": "Fix Entra deployment test verification and cleanup"
+}

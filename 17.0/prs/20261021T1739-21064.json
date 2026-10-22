@@ -1,0 +1,9 @@
+{
+  "author": "ellahathaway",
+  "comment": "Copilot App telemetry attribution fix",
+  "mergedAt": "2026-10-21T17:39:00Z",
+  "number": 21064,
+  "runDate": "2026-10-22T00:10:00Z",
+  "status": "included",
+  "title": "Fix Copilot App telemetry attribution for Aspire skills v0.0.4"
+}

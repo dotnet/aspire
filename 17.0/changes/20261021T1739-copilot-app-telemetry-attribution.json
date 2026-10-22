@@ -1,0 +1,19 @@
+{
+  "area": "CLI",
+  "areaEmoji": "💻",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Bug fixes",
+  "communityContributors": [],
+  "description": "Aspire CLI telemetry now identifies GitHub Copilot App sessions as `copilot-app` instead of `copilot-cli`, and the embedded Aspire skills bundle is updated to v0.0.4.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "🏷️",
+  "firstMergedAt": "2026-10-21T17:39:00Z",
+  "lastMergedAt": "2026-10-21T17:39:00Z",
+  "name": "Correct Copilot App telemetry attribution",
+  "owner": "ellahathaway",
+  "prs": [
+    21064
+  ]
+}
