@@ -76,10 +76,12 @@ When you publish, the environment's public network access is disabled, the Front
 origin in the environment connects through a Front Door managed private endpoint. The environment must be a workload profiles
 environment that Aspire provisions, not an existing or Express environment.
 
-The private endpoint is created in the environment's region. Front Door only offers Private Link in some
-[regions](https://learn.microsoft.com/azure/frontdoor/private-link#region-availability), so deployment fails when the
-environment is in another region. To create the private endpoint in a supported region instead, set the location of each Private
-Link origin in `ConfigureInfrastructure`, for example from a parameter:
+The private endpoint is created in the environment's region when Front Door offers Private Link there. Front Door only offers
+Private Link in some [regions](https://learn.microsoft.com/azure/frontdoor/private-link#region-availability), so for an
+environment in another region the private endpoint is created in the supported region of the same geography, for example
+`westus2` for an environment in `westus`, at the cost of an extra network hop. A geography without a supported region, such as
+Switzerland, isn't remapped and deployment fails. In that case, or to choose a different region, set the location of each
+Private Link origin in `ConfigureInfrastructure`, for example from a parameter:
 
 ```csharp
 var privateLinkLocation = builder.AddParameter("privateLinkLocation");

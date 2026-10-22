@@ -56,9 +56,10 @@ public static class AzureFrontDoorPrivateLinkExtensions
     /// <para>
     /// Front Door creates its private endpoint in the region of <paramref name="environment"/>. Front Door Private Link is
     /// only available in some
-    /// <see href="https://learn.microsoft.com/azure/frontdoor/private-link#region-availability">regions</see>, so
-    /// deployment fails when the environment's region isn't one of them. To choose another region, set the origin's
-    /// <c>SharedPrivateLinkResource.PrivateLinkLocation</c> in
+    /// <see href="https://learn.microsoft.com/azure/frontdoor/private-link#region-availability">regions</see>, so for an
+    /// environment in another region the private endpoint is created in the supported region of the same geography, such as
+    /// <c>westus2</c> for <c>westus</c>, at the cost of an extra network hop. Deployment fails when the geography has no
+    /// supported region. To choose another region, set the origin's <c>SharedPrivateLinkResource.PrivateLinkLocation</c> in
     /// <see cref="AzureProvisioningResourceExtensions.ConfigureInfrastructure{T}"/> on <paramref name="frontDoor"/>, for
     /// example to a parameter.
     /// </para>

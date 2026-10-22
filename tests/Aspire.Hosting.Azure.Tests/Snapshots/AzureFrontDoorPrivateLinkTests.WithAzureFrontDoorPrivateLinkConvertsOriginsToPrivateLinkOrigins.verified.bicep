@@ -51,13 +51,45 @@ resource apiOrigin 'Microsoft.Cdn/profiles/originGroups/origins@2025-06-01' = {
       privateLink: {
         id: env_environment_id
       }
-      privateLinkLocation: env_location
+      privateLinkLocation: (privateLinkRegions[?env_location] ?? env_location)
       groupId: 'managedEnvironments'
       requestMessage: 'Azure Front Door frontdoor requests access to env.'
     }
     enforceCertificateNameCheck: true
   }
   parent: apiOriginGroup
+}
+
+var privateLinkRegions = {
+  australiacentral: 'australiaeast'
+  australiacentral2: 'australiaeast'
+  australiasoutheast: 'australiaeast'
+  brazilsoutheast: 'brazilsouth'
+  canadaeast: 'canadacentral'
+  centraluseuap: 'centralus'
+  chinaeast: 'chinaeast3'
+  chinaeast2: 'chinaeast3'
+  chinanorth: 'chinanorth3'
+  chinanorth2: 'chinanorth3'
+  eastus2euap: 'eastus2'
+  eastusstg: 'eastus'
+  francesouth: 'francecentral'
+  germanynorth: 'germanywestcentral'
+  japanwest: 'japaneast'
+  jioindiacentral: 'centralindia'
+  jioindiawest: 'centralindia'
+  koreasouth: 'koreacentral'
+  northcentralus: 'centralus'
+  norwaywest: 'norwayeast'
+  southafricawest: 'southafricanorth'
+  southcentralusstg: 'southcentralus'
+  southindia: 'centralindia'
+  swedensouth: 'swedencentral'
+  uaecentral: 'uaenorth'
+  ukwest: 'uksouth'
+  westcentralus: 'centralus'
+  westindia: 'centralindia'
+  westus: 'westus2'
 }
 
 resource apiRoute 'Microsoft.Cdn/profiles/afdEndpoints/routes@2025-06-01' = {
@@ -110,7 +142,7 @@ resource webOrigin 'Microsoft.Cdn/profiles/originGroups/origins@2025-06-01' = {
       privateLink: {
         id: env_environment_id
       }
-      privateLinkLocation: env_location
+      privateLinkLocation: (privateLinkRegions[?env_location] ?? env_location)
       groupId: 'managedEnvironments'
       requestMessage: 'Azure Front Door frontdoor requests access to env.'
     }

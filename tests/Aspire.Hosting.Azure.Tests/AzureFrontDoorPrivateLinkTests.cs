@@ -405,6 +405,59 @@ public class AzureFrontDoorPrivateLinkTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    public void RemappedRegionsPointToRegionsWithFrontDoorPrivateLink()
+    {
+        // The regions of https://learn.microsoft.com/azure/frontdoor/private-link#region-availability, normalized.
+        string[] supportedRegions =
+        [
+            "brazilsouth", "canadacentral", "centralus", "eastus", "eastus2", "southcentralus", "westus2", "westus3",
+            "usgovarizona", "usgovtexas", "usgovvirginia", "usnateast", "usnatwest", "usseceast", "ussecwest",
+            "francecentral", "germanywestcentral", "northeurope", "norwayeast", "uksouth", "westeurope", "swedencentral",
+            "southafricanorth", "uaenorth",
+            "australiaeast", "centralindia", "japaneast", "koreacentral", "eastasia", "southeastasia", "chinaeast3", "chinanorth3"
+        ];
+
+        foreach (var (region, privateLinkRegion) in FrontDoorPrivateLinkRegions.Remapped)
+        {
+            Assert.Matches("^[a-z0-9]+$", region);
+            Assert.DoesNotContain(region, supportedRegions);
+            Assert.Contains(privateLinkRegion, supportedRegions);
+        }
+    }
+
+    [Fact]
+    public async Task WithAzureFrontDoorPrivateLinkDeclaresTheRegionMapOnce()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper);
+
+        var west = builder.AddAzureContainerAppEnvironment("west");
+        var east = builder.AddAzureContainerAppEnvironment("east");
+        var frontDoor = builder.AddAzureFrontDoor("frontdoor");
+        west.WithAzureFrontDoorPrivateLink(frontDoor);
+        east.WithAzureFrontDoorPrivateLink(frontDoor);
+
+        var westApi = builder.AddProject<Project>("west-api", launchProfileName: null)
+            .WithHttpsEndpoint()
+            .WithExternalHttpEndpoints()
+            .WithComputeEnvironment(west);
+        var eastApi = builder.AddProject<Project>("east-api", launchProfileName: null)
+            .WithHttpsEndpoint()
+            .WithExternalHttpEndpoints()
+            .WithComputeEnvironment(east);
+        frontDoor.WithOrigin(westApi).WithOrigin(eastApi);
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var (_, bicep) = await GetManifestWithBicep(frontDoor.Resource);
+
+        Assert.Equal(1, CountOccurrences(bicep, "var privateLinkRegions = {"));
+        Assert.Contains("privateLinkLocation: (privateLinkRegions[?west_location] ?? west_location)", bicep);
+        Assert.Contains("privateLinkLocation: (privateLinkRegions[?east_location] ?? east_location)", bicep);
+    }
+
+    [Fact]
     public async Task WithAzureFrontDoorPrivateLinkSupportsAnyPrivateLinkTarget()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper);
@@ -427,7 +480,7 @@ public class AzureFrontDoorPrivateLinkTests(ITestOutputHelper testOutputHelper)
 
         Assert.Contains("name: 'Premium_AzureFrontDoor'", bicep);
         Assert.Contains("id: target_environment_id", bicep);
-        Assert.Contains("privateLinkLocation: target_location", bicep);
+        Assert.Contains("privateLinkLocation: (privateLinkRegions[?target_location] ?? target_location)", bicep);
         Assert.Contains("groupId: 'sites'", bicep);
         Assert.Contains("requestMessage: 'Azure Front Door frontdoor requests access to target.'", bicep);
         Assert.Single(target.Resource.Annotations.OfType<PrivateEndpointTargetAnnotation>());
