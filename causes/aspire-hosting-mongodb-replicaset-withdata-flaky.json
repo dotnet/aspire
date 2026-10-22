@@ -18,6 +18,13 @@
       "job": "Tests / No-package tests (regular, Aspire.Hosting.MongoDB.Tests, Hosting.MongoDB, Hosting.MongoDB, tests/... / Hosting.MongoDB (ubuntu-latest)",
       "pr_number": 0,
       "observed_at": "2026-09-27T13:02:19Z"
+    },
+    {
+      "run_id": 39697617337,
+      "run_url": "https://github.com/microsoft/aspire/actions/runs/39697617337",
+      "job": "Tests / No-package tests (regular, Aspire.Hosting.MongoDB.Tests, Hosting.MongoDB, Hosting.MongoDB, tests/... / Hosting.MongoDB (ubuntu-latest)",
+      "pr_number": 0,
+      "observed_at": "2026-10-22T01:17:44Z"
     }
   ],
   "issue_url": "https://github.com/microsoft/aspire/issues/20478"

@@ -1,0 +1,78 @@
+{
+  "run_id": 39697617337,
+  "run_attempt": 1,
+  "run_url": "https://github.com/microsoft/aspire/actions/runs/39697617337",
+  "run_scope": "main",
+  "analyzed_at": "2026-10-22T01:17:44Z",
+  "verdict": "flaky-test",
+  "pr": null,
+  "triggering_merge_pr": null,
+  "main_context": {
+    "last_successful_main_sha": "88ff9ba57c2841cce759adffa849373f9406b0f5",
+    "failed_sha": "8f73d674d0689589521e23e525e7e7f5dba5c764",
+    "candidate_merge_history_state": "incomplete",
+    "candidate_merges": null
+  },
+  "failed_jobs": [
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Cli.Tests, Cli, Cli, tests/Aspire.Cli.Tests/Aspire.Cli.Tests.cs... / Cli (macos-latest)",
+      "id": 119559510156,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39697617337/job/119559510156",
+      "classification": "transient-infra",
+      "reason": "Test host killed with exit 137 after all 5400 tests passed (0 failed); matches known macOS SIGKILL cause",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / No-package tests (regular, Aspire.Hosting.MongoDB.Tests, Hosting.MongoDB, Hosting.MongoDB, tests/... / Hosting.MongoDB (ubuntu-latest)",
+      "id": 119559514544,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39697617337/job/119559514544",
+      "classification": "flaky-test",
+      "reason": "MongoDB replica set test failed to become healthy; matches known flaky cause",
+      "failed_steps": [
+        "Run tests (Linux/macOS)"
+      ]
+    },
+    {
+      "name": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, azure-functions-node)",
+      "id": 119563230403,
+      "conclusion": "failure",
+      "url": "https://github.com/microsoft/aspire/actions/runs/39697617337/job/119563230403",
+      "classification": "flaky-test",
+      "reason": "VS Code Node Functions debugger E2E breakpoint timeout; matches known flaky cause",
+      "failed_steps": [
+        "Run extension E2E tests"
+      ]
+    }
+  ],
+  "failed_tests": [
+    {
+      "name": "Aspire.Hosting.MongoDB.Tests.MongoDbReplicaSetFunctionalTests.VerifyMongoDBMultiNodeReplicaWithDataShouldWorkAcrossUsages(topologyChange: MemberPrepended)",
+      "job": "Tests / No-package tests (regular, Aspire.Hosting.MongoDB.Tests, Hosting.MongoDB, Hosting.MongoDB, tests/... / Hosting.MongoDB (ubuntu-latest)",
+      "error": "Aspire.Hosting.DistributedApplicationException : Stopped waiting for resource 'rs0' to become healthy because it failed to start.",
+      "stack_trace": "at Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceHealthyAsync(String resourceName, WaitBehavior waitBehavior, CancellationToken cancellationToken) in /_/src/Aspire.Hosting/ApplicationModel/ResourceNotificationService.cs:line 278\n   at Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceHealthyAsync(String resourceName, CancellationToken cancellationToken) in /_/src/Aspire.Hosting/ApplicationModel/ResourceNotificationService.cs:line 211\n   at Aspire.Hosting.MongoDB.Tests.MongoDbReplicaSetFunctionalTests.VerifyMongoDBMultiNodeReplicaWithDataShouldWorkAcrossUsages(TopologyChange topologyChange) in /home/runner/work/aspire/aspire/tests/Aspire.Hosting.MongoDB.Tests/ReplicaSet/MongoDbReplicaSetFunctionalTests.cs:line 315\n--- End of stack trace from previous location ---",
+      "standard_output": "| [2026-10-22T00:15:15] Aspire.Hosting.DeveloperCertificateService Debug: Developer certificate HTTPS/TLS termination support: True\n| [2026-10-22T00:15:15] Aspire.Hosting.DistributedApplication Information: Aspire AppHost version: 17.0.0-ci\n| [2026-10-22T00:15:15] Aspire.Hosting.DistributedApplication Information: Distributed application starting.\n| [2026-10-22T00:15:15] Aspire.Hosting.DistributedApplication Information: Application host directory is: /home/runner/work/aspire/aspire/tests/Aspire.Hosting.TestUtilities\n| [2026-10-22T00:15:15] Aspire.Hosting.Cli.BackchannelService Debug: Backchannel socket path was not specified.\n| [2026-10-22T00:15:15] Aspire.Hosting.Cli.CliOrphanDetector Debug: No CLI process ID configured. Orphan detection disabled.\n| [2026-10-22T00:15:15] Aspire.Hosting.Devcontainers.Codespaces.CodespacesResourceUrlRewriterService Trace: Not running in Codespaces, skipping URL rewriting.\n| [2026-10-22T00:15:15] Aspire.Hosting.Backchannel.AuxiliaryBackchannelService Debug: Starting auxiliary backchannel service on socket path: /home/runner/.aspire/cli/bch/KfshLkY6TmIqhSc8Swj.4464\n| [2026-10-22T00:15:15] Aspire.Hosting.Backchannel.AuxiliaryBackchannelService Debug: Auxiliary backchannel listening on /home/runner/.aspire/cli/bch/KfshLkY6TmIqhSc8Swj.4464\n| [2026-10-22T00:15:15] Aspire.Hosting.Dcp.DcpHost Debug: Prepared DCP TLS certificate files for thumbprint 90B8057D78B12190A4304B656AF65B3F5EB04B7E.\n| [2026-10-22T00:15:15] Aspire.Hosting.FileSystemService Debug: Allocated temporary directory: /tmp/aspire-dcpd5wjxF\n| [2026-10-22T00:15:15] Aspire.Hosting.Dcp.DcpHost Information: Starting DCP with arguments: start-apiserver --monitor 4464 --detach --kubeconfig \"/tmp/aspire-dcpd5wjxF/kubeconfig\" --tls-cert-thumbprint \"90B8057D78B12190A4304B656AF65B3F5EB04B7E\" --tls-cert-file \"/home/runner/.aspire/dev-certs/https/013FD35B6DDE06C4F32AD8632E2795A9DCE00B8A09250A26909E6DEE8945D59F.crt\" --tls-key-file \"/home/runner/.aspire/dev-certs/https/013FD35B6DDE06C4F32AD8632E2795A9DCE00B8A09250A26909E6DEE8945D59F.key\"\n| [2026-10-22T00:15:15] Aspire.Hosting.Dcp.DcpExecutor Debug: Preparing services. Ports randomized: True\n| [2026-10-22T00:15:15] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Version: 1 Resource mongo1/mongo1-xmxdbtbc update published: ResourceType = Container, CreationTimeStamp = (null), State = { Text = (null), Style = (null) }, IsHidden = False, HeathStatus = (null), ResourceReady = False, ExitCode = (null), Urls = {  }, EnvironmentVariables = {  }, Properties = {  }, HealthReports = { mongo1_check = (null) }, Commands = { start (Start) = Disabled stop (Stop) = Hidden restart (Restart) = Disabled }\n| [2026-10-22T00:15:15] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Version: 1 Resource mongo2/mongo2-ykhecfze update published: ResourceType = Container, CreationTimeStamp = (null), State = { Text = (null), Style = (null) }, IsHidden = False, HeathStatus = (null), ResourceReady = False, ExitCode = (null), Urls = {  }, EnvironmentVariables = {  }, Properties = {  }, HealthReports = { mongo2_check = (null) }, Commands = { start (Start) = Disabled stop (Stop) = Hidden restart (Restart) = Disabled }\n| [2026-10-22T00:15:15] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Version: 1 Resource mongo3/mongo3-pqrhhbxf update published: ResourceType = Container, CreationTimeStamp = (null), State = { Text = (null), Style = (null) }, IsHidden = False, HeathStatus = (null), ResourceReady = False, ExitCode = (null), Urls = {  }, EnvironmentVariables = {  }, Properties = {  }, HealthReports = { mongo3_check = (null) }, Commands = { start (Start) = Disabled stop (Stop) = Hidden restart (Restart) = Disabled }\n| [2026-10-22T00:15:15] Aspire.Hosting.ApplicationModel.ResourceNotificationService Trace: Version: 1 Resource rs0/rs0 update published: ResourceType = MongoDB Replica Set, CreationTimeStamp = 2026-10-22T00:15:15, State = { Text = Waiting, Style = (null) }, IsHidden = Fa",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Known flaky test; timing/environment related failure matching prior cause"
+    },
+    {
+      "name": "Aspire Node Functions debugger E2E starts Core Tools, attaches pwa-node, hits an HTTP breakpoint and cleans up the worker",
+      "job": "Tests / Run VS Code extension E2E tests / VS Code extension E2E (Linux, azure-functions-node)",
+      "error": "Failed to apply E2E control revision 1792628562288: Error: Timed out after 300000ms waiting for breakpoint in /tmp/aev-6CLbcX/workspace/AspireE2E.NodeFunctionsDebugger/Program.cs:4. Last error: <none>.\nDiagnostics:\n{\n  \"supportedCapabilities\": [\n    \"prompting\",\n    \"baseline.v1\",\n    \"secret-prompts.v1\",\n    \"file-pickers.v1\",\n    \"message-actions.v1\",\n    \"build-dotnet-using-cli\",\n    \"apphost-log-output.v1\",\n    \"project\",\n    \"project-with-external-build.v1\",\n    \"ms-dotnettools.csharp\",\n    \"node\",\n    \"deno.v1\",\n    \"browser\",\n    \"azure-functions-node\",\n    \"deno\"\n  ],\n  \"debugSessions\": [\n    {\n      \"id\": \"b2a629ed-f376-4518-a9fe-520b82cfa399\",\n      \"type\": \"aspire\",\n      \"name\": \"Aspire run: AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n      \"configuration\": {\n        \"type\": \"aspire\",\n        \"name\": \"Aspire run: AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n        \"request\": \"launch\",\n        \"program\": \"/tmp/aev-6CL",
+      "stack_trace": "Error: Failed to apply E2E control revision 1792628562288: Error: Timed out after 300000ms waiting for breakpoint in /tmp/aev-6CLbcX/workspace/AspireE2E.NodeFunctionsDebugger/Program.cs:4. Last error: <none>.\nDiagnostics:\n{\n  \"supportedCapabilities\": [\n    \"prompting\",\n    \"baseline.v1\",\n    \"secret-prompts.v1\",\n    \"file-pickers.v1\",\n    \"message-actions.v1\",\n    \"build-dotnet-using-cli\",\n    \"apphost-log-output.v1\",\n    \"project\",\n    \"project-with-external-build.v1\",\n    \"ms-dotnettools.csharp\",\n    \"node\",\n    \"deno.v1\",\n    \"browser\",\n    \"azure-functions-node\",\n    \"deno\"\n  ],\n  \"debugSessions\": [\n    {\n      \"id\": \"b2a629ed-f376-4518-a9fe-520b82cfa399\",\n      \"type\": \"aspire\",\n      \"name\": \"Aspire run: AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n      \"configuration\": {\n        \"type\": \"aspire\",\n        \"name\": \"Aspire run: AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n        \"request\": \"launch\",\n        \"program\": \"/tmp/aev-6CLbcX/workspace/AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n        \"command\": \"run\",\n        \"noDebug\": false,\n        \"__aspireAppHostSelectionOrigin\": \"user-selection\",\n        \"__aspireAppHostLaunchToken\": 1,\n        \"__aspireAppHostLaunchReservationId\": \"1\",\n        \"resolvedCliPath\": \"/tmp/aev-6CLbcX/cli/aspire\"\n      }\n    }\n  ],\n  \"launchRequests\": [\n    {\n      \"sessionId\": \"b2a629ed-f376-4518-a9fe-520b82cfa399\",\n      \"sessionType\": \"aspire\",\n      \"sessionName\": \"Aspire run: AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n      \"arguments\": {\n        \"type\": \"aspire\",\n        \"name\": \"Aspire run: AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n        \"request\": \"launch\",\n        \"program\": \"/tmp/aev-6CLbcX/workspace/AspireE2E.NodeFunctionsDebugger/AspireE2E.NodeFunctionsDebugger.csproj\",\n        \"command\": \"run\",\n        \"noDebug\": false,\n        \"__aspireAppHostSelectionOrigin\": \"user-selec",
+      "standard_output": "",
+      "standard_error": "",
+      "classification": "flaky",
+      "reason": "Known flaky test; timing/environment related failure matching prior cause"
+    }
+  ],
+  "causes": [
+    "aspire-cli-tests-macos-testhost-sigkill-137",
+    "aspire-hosting-mongodb-replicaset-withdata-flaky",
+    "vscode-e2e-linux-azure-functions-node-breakpoint-timeout"
+  ]
+}
