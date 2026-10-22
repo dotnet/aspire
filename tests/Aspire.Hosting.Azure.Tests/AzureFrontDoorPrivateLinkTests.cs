@@ -92,6 +92,7 @@ public class AzureFrontDoorPrivateLinkTests(ITestOutputHelper testOutputHelper)
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper);
 
         var environment = builder.AddAzureContainerAppEnvironment("env");
+        var publicEnvironment = builder.AddAzureContainerAppEnvironment("public-env");
         var privateLinkLocation = builder.AddParameter("privateLinkLocation");
         var frontDoor = builder.AddAzureFrontDoor("frontdoor")
             .ConfigureInfrastructure(infrastructure =>
@@ -99,7 +100,8 @@ public class AzureFrontDoorPrivateLinkTests(ITestOutputHelper testOutputHelper)
                 var location = privateLinkLocation.AsProvisioningParameter(infrastructure);
                 foreach (var origin in infrastructure.GetProvisionableResources().OfType<FrontDoorOrigin>())
                 {
-                    if (origin.SharedPrivateLinkResource is { } privateLink)
+                    var privateLink = origin.SharedPrivateLinkResource;
+                    if (!privateLink.PrivateLinkId.IsEmpty)
                     {
                         privateLink.PrivateLinkLocation = location;
                     }
@@ -109,8 +111,13 @@ public class AzureFrontDoorPrivateLinkTests(ITestOutputHelper testOutputHelper)
 
         var api = builder.AddProject<Project>("api", launchProfileName: null)
             .WithHttpsEndpoint()
-            .WithExternalHttpEndpoints();
-        frontDoor.WithOrigin(api);
+            .WithExternalHttpEndpoints()
+            .WithComputeEnvironment(environment);
+        var publicApi = builder.AddProject<Project>("public-api", launchProfileName: null)
+            .WithHttpsEndpoint()
+            .WithExternalHttpEndpoints()
+            .WithComputeEnvironment(publicEnvironment);
+        frontDoor.WithOrigin(api).WithOrigin(publicApi);
 
         using var app = builder.Build();
 
@@ -118,7 +125,8 @@ public class AzureFrontDoorPrivateLinkTests(ITestOutputHelper testOutputHelper)
 
         var (_, bicep) = await GetManifestWithBicep(frontDoor.Resource);
 
-        Assert.Contains("privateLinkLocation: privateLinkLocation", bicep);
+        Assert.Equal(1, CountOccurrences(bicep, "sharedPrivateLinkResource:"));
+        Assert.Equal(1, CountOccurrences(bicep, "privateLinkLocation: privateLinkLocation"));
         Assert.DoesNotContain("privateLinkLocation: env_location", bicep);
     }
 

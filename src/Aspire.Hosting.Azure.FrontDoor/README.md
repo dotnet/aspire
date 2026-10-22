@@ -66,6 +66,7 @@ const frontDoor = await builder.addAzureFrontDoor("frontdoor");
 await environment.withAzureFrontDoorPrivateLink(frontDoor);
 
 const api = await builder.addNodeApp("api", "../api", "server.js")
+    .withHttpEndpoint({ env: "PORT" })
     .withExternalHttpEndpoints();
 
 await frontDoor.withOrigin(api);
@@ -89,7 +90,9 @@ frontDoor.ConfigureInfrastructure(infrastructure =>
     var location = privateLinkLocation.AsProvisioningParameter(infrastructure);
     foreach (var origin in infrastructure.GetProvisionableResources().OfType<FrontDoorOrigin>())
     {
-        if (origin.SharedPrivateLinkResource is { } privateLink)
+        // Origins that aren't Private Link origins still have an empty SharedPrivateLinkResource model.
+        var privateLink = origin.SharedPrivateLinkResource;
+        if (!privateLink.PrivateLinkId.IsEmpty)
         {
             privateLink.PrivateLinkLocation = location;
         }
