@@ -22,6 +22,7 @@ export type ResolvedDashboardLaunchBehavior = {
 };
 
 const dashboardLaunchIdConfigKey = '__aspireDashboardLaunchId';
+const dashboardDebugBrowserStartTimeoutMs = 60000;
 const preOptInDefaultDashboardBrowser: DashboardLaunchBehavior = 'integratedBrowser';
 
 export function normalizeDashboardLaunchBehavior(value: unknown): DashboardLaunchBehavior | undefined {
@@ -304,6 +305,14 @@ function createDashboardDebugConfiguration(
 
   if (debugType === 'pwa-chrome' || debugType === 'pwa-msedge') {
     debugConfig.pauseForSourceMap = false;
+    // js-debug's 10-second default can expire before Chromium creates its initial page target
+    // on a busy machine. Dashboard launch runs in the background, so allow startup contention
+    // without delaying AppHost startup.
+    debugConfig.timeout = dashboardDebugBrowserStartTimeoutMs;
+    // Fresh or isolated environments can have a valid localhost development certificate that has
+    // not been trusted yet. Limit Chromium's certificate bypass to localhost instead of disabling
+    // certificate validation globally.
+    debugConfig.runtimeArgs = ['--allow-insecure-localhost'];
   }
   else {
     // Firefox requires a webRoot even though the Dashboard sources are not local.
@@ -383,7 +392,9 @@ export class DashboardLauncher implements vscode.Disposable {
    * shutdown budget so a wedged browser adapter cannot starve AppHost and parent teardown.
    */
   private static readonly _dashboardStopTimeoutMs = 2000;
-  private static readonly _dashboardLateStartListenerTimeoutMs = 30000;
+  // Keep the listener beyond js-debug's launch timeout so shutdown can still adopt and stop a
+  // browser whose start event races the launch request settling.
+  private static readonly _dashboardLateStartListenerTimeoutMs = dashboardDebugBrowserStartTimeoutMs + 5000;
 
   private readonly _host: DashboardLauncherHost;
 

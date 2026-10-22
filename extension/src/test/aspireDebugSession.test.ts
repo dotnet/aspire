@@ -1839,7 +1839,7 @@ var builder = Aspire.Hosting.DistributedApplication.CreateBuilder(args);
         await stopPromise;
         sinon.assert.notCalled(disposeStartListener);
 
-        await clock.tickAsync(29999);
+        await clock.tickAsync(64999);
         sinon.assert.notCalled(disposeStartListener);
 
         await clock.tickAsync(1);
