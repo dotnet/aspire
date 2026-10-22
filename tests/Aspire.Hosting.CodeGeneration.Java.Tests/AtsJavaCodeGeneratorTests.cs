@@ -3,12 +3,16 @@
 
 using System.Reflection;
 using System.Diagnostics;
+using System.IO.Pipes;
+using System.Net.Sockets;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.RemoteHost;
 using Aspire.TypeSystem;
 using Aspire.Hosting.CodeGeneration.TypeScript.Tests.TestTypes;
+using StreamJsonRpc;
 
 namespace Aspire.Hosting.CodeGeneration.Java.Tests;
 
@@ -547,6 +551,92 @@ public class AtsJavaCodeGeneratorTests
 
         Assert.All(listCapabilities, capability => Assert.Contains(capability, aspireList, StringComparison.Ordinal));
         Assert.All(dictCapabilities, capability => Assert.Contains(capability, aspireDict, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task GeneratedTransport_AuthenticatesWhileThePlatformConnectionIsWaitingForInput()
+    {
+        using var workspace = await CreateJavaProbeWorkspaceAsync();
+        var pipeName = Path.GetFileName(workspace.RootPath);
+        var socketPath = OperatingSystem.IsWindows() ? pipeName : Path.Combine(workspace.RootPath, "s");
+        workspace.WriteSource(
+            "aspire/PlatformConnectionProbe.java",
+            $$"""
+            package aspire;
+
+            import java.util.Arrays;
+            import java.util.concurrent.CompletableFuture;
+            import java.util.concurrent.TimeUnit;
+            import java.util.concurrent.TimeoutException;
+
+            public class PlatformConnectionProbe {
+                public static void main(String[] args) throws Exception {
+                    var client = new AspireClient({{JsonSerializer.Serialize(socketPath)}});
+                    client.connect();
+
+                    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+                    boolean readerWaiting = false;
+                    while (!readerWaiting && System.nanoTime() < deadline) {
+                        readerWaiting = Thread.getAllStackTraces().entrySet().stream().anyMatch(entry ->
+                            entry.getKey().getName().equals("aspire-client-reader")
+                                && Arrays.stream(entry.getValue()).anyMatch(frame ->
+                                    (frame.isNativeMethod() && (frame.getClassName().equals("java.io.FileInputStream")
+                                        || frame.getClassName().equals("sun.nio.ch.Net")))
+                                        || frame.getClassName().equals("sun.nio.ch.PendingFuture")));
+                        Thread.onSpinWait();
+                    }
+                    if (!readerWaiting) {
+                        throw new IllegalStateException("The platform reader did not begin waiting for input.");
+                    }
+
+                    var authentication = CompletableFuture.runAsync(() -> client.authenticate("probe-token"));
+                    try {
+                        authentication.get(5, TimeUnit.SECONDS);
+                    } catch (TimeoutException exception) {
+                        throw new IllegalStateException(
+                            "Authentication was blocked while the reader awaited a message.", exception);
+                    }
+                    System.out.println("OK");
+                }
+            }
+            """);
+        await workspace.CompileAsync();
+
+        using var namedPipe = OperatingSystem.IsWindows()
+            ? new NamedPipeServerStream(pipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly)
+            : null;
+        using var listener = OperatingSystem.IsWindows() ? null : new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        if (listener is not null)
+        {
+            listener.Bind(new UnixDomainSocketEndPoint(socketPath));
+            listener.Listen(1);
+        }
+
+        using var connectionTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        var runTask = workspace.RunClassAsync("aspire.PlatformConnectionProbe", TimeSpan.FromSeconds(25));
+        Stream stream;
+        if (namedPipe is not null)
+        {
+            await namedPipe.WaitForConnectionAsync(connectionTimeout.Token);
+            stream = namedPipe;
+        }
+        else
+        {
+            Assert.NotNull(listener);
+            stream = new NetworkStream(await listener.AcceptAsync(connectionTimeout.Token), ownsSocket: true);
+        }
+
+        using (stream)
+        using (var rpc = new JsonRpc(new HeaderDelimitedMessageHandler(stream, stream, new SystemTextJsonFormatter())))
+        {
+            rpc.AddLocalRpcMethod("authenticate", (string token) => token == "probe-token");
+            rpc.StartListening();
+
+            var run = await runTask;
+            Assert.False(run.TimedOut, $"Probe timed out. stdout:{Environment.NewLine}{run.StdOut}{Environment.NewLine}stderr:{Environment.NewLine}{run.StdErr}");
+            Assert.True(run.ExitCode == 0, $"Probe failed with exit code {run.ExitCode}.{Environment.NewLine}stdout:{Environment.NewLine}{run.StdOut}{Environment.NewLine}stderr:{Environment.NewLine}{run.StdErr}");
+            Assert.Equal("OK", run.StdOut.Trim());
+        }
     }
 
     [Fact]
@@ -3776,6 +3866,8 @@ public class AtsJavaCodeGeneratorTests
         {
             _classes = Directory.CreateDirectory(Path.Combine(_root.FullName, "classes"));
         }
+
+        public string RootPath => _root.FullName;
 
         public void WriteSource(string relativePath, string content)
         {
