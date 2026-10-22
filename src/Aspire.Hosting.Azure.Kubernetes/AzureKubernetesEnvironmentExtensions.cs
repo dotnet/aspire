@@ -882,12 +882,8 @@ public static class AzureKubernetesEnvironmentExtensions
             aksResource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReference) &&
             registryReference.Registry is AzureContainerRegistryResource registry)
         {
-            aksResource.Parameters["acrName"] = registry.NameOutputReference;
-            var acrNameParam = new ProvisioningParameter("acrName", typeof(string));
-            infrastructure.Add(acrNameParam);
-
             var acr = ContainerRegistryService.FromExisting("acr");
-            acr.Name = acrNameParam;
+            acr.Name = registry.NameOutputReference.AsProvisioningParameter(infrastructure, "acrName");
             infrastructure.Add(acr);
 
             var acrPullRoleId = BicepFunction.GetSubscriptionResourceId(
