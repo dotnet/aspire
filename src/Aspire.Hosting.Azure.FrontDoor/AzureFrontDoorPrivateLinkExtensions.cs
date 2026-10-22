@@ -37,9 +37,8 @@ public static class AzureFrontDoorPrivateLinkExtensions
     /// </para>
     /// <para>
     /// Like a private endpoint to any other Azure resource, the Private Link disables public network access to the
-    /// environment. Apps in the environment are no longer reachable from the Internet except through Front Door, and
-    /// references between apps in the environment use the environment's internal host names. Callers outside the
-    /// environment must reach the apps through the Front Door, or through a route of their own.
+    /// environment. Apps in the environment are no longer reachable from the Internet except through Front Door. Callers
+    /// outside the environment must reach the apps through the Front Door, or through a route of their own.
     /// </para>
     /// <para>
     /// An Azure Container Apps environment can only have its public network access disabled when Aspire provisions it, so it
@@ -75,9 +74,8 @@ public static class AzureFrontDoorPrivateLinkExtensions
     /// endpoints. Origins in other compute environments are left as they are.
     /// </para>
     /// <para>
-    /// Public network access to the environment is disabled, so the apps are reachable only through the Front Door, and
-    /// references between apps in the environment use the environment's internal host names. The environment must be a
-    /// workload profiles environment that Aspire provisions.
+    /// Public network access to the environment is disabled, so the apps are reachable only through the Front Door. The
+    /// environment must be a workload profiles environment that Aspire provisions.
     /// </para>
     /// <para>
     /// Front Door creates a connection request in the Pending state, and no traffic reaches the apps until the owner of

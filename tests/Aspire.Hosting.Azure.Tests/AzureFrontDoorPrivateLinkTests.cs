@@ -131,7 +131,7 @@ public class AzureFrontDoorPrivateLinkTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public async Task WithAzureFrontDoorPrivateLinkResolvesSameEnvironmentReferencesToInternalHosts()
+    public async Task WithAzureFrontDoorPrivateLinkKeepsSameEnvironmentReferencesOnIngressHosts()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper);
 
@@ -156,30 +156,6 @@ public class AzureFrontDoorPrivateLinkTests(ITestOutputHelper testOutputHelper)
         var (_, bicep) = await GetManifestWithBicep(GetContainerApp(web.Resource));
 
         await Verify(bicep, "bicep");
-    }
-
-    [Fact]
-    public async Task SameEnvironmentReferencesUsePublicHostsWithoutPrivateLink()
-    {
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, testOutputHelper);
-
-        builder.AddAzureContainerAppEnvironment("env");
-
-        var api = builder.AddProject<Project>("api", launchProfileName: null)
-            .WithHttpsEndpoint()
-            .WithExternalHttpEndpoints();
-        var web = builder.AddProject<Project>("web", launchProfileName: null)
-            .WithHttpsEndpoint()
-            .WithExternalHttpEndpoints()
-            .WithReference(api);
-
-        using var app = builder.Build();
-
-        await ExecuteBeforeStartHooksAsync(app, default);
-
-        var (_, bicep) = await GetManifestWithBicep(GetContainerApp(web.Resource));
-
-        Assert.DoesNotContain(".internal.", bicep);
     }
 
     [Fact]

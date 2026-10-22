@@ -73,9 +73,8 @@ await frontDoor.withOrigin(api);
 ```
 
 When you publish, the environment's public network access is disabled, the Front Door profile uses the Premium SKU, and each
-origin in the environment connects through a Front Door managed private endpoint. Apps in the environment call each other
-through the environment's internal host names. The environment must be a workload profiles environment that Aspire provisions,
-not an existing or Express environment.
+origin in the environment connects through a Front Door managed private endpoint. The environment must be a workload profiles
+environment that Aspire provisions, not an existing or Express environment.
 
 The private endpoint is created in the environment's region. Front Door only offers Private Link in some
 [regions](https://learn.microsoft.com/azure/frontdoor/private-link#region-availability), so deployment fails when the

@@ -194,12 +194,7 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
             {
                 var domain = AllocateParameter(_containerAppEnvironmentContext.Environment.ContainerAppDomain);
 
-                // Callers and callee share this environment. When the environment is reached only through a private
-                // link, its public network access is disabled, so even an app with external ingress must be called
-                // through the environment-internal host name; the public host name refuses the connection.
-                var useInternalHost = !external || _containerAppEnvironmentContext.Environment.IsPublicNetworkAccessDisabled;
-
-                return useInternalHost ? BicepFunction.Interpolate($$"""{{prefix}}{{host}}.internal.{{domain}}{{suffix}}""") : BicepFunction.Interpolate($$"""{{prefix}}{{host}}.{{domain}}{{suffix}}""");
+                return external ? BicepFunction.Interpolate($$"""{{prefix}}{{host}}.{{domain}}{{suffix}}""") : BicepFunction.Interpolate($$"""{{prefix}}{{host}}.internal.{{domain}}{{suffix}}""");
             }
 
             return $"{prefix}{host}{suffix}";

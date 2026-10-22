@@ -57,15 +57,15 @@ resource web 'Microsoft.App/containerApps@2025-10-02-preview' = {
             }
             {
               name: 'API_HTTPS'
-              value: 'https://api.internal.${env_outputs_azure_container_apps_environment_default_domain}'
+              value: 'https://api.${env_outputs_azure_container_apps_environment_default_domain}'
             }
             {
               name: 'services__api__https__0'
-              value: 'https://api.internal.${env_outputs_azure_container_apps_environment_default_domain}'
+              value: 'https://api.${env_outputs_azure_container_apps_environment_default_domain}'
             }
             {
               name: 'API_HOST'
-              value: 'api.internal.${env_outputs_azure_container_apps_environment_default_domain}'
+              value: 'api.${env_outputs_azure_container_apps_environment_default_domain}'
             }
           ]
         }
