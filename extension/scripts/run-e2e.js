@@ -745,7 +745,7 @@ async function main() {
             throw new Error(`Unexpected Insiders product identity: ${JSON.stringify(product)}`);
           }
           console.log(`Testing genuine ${product.nameLong}: quality=${product.quality}, commit=${product.commit}`);
-          fs.cpSync(validationInsidersDirectory, path.join(stagingDirectory, 'Visual Studio Code - Insiders.app'), { recursive: true });
+          fs.cpSync(validationInsidersDirectory, path.join(stagingDirectory, 'Visual Studio Code - Insiders.app'), { recursive: true, verbatimSymlinks: true });
         } else {
           runWithRetry(process.execPath, [extesterCli, 'get-vscode', '--storage', downloadDirectory, '--code_version', vscodeVersion], extestEnv, setupDownloadRetryOptions);
         }
