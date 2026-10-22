@@ -1,12 +1,12 @@
 # Config-source scenarios for Microsoft first-party developers
 
-This companion to the [CLI config-source specification](cli-config-sources.md) follows hypothetical Microsoft first-party (1P) developers. It describes the revised, proposed materialization flow; the implementation has not yet been updated to match. Skills, template, and integration customization schemas remain separate future work.
+This companion to the [CLI config-source specification](cli-config-sources.md) follows hypothetical Microsoft first-party (1P) developers. It describes the CLI's configuration materialization flow. Skills, template, and integration customization schemas remain separate future work.
 
 The Microsoft default configuration repository is `https://msft.ghe.com/coreai/aspire-1p-init`. The developers, application names, team-specific configuration paths, and documentation URLs below are illustrative. The `.example` documentation hosts do not identify actual Microsoft services.
 
 ## Scenario 1: Maya creates her first Aspire app
 
-Maya is a Microsoft developer creating an Inventory application on her development machine. Inventory is an illustrative application name that she supplies to `aspire new`, not an application provided by the configuration repository. Assume a future Aspire CLI implementing the revised design, Git on `PATH`, and the normal prerequisites for her chosen Aspire template.
+Maya is a Microsoft developer creating an Inventory application on her development machine. Inventory is an illustrative application name that she supplies to `aspire new`, not an application provided by the configuration repository. Assume a CLI build containing config-source support, Git on `PATH`, and the normal prerequisites for her chosen Aspire template.
 
 ### Prepare Git authentication
 

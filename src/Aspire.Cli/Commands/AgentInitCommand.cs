@@ -203,10 +203,6 @@ internal sealed class AgentInitCommand : BaseCommand
     protected override async Task<CommandResult> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         var workspaceRoot = await PromptForWorkspaceRootAsync(parseResult, cancellationToken);
-        if (parseResult.GetValue(s_scopeOption) != AgentConfigurationScope.Global)
-        {
-            await ConfigSources.CheckProjectAsync(workspaceRoot, force: false, cancellationToken);
-        }
         var result = await ExecuteAgentInitAsync(
             workspaceRoot,
             PromptBinding.Create(parseResult, s_agentsOption),
@@ -399,6 +395,11 @@ internal sealed class AgentInitCommand : BaseCommand
                     ? AgentCommandStrings.InitCommand_ProjectScope
                     : AgentCommandStrings.InitCommand_GlobalScope,
                 cancellationToken: cancellationToken);
+        }
+
+        if (scope is AgentConfigurationScope.Project)
+        {
+            await ConfigSources.CheckProjectAsync(workspaceRoot, force: false, cancellationToken);
         }
 
         if (scope is AgentConfigurationScope.Global && detectedEnvironments is null)

@@ -608,8 +608,7 @@ internal sealed class NewCommand : BaseCommand
         var workspaceRoot = new DirectoryInfo(templateResult.OutputPath ?? ExecutionContext.WorkingDirectory.FullName);
         if (templateResult.ExitCode == CliExitCodes.Success && configSource is not null)
         {
-            await ConfigSourceService.BindAsync(configSource, workspaceRoot, cancellationToken);
-            await ConfigSources.CheckProjectAsync(workspaceRoot, force: false, cancellationToken);
+            await ConfigSources.MaterializeAsync(configSource, workspaceRoot, cancellationToken);
         }
         var agentInitBinding = PromptBinding.CreateInvertedBoolConfirm(parseResult, s_suppressAgentInitOption, defaultValue: true);
         // New projects get the complete default skill set, including aspireify. This chained flow

@@ -63,7 +63,7 @@ internal sealed class AspireConfigFile
     public string? Schema { get; set; }
 
     [JsonPropertyName("configSource")]
-    [Description("The Git repository and repository-relative path providing shared CLI configuration defaults.")]
+    [Description("The Git repository, configuration path, optional branch or commit, and version last applied to this app.")]
     [LocalAspireJsonConfigurationProperty]
     public ConfigSource? ConfigSource { get; set; }
 

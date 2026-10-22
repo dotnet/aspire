@@ -22,6 +22,8 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
             settingsFilePath = EnsureAspireConfigFileForAppHostPathSettings(settingsFilePath);
         }
 
+        using var configLock = isGlobal ? null : await ConfigurationHelper.TryAcquireWorkspaceConfigLockAsync(
+            executionContext, new FileInfo(settingsFilePath), logger, cancellationToken);
         await SetConfigurationInFileAsync(settingsFilePath, key, value, cancellationToken);
     }
 
@@ -52,6 +54,8 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
     public async Task<bool> DeleteConfigurationAsync(string key, bool isGlobal = false, CancellationToken cancellationToken = default)
     {
         var settingsFilePath = GetSettingsFilePath(isGlobal);
+        using var configLock = isGlobal ? null : await ConfigurationHelper.TryAcquireWorkspaceConfigLockAsync(
+            executionContext, new FileInfo(settingsFilePath), logger, cancellationToken);
 
         if (!File.Exists(settingsFilePath))
         {
@@ -386,12 +390,6 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
             }
             else if (File.Exists(configFilePath))
             {
-                if (configuration is IConfigurationRoot root
-                    && root.Providers.OfType<ConfigSourceConfigurationProvider>().SingleOrDefault() is { } defaults
-                    && defaults.TryGetProjectDefault(configFilePath, configKey, out var defaultValue))
-                {
-                    return Task.FromResult(defaultValue);
-                }
                 if (!continueSearchWhenKeyMissing)
                 {
                     break;

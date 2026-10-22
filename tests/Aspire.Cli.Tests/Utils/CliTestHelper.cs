@@ -86,8 +86,6 @@ internal static class CliTestHelper
         var services = new ServiceCollection();
 
         var configBuilder = new ConfigurationBuilder();
-        var configSourceProvider = new ConfigSourceConfigurationProvider();
-        services.AddSingleton(configSourceProvider);
         services.AddSingleton<ConfigSourceService>();
         services.AddSingleton<IConfigSourceGitClient, TestConfigSourceGitClient>();
         services.AddSingleton<IInternalMicrosoftDetector, TestConfigSourceDetector>();
@@ -119,7 +117,7 @@ internal static class CliTestHelper
 
         var globalSettingsFilePath = Path.Combine(options.WorkingDirectory.FullName, ".aspire", "settings.global.json");
         var globalSettingsFile = new FileInfo(globalSettingsFilePath);
-        ConfigurationHelper.RegisterSettingsFiles(configBuilder, options.WorkingDirectory, globalSettingsFile, persistNormalization: true, configSourceProvider);
+        ConfigurationHelper.RegisterSettingsFiles(configBuilder, options.WorkingDirectory, globalSettingsFile, persistNormalization: true);
 
         var configuration = configBuilder.Build();
         services.AddSingleton<IConfiguration>(configuration);

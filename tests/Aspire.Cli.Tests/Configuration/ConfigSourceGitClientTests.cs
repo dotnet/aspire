@@ -47,9 +47,11 @@ public class ConfigSourceGitClientTests(ITestOutputHelper outputHelper)
 
         // Source-address validation is covered separately. A local transport exercises
         // real Git snapshot acquisition without contacting a network repository.
-        var (commit, configuration) = await client.AcquireAsync(new(workspace.Path, path), cache.FullName, TestContext.Current.CancellationToken);
+        var (commit, version, configuration) = await client.AcquireAsync(
+            new() { Repository = workspace.Path, Path = path }, cache.FullName, TestContext.Current.CancellationToken);
 
         Assert.Matches("^[a-f0-9]{40,64}$", commit);
+        Assert.Equal((await RunGitOutputAsync(workspace.Path, ["rev-parse", $"HEAD:{path}"])).Trim(), version);
         Assert.True(configuration["features"]!["test"]!.GetValue<bool>());
         Assert.Equal("\u65e5\u672c\u8a9e", configuration["custom"]!.GetValue<string>());
         Assert.False(File.Exists(Path.Combine(cache.FullName, path)));
@@ -70,7 +72,7 @@ public class ConfigSourceGitClientTests(ITestOutputHelper outputHelper)
         await CreateRepositoryAsync(workspace, AspireConfigFile.FileName, content);
 
         await Assert.ThrowsAsync<ConfigSourceException>(() => new ConfigSourceGitClient(TestHelpers.CreateNonInteractiveHostEnvironment()).AcquireAsync(
-            new(workspace.Path, AspireConfigFile.FileName), workspace.CreateDirectory("cache").FullName, TestContext.Current.CancellationToken));
+            new() { Repository = workspace.Path, Path = AspireConfigFile.FileName }, workspace.CreateDirectory("cache").FullName, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -80,7 +82,7 @@ public class ConfigSourceGitClientTests(ITestOutputHelper outputHelper)
         await CreateRepositoryAsync(workspace, "other.json", "{}");
 
         var error = await Assert.ThrowsAsync<ConfigSourceException>(() => new ConfigSourceGitClient(TestHelpers.CreateNonInteractiveHostEnvironment()).AcquireAsync(
-            new(workspace.Path, AspireConfigFile.FileName), workspace.CreateDirectory("cache").FullName, TestContext.Current.CancellationToken));
+            new() { Repository = workspace.Path, Path = AspireConfigFile.FileName }, workspace.CreateDirectory("cache").FullName, TestContext.Current.CancellationToken));
 
         Assert.Equal(ConfigSourceStrings.MissingFile, error.Message);
     }
@@ -94,11 +96,11 @@ public class ConfigSourceGitClientTests(ITestOutputHelper outputHelper)
         await CreateRepositoryAsync(workspace, AspireConfigFile.FileName, "{}".PadRight(bytes));
         var client = new ConfigSourceGitClient(TestHelpers.CreateNonInteractiveHostEnvironment());
         var cache = workspace.CreateDirectory("cache");
-        var source = new ConfigSource(workspace.Path, AspireConfigFile.FileName);
+        var source = new ConfigSource { Repository = workspace.Path, Path = AspireConfigFile.FileName };
 
         if (valid)
         {
-            var (_, configuration) = await client.AcquireAsync(source, cache.FullName, TestContext.Current.CancellationToken);
+            var (_, _, configuration) = await client.AcquireAsync(source, cache.FullName, TestContext.Current.CancellationToken);
             Assert.Empty(configuration);
         }
         else
@@ -107,6 +109,91 @@ public class ConfigSourceGitClientTests(ITestOutputHelper outputHelper)
                 client.AcquireAsync(source, cache.FullName, TestContext.Current.CancellationToken));
             Assert.Equal(ConfigSourceStrings.InvalidConfiguration, error.Message);
         }
+    }
+
+    [Theory]
+    [InlineData("config/preview")]
+    [InlineData("refs/heads/config/preview")]
+    public async Task Acquire_ReadsSelectedBranchInsteadOfDefaultBranch(string reference)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        await CreateRepositoryAsync(workspace, AspireConfigFile.FileName, """{"custom":"default"}""");
+        var originalBranch = (await RunGitOutputAsync(workspace.Path, ["branch", "--show-current"])).Trim();
+        await GitTestHelper.RunGitAsync(workspace.Path, outputHelper, "checkout", "-b", "config/preview");
+        await File.WriteAllTextAsync(Path.Combine(workspace.Path, AspireConfigFile.FileName), """{"custom":"preview"}""");
+        await GitTestHelper.RunGitAsync(workspace.Path, outputHelper, "commit", "-am", "Preview configuration");
+        var expectedCommit = (await RunGitOutputAsync(workspace.Path, ["rev-parse", "HEAD"])).Trim();
+        await GitTestHelper.RunGitAsync(workspace.Path, outputHelper, "checkout", originalBranch);
+        var client = new ConfigSourceGitClient(TestHelpers.CreateNonInteractiveHostEnvironment());
+
+        var (commit, _, configuration) = await client.AcquireAsync(
+            new() { Repository = workspace.Path, Path = AspireConfigFile.FileName, Ref = reference },
+            workspace.CreateDirectory("cache").FullName, TestContext.Current.CancellationToken);
+
+        Assert.Equal(expectedCommit, commit);
+        Assert.Equal("preview", configuration["custom"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task Acquire_ReadsPinnedCommitOutsideShallowDefaultBranchTip()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        await CreateRepositoryAsync(workspace, AspireConfigFile.FileName, """{"custom":"pinned"}""");
+        var expectedCommit = (await RunGitOutputAsync(workspace.Path, ["rev-parse", "HEAD"])).Trim();
+        await File.WriteAllTextAsync(Path.Combine(workspace.Path, AspireConfigFile.FileName), """{"custom":"latest"}""");
+        await GitTestHelper.RunGitAsync(workspace.Path, outputHelper, "commit", "-am", "New configuration");
+        var client = new ConfigSourceGitClient(TestHelpers.CreateNonInteractiveHostEnvironment());
+
+        var (commit, _, configuration) = await client.AcquireAsync(
+            new() { Repository = workspace.Path, Path = AspireConfigFile.FileName, Ref = expectedCommit },
+            workspace.CreateDirectory("cache").FullName, TestContext.Current.CancellationToken);
+
+        Assert.Equal(expectedCommit, commit);
+        Assert.Equal("pinned", configuration["custom"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task Check_IdentifiesFileChangesWithoutMaterializingJsonAndHonorsPins()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        await CreateRepositoryAsync(workspace, AspireConfigFile.FileName, "{}");
+        var source = new ConfigSource { Repository = workspace.Path, Path = AspireConfigFile.FileName };
+        var client = new ConfigSourceGitClient(TestHelpers.CreateNonInteractiveHostEnvironment());
+        var original = await client.CheckAsync(source, workspace.CreateDirectory("first-check").FullName, TestContext.Current.CancellationToken);
+        await File.WriteAllTextAsync(Path.Combine(workspace.Path, "unrelated.txt"), "Unrelated change");
+        await GitTestHelper.RunGitAsync(workspace.Path, outputHelper, "add", "unrelated.txt");
+        await GitTestHelper.RunGitAsync(workspace.Path, outputHelper, "commit", "-m", "Unrelated commit");
+
+        var unchanged = await client.CheckAsync(source, workspace.CreateDirectory("unchanged-check").FullName, TestContext.Current.CancellationToken);
+
+        Assert.NotEqual(original.Commit, unchanged.Commit);
+        Assert.Equal(original.Version, unchanged.Version);
+        await File.WriteAllTextAsync(Path.Combine(workspace.Path, AspireConfigFile.FileName), """{"custom":"changed"}""");
+        await GitTestHelper.RunGitAsync(workspace.Path, outputHelper, "commit", "-am", "Change configuration");
+        var directory = workspace.CreateDirectory("changed-check");
+        var changed = await client.CheckAsync(source, directory.FullName, TestContext.Current.CancellationToken);
+        var pinned = await client.CheckAsync(new() { Repository = source.Repository, Path = source.Path, Ref = original.Commit },
+            workspace.CreateDirectory("pinned-check").FullName, TestContext.Current.CancellationToken);
+
+        Assert.NotEqual(original.Version, changed.Version);
+        Assert.Equal(original, pinned);
+        Assert.Equal(["repository.git"], directory.EnumerateFileSystemInfos().Select(p => p.Name));
+    }
+
+    [Theory]
+    [InlineData("missing-branch")]
+    [InlineData("0000000000000000000000000000000000000000")]
+    public async Task Acquire_UnavailableRefFailsWithoutFallingBack(string reference)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        await CreateRepositoryAsync(workspace, AspireConfigFile.FileName, "{}");
+        var client = new ConfigSourceGitClient(TestHelpers.CreateNonInteractiveHostEnvironment());
+
+        var error = await Assert.ThrowsAsync<ConfigSourceException>(() => client.AcquireAsync(
+            new() { Repository = workspace.Path, Path = AspireConfigFile.FileName, Ref = reference },
+            workspace.CreateDirectory("cache").FullName, TestContext.Current.CancellationToken));
+
+        Assert.Equal(ConfigSourceStrings.RepositoryUnavailable, error.Message);
     }
 
     [Fact]
@@ -124,7 +211,7 @@ public class ConfigSourceGitClientTests(ITestOutputHelper outputHelper)
         await GitTestHelper.RunGitAsync(workspace.Path, outputHelper, "commit", "-m", "Add symlink configuration");
 
         var error = await Assert.ThrowsAsync<ConfigSourceException>(() => new ConfigSourceGitClient(TestHelpers.CreateNonInteractiveHostEnvironment()).AcquireAsync(
-            new(workspace.Path, AspireConfigFile.FileName), workspace.CreateDirectory("cache").FullName, TestContext.Current.CancellationToken));
+            new() { Repository = workspace.Path, Path = AspireConfigFile.FileName }, workspace.CreateDirectory("cache").FullName, TestContext.Current.CancellationToken));
         Assert.Equal(ConfigSourceStrings.MissingFile, error.Message);
     }
 

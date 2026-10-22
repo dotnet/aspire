@@ -29,12 +29,13 @@ internal sealed class ConfigSourceService(
     TimeProvider timeProvider,
     IInteractionService interaction,
     ICliHostEnvironment hostEnvironment,
-    ConfigSourceConfigurationProvider provider,
     ILogger<ConfigSourceService> logger)
 {
     internal const string MicrosoftRepository = "https://msft.ghe.com/coreai/aspire-1p-init";
-    private readonly ConcurrentDictionary<ConfigSource, ConfigSourceSnapshot> _snapshots = [];
-    private readonly ConcurrentDictionary<ConfigSource, byte> _reported = [];
+    private static readonly string[][] s_allowedSettings = [["docs", "llmsTxtUrl"], ["docs", "api", "sitemapUrl"]];
+    private readonly ConcurrentDictionary<ConfigSourceKey, ConfigSourceSnapshot> _snapshots = [];
+    private readonly ConcurrentDictionary<ConfigSourceKey, byte> _reported = [];
+    private readonly ConcurrentDictionary<string, byte> _checkedProjects = new(StringComparers.FileSystemPath);
 
     internal static readonly Option<bool?> s_useSourceOption = new("--use-config-source")
     {
@@ -60,7 +61,9 @@ internal sealed class ConfigSourceService(
             || command is UpdateCommand && command.Options.OfType<Option<bool>>().Any(option =>
                 option.Name == "--self" && parseResult.GetValue(option))
             || command is UpdateCommand && parseResult.GetValue(UpdateCommand.s_configSourceOption)
-            || command is AgentInitCommand && parseResult.GetValue(AgentInitCommand.s_scopeOption) == AgentConfigurationScope.Global)
+            || command is AgentInitCommand &&
+                (parseResult.GetResult(AgentInitCommand.s_scopeOption) is not { Implicit: false }
+                    || parseResult.GetValue(AgentInitCommand.s_scopeOption) is not AgentConfigurationScope.Project))
         {
             return;
         }
@@ -75,14 +78,22 @@ internal sealed class ConfigSourceService(
             && ConfigurationHelper.FindNearestConfigFilePath(directory) is { } configPath
             && Path.GetFileName(configPath) == AspireConfigFile.FileName)
         {
-            var projectSettings = await ReadProjectConfigurationAsync(configPath, cancellationToken);
-            if (projectSettings?.Deserialize(JsonSourceGenerationContext.Default.AspireConfigFile)?.AppHost?.Path is { Length: > 0 } configuredPath)
+            try
             {
-                var configuredFile = new FileInfo(Path.GetFullPath(configuredPath, Path.GetDirectoryName(configPath)!));
-                if (configuredFile.Exists)
+                var projectSettings = await ReadProjectConfigurationAsync(configPath, cancellationToken);
+                if (projectSettings?.Deserialize(JsonSourceGenerationContext.Default.AspireConfigFile)?.AppHost?.Path is { Length: > 0 } configuredPath)
                 {
-                    directory = configuredFile.Directory!;
+                    var configuredFile = new FileInfo(Path.GetFullPath(configuredPath, Path.GetDirectoryName(configPath)!));
+                    if (configuredFile.Exists)
+                    {
+                        directory = configuredFile.Directory!;
+                    }
                 }
+            }
+            catch (Exception ex) when (ex is ConfigSourceException or JsonException or IOException or UnauthorizedAccessException)
+            {
+                ReportCheckFailure(null, ex);
+                return;
             }
         }
         if (command is AgentInitCommand && parseResult.GetValue(AgentInitCommand.s_workspaceRootOption) is { } workspaceRoot)
@@ -94,19 +105,7 @@ internal sealed class ConfigSourceService(
 
     public async Task<ConfigSource?> SelectForCreationAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var existingConfig = Path.Combine(executionContext.WorkingDirectory.FullName, AspireConfigFile.FileName);
-        if (parseResult.CommandResult.Command is InitCommand && File.Exists(existingConfig))
-        {
-            var projectSettings = await ReadProjectConfigurationAsync(existingConfig, cancellationToken);
-            if (ReadBinding(projectSettings) is { } saved)
-            {
-                var savedSnapshot = await AcquireAsync(saved, force: false, cancellationToken);
-                provider.UseConfiguration(savedSnapshot.Configuration, existingConfig, projectSettings);
-                return saved;
-            }
-        }
-
-        var repository = environment.GetEnvironmentVariable("ASPIRE_INIT_SOURCE");
+        var repository = environment.GetEnvironmentVariable(CliConfigNames.InitSourceUrl);
         var explicitSource = repository is not null;
         if (!explicitSource)
         {
@@ -115,17 +114,26 @@ internal sealed class ConfigSourceService(
             {
                 if (parseResult.GetValue(s_useSourceOption) is true)
                 {
-                    throw new ConfigSourceException(ConfigSourceStrings.NoCandidate);
+                    throw new ConfigSourceException(string.Format(CultureInfo.CurrentCulture,
+                        ConfigSourceStrings.NoCandidate, CliConfigNames.InitSourceUrl));
                 }
                 return null;
             }
             repository = MicrosoftRepository;
         }
 
-        var source = new ConfigSource(repository!, environment.GetEnvironmentVariable("ASPIRE_INIT_CONFIG") ?? AspireConfigFile.FileName);
+        var source = new ConfigSource
+        {
+            Repository = repository!,
+            Path = explicitSource
+                ? environment.GetEnvironmentVariable(CliConfigNames.InitSourcePath) ?? AspireConfigFile.FileName
+                : AspireConfigFile.FileName,
+            Ref = explicitSource ? environment.GetEnvironmentVariable(CliConfigNames.InitSourceRef) : null
+        };
         source.Validate();
         interaction.DisplayMessage(KnownEmojis.Information, string.Format(CultureInfo.CurrentCulture, ConfigSourceStrings.Candidate,
-            source.Repository, source.Path, explicitSource ? ConfigSourceStrings.EnvironmentOrigin : ConfigSourceStrings.EmployeeOrigin));
+            source.Repository, source.Path, source.Ref ?? ConfigSourceStrings.DefaultBranch,
+            explicitSource ? CliConfigNames.InitSourceUrl : ConfigSourceStrings.EmployeeOrigin));
 
         var accepted = parseResult.GetValue(s_useSourceOption);
         if (accepted is null)
@@ -143,20 +151,69 @@ internal sealed class ConfigSourceService(
             return null;
         }
 
-        var snapshot = await AcquireAsync(source, force: false, cancellationToken);
-        provider.UseConfiguration(snapshot.Configuration, configPath: null, projectSettings: null);
+        await AcquireAsync(source, force: false, cancellationToken);
         return source;
     }
 
-    public static async Task BindAsync(ConfigSource source, DirectoryInfo projectDirectory, CancellationToken cancellationToken)
+    public async Task<ConfigSource?> SelectForInitializationAsync(
+        DirectoryInfo projectDirectory, ParseResult parseResult, CancellationToken cancellationToken)
     {
         var path = Path.Combine(projectDirectory.FullName, AspireConfigFile.FileName);
-        var configuration = File.Exists(path)
-            ? JsonNode.Parse(await File.ReadAllTextAsync(path, cancellationToken), documentOptions: ConfigurationHelper.ParseOptions)?.AsObject()
-                ?? throw new ConfigSourceException(ConfigSourceStrings.InvalidConfiguration)
-            : new JsonObject();
-        configuration["configSource"] = JsonSerializer.SerializeToNode(source, JsonSourceGenerationContext.Default.ConfigSource);
-        await ConfigurationHelper.WriteSettingsFileAsync(path, configuration, cancellationToken);
+        var configuration = await ReadProjectConfigurationAsync(path, cancellationToken);
+        if (configuration is not null && TryGetValue(configuration, ["configSource"], out _))
+        {
+            await CheckProjectAsync(projectDirectory, force: false, cancellationToken);
+            return null;
+        }
+
+        return await SelectForCreationAsync(parseResult, cancellationToken);
+    }
+
+    public async Task MaterializeAsync(ConfigSource source, DirectoryInfo projectDirectory, CancellationToken cancellationToken)
+    {
+        var snapshot = await AcquireAsync(source, force: false, cancellationToken);
+        await ApplySnapshotAsync(source, snapshot, projectDirectory, cancellationToken);
+    }
+
+    private async Task ApplySnapshotAsync(ConfigSource source, ConfigSourceSnapshot snapshot, DirectoryInfo projectDirectory, CancellationToken cancellationToken)
+    {
+        var path = Path.Combine(projectDirectory.FullName, AspireConfigFile.FileName);
+        using var configLock = await ConfigurationHelper.TryAcquireWorkspaceConfigLockAsync(
+            executionContext, new FileInfo(path), logger, cancellationToken)
+            ?? throw new ConfigSourceException(ConfigSourceStrings.ConfigLockFailed);
+        // Re-read after fetching and under the workspace-writer lock, so intervening
+        // changes to unrelated settings survive this read/merge/write operation.
+        var configuration = await ReadConfigurationFileAsync(path, cancellationToken) ?? new JsonObject();
+        if (ReadBinding(configuration) is { } current && !ConfigSource.HasSameIdentity(current, source))
+        {
+            throw new ConfigSourceException(ConfigSourceStrings.BindingChanged);
+        }
+        var previous = configuration.ToJsonString();
+        ConfigurationHelper.NormalizeSettings(configuration);
+        foreach (var setting in s_allowedSettings)
+        {
+            if (TryGetValue(snapshot.Configuration, setting, out var value))
+            {
+                SetValue(configuration, setting, value);
+            }
+        }
+        var binding = new ConfigSource
+        {
+            Repository = source.Repository,
+            Path = source.Path,
+            Ref = source.Ref,
+            AppliedVersion = snapshot.Metadata.Version
+        };
+        configuration[GetKey(configuration, "configSource")] = JsonSerializer.SerializeToNode(binding, JsonSourceGenerationContext.Default.ConfigSource);
+        var changed = previous != configuration.ToJsonString();
+        if (changed)
+        {
+            await ConfigurationHelper.WriteSettingsFileAtomicallyAsync(path, configuration, cancellationToken);
+        }
+        _checkedProjects.TryAdd(path, 0);
+        interaction.DisplayMessage(KnownEmojis.Information, string.Format(CultureInfo.CurrentCulture, ConfigSourceStrings.UseNotice,
+            source.Repository, source.Path, snapshot.Metadata.Commit,
+            changed ? ConfigSourceStrings.Refreshed : ConfigSourceStrings.RefreshedUnchanged), consoleOverride: ConsoleOutput.Error);
     }
 
     public async Task CheckProjectAsync(DirectoryInfo directory, bool force, CancellationToken cancellationToken)
@@ -167,20 +224,64 @@ internal sealed class ConfigSourceService(
             // refresh-only mode makes its one unconditional fetch.
             return;
         }
-        var configPath = ConfigurationHelper.FindNearestConfigFilePath(directory);
-        var projectSettings = configPath is null ? null : await ReadProjectConfigurationAsync(configPath, cancellationToken);
-        var source = ReadBinding(projectSettings);
-        if (source is null)
+        ConfigSource? source = null;
+        try
         {
+            var configPath = ConfigurationHelper.FindNearestConfigFilePath(directory);
+            if (configPath is null || (!force && !_checkedProjects.TryAdd(configPath, 0)))
+            {
+                if (force)
+                {
+                    throw new ConfigSourceException(ConfigSourceStrings.NoBinding);
+                }
+                return;
+            }
+            source = await ReadBindingAsync(configPath, cancellationToken);
+            if (source is null)
+            {
+                if (force)
+                {
+                    throw new ConfigSourceException(ConfigSourceStrings.NoBinding);
+                }
+                return;
+            }
             if (force)
             {
-                throw new ConfigSourceException(ConfigSourceStrings.NoBinding);
+                var snapshot = await AcquireAsync(source, force: true, cancellationToken);
+                await ApplySnapshotAsync(source, snapshot, new DirectoryInfo(Path.GetDirectoryName(configPath)!), cancellationToken);
             }
-            provider.ClearConfiguration();
-            return;
+            else if (string.IsNullOrEmpty(source.AppliedVersion))
+            {
+                ReportOnce(source, ConfigSourceStrings.AppliedVersionMissing);
+            }
+            else
+            {
+                var observed = await CheckVersionAsync(source, cancellationToken);
+                if (observed.Version != source.AppliedVersion)
+                {
+                    ReportOnce(source, ConfigSourceStrings.UpdateAvailable);
+                }
+            }
         }
-        var snapshot = await AcquireAsync(source, force, cancellationToken);
-        provider.UseConfiguration(snapshot.Configuration, configPath, projectSettings);
+        catch (Exception ex) when (!force && ex is ConfigSourceException or JsonException or IOException or UnauthorizedAccessException or TimeoutException)
+        {
+            ReportCheckFailure(source, ex);
+        }
+    }
+
+    private void ReportCheckFailure(ConfigSource? source, Exception exception)
+    {
+        logger.LogDebug("Configuration source version check failed ({FailureType}).", exception.GetType().Name);
+        var message = string.Format(CultureInfo.CurrentCulture, ConfigSourceStrings.CheckFailed,
+            exception is ConfigSourceException ? exception.Message : ConfigSourceStrings.InvalidCache);
+        if (source is null)
+        {
+            interaction.DisplayMessage(KnownEmojis.Warning, message, consoleOverride: ConsoleOutput.Error);
+        }
+        else
+        {
+            ReportOnce(source, message);
+        }
     }
 
     internal async Task<ConfigSource?> ReadBindingAsync(string configPath, CancellationToken cancellationToken)
@@ -192,10 +293,15 @@ internal sealed class ConfigSourceService(
     {
         using var configLock = await ConfigurationHelper.TryAcquireWorkspaceConfigLockAsync(
             executionContext, new FileInfo(configPath), logger, cancellationToken);
-        // Capture local overrides with the binding under the same lock as workspace-default
-        // writers. Release it before Git acquisition; the invocation uses this one local snapshot.
-        return File.Exists(configPath)
-            ? JsonNode.Parse(await File.ReadAllTextAsync(configPath, cancellationToken), documentOptions: ConfigurationHelper.ParseOptions)?.AsObject()
+        return await ReadConfigurationFileAsync(configPath, cancellationToken);
+    }
+
+    private static async Task<JsonObject?> ReadConfigurationFileAsync(string path, CancellationToken cancellationToken)
+    {
+        return File.Exists(path)
+            ? JsonNode.Parse(await File.ReadAllTextAsync(path, cancellationToken),
+                documentOptions: ConfigurationHelper.ParseOptions) as JsonObject
+                ?? throw new ConfigSourceException(ConfigSourceStrings.InvalidConfiguration)
             : null;
     }
 
@@ -229,14 +335,15 @@ internal sealed class ConfigSourceService(
 
     internal string GetCacheDirectory(ConfigSource source)
     {
-        var key = XxHash3.HashToUInt64(Encoding.UTF8.GetBytes($"{source.Repository}\n{source.Path}")).ToString("x16", CultureInfo.InvariantCulture);
+        var key = XxHash3.HashToUInt64(Encoding.UTF8.GetBytes($"{source.Repository}\n{source.Path}\n{source.Ref ?? ""}")).ToString("x16", CultureInfo.InvariantCulture);
         return Path.Combine(executionContext.AspireHomeDirectory.FullName, "configsources", key);
     }
 
     internal async Task<ConfigSourceSnapshot> AcquireAsync(ConfigSource source, bool force, CancellationToken cancellationToken)
     {
         source.Validate();
-        if (!force && _snapshots.TryGetValue(source, out var existing))
+        var key = new ConfigSourceKey(source.Repository, source.Path, source.Ref);
+        if (!force && _snapshots.TryGetValue(key, out var existing))
         {
             return existing;
         }
@@ -246,34 +353,6 @@ internal sealed class ConfigSourceService(
         CreatePrivateDirectory(cacheDirectory);
         using var cacheLock = await FileLock.AcquireAsync(Path.Combine(cacheDirectory, "cache.lock"), cancellationToken);
         var pointer = Path.Combine(cacheDirectory, "current");
-        var previousDirectory = File.Exists(pointer) ? (await File.ReadAllTextAsync(pointer, cancellationToken)).Trim() : null;
-        ConfigSourceSnapshot? previous = null;
-        if (previousDirectory is not null)
-        {
-            if (!Guid.TryParseExact(previousDirectory, "N", out _))
-            {
-                throw new ConfigSourceException(ConfigSourceStrings.InvalidCache);
-            }
-            var previousPath = Path.Combine(cacheDirectory, previousDirectory);
-            var metadata = JsonSerializer.Deserialize(await File.ReadAllTextAsync(Path.Combine(previousPath, "metadata.json"), cancellationToken),
-                JsonSourceGenerationContext.Default.ConfigSourceMetadata);
-            var configuration = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(previousPath, AspireConfigFile.FileName), cancellationToken),
-                documentOptions: ConfigurationHelper.ParseOptions) as JsonObject;
-            if (metadata is null || metadata.Source != source || configuration is null)
-            {
-                throw new ConfigSourceException(ConfigSourceStrings.InvalidCache);
-            }
-            previous = new ConfigSourceSnapshot(metadata, configuration);
-        }
-
-        var age = previous is null ? TimeSpan.MaxValue : timeProvider.GetUtcNow() - previous.Metadata.RefreshedAt;
-        if (!force && previous is not null && age >= TimeSpan.Zero && age < TimeSpan.FromHours(24))
-        {
-            _snapshots[source] = previous;
-            Report(source, previous, ConfigSourceStrings.Cached);
-            return previous;
-        }
-
         var snapshotName = Guid.NewGuid().ToString("N");
         var snapshotDirectory = Path.Combine(cacheDirectory, snapshotName);
         var temporaryPointer = Path.Combine(cacheDirectory, $"{snapshotName}.tmp");
@@ -281,20 +360,27 @@ internal sealed class ConfigSourceService(
         var published = false;
         try
         {
-            var (commit, configuration) = await git.AcquireAsync(source, snapshotDirectory, cancellationToken);
-            var snapshot = new ConfigSourceSnapshot(new(source, commit, timeProvider.GetUtcNow()), configuration);
+            var identity = new ConfigSource
+            {
+                Repository = source.Repository,
+                Path = source.Path,
+                Ref = source.Ref
+            };
+            var (commit, version, configuration) = await git.AcquireAsync(identity, snapshotDirectory, cancellationToken);
+            ConfigurationHelper.NormalizeSettings(configuration);
+            var now = timeProvider.GetUtcNow();
+            var snapshot = new ConfigSourceSnapshot(new(identity, commit, version, now), configuration);
             await File.WriteAllTextAsync(Path.Combine(snapshotDirectory, AspireConfigFile.FileName), configuration.ToJsonString(), cancellationToken);
             await File.WriteAllTextAsync(Path.Combine(snapshotDirectory, "metadata.json"),
                 JsonSerializer.Serialize(snapshot.Metadata, JsonSourceGenerationContext.Default.ConfigSourceMetadata), cancellationToken);
             await File.WriteAllTextAsync(temporaryPointer, snapshotName, cancellationToken);
+            await WriteCheckMetadataAsync(cacheDirectory, new(identity, commit, version, now, source.AppliedVersion), cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             // The immutable snapshot contains both files. Only this pointer is replaced, so
             // failures or cancellation cannot publish half a configuration/metadata pair.
             File.Move(temporaryPointer, pointer, overwrite: true);
             published = true;
-            _snapshots[source] = snapshot;
-            Report(source, snapshot, previous?.Configuration.ToJsonString() == configuration.ToJsonString()
-                ? ConfigSourceStrings.RefreshedUnchanged : ConfigSourceStrings.Refreshed);
+            _snapshots[key] = snapshot;
             return snapshot;
         }
         finally
@@ -302,30 +388,119 @@ internal sealed class ConfigSourceService(
             File.Delete(temporaryPointer);
             if (!published)
             {
-                try
-                {
-                    // Git object files can be read-only on Windows, even in a failed clone.
-                    foreach (var file in Directory.EnumerateFiles(snapshotDirectory, "*", SearchOption.AllDirectories))
-                    {
-                        File.SetAttributes(file, File.GetAttributes(file) & ~FileAttributes.ReadOnly);
-                    }
-                    Directory.Delete(snapshotDirectory, recursive: true);
-                }
-                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-                {
-                    interaction.DisplayMessage(KnownEmojis.Warning, ConfigSourceStrings.CleanupFailed, consoleOverride: ConsoleOutput.Error);
-                }
+                DeleteAcquisitionDirectory(snapshotDirectory);
             }
         }
     }
 
-    private void Report(ConfigSource source, ConfigSourceSnapshot snapshot, string state)
+    private async Task<ConfigSourceCheckMetadata> CheckVersionAsync(ConfigSource source, CancellationToken cancellationToken)
     {
-        if (_reported.TryAdd(source, 0))
+        var cacheDirectory = GetCacheDirectory(source);
+        CreatePrivateDirectory(Path.GetDirectoryName(cacheDirectory)!);
+        CreatePrivateDirectory(cacheDirectory);
+        using var cacheLock = await FileLock.AcquireAsync(Path.Combine(cacheDirectory, "cache.lock"), cancellationToken);
+        var path = Path.Combine(cacheDirectory, "check.json");
+        if (File.Exists(path))
         {
-            interaction.DisplayMessage(KnownEmojis.Information, string.Format(CultureInfo.CurrentCulture, ConfigSourceStrings.UseNotice,
-                source.Repository, source.Path, snapshot.Metadata.Commit, state), consoleOverride: ConsoleOutput.Error);
+            var previous = JsonSerializer.Deserialize(await File.ReadAllTextAsync(path, cancellationToken),
+                JsonSourceGenerationContext.Default.ConfigSourceCheckMetadata);
+            if (previous is null || previous.Source is null || !ConfigSource.HasSameIdentity(previous.Source, source)
+                || string.IsNullOrEmpty(previous.Commit) || string.IsNullOrEmpty(previous.Version))
+            {
+                throw new ConfigSourceException(ConfigSourceStrings.InvalidCache);
+            }
+            var age = timeProvider.GetUtcNow() - previous.CheckedAt;
+            // A different app can have applied a version newer than this shared observation.
+            // Reuse a mismatch only when that applied version was actually checked against it.
+            if (age >= TimeSpan.Zero && age < TimeSpan.FromHours(24)
+                && (previous.Version == source.AppliedVersion || previous.ComparedAppliedVersion == source.AppliedVersion))
+            {
+                return previous;
+            }
         }
+        var temporaryDirectory = Directory.CreateTempSubdirectory("aspire-config-source-check-");
+        try
+        {
+            var identity = new ConfigSource
+            {
+                Repository = source.Repository,
+                Path = source.Path,
+                Ref = source.Ref
+            };
+            var (commit, version) = await git.CheckAsync(identity, temporaryDirectory.FullName, cancellationToken);
+            var metadata = new ConfigSourceCheckMetadata(identity, commit, version, timeProvider.GetUtcNow(), source.AppliedVersion);
+            await WriteCheckMetadataAsync(cacheDirectory, metadata, cancellationToken);
+            return metadata;
+        }
+        finally
+        {
+            DeleteAcquisitionDirectory(temporaryDirectory.FullName);
+        }
+    }
+
+    private static Task WriteCheckMetadataAsync(string directory, ConfigSourceCheckMetadata metadata, CancellationToken cancellationToken)
+    {
+        var json = JsonSerializer.SerializeToNode(metadata, JsonSourceGenerationContext.Default.ConfigSourceCheckMetadata)!.AsObject();
+        return ConfigurationHelper.WriteSettingsFileAtomicallyAsync(Path.Combine(directory, "check.json"), json, cancellationToken);
+    }
+
+    private void ReportOnce(ConfigSource source, string message)
+    {
+        if (_reported.TryAdd(new ConfigSourceKey(source.Repository, source.Path, source.Ref), 0))
+        {
+            interaction.DisplayMessage(KnownEmojis.Warning, message, consoleOverride: ConsoleOutput.Error);
+        }
+    }
+
+    private void DeleteAcquisitionDirectory(string directory)
+    {
+        try
+        {
+            // Git object files can be read-only on Windows, even after a failed fetch.
+            foreach (var file in Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories))
+            {
+                File.SetAttributes(file, File.GetAttributes(file) & ~FileAttributes.ReadOnly);
+            }
+            Directory.Delete(directory, recursive: true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            interaction.DisplayMessage(KnownEmojis.Warning, ConfigSourceStrings.CleanupFailed, consoleOverride: ConsoleOutput.Error);
+        }
+    }
+
+    private static string GetKey(JsonObject configuration, string key)
+        => configuration.Select(p => p.Key).FirstOrDefault(p => p.Equals(key, StringComparison.OrdinalIgnoreCase)) ?? key;
+
+    private static bool TryGetValue(JsonObject configuration, string[] path, out JsonNode? value)
+    {
+        JsonNode? current = configuration;
+        foreach (var segment in path)
+        {
+            if (current is not JsonObject obj || !obj.TryGetPropertyValue(GetKey(obj, segment), out current))
+            {
+                value = null;
+                return false;
+            }
+        }
+        value = current;
+        return true;
+    }
+
+    private static void SetValue(JsonObject configuration, string[] path, JsonNode? value)
+    {
+        var current = configuration;
+        foreach (var segment in path[..^1])
+        {
+            var key = GetKey(current, segment);
+            if (current[key] is not JsonObject nested)
+            {
+                nested = new JsonObject();
+                current[key] = nested;
+            }
+            current = nested;
+        }
+        current[GetKey(current, path[^1])] = value?.DeepClone();
     }
 
     private static void CreatePrivateDirectory(string path)
@@ -348,4 +523,6 @@ internal sealed class ConfigSourceService(
             File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         }
     }
+
+    private readonly record struct ConfigSourceKey(string Repository, string Path, string? Ref);
 }

@@ -7,10 +7,35 @@ using Aspire.Cli.Resources;
 
 namespace Aspire.Cli.Configuration;
 
-internal sealed record ConfigSource(
-    [property: JsonPropertyName("repository")] string Repository,
-    [property: JsonPropertyName("path")] string Path)
+internal sealed class ConfigSource
 {
+    [JsonPropertyName("repository")]
+    public required string Repository { get; init; }
+
+    [JsonPropertyName("path")]
+    public required string Path { get; init; }
+
+    [JsonPropertyName("ref")]
+    public string? Ref { get; init; }
+
+    [JsonPropertyName("appliedVersion")]
+    public string? AppliedVersion { get; init; }
+
+    internal string GetGitRef()
+    {
+        if (Ref is null)
+        {
+            return "HEAD";
+        }
+
+        return IsCommit(Ref) || Ref.StartsWith("refs/heads/", StringComparison.Ordinal) ? Ref : $"refs/heads/{Ref}";
+    }
+
+    public static bool HasSameIdentity(ConfigSource first, ConfigSource second)
+        => first.Repository == second.Repository
+            && first.Path == second.Path
+            && first.Ref == second.Ref;
+
     public void Validate()
     {
         if (string.IsNullOrWhiteSpace(Repository) || string.IsNullOrWhiteSpace(Path))
@@ -47,10 +72,31 @@ internal sealed record ConfigSource(
         {
             throw new ConfigSourceException(ConfigSourceStrings.InvalidPath);
         }
+
+        if (Ref is not null && !IsCommit(Ref))
+        {
+            var branch = Ref.StartsWith("refs/heads/", StringComparison.Ordinal) ? Ref["refs/heads/".Length..] : Ref;
+            // Branch selectors follow git-check-ref-format rather than accepting revision
+            // expressions, refspec operators, tags, or command-line options.
+            // https://git-scm.com/docs/git-check-ref-format
+            if (branch is "" or "@" or "HEAD" || branch.StartsWith('-') || branch.StartsWith("refs/", StringComparison.Ordinal)
+                || branch.Contains("..", StringComparison.Ordinal) || branch.Contains("@{", StringComparison.Ordinal)
+                || branch.Any(c => char.IsWhiteSpace(c) || char.IsControl(c) || c is '\\' or ':' or '?' or '*' or '[' or '~' or '^')
+                || branch.Split('/').Any(part => part.Length == 0 || part.StartsWith('.') || part.EndsWith('.')
+                    || part.EndsWith(".lock", StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new ConfigSourceException(ConfigSourceStrings.InvalidRef);
+            }
+        }
     }
+
+    private static bool IsCommit(string value) => value.Length is 40 or 64 && value.All(char.IsAsciiHexDigit);
 }
 
-internal sealed record ConfigSourceMetadata(ConfigSource Source, string Commit, DateTimeOffset RefreshedAt);
+internal sealed record ConfigSourceMetadata(ConfigSource Source, string Commit, string Version, DateTimeOffset FetchedAt);
+
+internal sealed record ConfigSourceCheckMetadata(
+    ConfigSource Source, string Commit, string Version, DateTimeOffset CheckedAt, string? ComparedAppliedVersion);
 
 internal sealed record ConfigSourceSnapshot(ConfigSourceMetadata Metadata, JsonObject Configuration);
 

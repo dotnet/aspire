@@ -1,6 +1,6 @@
 # Aspire CLI config sources
 
-**Status:** Revised design proposed. The current implementation still uses the previous runtime shared-defaults model and must be updated separately. Content-acquisition customizations remain proposed.
+**Status:** Configuration acquisition and allowlisted app-file materialization are implemented in the CLI. Content-acquisition customizations remain proposed.
 
 For example developer journeys, see [Microsoft first-party config-source scenarios](cli-config-sources-1p-scenarios.md).
 
@@ -171,6 +171,8 @@ Keep advisory check state separate in `check.json`: the last successful check ti
 
 Use locks and atomic publication to prevent partially written tracking records. Retain user-scoped permissions for private content. Never store credentials in configuration or metadata, log them, or send private source details in ordinary telemetry.
 
+Publish fetched tracking data before changing the app file. A tracking-publication failure leaves the app unchanged. If a later app read or write fails, report the operation as failed: tracking can record the successfully fetched source, but the app's settings and applied version remain unchanged. Apply settings and their version together using an atomic sibling-file replacement under the workspace configuration lock, re-reading the app file after acquisition to preserve concurrent edits.
+
 A tracking copy is shared by source identity, not a record of what every application has applied. An ordinary command must work from its app file even when this directory is missing, another app refreshed the same source, or the retained JSON is unreadable. Problems with the tracking/version check are reported separately; they do not make cached values a fallback runtime provider.
 
 ### Check for updates without applying them
@@ -189,6 +191,8 @@ Compare the selected-file version at the binding's branch or commit with the app
 
 For a branch selection, checks follow that branch, not the repository's default branch. A commit-pinned source remains at the saved commit: newer commits on any branch do not produce an availability notice, and an explicit update must not move the pin.
 
+Checks may fetch transient Git objects into a private temporary directory to inspect the selected file's blob identity. They do not extract its JSON, retain a new fetched snapshot, or load source settings.
+
 Preserve the 24-hour check cadence, measured from the last successful version check:
 
 | Tracking/check state | Ordinary-command behavior |
@@ -198,6 +202,8 @@ Preserve the 24-hour check cadence, measured from the last successful version ch
 | Last successful check at least 24 hours ago | Check the source's current version again |
 | Observed version differs from the app's applied version | Report that an update is available |
 | Version check fails | Report the check failure and continue the requested operation using the app's saved settings |
+
+When reusing a cached mismatch, also record which applied version it was compared against. A cloned app can already contain a version newer than the cached observation; revalidate an unfamiliar applied version before advertising an update. A cached observation equal to the app's applied version can be reused directly.
 
 If an update is available, emit a notice such as:
 

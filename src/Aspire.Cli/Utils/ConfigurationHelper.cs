@@ -33,9 +33,6 @@ internal static class ConfigurationHelper
         => RegisterSettingsFiles(configuration, workingDirectory, globalSettingsFile, persistNormalization: true);
 
     internal static void RegisterSettingsFiles(IConfigurationBuilder configuration, DirectoryInfo workingDirectory, FileInfo globalSettingsFile, bool persistNormalization)
-        => RegisterSettingsFiles(configuration, workingDirectory, globalSettingsFile, persistNormalization, configSourceProvider: null);
-
-    internal static void RegisterSettingsFiles(IConfigurationBuilder configuration, DirectoryInfo workingDirectory, FileInfo globalSettingsFile, bool persistNormalization, ConfigSourceConfigurationProvider? configSourceProvider)
     {
         var currentDirectory = workingDirectory;
 
@@ -83,27 +80,15 @@ internal static class ConfigurationHelper
         }
 
         // Add global settings first (if it exists) - lower precedence
-        JsonObject? globalSettings = null;
         if (File.Exists(globalSettingsFile.FullName))
         {
-            globalSettings = AddSettingsFile(configuration, globalSettingsFile.FullName, persistNormalization);
+            AddSettingsFile(configuration, globalSettingsFile.FullName, persistNormalization);
         }
 
         // Then add local settings (if found) - this will override global settings
-        JsonObject? localSettings = null;
         if (localSettingsFile is not null)
         {
-            localSettings = AddSettingsFile(configuration, localSettingsFile.FullName, persistNormalization);
-        }
-
-        // This provider stays empty until acquisition succeeds. It merges the selected
-        // project's local overrides itself, so --apphost elsewhere cannot inherit values
-        // from an unrelated launch directory. Never reorder already-loaded stream sources:
-        // ConfigurationManager would try to read their consumed streams again.
-        if (configSourceProvider is not null)
-        {
-            configSourceProvider.ConfigureLaunchSettings(globalSettings, localSettings);
-            configuration.Add(configSourceProvider);
+            AddSettingsFile(configuration, localSettingsFile.FullName, persistNormalization);
         }
     }
 
@@ -276,6 +261,32 @@ internal static class ConfigurationHelper
 
         EnsureDirectoryExists(filePath);
         await File.WriteAllTextAsync(filePath, jsonContent, cancellationToken);
+    }
+
+    internal static async Task WriteSettingsFileAtomicallyAsync(string filePath, JsonObject settings, CancellationToken cancellationToken)
+    {
+        EnsureDirectoryExists(filePath);
+        // A sibling is required for atomic replacement even when the workspace and
+        // system temp directory are on different volumes. CreateNew rejects existing links/files.
+        var temporaryPath = $"{filePath}.{Guid.NewGuid():N}.tmp";
+        var created = false;
+        try
+        {
+            await using (var stream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 4096, FileOptions.Asynchronous))
+            {
+                created = true;
+                await JsonSerializer.SerializeAsync(stream, settings, JsonSourceGenerationContext.Default.JsonObject, cancellationToken);
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            File.Move(temporaryPath, filePath, overwrite: true);
+        }
+        finally
+        {
+            if (created)
+            {
+                File.Delete(temporaryPath);
+            }
+        }
     }
 
     /// <summary>

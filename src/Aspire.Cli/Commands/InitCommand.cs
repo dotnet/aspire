@@ -121,7 +121,6 @@ internal sealed class InitCommand : BaseCommand
     {
         using var activity = Telemetry.StartDiagnosticActivity(this.Name);
 
-        var configSource = await ConfigSources.SelectForCreationAsync(parseResult, cancellationToken);
         // Step 1: Get the language selection.
         var explicitLanguage = parseResult.GetValue(_languageOption);
         DisplayDeprecatedOptionWarnings(parseResult);
@@ -146,6 +145,11 @@ internal sealed class InitCommand : BaseCommand
             solutionFile = await _solutionLocator.FindSolutionFileAsync(workingDirectory, cancellationToken);
         }
 
+        var projectDirectory = solutionFile is null
+            ? workingDirectory
+            : new DirectoryInfo(Path.Combine(solutionFile.Directory!.FullName, $"{Path.GetFileNameWithoutExtension(solutionFile.Name)}.AppHost"));
+        var configSource = await ConfigSources.SelectForInitializationAsync(projectDirectory, parseResult, cancellationToken);
+
         // Step 3: Drop the skeleton AppHost and any related config files needed for that mode.
         var dropResult = isCSharp
             ? await DropCSharpSkeletonAsync(workingDirectory, solutionFile, cancellationToken)
@@ -158,13 +162,7 @@ internal sealed class InitCommand : BaseCommand
 
         if (configSource is not null)
         {
-            // Project-mode init drops the AppHost beneath the solution directory; bind
-            // that project, not all projects below the directory where init was invoked.
-            var projectDirectory = solutionFile is null
-                ? workingDirectory
-                : new DirectoryInfo(Path.Combine(solutionFile.Directory!.FullName, $"{Path.GetFileNameWithoutExtension(solutionFile.Name)}.AppHost"));
-            await ConfigSourceService.BindAsync(configSource, projectDirectory, cancellationToken);
-            await ConfigSources.CheckProjectAsync(projectDirectory, force: false, cancellationToken);
+            await ConfigSources.MaterializeAsync(configSource, projectDirectory, cancellationToken);
         }
 
         // Persist the prompted language selection now that the skeleton drop succeeded.
