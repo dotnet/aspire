@@ -4734,6 +4734,7 @@ var builder = Aspire.Hosting.DistributedApplication.CreateBuilder(args);
             name: 'AppHost',
             configuration: {
                 runId: 'apphost-run',
+                debugSessionId: 'debug-1',
             },
         };
         const terminalProvider = {
@@ -6062,13 +6063,16 @@ var builder = Aspire.Hosting.DistributedApplication.CreateBuilder(args);
                 customRequest: sinon.stub(),
                 getDebugProtocolBreakpoint: sinon.stub(),
             };
-            sinon.stub(debuggerExtensionsModule, 'createDebugSessionConfiguration').resolves({
-                runId: 'apphost-run',
-                debugSessionId: 'debug-1',
+            // Copies the launch options like the real function does, so the AppHost child gets the empty
+            // run ID of a real AppHost and the id of the parent session that launched it.
+            sinon.stub(debuggerExtensionsModule, 'createDebugSessionConfiguration').callsFake(async (_configuration, _launchConfig, _args, _environment, launchOptions) => ({
+                runId: launchOptions.runId,
+                debugSessionId: launchOptions.debugSessionId,
+                isApphost: launchOptions.isApphost,
                 type: 'coreclr',
                 name: 'AppHost',
                 request: 'launch',
-            });
+            }));
             sinon.stub(vscode.debug, 'onDidTerminateDebugSession').callsFake(callback => subscribe(terminateListeners, callback));
             sinon.stub(vscode.debug, 'onDidStartDebugSession').callsFake(callback => subscribe(startListeners, callback, disposeStartListener));
             sinon.stub(vscode.workspace, 'getWorkspaceFolder').returns(undefined);
@@ -6259,6 +6263,73 @@ var builder = Aspire.Hosting.DistributedApplication.CreateBuilder(args);
 
             assert.strictEqual(restart.isWatchingForRelaunch(), false);
             sinon.assert.notCalled(restart.startReplacement);
+        });
+
+        test('does not take the child that VS Code relaunches for the outgoing parent as the replacement AppHost', async () => {
+            const restart = await startRestartableAppHost();
+            const trackReplacementAppHost = sinon.spy();
+            const replacement = new AspireDebugSession(
+                {
+                    id: 'replacement-aspire-session',
+                    type: 'aspire',
+                    name: 'Aspire',
+                    workspaceFolder: undefined,
+                    configuration: {
+                        type: 'aspire',
+                        request: 'launch',
+                        name: 'Aspire',
+                        program: '/workspace/apphost.cs',
+                        command: 'run',
+                    },
+                    customRequest: sinon.stub(),
+                    getDebugProtocolBreakpoint: sinon.stub(),
+                } as unknown as vscode.DebugSession,
+                {} as any,
+                {} as any,
+                { isDebugConfigEnvironmentLoggingEnabled: () => false } as any,
+                () => { },
+                trackReplacementAppHost,
+                'replacement-debug-session');
+            sinon.stub(replacement, 'createDebugAdapterTrackerCore');
+            // VS Code relaunches the restarted child with its old configuration, so the relaunch names the
+            // outgoing parent. Every AppHost child has the empty run ID, which does not tell the two apart.
+            const relaunched = {
+                id: appHostDebugSession.id,
+                type: 'coreclr',
+                name: 'AppHost',
+                configuration: { runId: '', debugSessionId: restart.aspireDebugSession.debugSessionId, isApphost: true },
+            } as unknown as vscode.DebugSession;
+            const replacementChild = {
+                id: 'replacement-apphost-session',
+                type: 'coreclr',
+                name: 'AppHost',
+                configuration: { runId: '', debugSessionId: replacement.debugSessionId, isApphost: true },
+            } as unknown as vscode.DebugSession;
+
+            restart.requestRestart();
+            await restart.terminateAppHost();
+            const replacementStart = replacement.startAppHost('/workspace/AppHost.csproj', ['run'], [], true, { forceBuild: false });
+            // Lets the replacement subscribe to start events and begin waiting for its own AppHost.
+            await restart.clock.tickAsync(0);
+            // A slow adapter (Delve building a Go AppHost) finishes the relaunch only now.
+            await restart.startSession(relaunched);
+            await restart.clock.tickAsync(0);
+
+            sinon.assert.calledOnceWithExactly(restart.stopVsCodeSession, relaunched);
+            sinon.assert.notCalled(trackReplacementAppHost);
+
+            // Stopping the relaunch ends it. The replacement must not read that as its AppHost exiting.
+            await restart.terminateAppHost();
+            await restart.clock.tickAsync(0);
+            assert.strictEqual(replacement.isShuttingDown, false);
+
+            await restart.startSession(replacementChild);
+            await replacementStart;
+
+            sinon.assert.calledOnce(trackReplacementAppHost);
+            assert.strictEqual(trackReplacementAppHost.firstCall.args[2].session, replacementChild);
+            assert.strictEqual(replacement.isShuttingDown, false);
+            sinon.assert.calledOnceWithExactly(restart.stopVsCodeSession, relaunched);
         });
     });
 

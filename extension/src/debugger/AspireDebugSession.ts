@@ -1790,7 +1790,9 @@ export class AspireDebugSession implements vscode.DebugAdapter, DashboardLaunche
    * so the termination that started the watch does not end it.
    *
    * Only the restarted child's own id is matched, so the replacement AppHost, which gets a new id, is
-   * never affected. The watch subscribes to termination events itself, rather than relying on the
+   * never affected. In turn, the replacement parent only adopts an AppHost child that carries its own
+   * debugSessionId (see startAndGetDebugSessionCore), so it cannot adopt the relaunched child that this
+   * watch stops. The watch subscribes to termination events itself, rather than relying on the
    * session's listener, because the ordered shutdown disposes the session's disposables before the
    * relaunch can arrive.
    */
@@ -1876,7 +1878,15 @@ export class AspireDebugSession implements vscode.DebugAdapter, DashboardLaunche
 
       let resolved = false;
       const disposable = vscode.debug.onDidStartDebugSession(session => {
-        if (session.configuration.runId === debugConfig.runId) {
+        // Every AppHost child has the empty run ID, so the run ID cannot tell this launch's child from the
+        // child that VS Code relaunches for the outgoing parent after a restart. That relaunch can start
+        // while the replacement parent waits for its own AppHost, and adopting it would make the old
+        // parent's relaunch watch stop what the replacement then takes for its AppHost exiting. Scoping
+        // the match to the launching parent's debugSessionId (stamped on every child configuration)
+        // leaves the stale child to the watch. Resource run IDs are unique, so they need no such scope.
+        const isOwnedByThisSession = debugConfig.isApphost !== true
+          || session.configuration.debugSessionId === debugConfig.debugSessionId;
+        if (session.configuration.runId === debugConfig.runId && isOwnedByThisSession) {
           extensionLogOutputChannel.info(`Debug session started: ${session.name} (run id: ${session.configuration.runId})`);
           disposable.dispose();
           this.updateEditorResourceSessionState(debugConfig.runId, 'running');
