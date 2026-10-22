@@ -92,22 +92,6 @@ internal class CertificateTrustExecutionConfigurationGatherer : IExecutionConfig
         {
             context.EnvironmentVariables[SslCertFileEnvironmentVariable] = configurationContext.CertificateBundlePath;
         }
-        else if (!configurationContext.IsContainer &&
-            (OperatingSystem.IsMacOS() || OperatingSystem.IsWindows()) &&
-            !context.EnvironmentVariables.ContainsKey(SslCertFileEnvironmentVariable) &&
-            Environment.GetEnvironmentVariable(SslCertFileEnvironmentVariable) is null)
-        {
-            // On Linux, OpenSSL and Go still load the default bundle file when only SSL_CERT_DIR is set, so
-            // Append keeps the system roots. macOS and Windows have no such default: since Go 1.27, Go treats
-            // SSL_CERT_DIR as the complete set of trusted roots there and stops trusting public CAs. Put the
-            // system roots in the generated bundle and point SSL_CERT_FILE at it; Go loads both the file and the
-            // directory. An SSL_CERT_FILE already set on the resource or the AppHost is left alone, because Go
-            // combines it with SSL_CERT_DIR too.
-            // https://github.com/microsoft/aspire/issues/21198
-            // https://go.dev/doc/go1.27
-            additionalData.Certificates.AddRootCertificates();
-            context.EnvironmentVariables[SslCertFileEnvironmentVariable] = configurationContext.CertificateBundlePath;
-        }
 
         var callbackContext = new CertificateTrustConfigurationCallbackAnnotationContext
         {
