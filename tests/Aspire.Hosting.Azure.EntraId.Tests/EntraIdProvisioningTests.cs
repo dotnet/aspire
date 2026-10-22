@@ -546,6 +546,36 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task Publish_FederatedManagedIdentityCredential_PublishesConsumerIdentityClientId()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputHelper, workspace.Path);
+        builder.AddAzureContainerAppEnvironment("env");
+        var entra = builder.AddEntraIdApplication("entra-web")
+            .PublishWithFederatedManagedIdentityCredential();
+        builder.AddContainer("web", "image")
+            .WithHttpEndpoint(targetPort: 8080)
+            .WithExternalHttpEndpoints()
+            .WithReference(entra);
+
+        using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, default);
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var environment = model.Resources.OfType<AzureEnvironmentResource>().Single();
+        await using var step = await new TestPipelineActivityReporter(outputHelper).CreateStepAsync("Publishing federated credential");
+        var context = new AzurePublishingContext(
+            workspace.Path,
+            app.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>().Value,
+            app.Services,
+            NullLogger<AzurePublishingContext>.Instance,
+            step);
+
+        await context.WriteModelAsync(model, environment);
+
+        await Verify(await File.ReadAllTextAsync(Path.Combine(workspace.Path, "web", "web.bicep")), "bicep");
+    }
+
+    [Fact]
     public async Task Publish_CreatesSelfContainedGraphModulesAndOutputReferences()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);

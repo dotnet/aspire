@@ -771,7 +771,7 @@ public sealed class EntraIdFederatedIdentityCredential : EntraIdClientCredential
     private sealed class ManagedIdentityClientIdValue(
         EntraIdFederatedIdentityCredential credential,
         EntraIdApplicationResource application,
-        IResource consumer) : IValueProvider, IManifestExpressionProvider, IValueWithReferences
+        IResource consumer) : IValueProvider, IManifestExpressionProvider, IValueWithReferences, IBicepOutputReferenceProvider
     {
         private BicepOutputReference ClientId
         {
@@ -785,9 +785,10 @@ public sealed class EntraIdFederatedIdentityCredential : EntraIdClientCredential
         public string ValueExpression => ClientId.ValueExpression;
 
         // While the preparer is discovering dependencies the identity does not exist yet, so there is nothing to reference.
-        public IEnumerable<object> References => credential.ManagedIdentity is not null || GetConsumerIdentity(consumer) is not null
-            ? [ClientId]
-            : [];
+        public BicepOutputReference? GetOutputReference()
+            => credential.ManagedIdentity is not null || GetConsumerIdentity(consumer) is not null ? ClientId : null;
+
+        public IEnumerable<object> References => GetOutputReference() is { } output ? [output] : [];
 
         public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default)
             => ((IValueProvider)ClientId).GetValueAsync(cancellationToken);
