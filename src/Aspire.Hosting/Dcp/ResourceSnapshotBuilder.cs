@@ -294,8 +294,8 @@ internal class ResourceSnapshotBuilder
         //   ["run", "--configuration:Release", "-f:net10.0", "--", ...appArgs]
         //   ["[env:NAME=value]", "--diagnostics", "run", "--project", "/repo/api.csproj"]
         //   ["-d", "watch", "--project", "/repo/api.csproj"]
-        // Only launcher arguments before "--" are safe to publish as launch metadata. Application
-        // arguments after the separator can contain unrelated values and remain sensitive in executable.args.
+        // Application arguments can contain unrelated values and remain sensitive in executable.args.
+        // Watch's forwarding separator is checked separately before treating "--" as the application boundary.
         // See https://learn.microsoft.com/dotnet/core/tools/dotnet and
         // https://github.com/dotnet/command-line-api/blob/main/src/System.CommandLine/EnvironmentVariablesDirective.cs.
         for (var index = commandIndex + 1; index < effectiveArgs.Count; index++)
@@ -303,6 +303,16 @@ internal class ResourceSnapshotBuilder
             var argument = effectiveArgs[index];
             if (argument == "--")
             {
+                // Example: watch --no-hot-reload run -- --configuration Release.
+                // Older watch implementations strip the first "--"; newer ones retain the application boundary.
+                // Without the selected SDK, even preceding target options cannot disambiguate a nonempty suffix.
+                // See https://github.com/dotnet/sdk/blob/v8.0.426/src/BuiltInTools/dotnet-watch/CommandLineOptions.cs#L248-L314
+                // and https://github.com/dotnet/sdk/blob/v10.0.100/src/BuiltInTools/dotnet-watch/CommandLine/CommandLineOptions.cs#L262-L307.
+                if (command == "watch" && index + 1 < effectiveArgs.Count)
+                {
+                    return [new(KnownProperties.Project.LaunchCommand, null)];
+                }
+
                 break;
             }
 

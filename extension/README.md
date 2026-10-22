@@ -35,6 +35,8 @@ The extension contributes `aspire_apphost_start`, `aspire_apphost_stop`, and `as
 
 Go resources started with **Run Without Debugging** use DCP-managed `go run`, just like CLI starts, so the debugger can attach later. Actual debug launches still use VS Code and Delve; `debuggers.go` overrides apply to those IDE-managed launches.
 
+Attachment to a .NET resource launched by `dotnet watch` is unavailable when arguments follow its first `--`. SDK versions interpret that separator differently, so Aspire declines attachment rather than guessing which build output is running. The resource continues running; normal `dotnet run` launches are unaffected.
+
 Resource-debug confirmation is bound to the resolved AppHost. If discovery initially fails or a path points to a different AppHost before attachment, the tool refuses the operation; retry with a fresh confirmation after the intended AppHost has been discovered.
 
 ## Learn more

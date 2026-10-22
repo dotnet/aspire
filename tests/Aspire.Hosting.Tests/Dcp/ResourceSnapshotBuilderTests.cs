@@ -198,7 +198,11 @@ public class ResourceSnapshotBuilderTests
         {
             effectiveArgs.Add("net10.0");
         }
-        effectiveArgs.AddRange(["--", "--configuration", "Private", "--framework", "private"]);
+        effectiveArgs.Add("--");
+        if (expectedLaunchCommand == "run")
+        {
+            effectiveArgs.AddRange(["--configuration", "Private", "--framework", "private"]);
+        }
 
         var executable = Executable.Create("project", "dotnet");
         executable.Annotate(DcpCustomResource.ResourceNameAnnotation, project.Name);
@@ -343,6 +347,36 @@ public class ResourceSnapshotBuilderTests
                 Assert.Equal(KnownProperties.Project.LaunchCommand, property.Name);
                 Assert.Null(property.Value);
             });
+    }
+
+    [Theory]
+    [InlineData("run", "--", "--configuration", "Release", "--framework", "net10.0")]
+    [InlineData("run", "--configuration", "Release", "--framework", "net8.0", "--", "--runtime", "win-x64")]
+    public void ProjectSnapshotFailsClosedForAmbiguousDotNetWatchTargetInputs(params string[] launchArguments)
+    {
+        var project = new ProjectResource("project");
+        project.Annotations.Add(new TestProjectMetadata());
+        var executable = Executable.Create("project", "dotnet");
+        executable.Annotate(DcpCustomResource.ResourceNameAnnotation, project.Name);
+        executable.Status = new ExecutableStatus
+        {
+            EffectiveArgs = ["watch", "--project", "/app/project.csproj", .. launchArguments],
+            ProcessId = 1234
+        };
+        var snapshot = CreateSnapshotBuilder(new Dictionary<string, IResource>
+        {
+            [project.Name] = project
+        }).ToSnapshot(executable, CreatePreviousSnapshot());
+
+        Assert.Collection(
+            snapshot.Properties.Where(property => property.Name is KnownProperties.Project.LaunchCommand
+                or KnownProperties.Project.Configuration or KnownProperties.Project.TargetFramework),
+            property =>
+            {
+                Assert.Equal(KnownProperties.Project.LaunchCommand, property.Name);
+                Assert.Null(property.Value);
+            });
+        Assert.True(GetProperty(snapshot, KnownProperties.Executable.Args).IsSensitive);
     }
 
     [Theory]
