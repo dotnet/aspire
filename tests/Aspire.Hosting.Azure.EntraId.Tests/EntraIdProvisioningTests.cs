@@ -240,19 +240,24 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         Assert.NotEmpty(envVars);
     }
 
-    [Fact]
-    public void FederatedCredentialName_UsesTheIdentityNameSoItFitsGraphsLimit()
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(64)]
+    public void FederatedCredentialName_IsPrefixedSoItFitsGraphsLengthLimits(int identityNameLength)
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        var identityName = new string('i', 64);
+        var identityName = new string('i', identityNameLength);
         var identity = builder.AddAzureUserAssignedIdentity(identityName);
         var entra = builder.AddEntraIdApplication(new string('e', 64))
             .PublishWithFederatedManagedIdentityCredential(identity);
 
-        // Microsoft Graph limits a federated credential's name to 120 characters. Prefixing the registration's name, as the
-        // name used to be built, gives 129 characters for two valid 64-character names.
+        // Microsoft Graph requires a federated credential's name to be 3-120 characters. Prefixing the registration's name
+        // gives 129 characters for two valid 64-character names, and an unprefixed one- or two-character identity name is too short.
+        var credentialName = $"aspire-{identityName}";
+        Assert.InRange(credentialName.Length, 3, 120);
         var bicep = entra.Resource.GetBicepTemplateString();
-        Assert.Contains($"/{identityName}'", bicep);
+        Assert.Contains($"/{credentialName}'", bicep);
         Assert.DoesNotContain($"{new string('e', 64)}-{identityName}", bicep);
     }
 

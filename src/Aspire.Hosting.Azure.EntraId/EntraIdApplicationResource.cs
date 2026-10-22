@@ -385,9 +385,10 @@ public class EntraIdApplicationResource : AzureProvisioningResource
 
             var principalId = identity.PrincipalId.AsProvisioningParameter(infrastructure, parameterName);
 
-            // The identity's name is unique in the model and, unlike one that also includes the registration's name, always
-            // fits Microsoft Graph's 120-character limit on a federated credential's name.
-            var credentialName = identity.Name;
+            // Graph requires a federated credential's name to be 3-120 characters. Aspire resource names can be 1-64
+            // characters, so a fixed prefix keeps a short name above the minimum and, unlike one that also includes the
+            // registration's name, a long name below the maximum. The identity's name is unique in the model.
+            var credentialName = $"aspire-{identity.Name}";
             // The Graph extension names a child as '{applicationUniqueName}/{credentialName}'. Referencing the
             // application's property, rather than reusing its name expression, makes the child depend on the application.
             BicepValue<string> applicationUniqueName = application.UniqueName.ToBicepExpression();

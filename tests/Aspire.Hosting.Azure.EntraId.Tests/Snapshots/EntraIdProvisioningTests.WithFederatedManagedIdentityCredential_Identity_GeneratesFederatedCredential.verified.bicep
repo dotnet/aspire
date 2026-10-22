@@ -27,7 +27,7 @@ resource servicePrincipal 'Microsoft.Graph/servicePrincipals@v1.0' = {
 }
 
 resource federatedCredential_web_identity 'Microsoft.Graph/applications/federatedIdentityCredentials@v1.0' = {
-  name: '${application.uniqueName}/web-identity'
+  name: '${application.uniqueName}/aspire-web-identity'
   issuer: 'https://login.microsoftonline.com/${tenant().tenantId}/v2.0'
   subject: web_identity_principalId
   audiences: [
