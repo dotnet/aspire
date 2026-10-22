@@ -112,7 +112,7 @@ jobs:
           cli="$(find "$RUNNER_TEMP/java-native-cli" -type f -name aspire -print -quit)"
           test -n "$cli"
           chmod +x "$cli"
-          ASPIRE_HOME="$RUNNER_TEMP/java-native-home" "$cli" setup --install-path "$RUNNER_TEMP/java-native-layout"
+          ASPIRE_LAYOUT_PATH="$RUNNER_TEMP/java-native-layout" ASPIRE_HOME="$RUNNER_TEMP/java-native-home" "$cli" setup --install-path "$RUNNER_TEMP/java-native-layout"
           bundle="$RUNNER_TEMP/java-native-layout/bundle"
           test -x "$bundle/dcp/dcp"
           test -x "$bundle/dashboard/Aspire.Dashboard"
@@ -128,6 +128,7 @@ jobs:
             echo "ASPIRE_DCP_PATH=$bundle/dcp"
             echo "ASPIRE_DASHBOARD_PATH=$bundle/dashboard/Aspire.Dashboard"
             echo "ASPIRE_CLI_PACKAGES=$hive"
+            echo "ASPIRE_LAYOUT_PATH=$RUNNER_TEMP/java-native-layout"
           } >> "$GITHUB_ENV"
       - name: Restore the source CLI
         run: ./restore.sh --projects "${{ github.workspace }}/src/Aspire.Cli/Aspire.Cli.csproj"
