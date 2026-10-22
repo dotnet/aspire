@@ -279,7 +279,7 @@ user's agreement.
   assembly, and `Media.cs` the calls to ffmpeg and Node.js.
 - `scripts/tts/`: the voice (`tts.mjs`), with its pinned npm package.
 - `scripts/recorder/`: the recorder, a Playwright for .NET file-based app, with helpers for VS Code in the browser
-  (`VsCode.cs`, `vscode-settings.json`) and for the dashboard (`Dashboard.cs`).
+  (`VsCode.cs`, `vscode-settings.jsonc`) and for the dashboard (`Dashboard.cs`).
 - `scripts/assets/`: the Aspire logo, from aspire.dev.
 - `cgmanifest.json`: the components the skill uses that component detection can't find: the packages of `video.cs`,
   and Orchard Core, which the skill is adapted from.

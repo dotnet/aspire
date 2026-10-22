@@ -14,12 +14,13 @@ public static class VsCode
     public static string Url { get; } = Environment.GetEnvironmentVariable("VIDEO_VSCODE_URL") ?? "http://localhost:8123";
 
     /// <summary>
-    /// The user settings written into VS Code before each scene: vscode-settings.json, next to recorder.cs, or the file
-    /// named by VIDEO_VSCODE_SETTINGS.
+    /// The user settings written into VS Code before each scene: vscode-settings.jsonc, next to recorder.cs, or the file
+    /// named by VIDEO_VSCODE_SETTINGS. Its comments say why it exists and what each group of settings is for. VS Code
+    /// reads user settings as JSON with comments, so the file is written as is.
     /// </summary>
     public static string SettingsPath { get; } = Environment.GetEnvironmentVariable("VIDEO_VSCODE_SETTINGS") is { Length: > 0 } path
         ? path
-        : Path.Combine((string)AppContext.GetData("EntryPointFileDirectoryPath")!, "vscode-settings.json");
+        : Path.Combine((string)AppContext.GetData("EntryPointFileDirectoryPath")!, "vscode-settings.jsonc");
 
     /// <summary>
     /// Opens a folder in VS Code, before the capture: writes the user settings, waits for the explorer, then closes the

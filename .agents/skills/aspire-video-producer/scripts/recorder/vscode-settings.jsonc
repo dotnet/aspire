@@ -1,3 +1,24 @@
+// The VS Code user settings of the recordings: VsCode.OpenAsync writes this file into VS Code before each scene.
+//
+// Why a file of user settings, rather than the app's .vscode/settings.json: the recorder shows VS Code in the browser
+// ("code serve-web"), whose user settings live in the browser's IndexedDB, not on disk. A workspace's
+// .vscode/settings.json can't carry them: VS Code ignores its terminal profiles and their env in Restricted Mode, and
+// reads trust and "remote.extensionKind" only from user settings. See the VS Code section of
+// references/troubleshooting.md.
+//
+// What they do, for a clean and working demo:
+// - Readable, uncluttered screen: a larger editor font, a single tab, and no minimap, activity bar, status bar,
+//   hovers, lightbulbs, chat, welcome page or recommendations. "files.exclude" hides generated folders and config
+//   files.
+// - IntelliSense that works with Aspire's generated TypeScript modules: workspace trust off, and the TypeScript
+//   extension running on the server ("remote.extensionKind"); in the browser it runs in a partial mode that doesn't
+//   resolve them.
+// - A terminal the recorder can read and the viewer can trust: "gpuAcceleration": "off" draws its text in the DOM
+//   (a canvas can't be found or highlighted), and the "demo" profile has a short "contoso $" prompt, none of the
+//   user's shell setup, and ASPIRE_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS, so "aspire run" prints a dashboard URL
+//   without the login token, which mustn't show on camera.
+// - Nothing that changes between takes: auto save (so typed code can be checked on disk), no persistent terminal
+//   sessions, no updates, experiments or telemetry.
 {
   "workbench.colorTheme": "Default Dark Modern",
   "workbench.startupEditor": "none",

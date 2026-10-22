@@ -71,7 +71,7 @@ Record a throwaway sample app, never an app with real data or real cloud resourc
   --accept-server-license-terms --server-data-dir <workspace>/vscode-data --default-folder <app>` and record
   it with the `VsCode` helpers of the recorder (below): create the scene with `VsCode.Url` as its base URL, and open
   the app with `VsCode.OpenAsync(scene, <app>)`. Read the VS Code section of `references/troubleshooting.md` first:
-  without the settings it writes (`vscode-settings.json`), IntelliSense doesn't work. Its terminal profile starts
+  without the settings it writes (`vscode-settings.jsonc`), IntelliSense doesn't work. Its terminal profile starts
   with anonymous dashboard access, so `aspire run` in it prints a URL without a token; the profile is set for macOS
   (zsh), Linux (bash) and Windows (PowerShell), and was tested on macOS.
 

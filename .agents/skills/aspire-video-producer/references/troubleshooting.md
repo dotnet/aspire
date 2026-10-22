@@ -2,12 +2,12 @@
 
 Problems met with the tools a video depends on, with their symptom, cause and fix. Check here before debugging, and
 add what you find. The recorder's helpers apply these fixes: `scripts/recorder/VsCode.cs` (with
-`vscode-settings.json`) and `scripts/recorder/Dashboard.cs`.
+`vscode-settings.jsonc`) and `scripts/recorder/Dashboard.cs`.
 
 ## VS Code in the browser (`code serve-web`)
 
 **For any video that shows VS Code, use the recorder's `VsCode` helpers** (`VsCode.OpenAsync`, the typing and terminal
-helpers), which write `scripts/recorder/vscode-settings.json` into VS Code before each scene.
+helpers), which write `scripts/recorder/vscode-settings.jsonc` into VS Code before each scene.
 
 | Symptom | Cause | Fix |
 |---|---|---|
