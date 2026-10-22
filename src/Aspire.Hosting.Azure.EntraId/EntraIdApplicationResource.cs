@@ -121,8 +121,11 @@ public class EntraIdApplicationResource : AzureProvisioningResource
     /// <inheritdoc />
     public override string GetBicepTemplateString()
     {
-        ValidateProvisioningConfiguration();
-        return base.GetBicepTemplateString();
+        // The base class caches the first template it generates. The pipeline generates it before the Azure resource
+        // preparer attaches the identities this registration trusts, so a cached template would lack the federated
+        // credentials, and the deployment checksum computed from it would not change when federation is turned on.
+        using var template = GetBicepTemplateFile();
+        return File.ReadAllText(template.Path);
     }
 
     /// <inheritdoc />

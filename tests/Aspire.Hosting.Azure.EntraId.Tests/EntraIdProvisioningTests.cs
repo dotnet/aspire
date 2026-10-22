@@ -185,16 +185,15 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
         builder.AddContainer("web", "image").WithReference(entra);
 
         using var app = builder.Build();
+        // Pipeline resolution reads the template before the Azure resource preparer attaches the identities.
+        Assert.DoesNotContain("web_identity_principalId", entra.Resource.GetBicepTemplateString());
         await ExecuteBeforeStartHooksAsync(app, default);
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         var identity = Assert.Single(model.Resources.OfType<AzureUserAssignedIdentityResource>());
         Assert.Equal("web-identity", identity.Name);
         Assert.Same(identity, Assert.Single(entra.Resource.GetFederatedIdentities()));
-        // GetBicepTemplateString caches the first template, which pipeline resolution generates before the preparer runs.
-        // Provisioning writes a fresh template file instead.
-        using var template = entra.Resource.GetBicepTemplateFile();
-        Assert.Contains("web_identity_principalId", await File.ReadAllTextAsync(template.Path));
+        Assert.Contains("web_identity_principalId", entra.Resource.GetBicepTemplateString());
     }
 
     [Fact]
