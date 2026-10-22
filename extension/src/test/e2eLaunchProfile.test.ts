@@ -648,9 +648,9 @@ suite('E2E launch profile', () => {
         assert.ok(runner.includes('const matchedTestSpecs = verifyExtesterFeedOnly ? [] : findSpecMatches(testSpec);'));
         assert.ok(!runner.includes('ASPIRE_EXTENSION_E2E_EXTESTER_VERSION'));
         assert.ok(workflow.includes('Verify locked ExTester'));
-        assert.ok(workflow.includes('verify_extester_feed:'));
+        assert.ok(workflow.includes('verify_prerequisites:'));
         assert.ok(workflow.includes('run: node scripts/run-e2e.js --verify-extester-feed'));
-        assert.ok(workflow.includes('needs: verify_extester_feed'));
+        assert.ok(workflow.includes('needs: verify_prerequisites'));
         assert.ok(!workflow.includes('extester_feed_unavailable:'));
         assert.ok(!workflow.includes('VS Code extension E2E matrix skipped'));
     });
