@@ -49,6 +49,17 @@ jobs:
             *) echo "::error::Target branch must be main or release/*"; exit 1 ;;
           esac
 
+      - name: Validate publishing target
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run == false }}
+        env:
+          TARGET_BRANCH: ${{ matrix.target_branch }}
+        run: |
+          # Token-bearing runs must not load local action code from inactive release branches.
+          case "$TARGET_BRANCH" in
+            main|release/13.6) ;;
+            *) echo "::error::Manual publishing is restricted to active branches: main and release/13.6"; exit 1 ;;
+          esac
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ matrix.target_branch }}

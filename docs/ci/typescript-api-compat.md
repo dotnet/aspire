@@ -8,10 +8,11 @@ The checked-in `src/Aspire.Hosting*/api/*.ats.txt` files are the release compati
 
 The daily `generate-ats-diffs.yml` and `generate-api-diffs.yml` workflows
 generate review PRs for `main` and the active release branches listed in each
-workflow's scheduled matrix (currently `release/13.6`). Manual runs accept
-`main` or any `release/*` target branch. Each job checks out its selected
-target and opens a PR from a distinct generated branch back into that target.
-Only the `main` PRs receive the `NO-MERGE` label.
+workflow's scheduled matrix (currently `release/13.6`). Manual dry runs accept
+`main` or any valid `release/*` target branch. Manual publishing is restricted
+to `main` and the active release branches listed in the scheduled matrix. Each
+job checks out its selected target and opens a PR from a distinct generated
+branch back into that target. Only the `main` PRs receive the `NO-MERGE` label.
 
 Pull requests that modify either workflow automatically run its generation
 steps against the pull request's target branch with read-only permissions.
