@@ -109,9 +109,8 @@ public sealed partial class ApplicationSummary : ComponentBase, IAsyncDisposable
     private ITelemetryRepository TelemetryRepository => DataSource.TelemetryRepository;
     private IReadOnlyList<IconToggleOption<GroupOverview>> OverviewOptions =>
     [
-        new(GroupOverview.Resources, new Icons.Regular.Size20.AppsListDetail(), DialogsLoc[nameof(Dashboard.Resources.Dialogs.SettingsDialogGroupOverviewResources)]),
-        new(GroupOverview.Graph, new Icons.Regular.Size20.ShareAndroid(), Loc[nameof(Dashboard.Resources.Resources.GraphPageTitle)]),
-        new(GroupOverview.Summary, new Icons.Regular.Size20.Home(), DialogsLoc[nameof(Dashboard.Resources.Dialogs.SettingsDialogGroupOverviewSummary)])
+        new(GroupOverview.Summary, new Icons.Regular.Size20.Home(), DialogsLoc[nameof(Dashboard.Resources.Dialogs.SettingsDialogGroupOverviewSummary)]),
+        new(GroupOverview.Graph, new Icons.Regular.Size20.ShareAndroid(), Loc[nameof(Dashboard.Resources.Resources.GraphPageTitle)])
     ];
 
     protected override async Task OnInitializedAsync()

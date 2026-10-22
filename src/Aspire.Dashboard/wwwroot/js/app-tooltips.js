@@ -102,15 +102,25 @@ class AspireTooltipProvider extends HTMLElement {
             target.anchor.id ||= `tooltip-anchor-${crypto.randomUUID()}`;
             const tooltip = document.createElement("fluent-tooltip");
             tooltip.setAttribute("anchor", target.anchor.id);
-            let positioning = "above";
-            if (target.anchor.matches("fluent-menu-item")) {
-                const bounds = target.anchor.getBoundingClientRect();
+            const bounds = target.anchor.getBoundingClientRect();
+            let positioning = target.anchor.getAttribute("data-tooltip-positioning");
+            if (!positioning && target.anchor.matches("fluent-menu-item")) {
                 // Keep descriptions beside menus when there is room for Fluent's default 240px
                 // maximum width. Full-width mobile menus need above-anchor placement instead.
                 if (Math.max(bounds.left, window.innerWidth - bounds.right) >= 240) {
                     positioning = "before";
                 }
             }
+            if (!positioning && target.anchor.closest(".layout > header")) {
+                // Header controls have no room above, so Fluent would flip an "above" tooltip directly
+                // into the pointer's downward path. Place it toward the nearest outer edge instead.
+                positioning = bounds.left + bounds.width / 2 < window.innerWidth / 2 ? "after" : "before";
+            }
+            if (!positioning && target.anchor.closest(".resource-pane")) {
+                // Keep repeated resource-row actions out of the vertically scrolling pointer path.
+                positioning = window.innerWidth - bounds.right >= 240 ? "after" : "before";
+            }
+            positioning ??= bounds.top < 48 ? "below" : "above";
             tooltip.setAttribute("positioning", positioning);
             tooltip.className = "dashboard-tooltip";
             const content = document.createElement("span");

@@ -12,5 +12,4 @@ internal record MobileNavMenuEntry(
     Icon? Icon = null,
     Icon? ActiveIcon = null,
     Regex? LinkMatchRegex = null,
-    bool IsResourceSelectionPage = false,
     string? DisabledText = null);

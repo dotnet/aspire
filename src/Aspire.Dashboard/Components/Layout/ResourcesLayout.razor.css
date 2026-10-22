@@ -113,8 +113,17 @@
 .resource-pane-list {
     flex: 1 1 auto;
     min-height: 0;
+    padding-inline: 6px;
     overflow: auto;
-    padding: 0 6px 10px;
+}
+
+.resource-pane-section-label {
+    padding: 12px 6px 5px;
+    color: var(--colorNeutralForeground3);
+    font-size: 11px;
+    font-weight: var(--fontWeightSemibold);
+    line-height: 16px;
+    text-transform: uppercase;
 }
 
 .resource-pane-message {
@@ -452,10 +461,11 @@
     font-size: 12px;
 }
 
-.resource-workspace-foot ::deep .resource-pane-toggle-button {
+.resource-header-row ::deep .resource-pane-toggle-button {
+    --aspire-control-height: 32px;
     flex: 0 0 auto;
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
 }
 
 .resource-pane-foot-actions {

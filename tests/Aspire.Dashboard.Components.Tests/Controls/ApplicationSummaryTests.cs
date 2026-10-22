@@ -28,6 +28,7 @@ public class ApplicationSummaryTests : DashboardTestContext
         Assert.Single(cut.FindAll(".home-activity"));
         Assert.Single(cut.FindAll(".home-insights"));
         Assert.Equal(["home-errors-title", "home-traces-title"], cut.FindAll(".home-problems h2").Select(h => h.Id));
+        Assert.Equal(["Summary"], cut.FindAll(".icon-toggle[aria-pressed='true']").Select(e => e.GetAttribute("aria-label")));
         // The resource table is the other choice of the "overview of several resources" setting.
         Assert.Empty(cut.FindAll(".home-resource-table"));
     }
@@ -50,6 +51,8 @@ public class ApplicationSummaryTests : DashboardTestContext
             ["Container", "Project"],
             cut.FindAll(".home-resource-table tbody .home-table-type").Select(type => type.TextContent));
         Assert.Equal(2, cut.FindComponents<ResourceActions>().Count);
+        Assert.Equal(["Summary", "Resource graph"], cut.FindAll(".icon-toggle").Select(e => e.GetAttribute("aria-label")));
+        Assert.Empty(cut.FindAll(".icon-toggle[aria-pressed='true']"));
     }
 
     [Fact]

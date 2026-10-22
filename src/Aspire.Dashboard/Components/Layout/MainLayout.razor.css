@@ -166,10 +166,9 @@
 @media (min-width: 768px) {
     ::deep.layout {
         grid-template-columns: minmax(0, 1fr);
-        grid-template-rows: auto auto auto minmax(0, 1fr);
+        grid-template-rows: auto auto minmax(0, 1fr);
         grid-template-areas:
             "head"
-            "nav"
             "messagebar"
             "main";
     }
@@ -193,100 +192,26 @@
         flex: 0 0 24px;
     }
 
-    ::deep.layout > .contextual-navigation {
-        grid-area: nav;
-        display: flex;
-        align-items: center;
-        min-width: 0;
-        min-height: 44px;
-        padding: 0 12px;
-        border-bottom: 1px solid var(--colorNeutralStroke1);
-        background-color: var(--colorNeutralBackground2);
-    }
-
-    ::deep.layout > header > .desktop-nav-menu {
-        position: relative;
-        display: flex;
-        flex: 0 0 auto;
-        align-items: center;
-        gap: 4px;
-        min-width: 0;
-        height: 100%;
-        margin-left: 16px;
-        margin-right: auto;
-        padding-left: 16px;
-    }
-
-    ::deep.layout > header > .desktop-nav-menu::before {
-        content: "";
-        position: absolute;
-        left: 0;
-        top: 50%;
-        width: 1px;
-        height: 24px;
-        background: var(--colorNeutralStroke2);
-        transform: translateY(-50%);
-    }
-
-    ::deep.layout > header > .desktop-nav-menu > .desktop-nav-item {
-        position: relative;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        flex: 0 0 auto;
-        height: 32px;
-        padding: 0 10px;
-        border-radius: 8px;
-        color: var(--colorNeutralForeground2);
-        font-size: 13px;
-        font-weight: var(--fontWeightSemibold);
-        text-decoration: none;
-        white-space: nowrap;
-    }
-
-    ::deep.layout > header > .desktop-nav-menu > .desktop-nav-item:hover {
-        background: var(--colorNeutralBackground3);
-        color: var(--colorNeutralForeground1);
-    }
-
-    ::deep.layout > header > .desktop-nav-menu > .desktop-nav-item:focus-visible {
-        outline: 2px solid var(--colorStrokeFocus2);
-        outline-offset: -2px;
-    }
-
-    ::deep.layout > header > .desktop-nav-menu > .desktop-nav-item.disabled,
-    ::deep.layout > header > .desktop-nav-menu > .desktop-nav-item.disabled:hover {
-        background: transparent;
-        color: var(--colorNeutralForegroundDisabled);
-        cursor: default;
-    }
-
-    ::deep.layout > header > .desktop-nav-menu > .desktop-nav-item.active {
-        background: var(--colorNeutralBackground3);
-        color: var(--colorBrandForeground1);
-    }
-
-    ::deep.layout > header > .desktop-nav-menu > .desktop-nav-item.active svg {
-        fill: var(--colorBrandForeground1) !important;
-    }
-
-    ::deep.layout > .contextual-navigation > .header-context {
+    ::deep.layout > header > .header-context {
         display: flex;
         flex: 1 1 auto;
         align-items: center;
         min-width: 0;
         height: 100%;
+        margin-left: 16px;
+        margin-right: auto;
+        padding-left: 16px;
+        border-left: 1px solid var(--colorNeutralStroke2);
     }
 
-    ::deep.layout > .contextual-navigation .resource-tabs-nav {
+    ::deep.layout > header .resource-tabs-nav {
         height: 100%;
     }
 
-    ::deep.layout > .contextual-navigation .resources-tab-header {
+    ::deep.layout > header .resources-tab-header {
         align-self: stretch;
         align-items: center;
-        min-height: 44px;
+        min-height: 50px;
         gap: 6px;
         padding: 0;
         border: 0;
@@ -294,7 +219,7 @@
         background: transparent;
     }
 
-    ::deep.layout > .contextual-navigation .resources-tab-header fluent-tab {
+    ::deep.layout > header .resources-tab-header fluent-tab {
         position: relative;
         height: 32px;
         padding: 0 10px;
@@ -304,31 +229,31 @@
         font-weight: var(--fontWeightSemibold);
     }
 
-    ::deep.layout > .contextual-navigation .resources-tab-header fluent-tab[aria-selected="true"] {
+    ::deep.layout > header .resources-tab-header fluent-tab[aria-selected="true"] {
         color: var(--colorBrandForeground1);
         background: transparent;
     }
 
-    ::deep.layout > .contextual-navigation .resources-tab-header fluent-tab[aria-selected="true"]::after {
+    ::deep.layout > header .resources-tab-header fluent-tab[aria-selected="true"]::after {
         content: "";
         position: absolute;
         inset-inline: 8px;
-        bottom: -6px;
+        bottom: -9px;
         display: block;
         height: 3px;
         border-radius: 2px 2px 0 0;
         background: var(--colorBrandBackground);
     }
 
-    ::deep.layout > .contextual-navigation .resources-tab-header fluent-tab[aria-selected="false"] {
+    ::deep.layout > header .resources-tab-header fluent-tab[aria-selected="false"] {
         color: var(--colorNeutralForeground2);
     }
 
-    ::deep.layout > .contextual-navigation .resources-tab-header fluent-tab[aria-selected="false"] svg {
+    ::deep.layout > header .resources-tab-header fluent-tab[aria-selected="false"] svg {
         color: var(--colorNeutralForeground2);
     }
 
-    ::deep.layout > .contextual-navigation .resources-tab-header fluent-tab[aria-selected="false"]:hover {
+    ::deep.layout > header .resources-tab-header fluent-tab[aria-selected="false"]:hover {
         background: var(--colorNeutralBackground3);
         color: var(--colorNeutralForeground1);
     }

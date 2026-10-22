@@ -56,6 +56,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
     private bool _isLoaded;
     private bool _isPaneCollapsed;
     private bool _isDrawerOpen;
+    private bool _showTelemetryOnlyResources;
     private bool _pendingLandingRedirect;
     private bool _hasLocation;
     private string? _lastLocation;
@@ -314,6 +315,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
         }
         OrderStore.EnsureResources(snapshot.Where(r => !r.IsParameter)
             .OrderBy(r => r.ResourceType).ThenBy(r => r, ResourceViewModelNameComparer.Instance));
+        UpdateResourceTagFilters();
         EnsureGroupOrder();
 
         _isLoaded = true;
@@ -345,6 +347,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
 
                 await InvokeAsync(async () =>
                 {
+                    UpdateResourceTagFilters();
                     EnsureGroupOrder();
                     UpdateTelemetryOnlyResources();
                     UpdateSelection();
@@ -452,7 +455,8 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
     /// </summary>
     private void UpdateFromLocation(string location)
     {
-        var parsedLocation = ParseLocation(NavigationManager.ToBaseRelativePath(location));
+        var baseRelativePath = NavigationManager.ToBaseRelativePath(location);
+        var parsedLocation = ParseLocation(baseRelativePath);
         var wasAllResources = _hasLocation && _selectedResourceNames.Count == 0;
         _hasLocation = true;
 
@@ -465,8 +469,13 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
 
         // The overview without a selection lists all resources. Entering the resources view that way, for example
         // from the navigation rail, restores the last selection instead. Switching to the overview tab while all
-        // resources are already shown keeps them.
-        _pendingLandingRedirect = DashboardClient.IsEnabled && parsedLocation.Tab == ResourceTab.Overview && parsedLocation.SelectedResourceNames.Count == 0 && !wasAllResources;
+        // resources are already shown keeps them. Telemetry sources has its own selection, so it must not restore
+        // the last app-resource selection when its overview route has no selected source.
+        _pendingLandingRedirect = DashboardClient.IsEnabled
+            && ParsePaneMode(baseRelativePath) != ResourcePaneMode.Telemetry
+            && parsedLocation.Tab == ResourceTab.Overview
+            && parsedLocation.SelectedResourceNames.Count == 0
+            && !wasAllResources;
         UpdateSelection();
     }
 
@@ -479,7 +488,10 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
     /// <summary>
     /// Gets the URL of the given tab for the resources currently selected in the resource list.
     /// </summary>
-    internal string GetTabUrl(ResourceTab tab) => AddPaneToUrl(GetTabUrl(tab, _selectedResourceNames, RouteResourceName));
+    internal string GetTabUrl(ResourceTab tab)
+    {
+        return GetTabUrl(tab, _selectedResourceNames, RouteResourceName);
+    }
 
     internal string AddPaneToUrl(string url) => DashboardClient.IsEnabled && IsTelemetryPane ? DashboardUrls.AddTelemetryPane(url) : url;
 
@@ -584,6 +596,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
 
         var tab = segments[0].ToLowerInvariant() switch
         {
+            DashboardUrls.ParametersBasePath => ResourceTab.Parameters,
             DashboardUrls.ConsoleLogBasePath => ResourceTab.Console,
             DashboardUrls.StructuredLogsBasePath => ResourceTab.StructuredLogs,
             DashboardUrls.TracesBasePath => ResourceTab.Traces,
@@ -783,15 +796,12 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
     }
 
     private IEnumerable<TelemetryOnlyResource> GetVisibleTelemetryResources() =>
-        IsTelemetryPane ? _telemetryOnlyResources.Where(r => r.Name.Contains(_filter.TextFilter, StringComparisons.UserTextSearch)) : [];
+        _telemetryOnlyResources.Where(r =>
+            (!DashboardClient.IsEnabled || _showTelemetryOnlyResources || IsSelected(r.Name)) &&
+            r.Name.Contains(_filter.TextFilter, StringComparisons.UserTextSearch));
 
     internal IEnumerable<ResourceGridViewModel> GetPaneRows()
     {
-        if (IsTelemetryPane)
-        {
-            return [];
-        }
-
         var positions = OrderStore.GetPositions();
         var filteredResources = _resourceByName.Values
             .Where(_filter.Filter)
@@ -940,6 +950,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
     {
         if (_isLoaded)
         {
+            UpdateResourceTagFilters();
             EnsureGroupOrder();
         }
         StateHasChanged();
@@ -948,13 +959,62 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
     private List<MenuButtonItem> GetFilterMenuItems()
     {
         var items = new List<MenuButtonItem>();
-        AddFilterGroup(items, "types", ResourcesLoc[nameof(Dashboard.Resources.Resources.ResourcesResourceTypesHeader)], _filter.ResourceTypesToVisibility, r => r.ResourceType);
-        AddFilterGroup(items, "states", ResourcesLoc[nameof(Dashboard.Resources.Resources.ResourcesResourceStatesHeader)], _filter.ResourceStatesToVisibility, r => r.State ?? string.Empty);
-        AddFilterGroup(items, "health", ResourcesLoc[nameof(Dashboard.Resources.Resources.ResourcesDetailsHealthStateProperty)], _filter.ResourceHealthStatusesToVisibility, r => r.HealthStatus?.Humanize() ?? string.Empty);
+        if (DashboardClient.IsEnabled && _telemetryOnlyResources.Count > 0)
+        {
+            items.Add(CreateFilterMenuItem(
+                id: "resource-filter-telemetry-only",
+                renderKey: "telemetry-only",
+                text: Loc[nameof(Resources.Layout.ResourcePaneTelemetryOnlyGroup)],
+                isChecked: _showTelemetryOnlyResources,
+                onCheckedChanged: isChecked => _showTelemetryOnlyResources = isChecked,
+                count: _telemetryOnlyResources.Count));
+        }
+        AddFilterGroup(items, "types", ResourcesLoc[nameof(Dashboard.Resources.Resources.ResourcesResourceTypesHeader)], _filter.ResourceTypesToVisibility, r => [r.ResourceType]);
+        AddFilterGroup(items, "states", ResourcesLoc[nameof(Dashboard.Resources.Resources.ResourcesResourceStatesHeader)], _filter.ResourceStatesToVisibility, r => [r.State ?? string.Empty]);
+        AddFilterGroup(items, "health", ResourcesLoc[nameof(Dashboard.Resources.Resources.ResourcesDetailsHealthStateProperty)], _filter.ResourceHealthStatusesToVisibility, r => [r.HealthStatus?.Humanize() ?? string.Empty]);
+        AddFilterGroup(
+            items,
+            "tags",
+            Loc[nameof(Resources.Layout.NavMenuTagsTab)],
+            _filter.ResourceTagsToVisibility,
+            r => _filter.ResourceTagsByResource.GetValueOrDefault(r.DisplayName) ?? [string.Empty],
+            key => string.IsNullOrEmpty(key) ? Loc[nameof(Resources.Layout.ResourcePaneUntaggedGroup)] : key);
         return items;
     }
 
-    private void AddFilterGroup(List<MenuButtonItem> items, string groupId, string header, ConcurrentDictionary<string, bool> values, Func<ResourceViewModel, string> getKey)
+    private void UpdateResourceTagFilters()
+    {
+        var resources = _resourceByName.Values.Where(r => !r.IsParameter).ToList();
+        var tagsByResource = TagStore.GetTagsByResource(resources);
+        var filterKeys = TagStore.GetAllTags(resources).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (resources.Any(r => !tagsByResource.ContainsKey(r.DisplayName)))
+        {
+            filterKeys.Add(string.Empty);
+        }
+
+        foreach (var key in _filter.ResourceTagsToVisibility.Keys)
+        {
+            if (!filterKeys.Contains(key))
+            {
+                _filter.ResourceTagsToVisibility.TryRemove(key, out _);
+            }
+        }
+
+        foreach (var key in filterKeys)
+        {
+            _filter.ResourceTagsToVisibility.TryAdd(key, true);
+        }
+
+        _filter.ResourceTagsByResource = tagsByResource;
+    }
+
+    private void AddFilterGroup(
+        List<MenuButtonItem> items,
+        string groupId,
+        string header,
+        ConcurrentDictionary<string, bool> values,
+        Func<ResourceViewModel, IEnumerable<string>> getKeys,
+        Func<string, string>? getText = null)
     {
         if (items.Count > 0)
         {
@@ -983,8 +1043,10 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
         {
             if (!resource.IsParameter && !resource.IsResourceHidden(_filter.ShowHiddenResources))
             {
-                var key = getKey(resource);
-                counts[key] = counts.GetValueOrDefault(key) + 1;
+                foreach (var key in getKeys(resource))
+                {
+                    counts[key] = counts.GetValueOrDefault(key) + 1;
+                }
             }
         }
 
@@ -1010,7 +1072,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
             items.Add(CreateFilterMenuItem(
                 id: $"resource-filter-{groupId}-{i}",
                 renderKey: $"{groupId}:{key}",
-                text: string.IsNullOrEmpty(key) ? ResourcesLoc[nameof(Dashboard.Resources.Resources.ResourceFilterOptionEmpty)] : key,
+                text: getText?.Invoke(key) ?? (string.IsNullOrEmpty(key) ? ResourcesLoc[nameof(Dashboard.Resources.Resources.ResourceFilterOptionEmpty)] : key),
                 isChecked: isVisible,
                 onCheckedChanged: isChecked => values[key] = isChecked,
                 count: counts.GetValueOrDefault(key)));
@@ -1043,7 +1105,8 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
     private bool NoFiltersSet =>
         _filter.ResourceTypesToVisibility.Values.All(v => v) &&
         _filter.ResourceStatesToVisibility.Values.All(v => v) &&
-        _filter.ResourceHealthStatusesToVisibility.Values.All(v => v);
+        _filter.ResourceHealthStatusesToVisibility.Values.All(v => v) &&
+        _filter.ResourceTagsToVisibility.Values.All(v => v);
 
     private bool CanReorderPane =>
         _isLoaded && !IsTelemetryPane &&
@@ -1340,6 +1403,11 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
 
     private bool IsTabAvailable(ResourceTab tab, IReadOnlyList<SelectedResourceItem> selection)
     {
+        if (tab == ResourceTab.Parameters)
+        {
+            return DashboardClient.IsEnabled && selection.Count == 0 && _resourceByName.Values.Any(r => r.IsParameter);
+        }
+
         if (IsTelemetryPane && tab is ResourceTab.Overview or ResourceTab.Console)
         {
             return false;
@@ -1387,6 +1455,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
             var url = tab switch
             {
                 ResourceTab.Overview => DashboardUrls.ResourceOverviewUrl(),
+                ResourceTab.Parameters => DashboardUrls.ParametersUrl(),
                 ResourceTab.Console => DashboardUrls.ConsoleLogsUrl(),
                 ResourceTab.StructuredLogs => DashboardUrls.StructuredLogsUrl(),
                 ResourceTab.Traces => DashboardUrls.TracesUrl(),
@@ -1401,6 +1470,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
         return tab switch
         {
             ResourceTab.Overview => DashboardUrls.ResourceOverviewUrl(resourceName),
+            ResourceTab.Parameters => DashboardUrls.ParametersUrl(),
             ResourceTab.Console => DashboardUrls.ConsoleLogsUrl(resourceName),
             ResourceTab.StructuredLogs => DashboardUrls.StructuredLogsUrl(resourceName),
             ResourceTab.Traces => DashboardUrls.TracesUrl(resourceName),
@@ -1440,7 +1510,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
             tab = ResourceTab.StructuredLogs;
         }
 
-        return AddPaneToUrl(GetTabUrl(tab, resourceNames, RouteResourceName));
+        return GetTabUrl(tab, resourceNames, RouteResourceName);
     }
 
     /// <summary>
@@ -1538,7 +1608,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
 
         // Remember the cleared selection so entering the overview later doesn't select a resource again.
         await SetStoredSelectionAsync([]);
-        NavigationManager.NavigateTo(GetSelectionUrl([]));
+        NavigationManager.NavigateTo(DashboardClient.IsEnabled ? DashboardUrls.ResourceListUrl() : GetSelectionUrl([]));
     }
 
     /// <summary>
@@ -1547,7 +1617,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
     /// </summary>
     internal List<string> GetAllResourceNames()
     {
-        if (IsTelemetryPane)
+        if (!DashboardClient.IsEnabled)
         {
             return _telemetryOnlyResources.Select(r => r.Name).ToList();
         }
@@ -1565,7 +1635,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
     private List<string> GetVisibleRowNames()
     {
         List<string> names;
-        if (!IsTelemetryPane && _grouping != ResourceGrouping.None)
+        if (DashboardClient.IsEnabled && _grouping != ResourceGrouping.None)
         {
             // A resource with several tags is listed several times. Ranges use its first position.
             names = GetResourceGroups()
@@ -1617,6 +1687,12 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
 
     private IEnumerable<TabItem> GetTabs()
     {
+        if (CurrentTab == ResourceTab.Parameters)
+        {
+            yield return CreateTab(ResourceTab.Parameters, Loc[nameof(Resources.Layout.NavMenuParametersTab)], new Icons.Regular.Size24.Key(), isVisible: true);
+            yield break;
+        }
+
         var resource = SelectedResource;
         var isTelemetryOnly = SelectedTelemetryOnlyResource is not null;
         var isMultiSelection = IsMultiSelection;
@@ -1625,15 +1701,15 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
         // activate its first tab, which would navigate away from the current page.
         var errorCount = _selectedItems.Sum(i => i.Resource is { } r ? GetUnviewedErrorCount(r) : 0);
         yield return CreateTab(ResourceTab.Overview, Loc[nameof(Resources.Layout.ResourceTabOverview)], new Icons.Regular.Size24.Board(),
-            isVisible: !IsTelemetryPane && (resource is not null || isMultiSelection || _selectedItems.Count == 0));
+            isVisible: DashboardClient.IsEnabled && !isTelemetryOnly && (resource is not null || isMultiSelection || _selectedItems.Count == 0));
         yield return CreateTab(ResourceTab.Console, Loc[nameof(Resources.Layout.NavMenuConsoleLogsTab)], new Icons.Regular.Size24.SlideText(),
-            isVisible: !IsTelemetryPane && !isTelemetryOnly);
+            isVisible: DashboardClient.IsEnabled && !isTelemetryOnly);
         yield return CreateTab(ResourceTab.StructuredLogs, StructuredLogsLoc[nameof(Resources.StructuredLogs.StructuredLogsHeader)], new Icons.Regular.Size24.SlideTextSparkle(),
             isVisible: true, errorCount);
         yield return CreateTab(ResourceTab.Traces, Loc[nameof(Resources.Layout.NavMenuTracesTab)], new Icons.Regular.Size24.GanttChart(),
             isVisible: true);
         yield return CreateTab(ResourceTab.Metrics, Loc[nameof(Resources.Layout.NavMenuMetricsTab)], new Icons.Regular.Size24.ChartMultiple(),
-            isVisible: IsTelemetryPane || _selectedItems.Count > 0 || CurrentTab == ResourceTab.Metrics);
+            isVisible: !DashboardClient.IsEnabled || isTelemetryOnly || _selectedItems.Count > 0 || CurrentTab == ResourceTab.Metrics);
 
         TabItem CreateTab(ResourceTab tab, string text, Icon icon, bool isVisible, int errorCount = 0)
         {
@@ -1717,6 +1793,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
     internal enum ResourceTab
     {
         Overview,
+        Parameters,
         Console,
         StructuredLogs,
         Traces,

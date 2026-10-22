@@ -1053,6 +1053,9 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         public ConcurrentDictionary<string, bool> ResourceTypesToVisibility { get; } = new(StringComparers.ResourceName);
         public ConcurrentDictionary<string, bool> ResourceStatesToVisibility { get; } = new(StringComparers.ResourceState);
         public ConcurrentDictionary<string, bool> ResourceHealthStatusesToVisibility { get; } = new(StringComparer.Ordinal);
+        public ConcurrentDictionary<string, bool> ResourceTagsToVisibility { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public IReadOnlyDictionary<string, IReadOnlyList<string>> ResourceTagsByResource { get; set; } =
+            new Dictionary<string, IReadOnlyList<string>>(StringComparers.ResourceName);
 
         public bool Filter(ResourceViewModel resource) => Filter(resource, TextFilter);
 
@@ -1077,11 +1080,28 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             return (SelectedViewKind == ResourceViewKind.Parameters || IsKeyValueTrue(resource.ResourceType, ResourceTypesToVisibility))
                    && IsKeyValueTrue(resource.State ?? string.Empty, ResourceStatesToVisibility)
                    && IsKeyValueTrue(resource.HealthStatus?.Humanize() ?? string.Empty, ResourceHealthStatusesToVisibility)
+                   && IsResourceTagVisible(resource)
                    && (textFilter.Length == 0 || resource.MatchesFilter(textFilter))
                    && !resource.IsResourceHidden(ShowHiddenResources);
-
-            static bool IsKeyValueTrue(string key, IDictionary<string, bool> dictionary) => dictionary.TryGetValue(key, out var value) && value;
         }
+
+        private bool IsResourceTagVisible(ResourceViewModel resource)
+        {
+            if (ResourceTagsToVisibility.IsEmpty)
+            {
+                return true;
+            }
+
+            if (!ResourceTagsByResource.TryGetValue(resource.DisplayName, out var tags) || tags.Count == 0)
+            {
+                return IsKeyValueTrue(string.Empty, ResourceTagsToVisibility);
+            }
+
+            return tags.Any(tag => IsKeyValueTrue(tag, ResourceTagsToVisibility));
+        }
+
+        private static bool IsKeyValueTrue(string key, IDictionary<string, bool> dictionary) =>
+            dictionary.TryGetValue(key, out var value) && value;
     }
 
     public class ResourcesPageState

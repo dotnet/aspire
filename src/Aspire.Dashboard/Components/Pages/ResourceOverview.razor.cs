@@ -739,9 +739,9 @@ public sealed partial class ResourceOverview : ComponentBase, IAsyncDisposable
         // move. Content that doesn't fit scrolls inside the card. Cards on the same row share a height.
         private static int GetHeight(OverviewCard card) => card switch
         {
-            OverviewCard.Status or OverviewCard.Endpoints or OverviewCard.Relationships => 260,
+            OverviewCard.Status or OverviewCard.Endpoints or OverviewCard.Metrics => 260,
             OverviewCard.Console or OverviewCard.Logs => 300,
-            OverviewCard.Traces or OverviewCard.Metrics => 300,
+            OverviewCard.Traces or OverviewCard.Relationships => 300,
             OverviewCard.Properties or OverviewCard.Environment => 340,
             _ => 240
         };

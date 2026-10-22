@@ -3,7 +3,6 @@
 
 using System.Text.RegularExpressions;
 using Aspire.Dashboard.Components.CustomIcons;
-using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
@@ -59,13 +58,6 @@ public partial class MobileNavMenu : ComponentBase, IAsyncDisposable
 
     [Inject]
     public required IJSRuntime JS { get; init; }
-
-    [Inject]
-    public required ResourcePaneState ResourcePaneState { get; init; }
-
-    private bool IsTelemetrySection => !DashboardClient.IsEnabled ||
-        ResourcePaneState.Mode == ResourcePaneMode.Telemetry ||
-        ResourcesLayout.ParsePaneMode(NavigationManager.ToBaseRelativePath(NavigationManager.Uri)) == ResourcePaneMode.Telemetry;
 
     private Task NavigateToAsync(string url)
     {
@@ -151,31 +143,6 @@ public partial class MobileNavMenu : ComponentBase, IAsyncDisposable
     {
         if (DashboardClient.IsEnabled)
         {
-            // The pages of a selection (overview, console logs, structured logs, traces and metrics) are icons at the
-            // top of the resources view, so they highlight the Resources entry.
-            yield return new MobileNavMenuEntry(
-                Loc[nameof(Resources.Layout.NavMenuResourcesTab)],
-                () => NavigateToAsync(DesktopNavMenu.GetSelectionPageUrl(NavigationManager, ResourcesLayout.ResourceTab.Overview)),
-                DesktopNavMenu.ResourcesIcon(),
-                ActiveIcon: DesktopNavMenu.ResourcesIcon(active: true),
-                LinkMatchRegex: GetNonIndexPageRegex(
-                    DashboardUrls.ResourceOverviewUrl(),
-                    DashboardUrls.ConsoleLogsUrl(),
-                    DashboardUrls.StructuredLogsUrl(),
-                    DashboardUrls.TracesUrl(),
-                    DashboardUrls.MetricsUrl()),
-                IsResourceSelectionPage: true
-            );
-
-            yield return new MobileNavMenuEntry(
-                Loc[nameof(Resources.Layout.NavMenuParametersTab)],
-                () => NavigateToAsync(DashboardUrls.ParametersUrl()),
-                DesktopNavMenu.ParametersIcon(),
-                ActiveIcon: DesktopNavMenu.ParametersIcon(active: true),
-                LinkMatchRegex: GetNonIndexPageRegex(DashboardUrls.ParametersUrl()),
-                DisabledText: Availability.HasParameters ? null : Loc[nameof(Resources.Layout.NavMenuNoParameters)].Value
-            );
-
             if (HasResourceTerminals)
             {
                 yield return new MobileNavMenuEntry(
@@ -187,14 +154,6 @@ public partial class MobileNavMenu : ComponentBase, IAsyncDisposable
                 );
             }
         }
-        yield return new MobileNavMenuEntry(
-            Loc[nameof(Resources.Layout.NavMenuTelemetrySourcesTab)],
-            () => NavigateToAsync(DashboardUrls.TelemetrySourcesUrl()),
-            DesktopNavMenu.TelemetryIcon(),
-            ActiveIcon: DesktopNavMenu.TelemetryIcon(active: true),
-            LinkMatchRegex: GetNonIndexPageRegex(DashboardUrls.StructuredLogsUrl(), DashboardUrls.TracesUrl(), DashboardUrls.MetricsUrl()),
-            DisabledText: Availability.HasTelemetrySources ? null : Loc[nameof(Resources.Layout.TelemetryPaneNoSources)].Value
-        );
 
         yield return new MobileNavMenuEntry(
             Loc[nameof(Resources.Layout.MainLayoutAspireRepoLink)],

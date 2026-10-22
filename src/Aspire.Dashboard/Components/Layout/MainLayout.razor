@@ -22,19 +22,31 @@
             <a href="/" class="application-name" @onclick="GoToAllResourcesAsync" @onclick:preventDefault="true">
                 <ApplicationName/>
             </a>
-            <DesktopNavMenu HasResourceTerminals="@_navigationAvailability.HasResourceTerminals" Availability="@_navigationAvailability" />
+            <div class="header-context">
+                <SectionOutlet SectionName="@HeaderContextSectionName" />
+            </div>
             @if (RunStore.SupportsRunSelection && UseRunMenu)
             {
-                @* The "Live run" dropdown from before recordings had their own panel, at the same place in the header. *@
                 <DashboardRunMenu SelectedRunId="@RunSelection.SelectedRun.RunId"
                                   SelectedRunIsCurrent="@RunSelection.SelectedRun.IsCurrent"
                                   SelectedRunStartedAtUtc="@RunSelection.SelectedRun.StartedAtUtc"
                                   SelectedRunIdChanged="@SwitchDashboardRunAsync" />
             }
-            else if (RunStore.SupportsRunSelection && !RunSelection.SelectedRun.IsCurrent)
+            else if (RunStore.SupportsRunSelection)
             {
-                <DashboardRunPill SelectedRunStartedAtUtc="@RunSelection.SelectedRun.StartedAtUtc"
-                                  OnClick="@LaunchRecordingsAsync" />
+                var selectedRun = RunSelection.SelectedRun;
+                @if (selectedRun.IsCurrent)
+                {
+                    <DashboardRunSelect ButtonId="@RunSelectButtonId"
+                                        SelectedRunIsCurrent="true"
+                                        SelectedRunStartedAtUtc="@selectedRun.StartedAtUtc"
+                                        OnClick="@LaunchRecordingsAsync" />
+                }
+                else
+                {
+                    <DashboardRunPill SelectedRunStartedAtUtc="@selectedRun.StartedAtUtc"
+                                      OnClick="@LaunchRecordingsAsync" />
+                }
             }
             <FluentButton Class="header-button"
                           Id="@HelpButtonId"
@@ -43,14 +55,6 @@
                           aria-haspopup="dialog" aria-keyshortcuts="?">
                 <FluentIcon Value="@(new Icons.Regular.Size24.QuestionCircle())" Color="Color.Default"/>
             </FluentButton>
-            @if (RunStore.SupportsRunSelection && !UseRunMenu)
-            {
-                var selectedRun = RunSelection.SelectedRun;
-                <DashboardRunSelect ButtonId="@RunSelectButtonId"
-                                    SelectedRunIsCurrent="@selectedRun.IsCurrent"
-                                    SelectedRunStartedAtUtc="@selectedRun.StartedAtUtc"
-                                    OnClick="@LaunchRecordingsAsync" />
-            }
             <NotificationsHeaderButton OnClick="@LaunchNotificationsAsync" />
             <FluentButton Class="header-button"
                           Id="@SettingsButtonId"
@@ -60,11 +64,6 @@
             </FluentButton>
             <UserProfile/>
         </header>
-        <div class="contextual-navigation">
-            <div class="header-context">
-                <SectionOutlet SectionName="@HeaderContextSectionName" />
-            </div>
-        </div>
     }
     else
     {

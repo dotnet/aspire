@@ -89,6 +89,15 @@ public class DesktopNavMenuTests : DashboardTestContext
     }
 
     [Fact]
+    public void Resources_FromSelectedTelemetrySource_ClearsTheTelemetrySelection()
+    {
+        RenderNavMenu(DashboardUrls.AddTelemetryPane(DashboardUrls.StructuredLogsUrl("telemetry-source")));
+        var cut = Render<DesktopNavMenu>();
+
+        Assert.Equal(DashboardUrls.ResourceListUrl(), cut.Find("#desktop-nav-resources").GetAttribute("href"));
+    }
+
+    [Fact]
     public void EmptyParametersAndTelemetrySources_AreDisabledWithTheReason()
     {
         RenderNavMenu(DashboardUrls.ResourceListUrl());

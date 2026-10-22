@@ -57,17 +57,17 @@
 
         // Every resource gets the same cards, in the same order and at the same size, so moving between resources
         // keeps each block where the eye expects it. A card with nothing to show says so instead of disappearing.
-        // The rows are: status, endpoints and relationships; console and logs; traces and metrics; properties and
+        // The rows are: status, endpoints and metrics; console and logs; traces and relationships; properties and
         // environment; volumes and health.
         List<(OverviewCard Card, int Span)> cardSpans =
         [
-            (OverviewCard.Status, 4),
+            (OverviewCard.Status, 3),
             (OverviewCard.Endpoints, 4),
-            (OverviewCard.Relationships, 4),
+            (OverviewCard.Metrics, 5),
             (OverviewCard.Console, 7),
             (OverviewCard.Logs, 5),
             (OverviewCard.Traces, 6),
-            (OverviewCard.Metrics, 6),
+            (OverviewCard.Relationships, 6),
             (OverviewCard.Properties, 6),
             (OverviewCard.Environment, 6),
             (OverviewCard.Volumes, 6),
@@ -197,28 +197,55 @@
                 @EmptyCard(OverviewCard.Endpoints, cardLayout, "overview-endpoints-title", new Icons.Regular.Size16.Link(), Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewEndpointsTitle)], Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewNoEndpoints)])
             }
 
-            <section class="overview-card overview-relationships-card" style="@cardLayout.Style(OverviewCard.Relationships)" aria-labelledby="overview-relationships-title">
+            @if (showMetrics)
+            {
+            <section class="overview-card" style="@cardLayout.Style(OverviewCard.Metrics)" aria-labelledby="overview-metrics-title">
                 <div class="overview-card-header">
                     <span class="card-header-icon" aria-hidden="true">
-                        <FluentIcon Value="@(new Icons.Regular.Size16.BranchFork())" Width="16px" Color="Color.Custom" CustomColor="currentColor" />
+                        <FluentIcon Value="@(new Icons.Regular.Size16.ChartMultiple())" Width="16px" Color="Color.Custom" CustomColor="currentColor" />
                     </span>
-                    <h2 id="overview-relationships-title">@Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewRelationshipsTitle)]</h2>
-                    @if (relatedResources.Count > 0)
-                    {
-                        <span class="overview-card-count">@relatedResources.Count</span>
-                    }
+                    <h2 id="overview-metrics-title">@Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewMetricsTitle)]</h2>
+                    <a class="overview-card-link" href="@DashboardUrls.MetricsUrl(resourceName)">@Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewViewAll)]</a>
                 </div>
-                @if (relatedResources.Count == 0)
+                @if (!_telemetryLoaded)
                 {
-                    <div class="overview-empty">@Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewNoRelationships)]</div>
+                    @MetricsCardSkeleton()
                 }
-                else
+                else if (_telemetry is { } metricsTelemetry)
                 {
-                    <ResourceRelationshipGraph Resource="@(new RelationshipGraphNode(resourceName, resource.ResourceType, Url: null))"
-                                               Incoming="@GetGraphNodes(relatedResources, incoming: true)"
-                                               Outgoing="@GetGraphNodes(relatedResources, incoming: false)" />
+                var telemetry = metricsTelemetry;
+                    <div class="overview-stats">
+                        <div class="overview-stat">
+                            <span class="overview-stat-value">@telemetry.Instruments.Count.ToString("N0", CultureInfo.CurrentCulture)</span>
+                            <span class="overview-stat-label">@Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewInstruments)]</span>
+                        </div>
+                        <div class="overview-stat">
+                            <span class="overview-stat-value">@telemetry.Instruments.Select(i => i.Parent.Name).Distinct(StringComparer.Ordinal).Count().ToString("N0", CultureInfo.CurrentCulture)</span>
+                            <span class="overview-stat-label">@Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewMeters)]</span>
+                        </div>
+                    </div>
+                    var pinnedInstruments = PinStore.GetPinnedInstruments(telemetry.Instruments);
+                    @if (pinnedInstruments.Count == 0)
+                    {
+                        <div class="overview-empty overview-metrics-empty">
+                            <span>@Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewNoPinnedMetrics)]</span>
+                            <a class="overview-card-link" href="@DashboardUrls.MetricsUrl(resourceName)">@Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewBrowseMeters)]</a>
+                        </div>
+                    }
+                    else
+                    {
+                    <LiveMetricTiles ResourceKey="@_telemetryKey!.Value"
+                                     Instruments="@pinnedInstruments.Take(MetricsPreviewCount).ToList()"
+                                     Duration="@s_metricsPreviewDuration"
+                                     GetInstrumentUrl="@(instrument => DashboardUrls.MetricsUrl(resourceName, instrument.Parent.Name, instrument.Name))" />
+                    }
                 }
             </section>
+            }
+            else
+            {
+                @EmptyCard(OverviewCard.Metrics, cardLayout, "overview-metrics-title", new Icons.Regular.Size16.ChartMultiple(), Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewMetricsTitle)], Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewNoTelemetry)])
+            }
 
             @if (showConsole)
             {
@@ -413,55 +440,28 @@
                 @EmptyCard(OverviewCard.Traces, cardLayout, "overview-traces-title", new Icons.Regular.Size16.GanttChart(), Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewTracesTitle)], Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewNoTelemetry)])
             }
 
-            @if (showMetrics)
-            {
-            <section class="overview-card" style="@cardLayout.Style(OverviewCard.Metrics)" aria-labelledby="overview-metrics-title">
+            <section class="overview-card overview-relationships-card" style="@cardLayout.Style(OverviewCard.Relationships)" aria-labelledby="overview-relationships-title">
                 <div class="overview-card-header">
                     <span class="card-header-icon" aria-hidden="true">
-                        <FluentIcon Value="@(new Icons.Regular.Size16.ChartMultiple())" Width="16px" Color="Color.Custom" CustomColor="currentColor" />
+                        <FluentIcon Value="@(new Icons.Regular.Size16.BranchFork())" Width="16px" Color="Color.Custom" CustomColor="currentColor" />
                     </span>
-                    <h2 id="overview-metrics-title">@Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewMetricsTitle)]</h2>
-                    <a class="overview-card-link" href="@DashboardUrls.MetricsUrl(resourceName)">@Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewViewAll)]</a>
+                    <h2 id="overview-relationships-title">@Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewRelationshipsTitle)]</h2>
+                    @if (relatedResources.Count > 0)
+                    {
+                        <span class="overview-card-count">@relatedResources.Count</span>
+                    }
                 </div>
-                @if (!_telemetryLoaded)
+                @if (relatedResources.Count == 0)
                 {
-                    @MetricsCardSkeleton()
+                    <div class="overview-empty">@Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewNoRelationships)]</div>
                 }
-                else if (_telemetry is { } metricsTelemetry)
+                else
                 {
-                var telemetry = metricsTelemetry;
-                    <div class="overview-stats">
-                        <div class="overview-stat">
-                            <span class="overview-stat-value">@telemetry.Instruments.Count.ToString("N0", CultureInfo.CurrentCulture)</span>
-                            <span class="overview-stat-label">@Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewInstruments)]</span>
-                        </div>
-                        <div class="overview-stat">
-                            <span class="overview-stat-value">@telemetry.Instruments.Select(i => i.Parent.Name).Distinct(StringComparer.Ordinal).Count().ToString("N0", CultureInfo.CurrentCulture)</span>
-                            <span class="overview-stat-label">@Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewMeters)]</span>
-                        </div>
-                    </div>
-                    var pinnedInstruments = PinStore.GetPinnedInstruments(telemetry.Instruments);
-                    @if (pinnedInstruments.Count == 0)
-                    {
-                        <div class="overview-empty overview-metrics-empty">
-                            <span>@Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewNoPinnedMetrics)]</span>
-                            <a class="overview-card-link" href="@DashboardUrls.MetricsUrl(resourceName)">@Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewBrowseMeters)]</a>
-                        </div>
-                    }
-                    else
-                    {
-                    <LiveMetricTiles ResourceKey="@_telemetryKey!.Value"
-                                     Instruments="@pinnedInstruments.Take(MetricsPreviewCount).ToList()"
-                                     Duration="@s_metricsPreviewDuration"
-                                     GetInstrumentUrl="@(instrument => DashboardUrls.MetricsUrl(resourceName, instrument.Parent.Name, instrument.Name))" />
-                    }
+                    <ResourceRelationshipGraph Resource="@(new RelationshipGraphNode(resourceName, resource.ResourceType, Url: null))"
+                                               Incoming="@GetGraphNodes(relatedResources, incoming: true)"
+                                               Outgoing="@GetGraphNodes(relatedResources, incoming: false)" />
                 }
             </section>
-            }
-            else
-            {
-                @EmptyCard(OverviewCard.Metrics, cardLayout, "overview-metrics-title", new Icons.Regular.Size16.ChartMultiple(), Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewMetricsTitle)], Loc[nameof(Dashboard.Resources.Resources.ResourceOverviewNoTelemetry)])
-            }
 
             <section class="overview-card" style="@cardLayout.Style(OverviewCard.Properties)" aria-labelledby="overview-properties-title">
                 <div class="overview-card-header">

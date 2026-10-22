@@ -4,9 +4,9 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     font-family: var(--aspire-font-display);
-    font-size: 24px;
-    font-weight: 500;
-    line-height: 32px;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 22px;
 }
 
 /* The title takes the row so the pin button sits at the top-right, like other header icon buttons. The row is exactly
@@ -24,6 +24,7 @@
     flex: 1;
     min-width: 0;
     margin: 0;
+    transform: translateY(1px);
 }
 
 ::deep .meter-name-title {
@@ -113,10 +114,9 @@
     line-height: 22px;
 }
 
-/* The back and pin buttons match the 32px title row between them rather than the dashboard's 28px default, so all
-   three line up with the filter box beside the list. */
+/* Keep the chart actions at the dashboard's compact control size so they match the filter controls beside the list. */
 ::deep .metrics-chart-title {
-    --aspire-control-height: 32px;
+    --aspire-control-height: 28px;
 }
 
 /* The list starts at the same top edge as the instrument's content beside it, so their first rows line up. Only the

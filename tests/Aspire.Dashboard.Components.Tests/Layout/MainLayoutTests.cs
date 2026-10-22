@@ -75,9 +75,9 @@ public partial class MainLayoutTests : DashboardTestContext
     }
 
     [Theory]
-    [InlineData(AspireKeyboardShortcut.GoToResources, "/resources?pane=resources")]
+    [InlineData(AspireKeyboardShortcut.GoToResources, "/resources")]
     [InlineData(AspireKeyboardShortcut.GoToParameters, "/parameters")]
-    [InlineData(AspireKeyboardShortcut.GoToGraph, "/resources?pane=resources")]
+    [InlineData(AspireKeyboardShortcut.GoToGraph, "/resources")]
     [InlineData(AspireKeyboardShortcut.GoToExtensions, "/extensions")]
     [InlineData(AspireKeyboardShortcut.GoToTelemetrySources, "/structuredlogs?pane=telemetry")]
     [InlineData(AspireKeyboardShortcut.GoToConsoleLogs, "/consolelogs")]
@@ -391,9 +391,8 @@ public partial class MainLayoutTests : DashboardTestContext
         Assert.True(runSelectIndex >= 0);
         if (isDesktop)
         {
-            // The recordings button sits with the other flyout buttons, just before notifications.
-            Assert.True(cut.Markup.IndexOf($"id=\"{MainLayout.HelpButtonId}\"", StringComparison.Ordinal) < runSelectIndex);
-            Assert.True(runSelectIndex < cut.Markup.IndexOf($"aria-label=\"{Resources.Layout.MainLayoutLaunchNotifications}\"", StringComparison.Ordinal));
+            // Run selection is the first app-wide action after navigation.
+            Assert.True(runSelectIndex < cut.Markup.IndexOf($"id=\"{MainLayout.HelpButtonId}\"", StringComparison.Ordinal));
         }
         else
         {

@@ -226,6 +226,33 @@ public class ResourcesLayoutTests : DashboardTestContext
     }
 
     [Fact]
+    public async Task AppHost_TelemetryOnlyResourcesAreHiddenUntilEnabled()
+    {
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        var channel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        ResourceSetupHelpers.SetupResourcesLayout(this, viewport, new TestDashboardClient(isEnabled: true,
+            initialResources: [ModelTestHelpers.CreateResource("cache")],
+            resourceChannelProvider: () => channel));
+        await AddTelemetryAsync("browser");
+
+        var cut = Render<ResourcesLayout>(builder => builder.AddCascadingValue(viewport));
+        cut.WaitForAssertion(() => Assert.True(cut.Instance.IsLoaded));
+
+        Assert.Equal(["All resources", "cache"], cut.FindAll(".resource-row-link").Select(link => link.GetAttribute("aria-label")));
+
+        var filterButton = cut.FindComponents<AspireMenuButton>().Single(button => button.Instance.MenuButtonId == "resourcePaneFilterButton");
+        var telemetryOnlyItem = filterButton.Instance.ItemsProvider().Single(item => item.Id == "resource-filter-telemetry-only");
+        Assert.False(telemetryOnlyItem.Checked);
+        Assert.Equal(1, telemetryOnlyItem.Count);
+
+        await cut.InvokeAsync(() => telemetryOnlyItem.OnCheckedChanged!(true));
+
+        cut.WaitForAssertion(() => Assert.Equal(
+            ["All resources", "cache", "browser"],
+            cut.FindAll(".resource-row-link").Select(link => link.GetAttribute("aria-label"))));
+    }
+
+    [Fact]
     public async Task AppHost_ReorderingPreservesHierarchyAndAppendsNewSiblings()
     {
         var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
@@ -398,6 +425,46 @@ public class ResourcesLayoutTests : DashboardTestContext
     }
 
     [Fact]
+    public async Task FilterMenu_FiltersResourcesByTags()
+    {
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        var channel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        ResourceSetupHelpers.SetupResourcesLayout(this, viewport, new TestDashboardClient(isEnabled: true,
+            initialResources:
+            [
+                ModelTestHelpers.CreateResource("api"),
+                ModelTestHelpers.CreateResource("worker"),
+                ModelTestHelpers.CreateResource("cache")
+            ],
+            resourceChannelProvider: () => channel));
+        var tags = Services.GetRequiredService<ResourceTagStore>();
+        tags.AddTag("api", "Backend");
+        tags.AddTag("worker", "Backend");
+        tags.AddTag("worker", "Shared");
+
+        var cut = Render<ResourcesLayout>(builder => builder.AddCascadingValue(viewport));
+        cut.WaitForAssertion(() => Assert.Equal(3, cut.FindAll("[data-resource-name]").Count));
+
+        var filterButton = cut.FindComponents<AspireMenuButton>().Single(b => b.Instance.MenuButtonId == "resourcePaneFilterButton");
+        var tagItems = filterButton.Instance.ItemsProvider()
+            .SkipWhile(item => item.Id != "resource-filter-tags-header")
+            .Skip(1)
+            .TakeWhile(item => !item.IsDivider)
+            .ToList();
+
+        Assert.Equal(
+            [("(All)", (int?)null), ("Untagged", 1), ("Backend", 2), ("Shared", 1)],
+            tagItems.Select(item => (item.Text!, item.Count)));
+
+        await cut.InvokeAsync(() => tagItems[0].OnCheckedChanged!(false));
+        await cut.InvokeAsync(() => tagItems.Single(item => item.Text == "Backend").OnCheckedChanged!(true));
+
+        cut.WaitForAssertion(() => Assert.Equal(
+            ["api", "worker"],
+            cut.FindAll("[data-resource-name]").Select(e => e.GetAttribute("data-resource-name"))));
+    }
+
+    [Fact]
     public void Landing_WithoutRememberedSelection_KeepsAllResourcesSelected()
     {
         var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
@@ -411,12 +478,12 @@ public class ResourcesLayoutTests : DashboardTestContext
         var cut = Render<ResourcesLayout>(builder => builder.AddCascadingValue(viewport));
 
         cut.WaitForAssertion(() => Assert.Equal(2, cut.FindAll("[data-resource-name]").Count));
-        Assert.Equal("resources?pane=resources", navigationManager.ToBaseRelativePath(navigationManager.Uri));
+        Assert.Equal("resources", navigationManager.ToBaseRelativePath(navigationManager.Uri));
         Assert.Equal("page", cut.Find(".resource-row-all .resource-row-link").GetAttribute("aria-current"));
     }
 
     [Theory]
-    [InlineData(true, "resources?pane=resources")]
+    [InlineData(true, "resources")]
     [InlineData(false, "structuredlogs")]
     public void RootUrl_RedirectsToResourcesWithAllResourcesSelected(bool resourceServiceEnabled, string expectedUrl)
     {

@@ -212,7 +212,7 @@ internal static class DashboardUrls
     /// <summary>
     /// Gets the URL of the resources view with the resource list listing resources.
     /// </summary>
-    public static string ResourceListUrl() => AddQueryString($"/{ResourceOverviewBasePath}", ResourcePaneQueryName, ResourcePaneResourcesValue);
+    public static string ResourceListUrl() => $"/{ResourceOverviewBasePath}";
 
     /// <summary>
     /// Gets the URL of the resources view with the resource list grouped by tag.

@@ -115,6 +115,11 @@ public partial class DesktopNavMenu : ComponentBase, IDisposable
     internal static string GetSelectionPageUrl(NavigationManager navigationManager, ResourcesLayout.ResourceTab tab)
     {
         var path = navigationManager.ToBaseRelativePath(navigationManager.Uri);
+        if (tab == ResourcesLayout.ResourceTab.Overview && ResourcesLayout.ParsePaneMode(path) == ResourcePaneMode.Telemetry)
+        {
+            return DashboardUrls.ResourceListUrl();
+        }
+
         IReadOnlyList<string> resourceNames = [];
         string? routeResourceName = null;
         if (GetSection(path, hasResourceService: true) is NavSection.Resources or NavSection.Telemetry)

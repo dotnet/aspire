@@ -26,7 +26,6 @@ public sealed class TraceMenuBuilder
     private readonly NavigationManager _navigationManager;
     private readonly DashboardDialogService _dialogService;
     private readonly DashboardDataSource _dataSource;
-    private readonly ResourcePaneState _resourcePaneState;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TraceMenuBuilder"/> class.
@@ -35,14 +34,12 @@ public sealed class TraceMenuBuilder
         IStringLocalizer<ControlsStrings> controlsLoc,
         NavigationManager navigationManager,
         DashboardDialogService dialogService,
-        DashboardDataSource dataSource,
-        ResourcePaneState resourcePaneState)
+        DashboardDataSource dataSource)
     {
         _controlsLoc = controlsLoc;
         _navigationManager = navigationManager;
         _dialogService = dialogService;
         _dataSource = dataSource;
-        _resourcePaneState = resourcePaneState;
     }
 
     /// <summary>
@@ -87,7 +84,7 @@ public sealed class TraceMenuBuilder
                 Icon = s_viewDetailsIcon,
                 OnClick = () =>
                 {
-                    _navigationManager.NavigateTo(AddPaneToUrl(DashboardUrls.TraceDetailUrl(traceId)));
+                    _navigationManager.NavigateTo(DashboardUrls.TraceDetailUrl(traceId));
                     return Task.CompletedTask;
                 }
             });
@@ -99,7 +96,7 @@ public sealed class TraceMenuBuilder
             Icon = s_structuredLogsIcon,
             OnClick = () =>
             {
-                _navigationManager.NavigateTo(AddPaneToUrl(DashboardUrls.StructuredLogsUrl(traceId: traceId)));
+                _navigationManager.NavigateTo(DashboardUrls.StructuredLogsUrl(traceId: traceId));
                 return Task.CompletedTask;
             }
         });
@@ -128,8 +125,4 @@ public sealed class TraceMenuBuilder
             }
         });
     }
-
-    private string AddPaneToUrl(string url) => _resourcePaneState.Mode == ResourcePaneMode.Telemetry
-        ? DashboardUrls.AddTelemetryPane(url)
-        : url;
 }
