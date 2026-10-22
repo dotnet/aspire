@@ -43,15 +43,26 @@ env:
 
 jobs:
 
-  validate_java_transport:
-    name: Java transport reproduction on macOS
+  validate_java_starter:
+    name: Java starter on macOS (${{ matrix.code }})
     runs-on: macos-15
-    timeout-minutes: 30
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        code: [stable, insider]
     permissions:
       contents: read
       actions: read
     env:
       MSBUILDTERMINALLOGGER: "false"
+      NPM_REGISTRY: https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+      ASPIRE_CLI_TELEMETRY_OPTOUT: "true"
+      ASPIRE_EXTENSION_E2E_SHARD: java-starter-macos-${{ matrix.code }}
+      ASPIRE_EXTENSION_E2E_SPEC: out/test-e2e/test-e2e/javaStarterProjectModel.e2e.test.js
+      ASPIRE_EXTENSION_E2E_SKIP_CURRENT_CLI_REGRESSIONS: "false"
+      ASPIRE_EXTENSION_E2E_APPHOST_SDK_VERSION: 17.0.0-ci
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -65,14 +76,129 @@ jobs:
         with:
           global-json-file: global.json
           dotnet-version: 10.0.x
-      - name: Restore the Java SDK tests
-        run: ./restore.sh --projects "${{ github.workspace }}/tests/Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.Java.Tests.csproj"
-      - name: Reproduce authentication with a pending platform read
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.x
+      - name: Download matching native CLI
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          github-token: ${{ github.token }}
+          run-id: 38792981238
+          name: cli-native-archives-osx-arm64
+          path: artifacts/validation-native-cli
+      - name: Download matching packages
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          github-token: ${{ github.token }}
+          run-id: 38792981238
+          name: built-nugets
+          path: artifacts/nugets
+      - name: Download matching runtime packages
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          github-token: ${{ github.token }}
+          run-id: 38792981238
+          name: built-nugets-for-osx-arm64
+          path: artifacts/nugets-rid
+      - name: Prepare a genuine native payload for the source-built CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$(find artifacts/validation-native-cli -type f -name 'aspire-cli-osx-arm64*.tar.gz' -print -quit)"
+          test -n "$archive"
+          mkdir -p "$RUNNER_TEMP/java-native-cli"
+          tar -xzf "$archive" -C "$RUNNER_TEMP/java-native-cli"
+          cli="$(find "$RUNNER_TEMP/java-native-cli" -type f -name aspire -print -quit)"
+          test -n "$cli"
+          chmod +x "$cli"
+          ASPIRE_HOME="$RUNNER_TEMP/java-native-home" "$cli" setup --install-path "$RUNNER_TEMP/java-native-layout"
+          bundle="$RUNNER_TEMP/java-native-layout/bundle"
+          test -x "$bundle/dcp/dcp"
+          test -x "$bundle/dashboard/Aspire.Dashboard"
+          test -x "$bundle/managed/aspire-managed"
+          mkdir -p "$RUNNER_TEMP/java-source-payload/osx-arm64"
+          cp -R "$bundle/." "$RUNNER_TEMP/java-source-payload/osx-arm64/"
+          tar -czf "$RUNNER_TEMP/java-source-payload.tar.gz" -C "$RUNNER_TEMP/java-source-payload" osx-arm64
+          hive="$HOME/.aspire/hives/daily/packages"
+          mkdir -p "$hive"
+          find artifacts/nugets artifacts/nugets-rid -type f -name '*.nupkg' -exec cp {} "$hive/" \;
+          {
+            echo "BundlePayloadPath=$RUNNER_TEMP/java-source-payload.tar.gz"
+            echo "ASPIRE_DCP_PATH=$bundle/dcp"
+            echo "ASPIRE_DASHBOARD_PATH=$bundle/dashboard/Aspire.Dashboard"
+            echo "ASPIRE_CLI_PACKAGES=$hive"
+          } >> "$GITHUB_ENV"
+      - name: Restore the source CLI
+        run: ./restore.sh --projects "${{ github.workspace }}/src/Aspire.Cli/Aspire.Cli.csproj"
+      - name: Build the current source CLI with the genuine native bundle
+        run: |
+          dotnet build src/Aspire.Cli/Aspire.Cli.csproj --verbosity quiet /p:SkipNativeBuild=true "/p:BundlePayloadPath=$BundlePayloadPath"
+          cli="$GITHUB_WORKSPACE/artifacts/bin/Aspire.Cli/Debug/net11.0/aspire"
+          test -x "$cli"
+          echo "ASPIRE_EXTENSION_E2E_CLI_PATH=$cli" >> "$GITHUB_ENV"
+      - name: Validate generated Java and physical transport
         run: >-
           dotnet test --project tests/Aspire.Hosting.CodeGeneration.Java.Tests/Aspire.Hosting.CodeGeneration.Java.Tests.csproj
           --no-launch-profile --verbosity quiet --
-          --filter-method "*.GeneratedTransport_AuthenticatesWhileThePlatformConnectionIsWaitingForInput"
           --filter-not-trait "quarantined=true" --filter-not-trait "outerloop=true"
+      - name: Prepare pinned Yarn and extension dependencies
+        working-directory: extension
+        shell: bash
+        run: |
+          set -euo pipefail
+          required="$(cat scripts/corepack-version.txt)"
+          if ! command -v corepack >/dev/null || [ "$(corepack --version)" != "$required" ]; then
+            npm install --global --force --registry "$NPM_REGISTRY" "corepack@$required"
+          fi
+          corepack enable
+          node scripts/prepareCorepackYarn.mjs
+          if [ ! -d node_modules ]; then
+            corepack yarn install --frozen-lockfile --non-interactive
+          fi
+          corepack yarn compile-e2e
+      - name: Download Java language and debug extensions
+        shell: bash
+        run: |
+          set -euo pipefail
+          language="$RUNNER_TEMP/redhat-java-1.55.0.vsix"
+          debug="$RUNNER_TEMP/vscjava-java-debug-0.59.0.vsix"
+          dependency="$RUNNER_TEMP/vscjava-java-dependency-0.27.6.vsix"
+          curl --fail --location --compressed --retry 3 --output "$language" 'https://marketplace.visualstudio.com/_apis/public/gallery/publishers/redhat/vsextensions/java/1.55.0/vspackage'
+          curl --fail --location --compressed --retry 3 --output "$debug" 'https://marketplace.visualstudio.com/_apis/public/gallery/publishers/vscjava/vsextensions/vscode-java-debug/0.59.0/vspackage'
+          curl --fail --location --compressed --retry 3 --output "$dependency" 'https://marketplace.visualstudio.com/_apis/public/gallery/publishers/vscjava/vsextensions/vscode-java-dependency/0.27.6/vspackage'
+          printf '%s  %s\n' 011639c3ee347b9591895bfc77d8cf28f836c053d0a49ae4a83efe9dc473a603 "$language" | shasum -a 256 --check -
+          printf '%s  %s\n' e5973fcd763a984ea4d6e57644ccf8f5fe6caa80c0e589f29403f00c9ace3920 "$debug" | shasum -a 256 --check -
+          printf '%s  %s\n' e4e7c8b90953e62c8ebcedaaafb88b3c42ddec3fcc9e37f268ac3203427d9fa0 "$dependency" | shasum -a 256 --check -
+          echo "ASPIRE_EXTENSION_E2E_JAVA_VSIX=$language:$debug:$dependency" >> "$GITHUB_ENV"
+      - name: Download and verify genuine pinned VS Code Insiders
+        if: ${{ matrix.code == 'insider' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/java-vscode-insiders.zip"
+          curl --fail --location --retry 3 --output "$archive" 'https://vscode.download.prss.microsoft.com/dbazure/download/insider/58173d0ebc1838579e3c331e0a47e365904a6456/VSCode-darwin-arm64.zip'
+          printf '%s  %s\n' e1da948b68906b38d5baefbf09147457542dcef364d03431d720c4d3e3640276 "$archive" | shasum -a 256 --check -
+          mkdir -p "$RUNNER_TEMP/java-vscode-insiders"
+          ditto -x -k "$archive" "$RUNNER_TEMP/java-vscode-insiders"
+          app="$RUNNER_TEMP/java-vscode-insiders/Visual Studio Code - Insiders.app"
+          test -x "$app/Contents/MacOS/Code - Insiders"
+          /usr/libexec/PlistBuddy -c 'Print CFBundleExecutable' "$app/Contents/Info.plist"
+          echo "ASPIRE_JAVA_VALIDATION_INSIDERS_DIR=$app" >> "$GITHUB_ENV"
+      - name: Exercise semantic imports and the complete Java starter runtime
+        working-directory: extension
+        run: corepack yarn node scripts/run-e2e.js
+      - name: Upload editor and runtime evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: java-starter-macos-${{ matrix.code }}
+          path: |
+            extension/.test-results/e2e/java-starter-macos-${{ matrix.code }}
+            extension/.test-storage/java-starter-macos-${{ matrix.code }}
+            extension/.test-workspaces/java-starter-macos-${{ matrix.code }}
+          if-no-files-found: warn
+          retention-days: 7
 
   setup:
     name: Generate matrix
