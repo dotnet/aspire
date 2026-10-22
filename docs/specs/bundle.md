@@ -376,13 +376,22 @@ dotnet msbuild eng/Bundle.proj /t:Build /p:TargetRid=win-x64 /p:Configuration=Re
 dotnet msbuild eng/Bundle.proj /t:Build /p:TargetRid=osx-arm64 /p:Configuration=Release
 ```
 
-GitHub Actions and Azure Pipelines invoke `BuildNativeBundle` in the same
-project to build, sign, and package the bundle through a shared process.
+`Build` is the default entry point. `Pack` defaults to `false`, producing the
+payload and native CLI without distribution packages. GitHub Actions and Azure
+Pipelines use `Build /p:Pack=true` to additionally produce Dashboard and CLI
+archive/tool/npm packages; `PackDcpPackage=true` also requests the DCP package.
+Signing requires `Pack=true` and the existing `Sign` and `DotNetSignType` settings.
 Signed macOS jobs in Azure Pipelines allow two hours to accommodate signing and notarization latency.
 
 The assembled directories are under `artifacts/bundle/{rid}/`; the payload archive is `artifacts/bundle/aspire-{version}-{rid}.tar.gz`. The self-extracting CLI is in the CLI project's publish output, not in the payload directory.
 
-`Configuration` defaults to Debug for local bundle builds. The GitHub Actions native-archive workflow defaults to Release and passes it explicitly; CI bundle creation rejects non-Release configurations so distributed payloads use Native AOT optimizations. `SkipManagedBuild=true` reuses existing Managed, Dashboard, and TerminalHost publishes; `SkipNativeBuild=true` skips the final CLI publish. They do not make missing payload components optional.
+`Configuration` defaults to Debug for local bundle builds. The GitHub Actions native-archive workflow defaults to Release and passes it explicitly; CI bundle creation rejects non-Release configurations so distributed payloads use Native AOT optimizations. CI identity does not enable packaging.
+
+`SkipManagedBuild=true` reuses existing Managed, Dashboard, and TerminalHost publishes.
+`SkipNativeBuild=true` skips the final CLI and its packages, but still assembles
+the payload and produces and signs requested payload packages. These switches do
+not make missing payload components optional. `CliPublishDir` overrides the
+lightweight CLI publish directory only; distribution outputs keep their standard paths.
 
 `SkipDashboardPublish=true` reuses an existing Dashboard publish for the requested RID and configuration. Missing required assets fail the build.
 

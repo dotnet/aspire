@@ -89,7 +89,8 @@ jobs:
           $arguments = @(
             "msbuild",
             "eng/Bundle.proj",
-            "/t:BuildNativeBundle",
+            "/t:Build",
+            "/p:Pack=true",
             "/p:Configuration=$env:BUNDLE_CONFIGURATION",
             "/p:TargetRid=$env:BUNDLE_TARGET_RID",
             "/p:BundleVersion=ci-bundlepayload",

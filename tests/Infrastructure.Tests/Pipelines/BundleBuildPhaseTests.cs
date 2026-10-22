@@ -35,9 +35,9 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
             File.Delete(Path.Combine(root, "cache-properties"));
         }
 
-        await RunAsync(project, "BuildNativeBundle", rid,
+        await RunAsync(project, "Build", rid, "Pack=true",
             $"Sign={sign}", $"DotNetSignType={signType}",
-            $"SkipManagedBuild={windows}", $"SkipAppHostServerBuild={windows}", $"SkipTrayBuild={windows}", "SkipNativeBuild=true",
+            $"SkipManagedBuild={windows}", $"SkipAppHostServerBuild={windows}", $"SkipTrayBuild={windows}", "SkipNativeBuild=false",
             "BundleVersion=ci-bundlepayload", "RestorePackagesPath=" + Path.Combine(root, "restore cache"), "PackDcpPackage=true",
             "RequireMacTraySignature=false", "RequireWindowsTraySignature=false");
 
@@ -124,9 +124,14 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
     [InlineData("sign-tray", "sign-components")]
     [InlineData("notarize-tray", "sign-tray")]
     [InlineData("restore-tray", "notarize-tray")]
+    [InlineData("package", "restore-tray")]
+    [InlineData("dcp-package", "package")]
+    [InlineData("restore", "dcp-package")]
+    [InlineData("layout", "restore")]
     [InlineData("verify", "layout")]
     [InlineData("cli", "verify")]
     [InlineData("sign-archive", "cli")]
+    [InlineData("cli-pack", "sign-archive")]
     public async Task NativeOrchestrationStopsOnFailedPhase(string phase, string lastEvent)
     {
         using var workspace = TemporaryWorkspace.Create(output);
@@ -134,14 +139,16 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         var project = CreateOrchestrationProject(workspace.Path, rid);
         File.WriteAllText(Path.Combine(workspace.Path, "fail-" + phase), "");
 
-        var result = await ExecuteAsync(project, "BuildNativeBundle", rid,
-            "Sign=true", "DotNetSignType=real", "BundleVersion=ci-bundlepayload");
+        var result = await ExecuteAsync(project, "Build", rid, "Pack=true",
+            "Sign=true", "DotNetSignType=real", "PackDcpPackage=true", "BundleVersion=ci-bundlepayload");
 
         Assert.NotEqual(0, result.ExitCode);
         Assert.Equal(lastEvent, File.ReadAllLines(Path.Combine(workspace.Path, "events"))[^1]);
     }
 
     [Theory]
+    [InlineData("Pack=invalid", "Pack must be true or false.")]
+    [InlineData("Pack=false", "Signing requires Pack=true.")]
     [InlineData("Sign=invalid", "Sign must be true or false.")]
     [InlineData("Sign=true", "Signing requires DotNetSignType")]
     [InlineData("DotNetSignType=invalid", "DotNetSignType must be")]
@@ -154,7 +161,8 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         using var workspace = TemporaryWorkspace.Create(output);
         var project = CreateOrchestrationProject(workspace.Path, "osx-arm64");
 
-        var result = await ExecuteAsync(project, "BuildNativeBundle", "osx-arm64", property);
+        var result = await ExecuteAsync(project, "Build", "osx-arm64", "Pack=true",
+            property == "Pack=false" ? "Sign=true" : "Sign=false", property);
 
         Assert.NotEqual(0, result.ExitCode);
         Assert.Contains(message, result.Output);
@@ -167,7 +175,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         using var workspace = TemporaryWorkspace.Create(output);
         var project = CreateOrchestrationProject(workspace.Path, "linux-x64");
 
-        var result = await ExecuteAsync(project, "BuildNativeBundle", "linux-x64", "Sign=true", "DotNetSignType=test");
+        var result = await ExecuteAsync(project, "Build", "linux-x64", "Pack=true", "Sign=true", "DotNetSignType=test");
 
         Assert.NotEqual(0, result.ExitCode);
         Assert.Contains("Linux native bundle lanes must disable signing.", result.Output);
@@ -182,7 +190,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         using var workspace = TemporaryWorkspace.Create(output);
         var project = CreateOrchestrationProject(workspace.Path, "osx-arm64");
 
-        var result = await ExecuteAsync(project, "BuildNativeBundle", "osx-arm64",
+        var result = await ExecuteAsync(project, "Build", "osx-arm64", "Pack=true",
             "Sign=true", "DotNetSignType=real", property);
 
         Assert.NotEqual(0, result.ExitCode);
@@ -197,7 +205,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         var project = CreateOrchestrationProject(workspace.Path, "osx-arm64");
         File.Delete(Path.Combine(workspace.Path, "signing-plugin.props"));
 
-        var result = await ExecuteAsync(project, "BuildNativeBundle", "osx-arm64",
+        var result = await ExecuteAsync(project, "Build", "osx-arm64", "Pack=true",
             "Sign=true", "DotNetSignType=real");
 
         Assert.NotEqual(0, result.ExitCode);
@@ -265,7 +273,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         await RunAsync(project, "PublishBundleComponents", rid, "SkipNativeBuild=true", "SuppressAOT=true");
         var dashboard = DashboardPath(root, rid);
         File.WriteAllText(dashboard, "signed Dashboard");
-        await RunAsync(project, "PackageBundlePayload", rid, $"PackDcpPackage={packDcp}", "SkipNativeBuild=true", "SuppressAOT=true");
+        await RunAsync(project, "PackageBundlePayload", rid, "Pack=true", $"PackDcpPackage={packDcp}", "SkipNativeBuild=true", "SuppressAOT=true");
 
         Assert.Equal("signed Dashboard", File.ReadAllText(dashboard));
         Assert.Equal("signed Dashboard", File.ReadAllText(Path.Combine(root, "package-dashboard")));
@@ -326,7 +334,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
 
         foreach (var target in new[] { "PublishBundleComponents", "PackageBundlePayload" })
         {
-            var result = await ExecuteAsync(project, target, rid);
+            var result = await ExecuteAsync(project, target, rid, "Pack=true");
             Assert.NotEqual(0, result.ExitCode);
         }
         Assert.False(File.Exists(Path.Combine(workspace.Path, "events")));
@@ -359,7 +367,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         File.Delete(file);
         var before = File.ReadAllLines(Path.Combine(workspace.Path, "events"));
 
-        var result = await ExecuteAsync(project, "PackageBundlePayload", rid);
+        var result = await ExecuteAsync(project, "PackageBundlePayload", rid, "Pack=true");
 
         Assert.NotEqual(0, result.ExitCode);
         Assert.Contains("Prepared bundle input is missing:", result.Output);
@@ -389,7 +397,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
             File.WriteAllText(file, "signed prepared bytes");
         }
 
-        await RunAsync(project, "PackageBundlePayload", rid, "SkipNativeBuild=true");
+        await RunAsync(project, "PackageBundlePayload", rid, "Pack=true", "SkipNativeBuild=true");
 
         Assert.Equal(["package", "restore", "layout", "verify"],
             File.ReadAllLines(Path.Combine(root, "events")));
@@ -400,7 +408,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
 
         File.Delete(tray);
         var before = File.ReadAllLines(Path.Combine(root, "events"));
-        var result = await ExecuteAsync(project, "PackageBundlePayload", rid);
+        var result = await ExecuteAsync(project, "PackageBundlePayload", rid, "Pack=true");
         Assert.NotEqual(0, result.ExitCode);
         Assert.Contains("Prepared bundle input is missing:", result.Output);
         Assert.Equal(before, File.ReadAllLines(Path.Combine(root, "events")));
@@ -420,6 +428,181 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         await RunAsync(project, "Build", rid, "SkipManagedBuild=true", "SkipAppHostServerBuild=true", "SkipNativeBuild=true", "SkipTrayBuild=true");
         Assert.Equal(["restore", "layout"],
             File.ReadAllLines(Path.Combine(workspace.Path, "events")).Select(line => line.Split('|')[0]));
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task BuildSelectsExactlyOneCliBackendUnlessNativeBuildIsSkipped(bool pack, bool skipNative)
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        const string rid = "linux-x64";
+        var project = CreateProject(workspace.Path, rid);
+        var bundle = XDocument.Load(project);
+        bundle.Root!.Add(new XElement("Target", new XAttribute("Name", "_BuildNativePackages"),
+            Write(Path.Combine(workspace.Path, "distribution-cli"), "distribution CLI")));
+        bundle.Save(project);
+
+        // Omit both target and Pack in the default case. CI identity and a
+        // distribution-only modifier must not implicitly enable packaging.
+        string[] properties = pack
+            ? ["Pack=true", $"SkipNativeBuild={skipNative}", "PackDcpPackage=true"]
+            : [$"SkipNativeBuild={skipNative}", "PackDcpPackage=true"];
+        await RunAsync(project, pack ? "Build" : "", rid, properties);
+
+        var expected = new List<string> { "managed", "dashboard", "terminalhost", "apphost-server" };
+        if (pack)
+        {
+            expected.AddRange(["package", "dcp-package"]);
+        }
+        expected.AddRange(["restore", "layout"]);
+        if (!pack && !skipNative)
+        {
+            expected.Add("cli");
+        }
+        Assert.Equal(expected, File.ReadAllLines(Path.Combine(workspace.Path, "events")));
+        Assert.Equal(pack && !skipNative, File.Exists(Path.Combine(workspace.Path, "distribution-cli")));
+        Assert.Equal(pack, File.Exists(Path.Combine(workspace.Path, "package-dashboard")));
+        Assert.Equal("dashboard", File.ReadAllText(Path.Combine(workspace.Path, "layout-dashboard")).Trim());
+    }
+
+    [Fact]
+    public async Task LightweightBuildUsesRealCliPublisherWithDebugCustomOutputAndEmbeddedPayload()
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        var root = workspace.CreateDirectory("local bundle with spaces").FullName;
+        var rid = System.Runtime.InteropServices.RuntimeInformation.RuntimeIdentifier;
+        var project = CreateOrchestrationProject(root, rid);
+        var cli = Path.Combine(root, "fake-cli.csproj");
+        var publish = Path.Combine(root, "custom CLI output");
+        // Isolate the tiny SDK publisher from the repository's product imports.
+        File.WriteAllText(Path.Combine(root, "Directory.Build.props"), "<Project />");
+        File.WriteAllText(Path.Combine(root, "Directory.Build.targets"), "<Project />");
+        var assemblyName = "BundleCliFixture" + Guid.NewGuid().ToString("N");
+        new XDocument(new XElement("Project", new XAttribute("Sdk", "Microsoft.NET.Sdk"),
+            new XElement("PropertyGroup",
+                Property("TargetFramework", "net11.0"), Property("AssemblyName", assemblyName)),
+            new XElement("ItemGroup",
+                new XElement("EmbeddedResource", new XAttribute("Include", "$(BundlePayloadPath)"),
+                    new XAttribute("LogicalName", "bundle.tar.gz"))),
+            new XElement("Target", new XAttribute("Name", "RecordPublish"), new XAttribute("AfterTargets", "Publish"),
+                Write(Path.Combine(root, "local-cli-properties"),
+                    "$(Configuration)|$(ContinuousIntegrationBuild)|$(BundlePayloadPath)|$(PublishDir)|$(SkipNativeBuild)"))))
+            .Save(cli);
+        var bundle = XDocument.Load(project);
+        foreach (var target in bundle.Root!.Elements("Target").Where(target =>
+            target.Attribute("Name")!.Value == "_PublishNativeCli").ToArray())
+        {
+            target.Remove();
+        }
+        bundle.Root.Element("PropertyGroup")!.Add(Property("CliProjectPath", cli));
+        bundle.Save(project);
+        File.WriteAllText(Path.Combine(root, "fail-warning"), "");
+        File.WriteAllText(Path.Combine(root, "fail-adhoc"), "");
+
+        await RunAsync(project, "", rid, "ContinuousIntegrationBuild=false", "Configuration=Debug",
+            "CliPublishDir=" + publish, "BundleVersion=local-debug", "PackDcpPackage=true");
+
+        var archive = Path.Combine(root, "artifacts", "bundle", $"aspire-local-debug-{rid}.tar.gz");
+        var properties = File.ReadAllText(Path.Combine(root, "local-cli-properties")).Trim().Split('|');
+        Assert.Equal(["Debug", "false"], properties[..2]);
+        Assert.Equal(Path.GetFullPath(archive), Path.GetFullPath(properties[2]));
+        Assert.Equal(Path.GetFullPath(publish), Path.TrimEndingDirectorySeparator(Path.GetFullPath(properties[3])));
+        Assert.Equal("", properties[4]);
+        var assembly = System.Reflection.Assembly.Load(File.ReadAllBytes(Path.Combine(publish, assemblyName + ".dll")));
+        using var payload = assembly.GetManifestResourceStream("bundle.tar.gz");
+        Assert.NotNull(payload);
+        using var reader = new StreamReader(payload);
+        Assert.Equal(File.ReadAllText(archive), await reader.ReadToEndAsync());
+        Assert.Equal(rid.StartsWith("linux-", StringComparison.Ordinal)
+                ? ["managed", "dashboard", "terminalhost", "apphost-server", "restore", "layout"]
+                : ["managed", "dashboard", "terminalhost", "apphost-server",
+                    rid.StartsWith("win-", StringComparison.Ordinal) ? "windows-tray" : "tray", "restore", "layout", "verify"],
+            File.ReadAllLines(Path.Combine(root, "events")));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DistributionDashboardReuseDoesNotRequireAPublishWarningLog(bool skipManaged)
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        const string rid = "linux-x64";
+        var project = CreateProject(workspace.Path, rid);
+        await RunAsync(project, "PublishBundleComponents", rid);
+        File.Delete(Path.Combine(workspace.Path, "events"));
+        File.Delete(Path.Combine(workspace.Path, "artifacts", "log", "Release", "PublishNativeDashboard.log"));
+        File.WriteAllText(Path.Combine(workspace.Path, "fail-warning"), "");
+
+        await RunAsync(project, "Build", rid, "Pack=true", "SkipNativeBuild=true",
+            $"SkipManagedBuild={skipManaged}", $"SkipDashboardPublish={!skipManaged}");
+
+        Assert.Equal(skipManaged
+                ? ["apphost-server", "package", "restore", "layout"]
+                : ["managed", "terminalhost", "apphost-server", "package", "restore", "layout"],
+            File.ReadAllLines(Path.Combine(workspace.Path, "events")));
+        Assert.False(File.Exists(Path.Combine(workspace.Path, "artifacts", "log", "Release", "PublishNativeDashboard.log")));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SkippingCliStillSignsNewPayloadPackagesInAFreshEvaluation(bool packDcp)
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        const string rid = "osx-arm64";
+        var project = CreateOrchestrationProject(workspace.Path, rid);
+        File.WriteAllText(Path.Combine(workspace.Path, "fail-cli"), "");
+        File.WriteAllText(Path.Combine(workspace.Path, "fail-cli-pack"), "");
+
+        await RunAsync(project, "Build", rid, "Pack=true", "Sign=true", "DotNetSignType=real",
+            "SkipNativeBuild=true", $"PackDcpPackage={packDcp}", "BundleVersion=ci-bundlepayload");
+
+        var expected = new List<string>
+        {
+            "managed", "dashboard", "terminalhost", "apphost-server", "tray", "adhoc", "prepare-tray",
+            "sign-components", "sign-tray", "notarize-tray", "restore-tray", "package"
+        };
+        if (packDcp)
+        {
+            expected.Add("dcp-package");
+        }
+        expected.AddRange(["restore", "layout", "verify", "sign-packages"]);
+        Assert.Equal(expected, File.ReadAllLines(Path.Combine(workspace.Path, "events")));
+        Assert.Equal("signed Dashboard package", File.ReadAllText(Path.Combine(workspace.Path, "shipping", "dashboard.nupkg")).Trim());
+        Assert.Equal(packDcp, File.Exists(Path.Combine(workspace.Path, "shipping", "dcp.nupkg")));
+        if (packDcp)
+        {
+            Assert.Equal("signed DCP package", File.ReadAllText(Path.Combine(workspace.Path, "shipping", "dcp.nupkg")).Trim());
+        }
+        Assert.Equal("signed Dashboard", File.ReadAllText(Path.Combine(workspace.Path, "layout-dashboard")).Trim());
+        Assert.False(File.Exists(Path.Combine(workspace.Path, "cli-payload")));
+        Assert.False(File.Exists(Path.Combine(workspace.Path, "cli-package")));
+        Assert.False(File.Exists(Path.Combine(workspace.Path, "aspire-cli-final.tar.gz")));
+        foreach (var line in File.ReadAllLines(Path.Combine(workspace.Path, "properties")))
+        {
+            Assert.Equal("", line.Split('|')[11]);
+        }
+    }
+
+    [Fact]
+    public async Task SkippedCliPayloadPackageSigningFailureFailsTheBuild()
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        const string rid = "osx-arm64";
+        var project = CreateOrchestrationProject(workspace.Path, rid);
+        File.WriteAllText(Path.Combine(workspace.Path, "fail-sign-packages"), "");
+
+        var result = await ExecuteAsync(project, "Build", rid, "Pack=true", "Sign=true",
+            "DotNetSignType=real", "SkipNativeBuild=true");
+
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains("Failed sign-packages", result.Output);
+        Assert.Equal("verify", File.ReadAllLines(Path.Combine(workspace.Path, "events"))[^1]);
+        Assert.Equal("Dashboard package", File.ReadAllText(Path.Combine(workspace.Path, "shipping", "dashboard.nupkg")).Trim());
+        Assert.False(File.Exists(Path.Combine(workspace.Path, "cli-package")));
     }
 
     [Fact]
@@ -522,7 +705,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         var project = CreateOrchestrationProject(workspace.Path, rid);
         File.WriteAllText(Path.Combine(workspace.Path, "fail-" + component), "");
 
-        var result = await ExecuteAsync(project, "BuildNativeBundle", rid, "Sign=true", "DotNetSignType=real");
+        var result = await ExecuteAsync(project, "Build", rid, "Pack=true", "Sign=true", "DotNetSignType=real");
 
         Assert.NotEqual(0, result.ExitCode);
         Assert.Contains("Failed publishing " + component, result.Output);
@@ -584,8 +767,10 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         var project = CreateProject(root, rid);
         var dashboardProject = Path.Combine(root, "ColdProtobufFixture.csproj");
         var generatedDirectory = Path.Combine(root, "obj", "generated");
-        // Block ancestor discovery so repository-local workspaces also reproduce
-        // CI workspaces outside the repository's central package configuration.
+        // Isolate the SDK fixture from ancestor product imports and package
+        // configuration, including when workspaces are under the repository.
+        File.WriteAllText(Path.Combine(root, "Directory.Build.props"), "<Project />");
+        File.WriteAllText(Path.Combine(root, "Directory.Build.targets"), "<Project />");
         File.WriteAllText(Path.Combine(root, "Directory.Packages.props"), "<Project />");
         File.WriteAllText(Path.Combine(root, "fixture.proto"), """
             syntax = "proto3";
@@ -672,7 +857,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
             ["DOTNET_CLI_HOME"] = home
         };
 
-        var result = await ExecuteAsync(project, "PackageBundlePayload", rid, environment,
+        var result = await ExecuteAsync(project, "PackageBundlePayload", rid, environment, "Pack=true",
             "RepoRoot=" + root + Path.DirectorySeparatorChar, "BundleVersion=cold-cache");
 
         Assert.True(result.ExitCode == 0, result.Output);
@@ -757,12 +942,14 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
             // Execute the production phase graph and child processes with tiny publish/pack
             // projects. Layout copying substitutes for native execution, not for phase ordering.
             new XElement("Target", new XAttribute("Name", "_RunCreateLayout"),
+                new XElement("Error", new XAttribute("Condition", $"Exists('{Path.Combine(root, "fail-layout")}')"),
+                    new XAttribute("Text", "Failed layout")),
                 Copy(DashboardPath(root, rid), Path.Combine(root, "layout-dashboard")),
                 Copy(AppHostServerPath(root, rid), Path.Combine(root, "layout-apphost-server")),
                 rid.StartsWith("win-", StringComparison.Ordinal)
                     ? Copy(Path.Combine(root, "artifacts", "tray", "aspire-tray.exe"), Path.Combine(root, "layout-tray")) : null,
                 Record("layout")),
-            new XElement("Target", new XAttribute("Name", "_PublishNativeCli"), new XAttribute("Condition", "'$(SkipNativeBuild)' != 'true'"), Record("cli")),
+            new XElement("Target", new XAttribute("Name", "_PublishNativeCli"), Record("cli")),
             new XElement("Target", new XAttribute("Name", "_VerifyNativeTrayArchive"),
                 new XAttribute("AfterTargets", "_RunCreateLayout"),
                 new XAttribute("Condition", "$(TargetRid.StartsWith('osx-'))"), Record("verify")),
@@ -812,6 +999,18 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         var tray = Path.Combine(root, "tray.proj");
         var trayExecutable = Path.Combine(root, "artifacts", "tray", "Aspire Tray.app", "Contents", "MacOS", "aspire-tray");
         var trayArchive = Path.Combine(root, "custom signing path", "AspireTray.zip");
+        var shipping = Path.Combine(root, "shipping");
+        Directory.CreateDirectory(shipping);
+        var dashboardPackage = Path.Combine(shipping, "dashboard.nupkg");
+        var dcpPackage = Path.Combine(shipping, "dcp.nupkg");
+        var dashboardPackProject = XDocument.Load(Path.Combine(root, "package.proj"));
+        dashboardPackProject.Root!.Elements("Target").Single(target => target.Attribute("Name")!.Value == "Build")
+            .Add(Write(dashboardPackage, "Dashboard package"));
+        dashboardPackProject.Save(Path.Combine(root, "package.proj"));
+        var dcpPackProject = XDocument.Load(Path.Combine(root, "dcp.proj"));
+        dcpPackProject.Root!.Elements("Target").Single(target => target.Attribute("Name")!.Value == "Build")
+            .Add(Write(dcpPackage, "DCP package"));
+        dcpPackProject.Save(Path.Combine(root, "dcp.proj"));
         var signingPlugin = Path.Combine(root, "signing-plugin.props");
         // The official job installs plugins, but SigningEnabled is computed
         // only when a signing child imports plugin props, not in Bundle.proj.
@@ -855,11 +1054,15 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
             // Exercise the production evaluation-time archive glob, not a
             // second synthetic discovery rule that could mask stale evaluation.
             new XElement("Import", new XAttribute("Project", Path.Combine(RepoRoot.Path, "eng", "Signing.props"))),
-            new XElement("ItemGroup", new XElement("ArchiveToSign",
-                new XAttribute("Include", $"@(ItemsToSign->WithMetadataValue('FullPath', '{archive}'))"))),
+            new XElement("ItemGroup",
+                new XElement("ArchiveToSign",
+                    new XAttribute("Include", $"@(ItemsToSign->WithMetadataValue('FullPath', '{archive}'))")),
+                // Tiny fixture packages stand in for Arcade's package signing.
+                // Discovery must still happen in a new process after they exist.
+                new XElement("PayloadPackageToSign", new XAttribute("Include", Path.Combine(shipping, "*.nupkg")))),
             new XElement("Target", new XAttribute("Name", "Restore")),
             new XElement("Target", new XAttribute("Name", "ValidateSigningPlugin"),
-                new XAttribute("BeforeTargets", "SignComponents;SignTray;SignArchive"),
+                new XAttribute("BeforeTargets", "SignComponents;SignTray;SignArchive;SignPackages"),
                 new XAttribute("Condition", "'$(DotNetSignType)' == 'real'"),
                 new XElement("Error", new XAttribute("Condition", "'$(MicroBuild_SigningEnabled)' != 'true'"),
                     new XAttribute("Text", "Signing child requires the MicroBuild plugin."))),
@@ -883,7 +1086,16 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
                 new XElement("Error", new XAttribute("Condition", "'@(ArchiveToSign)' == ''"),
                     new XAttribute("Text", "Fresh signing evaluation must discover the final archive.")),
                 Write(archive, "signed CLI archive")),
-            Phase("PackCli", "cli-pack", Copy(archive, Path.Combine(root, "cli-package")))))
+            // This substitutes only for orchestration; it does not execute the
+            // production tool/npm extraction from the canonical signed archive.
+            Phase("PackCli", "cli-pack", Copy(archive, Path.Combine(root, "cli-package"))),
+            Phase("SignPackages", "sign-packages",
+                new XElement("Error", new XAttribute("Condition", "'@(PayloadPackageToSign)' == ''"),
+                    new XAttribute("Text", "Fresh signing evaluation must discover payload packages.")),
+                Write(dashboardPackage, "signed Dashboard package"),
+                new XElement("WriteLinesToFile", new XAttribute("Condition", $"Exists('{dcpPackage}')"),
+                    new XAttribute("File", dcpPackage), new XAttribute("Lines", "signed DCP package"),
+                    new XAttribute("Overwrite", "true")))))
             .Save(signer);
         File.WriteAllText(Path.Combine(root, "build.ps1"), $$"""
             $ErrorActionPreference = 'Stop'
@@ -892,6 +1104,8 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
             $project = Join-Path $PSScriptRoot 'signer.proj'
             $targets = if ($BuildArguments -contains '-build') {
                 @('BuildCli') + $(if ($BuildArguments -contains '-sign') { 'SignArchive' }) + @('PackCli')
+            } elseif ($BuildArguments | Where-Object { $_ -like '*/bl:*SignBundlePayloadPackages.binlog' }) {
+                @('SignPackages')
             } else { @('SignComponents') }
             foreach ($target in $targets) {
                 & dotnet msbuild $project "-t:$target" @properties
@@ -995,13 +1209,17 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
                 start.Environment[name] = value;
             }
         }
-        foreach (var argument in new[] { "msbuild", project, "-nologo", $"-t:{target}", "-p:Configuration=Release",
+        foreach (var argument in new[] { "msbuild", project, "-nologo", "-p:Configuration=Release",
             "-p:ContinuousIntegrationBuild=true", $"-p:TargetRid={rid}", "-p:VersionPrefix=42.0.0",
             "-p:VersionSuffix=ci.test", "-p:OfficialBuildId=20261014.1", "-p:AspireCliChannel=staging",
             "-p:DotNetFinalVersionKind=release", "-p:StabilizePackageVersion=true", "-p:IsOfficialBuild=true" }
             .Concat(properties.Select(property => "-p:" + property)))
         {
             start.ArgumentList.Add(argument);
+        }
+        if (target.Length != 0)
+        {
+            start.ArgumentList.Add($"-t:{target}");
         }
         using var process = Process.Start(start)!;
         var stdout = process.StandardOutput.ReadToEndAsync();

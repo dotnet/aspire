@@ -4,24 +4,15 @@
 
     Usage: dotnet msbuild eng/Bundle.proj /p:TargetRid=linux-x64 /p:Configuration=Release
 
-    Entry points and major steps:
-    - Build (default): Used by eng/build.sh, eng/build.ps1, and deployment tests.
-      Validate and clean caches -> publish components -> restore DCP -> assemble
-      and verify the bundle layout -> publish the CLI unless SkipNativeBuild=true.
-      This standalone path does not produce Dashboard/DCP or CLI tool/npm packages.
-    - BuildNativeBundle: Selected explicitly by GitHub native-archive CI and the
-      official build_sign_native.yml template.
-      Validate signing inputs -> publish components -> validate Dashboard warnings
-      -> prepare macOS signing inputs -> optionally sign components and tray
-      -> restore execute permissions -> package prepared payload -> build/sign/pack CLI.
-      The existing clipack/AfterSigning flow owns the final CLI publish and packages.
-
-    The dependency properties below define execution order. Publishing prepares
-    Aspire.Managed, Native AOT Dashboard/TerminalHost/AppHost Server v2, and the platform tray.
-    Packaging consumes those prepared files without republishing signed inputs.
+    Build (default) publishes components, assembles and verifies the bundle, and
+    publishes the native CLI. Pack=true additionally produces distribution packages
+    through the existing clipack/AfterSigning flow. Packaging consumes prepared
+    files without republishing signed inputs.
 
     Options:
-    - SkipNativeBuild=true: Skip building native CLI (use pre-built from artifacts)
+    - Pack=true: Produce Dashboard and CLI archive/tool/npm packages (default: false)
+    - Sign=true: Sign distribution outputs (requires Pack=true and DotNetSignType)
+    - SkipNativeBuild=true: Skip the final CLI and its packages, not the payload
     - SkipManagedBuild=true: Skip building managed projects (use pre-built)
     - SkipAppHostServerBuild=true: Use the pre-built AppHost Server v2 payload (required after official signing)
     - SkipDashboardPublish=true: Reuse the prepared RID-specific Dashboard publish
@@ -37,6 +28,11 @@
   <Import Project="Versions.props" />
 
   <PropertyGroup>
+    <Pack Condition="'$(Pack)' == ''">false</Pack>
+    <!-- Select one final CLI producer, or neither when only the payload is requested. -->
+    <_BundleCliTarget Condition="'$(Pack)' == 'false' and '$(SkipNativeBuild)' != 'true'">_PublishNativeCli</_BundleCliTarget>
+    <_BundleCliTarget Condition="'$(Pack)' == 'true' and '$(SkipNativeBuild)' != 'true'">_BuildNativePackages</_BundleCliTarget>
+
     <PublishBundleComponentsDependsOn>
       _ValidateBundleConfiguration;
       _PublishBundleComponents
@@ -52,16 +48,9 @@
       _RunCreateLayout
     </PackageBundlePayloadDependsOn>
     <BuildDependsOn>
+      _ValidateAndSetNativeBundleSigningProperties;
       _ShowBanner;
       _CleanCaches;
-      $(PublishBundleComponentsDependsOn);
-      _RestoreDcpPackage;
-      _RunCreateLayout;
-      _PublishNativeCli
-    </BuildDependsOn>
-
-    <BuildNativeBundleDependsOn>
-      _ValidateAndSetNativeBundleSigningProperties;
       $(PublishBundleComponentsDependsOn);
       _ValidateDashboardWarnings;
       _PrepareMacOSBundleSigning;
@@ -70,8 +59,9 @@
       _SignMacOSBundleTray;
       _RestoreBundleExecutePermissions;
       $(PackageBundlePayloadDependsOn);
-      _BuildNativePackages
-    </BuildNativeBundleDependsOn>
+      $(_BundleCliTarget);
+      _SignBundlePayloadPackages
+    </BuildDependsOn>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -180,11 +170,6 @@
     <_SupportedBundleRid Include="win-x64;win-arm64;osx-x64;osx-arm64;linux-x64;linux-arm64;linux-musl-x64" />
   </ItemGroup>
 
-  <!-- Each wrapper invocation is a fresh evaluation: Signing.props discovers files
-       with evaluation-time globs, including archives that do not exist until Pack.
-       The clipack/AfterSigning flow owns the final CLI publish and package signing. -->
-  <Target Name="BuildNativeBundle" DependsOnTargets="$(BuildNativeBundleDependsOn)" />
-
   <Target Name="_ValidateAndSetNativeBundleSigningProperties" DependsOnTargets="_ValidateBundleConfiguration">
     <!-- These discrete values are forwarded to shell children, never parsed as
          command strings. Reject shell syntax before any child is launched. -->
@@ -194,6 +179,8 @@
            Text="AspireCliChannel must contain only letters, digits, dots, and hyphens." />
     <Error Condition="'$(Sign)' != 'true' and '$(Sign)' != 'false'"
            Text="Sign must be true or false." />
+    <Error Condition="'$(Sign)' == 'true' and '$(Pack)' != 'true'"
+           Text="Signing requires Pack=true." />
     <Error Condition="'$(DotNetSignType)' != '' and '$(DotNetSignType)' != 'test' and '$(DotNetSignType)' != 'real'"
            Text="DotNetSignType must be empty, test, or real." />
     <Error Condition="'$(Sign)' == 'true' and '$(DotNetSignType)' == ''"
@@ -222,13 +209,13 @@
     </PropertyGroup>
   </Target>
 
-  <Target Name="_ValidateDashboardWarnings" Condition="'$(SkipDashboardPublish)' != 'true'">
+  <Target Name="_ValidateDashboardWarnings" Condition="'$(Pack)' == 'true' and '$(SkipManagedBuild)' != 'true' and '$(SkipDashboardPublish)' != 'true'">
     <Exec Command="pwsh -NoProfile -File &quot;$(_BundleEngineeringDir)scripts/verify-native-dashboard-warnings.ps1&quot; -BuildLog &quot;$(DashboardPublishLogPath)&quot;" />
   </Target>
 
   <Target Name="_PrepareMacOSBundleSigning"
           DependsOnTargets="_SetBundleTrayProperties"
-          Condition="$(TargetRid.StartsWith('osx-'))">
+          Condition="'$(Pack)' == 'true' and $(TargetRid.StartsWith('osx-'))">
     <!-- MicroBuild preserves these entitlements when re-signing. Without them,
          hardened runtime prevents CoreCLR JIT in aspire-managed. Also needed unsigned. -->
     <Exec Command="codesign --sign - --force --entitlements &quot;$(_BundleEngineeringDir)aspire-managed-entitlements.plist&quot; &quot;$([MSBuild]::NormalizePath('$(ManagedPublishDir)', 'aspire-managed'))&quot;" />
@@ -239,7 +226,7 @@
              RemoveProperties="SkipNativeBuild;SkipManagedBuild;SkipTrayBuild" />
   </Target>
 
-  <Target Name="_RemoveMacOSBundleDebugSymbols" Condition="$(TargetRid.StartsWith('osx-')) and '$(Sign)' == 'true'">
+  <Target Name="_RemoveMacOSBundleDebugSymbols" Condition="'$(Pack)' == 'true' and $(TargetRid.StartsWith('osx-')) and '$(Sign)' == 'true'">
     <!-- ESRP discovery also matches executables inside adjacent dSYM bundles.
          Dashboard symbols are required; TerminalHost and AppHost Server may omit them. -->
     <PropertyGroup>
@@ -287,7 +274,17 @@
     <Message Importance="high" Text="Bundle created at: $(BundleOutputDir)" />
   </Target>
 
+  <Target Name="_SignBundlePayloadPackages" Condition="'$(Pack)' == 'true' and '$(Sign)' == 'true' and '$(SkipNativeBuild)' == 'true'">
+    <!-- Without the CLI backend there is no final Arcade signing pass. Start a
+         fresh sign-only evaluation so Signing.props discovers the new packages;
+         rerunning _SignBundleComponents in this evaluation would do nothing. -->
+    <Exec Command="&quot;$(BuildScriptPath)&quot; -restore -sign -configuration $(Configuration) -projects &quot;$(ManagedProjectPath)&quot; $(_BundleChildArgs) $(_BundleSigningArgs) &quot;/bl:$(ArtifactsLogDir)SignBundlePayloadPackages.binlog&quot;"
+          EnvironmentVariables="$(_BundleChildEnvironment)" />
+  </Target>
+
   <Target Name="_ValidateBundleConfiguration">
+    <Error Condition="'$(Pack)' != 'true' and '$(Pack)' != 'false'"
+           Text="Pack must be true or false." />
     <ItemGroup>
       <_MatchingBundleRid Include="@(_SupportedBundleRid)"
                           Condition="$([System.String]::Equals('%(_SupportedBundleRid.Identity)', '$(TargetRid)'))" />
@@ -311,7 +308,7 @@
     <Message Importance="high" Text="" />
   </Target>
 
-  <Target Name="_CleanCaches" Condition="'$(ContinuousIntegrationBuild)' == 'true'">
+  <Target Name="_CleanCaches" Condition="'$(Pack)' != 'true' and '$(ContinuousIntegrationBuild)' == 'true'">
     <Message Importance="high" Text="Cleaning caches to free disk space..." />
     <Exec Command="dotnet nuget locals http-cache --clear" EnvironmentVariables="$(_BundleChildEnvironment)" IgnoreExitCode="true" StandardOutputImportance="low" />
   </Target>
@@ -379,7 +376,7 @@
           Condition="'$(SkipTrayBuild)' != 'true' and $(TargetRid.StartsWith('win-'))" />
   </Target>
 
-  <Target Name="_ValidatePreparedBundle">
+  <Target Name="_ValidatePreparedBundle" Condition="'$(Pack)' == 'true'">
     <PropertyGroup>
       <_PreparedDashboardDir>$([MSBuild]::NormalizeDirectory('$(ArtifactsDir)', 'bin', 'Aspire.Dashboard', '$(TargetRid)', '$(Configuration)', '$(AspireDashboardTargetFramework)', '$(TargetRid)', 'publish'))</_PreparedDashboardDir>
       <_PreparedExecutableExtension Condition="$(TargetRid.StartsWith('win-'))">.exe</_PreparedExecutableExtension>
@@ -399,12 +396,12 @@
            Text="Prepared bundle input is missing: %(_RequiredPreparedBundleFile.Identity). Publish bundle components before signing and packaging." />
   </Target>
 
-  <Target Name="_PackDashboardPackage">
+  <Target Name="_PackDashboardPackage" Condition="'$(Pack)' == 'true'">
     <Exec Command="dotnet build &quot;$(DashboardPackProjectPath)&quot; $(_BundleChildArgs) /p:SkipDashboardPublish=true"
           EnvironmentVariables="$(_BundleChildEnvironment)" />
   </Target>
 
-  <Target Name="_PackDcpPackage" Condition="'$(PackDcpPackage)' == 'true'">
+  <Target Name="_PackDcpPackage" Condition="'$(Pack)' == 'true' and '$(PackDcpPackage)' == 'true'">
     <Exec Command="dotnet build &quot;$(DcpPackProjectPath)&quot; $(_BundleChildArgs)"
           EnvironmentVariables="$(_BundleChildEnvironment)" />
   </Target>

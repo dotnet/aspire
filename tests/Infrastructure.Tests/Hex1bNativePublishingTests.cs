@@ -376,7 +376,7 @@ public sealed class Hex1bNativePublishingTests : IDisposable
 
         var result = await RunDotNetAsync(
             ["msbuild", Path.Combine(RepoRoot.Path, "eng", "Bundle.proj"), "-nologo",
-             "-t:_RemoveMacOSBundleDebugSymbols", "-p:TargetRid=osx-arm64", "-p:Sign=true",
+             "-t:_RemoveMacOSBundleDebugSymbols", "-p:TargetRid=osx-arm64", "-p:Sign=true", "-p:Pack=true",
              $"-p:DashboardPublishDir={dashboard}{(trailingSeparator ? Path.DirectorySeparatorChar.ToString() : "")}",
              $"-p:TerminalHostPublishDir={terminal}{(trailingSeparator ? Path.DirectorySeparatorChar.ToString() : "")}",
              $"-p:AppHostServerPublishDir={server}{(trailingSeparator ? Path.DirectorySeparatorChar.ToString() : "")}"]);
