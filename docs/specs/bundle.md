@@ -378,6 +378,7 @@ dotnet msbuild eng/Bundle.proj /t:Build /p:TargetRid=osx-arm64 /p:Configuration=
 
 GitHub Actions and Azure Pipelines invoke `BuildNativeBundle` in the same
 project to build, sign, and package the bundle through a shared process.
+Signed macOS jobs in Azure Pipelines allow two hours to accommodate signing and notarization latency.
 
 The assembled directories are under `artifacts/bundle/{rid}/`; the payload archive is `artifacts/bundle/aspire-{version}-{rid}.tar.gz`. The self-extracting CLI is in the CLI project's publish output, not in the payload directory.
 

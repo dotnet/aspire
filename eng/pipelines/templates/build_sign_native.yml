@@ -45,7 +45,8 @@ jobs:
       jobs:
       - job: BuildNative_${{ replace(targetRid, '-', '_') }}
         displayName: ${{ replace(targetRid, '-', '_') }}
-        timeoutInMinutes: 60
+        # macOS signs and notarizes both the payload and final CLI; allow for remote-service latency.
+        timeoutInMinutes: ${{ iif(and(eq(parameters.agentOs, 'macos'), eq(parameters.codeSign, true)), 120, 60) }}
 
         variables:
         - TeamName: ${{ parameters.teamName }}
