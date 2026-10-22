@@ -890,10 +890,9 @@ public static class AzureKubernetesEnvironmentExtensions
             acr.Name = acrNameParam;
             infrastructure.Add(acr);
 
-            // AcrPull role: 7f951dda-4ed3-4680-a7ca-43fe172d538d
             var acrPullRoleId = BicepFunction.GetSubscriptionResourceId(
                 "Microsoft.Authorization/roleDefinitions",
-                "7f951dda-4ed3-4680-a7ca-43fe172d538d");
+                ContainerRegistryBuiltInRole.AcrPull.ToString());
 
             // Access kubelet identity objectId via property path
             var kubeletObjectId = new MemberExpression(
