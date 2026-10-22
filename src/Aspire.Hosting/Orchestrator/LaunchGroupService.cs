@@ -70,8 +70,11 @@ internal sealed class LaunchGroupService(
 
         if (!declaredGroups.Contains(selectedGroup))
         {
+            var validGroupsDescription = declaredGroups.Count == 0
+                ? "No launch groups have been defined."
+                : $"Select one of: {string.Join(", ", declaredGroups.Order(StringComparer.OrdinalIgnoreCase))}.";
             throw new DistributedApplicationException(
-                $"Launch group '{selectedGroup}' is invalid. Select one of: {string.Join(", ", declaredGroups.Order(StringComparer.OrdinalIgnoreCase))}.");
+                $"Launch group '{selectedGroup}' is invalid. {validGroupsDescription}");
         }
 
         var roots = model.Resources.Where(resource => !resource.HasAnnotationOfType<ExplicitStartupAnnotation>()).Where(resource =>

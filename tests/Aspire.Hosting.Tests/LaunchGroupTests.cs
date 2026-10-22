@@ -87,6 +87,43 @@ public class LaunchGroupTests(ITestOutputHelper outputHelper)
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SelectionWithoutDefinitionsOrMembershipsFailsBeforeStarting(bool commandLine)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(
+            commandLine ? ["--Aspire:LaunchGroup=catalog"] : []);
+        if (!commandLine)
+        {
+            builder.Configuration["Aspire:LaunchGroup"] = "catalog";
+        }
+        var resource = builder.AddExecutable("worker", "unused", ".");
+        await using var app = builder.Build();
+
+        var exception = await Assert.ThrowsAsync<DistributedApplicationException>(
+            () => app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken));
+
+        Assert.Equal("Launch group 'catalog' is invalid. No launch groups have been defined.", exception.Message);
+        Assert.False(resource.Resource.HasAnnotationOfType<ExplicitStartupAnnotation>());
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public async Task NoSelectionWithoutDefinitionsPreservesFullRun(string? selection)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Configuration["Aspire:LaunchGroup"] = selection;
+        var resource = builder.AddExecutable("worker", "unused", ".");
+        await using var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken);
+
+        Assert.Null(app.Services.GetService<LaunchGroupService>());
+        Assert.False(resource.Resource.HasAnnotationOfType<ExplicitStartupAnnotation>());
+    }
+
+    [Theory]
     [InlineData("\"local\"")]
     [InlineData("[null]")]
     [InlineData("[[\"local\"]]")]
@@ -102,11 +139,16 @@ public class LaunchGroupTests(ITestOutputHelper outputHelper)
             () => app.ExecuteBeforeStartHooksAsync(TestContext.Current.CancellationToken));
     }
 
-    [Fact]
-    public async Task PublishingIgnoresConfigurationOnlyLaunchGroups()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PublishingIgnoresConfigurationOnlyLaunchGroups(bool defineGroups)
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        builder.Configuration["Aspire:LaunchGroups:0"] = "local";
+        if (defineGroups)
+        {
+            builder.Configuration["Aspire:LaunchGroups:0"] = "local";
+        }
         builder.Configuration["Aspire:LaunchGroup"] = "missing";
         var resource = builder.AddExecutable("worker", "unused", ".");
         await using var app = builder.Build();
