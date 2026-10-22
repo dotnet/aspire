@@ -5,7 +5,6 @@ using System.Threading.Channels;
 using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Components.Tests.Shared;
-using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Tests.Shared;
 using Aspire.DashboardService.Proto.V1;
 using Bunit;
@@ -20,17 +19,13 @@ public partial class TerminalDockTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task FirstOpening_DefersResourcesAndRenderingButPreservesRemoteActivation(bool remoteActivation)
+    public async Task FirstOpening_DefersRenderingButPreservesRemoteActivation(bool remoteActivation)
     {
         var updates = Channel.CreateUnbounded<WatchTerminalsUpdate>();
         var processed = Channel.CreateUnbounded<WatchTerminalsUpdate>();
-        var resources = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
-        List<ResourceViewModel> initialResources = [TerminalSetupHelpers.CreateTerminalResource("first-resource")];
         var client = new TestDashboardClient(
             isEnabled: true,
-            terminalChannelProvider: () => updates,
-            resourceChannelProvider: () => resources,
-            initialResources: initialResources)
+            terminalChannelProvider: () => updates)
         {
             OnTerminalUpdateProcessed = update => processed.Writer.TryWrite(update)
         };
@@ -57,7 +52,6 @@ public partial class TerminalDockTests
         Assert.Empty(cut.FindComponents<TerminalView>());
         Assert.Equal([], JSInterop.Invocations.Where(IsTerminalModuleImport));
 
-        initialResources.Add(TerminalSetupHelpers.CreateTerminalResource("second-resource"));
         if (remoteActivation)
         {
             await updates.Writer.WriteAsync(TerminalSetupHelpers.Change(TerminalChangeType.Activated, "first", "Renamed"));
@@ -76,14 +70,13 @@ public partial class TerminalDockTests
 
         await updates.Writer.WriteAsync(TerminalSetupHelpers.Snapshot());
         await processed.Reader.ReadAsync().AsTask().DefaultTimeout();
-        cut.WaitForAssertion(() => Assert.Equal(["first-resource", "second-resource"],
-            cut.FindAll(".terminal-dock-resource-links a").Select(link => link.TextContent)));
-        Assert.Equal(1, client.ResourceSubscriptionCount);
+        cut.WaitForAssertion(() => Assert.Single(cut.FindAll(".terminal-dock-panel")));
+        Assert.Equal(0, client.ResourceSubscriptionCount);
 
         await cut.InvokeAsync(cut.Instance.ToggleAsync);
         await cut.InvokeAsync(cut.Instance.ToggleAsync);
         Assert.Equal(1, client.TerminalSubscriptionCount);
-        Assert.Equal(1, client.ResourceSubscriptionCount);
+        Assert.Equal(0, client.ResourceSubscriptionCount);
         await cut.InvokeAsync(() => cut.Instance.DisposeAsync().AsTask()).DefaultTimeout();
         Assert.Equal(0, client.ActiveTerminalSubscriptionCount);
     }

@@ -28,6 +28,7 @@ import { stripResourceSuffix } from '../utils/urlSchemes';
 import {
     AppHostDataRepository,
     AppHostDisplayInfo,
+    isResourceNameMatch,
     ResourceCommandArgumentInputJson,
     ResourceJson,
     ViewMode,
@@ -41,9 +42,10 @@ import { executeResourceCommand as executeResourceCommandWithUi, getErrorMessage
 import { AppHostLaunchService } from '../services/AppHostLaunchService';
 import { isSameFileSystemEntry } from '../utils/appHostDiscovery';
 import { extensionLogOutputChannel } from '../utils/logging';
-import { pipelineInteractionCapability, pipelineStepListJsonCapability } from '../types/configInfo';
+import { pipelineInteractionCapability, pipelineStepListJsonCapability, terminalInstanceSelectionCapability } from '../types/configInfo';
 import { isAppHostSourceFile, isProjectFile } from '../utils/paths/comparison';
 import { isCommandCancellation } from '../utils/telemetry';
+import { isWebDashboardUrl } from '../debugger/session/dashboardLauncher';
 import {
     getParentResourceName,
     getTerminalReplicaIndex,
@@ -648,7 +650,7 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
     private _findResourceInTreeCore(elements: TreeElement[], resourceName: string, includeDisplayName: boolean): TreeElement | undefined {
         for (const element of elements) {
             if (element instanceof ResourceItem) {
-                if (resourceMatchesName(element.resource, resourceName, includeDisplayName)) {
+                if (isResourceNameMatch(element.resource, resourceName, includeDisplayName)) {
                     return element;
                 }
             }
@@ -1501,18 +1503,19 @@ export class AspireAppHostTreeProvider implements vscode.TreeDataProvider<TreeEl
     async openResourceTerminal(element: ResourceItem): Promise<void> {
         const command: Array<string | ShellArg> = ['terminal', 'attach', shellArg(element.resource.name)];
         const appHostPath = this._getAppHostPathForResource(element);
+        const target = appHostPath
+            ? getCliPathTargetForUri(vscode.Uri.file(appHostPath))
+            : windowCliPathTarget;
         if (appHostPath) {
             command.push('--apphost', shellArg(appHostPath));
         }
 
         const replicaIndex = getTerminalReplicaIndex(element.resource);
-        if (replicaIndex) {
+        // Older CLIs discard instance identity during discovery and still require a replica index.
+        if (replicaIndex && !await this._configInfoProvider.hasCapability(terminalInstanceSelectionCapability, { target })) {
             command.push('--replica', shellArg(replicaIndex));
         }
 
-        const target = appHostPath
-            ? getCliPathTargetForUri(vscode.Uri.file(appHostPath))
-            : windowCliPathTarget;
         await this._terminalProvider.sendAspireCommandToAspireTerminal(command, true, undefined, { terminalTarget: 'editor', target });
     }
 
@@ -1725,15 +1728,6 @@ function getBaseDashboardUrl(resourceDashboardUrl: string | null): string | null
     return idx >= 0 ? resourceDashboardUrl.substring(0, idx) : resourceDashboardUrl;
 }
 
-function isWebDashboardUrl(url: string): boolean {
-    try {
-        const parsed = new URL(url);
-        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
-    } catch {
-        return false;
-    }
-}
-
 async function openDashboardUrlToSide(url: string): Promise<void> {
     const commands = await vscode.commands.getCommands(true);
     if (commands.includes(integratedBrowserOpenCommand)) {
@@ -1756,8 +1750,4 @@ function isProjectFileToSourceFileMatch(left: string, right: string): boolean {
     return isSamePath(path.dirname(normalizedLeft), path.dirname(normalizedRight)) &&
         ((isProjectFile(normalizedLeft) && isAppHostSourceFile(normalizedRight)) ||
             (isAppHostSourceFile(normalizedLeft) && isProjectFile(normalizedRight)));
-}
-
-function resourceMatchesName(resource: ResourceJson, resourceName: string, includeDisplayName: boolean): boolean {
-    return resource.name === resourceName || (includeDisplayName && resource.displayName === resourceName);
 }

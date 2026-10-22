@@ -14,6 +14,30 @@ namespace Aspire.Dashboard.Components.Tests.Controls;
 public class AspireMenuTests : DashboardTestContext
 {
     [Fact]
+    public void UnkeyedItemsWithGeneratedIds_PreserveComponentIdentityAcrossRefresh()
+    {
+        FluentUISetupHelpers.AddCommonDashboardServices(this);
+        FluentUISetupHelpers.SetupFluentUIComponents(this);
+        FluentUISetupHelpers.SetupFluentMenu(this);
+        FluentUISetupHelpers.SetupFluentAnchoredRegion(this);
+
+        var originalItem = new MenuButtonItem { Text = "Original" };
+        var menuHost = Render<AspireMenu>(builder =>
+        {
+            builder.Add(p => p.Anchor, "menu-anchor");
+            builder.Add(p => p.Open, true);
+            builder.Add(p => p.Items, new[] { originalItem });
+        });
+        var originalComponent = menuHost.FindComponent<AspireMenuItem>().Instance;
+        var refreshedItem = new MenuButtonItem { Text = "Refreshed" };
+
+        menuHost.Render(builder => builder.Add(p => p.Items, new[] { refreshedItem }));
+
+        Assert.NotEqual(originalItem.Id, refreshedItem.Id);
+        Assert.Same(originalComponent, menuHost.FindComponent<AspireMenuItem>().Instance);
+    }
+
+    [Fact]
     public async Task ClickSecondaryAction_DoesNotSelectItemAndRefreshesOpenMenu()
     {
         FluentUISetupHelpers.AddCommonDashboardServices(this);
@@ -55,6 +79,7 @@ public class AspireMenuTests : DashboardTestContext
         });
 
         var pinButton = menuHost.WaitForElement("fluent-button[aria-label='Pin run']");
+        var pinId = pinButton.Id;
         var actionContainer = Assert.Single(menuHost.FindAll("span.aspire-menu-secondary-action-container[slot='end']"));
         Assert.NotNull(actionContainer.QuerySelector("fluent-button[aria-label='Pin run']"));
         Assert.Equal("false", pinButton.GetAttribute("aria-pressed"));
@@ -72,7 +97,10 @@ public class AspireMenuTests : DashboardTestContext
             Assert.True(menuHost.Instance.Open);
             Assert.Single(menuHost.FindComponents<FluentMenu>());
             var unpinButton = menuHost.Find("fluent-button[aria-label='Unpin run']");
+            Assert.Equal(pinId, unpinButton.Id);
             Assert.Equal("true", unpinButton.GetAttribute("aria-pressed"));
+            Assert.Contains(JSInterop.Invocations, invocation =>
+                invocation.Identifier == "focusElement" && invocation.Arguments.Single() is string id && id == pinId);
         });
     }
 

@@ -14,8 +14,8 @@ import { registerTreeViewCommands } from '../activation/registerTreeViewCommands
 import { AppHostDataRepository, shortenPath, shortenPaths } from '../data/AppHostDataRepository';
 import { AspireCliFailedError } from '../data/appHostCliContracts';
 import { AspireAppHostTreeProvider } from '../views/AspireAppHostTreeProvider';
-import { getResourceContextValue, getResourceIcon, getResourceCommandIcon, resolveAppHostSourcePath, buildResourceDescription } from '../views/treePresentation';
-import { AppHostItem, WorkspaceAppHostItem, WorkspaceResourcesItem } from '../views/treeItems';
+import { getResourceContextValue, getResourceIcon, getResourceCommandIcon, resolveAppHostSourcePath, buildResourceDescription, buildResourceTooltip } from '../views/treePresentation';
+import { AppHostItem, ResourceItem, WorkspaceAppHostItem, WorkspaceResourcesItem } from '../views/treeItems';
 import type { Clipboard } from '../views/AspireAppHostTreeProvider';
 import type { AppHostDisplayInfo, ResourceJson, ViewMode } from '../data/AppHostDataRepository';
 import { AppHostCliRunner } from '../data/appHostCliRunner';
@@ -31,9 +31,11 @@ import {
     lsJsonStreamCapability,
     pipelineInteractionCapability,
     pipelineStepListJsonCapability,
+    terminalInstanceSelectionCapability,
     type ConfigInfo,
 } from '../types/configInfo';
 import { windowCliPathTarget, workspaceFolderCliPathTarget, type CliPathResolutionTarget } from '../utils/cliPathVariables';
+import { getResourceSource } from '../utils/resourceDisplay';
 
 import { createWorkspaceFolder, removeDirectorySafely } from './testHelpers';
 function makeResource(overrides: Partial<ResourceJson> = {}): ResourceJson {
@@ -1766,6 +1768,77 @@ suite('resolveAppHostSourcePath', () => {
     });
 });
 
+suite('resource source', () => {
+    test('prefers canonical source', () => {
+        const result = getResourceSource(makeResource({
+            source: '  canonical-source  ',
+            properties: {
+                'container.image': 'container-source',
+                'executable.path': 'executable-source',
+                'project.path': 'project-source',
+            },
+        }));
+
+        assert.strictEqual(result, '  canonical-source  ');
+    });
+
+    test('ignores blank canonical source', () => {
+        const result = getResourceSource(makeResource({
+            source: '   ',
+            properties: { 'container.image': 'container-source' },
+        }));
+
+        assert.strictEqual(result, 'container-source');
+    });
+
+    test('uses container image when canonical source is absent', () => {
+        const result = getResourceSource(makeResource({
+            properties: {
+                'container.image': '  container-source  ',
+                'executable.path': 'executable-source',
+                'project.path': 'project-source',
+            },
+        }));
+
+        assert.strictEqual(result, '  container-source  ');
+    });
+
+    test('uses executable path when higher-priority sources are absent', () => {
+        const result = getResourceSource(makeResource({
+            properties: {
+                'executable.path': 'executable-source',
+                'project.path': 'project-source',
+            },
+        }));
+
+        assert.strictEqual(result, 'executable-source');
+    });
+
+    test('uses project path when other fallback values are blank', () => {
+        const result = getResourceSource(makeResource({
+            properties: {
+                'container.image': ' ',
+                'executable.path': '\t',
+                'project.path': 'project-source',
+            },
+        }));
+
+        assert.strictEqual(result, 'project-source');
+    });
+
+    test('ignores blank fallback values', () => {
+        const result = getResourceSource(makeResource({
+            properties: {
+                'container.image': ' ',
+                'executable.path': '\t',
+                'project.path': '\n',
+            },
+        }));
+
+        assert.strictEqual(result, undefined);
+    });
+});
+
 suite('getResourceContextValue', () => {
     test('resource with no commands returns just "resource"', () => {
         assert.strictEqual(getResourceContextValue(makeResource()), 'resource');
@@ -2029,6 +2102,60 @@ suite('buildResourceDescription', () => {
         assert.strictEqual(buildResourceDescription(makeResource({ state: 'Running' })), 'Project · Running');
     });
 
+    test('appends canonical source for a container', () => {
+        const desc = buildResourceDescription(makeResource({
+            resourceType: 'Container',
+            state: ResourceState.Running,
+            source: 'redis:8',
+        }));
+
+        assert.strictEqual(desc, 'Container · Running · redis:8');
+    });
+
+    test('appends executable path when canonical source is absent', () => {
+        const desc = buildResourceDescription(makeResource({
+            resourceType: 'Executable',
+            state: ResourceState.Running,
+            properties: { 'executable.path': '/workspace/bin/server' },
+        }));
+
+        assert.strictEqual(desc, 'Executable · Running · /workspace/bin/server');
+    });
+
+    test('missing or blank source adds nothing', () => {
+        const resourceWithoutSource = makeResource({
+            resourceType: 'Container',
+            state: ResourceState.Running,
+        });
+        const resourceWithBlankSources = makeResource({
+            resourceType: 'Container',
+            state: ResourceState.Running,
+            source: ' ',
+            properties: {
+                'container.image': '\t',
+                'executable.path': '\n',
+                'project.path': '  ',
+            },
+        });
+
+        assert.strictEqual(buildResourceDescription(resourceWithoutSource), 'Container · Running');
+        assert.strictEqual(buildResourceDescription(resourceWithBlankSources), 'Container · Running');
+    });
+
+    test('appends source after health and exit information', () => {
+        const desc = buildResourceDescription(makeResource({
+            resourceType: 'Container',
+            state: ResourceState.Running,
+            source: 'redis:8',
+            exitCode: 1,
+            healthReports: {
+                'ready': { status: 'Healthy', description: null, exceptionMessage: null },
+            },
+        }));
+
+        assert.strictEqual(desc, 'Container · Running · Health: 1/1 · Exit Code: 1 · redis:8');
+    });
+
     test('with health reports shows count', () => {
         const desc = buildResourceDescription(makeResource({
             healthReports: {
@@ -2167,6 +2294,34 @@ suite('buildResourceDescription', () => {
         }));
 
         assert.strictEqual(desc, 'Parameter · Running · ●●●●●●●●');
+    });
+});
+
+suite('buildResourceTooltip', () => {
+    test('includes canonical source', () => {
+        const tooltip = buildResourceTooltip(makeResource({
+            source: 'redis:8',
+            properties: { 'container.image': 'fallback:latest' },
+        }));
+
+        assert.ok(tooltip.value.includes('Source: redis:8'), tooltip.value);
+        assert.ok(!tooltip.value.includes('fallback:latest'), tooltip.value);
+    });
+
+    test('includes executable path when canonical source is absent', () => {
+        const tooltip = buildResourceTooltip(makeResource({
+            properties: { 'executable.path': '/workspace/bin/server' },
+        }));
+
+        assert.ok(tooltip.value.includes('Source: /workspace/bin/server'), tooltip.value);
+    });
+
+    test('escapes source Markdown as text', () => {
+        const source = '/tmp/[app](command:evil)*prod*';
+        const tooltip = buildResourceTooltip(makeResource({ source }));
+
+        assert.ok(tooltip.value.includes('Source: /tmp/\\[app\\]\\(command:evil\\)\\*prod\\*'), tooltip.value);
+        assert.ok(!tooltip.value.includes(`Source: ${source}`), tooltip.value);
     });
 });
 
@@ -3156,46 +3311,55 @@ suite('AspireAppHostTreeProvider.findAppHostElement', () => {
         provider.dispose();
     });
 
-    test('openResourceTerminal adds replica when terminal metadata includes index', async () => {
-        const commands: AspireSubcommand[] = [];
-        const appHostPath = '/repo/apps/Store/AppHost.csproj';
-        const onDidChangeData: vscode.Event<void> = () => ({ dispose: () => { } });
-        const repository = {
-            viewMode: 'workspace' as ViewMode,
-            appHosts: [],
-            workspaceResources: [],
-            workspaceAppHost: makeAppHost({
-                appHostPath,
-                resources: [makeResource({
-                    name: 'cache',
-                    properties: {
-                        'terminal.enabled': 'true',
-                        'terminal.replicaIndex': '2',
-                    },
-                })],
-            }),
-            workspaceAppHostPath: appHostPath,
-            workspaceAppHostName: 'apps/Store/AppHost.csproj',
-            workspaceAppHostCandidatePaths: [appHostPath],
-            workspaceAppHostDescription: undefined,
-            onDidChangeData,
-        } as unknown as AppHostDataRepository;
-        const terminalProvider = {
-            getAspireCliExecutablePath: async () => 'aspire',
-            createEnvironment: () => ({}),
-            sendAspireCommandToAspireTerminal: (command: AspireSubcommand) => commands.push(command),
-        } as unknown as AspireTerminalProvider;
-        const provider = new AspireAppHostTreeProvider(repository, terminalProvider, makeLaunchService());
+    for (const supportsInstanceSelection of [false, true]) {
+        test(`openResourceTerminal selects the instance with ${supportsInstanceSelection ? 'current' : 'legacy'} CLI syntax`, async () => {
+            const hasCapability = sandbox.stub(configInfoProvider.ConfigInfoProvider.prototype, 'hasCapability').resolves(supportsInstanceSelection);
+            const commands: AspireSubcommand[] = [];
+            const appHostPath = '/repo/apps/Store/AppHost.csproj';
+            const onDidChangeData: vscode.Event<void> = () => ({ dispose: () => { } });
+            const repository = {
+                viewMode: 'workspace' as ViewMode,
+                appHosts: [],
+                workspaceResources: [],
+                workspaceAppHost: makeAppHost({
+                    appHostPath,
+                    resources: [makeResource({
+                        name: 'cache-abc123',
+                        displayName: 'cache',
+                        properties: {
+                            'terminal.enabled': 'true',
+                            'terminal.replicaIndex': '2',
+                        },
+                    })],
+                }),
+                workspaceAppHostPath: appHostPath,
+                workspaceAppHostName: 'apps/Store/AppHost.csproj',
+                workspaceAppHostCandidatePaths: [appHostPath],
+                workspaceAppHostDescription: undefined,
+                onDidChangeData,
+            } as unknown as AppHostDataRepository;
+            const terminalProvider = {
+                getAspireCliExecutablePath: async () => 'aspire',
+                createEnvironment: () => ({}),
+                sendAspireCommandToAspireTerminal: (command: AspireSubcommand) => commands.push(command),
+            } as unknown as AspireTerminalProvider;
+            const provider = new AspireAppHostTreeProvider(repository, terminalProvider, makeLaunchService());
 
-        const [workspaceItem] = provider.getChildren();
-        const [resourceItem] = provider.getChildren(workspaceItem);
-        await provider.openResourceTerminal(resourceItem as any);
+            const [workspaceItem] = provider.getChildren();
+            const [resourceItem] = provider.getChildren(workspaceItem);
+            assert.ok(resourceItem instanceof ResourceItem);
+            await provider.openResourceTerminal(resourceItem);
 
-        assert.deepStrictEqual(commands, [
-            ['terminal', 'attach', shellArg('cache'), '--apphost', shellArg(appHostPath), '--replica', shellArg('2')],
-        ]);
-        provider.dispose();
-    });
+            assert.deepStrictEqual(commands, [
+                ['terminal', 'attach', shellArg('cache-abc123'), '--apphost', shellArg(appHostPath),
+                    ...(supportsInstanceSelection ? [] : ['--replica', shellArg('2')])],
+            ]);
+            assert.strictEqual(hasCapability.calledOnceWithExactly(terminalInstanceSelectionCapability, {
+                target: windowCliPathTarget,
+            }), true);
+            provider.dispose();
+        });
+    }
 
     test('workspace mode uses describe resources for selected AppHost when ps has no resources', () => {
         const selectedHostPath = '/repo/apps/Store/AppHost.csproj';

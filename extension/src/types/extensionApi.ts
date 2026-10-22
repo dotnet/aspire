@@ -198,6 +198,7 @@ export interface AspireExtensionE2EControlPayload {
 }
 
 export type AspireExtensionE2EControlCommand =
+    | { name: 'probeUsefulnessSurvey'; reset: boolean }
     | { name: 'refreshAppHosts' }
     | { name: 'globalRefreshAppHosts' }
     | { name: 'switchToGlobalView' }
@@ -237,9 +238,11 @@ export type AspireExtensionE2EControlCommand =
     | { name: 'getRegisteredAspireCommands' }
     | { name: 'getRegisteredLanguageModelTools' }
     | { name: 'prepareLanguageModelToolInvocation'; toolName: string; input: Record<string, unknown> }
-    | { name: 'invokeLanguageModelTool'; toolName: string; input: Record<string, unknown>; times?: number }
+    | { name: 'invokeLanguageModelTool'; toolName: string; input: Record<string, unknown>; times?: number; cancelBeforeInvocation?: boolean; invokeRegisteredToolDirectly?: boolean }
+    | { name: 'setDashboardBrowserForE2E'; value: 'integratedBrowser' | null }
     | { name: 'getDebugSessionProcessInfo'; appHostPath?: string }
     | { name: 'getExtensionPackageJson' }
+    | { name: 'getDcpRunSessionInfo' }
     | { name: 'getExtensionFileStatus'; relativePaths: readonly string[] }
     | { name: 'getDiagnostics'; filePath: string }
     | { name: 'getDefinitions'; filePath: string; line: number; character: number }
@@ -275,7 +278,8 @@ export type AspireExtensionE2EControlCommand =
         environmentKeys?: readonly string[];
         csharpExtensionVersion?: string | null;
     }
-    | { name: 'proveAppHostAndResourceDebugging'; appHostPath: string; resourceName: string; appHostSourcePath: string; appHostBreakpointLine: number; resourceSourcePath: string; resourceBreakpointLine: number; resourceRequestPath?: string; timeoutMs?: number }
+    | { name: 'proveAppHostAndResourceDebugging'; appHostPath: string; resourceName: string; appHostSourcePath: string; appHostBreakpointLine: number; resourceSourcePath: string; resourceBreakpointLine: number; resourceRequestPath?: string; continueExceptionStops?: boolean; timeoutMs?: number }
+    | { name: 'prepareBlazorWasmDebugger' }
     | {
         name: 'proveBlazorWasmDebugging';
         appHostPath: string;

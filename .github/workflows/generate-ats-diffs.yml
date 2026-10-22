@@ -7,13 +7,10 @@ on:
   workflow_dispatch:
     inputs:
       target_branch:
-        description: 'Target branch'
+        description: 'Target branch (main or release/*)'
         required: true
         default: main
-        type: choice
-        options:
-          - main
-          - release/13.6
+        type: string
       dry_run:
         description: 'Generate changes without creating a pull request'
         default: true
@@ -33,8 +30,9 @@ concurrency:
 jobs:
   generate-and-pr:
     runs-on: ubuntu-latest
-    if: ${{ github.repository_owner == 'microsoft' }}
+    if: ${{ github.repository == 'microsoft/aspire' }}
     strategy:
+      fail-fast: false
       matrix:
         # Scheduled runs cover active branches; pull requests and manual runs validate one target.
         target_branch: ${{ fromJSON(github.event_name == 'workflow_dispatch' && format('[{0}]', toJSON(inputs.target_branch)) || github.event_name == 'pull_request' && format('[{0}]', toJSON(github.base_ref)) || '["main","release/13.6"]') }}
@@ -42,7 +40,16 @@ jobs:
       group: ${{ format('{0}-{1}-{2}', github.workflow, matrix.target_branch, github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || (github.event_name == 'workflow_dispatch' && inputs.dry_run == true && 'dry-run') || 'publish') }}
       cancel-in-progress: ${{ github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.dry_run == true) }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Validate target branch
+        env:
+          TARGET_BRANCH: ${{ matrix.target_branch }}
+        run: |
+          case "$TARGET_BRANCH" in
+            main|release/*) git check-ref-format --branch "$TARGET_BRANCH" >/dev/null ;;
+            *) echo "::error::Target branch must be main or release/*"; exit 1 ;;
+          esac
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ matrix.target_branch }}
           persist-credentials: false
@@ -160,10 +167,16 @@ jobs:
       - name: Generate GitHub App Token
         if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.dry_run == false) }}
         id: app-token
-        uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3 # v3.1.1
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
           client-id: ${{ secrets.ASPIRE_BOT_APP_ID }}
           private-key: ${{ secrets.ASPIRE_BOT_PRIVATE_KEY }}
+          # contents pushes the generated-diff branch; pull-requests creates or updates
+          # the generated-diff pull request and applies its labels.
+          permission-contents: write
+          permission-pull-requests: write
+          # Release-branch history can differ from main in workflow files.
+          permission-workflows: ${{ startsWith(matrix.target_branch, 'release/') && 'write' || '' }}
 
       - name: Create or update pull request
         if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.dry_run == false) }}

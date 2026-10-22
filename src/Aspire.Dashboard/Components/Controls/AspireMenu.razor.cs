@@ -21,6 +21,7 @@ public partial class AspireMenu : FluentComponentBase
     private bool _refreshMenuAfterRender;
     private bool _reopenInProgress;
     private bool? _appliedOpen;
+    private string? _pendingSecondaryActionFocusId;
     private int _cursorLeft;
     private int _cursorTop;
 
@@ -114,6 +115,16 @@ public partial class AspireMenu : FluentComponentBase
                 _appliedOpen = Open;
             }
         }
+
+        if (_pendingSecondaryActionFocusId is { } focusId)
+        {
+            _pendingSecondaryActionFocusId = null;
+            if (Open)
+            {
+                // Reopening the menu can focus its first item, so restore the action after it opens.
+                await JS.InvokeVoidAsync("focusElement", focusId);
+            }
+        }
     }
 
     public async Task CloseAsync()
@@ -144,20 +155,6 @@ public partial class AspireMenu : FluentComponentBase
         }
     }
 
-    private Task HandleItemClicked(MenuButtonItem item)
-    {
-        return item.Role is MenuItemRole.Checkbox or MenuItemRole.Radio
-            ? Task.CompletedTask
-            : HandleItemActivatedAsync(item);
-    }
-
-    private Task HandleItemCheckedChanged(MenuButtonItem item, bool? isChecked)
-    {
-        return isChecked is true && item.Role is MenuItemRole.Checkbox or MenuItemRole.Radio
-            ? HandleItemActivatedAsync(item)
-            : Task.CompletedTask;
-    }
-
     private async Task HandleItemActivatedAsync(MenuButtonItem item)
     {
         await SetOpenAsync(false);
@@ -182,13 +179,10 @@ public partial class AspireMenu : FluentComponentBase
             await onSecondaryActionClick();
         }
 
+        _pendingSecondaryActionFocusId = $"{item.Id}-secondary-action";
         if (OnSecondaryActionComplete.HasDelegate)
         {
             await OnSecondaryActionComplete.InvokeAsync();
-        }
-        else
-        {
-            StateHasChanged();
         }
     }
 

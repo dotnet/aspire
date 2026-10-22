@@ -99,9 +99,12 @@ public sealed class TerminalOptions
     private int _columns = 132;
     private int _rows = 50;
 
+    internal bool HasExplicitDimensions { get; private set; }
+
     /// <summary>
     /// Gets or sets the initial number of columns for the terminal. The value must be greater than zero. Defaults to 132.
     /// </summary>
+    /// <remarks>Setting either dimension makes the dashboard's Terminals page adopt the producer's current grid instead of automatically fitting it to the view.</remarks>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when set to zero or a negative value.</exception>
     public int Columns
     {
@@ -110,12 +113,14 @@ public sealed class TerminalOptions
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
             _columns = value;
+            HasExplicitDimensions = true;
         }
     }
 
     /// <summary>
     /// Gets or sets the initial number of rows for the terminal. The value must be greater than zero. Defaults to 50.
     /// </summary>
+    /// <remarks>Setting either dimension makes the dashboard's Terminals page adopt the producer's current grid instead of automatically fitting it to the view.</remarks>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when set to zero or a negative value.</exception>
     public int Rows
     {
@@ -124,26 +129,7 @@ public sealed class TerminalOptions
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
             _rows = value;
+            HasExplicitDimensions = true;
         }
     }
-
-    /// <summary>
-    /// Gets or sets a value indicating whether the per-replica terminal host resources
-    /// (named <c>{parent}-terminalhost-{index}</c>) should appear in the resource list
-    /// and export diagnostic logs, metrics, and traces.
-    /// </summary>
-    /// <remarks>
-    /// Defaults to <c>false</c>: terminal host resources are hidden from the dashboard
-    /// and CLI resource list and do not export telemetry because they are an implementation detail of the
-    /// <see cref="TerminalResourceBuilderExtensions.WithTerminal{T}(IResourceBuilder{T}, Action{TerminalOptions}?)"/>
-    /// feature, not something the user explicitly added to their app model.
-    /// <para>
-    /// Set to <c>true</c> when diagnosing terminal-host startup / connectivity issues so
-    /// the host's state, exit code, and diagnostic telemetry are visible alongside
-    /// the parent resource. Telemetry is exported when a dashboard OTLP endpoint is available.
-    /// This is useful when investigating cases like "DCP never dialed
-    /// the producer UDS" or "the host crashed during recycle".
-    /// </para>
-    /// </remarks>
-    public bool ShowTerminalHost { get; set; }
 }
