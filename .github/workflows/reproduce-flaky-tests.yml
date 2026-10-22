@@ -20,7 +20,7 @@ on:
 env:
   # Test project shortname (maps to tests/Aspire.{name}.Tests/ or tests/{name}.Tests/)
   # Examples: Hosting, Core, Dashboard, Components.Common, Cli.EndToEnd
-  TEST_PROJECT: "Hosting"
+  TEST_PROJECT: "Cli"
 
   # Test filter arguments passed to dotnet test (after the -- separator).
   # Use quotes around wildcard patterns to prevent shell glob expansion.
@@ -28,18 +28,18 @@ env:
   #   --filter-method "*.TestMethodName"
   #   --filter-class "*.TestClassName"
   #   --filter-method "*.Test1" --filter-method "*.Test2"
-  TEST_FILTER: '--filter-method "*.YourTestMethodName"'
+  TEST_FILTER: '--filter-not-trait "quarantined=true" --filter-not-trait "outerloop=true" --filter-not-trait "category=failing"'
 
   # Target operating systems (comma-separated)
   # Options: ubuntu-latest, windows-latest, macos-latest
-  TARGET_OSES: "ubuntu-latest,windows-latest"
+  TARGET_OSES: "macos-latest"
 
   # Number of parallel runners per OS
   # Total jobs = RUNNERS_PER_OS × number of OSes (must be ≤ 256)
   RUNNERS_PER_OS: "3"
 
   # Number of test iterations each runner executes
-  ITERATIONS_PER_RUNNER: "3"
+  ITERATIONS_PER_RUNNER: "1"
 
 jobs:
 
@@ -239,12 +239,69 @@ jobs:
           Write-Host "Resolved test project: $projectPath"
 
       - name: Build test project
+        env:
+          ASPIRE_CLI_NUGET_SERVICE_INDEX: https://packagefeedproxy.microsoft.io/nuget/v3/index.json
         run: >
           ${{ env.BUILD_SCRIPT }}
           -restore -ci -build
           -projects ${{ env.TEST_PROJECT_PATH }}
           /p:InstallBrowsersForPlaywright=false
-          /p:RunQuarantinedTests=true
+          /p:RunQuarantinedTests=false
+
+      - name: Acquire daily SDK and record comparison inputs
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p all-results
+          CANDIDATE_ROOT=$(mktemp -d "${RUNNER_TEMP}/aspire-daily-sdk.XXXXXX")
+          ARCHIVE="$CANDIDATE_ROOT/sdk.tar.gz"
+          # Pin the daily alias's resolved archive so all paired runners use identical bits.
+          DAILY_URL="https://ci.dot.net/public/Sdk/11.0.100-rtm.26520.139/dotnet-sdk-11.0.100-osx-arm64.tar.gz"
+          CHECKSUM_URL="https://ci.dot.net/public-checksums/Sdk/11.0.100-rtm.26520.139/dotnet-sdk-11.0.100-osx-arm64.tar.gz.sha512"
+          curl --fail --location --retry 3 "$DAILY_URL" --output "$ARCHIVE" \
+            --write-out '%{url_effective}\n' > all-results/sdk-download-url.txt
+          curl --fail --location --retry 3 "$CHECKSUM_URL" --output "$CANDIDATE_ROOT/sdk.sha512"
+          cp "$CANDIDATE_ROOT/sdk.sha512" all-results/candidate-sdk.sha512
+          EXPECTED=$(awk '{print $1}' "$CANDIDATE_ROOT/sdk.sha512")
+          printf '%s  %s\n' "$EXPECTED" "$ARCHIVE" | shasum -a 512 -c -
+          tar -xzf "$ARCHIVE" -C "$CANDIDATE_ROOT"
+          rm "$ARCHIVE"
+          (cd "$CANDIDATE_ROOT" && ./dotnet --info) > all-results/candidate-dotnet-info.txt
+          "$CANDIDATE_ROOT/dotnet" --list-sdks > all-results/candidate-sdks.txt
+          "$DOTNET_ROOT/dotnet" --info > all-results/baseline-dotnet-info.txt
+          cat all-results/candidate-dotnet-info.txt
+
+          CANDIDATE_VERSION=$("$CANDIDATE_ROOT/dotnet" --list-runtimes |
+            awk '$1 == "Microsoft.NETCore.App" && $2 ~ /^11[.]0[.]/ { print $2 }')
+          test -n "$CANDIDATE_VERSION"
+          test "$CANDIDATE_VERSION" != "11.0.0-rc.2.26504.105"
+          test "$(printf '%s\n' "$CANDIDATE_VERSION" | wc -l | tr -d ' ')" = 1
+          cat "$CANDIDATE_ROOT/shared/Microsoft.NETCore.App/$CANDIDATE_VERSION/.version" |
+            tee all-results/candidate-runtime-version.txt
+          cat "$DOTNET_ROOT/shared/Microsoft.NETCore.App/11.0.0-rc.2.26504.105/.version" |
+            tee all-results/baseline-runtime-version.txt
+          # These exact VMR sources were inspected before dispatch: candidate contains the
+          # stopped-child fallback; baseline retains the unreaped-child loop.
+          # https://github.com/dotnet/dotnet/blob/fba04ffe869680486931c78fd815b3f694087f91/src/runtime/src/libraries/System.Diagnostics.Process/src/System/Diagnostics/ProcessWaitState.Unix.cs
+          # https://github.com/dotnet/dotnet/blob/820230c386db5b0106c5430b3e5aee92a7826bf5/src/runtime/src/libraries/System.Diagnostics.Process/src/System/Diagnostics/ProcessWaitState.Unix.cs
+          test "$(head -n 1 all-results/candidate-runtime-version.txt | tr -d '\r')" = "fba04ffe869680486931c78fd815b3f694087f91"
+          test "$(head -n 1 all-results/baseline-runtime-version.txt | tr -d '\r')" = "820230c386db5b0106c5430b3e5aee92a7826bf5"
+          test "$CANDIDATE_VERSION" = "11.0.0"
+          echo "CANDIDATE_DOTNET_ROOT=$CANDIDATE_ROOT" >> "$GITHUB_ENV"
+          echo "CANDIDATE_RUNTIME_VERSION=$CANDIDATE_VERSION" >> "$GITHUB_ENV"
+
+          # Preserve the net10 runtime used by child fixtures; only the net11 host is varied.
+          for framework in Microsoft.NETCore.App Microsoft.AspNetCore.App; do
+            for version in "$DOTNET_ROOT/shared/$framework"/10.*; do
+              if [ -d "$version" ]; then
+                mkdir -p "$CANDIDATE_ROOT/shared/$framework"
+                cp -R "$version" "$CANDIDATE_ROOT/shared/$framework/"
+              fi
+            done
+          done
+          "$DOTNET_ROOT/dotnet" msbuild "$TEST_PROJECT_PATH" \
+            -getProperty:TargetPath -getProperty:MtpBaseArgs > all-results/test-properties.json
 
       - name: Run test iterations (Linux/macOS)
         if: runner.os != 'Windows'
@@ -252,64 +309,82 @@ jobs:
           ASPIRE__TEST__DCPLOGBASEPATH: ${{ github.workspace }}/testresults/dcp
           NUGET_PACKAGES: ${{ github.workspace }}/.packages
           TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: 'netaspireci.azurecr.io'
-          # Skip default quarantine/outerloop exclusion filters so the target test can run
+          ASPIRE_CLI_NUGET_SERVICE_INDEX: https://packagefeedproxy.microsoft.io/nuget/v3/index.json
+          ASPIRE_CI_RUNTIME_COMPARISON: "true"
+          # The explicit comparison filter retains all regular-suite exclusions.
           SkipDefaultTestFilters: true
         run: |
+          set -euo pipefail
           PASS=0
           FAIL=0
           ITERATIONS=${{ env.ITERATIONS_PER_RUNNER }}
 
-          for i in $(seq 1 "$ITERATIONS"); do
-            echo "::group::Iteration $i/$ITERATIONS"
+          TEST_DLL=$(jq -r '.Properties.TargetPath' all-results/test-properties.json)
+          MTP_ARGS=$(jq -r '.Properties.MtpBaseArgs' all-results/test-properties.json)
+          test -f "$TEST_DLL"
+          test -n "$MTP_ARGS"
+          # Keep repository timeouts, but collect stacks rather than active-test names alone.
+          MTP_ARGS="${MTP_ARGS/--hangdump-type none/--hangdump-type mini}"
+          ORDER="baseline candidate"
+          if [ $(( ${{ matrix.index }} % 2 )) -eq 1 ]; then
+            ORDER="candidate baseline"
+          fi
 
-            # Cleanup between iterations
-            rm -rf "${{ github.workspace }}/testresults" 2>/dev/null || true
-            pgrep -lf "dcp" 2>/dev/null | grep -E "\bdcp(\.exe|ctl)?\b" | awk '{print $1}' | while read pid; do
-              kill -9 "$pid" 2>/dev/null || true
-            done
-            sleep 1
+          for mode in $ORDER; do
+            for i in $(seq 1 "$ITERATIONS"); do
+              echo "::group::$mode iteration $i/$ITERATIONS"
+              RESULTS="${{ github.workspace }}/all-results/$mode-$i"
+              mkdir -p "$RESULTS"
+              ROOT="${{ github.workspace }}/.dotnet"
+              VERSION="11.0.0-rc.2.26504.105"
+              COMMIT="820230c386db5b0106c5430b3e5aee92a7826bf5"
+              if [ "$mode" = candidate ]; then
+                ROOT="$CANDIDATE_DOTNET_ROOT"
+                VERSION="$CANDIDATE_RUNTIME_VERSION"
+                COMMIT="fba04ffe869680486931c78fd815b3f694087f91"
+              fi
 
-            # Run test (capture output for zero-test detection)
-            ITER_OUTPUT="${{ github.workspace }}/iter-output-$i.log"
-            set +e  # Disable errexit so pipefail doesn't abort before PIPESTATUS capture
-            ${{ env.DOTNET_SCRIPT }} test --project "${{ env.TEST_PROJECT_PATH }}" \
-              --no-restore \
-              --no-build \
-              -- \
-              --timeout 10m \
-              --results-directory "${{ github.workspace }}/testresults" \
-              ${{ env.TEST_FILTER }} \
-              2>&1 | tee "$ITER_OUTPUT"
-            RESULT=${PIPESTATUS[0]}
-            set -e
+              START=$SECONDS
+              set +e
+              DOTNET_ROOT="$ROOT" DOTNET_ROOT_ARM64="$ROOT" \
+                "$ROOT/dotnet" exec --fx-version "$VERSION" "$TEST_DLL" \
+                $MTP_ARGS \
+                --results-directory "$RESULTS" \
+                --report-trx --report-trx-filename Cli.trx \
+                ${{ env.TEST_FILTER }} \
+                2>&1 | tee "$RESULTS/console.log"
+              RESULT=${PIPESTATUS[0]}
+              set -e
+              echo "$RESULT" > "$RESULTS/testhost-exit-code.txt"
+              echo "$((SECONDS - START))" > "$RESULTS/duration-seconds.txt"
 
-            # Detect zero-test runs (--ignore-exit-code 8 in Testing.targets masks exit code 8)
-            if [ "$RESULT" -eq 0 ]; then
-              if ! grep -qiE "total:\s*[1-9]" "$ITER_OUTPUT" 2>/dev/null; then
-                echo "::error::Iteration $i: Zero tests executed. Verify TEST_FILTER and quarantine settings."
+              if [ "$RESULT" -eq 0 ] &&
+                ! grep -qiE "total:\s*[1-9]" "$RESULTS/console.log"; then
+                echo "::error::$mode iteration $i: Zero tests executed."
                 RESULT=8
               fi
-            fi
-            rm -f "$ITER_OUTPUT"
+              EXPECTED_IDENTITY="RUNTIME_COMPARISON framework=.NET $VERSION processAssembly=$ROOT/shared/Microsoft.NETCore.App/$VERSION/System.Diagnostics.Process.dll processVersion=$VERSION+$COMMIT"
+              if ! grep -Fxq "$EXPECTED_IDENTITY" "$RESULTS/console.log"; then
+                echo "::error::$mode iteration $i: Loaded test-host runtime/Process assembly identity did not match verified source."
+                RESULT=1
+              fi
+              echo "$RESULT" > "$RESULTS/exit-code.txt"
+              if [ "$RESULT" -eq 0 ]; then
+                PASS=$((PASS + 1))
+              else
+                FAIL=$((FAIL + 1))
+              fi
+              echo "runtime=$mode iteration=$i exit=$RESULT" | tee -a all-results/comparison-summary.txt
 
-            if [ "$RESULT" -eq 0 ]; then
-              echo "✅ Iteration $i: PASS"
-              PASS=$((PASS + 1))
-            else
-              echo "❌ Iteration $i: FAIL (exit $RESULT)"
-              FAIL=$((FAIL + 1))
-              mkdir -p "${{ github.workspace }}/all-results/failure-$i"
-              cp -r "${{ github.workspace }}/testresults/"* "${{ github.workspace }}/all-results/failure-$i/" 2>/dev/null || true
-            fi
-
-            echo "::endgroup::"
+              echo "::endgroup::"
+            done
           done
 
           echo ""
           echo "========================================"
           echo "Summary for runner #${{ matrix.index }} on ${{ matrix.os }}"
-          echo "  Passed: $PASS / $ITERATIONS"
-          echo "  Failed: $FAIL / $ITERATIONS"
+          echo "  Passed: $PASS / $((2 * ITERATIONS))"
+          echo "  Failed: $FAIL / $((2 * ITERATIONS))"
           echo "========================================"
 
           if [ "$FAIL" -gt 0 ]; then exit 1; fi
@@ -381,8 +456,8 @@ jobs:
 
           if ($fail -gt 0) { exit 1 }
 
-      - name: Upload failure logs
-        if: failure()
+      - name: Upload runtime comparison evidence
+        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: failures-${{ matrix.os }}-${{ matrix.index }}
