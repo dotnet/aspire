@@ -1495,7 +1495,10 @@ public static partial class JavaHostingExtensions
         // usually free of spaces, which matters because cmd.exe strips quotes in a way that does not
         // match how arguments are escaped for it: when the *first* token on the line is quoted, cmd
         // removes that quote and the last one on the line, mangling everything in between.
-        var relativeWrapperPath = Path.GetRelativePath(workingDirectory, wrapperPath);
+        // Make the path explicit even for a local wrapper: NoDefaultCurrentDirectoryInExePath can
+        // disable cmd's implicit current-directory search.
+        // https://learn.microsoft.com/windows/win32/api/processenv/nf-processenv-needcurrentdirectoryforexepathw
+        var relativeWrapperPath = Path.Combine(".", Path.GetRelativePath(workingDirectory, wrapperPath));
 
         // "call" makes that unreachable rather than merely unlikely. A wrapper reached through a
         // directory with a space in its name — WithWrapperPath("../build tools/mvnw.cmd") — is quoted

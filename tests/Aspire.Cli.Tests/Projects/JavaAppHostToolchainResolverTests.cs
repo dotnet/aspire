@@ -31,7 +31,7 @@ public class JavaAppHostToolchainResolverTests(ITestOutputHelper outputHelper)
             // "call" precedes the wrapper so the first token on the command line is never a quote,
             // which is what stops cmd.exe from stripping quotes around a path containing a space.
             Assert.Equal(
-                ["/c", "call", Path.GetRelativePath(appHostDirectory, wrapperPath), .. toolArgs],
+                ["/c", "call", Path.Combine(".", Path.GetRelativePath(appHostDirectory, wrapperPath)), .. toolArgs],
                 actual.Args);
 
             return;
@@ -332,7 +332,7 @@ public class JavaAppHostToolchainResolverTests(ITestOutputHelper outputHelper)
             // wrapper is never the first token: cmd strips the first and last quote on the line when
             // the first token is quoted, which would mangle a path containing a space.
             Assert.Equal(Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe", invocation.Command);
-            Assert.Equal(["/c", "call", expectedWrapper], invocation.PrefixArgs);
+            Assert.Equal(["/c", "call", Path.Combine(".", expectedWrapper)], invocation.PrefixArgs);
         }
         else
         {
@@ -342,6 +342,36 @@ public class JavaAppHostToolchainResolverTests(ITestOutputHelper outputHelper)
             Assert.Equal("sh", invocation.Command);
             Assert.Equal([wrapperPath], invocation.PrefixArgs);
         }
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task GetToolInvocation_RunsWithoutImplicitCurrentDirectorySearch(bool useMaven)
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var wrapperName = (useMaven, OperatingSystem.IsWindows()) switch
+        {
+            (true, true) => "mvnw.cmd",
+            (true, false) => "mvnw",
+            (false, true) => "gradlew.bat",
+            (false, false) => "gradlew"
+        };
+        File.WriteAllText(
+            Path.Combine(workspace.Path, wrapperName),
+            OperatingSystem.IsWindows() ? "@echo off\r\necho wrapper-ok\r\n" : "#!/bin/sh\nprintf 'wrapper-ok\\n'\n");
+
+        var invocation = JavaAppHostToolchainResolver.GetToolInvocation(
+            workspace.WorkspaceRoot,
+            workspace.WorkspaceRoot,
+            useMaven ? JavaAppHostToolchain.Maven : JavaAppHostToolchain.Gradle);
+        var result = await RunCommandAsync(
+            new CommandSpec { Command = invocation.Command, Args = invocation.PrefixArgs },
+            workspace.Path,
+            new Dictionary<string, string> { ["NoDefaultCurrentDirectoryInExePath"] = "1" });
+
+        Assert.True(result.ExitCode == 0, result.Output);
+        Assert.Equal("wrapper-ok", result.Output.Trim());
     }
 
     [Theory]
@@ -367,7 +397,7 @@ public class JavaAppHostToolchainResolverTests(ITestOutputHelper outputHelper)
 
         if (OperatingSystem.IsWindows())
         {
-            Assert.Equal(["/c", "call", Path.Combine("..", expectedWrapper)], invocation.PrefixArgs);
+            Assert.Equal(["/c", "call", Path.Combine(".", "..", expectedWrapper)], invocation.PrefixArgs);
         }
         else
         {

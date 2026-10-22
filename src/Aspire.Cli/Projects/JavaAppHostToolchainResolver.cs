@@ -342,7 +342,10 @@ internal static class JavaAppHostToolchainResolver
         // mangled; with "call" first the first character is never a quote and the rule cannot apply.
         // "call" is also how one batch file invokes another: it returns control and propagates the
         // exit code. See the quote-processing rules printed by `cmd /?`.
-        var relativeWrapperPath = Path.GetRelativePath(appHostDirectory.FullName, wrapperPath);
+        // Make the path explicit even for a local wrapper: NoDefaultCurrentDirectoryInExePath can
+        // disable cmd's implicit current-directory search.
+        // https://learn.microsoft.com/windows/win32/api/processenv/nf-processenv-needcurrentdirectoryforexepathw
+        var relativeWrapperPath = Path.Combine(".", Path.GetRelativePath(appHostDirectory.FullName, wrapperPath));
 
         return new JavaToolInvocation(
             Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe",

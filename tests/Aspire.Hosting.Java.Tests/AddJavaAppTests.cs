@@ -412,7 +412,65 @@ public class AddJavaAppTests
         var (command, leadingArgs) = JavaHostingExtensions.WrapperInvocationFor(wrapperPath, workingDirectory, isWindows: true);
 
         Assert.Equal(Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe", command);
-        Assert.Equal(["/c", "call", Path.Combine("..", "..", "build tools", wrapperName)], leadingArgs);
+        Assert.Equal(["/c", "call", Path.Combine(".", "..", "..", "build tools", wrapperName)], leadingArgs);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task BuildToolWrapperRunsWithoutImplicitCurrentDirectorySearch(bool useMaven)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithResourceCleanUp(true);
+        using var tempDir = new TempJavaAppDirectory(withWrappers: false);
+        var wrapperName = useMaven ? JavaHostingExtensions.s_defaultMavenWrapper : JavaHostingExtensions.s_defaultGradleWrapper;
+        await File.WriteAllTextAsync(
+            Path.Combine(tempDir.Path, wrapperName),
+            OperatingSystem.IsWindows() ? "@echo off\r\necho wrapper-ok\r\n" : "#!/bin/sh\nprintf 'wrapper-ok\\n'\n");
+
+        var app = builder.AddJavaApp("api", tempDir.Path);
+        if (useMaven)
+        {
+            app.WithMavenGoal("spring-boot:run");
+        }
+        else
+        {
+            app.WithGradleTask("bootRun");
+        }
+
+        var startInfo = new ProcessStartInfo(app.Resource.Command)
+        {
+            WorkingDirectory = tempDir.Path,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false
+        };
+        foreach (var argument in await ArgumentEvaluator.GetArgumentListAsync(app.Resource))
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
+        startInfo.Environment["NoDefaultCurrentDirectoryInExePath"] = "1";
+
+        using var process = Process.Start(startInfo)!;
+        var output = process.StandardOutput.ReadToEndAsync();
+        var error = process.StandardError.ReadToEndAsync();
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(30));
+        try
+        {
+            await process.WaitForExitAsync(timeout.Token);
+        }
+        finally
+        {
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+                await process.WaitForExitAsync();
+            }
+        }
+
+        Assert.Equal(string.Empty, await error);
+        Assert.Equal(0, process.ExitCode);
+        Assert.Equal("wrapper-ok", (await output).Trim());
     }
 
     [Fact]

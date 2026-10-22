@@ -8,15 +8,17 @@
 
 package aspire;
 
-import java.io.FileDescriptor;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.RandomAccessFile;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousByteChannel;
+import java.nio.channels.AsynchronousFileChannel;
+import java.nio.channels.CompletionHandler;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -28,6 +30,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
@@ -216,11 +219,7 @@ class AspireClient {
     private final String socketPath;
     private OutputStream outputStream;
     private InputStream inputStream;
-    // Windows only. inputStream/outputStream are built from this file's descriptor, so the
-    // RandomAccessFile has to outlive connect() -- closing it would close the descriptor they share
-    // and break the connection. Holding it in a field also makes that lifetime explicit to a
-    // compiler's resource-leak analysis, which cannot see the escape through FileDescriptor.
-    private RandomAccessFile namedPipe;
+    private AsynchronousFileChannel namedPipe;
     private final AtomicInteger requestId = new AtomicInteger(0);
     private final Map<String, Function<Object[], Object>> callbacks = new ConcurrentHashMap<>();
     private final Map<String, Consumer<Void>> cancellations = new ConcurrentHashMap<>();
@@ -342,13 +341,44 @@ class AspireClient {
         String pipePath = "\\\\.\\pipe\\" + pipeName;
         debug("Opening Windows named pipe: " + pipePath);
         
-        // Use RandomAccessFile to open the named pipe
-        namedPipe = new RandomAccessFile(pipePath, "rw");
+        // Synchronous pipe handles serialize reads and writes. The reader is already waiting when
+        // authentication writes its request, so use overlapped I/O to keep the connection duplex.
+        // https://learn.microsoft.com/windows/win32/ipc/synchronous-and-overlapped-input-and-output
+        namedPipe = AsynchronousFileChannel.open(Path.of(pipePath), StandardOpenOption.READ, StandardOpenOption.WRITE);
+        var pipe = namedPipe;
+        var channel = new AsynchronousByteChannel() {
+            @Override
+            public Future<Integer> read(ByteBuffer buffer) {
+                return pipe.read(buffer, 0);
+            }
 
-        // Create streams from the RandomAccessFile
-        FileDescriptor fd = namedPipe.getFD();
-        inputStream = new FileInputStream(fd);
-        outputStream = new FileOutputStream(fd);
+            @Override
+            public <A> void read(ByteBuffer buffer, A attachment, CompletionHandler<Integer, ? super A> handler) {
+                pipe.read(buffer, 0, attachment, handler);
+            }
+
+            @Override
+            public Future<Integer> write(ByteBuffer buffer) {
+                return pipe.write(buffer, 0);
+            }
+
+            @Override
+            public <A> void write(ByteBuffer buffer, A attachment, CompletionHandler<Integer, ? super A> handler) {
+                pipe.write(buffer, 0, attachment, handler);
+            }
+
+            @Override
+            public boolean isOpen() {
+                return pipe.isOpen();
+            }
+
+            @Override
+            public void close() throws IOException {
+                pipe.close();
+            }
+        };
+        inputStream = java.nio.channels.Channels.newInputStream(channel);
+        outputStream = java.nio.channels.Channels.newOutputStream(channel);
         
         debug("Named pipe opened successfully");
     }
