@@ -35,6 +35,7 @@ internal sealed class NewCommand : BaseCommand
     private readonly IPackagingService _packagingService;
     private readonly AgentInitCommand _agentInitCommand;
     private readonly ICliHostEnvironment _hostEnvironment;
+    private readonly LocalTemplateFactory _localTemplateFactory;
 
     internal static readonly Option<string?> s_nameOption = new("--name", "-n")
     {
@@ -56,6 +57,11 @@ internal sealed class NewCommand : BaseCommand
         Description = NewCommandStrings.VersionArgumentDescription,
         Recursive = true
     };
+    internal static readonly Option<string?> s_templatePathOption = new("--template-path")
+    {
+        Description = NewCommandStrings.TemplatePathOptionDescription,
+        Recursive = true
+    };
 
     internal static readonly Option<bool?> s_suppressAgentInitOption = new("--suppress-agent-init")
     {
@@ -73,6 +79,7 @@ internal sealed class NewCommand : BaseCommand
         IPackagingService packagingService,
         AgentInitCommand agentInitCommand,
         ICliHostEnvironment hostEnvironment,
+        LocalTemplateFactory localTemplateFactory,
         IConfiguration configuration,
         CommonCommandServices services)
         : base("new", NewCommandStrings.Description, services)
@@ -83,11 +90,13 @@ internal sealed class NewCommand : BaseCommand
         _packagingService = packagingService;
         _agentInitCommand = agentInitCommand;
         _hostEnvironment = hostEnvironment;
+        _localTemplateFactory = localTemplateFactory;
 
         Options.Add(s_nameOption);
         Options.Add(s_outputOption);
         Options.Add(s_sourceOption);
         Options.Add(s_versionOption);
+        Options.Add(s_templatePathOption);
         Options.Add(s_suppressAgentInitOption);
         Options.Add(AgentInitCommand.s_agentsOption);
         Options.Add(AgentInitCommand.s_scopeOption);
@@ -133,10 +142,11 @@ internal sealed class NewCommand : BaseCommand
 
     internal override void PrepareForExecution(ParseResult parseResult)
     {
-        if (!string.IsNullOrWhiteSpace(parseResult.GetValue(s_sourceOption)))
+        if (!string.IsNullOrWhiteSpace(parseResult.GetValue(s_sourceOption)) ||
+            parseResult.GetValue(s_templatePathOption) is not null)
         {
-            // The foreground template lookup applies --source. Background prefetch does not know
-            // about invocation options, so letting it run would still contact fallback feeds.
+            // Local templates do not use feeds, and --source limits foreground package lookup.
+            // Background prefetch does not know about either override and would contact fallback feeds.
             DisableTemplatePackageMetadataPrefetchingForInvocation();
         }
     }
@@ -502,6 +512,24 @@ internal sealed class NewCommand : BaseCommand
     {
         using var activity = Telemetry.StartDiagnosticActivity(this.Name);
 
+        if (parseResult.GetValue(s_templatePathOption) is { } templatePath)
+        {
+            if (string.IsNullOrWhiteSpace(templatePath) || parseResult.CommandResult.Command != this ||
+                new[] { s_sourceOption, s_versionOption, _channelOption, _languageOption }
+                    .Any(option => parseResult.GetResult(option) is { Implicit: false }))
+            {
+                return CommandResult.Failure(CliExitCodes.InvalidCommand, NewCommandStrings.TemplatePathConflictingOptions);
+            }
+
+            var localResult = await _localTemplateFactory.CreateAsync(templatePath, new TemplateInputs
+            {
+                Name = parseResult.GetValue(s_nameOption),
+                Output = parseResult.GetValue(s_outputOption)
+            }, parseResult, cancellationToken);
+
+            return await CompleteTemplateAsync(localResult, parseResult, cancellationToken);
+        }
+
         var source = parseResult.GetValue(s_sourceOption);
         if (!string.IsNullOrWhiteSpace(source) && PackageSourceOverrideMappings.HasCredentialMaterial(source))
         {
@@ -602,6 +630,11 @@ internal sealed class NewCommand : BaseCommand
             await _bundleService.EnsureExtractedAsync(cancellationToken);
         }
 
+        return await CompleteTemplateAsync(templateResult, parseResult, cancellationToken);
+    }
+
+    private async Task<CommandResult> CompleteTemplateAsync(TemplateResult templateResult, ParseResult parseResult, CancellationToken cancellationToken)
+    {
         var workspaceRoot = new DirectoryInfo(templateResult.OutputPath ?? ExecutionContext.WorkingDirectory.FullName);
         var agentInitBinding = PromptBinding.CreateInvertedBoolConfirm(parseResult, s_suppressAgentInitOption, defaultValue: true);
         // New projects get the complete default skill set, including aspireify. This chained flow

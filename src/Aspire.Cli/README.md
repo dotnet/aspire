@@ -36,6 +36,33 @@ aspire <command> [options]
 
 C# AppHosts created with Aspire 17 or later use package directives instead of the obsolete AppHost SDK. When targeting an earlier Aspire release, the empty template retains its SDK directive so it does not require the newer `Aspire.Hosting.Dotnet` package.
 
+### Local templates
+
+Use an unpacked .NET template package without installing it into `dotnet new`:
+
+```bash
+aspire new --template-path ./my-template
+aspire new --template-path ./my-template --name MyApp --output ./MyApp
+```
+
+The directory must contain `.template.config/template.json`, either directly or
+under its template subdirectories. If it contains multiple templates, Aspire
+prompts for a selection. Template parameter metadata drives text, Boolean,
+single-choice, and multiple-choice prompts. The .NET template engine handles
+defaults, replacements, generated symbols, conditional content, and file renames.
+Template post-actions (including restore and scripts) are not executed.
+
+Paths are relative to the working directory. Existing non-empty output directories
+are rejected. `--template-path` cannot be combined with a built-in template name,
+`--source`, `--version`, `--channel`, or `--language`. It does not resolve template
+packages from feeds or require the .NET SDK. Normal optional agent setup still
+applies; use `--suppress-agent-init` to skip it.
+
+In non-interactive mode, point to a single template and provide `--name` and
+`--output` as needed. Template parameters use their engine-defined defaults;
+missing required values produce an error. Custom parameter values are currently
+collected interactively, not through dynamically generated CLI options.
+
 ### Resource Management
 
 | Command | Description |

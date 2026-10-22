@@ -304,6 +304,69 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Create a project from an unpacked .NET template package directory.
+        /// </summary>
+        internal static string TemplatePathOptionDescription {
+            get {
+                return ResourceManager.GetString("TemplatePathOptionDescription", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to --template-path requires a non-empty directory path and cannot be combined with a template subcommand, --source, --version, --channel, or --language..
+        /// </summary>
+        internal static string TemplatePathConflictingOptions {
+            get {
+                return ResourceManager.GetString("TemplatePathConflictingOptions", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The template directory &apos;{0}&apos; does not exist..
+        /// </summary>
+        internal static string TemplateDirectoryNotFound {
+            get {
+                return ResourceManager.GetString("TemplateDirectoryNotFound", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No .NET templates were found in &apos;{0}&apos;. Expected a .template.config/template.json file in the directory or one of its subdirectories..
+        /// </summary>
+        internal static string NoLocalTemplatesFound {
+            get {
+                return ResourceManager.GetString("NoLocalTemplatesFound", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Could not load the local template: {0}.
+        /// </summary>
+        internal static string LocalTemplateLoadFailed {
+            get {
+                return ResourceManager.GetString("LocalTemplateLoadFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Could not create the local template ({0}): {1}.
+        /// </summary>
+        internal static string LocalTemplateCreationFailed {
+            get {
+                return ResourceManager.GetString("LocalTemplateCreationFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The directory contains multiple templates. Run interactively to select one, or point --template-path at a single template directory..
+        /// </summary>
+        internal static string LocalTemplateSelectionRequiresInteraction {
+            get {
+                return ResourceManager.GetString("LocalTemplateSelectionRequiresInteraction", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to The version of the project templates to use.
         /// </summary>
         internal static string VersionArgumentDescription {

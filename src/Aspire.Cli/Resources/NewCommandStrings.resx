@@ -112,6 +112,27 @@
   <data name="NameArgumentDescription" xml:space="preserve">
     <value>The name of the project to create</value>
   </data>
+  <data name="TemplatePathOptionDescription" xml:space="preserve">
+    <value>Create a project from an unpacked .NET template package directory</value>
+  </data>
+  <data name="TemplatePathConflictingOptions" xml:space="preserve">
+    <value>--template-path requires a non-empty directory path and cannot be combined with a template subcommand, --source, --version, --channel, or --language.</value>
+  </data>
+  <data name="TemplateDirectoryNotFound" xml:space="preserve">
+    <value>The template directory '{0}' does not exist.</value>
+  </data>
+  <data name="NoLocalTemplatesFound" xml:space="preserve">
+    <value>No .NET templates were found in '{0}'. Expected a .template.config/template.json file in the directory or one of its subdirectories.</value>
+  </data>
+  <data name="LocalTemplateLoadFailed" xml:space="preserve">
+    <value>Could not load the local template: {0}</value>
+  </data>
+  <data name="LocalTemplateCreationFailed" xml:space="preserve">
+    <value>Could not create the local template ({0}): {1}</value>
+  </data>
+  <data name="LocalTemplateSelectionRequiresInteraction" xml:space="preserve">
+    <value>The directory contains multiple templates. Run interactively to select one, or point --template-path at a single template directory.</value>
+  </data>
   <data name="OutputArgumentDescription" xml:space="preserve">
     <value>The output path for the project</value>
   </data>

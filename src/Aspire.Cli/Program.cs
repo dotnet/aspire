@@ -634,6 +634,7 @@ public class Program
 
         // Template factories.
         builder.Services.AddSingleton<TemplateNuGetConfigService>();
+        builder.Services.AddSingleton<LocalTemplateFactory>();
         builder.Services.AddSingleton<ITemplateProvider, TemplateProvider>();
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, DotNetTemplateFactory>());
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, CliTemplateFactory>());

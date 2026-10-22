@@ -156,6 +156,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.NuGetClientFactory);
         services.AddTransient(options.NuGetPackageCacheFactory);
         services.AddSingleton<TemplateNuGetConfigService>();
+        services.AddSingleton<LocalTemplateFactory>();
         services.AddSingleton(options.TemplateProviderFactory);
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, DotNetTemplateFactory>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, CliTemplateFactory>());
