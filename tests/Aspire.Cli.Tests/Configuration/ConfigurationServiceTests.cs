@@ -122,15 +122,15 @@ public class ConfigurationServiceTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task SetConfigurationAsync_RewritesCrlfFileWithLfLineBreaksAndSingleFinalNewline()
+    public async Task SetConfigurationAsync_RewritesNonOsLineBreaksWithOsLineBreaksAndSingleFinalNewline()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
-        var (service, settingsFilePath) = CreateService(workspace, "{\r\n  \"appHost\": {\r\n    \"path\": \"MyApp.csproj\"\r\n  }\r\n}\r\n");
+        var (service, settingsFilePath) = CreateService(workspace, "{\n  \"appHost\": {\n    \"path\": \"MyApp.csproj\"\n  }\n}\n".ReplaceLineEndings(LineEndingAssert.NonOsNewLine));
 
         await service.SetConfigurationAsync("channel", "daily", isGlobal: false);
 
-        LineEndingAssert.FileIsLfWithSingleFinalNewline(settingsFilePath);
+        LineEndingAssert.FileUsesOsLineBreaksAndSingleFinalNewline(settingsFilePath);
     }
 
     [Fact]
@@ -147,16 +147,16 @@ public class ConfigurationServiceTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task DeleteConfigurationAsync_RewritesCrlfFileWithLfLineBreaksAndSingleFinalNewline()
+    public async Task DeleteConfigurationAsync_RewritesNonOsLineBreaksWithOsLineBreaksAndSingleFinalNewline()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
-        var (service, settingsFilePath) = CreateService(workspace, "{\r\n  \"channel\": \"daily\",\r\n  \"appHost\": {\r\n    \"path\": \"MyApp.csproj\"\r\n  }\r\n}\r\n");
+        var (service, settingsFilePath) = CreateService(workspace, "{\n  \"channel\": \"daily\",\n  \"appHost\": {\n    \"path\": \"MyApp.csproj\"\n  }\n}\n".ReplaceLineEndings(LineEndingAssert.NonOsNewLine));
 
         var deleted = await service.DeleteConfigurationAsync("channel", isGlobal: false);
 
         Assert.True(deleted);
-        LineEndingAssert.FileIsLfWithSingleFinalNewline(settingsFilePath);
+        LineEndingAssert.FileUsesOsLineBreaksAndSingleFinalNewline(settingsFilePath);
     }
 
     [Fact]

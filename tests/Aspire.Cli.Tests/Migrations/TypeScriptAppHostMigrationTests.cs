@@ -223,7 +223,7 @@ public class TypeScriptAppHostMigrationTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task ApplyAsync_WithLegacyAppHost_WritesAspireConfigWithLfLineBreaksAndSingleFinalNewline()
+    public async Task ApplyAsync_WithLegacyAppHost_WritesAspireConfigWithOsLineBreaksAndSingleFinalNewline()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var root = workspace.WorkspaceRoot;
@@ -231,7 +231,7 @@ public class TypeScriptAppHostMigrationTests(ITestOutputHelper outputHelper)
 
         await CreateMigration(workspace).ApplyAsync(MigrationContext.CurrentDirectory, CancellationToken.None);
 
-        LineEndingAssert.FileIsLfWithSingleFinalNewline(Path.Combine(root.FullName, "aspire.config.json"));
+        LineEndingAssert.FileUsesOsLineBreaksAndSingleFinalNewline(Path.Combine(root.FullName, "aspire.config.json"));
     }
 
     [Fact]

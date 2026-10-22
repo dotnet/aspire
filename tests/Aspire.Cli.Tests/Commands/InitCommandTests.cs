@@ -269,7 +269,7 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task InitCommand_WhenNoSolutionExists_WritesConfigFilesWithLfLineBreaksAndSingleFinalNewline()
+    public async Task InitCommand_WhenNoSolutionExists_WritesConfigFilesWithOsLineBreaksAndSingleFinalNewline()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
@@ -281,8 +281,8 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await parseResult.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(CliExitCodes.Success, exitCode);
-        LineEndingAssert.FileIsLfWithSingleFinalNewline(Path.Combine(workspace.WorkspaceRoot.FullName, "aspire.config.json"));
-        LineEndingAssert.FileIsLfWithSingleFinalNewline(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.run.json"));
+        LineEndingAssert.FileUsesOsLineBreaksAndSingleFinalNewline(Path.Combine(workspace.WorkspaceRoot.FullName, "aspire.config.json"));
+        LineEndingAssert.FileUsesOsLineBreaksAndSingleFinalNewline(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.run.json"));
     }
 
     [Fact]
@@ -884,12 +884,12 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task InitCommand_WhenAspireConfigHasCrlfLineBreaks_RewritesItWithLfLineBreaks()
+    public async Task InitCommand_WhenAspireConfigHasNonOsLineBreaks_RewritesItWithOsLineBreaks()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
         var configPath = Path.Combine(workspace.WorkspaceRoot.FullName, AspireConfigFile.FileName);
-        await File.WriteAllTextAsync(configPath, "{\r\n  \"channel\": \"stable\"\r\n}\r\n");
+        await File.WriteAllTextAsync(configPath, "{\n  \"channel\": \"stable\"\n}\n".ReplaceLineEndings(LineEndingAssert.NonOsNewLine));
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         using var serviceProvider = services.BuildServiceProvider();
@@ -899,7 +899,7 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await parseResult.InvokeAsync().DefaultTimeout();
 
         Assert.Equal(CliExitCodes.Success, exitCode);
-        LineEndingAssert.FileIsLfWithSingleFinalNewline(configPath);
+        LineEndingAssert.FileUsesOsLineBreaksAndSingleFinalNewline(configPath);
         Assert.Equal("stable", JsonNode.Parse(await File.ReadAllTextAsync(configPath))!["channel"]!.GetValue<string>());
     }
 

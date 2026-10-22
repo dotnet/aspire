@@ -206,7 +206,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public void Save_WritesLfLineBreaksAndSingleFinalNewline()
+    public void Save_WritesOsLineBreaksAndSingleFinalNewline()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
@@ -218,7 +218,7 @@ public class AspireConfigFileTests(ITestOutputHelper outputHelper)
 
         config.Save(workspace.WorkspaceRoot.FullName);
 
-        LineEndingAssert.FileIsLfWithSingleFinalNewline(Path.Combine(workspace.WorkspaceRoot.FullName, AspireConfigFile.FileName));
+        LineEndingAssert.FileUsesOsLineBreaksAndSingleFinalNewline(Path.Combine(workspace.WorkspaceRoot.FullName, AspireConfigFile.FileName));
     }
 
     [Fact]

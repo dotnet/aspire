@@ -229,24 +229,38 @@ public class ConfigurationHelperTests(ITestOutputHelper outputHelper)
     }
 
     [Theory]
-    [InlineData("{\r\n  \"a\": 1\r\n}", "{\n  \"a\": 1\n}\n")]
-    [InlineData("{\r\n  \"a\": 1\r\n}\r\n", "{\n  \"a\": 1\n}\n")]
-    [InlineData("{\n  \"a\": 1\n}", "{\n  \"a\": 1\n}\n")]
-    [InlineData("{\n  \"a\": 1\n}\n", "{\n  \"a\": 1\n}\n")]
-    [InlineData("{\n  \"a\": 1\n}\n\n\n", "{\n  \"a\": 1\n}\n")]
-    [InlineData("{}", "{}\n")]
-    // Only CRLF is rewritten: a lone CR, U+2028 and U+0085 stay as they are, unlike with string.ReplaceLineEndings.
-    [InlineData("{\r\n  \"a\": \"x\ry\u2028z\u0085w\"\r\n}", "{\n  \"a\": \"x\ry\u2028z\u0085w\"\n}\n")]
-    public void NormalizeJsonFileContent_ReturnsLfWithSingleFinalNewline(string json, string expected)
+    [InlineData("{\r\n  \"a\": 1\r\n}", "\n", "{\n  \"a\": 1\n}\n")]
+    [InlineData("{\r\n  \"a\": 1\r\n}\r\n", "\n", "{\n  \"a\": 1\n}\n")]
+    [InlineData("{\n  \"a\": 1\n}", "\n", "{\n  \"a\": 1\n}\n")]
+    [InlineData("{\n  \"a\": 1\n}\n\n\n", "\n", "{\n  \"a\": 1\n}\n")]
+    [InlineData("{\r\n  \"a\": 1\r\n}\r\n\r\n", "\n", "{\n  \"a\": 1\n}\n")]
+    [InlineData("{}", "\n", "{}\n")]
+    [InlineData("{\n  \"a\": 1\n}", "\r\n", "{\r\n  \"a\": 1\r\n}\r\n")]
+    [InlineData("{\n  \"a\": 1\n}\n", "\r\n", "{\r\n  \"a\": 1\r\n}\r\n")]
+    [InlineData("{\r\n  \"a\": 1\r\n}", "\r\n", "{\r\n  \"a\": 1\r\n}\r\n")]
+    [InlineData("{\r\n  \"a\": 1\r\n}\r\n\r\n", "\r\n", "{\r\n  \"a\": 1\r\n}\r\n")]
+    [InlineData("{\n  \"a\": 1,\r\n  \"b\": 2\n}", "\r\n", "{\r\n  \"a\": 1,\r\n  \"b\": 2\r\n}\r\n")]
+    [InlineData("{}", "\r\n", "{}\r\n")]
+    // Only CRLF and LF are rewritten: U+0085, U+2028 and U+2029 stay as they are, unlike with string.ReplaceLineEndings.
+    [InlineData("{\n  \"a\": \"x\u0085y\u2028z\u2029w\"\n}", "\r\n", "{\r\n  \"a\": \"x\u0085y\u2028z\u2029w\"\r\n}\r\n")]
+    public void NormalizeJsonFileContent_UsesNewLineAndSingleFinalNewline(string json, string newLine, string expected)
     {
-        var normalized = ConfigurationHelper.NormalizeJsonFileContent(json);
+        var normalized = ConfigurationHelper.NormalizeJsonFileContent(json, newLine);
 
         Assert.Equal(expected, normalized);
-        Assert.Equal(expected, ConfigurationHelper.NormalizeJsonFileContent(normalized));
+        Assert.Equal(expected, ConfigurationHelper.NormalizeJsonFileContent(normalized, newLine));
     }
 
     [Fact]
-    public void WriteSettingsFile_WritesLfLineBreaksAndSingleFinalNewline()
+    public void NormalizeJsonFileContent_ConvertsNonOsLineBreaksToOsLineBreaks()
+    {
+        var json = "{" + LineEndingAssert.NonOsNewLine + "  \"a\": 1" + LineEndingAssert.NonOsNewLine + "}";
+
+        LineEndingAssert.UsesOsLineBreaksAndSingleFinalNewline(ConfigurationHelper.NormalizeJsonFileContent(json));
+    }
+
+    [Fact]
+    public void WriteSettingsFile_WritesOsLineBreaksAndSingleFinalNewline()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
@@ -259,12 +273,12 @@ public class ConfigurationHelperTests(ITestOutputHelper outputHelper)
 
         ConfigurationHelper.WriteSettingsFile(settingsPath, settings);
 
-        LineEndingAssert.FileIsLfWithSingleFinalNewline(settingsPath);
+        LineEndingAssert.FileUsesOsLineBreaksAndSingleFinalNewline(settingsPath);
         Assert.Equal("daily", JsonNode.Parse(File.ReadAllText(settingsPath))!["channel"]!.GetValue<string>());
     }
 
     [Fact]
-    public async Task WriteSettingsFileAsync_WritesLfLineBreaksAndSingleFinalNewline()
+    public async Task WriteSettingsFileAsync_WritesOsLineBreaksAndSingleFinalNewline()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
@@ -277,22 +291,22 @@ public class ConfigurationHelperTests(ITestOutputHelper outputHelper)
 
         await ConfigurationHelper.WriteSettingsFileAsync(settingsPath, settings);
 
-        LineEndingAssert.FileIsLfWithSingleFinalNewline(settingsPath);
+        LineEndingAssert.FileUsesOsLineBreaksAndSingleFinalNewline(settingsPath);
         Assert.Equal("daily", JsonNode.Parse(File.ReadAllText(settingsPath))!["channel"]!.GetValue<string>());
     }
 
     [Fact]
-    public void TryNormalizeSettingsFile_RewritesCrlfFileWithLfLineBreaks()
+    public void TryNormalizeSettingsFile_RewritesNonOsLineBreaksWithOsLineBreaks()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
 
         var settingsPath = Path.Combine(workspace.WorkspaceRoot.FullName, AspireConfigFile.FileName);
-        File.WriteAllText(settingsPath, "{\r\n  \"features:showAllTemplates\": true\r\n}");
+        File.WriteAllText(settingsPath, "{" + LineEndingAssert.NonOsNewLine + "  \"features:showAllTemplates\": true" + LineEndingAssert.NonOsNewLine + "}");
 
         var normalized = ConfigurationHelper.TryNormalizeSettingsFile(settingsPath);
 
         Assert.True(normalized);
-        LineEndingAssert.FileIsLfWithSingleFinalNewline(settingsPath);
+        LineEndingAssert.FileUsesOsLineBreaksAndSingleFinalNewline(settingsPath);
     }
 
     [Fact]

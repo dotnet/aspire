@@ -223,16 +223,30 @@ internal static class ConfigurationHelper
     }
 
     /// <summary>
-    /// Returns serialized JSON in the form the CLI writes to JSON config files: LF line breaks and exactly
-    /// one trailing newline, on every OS.
+    /// Returns serialized JSON in the form the CLI writes to JSON config files: the OS line break and exactly
+    /// one trailing newline.
     /// </summary>
-    internal static string NormalizeJsonFileContent(string json)
+    internal static string NormalizeJsonFileContent(string json) => NormalizeJsonFileContent(json, Environment.NewLine);
+
+    /// <summary>
+    /// Returns serialized JSON with <paramref name="newLine"/> as every line break and exactly one trailing
+    /// <paramref name="newLine"/>.
+    /// </summary>
+    internal static string NormalizeJsonFileContent(string json, string newLine)
     {
-        // System.Text.Json indents with Environment.NewLine (CRLF on Windows) and writes no trailing newline,
-        // so the same file would come out differently per platform. Only CRLF is rewritten: JSON forbids raw
-        // control characters inside strings and the serializer always escapes them, so a raw CRLF can only be
-        // indentation between tokens and replacing it cannot change a value.
-        return json.Replace("\r\n", "\n").TrimEnd('\n') + "\n";
+        // Config files get the OS line break, so they match what an editor on that OS produces and git
+        // (core.autocrlf, .gitattributes) can normalize them like any other text file. Without this the result
+        // depends on where the text came from: System.Text.Json indents with Environment.NewLine and writes no
+        // trailing newline, while a file copied from the embedded templates keeps the line breaks of the
+        // checkout that built the CLI.
+        //
+        // Only CRLF and LF are rewritten, not everything string.ReplaceLineEndings treats as a line break:
+        // JSON forbids raw control characters inside strings and the serializer always escapes them, so a raw
+        // CRLF or LF can only be whitespace between tokens and replacing it cannot change a value, whereas
+        // U+0085, U+2028 and U+2029 are legal raw inside a string.
+        var lf = json.Replace("\r\n", "\n", StringComparison.Ordinal).TrimEnd('\n') + "\n";
+
+        return newLine == "\n" ? lf : lf.Replace("\n", newLine, StringComparison.Ordinal);
     }
 
     /// <summary>

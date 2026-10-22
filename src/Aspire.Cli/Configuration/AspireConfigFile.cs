@@ -189,7 +189,7 @@ internal sealed class AspireConfigFile
     /// <summary>
     /// Saves aspire.config.json to the specified directory.
     /// Uses relaxed JSON escaping so non-ASCII characters (CJK, etc.) are preserved as-is.
-    /// The file is written with LF line breaks and a final newline on every OS.
+    /// The file is written with the OS line break and a final newline.
     /// </summary>
     public void Save(string directory)
     {

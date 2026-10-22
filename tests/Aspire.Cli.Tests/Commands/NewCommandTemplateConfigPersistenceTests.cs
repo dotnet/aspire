@@ -211,10 +211,10 @@ public class NewCommandTemplateConfigPersistenceTests(ITestOutputHelper outputHe
     }
 
     /// <summary>
-    /// Every template that writes <c>aspire.config.json</c> must produce LF line breaks and a final
-    /// newline on every OS, whether it copies an embedded template file (the Go and Python starters)
-    /// or saves the config through the CLI (the rest), so the scaffold never depends on the
-    /// platform or the git checkout settings of whoever built the CLI.
+    /// Every template that writes <c>aspire.config.json</c> must produce the OS line break and a single
+    /// final newline, whether the file comes from a copied embedded template or from the CLI saving the
+    /// config, so the scaffold matches the files the CLI serializes later regardless of the git checkout
+    /// settings of whoever built the CLI.
     /// </summary>
     [Theory]
     [InlineData(KnownTemplateId.TypeScriptEmptyAppHost)]
@@ -226,7 +226,7 @@ public class NewCommandTemplateConfigPersistenceTests(ITestOutputHelper outputHe
     [InlineData(KnownTemplateId.PythonStarter)]
     [InlineData(KnownTemplateId.GoStarter)]
     [InlineData(KnownTemplateId.JavaStarter)]
-    public async Task Template_WritesAspireConfigWithLfLineBreaksAndSingleFinalNewline(string templateId)
+    public async Task Template_WritesAspireConfigWithOsLineBreaksAndSingleFinalNewline(string templateId)
     {
         var content = await ScaffoldAndReadAsync(
             templateId,
@@ -235,7 +235,7 @@ public class NewCommandTemplateConfigPersistenceTests(ITestOutputHelper outputHe
             explicitChannelArg: null,
             outputDirectory => File.ReadAllText(Path.Combine(outputDirectory, AspireConfigFile.FileName)));
 
-        LineEndingAssert.IsLfWithSingleFinalNewline(content);
+        LineEndingAssert.UsesOsLineBreaksAndSingleFinalNewline(content);
     }
 
     [Fact]
