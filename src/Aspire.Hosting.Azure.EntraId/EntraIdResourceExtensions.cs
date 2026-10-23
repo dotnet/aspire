@@ -46,6 +46,13 @@ public static class EntraIdResourceExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    /// <ats-remarks>
+    /// Provisions an application and service principal through Microsoft Graph Bicep, requiring Azure provisioning
+    /// configuration and permission to create registrations in the subscription's tenant.
+    /// Reference the result from a consuming resource to inject authentication configuration.
+    /// Use addExistingEntraApplication or addExistingEntraApplicationFromParameters to reference an existing registration
+    /// without enabling Azure provisioning or requiring Graph access.
+    /// </ats-remarks>
     [AspireExport]
     public static IResourceBuilder<EntraIdApplicationResource> AddEntraIdApplication(
         this IDistributedApplicationBuilder builder,
@@ -358,6 +365,13 @@ public static class EntraIdResourceExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    /// <ats-remarks>
+    /// The tenant and client arguments are parameter resources, not strings. Their values are validated at startup:
+    /// the home tenant must be a GUID or domain name, and the client ID must be a GUID.
+    /// Missing or invalid values put the resource in FailedToStart and log the reason.
+    /// This only supplies configuration; Aspire does not query Microsoft Graph or deploy this registration.
+    /// Use addExistingEntraApplication for literal IDs, or addEntraIdApplication to create a registration.
+    /// </ats-remarks>
     [AspireExport("addExistingEntraApplicationFromParameters")]
     public static IResourceBuilder<EntraIdApplicationResource> AddExistingEntraApplication(
         this IDistributedApplicationBuilder builder,
@@ -420,6 +434,12 @@ public static class EntraIdResourceExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    /// <ats-remarks>
+    /// Pass literal IDs: the registration's home tenant as a GUID or domain name, and its client ID as a GUID.
+    /// Do not pass a sign-in keyword such as organizations; configure permitted sign-in audiences with withSignInAudience.
+    /// This only supplies configuration; Aspire does not query Microsoft Graph or deploy this registration.
+    /// Use addExistingEntraApplicationFromParameters when the IDs come from parameter resources.
+    /// </ats-remarks>
     [AspireExport]
     public static IResourceBuilder<EntraIdApplicationResource> AddExistingEntraApplication(
         this IDistributedApplicationBuilder builder,
@@ -464,6 +484,12 @@ public static class EntraIdResourceExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    /// <ats-remarks>
+    /// Pass parameter resources for the registration's home tenant and client ID; their values are validated at startup.
+    /// This does not undo the Azure provisioning setup enabled by addEntraIdApplication, so deployment can still require
+    /// Azure authentication and provisioning configuration. Prefer addExistingEntraApplicationFromParameters when
+    /// referencing an existing registration without enabling provisioning.
+    /// </ats-remarks>
     [AspireExport("asExistingApplicationFromParameters")]
     public static IResourceBuilder<EntraIdApplicationResource> AsExistingApplication(
         this IResourceBuilder<EntraIdApplicationResource> builder,
@@ -507,6 +533,13 @@ public static class EntraIdResourceExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    /// <ats-remarks>
+    /// Pass the registration's home tenant as a GUID or domain name, not a sign-in keyword, and its client ID as a GUID.
+    /// Use withSignInAudience to allow accounts from other tenants to sign in.
+    /// This does not undo the Azure provisioning setup enabled by addEntraIdApplication, so deployment can still require
+    /// Azure authentication and provisioning configuration. Prefer addExistingEntraApplication when referencing an
+    /// existing registration without enabling provisioning. Use asExistingApplicationFromParameters for parameter resources.
+    /// </ats-remarks>
     [AspireExport]
     public static IResourceBuilder<EntraIdApplicationResource> AsExistingApplication(
         this IResourceBuilder<EntraIdApplicationResource> builder,
@@ -829,6 +862,21 @@ public static class EntraIdResourceExtensions
     /// <summary>
     /// Publishes federation trust for all consumers, a compute resource, or a managed identity.
     /// </summary>
+    /// <ats-summary>Configures publish-time managed identity federation for a registration created by Aspire.</ats-summary>
+    /// <ats-param name="identity">
+    /// Omit to trust every referencing resource's own user-assigned managed identity, including later references.
+    /// Pass a compute resource to trust only that resource's identity; it must reference this application.
+    /// Pass a user-assigned managed identity to trust that identity; every consumer must be configured to use it.
+    /// </ats-param>
+    /// <ats-returns>The application resource builder for chaining.</ats-returns>
+    /// <ats-remarks>
+    /// Aspire creates the federated identity credentials on the registration when publishing.
+    /// Compute identities are resolved after the Azure environment prepares the resources.
+    /// This throws for an existing registration, which Aspire never modifies; configure its trust yourself and use
+    /// withFederatedManagedIdentityCredential with the managed identity's client ID instead.
+    /// Federation is not used when running locally; add another credential for local development.
+    /// Only user-assigned managed identities are supported, in Azure public, Azure US Government, and Azure China.
+    /// </ats-remarks>
     [AspireExport("publishWithFederatedManagedIdentityCredential")]
     internal static IResourceBuilder<EntraIdApplicationResource> PublishWithFederatedManagedIdentityCredentialForPolyglot(
         this IResourceBuilder<EntraIdApplicationResource> builder,
@@ -846,6 +894,14 @@ public static class EntraIdResourceExtensions
     /// <summary>
     /// Creates a managed identity credential with optional token exchange overrides for use with withCredential.
     /// </summary>
+    /// <ats-param name="managedIdentityClientId">The user-assigned managed identity's client ID, as a GUID.</ats-param>
+    /// <ats-param name="tokenExchangeUrl">The token exchange audience. Omit to use api://AzureADTokenExchange; supply the appropriate audience for a sovereign cloud.</ats-param>
+    /// <ats-param name="tokenExchangeAuthority">An optional token exchange authority override when it differs from the application's authority.</ats-param>
+    /// <ats-returns>An opaque credential handle to pass to withCredential.</ats-returns>
+    /// <ats-remarks>
+    /// This configures a credential only; it does not create federation trust or attach an identity to a consumer.
+    /// The registration must already trust the managed identity, and the consuming service must be able to use it.
+    /// </ats-remarks>
     [AspireExport]
     internal static EntraIdClientCredential CreateEntraIdFederatedIdentityCredential(
         this IDistributedApplicationBuilder builder,
@@ -865,6 +921,10 @@ public static class EntraIdResourceExtensions
     /// <summary>
     /// Creates a certificate file credential for use with withCredential. The password must be a secret parameter.
     /// </summary>
+    /// <ats-param name="filePath">The certificate file path in the consuming service's filesystem, not the AppHost's filesystem.</ats-param>
+    /// <ats-param name="password">An optional secret parameter resource containing the certificate password, not a literal password.</ats-param>
+    /// <ats-returns>An opaque credential handle to pass to withCredential.</ats-returns>
+    /// <ats-remarks>The certificate file must be made available to the consuming service separately; this does not copy or mount it.</ats-remarks>
     [AspireExport]
     internal static EntraIdClientCredential CreateEntraIdFileCertificateCredential(
         this IDistributedApplicationBuilder builder,
@@ -884,6 +944,9 @@ public static class EntraIdResourceExtensions
     /// <summary>
     /// Creates a signed assertion file credential for use with withCredential. Omit the path to use AZURE_FEDERATED_TOKEN_FILE.
     /// </summary>
+    /// <ats-param name="filePath">The assertion file path in the consuming service. Omit to use that service's AZURE_FEDERATED_TOKEN_FILE environment variable.</ats-param>
+    /// <ats-returns>An opaque credential handle to pass to withCredential.</ats-returns>
+    /// <ats-remarks>This does not create the assertion file or configure federation trust; those must be supplied separately.</ats-remarks>
     [AspireExport]
     internal static EntraIdClientCredential CreateEntraIdSignedAssertionFileCredential(
         this IDistributedApplicationBuilder builder,
@@ -1001,6 +1064,15 @@ public static class EntraIdResourceExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="credential">A fully configured <see cref="EntraIdClientCredential"/>.</param>
     /// <returns>The resource builder for chaining.</returns>
+    /// <ats-param name="credential">
+    /// A credential handle returned by createEntraIdFederatedIdentityCredential,
+    /// createEntraIdFileCertificateCredential, or createEntraIdSignedAssertionFileCredential.
+    /// </ats-param>
+    /// <ats-remarks>
+    /// Credentials are opaque handles, not objects to construct or edit in the AppHost language.
+    /// For other credential types, use withClientSecret, withCertificateFromKeyVault,
+    /// withCertificateThumbprint, or withCertificateDistinguishedName directly.
+    /// </ats-remarks>
     [AspireExport]
     public static IResourceBuilder<EntraIdApplicationResource> WithCredential(
         this IResourceBuilder<EntraIdApplicationResource> builder,
@@ -1154,6 +1226,11 @@ public static class EntraIdResourceExtensions
     ///     .WithRedirectUris(signIn, signOut);
     /// </code>
     /// </example>
+    /// <ats-remarks>
+    /// Pass an array of parameter resources. Each value may contain comma-separated URIs without surrounding whitespace;
+    /// a URI supplied this way cannot itself contain a comma. Use withRedirectUris for an array of literal URI strings.
+    /// Both methods append in call order. Endpoints are not discovered automatically, and existing registrations are not modified.
+    /// </ats-remarks>
     [AspireExport("withRedirectUrisFromParameters")]
     public static IResourceBuilder<EntraIdApplicationResource> WithRedirectUris(
         this IResourceBuilder<EntraIdApplicationResource> builder,
@@ -1209,6 +1286,14 @@ public static class EntraIdResourceExtensions
     ///     .WithRedirectUris(web.GetEndpoint("https"), "/signin-oidc", "/signout-callback-oidc");
     /// </code>
     /// </example>
+    /// <ats-remarks>
+    /// Pass an endpoint reference and an array of callback paths starting with '/'.
+    /// Paths must match the consuming application's authentication configuration.
+    /// Locally, the endpoint's allocated primary URL is used; when publishing, its compute environment supplies the host
+    /// and the scheme is HTTPS. Add URL-customization callbacks before this call.
+    /// For a gateway or custom domain with a different external URL, use withRedirectUris or withRedirectUrisFromParameters instead.
+    /// Existing registrations are not modified.
+    /// </ats-remarks>
     [AspireExport("withRedirectUrisForEndpoint")]
     public static IResourceBuilder<EntraIdApplicationResource> WithRedirectUris(
         this IResourceBuilder<EntraIdApplicationResource> builder,
@@ -1270,6 +1355,13 @@ public static class EntraIdResourceExtensions
     ///     .WithRedirectUris(host, "/signin-oidc", "/signout-callback-oidc");
     /// </code>
     /// </example>
+    /// <ats-remarks>
+    /// Pass a host parameter resource, the first callback path, and an array of additional callback paths.
+    /// The host may include a port but must not include a scheme or path. Callback paths must start with '/'.
+    /// The generated URI is always HTTPS.
+    /// Use withRedirectUrisFromParameters when parameters contain complete callback URIs instead.
+    /// Existing registrations are not modified.
+    /// </ats-remarks>
     [AspireExport("withRedirectUrisForHost")]
     public static IResourceBuilder<EntraIdApplicationResource> WithRedirectUris(
         this IResourceBuilder<EntraIdApplicationResource> builder,
@@ -1348,6 +1440,13 @@ public static class EntraIdResourceExtensions
     /// <remarks>
     /// See <see cref="WithApplicationOwners(IResourceBuilder{EntraIdApplicationResource}, string[])"/> for permission and append semantics.
     /// </remarks>
+    /// <ats-remarks>
+    /// Pass an array of parameter resources whose values are owner object IDs, not client IDs.
+    /// Ownership grants management access and is appended without removing existing owners.
+    /// The deploying identity needs permission to manage application owners, such as Application.ReadWrite.All.
+    /// Only registrations created by Aspire are modified. Use withApplicationOwners for literal object IDs.
+    /// Service principal ownership is configured separately with withServicePrincipalOwnersFromParameters.
+    /// </ats-remarks>
     [AspireExport("withApplicationOwnersFromParameters")]
     public static IResourceBuilder<EntraIdApplicationResource> WithApplicationOwners(
         this IResourceBuilder<EntraIdApplicationResource> builder,
@@ -1389,6 +1488,13 @@ public static class EntraIdResourceExtensions
     /// <param name="ownerObjectIds">Parameters whose values are the object IDs of the users or service principals to add as owners.</param>
     /// <returns>The resource builder for chaining.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> or <paramref name="ownerObjectIds"/> is null.</exception>
+    /// <ats-remarks>
+    /// Pass an array of parameter resources whose values are owner object IDs, not client IDs.
+    /// Service principal ownership is separate from application registration ownership.
+    /// Owners are appended without removing existing owners and require the deploying identity to have permission
+    /// to manage them. Only service principals created by Aspire are modified.
+    /// Use withServicePrincipalOwners for literal object IDs.
+    /// </ats-remarks>
     [AspireExport("withServicePrincipalOwnersFromParameters")]
     public static IResourceBuilder<EntraIdApplicationResource> WithServicePrincipalOwners(
         this IResourceBuilder<EntraIdApplicationResource> builder,
@@ -1424,6 +1530,12 @@ public static class EntraIdResourceExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="ownerObjectIds">Parameters whose values are the object IDs of the users or service principals to add as owners.</param>
     /// <returns>The resource builder for chaining.</returns>
+    /// <ats-remarks>
+    /// Pass an array of parameter resources whose values are owner object IDs, not client IDs.
+    /// Grants ownership of both the application registration and service principal, appending without removing existing owners.
+    /// The deploying identity must have permission to manage both owner lists. Existing registrations are not modified.
+    /// Use withOwners for literal object IDs.
+    /// </ats-remarks>
     [AspireExport("withOwnersFromParameters")]
     public static IResourceBuilder<EntraIdApplicationResource> WithOwners(
         this IResourceBuilder<EntraIdApplicationResource> builder,
@@ -1625,6 +1737,14 @@ public static class EntraIdResourceExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    /// <ats-remarks>
+    /// Use withReference with an Entra application, or call withEntraIdReference explicitly.
+    /// The consuming resource's type determines the configuration format, regardless of the AppHost language:
+    /// .NET programs default to AzureAd__TenantId and AzureAd__ClientId, while other resources use uppercase snake case
+    /// with the application resource name as prefix, such as ENTRA_API_TENANT_ID and ENTRA_API_CLIENT_ID.
+    /// connectionName customizes the prefix; an empty string removes it and its separator.
+    /// This injects configuration only; the consuming service must configure its own authentication library.
+    /// </ats-remarks>
     [AspireExport("withEntraIdReference")]
     public static IResourceBuilder<T> WithReference<T>(
         this IResourceBuilder<T> builder,
