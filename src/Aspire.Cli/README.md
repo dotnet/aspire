@@ -66,7 +66,7 @@ takes precedence over a tag with the same name. Use `refs/tags/name` to select
 that tag explicitly.
 
 Git must be on `PATH` when resolving named refs or downloading a checkout.
-Successful checkouts are retained under `~/.aspire/cache/templates/`, keyed by
+Successful checkouts are retained under `~/.aspire/cache/tmpl/`, keyed by
 the repository, normalized template path, and resolved commit SHA. Different
 refs pointing to the same commit share an entry; moving a branch or tag selects
 a new entry. Cache misses fetch only the resolved commit with depth one and

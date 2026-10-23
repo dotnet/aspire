@@ -102,7 +102,7 @@ internal sealed class TemplateEngineFactory(
 
     private async Task<string> GetRepositoryTemplateAsync(string repository, string templatePath, string? reference, CancellationToken cancellationToken)
     {
-        var cacheRoot = Path.Combine(executionContext.CacheDirectory.FullName, "templates");
+        var cacheRoot = Path.Combine(executionContext.CacheDirectory.FullName, "tmpl");
         var pathRoot = Path.Combine(cacheRoot, "repository");
         var relativePath = Path.GetRelativePath(pathRoot, Path.GetFullPath(templatePath, pathRoot));
         if (Path.IsPathRooted(templatePath) || relativePath == ".." ||

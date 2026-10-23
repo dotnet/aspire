@@ -475,7 +475,7 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
         var interaction = new TestInteractionService();
         var services = CreateServices(workspace, interaction, interactive: false);
         services.AddSingleton<IProcessExecutionFactory>(new ProcessExecutionFactory(new HostEnvironment(), NullLogger<ProcessExecutionFactory>.Instance));
-        var cacheRoot = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "templates");
+        var cacheRoot = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "tmpl");
         using (var provider = services.BuildServiceProvider())
         {
             List<string> arguments = ["new", "--template-repository", new Uri(repository.FullName).AbsoluteUri,
@@ -538,7 +538,7 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
             Assert.False(Directory.Exists(Path.Combine(workspace.Path, "out")));
         }
 
-        Assert.Empty(Directory.GetFileSystemEntries(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "templates")));
+        Assert.Empty(Directory.GetFileSystemEntries(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "tmpl")));
     }
 
     [Theory]
@@ -567,7 +567,7 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
             Assert.False(Directory.Exists(Path.Combine(workspace.Path, "out")));
         }
 
-        Assert.False(Directory.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "templates")));
+        Assert.False(Directory.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "tmpl")));
     }
 
     [Fact]
@@ -605,7 +605,7 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
             Assert.False(Directory.Exists(Path.Combine(workspace.Path, "out")));
         }
 
-        Assert.Empty(Directory.GetFileSystemEntries(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "templates")));
+        Assert.Empty(Directory.GetFileSystemEntries(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "tmpl")));
         Assert.True(Directory.Exists(workspace.Path));
     }
 
@@ -639,7 +639,7 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
             Assert.False(Directory.Exists(Path.Combine(workspace.Path, "out")));
         }
 
-        Assert.Empty(Directory.GetFileSystemEntries(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "templates")));
+        Assert.Empty(Directory.GetFileSystemEntries(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "tmpl")));
     }
 
     [Fact]
@@ -668,7 +668,7 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
         {
             var templates = provider.GetRequiredService<ITemplateProvider>();
             var first = Assert.Single(await templates.GetTemplatesAsync(new TemplateSource("template", "-repository", "main")));
-            var cacheRoot = Path.Combine(provider.GetRequiredService<CliExecutionContext>().CacheDirectory.FullName, "templates");
+            var cacheRoot = Path.Combine(provider.GetRequiredService<CliExecutionContext>().CacheDirectory.FullName, "tmpl");
             if (!OperatingSystem.IsWindows())
             {
                 Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute, File.GetUnixFileMode(cacheRoot));
@@ -698,7 +698,7 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
             Assert.False(Directory.Exists(path));
             Assert.False(File.Exists(TemporaryCacheDirectory.GetLeasePath(Directory.GetParent(path)!.FullName)));
         });
-        Assert.Single(Directory.GetFileSystemEntries(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "templates")));
+        Assert.Single(Directory.GetFileSystemEntries(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "tmpl")));
     }
 
     [Fact]
@@ -734,7 +734,7 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
             ("qualified-tag", "refs/tags/annotated"),
             ("sha", firstSha)
         ];
-        var cacheRoot = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "templates");
+        var cacheRoot = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "tmpl");
         foreach (var (label, reference) in requests)
         {
             await GenerateAsync(label, reference);
@@ -811,7 +811,7 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
         Assert.Single(await templates.GetTemplatesAsync(new TemplateSource("./one", "repository-a", "same-commit-tag")));
         Assert.Equal(5, gitRunner.ResolveCalls.Count);
         Assert.Equal(4, gitRunner.CloneCalls.Count);
-        var cacheRoot = Path.Combine(provider.GetRequiredService<CliExecutionContext>().CacheDirectory.FullName, "templates");
+        var cacheRoot = Path.Combine(provider.GetRequiredService<CliExecutionContext>().CacheDirectory.FullName, "tmpl");
         Assert.Equal(4, Directory.GetFileSystemEntries(cacheRoot).Length);
     }
 
@@ -849,7 +849,7 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
 
         Assert.All(results, result => Assert.Equal("template", Assert.Single(result).Name));
         Assert.Equal(2, gitRunner.CloneCalls.Count);
-        var cacheRoot = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "templates");
+        var cacheRoot = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "tmpl");
         var cached = Assert.Single(Directory.GetFileSystemEntries(cacheRoot));
         Assert.True(Directory.Exists(Path.Combine(cached, ".git")));
         Assert.True(File.Exists(Path.Combine(cached, "repository", "template", ".template.config", "template.json")));
@@ -893,7 +893,7 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
 
         Assert.Single(gitRunner.ResolveCalls);
         Assert.Empty(gitRunner.CloneCalls);
-        Assert.False(Directory.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "templates")));
+        Assert.False(Directory.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "tmpl")));
     }
 
     [Theory]
@@ -916,7 +916,7 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
         Assert.Equal(NewCommandStrings.TemplateRepositoryRefRequiresRepository, Assert.Single(interaction.DisplayedErrors));
         Assert.Empty(gitRunner.ResolveCalls);
         Assert.Empty(gitRunner.CloneCalls);
-        Assert.False(Directory.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "templates")));
+        Assert.False(Directory.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "tmpl")));
     }
 
     [Theory]
@@ -956,7 +956,7 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
 
         Assert.Equal(CliExitCodes.InvalidCommand, exitCode);
         Assert.Equal(NewCommandStrings.TemplatePathConflictingOptions, Assert.Single(interaction.DisplayedErrors));
-        Assert.False(Directory.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "templates")));
+        Assert.False(Directory.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "tmpl")));
     }
 
     [Theory]
@@ -990,7 +990,7 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
         Assert.Equal(CliExitCodes.Success, exitCode);
         Assert.Empty(gitRunner.CloneCalls);
         Assert.Empty(gitRunner.ResolveCalls);
-        Assert.False(Directory.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "templates")));
+        Assert.False(Directory.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "tmpl")));
     }
 
     private static async Task CreateNuGetSourceTemplateAsync(TemporaryWorkspace workspace, string parameterName = "AspireNuGetSource")
