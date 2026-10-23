@@ -14,6 +14,7 @@ using Aspire.Cli.Templating;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
+using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -170,7 +171,9 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
         Assert.Empty(interaction.DisplayedErrors);
         Assert.Empty(interaction.StringPromptCalls);
         await Verify(ReadOutput(workspace))
-            .AddScrubber(builder => builder.Replace(workspace.WorkspaceRoot.FullName, "{workspace}").Replace('\\', '/'))
+            .AddScrubber(builder => builder
+                .Replace('\\', '/')
+                .Replace(PathNormalizer.NormalizePathForStorage(workspace.WorkspaceRoot.FullName), "{workspace}"))
             .UseParameters(channel, interactive, parameterName == "AspireNuGetSource" ? "canonical" : "mixed-case");
     }
 
@@ -200,10 +203,12 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
         Assert.Empty(interaction.StringPromptCalls);
         var config = XDocument.Load(Path.Combine(workspace.Path, "out", "nuget.config"));
         Assert.Equal(
-            localPackagesOverride ? packages.FullName : "https://nuget.example/v3/index.json?first=1&second=2",
+            localPackagesOverride ? PathNormalizer.NormalizePathForStorage(packages.FullName) : "https://nuget.example/v3/index.json?first=1&second=2",
             config.Root!.Element("packageSources")!.Element("add")!.Attribute("value")!.Value);
         await Verify(ReadOutput(workspace))
-            .AddScrubber(builder => builder.Replace(workspace.WorkspaceRoot.FullName, "{workspace}").Replace('\\', '/'))
+            .AddScrubber(builder => builder
+                .Replace('\\', '/')
+                .Replace(PathNormalizer.NormalizePathForStorage(workspace.WorkspaceRoot.FullName), "{workspace}"))
             .UseParameters(localPackagesOverride);
     }
 
