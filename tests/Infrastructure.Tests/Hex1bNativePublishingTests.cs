@@ -355,42 +355,6 @@ public sealed class Hex1bNativePublishingTests : IDisposable
     }
 
     [Theory]
-    [InlineData(true, true)]
-    [InlineData(true, false)]
-    [InlineData(false, true)]
-    [InlineData(false, false)]
-    public async Task MacOSNativeBundleDebugSymbolsAreRemovedWithoutChangingPayloads(bool terminalSymbols, bool trailingSeparator)
-    {
-        var dashboard = Path.Combine(_workspace.Path, "Dashboard publish");
-        var terminal = Path.Combine(_workspace.Path, "TerminalHost publish");
-        var server = Path.Combine(_workspace.Path, "AppHost Server publish");
-        WriteFile(Path.Combine(dashboard, "Aspire.Dashboard"), "dashboard payload");
-        WriteFile(Path.Combine(terminal, "Aspire.TerminalHost"), "terminal payload");
-        WriteFile(Path.Combine(server, "Aspire.Hosting.Native.Server"), "server payload");
-        WriteFile(Path.Combine(server, "Aspire.Hosting.Native.Server.dSYM", "Contents", "Resources", "DWARF", "Aspire.Hosting.Native.Server"), "server symbols");
-        WriteFile(Path.Combine(dashboard, "Aspire.Dashboard.dSYM", "Contents", "Resources", "DWARF", "Aspire.Dashboard"), "dashboard symbols");
-        if (terminalSymbols)
-        {
-            WriteFile(Path.Combine(terminal, "Aspire.TerminalHost.dSYM", "Contents", "Resources", "DWARF", "Aspire.TerminalHost"), "terminal symbols");
-        }
-
-        var result = await RunDotNetAsync(
-            ["msbuild", Path.Combine(RepoRoot.Path, "eng", "Bundle.proj"), "-nologo",
-             "-t:_RemoveMacOSBundleDebugSymbols", "-p:TargetRid=osx-arm64", "-p:Sign=true", "-p:Pack=true",
-             $"-p:_DashboardPublishDir={dashboard}{(trailingSeparator ? Path.DirectorySeparatorChar.ToString() : "")}",
-             $"-p:_TerminalHostPublishDir={terminal}{(trailingSeparator ? Path.DirectorySeparatorChar.ToString() : "")}",
-             $"-p:_AppHostServerPublishDir={server}{(trailingSeparator ? Path.DirectorySeparatorChar.ToString() : "")}"]);
-
-        Assert.True(result.ExitCode == 0, result.Output);
-        Assert.Equal(["Aspire.Dashboard"], Directory.GetFileSystemEntries(dashboard).Select(Path.GetFileName));
-        Assert.Equal(["Aspire.TerminalHost"], Directory.GetFileSystemEntries(terminal).Select(Path.GetFileName));
-        Assert.Equal(["Aspire.Hosting.Native.Server"], Directory.GetFileSystemEntries(server).Select(Path.GetFileName));
-        Assert.Equal("dashboard payload", await File.ReadAllTextAsync(Path.Combine(dashboard, "Aspire.Dashboard")));
-        Assert.Equal("terminal payload", await File.ReadAllTextAsync(Path.Combine(terminal, "Aspire.TerminalHost")));
-        Assert.Equal("server payload", await File.ReadAllTextAsync(Path.Combine(server, "Aspire.Hosting.Native.Server")));
-    }
-
-    [Theory]
     [InlineData("Debug", "osx-arm64")]
     [InlineData("Release", "osx-x64")]
     public async Task BundleResolvesProductTrayProjectAndOutputDirectory(string configuration, string rid)

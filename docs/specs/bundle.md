@@ -399,9 +399,18 @@ produces a platform archive, .NET tool NuGet packages, and npm packages.
 Signing requires `BuildDistributionPackages=true` and the existing `Sign` and `DotNetSignType` settings.
 Signed macOS jobs in Azure Pipelines allow two hours to accommodate signing and notarization latency.
 
-`Pack` remains a compatibility input for `BuildDistributionPackages`, including
-in existing CI callers. Supplying both with different values fails validation.
-The internal payload archive is created regardless of this setting.
+`Pack` is not a bundle input; use `BuildDistributionPackages` instead. Supplying
+`Pack`, even as `false`, fails with a migration diagnostic. The internal payload
+archive is created regardless of whether distribution packages are requested.
+
+Build and independently invoked component-publish and payload-package phases
+share preparation: validate configuration and signing inputs, initialize signing
+arguments and target-platform DCP properties, then create the log directory.
+Invalid inputs fail before child processes or log-directory creation.
+Prepared-file checks run when those files are consumed; Dashboard warning
+verification follows publishing, and tray archive verification follows layout
+creation. `DashboardPublishLogPath` overrides the Dashboard publish log used by
+both publishing and warning verification.
 
 The assembled directories are under `artifacts/bundle/{rid}/`; the payload archive is `artifacts/bundle/aspire-{version}-{rid}.tar.gz`. The self-extracting CLI is in the CLI project's publish output, not in the payload directory.
 
