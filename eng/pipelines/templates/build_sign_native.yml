@@ -192,7 +192,7 @@ jobs:
               msbuild
               $(Build.SourcesDirectory)/eng/Bundle.proj
               /t:Build
-              /p:Pack=true
+              /p:BuildDistributionPackages=true
               /p:Configuration=$(_BuildConfig)
               /p:TargetRid=${{ targetRid }}
               /p:BundleVersion=ci-bundlepayload

@@ -90,7 +90,7 @@ jobs:
             "msbuild",
             "eng/Bundle.proj",
             "/t:Build",
-            "/p:Pack=true",
+            "/p:BuildDistributionPackages=true",
             "/p:Configuration=$env:BUNDLE_CONFIGURATION",
             "/p:TargetRid=$env:BUNDLE_TARGET_RID",
             "/p:BundleVersion=ci-bundlepayload",
