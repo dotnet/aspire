@@ -415,12 +415,9 @@ public class EntraIdResourceBuilderTests
     [InlineData("00001111-aaaa-2222-bbbb-3333cccc4444 ")]
     public void FederatedIdentityCredential_RejectsInvalidManagedIdentityClientId(string clientId)
     {
-        var exception = Assert.Throws<ArgumentException>(() => new EntraIdFederatedIdentityCredential
-        {
-            ManagedIdentityClientId = clientId
-        });
+        var exception = Assert.Throws<ArgumentException>(() => new EntraIdFederatedIdentityCredential(clientId));
 
-        Assert.Equal(nameof(EntraIdFederatedIdentityCredential.ManagedIdentityClientId), exception.ParamName);
+        Assert.Equal("managedIdentityClientId", exception.ParamName);
     }
 
     [Theory]
@@ -856,9 +853,8 @@ public class EntraIdResourceBuilderTests
         var entra = appBuilder.AddExistingEntraApplication("entra-web", tenantId, clientId)
             .WithSignInAudience(EntraIdSignInAudience.AzureADMultipleOrgs)
             .WithClientSecret(secret)
-            .WithCredential(new EntraIdFederatedIdentityCredential
+            .WithCredential(new EntraIdFederatedIdentityCredential(ClientId)
             {
-                ManagedIdentityClientId = ClientId,
                 TokenExchangeUrl = "api://CustomTokenExchange",
                 TokenExchangeAuthority = "https://login.microsoftonline.com/"
             })

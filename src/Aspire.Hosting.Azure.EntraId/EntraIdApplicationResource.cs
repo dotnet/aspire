@@ -701,41 +701,52 @@ public sealed class EntraIdClientSecretCredential : EntraIdClientCredential
 /// </remarks>
 public sealed class EntraIdFederatedIdentityCredential : EntraIdClientCredential
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="EntraIdFederatedIdentityCredential"/> class for a managed identity
+    /// that Aspire does not manage.
+    /// </summary>
+    /// <param name="managedIdentityClientId">The client ID of the user-assigned managed identity that supplies the signed assertion.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="managedIdentityClientId"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="managedIdentityClientId"/> is empty or is not a GUID.</exception>
+    public EntraIdFederatedIdentityCredential(string managedIdentityClientId)
+    {
+        ArgumentNullException.ThrowIfNull(managedIdentityClientId);
+
+        if (EntraIdValidation.ValidateManagedIdentityClientId(managedIdentityClientId) is { } error)
+        {
+            throw new ArgumentException(error, nameof(managedIdentityClientId));
+        }
+
+        ManagedIdentityClientId = managedIdentityClientId;
+    }
+
+    // Aspire provisions the trust for the managed identity of each referencing resource.
+    internal EntraIdFederatedIdentityCredential()
+    {
+    }
+
+    // Aspire provisions the trust for this identity.
+    internal EntraIdFederatedIdentityCredential(AzureUserAssignedIdentityResource managedIdentity)
+    {
+        ManagedIdentity = managedIdentity;
+    }
+
     /// <inheritdoc />
     public override string SourceType => "SignedAssertionFromManagedIdentity";
 
     /// <summary>
-    /// Gets or sets the client ID of the user-assigned managed identity that supplies the signed assertion.
+    /// Gets the client ID of the user-assigned managed identity that supplies the signed assertion.
     /// </summary>
     /// <remarks>
-    /// Use the identity's client ID, not the object (principal) ID used as the federated credential's subject.
+    /// This is the identity's client ID, not the object (principal) ID used as the federated credential's subject.
     /// Microsoft Entra's managed-identity federation scenario supports user-assigned identities only.
-    /// When neither this value nor <see cref="ManagedIdentity"/> is set, each consuming resource uses its own
-    /// user-assigned managed identity.
+    /// It is <see langword="null"/> when Aspire resolves the identity, in which case each consuming resource uses its own
+    /// user-assigned managed identity or the one it was configured with.
     /// </remarks>
-    /// <exception cref="ArgumentException">Thrown when the value is empty or is not a GUID.</exception>
-    public string? ManagedIdentityClientId
-    {
-        get;
-        set
-        {
-            if (value is not null && EntraIdValidation.ValidateManagedIdentityClientId(value) is { } error)
-            {
-                throw new ArgumentException(error, nameof(ManagedIdentityClientId));
-            }
+    public string? ManagedIdentityClientId { get; }
 
-            field = value;
-        }
-    }
-
-    /// <summary>
-    /// Gets or sets the user-assigned managed identity resource that supplies the signed assertion.
-    /// </summary>
-    /// <remarks>
-    /// The identity's principal ID is the federated credential's subject, and its client ID is the
-    /// <c>ManagedIdentityClientId</c> that consumers receive. Consuming resources must have this identity attached.
-    /// </remarks>
-    public AzureUserAssignedIdentityResource? ManagedIdentity { get; set; }
+    // The identity's principal ID is the federated credential's subject, and its client ID is what consumers receive.
+    internal AzureUserAssignedIdentityResource? ManagedIdentity { get; }
 
     /// <summary>
     /// Gets or sets the token exchange URL for federated identity credential scenarios.

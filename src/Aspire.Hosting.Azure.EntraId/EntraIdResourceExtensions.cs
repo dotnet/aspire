@@ -635,10 +635,7 @@ public static class EntraIdResourceExtensions
             throw new ArgumentException(error, nameof(managedIdentityClientId));
         }
 
-        builder.Resource.ClientCredentials.Add(new EntraIdFederatedIdentityCredential
-        {
-            ManagedIdentityClientId = managedIdentityClientId
-        });
+        builder.Resource.ClientCredentials.Add(new EntraIdFederatedIdentityCredential(managedIdentityClientId));
 
         return builder;
     }
@@ -807,10 +804,7 @@ public static class EntraIdResourceExtensions
             return builder;
         }
 
-        builder.Resource.ClientCredentials.Add(new EntraIdFederatedIdentityCredential
-        {
-            ManagedIdentity = identity.Resource
-        });
+        builder.Resource.ClientCredentials.Add(new EntraIdFederatedIdentityCredential(identity.Resource));
 
         return builder;
     }

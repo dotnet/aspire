@@ -226,6 +226,22 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public void WithCredential_ConsumerIdentityCredential_GeneratesNoTrustWhenRunning()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var entra = builder.AddEntraIdApplication("entra-web")
+            .WithCredential(new EntraIdFederatedIdentityCredential(ClientId));
+        var web = builder.AddResource(new ProjectResource("web")).WithReference(entra);
+
+        // A raw credential cannot name an identity resource, so the registration's Bicep cannot reference an identity
+        // that is not provisioned when running.
+        var bicep = entra.Resource.GetBicepTemplateString();
+        Assert.DoesNotContain("federatedIdentityCredentials", bicep);
+        Assert.DoesNotContain("principalId", bicep);
+        Assert.Empty(entra.Resource.GetFederatedIdentities());
+    }
+
+    [Fact]
     public void PublishWithFederatedManagedIdentityCredential_Identity_AddsTheCredentialWhenPublishing()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
