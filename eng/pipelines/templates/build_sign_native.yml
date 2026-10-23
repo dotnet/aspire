@@ -198,7 +198,6 @@ jobs:
               /p:BundleVersion=ci-bundlepayload
               /p:ContinuousIntegrationBuild=true
               /p:AspireCliChannel=$(aspireCliChannel)
-              /p:DashboardPublishLogPath="$(Build.Arcade.LogsPath)PublishNativeDashboard.log"
               ${{ parameters.extraBuildArgs }}
               /p:Sign=${{ iif(eq(parameters.codeSign, true), '$(_Sign)', 'false') }}
               /p:DotNetSignType=${{ iif(eq(parameters.codeSign, true), '$(_SignType)', 'test') }}

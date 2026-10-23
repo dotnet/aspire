@@ -408,8 +408,8 @@ arguments and target-platform DCP properties, then create the log directory.
 Invalid inputs fail before child processes or log-directory creation.
 Prepared-file checks run when those files are consumed; Dashboard warning
 verification follows publishing, and tray archive verification follows layout
-creation. `DashboardPublishLogPath` overrides the Dashboard publish log used by
-both publishing and warning verification.
+creation. Publishing and warning verification share the Dashboard publish log
+under the build log directory.
 
 The assembled directories are under `artifacts/bundle/{rid}/`; the payload archive is `artifacts/bundle/aspire-{version}-{rid}.tar.gz`. The self-extracting CLI is in the CLI project's publish output, not in the payload directory.
 

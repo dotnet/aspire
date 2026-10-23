@@ -40,16 +40,16 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task DashboardPublishingHonorsPublicLogPathOverride()
+    public async Task DashboardPublishingWritesWarningLogInBuildLogDirectory()
     {
         using var workspace = TemporaryWorkspace.Create(output);
         const string rid = "linux-x64";
         var project = CreateProject(workspace.Path, rid);
-        var logPath = Path.Combine(workspace.Path, "custom logs", "dashboard.log");
-        Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+        var logDirectory = Path.Combine(workspace.Path, "custom logs");
+        var logPath = Path.Combine(logDirectory, "PublishNativeDashboard.log");
 
         await RunAsync(project, "PublishBundleComponents", rid, "BuildDistributionPackages=true",
-            "DashboardPublishLogPath=" + logPath);
+            "_ArtifactsLogDir=" + logDirectory + Path.DirectorySeparatorChar);
 
         Assert.True(File.Exists(logPath));
         Assert.Contains("shared Dashboard publish warning", await File.ReadAllTextAsync(logPath));
@@ -1242,7 +1242,6 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
             new XElement("PropertyGroup",
                 Property("_ArtifactsDir", Path.Combine(root, "artifacts") + Path.DirectorySeparatorChar),
                 Property("_ArtifactsLogDir", Path.Combine(root, "artifacts", "log", "Release") + Path.DirectorySeparatorChar),
-                Property("DashboardPublishLogPath", Path.Combine(root, "artifacts", "log", "Release", "PublishNativeDashboard.log")),
                 Property("_ManagedPublishDir", Path.GetDirectoryName(ManagedPath(root, rid))!),
                 Property("_DashboardPublishDir", dashboardDirectory),
                 Property("_TerminalHostPublishDir", Path.GetDirectoryName(TerminalHostPath(root, rid))!),
