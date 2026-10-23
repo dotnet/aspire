@@ -348,7 +348,7 @@ if [ "$build_bundle" = true ]; then
                 repository_skip_environment+=("$name") ;;
             skipmanagedbuild|skipapphostserverbuild|skiptraybuild)
                 repository_skip_environment+=("$name") ;;
-            skipnativecliwithembeddedbundle)
+            skipcliartifacts)
                 # A sentinel preserves trailing newlines: any nonempty explicit
                 # value must reach Bundle validation rather than a legacy fallback.
                 environment_value="$(printenv "$name"; printf '.')"
@@ -369,7 +369,7 @@ if [ "$build_bundle" = true ]; then
                     case "$(printf '%s' "$property" | tr "[:upper:]" "[:lower:]")" in
                         skipnativebuild=*)
                             repository_skip_native="${property#*=}" ;;
-                        skipnativecliwithembeddedbundle=*)
+                        skipcliartifacts=*)
                             bundle_cli_explicit=true
                             bundle_args+=("${arg:0:3}$property") ;;
                         skipaspiremanagedpublish=*|skipdashboardpublish=*|\
@@ -380,7 +380,7 @@ if [ "$build_bundle" = true ]; then
         esac
     done
     if [[ "$bundle_cli_explicit" == "false" && "$(echo "$repository_skip_native" | tr "[:upper:]" "[:lower:]")" == "true" ]]; then
-        bundle_args+=("/p:SkipNativeCliWithEmbeddedBundle=true")
+        bundle_args+=("/p:SkipCliArtifacts=true")
     fi
     
     # CI flag is passed to Bundle.proj which handles version computation via Versions.props

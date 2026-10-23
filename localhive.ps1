@@ -414,7 +414,7 @@ if (-not $SkipBundle) {
   Write-Log "Building bundle (aspire-managed + DCP$(if ($NativeAot) { ' + native AOT CLI' }))..."
   $buildArgs = @($bundleProjPath, '-c', $effectiveConfig) + $packVersionArgs + @("/p:TargetRid=$bundleRid")
   if (-not $NativeAot) {
-    $buildArgs += '/p:SkipNativeCliWithEmbeddedBundle=true'
+    $buildArgs += '/p:SkipCliArtifacts=true'
   }
   & dotnet build @buildArgs
   if ($LASTEXITCODE -ne 0) {

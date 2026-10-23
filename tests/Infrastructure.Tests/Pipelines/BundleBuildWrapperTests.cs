@@ -12,7 +12,7 @@ public sealed class BundleBuildWrapperTests(ITestOutputHelper output)
     private static readonly string[] s_controls =
     [
         "SkipAspireManagedPublish", "SkipDashboardPublish", "SkipTerminalHostPublish",
-        "SkipAppHostServerPublish", "SkipTrayPublish", "SkipNativeCliWithEmbeddedBundle"
+        "SkipAppHostServerPublish", "SkipTrayPublish", "SkipCliArtifacts"
     ];
 
     private static readonly string[] s_retired =
@@ -46,14 +46,12 @@ public sealed class BundleBuildWrapperTests(ITestOutputHelper output)
     public async Task BundleWrappersPreferExplicitCliSelection(string shell, string prefix)
     {
         using var workspace = TemporaryWorkspace.Create(output);
-        string[] arguments = [prefix + "SkipNativeBuild=true", prefix + "SkipNativeCliWithEmbeddedBundle=false"];
+        string[] arguments = [prefix + "SkipNativeBuild=true", prefix + "SkipCliArtifacts=false"];
 
         await ExecuteAsync(workspace, shell, arguments, inheritedSkips: true);
 
-        Assert.Equal(["ARG|" + prefix + "SkipNativeCliWithEmbeddedBundle=false"], Read(workspace, "bundle")
-            .Where(line => line.Contains("SkipNative", StringComparison.Ordinal)));
-        Assert.Equal(arguments.Select(argument => "ARG|" + argument), Read(workspace, "repository")
-            .Where(line => line.StartsWith("ARG|", StringComparison.Ordinal) && line.Contains("SkipNative", StringComparison.Ordinal)));
+        Assert.Equal(["ARG|" + prefix + "SkipCliArtifacts=false"], PropertyArguments(Read(workspace, "bundle")));
+        Assert.Equal(arguments.Select(argument => "ARG|" + argument), PropertyArguments(Read(workspace, "repository")));
     }
 
     [Theory]
@@ -87,8 +85,7 @@ public sealed class BundleBuildWrapperTests(ITestOutputHelper output)
 
         await ExecuteAsync(workspace, shell, arguments, inheritedSkips: source == "environment");
 
-        Assert.Equal(["ARG|/p:SkipNativeCliWithEmbeddedBundle=true"], Read(workspace, "bundle")
-            .Where(line => line.Contains("SkipNative", StringComparison.Ordinal)));
+        Assert.Equal(["ARG|/p:SkipCliArtifacts=true"], PropertyArguments(Read(workspace, "bundle")));
         Assert.Equal(arguments.Select(argument => "ARG|" + argument), Read(workspace, "repository")
             .Where(line => line.StartsWith("ARG|", StringComparison.Ordinal) && line.Contains("SkipNative", StringComparison.Ordinal)));
     }
@@ -126,7 +123,7 @@ public sealed class BundleBuildWrapperTests(ITestOutputHelper output)
     {
         using var workspace = TemporaryWorkspace.Create(output);
         const string managed = "sKiPaSpIrEmAnAgEdPuBlIsH=true";
-        const string cli = "sKiPnAtIvEcLiWiThEmBeDdEdBuNdLe=false";
+        const string cli = "sKiPcLiArTiFaCtS=false";
         var assignments = new List<string>
         {
             managed, "sKiPnAtIvEbUiLd=true", "SkipManagedBuild=true",
@@ -146,7 +143,7 @@ public sealed class BundleBuildWrapperTests(ITestOutputHelper output)
 
         string[] forwarded = explicitCli
             ? reverse ? [prefix + cli, prefix + managed] : [prefix + managed, prefix + cli]
-            : [prefix + managed, "/p:SkipNativeCliWithEmbeddedBundle=true"];
+            : [prefix + managed, "/p:SkipCliArtifacts=true"];
         Assert.Equal(forwarded.Select(value => "ARG|" + value), PropertyArguments(Read(workspace, "bundle")));
         Assert.Equal(["ARG|" + argument], PropertyArguments(Read(workspace, "repository")));
     }
@@ -186,13 +183,13 @@ public sealed class BundleBuildWrapperTests(ITestOutputHelper output)
             [names[0]] = "true", [names[1]] = "false", [names[2]] = "True", [names[3]] = "false",
             ["WRAPPER_UNRELATED"] = "keep spaces=and;delimiters"
         };
-        string[] arguments = prefix.Length == 0 ? [] : [prefix + "sKiPnAtIvEcLiWiThEmBeDdEdBuNdLe=false"];
+        string[] arguments = prefix.Length == 0 ? [] : [prefix + "sKiPcLiArTiFaCtS=false"];
 
         await ExecuteAsync(workspace, shell, arguments, environment);
 
         Assert.Equal(["ENV|WRAPPER_UNRELATED=keep spaces=and;delimiters"], Read(workspace, "bundle")
             .Where(line => line.StartsWith("ENV|", StringComparison.Ordinal)));
-        Assert.Equal(["ARG|" + (prefix.Length == 0 ? "/p:SkipNativeCliWithEmbeddedBundle=true" : arguments[0])],
+        Assert.Equal(["ARG|" + (prefix.Length == 0 ? "/p:SkipCliArtifacts=true" : arguments[0])],
             PropertyArguments(Read(workspace, "bundle")));
         var expectedEnvironment = environment.Select(pair => $"ENV|{pair.Key}={pair.Value}").Order(StringComparer.Ordinal);
         Assert.Equal(expectedEnvironment, Read(workspace, "repository")
@@ -215,12 +212,12 @@ public sealed class BundleBuildWrapperTests(ITestOutputHelper output)
     {
         using var workspace = TemporaryWorkspace.Create(output);
         var legacy = uppercase ? "SKIPNATIVEBUILD" : "SkipNativeBuild";
-        var current = uppercase ? "SKIPNATIVECLIWITHEMBEDDEDBUNDLE" : "sKiPnAtIvEcLiWiThEmBeDdEdBuNdLe";
+        var current = uppercase ? "SKIPCLIARTIFACTS" : "sKiPcLiArTiFaCtS";
         var environment = new Dictionary<string, string>
         {
             [legacy] = "true", [current] = "false"
         };
-        string[] arguments = explicitCli ? ["-p:sKiPnAtIvEcLiWiThEmBeDdEdBuNdLe=true"] : [];
+        string[] arguments = explicitCli ? ["-p:sKiPcLiArTiFaCtS=true"] : [];
 
         await ExecuteAsync(workspace, shell, arguments, environment);
 

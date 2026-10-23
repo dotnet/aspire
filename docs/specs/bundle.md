@@ -429,7 +429,7 @@ Explicit non-boolean values fail validation before restore or publishing:
 | `SkipTerminalHostPublish` | Reuse the prepared TerminalHost publish and dependencies. |
 | `SkipAppHostServerPublish` | Reuse the native AppHost Server publish and its ATS contract. |
 | `SkipTrayPublish` | Reuse the prepared macOS app or Windows tray publish; no effect on Linux. |
-| `SkipNativeCliWithEmbeddedBundle` | Omit the final embedded CLI and its archive/tool/npm packages; never consume or repackage an existing CLI. |
+| `SkipCliArtifacts` | Omit the final embedded CLI and its archive/tool/npm packages; never consume or repackage an existing CLI. |
 
 Component skips affect only their respective publishers and do not make missing
 payload inputs optional. Payload assembly always runs. CLI omission does not
@@ -442,13 +442,17 @@ prepared outputs for signing, and real macOS signing still signs/notarizes the
 prepared tray app. Skipping the final CLI does not prevent signing requested
 Dashboard/DCP packages.
 
+In distribution mode, component publishing finishes by checking that selected
+required prepared files exist, including when publishers are skipped. This check
+runs before signing; assembled archive verification runs separately afterward.
+
 These controls belong to `eng/Bundle.proj`, not repository build selection.
 Repository builds and child packaging calls use their own build properties.
 
 `eng/build.sh --bundle` and `eng/build.ps1 -bundle` forward explicit bundle
 controls in `/p:` or `-p:` form. At that boundary only, repository
 `SkipNativeBuild=true` (command line or environment) supplies the CLI-omission
-fallback. An explicit `SkipNativeCliWithEmbeddedBundle=false` overrides it.
+fallback. An explicit `SkipCliArtifacts=false` overrides it.
 For PowerShell, splat an argument array when passing `-p:` properties;
 direct `pwsh -File ... -p:` arguments collide with common-parameter binding.
 Use `/p:` to avoid that ambiguity.

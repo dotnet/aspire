@@ -248,7 +248,7 @@ if ($bundle) {
       if ($entry.Key -eq 'SkipNativeBuild') {
         $repositorySkipNative = $entry.Value
       }
-    } elseif ($entry.Key -eq 'SkipNativeCliWithEmbeddedBundle' -and ![string]::IsNullOrEmpty($entry.Value)) {
+    } elseif ($entry.Key -eq 'SkipCliArtifacts' -and ![string]::IsNullOrEmpty($entry.Value)) {
       $bundleCliExplicit = $true
     }
   }
@@ -261,7 +261,7 @@ if ($bundle) {
       foreach ($assignment in $Matches[2] -split '[;,]') {
         if ($assignment -match '^SkipNativeBuild=(.*)$') {
           $repositorySkipNative = $Matches[1]
-        } elseif ($assignment -match '^SkipNativeCliWithEmbeddedBundle=') {
+        } elseif ($assignment -match '^SkipCliArtifacts=') {
           $bundleCliExplicit = $true
           $bundleArgs += "$propertyPrefix$assignment"
         } elseif ($assignment -match '^(SkipAspireManagedPublish|SkipDashboardPublish|SkipTerminalHostPublish|SkipAppHostServerPublish|SkipTrayPublish)=') {
@@ -271,7 +271,7 @@ if ($bundle) {
     }
   }
   if (!$bundleCliExplicit -and $repositorySkipNative -eq 'true') {
-    $bundleArgs += "/p:SkipNativeCliWithEmbeddedBundle=true"
+    $bundleArgs += "/p:SkipCliArtifacts=true"
   }
   
   # CI flag is passed to Bundle.proj which handles version computation via Versions.props

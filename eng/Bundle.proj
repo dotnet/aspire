@@ -60,7 +60,7 @@
     - BundleVersion: Version string for the bundle (auto-computed in CI if not set)
 
     Bundle-only skip switches (all default to false):
-    - SkipNativeCliWithEmbeddedBundle=true
+    - SkipCliArtifacts=true
       - Skips the final native CLI publish and its archive/tool/npm packages.
       - Does not load or repackage an existing CLI.
       - Still publishes components, creates/verifies the bundle archive, and builds
@@ -180,10 +180,10 @@
               _RestoreDcpPackage;
               _PublishBundleComponents;
               _SignBundleComponents;
-              _PrepareBundleArtifacts;
-              _PublishNativeCliWithEmbeddedBundle;
-              _PublishAndPackageCli;
-              _SignDistributionPackages">
+              _BuildStandaloneComponentPackages;
+              _CreateAndVerifyBundleArchive;
+              _PublishCli;
+              _SignNonCliDistributionPackages">
     <Message Importance="high" Text="" />
     <Message Importance="high" Text="Bundle layout created at: $(_BundleLayoutDir)" />
   </Target>
@@ -206,8 +206,8 @@
            Text="SkipAppHostServerPublish must be true or false." />
     <Error Condition="'$(SkipTrayPublish)' != '' and '$(SkipTrayPublish)' != 'true' and '$(SkipTrayPublish)' != 'false'"
            Text="SkipTrayPublish must be true or false." />
-    <Error Condition="'$(SkipNativeCliWithEmbeddedBundle)' != '' and '$(SkipNativeCliWithEmbeddedBundle)' != 'true' and '$(SkipNativeCliWithEmbeddedBundle)' != 'false'"
-           Text="SkipNativeCliWithEmbeddedBundle must be true or false." />
+    <Error Condition="'$(SkipCliArtifacts)' != '' and '$(SkipCliArtifacts)' != 'true' and '$(SkipCliArtifacts)' != 'false'"
+           Text="SkipCliArtifacts must be true or false." />
 
     <ItemGroup>
       <_MatchingBundleRid Include="@(_SupportedBundleRid)"
@@ -318,8 +318,8 @@
           EnvironmentVariables="$(_NuGetCacheEnvironmentVariables)" />
   </Target>
 
-  <!-- Publish each component independently; skip switches reuse that component's
-       prepared output. Signing and bundle assembly happen afterward. -->
+  <!-- Publish or reuse each component, then check required prepared files.
+       Signing and bundle assembly happen afterward. -->
   <Target Name="_PublishBundleComponents"
           DependsOnTargets="
               _InitializeBundleBuild;
@@ -327,7 +327,8 @@
               _PublishDashboard;
               _PublishTerminalHost;
               _PublishAppHostServer;
-              _PublishTray" />
+              _PublishTray;
+              _ValidatePreparedComponentFiles" />
 
   <Target Name="_PublishAspireManaged" Condition="'$(SkipAspireManagedPublish)' != 'true'">
     <Message Importance="high" Text="Publishing aspire-managed (self-contained)..." />
@@ -467,16 +468,7 @@
           Condition="'$(Sign)' == 'true' and !$(TargetRid.StartsWith('win-'))" />
   </Target>
 
-  <!-- Build standalone component packages when requested, then create the bundle
-       archive. Never publish here: republishing would overwrite signed inputs. -->
-  <Target Name="_PrepareBundleArtifacts"
-          DependsOnTargets="_InitializeBundleBuild;
-                            _ValidateBundleInputs;
-                            _RestoreDcpPackage;
-                            _BuildStandaloneComponentPackages;
-                            _CreateAndVerifyBundleArchive" />
-
-  <Target Name="_ValidateBundleInputs" Condition="'$(BuildDistributionPackages)' == 'true'">
+  <Target Name="_ValidatePreparedComponentFiles" Condition="'$(BuildDistributionPackages)' == 'true'">
     <PropertyGroup>
       <_PreparedSqliteLibrary>libe_sqlite3.so</_PreparedSqliteLibrary>
       <_PreparedSqliteLibrary Condition="$(TargetRid.StartsWith('win-'))">e_sqlite3.dll</_PreparedSqliteLibrary>
@@ -498,6 +490,7 @@
            Text="Prepared bundle input is missing: %(_RequiredPreparedBundleFile.Identity). Publish bundle components before signing and packaging." />
   </Target>
 
+  <!-- Consume prepared component outputs without republishing signed inputs. -->
   <Target Name="_BuildStandaloneComponentPackages" Condition="'$(BuildDistributionPackages)' == 'true'">
     <PropertyGroup>
       <_DashboardPackProjectPath Condition="'$(_DashboardPackProjectPath)' == ''">$([MSBuild]::NormalizePath('$(_BundleEngineeringDir)', 'dashboardpack', 'Aspire.Dashboard.Sdk.$(TargetRid).csproj'))</_DashboardPackProjectPath>
@@ -544,21 +537,24 @@
           Condition="$(TargetRid.StartsWith('win-'))" />
   </Target>
 
-  <Target Name="_PublishNativeCliWithEmbeddedBundle"
-          Condition="'$(BuildDistributionPackages)' != 'true' and '$(SkipNativeCliWithEmbeddedBundle)' != 'true'">
-    <PropertyGroup>
+  <Target Name="_PublishCli" Condition="'$(SkipCliArtifacts)' != 'true'">
+    <!-- Both paths publish the CLI with the bundle archive embedded. Without
+         distribution packages, publish directly; otherwise use the repository
+         build/sign/pack pipeline below. -->
+    <PropertyGroup Condition="'$(BuildDistributionPackages)' != 'true'">
       <_CliProjectPath Condition="'$(_CliProjectPath)' == ''">$(_RepoRoot)src\Aspire.Cli\Aspire.Cli.csproj</_CliProjectPath>
       <_CliPublishOutputArg Condition="'$(CliPublishDir)' != ''">--output "$(CliPublishDir)"</_CliPublishOutputArg>
     </PropertyGroup>
 
-    <Message Importance="high" Text="Publishing native AOT CLI with embedded bundle: $(_BundleArchivePath)" />
+    <Message Importance="high" Text="Publishing native AOT CLI with embedded bundle: $(_BundleArchivePath)"
+             Condition="'$(BuildDistributionPackages)' != 'true'" />
     <Exec Command="dotnet publish &quot;$(_CliProjectPath)&quot; -r $(TargetRid) $(_CliPublishOutputArg) /p:BundlePayloadPath=&quot;$(_BundleArchivePath)&quot; $(_BundleChildArgs) &quot;-bl:$(_ArtifactsLogDir)PublishCli.binlog&quot;"
-          EnvironmentVariables="$(_NuGetCacheEnvironmentVariables)" />
-  </Target>
+          EnvironmentVariables="$(_NuGetCacheEnvironmentVariables)"
+          Condition="'$(BuildDistributionPackages)' != 'true'" />
 
-  <Target Name="_PublishAndPackageCli"
-          Condition="'$(BuildDistributionPackages)' == 'true' and '$(SkipNativeCliWithEmbeddedBundle)' != 'true'">
-    <PropertyGroup>
+    <!-- Distribution packages: publish, optionally sign, and package the CLI. -->
+
+    <PropertyGroup Condition="'$(BuildDistributionPackages)' == 'true'">
       <_BundleSignSwitch Condition="'$(Sign)' == 'true'">-sign</_BundleSignSwitch>
     </PropertyGroup>
 
@@ -571,15 +567,16 @@
          while retaining the CLI project and RID-specific CLI packaging project.
          It is not a Bundle.proj input and does not select individual bundle components. -->
     <Exec Command="&quot;$(_BuildScriptPath)&quot; -ci -restore -build -pack -configuration $(Configuration) $(_BundleSignSwitch) /p:SkipManagedBuild=true /p:SkipAppHostServerBuild=true /p:TargetRids=$(TargetRid) &quot;/p:BundlePayloadPath=$(_BundleArchivePath)&quot; $(_BundleChildArgs) $(_BundleSigningArgs) &quot;/bl:$(_ArtifactsLogDir)PublishAndPackageCli.binlog&quot;"
-          EnvironmentVariables="$(_NuGetCacheEnvironmentVariables)" />
+          EnvironmentVariables="$(_NuGetCacheEnvironmentVariables)"
+          Condition="'$(BuildDistributionPackages)' == 'true'" />
   </Target>
 
-  <Target Name="_SignDistributionPackages" Condition="'$(BuildDistributionPackages)' == 'true' and '$(Sign)' == 'true' and '$(SkipNativeCliWithEmbeddedBundle)' == 'true'">
+  <Target Name="_SignNonCliDistributionPackages" Condition="'$(BuildDistributionPackages)' == 'true' and '$(Sign)' == 'true' and '$(SkipCliArtifacts)' == 'true'">
     <!-- CLI publishing/packaging normally invokes shared signing, which picks up
          the new Dashboard/optional DCP NuGet packages. When skipped, use a fresh
          sign-only evaluation: these packages did not exist during component signing.
          Discovery is shared, not restricted to these packages. -->
-    <Exec Command="$(_SignOnlyCommand) &quot;/bl:$(_ArtifactsLogDir)SignDistributionPackages.binlog&quot;"
+    <Exec Command="$(_SignOnlyCommand) &quot;/bl:$(_ArtifactsLogDir)SignNonCliDistributionPackages.binlog&quot;"
           EnvironmentVariables="$(_NuGetCacheEnvironmentVariables)" />
   </Target>
 
