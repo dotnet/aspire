@@ -1,0 +1,27 @@
+﻿{
+  "resources": {
+    "frontend": {
+      "type": "container.v0",
+      "image": "image:latest",
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "targetPort": 8080
+        }
+      }
+    },
+    "backend": {
+      "type": "container.v0",
+      "image": "image:latest",
+      "env": {
+        "RESULT": "{cond-browser-frontend-preferred-origin-ac29857540c35938-connectionstring-1b1884ad.connectionString}"
+      }
+    },
+    "cond-browser-frontend-preferred-origin-ac29857540c35938-connectionstring-1b1884ad": {
+      "type": "value.v0",
+      "connectionString": "selected"
+    }
+  }
+}

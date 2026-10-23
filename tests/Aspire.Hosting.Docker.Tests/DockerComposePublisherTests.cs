@@ -7,7 +7,9 @@
 using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Docker.Resources.ComposeNodes;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Tests;
 using Aspire.Hosting.Tests.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,6 +18,30 @@ namespace Aspire.Hosting.Docker.Tests;
 
 public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 {
+    [Fact]
+    public async Task BrowserUrlProjectionUsesPublisherExpression()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, workspace.Path);
+        builder.Services.AddSingleton<IDeploymentStateManager>(new InMemoryDeploymentStateManager());
+        builder.Services.AddSingleton<IResourceContainerImageManager, MockImageBuilder>();
+        builder.AddDockerComposeEnvironment("env");
+        var publicHost = builder.AddParameter("public-host", "public.example", publishValueAsDefault: true);
+        var frontend = builder.AddContainer("frontend", "nginx:alpine").WithHttpEndpoint(port: 8080, targetPort: 8080);
+        var origin = frontend.GetBrowserOrigin("http")
+            .WithPublishExpression(ReferenceExpression.Create($"https://{publicHost}"))
+            .ToReferenceExpression(builder.ExecutionContext);
+        builder.AddContainer("backend", "nginx:alpine")
+            .WithEnvironment("ORIGIN", origin)
+            .WithEnvironment("CONFIG", ReferenceExpression.Create($"origin={origin}"));
+        using var app = builder.Build();
+
+        app.Run();
+
+        await Verify(await File.ReadAllTextAsync(Path.Combine(workspace.Path, "docker-compose.yaml")), "yaml")
+            .AppendContentAsFile(await File.ReadAllTextAsync(Path.Combine(workspace.Path, ".env")), "env");
+    }
+
     [Fact]
     public async Task PublishAsync_GeneratesValidDockerComposeFile()
     {

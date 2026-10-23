@@ -1,0 +1,52 @@
+﻿{
+  "resources": {
+    "host": {
+      "type": "parameter.v0",
+      "value": "{host.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "frontend": {
+      "type": "container.v0",
+      "image": "image:latest",
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "targetPort": 8080
+        }
+      }
+    },
+    "backend": {
+      "type": "container.v0",
+      "image": "image:latest",
+      "env": {
+        "RAW": "{browser-frontend-preferred-origin-f0fdc6a08ccc9085.connectionString}",
+        "ENCODED": "{browser-frontend-preferred-origin-f0fdc6a08ccc9085-1.connectionString}",
+        "WRAPPED": "raw={browser-frontend-preferred-origin-f0fdc6a08ccc9085.connectionString}|encoded={browser-frontend-preferred-origin-f0fdc6a08ccc9085-1.connectionString}",
+        "REPEATED": "{browser-frontend-preferred-origin-f0fdc6a08ccc9085.connectionString}|{browser-frontend-preferred-origin-f0fdc6a08ccc9085-1.connectionString}|{browser-frontend-preferred-origin-f0fdc6a08ccc9085.connectionString}"
+      }
+    },
+    "callback": {
+      "type": "value.v0",
+      "connectionString": "{browser-frontend-preferred-origin-f0fdc6a08ccc9085.connectionString}|{browser-frontend-preferred-origin-f0fdc6a08ccc9085-1.connectionString}"
+    },
+    "browser-frontend-preferred-origin-f0fdc6a08ccc9085": {
+      "type": "value.v0",
+      "connectionString": "https://example/?value={host.value}"
+    },
+    "browser-frontend-preferred-origin-f0fdc6a08ccc9085-1": {
+      "type": "value.v0",
+      "connectionString": "https://example/?value={host-uri-encoded.value}"
+    },
+    "host-uri-encoded": {
+      "type": "annotated.string",
+      "value": "{host.value}",
+      "filter": "uri"
+    }
+  }
+}

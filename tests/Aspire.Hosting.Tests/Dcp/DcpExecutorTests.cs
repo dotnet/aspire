@@ -23,6 +23,7 @@ using Aspire.Hosting.Diagnostics;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.UserSecrets;
+using Aspire.Hosting.Utils;
 using k8s.Models;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.DotNet.RemoteExecutor;
@@ -4695,6 +4696,50 @@ public class DcpExecutorTests(ITestOutputHelper outputHelper)
         AssertPortAllocatedFromProxylessEndpointAllocatorRange(allocatedPort);
         Assert.NotNull(dcpCtr.Spec.Ports);
         Assert.Contains(dcpCtr.Spec.Ports!, p => p.HostPort == allocatedPort && p.ContainerPort == desiredTargetPort);
+    }
+
+    [Fact]
+    public async Task BrowserUrlsForAllocatedBatchAreFinalizedBeforeEventHandlers()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(outputHelper);
+        var events = new DcpExecutorEvents();
+        builder.Services.AddSingleton(events);
+        var callbackCount = 0;
+        var frontend = builder.AddContainer("frontend", "image")
+            .WithHttpEndpoint(targetPort: 8080)
+            .WithUrlForEndpoint("http", url =>
+            {
+                url.Url = "https://frontend.example/app";
+                Interlocked.Increment(ref callbackCount);
+            });
+        var backend = builder.AddContainer("backend", "image")
+            .WithHttpEndpoint(targetPort: 8080)
+            .WithUrlForEndpoint("http", url =>
+            {
+                url.Url = "https://backend.example/app";
+                Interlocked.Increment(ref callbackCount);
+            });
+        var observedResources = new List<string>();
+        builder.Eventing.Subscribe<ResourceEndpointsAllocatedEvent>(async (@event, ct) =>
+        {
+            Assert.Equal(2, callbackCount);
+            Assert.Equal("https://frontend.example", await frontend.GetBrowserOrigin("http").GetValueAsync(ct));
+            Assert.Equal("https://backend.example", await backend.GetBrowserOrigin("http").GetValueAsync(ct));
+            observedResources.Add(@event.Resource.Name);
+        });
+
+        using var app = builder.Build();
+        _ = app.Services.GetRequiredService<Hosting.Orchestrator.ApplicationOrchestrator>();
+        await using var executor = CreateAppExecutor(
+            app.Services.GetRequiredService<DistributedApplicationModel>(),
+            kubernetesService: new TestKubernetesService(),
+            events: events,
+            distributedApplicationEventing: builder.Eventing);
+
+        await executor.RunApplicationAsync().DefaultTimeout();
+
+        Assert.Equal(["frontend", "backend"], observedResources);
+        Assert.Equal(2, callbackCount);
     }
 
     [Fact]

@@ -8,6 +8,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Kubernetes.Resources;
 using Aspire.Hosting.Pipelines;
+using Aspire.Hosting.Tests;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using YamlDotNet.RepresentationModel;
@@ -17,6 +18,29 @@ namespace Aspire.Hosting.Kubernetes.Tests;
 
 public class KubernetesPublisherTests(ITestOutputHelper outputHelper)
 {
+    [Fact]
+    public async Task BrowserUrlProjectionUsesPublisherExpression()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, workspace.Path);
+        builder.Services.AddSingleton<IDeploymentStateManager>(new InMemoryDeploymentStateManager());
+        builder.AddKubernetesEnvironment("env");
+        var publicHost = builder.AddParameter("public-host", "public.example", publishValueAsDefault: true);
+        var frontend = builder.AddContainer("frontend", "nginx:alpine").WithHttpEndpoint(port: 8080, targetPort: 8080);
+        var origin = frontend.GetBrowserOrigin("http")
+            .WithPublishExpression(ReferenceExpression.Create($"https://{publicHost}"))
+            .ToReferenceExpression(builder.ExecutionContext);
+        builder.AddContainer("backend", "nginx:alpine")
+            .WithEnvironment("ORIGIN", origin)
+            .WithEnvironment("CONFIG", ReferenceExpression.Create($"origin={origin}"));
+        using var app = builder.Build();
+
+        app.Run();
+
+        await Verify(await File.ReadAllTextAsync(Path.Combine(workspace.Path, "templates/backend/config.yaml")), "yaml")
+            .AppendContentAsFile(await File.ReadAllTextAsync(Path.Combine(workspace.Path, "values.yaml")), "yaml");
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData(false)]

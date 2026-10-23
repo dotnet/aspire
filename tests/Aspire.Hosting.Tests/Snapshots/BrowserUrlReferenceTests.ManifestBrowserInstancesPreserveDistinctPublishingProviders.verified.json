@@ -1,0 +1,41 @@
+﻿{
+  "resources": {
+    "frontend": {
+      "type": "container.v0",
+      "image": "image:latest",
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "targetPort": 8080
+        }
+      }
+    },
+    "backend": {
+      "type": "container.v0",
+      "image": "image:latest",
+      "env": {
+        "FIRST": "{browser-frontend-preferred-origin-90eabbc74e103998.connectionString}",
+        "SECOND": "{browser-frontend-preferred-origin-90eabbc74e103998-1.connectionString}",
+        "REPEATED": "{browser-frontend-preferred-origin-90eabbc74e103998.connectionString}|{browser-frontend-preferred-origin-90eabbc74e103998-1.connectionString}|{browser-frontend-preferred-origin-90eabbc74e103998.connectionString}"
+      }
+    },
+    "browser-frontend-preferred-origin-90eabbc74e103998": {
+      "type": "value.v0",
+      "connectionString": "{value-f97679fecbfddf91.connectionString}"
+    },
+    "browser-frontend-preferred-origin-90eabbc74e103998-1": {
+      "type": "value.v0",
+      "connectionString": "{value-f97679fecbfddf91-1.connectionString}"
+    },
+    "value-f97679fecbfddf91": {
+      "type": "value.v0",
+      "connectionString": "https://first.example"
+    },
+    "value-f97679fecbfddf91-1": {
+      "type": "value.v0",
+      "connectionString": "https://second.example"
+    }
+  }
+}

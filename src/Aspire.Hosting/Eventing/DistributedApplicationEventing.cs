@@ -26,46 +26,40 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
     {
         if (_eventSubscriptionListLookup.TryGetValue(typeof(T), out var subscriptions))
         {
-            if (dispatchBehavior == EventDispatchBehavior.BlockingConcurrent || dispatchBehavior == EventDispatchBehavior.NonBlockingConcurrent)
+            var eventSubscriptions = subscriptions.ToArray();
+            if (dispatchBehavior is EventDispatchBehavior.NonBlockingSequential or EventDispatchBehavior.NonBlockingConcurrent)
             {
-                var pendingSubscriptionCallbacks = new List<Task>(subscriptions.Count);
-                foreach (var subscription in subscriptions.ToArray())
+                // Preparation is part of dispatch: URL callbacks must not block a non-blocking publisher.
+                _ = Task.Run(DispatchAsync, default);
+                return;
+            }
+
+            await DispatchAsync().ConfigureAwait(false);
+
+            async Task DispatchAsync()
+            {
+                foreach (var subscription in eventSubscriptions)
                 {
-                    var pendingSubscriptionCallback = InvokeSubscriptionCallbackAsync(subscription, @event, dispatchBehavior, cancellationToken);
-                    pendingSubscriptionCallbacks.Add(pendingSubscriptionCallback);
+                    if (subscription.IsPreparation)
+                    {
+                        await InvokeSubscriptionCallbackAsync(subscription, @event, EventDispatchBehavior.BlockingSequential, cancellationToken).ConfigureAwait(false);
+                    }
                 }
 
-                if (dispatchBehavior == EventDispatchBehavior.NonBlockingConcurrent)
+                var observers = eventSubscriptions.Where(s => !s.IsPreparation).ToArray();
+                if (dispatchBehavior is EventDispatchBehavior.BlockingConcurrent or EventDispatchBehavior.NonBlockingConcurrent)
                 {
-                    // Non-blocking concurrent.
-                    _ = Task.Run(async () =>
+                    var pendingSubscriptionCallbacks = new List<Task>(observers.Length);
+                    foreach (var subscription in observers)
                     {
-                        await Task.WhenAll(pendingSubscriptionCallbacks).ConfigureAwait(false);
-                    }, default);
-                }
-                else
-                {
-                    // Blocking concurrent.
+                        pendingSubscriptionCallbacks.Add(InvokeSubscriptionCallbackAsync(subscription, @event, dispatchBehavior, cancellationToken));
+                    }
+
                     await Task.WhenAll(pendingSubscriptionCallbacks).ConfigureAwait(false);
                 }
-            }
-            else
-            {
-                if (dispatchBehavior == EventDispatchBehavior.NonBlockingSequential)
-                {
-                    // Non-blocking sequential.
-                    _ = Task.Run(async () =>
-                    {
-                        foreach (var subscription in subscriptions.ToArray())
-                        {
-                            await InvokeSubscriptionCallbackAsync(subscription, @event, dispatchBehavior, cancellationToken).ConfigureAwait(false);
-                        }
-                    }, default);
-                }
                 else
                 {
-                    // Blocking sequential.
-                    foreach (var subscription in subscriptions.ToArray())
+                    foreach (var subscription in observers)
                     {
                         await InvokeSubscriptionCallbackAsync(subscription, @event, dispatchBehavior, cancellationToken).ConfigureAwait(false);
                     }

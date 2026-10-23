@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Pipelines;
+using Aspire.Hosting.Tests;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning;
 using Azure.Provisioning.Storage;
@@ -14,6 +16,68 @@ namespace Aspire.Hosting.Azure.Tests;
 
 public class AzureEnvironmentResourceTests(ITestOutputHelper output)
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task BrowserUrlProjectionsUseAzureWorkloadExpressions(bool appService)
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, output, workspace.Path);
+        builder.Services.AddSingleton<IDeploymentStateManager>(new InMemoryDeploymentStateManager());
+        if (appService)
+        {
+            builder.AddAzureAppServiceEnvironment("env");
+        }
+        else
+        {
+            builder.AddAzureContainerAppEnvironment("env");
+        }
+        var publicHost = builder.AddParameter("public-host");
+        var frontend = builder.AddContainer("frontend", "nginx:alpine").WithHttpEndpoint(targetPort: 8080);
+        var origin = frontend.GetBrowserOrigin("http")
+            .WithPublishExpression(ReferenceExpression.Create($"https://{publicHost}"))
+            .ToReferenceExpression(builder.ExecutionContext);
+        var backend = builder.AddProject<TestProject>("backend", launchProfileName: null)
+            .WithHttpEndpoint(targetPort: 8080)
+            .WithExternalHttpEndpoints()
+            .WithEnvironment("ORIGIN", origin)
+            .WithEnvironment("CONFIG", ReferenceExpression.Create($"origin={origin}"));
+        using var app = builder.Build();
+
+        await AzureManifestUtils.ExecuteBeforeStartHooksAsync(app, CancellationToken.None);
+
+        Assert.True(backend.Resource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target));
+        var provisioningResource = Assert.IsAssignableFrom<AzureProvisioningResource>(target.DeploymentTarget);
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(provisioningResource);
+        await Verify(manifest.ToString(), "json").AppendContentAsFile(bicep, "bicep").UseParameters(appService);
+    }
+
+    [Fact]
+    public async Task BrowserUrlProjectionUsesPublisherExpression()
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, output, workspace.Path);
+        builder.Services.AddSingleton<IDeploymentStateManager>(new InMemoryDeploymentStateManager());
+        builder.AddAzureEnvironment();
+        var publicHost = builder.AddParameter("public-host");
+        var frontend = builder.AddContainer("frontend", "image").WithHttpEndpoint(targetPort: 8080);
+        var origin = frontend.GetBrowserOrigin("http")
+            .WithPublishExpression(ReferenceExpression.Create($"https://{publicHost}"))
+            .ToReferenceExpression(builder.ExecutionContext);
+        builder.AddAzureInfrastructure("registration", infrastructure =>
+        {
+            infrastructure.Add(new ProvisioningOutput("origin", typeof(string))
+            {
+                Value = origin.AsProvisioningParameter(infrastructure, "browserOrigin")
+            });
+        });
+        using var app = builder.Build();
+
+        app.Run();
+
+        await Verify(await File.ReadAllTextAsync(Path.Combine(workspace.Path, "main.bicep")), "bicep");
+    }
+
     [Fact]
     public async Task WhenUsedWithAzureContainerAppsEnvironment_GeneratesProperBicep()
     {

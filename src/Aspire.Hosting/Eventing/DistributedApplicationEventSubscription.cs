@@ -12,6 +12,9 @@ namespace Aspire.Hosting.Eventing;
 [AspireExport]
 public class DistributedApplicationEventSubscription(Func<IDistributedApplicationEvent, CancellationToken, Task> callback)
 {
+    // Lifecycle preparation must complete before observers run, even when observers are dispatched concurrently.
+    internal bool IsPreparation { get; set; }
+
     /// <summary>
     /// The callback to be executed when the event is published.
     /// </summary>
