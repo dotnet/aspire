@@ -143,6 +143,11 @@ Each CLI archive job:
 
 This makes the archive job self-sufficient for the RID-specific artifacts it needs.
 
+`built-nugets-for-{rid}` contains only NuGet packages. The npm pointer and
+RID-specific tarballs are uploaded separately as `cli-npm-packages-{rid}` for
+investigation and manual downloads, so NuGet consumers do not download the npm
+payloads. npm packaging and verification still run in each CLI archive job.
+
 ### Native CLI packaging
 
 The CLI archive jobs also produce RID-specific native CLI artifacts used by tests and downstream packaging. For details about native CLI archive signing, dotnet-tool package construction, and why signed builds consume the signed archive payload, see [Native CLI Packaging](native-cli-packaging.md).
