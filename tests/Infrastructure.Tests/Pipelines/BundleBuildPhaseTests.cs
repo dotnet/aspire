@@ -549,6 +549,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         var project = CreateProject(workspace.Path, rid);
         var bundle = XDocument.Load(project);
         bundle.Root!.Add(new XElement("Target", new XAttribute("Name", "_BuildCliDistributionPackages"),
+            new XAttribute("Condition", "'$(BuildDistributionPackages)' == 'true' and '$(SkipNativeCliWithEmbeddedBundle)' != 'true'"),
             Write(Path.Combine(workspace.Path, "distribution-cli"), "distribution CLI")));
         bundle.Save(project);
 
@@ -1226,7 +1227,9 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
                 rid.StartsWith("linux-", StringComparison.Ordinal) ? null : Record("verify"),
                 rid.StartsWith("linux-", StringComparison.Ordinal) ? null : Write(Path.Combine(root, "require-tray-signature"),
                     rid.StartsWith("osx-", StringComparison.Ordinal) ? "$(_RequireMacTraySignature)" : "$(_RequireWindowsTraySignature)")),
-            new XElement("Target", new XAttribute("Name", "_PublishNativeCli"), Record("cli")),
+            new XElement("Target", new XAttribute("Name", "_PublishNativeCli"),
+                new XAttribute("Condition", "'$(BuildDistributionPackages)' == 'false' and '$(SkipNativeCliWithEmbeddedBundle)' != 'true'"),
+                Record("cli")),
             new XElement("Target", new XAttribute("Name", "_CleanCaches")))).Save(projectPath);
         return projectPath;
 
@@ -1294,6 +1297,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
             Property("_TraySigningProjectPath", signer));
         // The final CLI wrapper, not _PublishNativeCli, must be the only CLI owner.
         bundle.Root.Add(new XElement("Target", new XAttribute("Name", "_PublishNativeCli"),
+            new XAttribute("Condition", "'$(BuildDistributionPackages)' == 'false' and '$(SkipNativeCliWithEmbeddedBundle)' != 'true'"),
             new XElement("Error", new XAttribute("Text", "The CLI must not publish twice."))));
         bundle.Save(project);
         var trayProject = XDocument.Load(tray);

@@ -76,10 +76,6 @@
   <PropertyGroup>
     <BuildDistributionPackages Condition="'$(BuildDistributionPackages)' == '' and '$(Pack)' != ''">$(Pack)</BuildDistributionPackages>
     <BuildDistributionPackages Condition="'$(BuildDistributionPackages)' == ''">false</BuildDistributionPackages>
-    <!-- Select one final CLI producer, or neither when only the payload is requested. -->
-    <_BundleCliTarget Condition="'$(BuildDistributionPackages)' == 'false' and '$(SkipNativeCliWithEmbeddedBundle)' != 'true'">_PublishNativeCli</_BundleCliTarget>
-    <_BundleCliTarget Condition="'$(BuildDistributionPackages)' == 'true' and '$(SkipNativeCliWithEmbeddedBundle)' != 'true'">_BuildCliDistributionPackages</_BundleCliTarget>
-
     <BuildDependsOn>
       _ValidateAndSetNativeBundleSigningProperties;
       _ShowBanner;
@@ -89,7 +85,8 @@
       _PrepareMacOSBundleSigning;
       _SignBundleComponents;
       _PackageBundlePayload;
-      $(_BundleCliTarget);
+      _PublishNativeCli;
+      _BuildCliDistributionPackages;
       _SignBundlePayloadPackages
     </BuildDependsOn>
   </PropertyGroup>
@@ -536,7 +533,8 @@
           Condition="$(TargetRid.StartsWith('win-'))" />
   </Target>
 
-  <Target Name="_PublishNativeCli" Condition="'$(SkipNativeCliWithEmbeddedBundle)' != 'true'">
+  <Target Name="_PublishNativeCli"
+          Condition="'$(BuildDistributionPackages)' == 'false' and '$(SkipNativeCliWithEmbeddedBundle)' != 'true'">
     <MakeDir Directories="$(_ArtifactsLogDir)" />
     <PropertyGroup>
       <_CliProjectPath Condition="'$(_CliProjectPath)' == ''">$(_RepoRoot)src\Aspire.Cli\Aspire.Cli.csproj</_CliProjectPath>
@@ -548,7 +546,8 @@
           EnvironmentVariables="$(_NuGetCacheEnvironmentVariables)" />
   </Target>
 
-  <Target Name="_BuildCliDistributionPackages">
+  <Target Name="_BuildCliDistributionPackages"
+          Condition="'$(BuildDistributionPackages)' == 'true' and '$(SkipNativeCliWithEmbeddedBundle)' != 'true'">
     <PropertyGroup>
       <_BundleSignSwitch Condition="'$(Sign)' == 'true'">-sign</_BundleSignSwitch>
     </PropertyGroup>
