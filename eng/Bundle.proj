@@ -75,7 +75,7 @@
   <PropertyGroup>
     <BuildDistributionPackages Condition="'$(BuildDistributionPackages)' == ''">false</BuildDistributionPackages>
     <BuildDependsOn>
-      _PrepareBundle;
+      _InitializeBundleBuild;
       _ShowBanner;
       _CleanCaches;
       _RestoreDcpPackage;
@@ -173,22 +173,12 @@
   </Target>
 
   <Target Name="_ValidateBundleConfiguration">
-    <Error Condition="'$(Pack)' != ''"
-           Text="Pack is no longer a Bundle.proj input. Use BuildDistributionPackages to request distribution packages." />
     <Error Condition="'$(BuildDistributionPackages)' != 'true' and '$(BuildDistributionPackages)' != 'false'"
            Text="BuildDistributionPackages must be true or false." />
     <Error Condition="'$(PackDcpPackage)' != '' and '$(PackDcpPackage)' != 'true' and '$(PackDcpPackage)' != 'false'"
            Text="PackDcpPackage must be true or false." />
     <Error Condition="'$(ContinuousIntegrationBuild)' != 'true' and '$(ContinuousIntegrationBuild)' != 'false'"
            Text="ContinuousIntegrationBuild must be true or false." />
-    <Error Condition="'$(SkipNativeBuild)' != ''"
-           Text="SkipNativeBuild is no longer a Bundle.proj input. Use SkipNativeCliWithEmbeddedBundle to omit the final CLI output." />
-    <Error Condition="'$(SkipManagedBuild)' != ''"
-           Text="SkipManagedBuild is no longer a Bundle.proj input. Use SkipAspireManagedPublish, SkipDashboardPublish, and SkipTerminalHostPublish independently to reuse prepared components." />
-    <Error Condition="'$(SkipAppHostServerBuild)' != ''"
-           Text="SkipAppHostServerBuild is no longer a Bundle.proj input. Use SkipAppHostServerPublish to reuse the prepared AppHost Server." />
-    <Error Condition="'$(SkipTrayBuild)' != ''"
-           Text="SkipTrayBuild is no longer a Bundle.proj input. Use SkipTrayPublish to reuse the prepared tray." />
     <Error Condition="'$(SkipAspireManagedPublish)' != '' and '$(SkipAspireManagedPublish)' != 'true' and '$(SkipAspireManagedPublish)' != 'false'"
            Text="SkipAspireManagedPublish must be true or false." />
     <Error Condition="'$(SkipDashboardPublish)' != '' and '$(SkipDashboardPublish)' != 'true' and '$(SkipDashboardPublish)' != 'false'"
@@ -239,7 +229,7 @@
            Text="Linux native bundle lanes must disable signing." />
   </Target>
 
-  <Target Name="_PrepareBundle" DependsOnTargets="_ValidateBundleConfiguration">
+  <Target Name="_InitializeBundleBuild" DependsOnTargets="_ValidateBundleConfiguration">
     <PropertyGroup>
       <_RequireWindowsTraySignature>false</_RequireWindowsTraySignature>
       <_RequireMacTraySignature>false</_RequireMacTraySignature>
@@ -264,7 +254,7 @@
     <MakeDir Directories="$(_ArtifactsLogDir)" />
   </Target>
 
-  <Target Name="_ShowBanner" DependsOnTargets="_PrepareBundle">
+  <Target Name="_ShowBanner" DependsOnTargets="_InitializeBundleBuild">
     <Message Importance="high" Text="" />
     <Message Importance="high" Text="========================================" />
     <Message Importance="high" Text="Building Aspire CLI Bundle" />
@@ -296,7 +286,7 @@
 
   <Target Name="_PublishBundleComponents"
           DependsOnTargets="
-              _PrepareBundle;
+              _InitializeBundleBuild;
               _PublishAspireManaged;
               _PublishDashboard;
               _PublishTerminalHost;
@@ -359,7 +349,7 @@
   </Target>
 
   <Target Name="_PublishTray"
-          DependsOnTargets="_PrepareBundle"
+          DependsOnTargets="_InitializeBundleBuild"
           Condition="'$(SkipTrayPublish)' != 'true' and ($(TargetRid.StartsWith('osx-')) or $(TargetRid.StartsWith('win-')))">
     <PropertyGroup>
       <_TrayWindowsProjectPath Condition="'$(_TrayWindowsProjectPath)' == ''">$(_RepoRoot)src\Aspire.Tray\Windows\Aspire.Tray.Windows.csproj</_TrayWindowsProjectPath>
@@ -400,7 +390,7 @@
 
   <!-- Never publish here: republishing would overwrite signed inputs. -->
   <Target Name="_PackageBundlePayload"
-          DependsOnTargets="_PrepareBundle;
+          DependsOnTargets="_InitializeBundleBuild;
                             _ValidateBundleInputs;
                             _RestoreDcpPackage;
                             _PackBundleComponents;

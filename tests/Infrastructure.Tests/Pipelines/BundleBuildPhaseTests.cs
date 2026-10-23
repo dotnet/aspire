@@ -20,8 +20,6 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         var project = CreateProject(workspace.Path, "linux-x64");
         foreach (var (property, message) in new[]
         {
-            ("Pack=true", "Pack is no longer a Bundle.proj input."),
-            ("Pack=false", "Pack is no longer a Bundle.proj input."),
             ("Sign=invalid", "Sign must be true or false."),
             ("Sign=true", "Signing requires BuildDistributionPackages=true."),
             ("DotNetSignType=invalid", "DotNetSignType must be empty, test, or real."),
@@ -124,24 +122,6 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [InlineData("SkipNativeBuild", "SkipNativeCliWithEmbeddedBundle")]
-    [InlineData("SkipManagedBuild", "SkipAspireManagedPublish")]
-    [InlineData("SkipAppHostServerBuild", "SkipAppHostServerPublish")]
-    [InlineData("SkipTrayBuild", "SkipTrayPublish")]
-    public async Task RetiredBundleControlsFailBeforeAnyWork(string retired, string replacement)
-    {
-        using var workspace = TemporaryWorkspace.Create(output);
-        var project = CreateProject(workspace.Path, "linux-x64");
-
-        var result = await ExecuteAsync(project, "Build", "linux-x64", retired + "=false");
-
-        Assert.NotEqual(0, result.ExitCode);
-        Assert.Contains(retired + " is no longer a Bundle.proj input.", result.Output);
-        Assert.Contains(replacement, result.Output);
-        Assert.False(File.Exists(Path.Combine(workspace.Path, "events")));
-    }
-
-    [Theory]
     [InlineData("SkipAspireManagedPublish")]
     [InlineData("SkipDashboardPublish")]
     [InlineData("SkipTerminalHostPublish")]
@@ -177,8 +157,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
     [Theory]
     [InlineData("BuildDistributionPackages=invalid", "BuildDistributionPackages must be true or false.")]
     [InlineData("SkipNativeCliWithEmbeddedBundle=invalid", "SkipNativeCliWithEmbeddedBundle must be true or false.")]
-    [InlineData("BuildDistributionPackages=true;Pack=false", "Pack is no longer a Bundle.proj input.")]
-    public async Task BundleRejectsInvalidOrConflictingBuildSwitches(string settings, string message)
+    public async Task BundleRejectsInvalidBuildSwitches(string settings, string message)
     {
         var result = await ExecuteAsync(Path.Combine(RepoRoot.Path, "eng", "Bundle.proj"),
             "_ShowBanner", "linux-x64", settings.Split(';'));
@@ -332,7 +311,6 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [InlineData("Pack=invalid", "Pack is no longer a Bundle.proj input.")]
     [InlineData("BuildDistributionPackages=false", "Signing requires BuildDistributionPackages=true")]
     [InlineData("Sign=invalid", "Sign must be true or false.")]
     [InlineData("Sign=true", "Signing requires DotNetSignType")]

@@ -399,12 +399,11 @@ produces a platform archive, .NET tool NuGet packages, and npm packages.
 Signing requires `BuildDistributionPackages=true` and the existing `Sign` and `DotNetSignType` settings.
 Signed macOS jobs in Azure Pipelines allow two hours to accommodate signing and notarization latency.
 
-`Pack` is not a bundle input; use `BuildDistributionPackages` instead. Supplying
-`Pack`, even as `false`, fails with a migration diagnostic. The internal payload
-archive is created regardless of whether distribution packages are requested.
+The internal payload archive is created regardless of whether distribution
+packages are requested.
 
 Build and independently invoked component-publish and payload-package phases
-share preparation: validate configuration and signing inputs, initialize signing
+share build initialization: validate configuration and signing inputs, initialize signing
 arguments and target-platform DCP properties, then create the log directory.
 Invalid inputs fail before child processes or log-directory creation.
 Prepared-file checks run when those files are consumed; Dashboard warning
@@ -441,21 +440,18 @@ requested Dashboard/DCP packages instead of relying on the CLI packaging
 backend's signing pass.
 
 These controls belong to `eng/Bundle.proj`, not repository build selection.
-Bundle rejects the retired `SkipNativeBuild`, `SkipManagedBuild`,
-`SkipAppHostServerBuild`, and `SkipTrayBuild` inputs with migration diagnostics;
-there is no grouped managed-publishing compatibility alias. Repository builds
-and child packaging calls retain their existing build properties.
+Repository builds and child packaging calls use their own build properties.
 
 `eng/build.sh --bundle` and `eng/build.ps1 -bundle` forward explicit bundle
 controls in `/p:` or `-p:` form. At that boundary only, repository
 `SkipNativeBuild=true` (command line or environment) supplies the CLI-omission
 fallback. An explicit `SkipNativeCliWithEmbeddedBundle=false` overrides it.
-CLI assignments take precedence over a nonempty new CLI environment property,
-which in turn takes precedence over the legacy fallback. Property names and
+CLI assignments take precedence over a nonempty CLI environment property,
+which in turn takes precedence over the repository fallback. Property names and
 environment names are matched case-insensitively. Semicolon- or comma-separated
 property lists are split only for the Bundle call; repository arguments remain
 unchanged.
-The wrappers remove retired environment properties only for the Bundle call,
+The wrappers remove repository build-selection environment properties only for the Bundle call,
 leaving repository-build children and the caller's environment unchanged.
 For PowerShell, splat an argument array when passing `-p:` properties;
 direct `pwsh -File ... -p:` arguments collide with common-parameter binding.
