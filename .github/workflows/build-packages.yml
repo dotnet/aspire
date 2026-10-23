@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Build with packages
-        run: ./build.sh -restore -build -ci -pack -bl -p:InstallBrowsersForPlaywright=false -p:SkipTestProjects=true -p:SkipPlaygroundProjects=true -p:SkipBundleDeps=true ${{ inputs.versionOverrideArg }}
+        run: ./build.sh -restore -build -ci -pack -bl -p:InstallBrowsersForPlaywright=false -p:SkipTestProjects=true -p:SkipPlaygroundProjects=true -p:SkipBundleDeps=true -p:SkipNativeBuild=true ${{ inputs.versionOverrideArg }}
 
       - name: Generate template component manifest
         shell: pwsh
