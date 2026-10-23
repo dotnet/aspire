@@ -16,6 +16,8 @@
     </ReadLinesFromFile>
     <PropertyGroup>
       <_ArcadeToolsProject>$([MSBuild]::NormalizePath('$([System.IO.Path]::GetDirectoryName('$(_ArcadeBuildProject)'))', 'Tools.proj'))</_ArcadeToolsProject>
+      <_ArcadeSdkDirectory>$([System.IO.Path]::GetDirectoryName('$([System.IO.Path]::GetDirectoryName('$(_ArcadeBuildProject)'))'))</_ArcadeSdkDirectory>
+      <_ArcadeSdkVersion>$([System.IO.Path]::GetFileName('$(_ArcadeSdkDirectory)'))</_ArcadeSdkVersion>
       <_SigningToolsIntermediateDir>$([MSBuild]::NormalizeDirectory('$(ArtifactsDir)', 'toolset', 'SigningTools'))</_SigningToolsIntermediateDir>
     </PropertyGroup>
     <!-- Tools.proj needs NuGet targets supplied by its caller, just as Arcade's
@@ -23,5 +25,11 @@
     <MSBuild Projects="$(_ArcadeToolsProject)"
              Targets="Restore"
              Properties="RepoRoot=$(RepoRoot);BaseIntermediateOutputPath=$(_SigningToolsIntermediateDir);ExcludeRestorePackageImports=true;_NuGetRestoreTargets=$(MSBuildToolsPath)/NuGet.targets" />
+    <!-- The build scripts require artifacts/toolset/<SDK version>.txt even when
+         tool packages already exist. Match their bootstrap marker on cold agents;
+         its location is repository-relative, independent of ArtifactsDir overrides. -->
+    <WriteLinesToFile File="$(RepoRoot)artifacts/toolset/$(_ArcadeSdkVersion).txt"
+                      Lines="$(_ArcadeBuildProject)"
+                      Overwrite="true" />
   </Target>
 </Project>
