@@ -42,7 +42,7 @@ function Assert-NativeExecutable([string] $Path) {
     }
     elseif ($Rid.StartsWith('osx-')) {
         $architecture = if ($Rid -eq 'osx-arm64') { 'arm64' } else { 'x86_64' }
-        & lipo -verify_arch $architecture $Path
+        & lipo $Path -verify_arch $architecture
         if ($LASTEXITCODE -ne 0) { throw "Bundle executable has the wrong architecture for ${Rid}: $Path" }
     }
     else {
