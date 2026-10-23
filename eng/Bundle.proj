@@ -182,8 +182,7 @@
               _SignBundleComponents;
               _BuildStandaloneComponentPackages;
               _CreateAndVerifyBundleArchive;
-              _PublishCli;
-              _SignNonCliDistributionPackages">
+              _FinalizeCliAndDistributionPackages">
     <Message Importance="high" Text="" />
     <Message Importance="high" Text="Bundle layout created at: $(_BundleLayoutDir)" />
   </Target>
@@ -256,6 +255,7 @@
       <_BundleSigningArgs>$(_BundleSigningArgs) "/p:ArtifactsDir=$(_ArtifactsDir.TrimEnd('\').TrimEnd('/'))/"</_BundleSigningArgs>
       <_BundleSigningArgs Condition="'$(TeamName)' != ''">$(_BundleSigningArgs) "/p:TeamName=$(TeamName)"</_BundleSigningArgs>
       <_BundleSigningArgs Condition="'$(DotNetPublishUsingPipelines)' != ''">$(_BundleSigningArgs) /p:DotNetPublishUsingPipelines=$(DotNetPublishUsingPipelines)</_BundleSigningArgs>
+
       <_SignOnlyCommand>&quot;$(_BuildScriptPath)&quot; -restore -sign -configuration $(Configuration) -projects &quot;$(_ManagedProjectPath)&quot; $(_BundleChildArgs) $(_BundleSigningArgs)</_SignOnlyCommand>
     </PropertyGroup>
 
@@ -537,24 +537,25 @@
           Condition="$(TargetRid.StartsWith('win-'))" />
   </Target>
 
-  <Target Name="_PublishCli" Condition="'$(SkipCliArtifacts)' != 'true'">
-    <!-- Both paths publish the CLI with the bundle archive embedded. Without
-         distribution packages, publish directly; otherwise use the repository
-         build/sign/pack pipeline below. -->
-    <PropertyGroup Condition="'$(BuildDistributionPackages)' != 'true'">
+  <Target Name="_FinalizeCliAndDistributionPackages">
+    <!-- Both paths publish the CLI with the bundle archive embedded.
+          - Without distribution packages, publish directly;
+          - otherwise use the repository build/sign/pack pipeline below. -->
+
+    <PropertyGroup Condition="'$(BuildDistributionPackages)' != 'true' and '$(SkipCliArtifacts)' != 'true'">
       <_CliProjectPath Condition="'$(_CliProjectPath)' == ''">$(_RepoRoot)src\Aspire.Cli\Aspire.Cli.csproj</_CliProjectPath>
       <_CliPublishOutputArg Condition="'$(CliPublishDir)' != ''">--output "$(CliPublishDir)"</_CliPublishOutputArg>
     </PropertyGroup>
 
     <Message Importance="high" Text="Publishing native AOT CLI with embedded bundle: $(_BundleArchivePath)"
-             Condition="'$(BuildDistributionPackages)' != 'true'" />
+             Condition="'$(BuildDistributionPackages)' != 'true' and '$(SkipCliArtifacts)' != 'true'" />
     <Exec Command="dotnet publish &quot;$(_CliProjectPath)&quot; -r $(TargetRid) $(_CliPublishOutputArg) /p:BundlePayloadPath=&quot;$(_BundleArchivePath)&quot; $(_BundleChildArgs) &quot;-bl:$(_ArtifactsLogDir)PublishCli.binlog&quot;"
           EnvironmentVariables="$(_NuGetCacheEnvironmentVariables)"
-          Condition="'$(BuildDistributionPackages)' != 'true'" />
+          Condition="'$(BuildDistributionPackages)' != 'true' and '$(SkipCliArtifacts)' != 'true'" />
 
     <!-- Distribution packages: publish, optionally sign, and package the CLI. -->
 
-    <PropertyGroup Condition="'$(BuildDistributionPackages)' == 'true'">
+    <PropertyGroup Condition="'$(BuildDistributionPackages)' == 'true' and '$(SkipCliArtifacts)' != 'true'">
       <_BundleSignSwitch Condition="'$(Sign)' == 'true'">-sign</_BundleSignSwitch>
     </PropertyGroup>
 
@@ -568,16 +569,15 @@
          It is not a Bundle.proj input and does not select individual bundle components. -->
     <Exec Command="&quot;$(_BuildScriptPath)&quot; -ci -restore -build -pack -configuration $(Configuration) $(_BundleSignSwitch) /p:SkipManagedBuild=true /p:SkipAppHostServerBuild=true /p:TargetRids=$(TargetRid) &quot;/p:BundlePayloadPath=$(_BundleArchivePath)&quot; $(_BundleChildArgs) $(_BundleSigningArgs) &quot;/bl:$(_ArtifactsLogDir)PublishAndPackageCli.binlog&quot;"
           EnvironmentVariables="$(_NuGetCacheEnvironmentVariables)"
-          Condition="'$(BuildDistributionPackages)' == 'true'" />
-  </Target>
+          Condition="'$(BuildDistributionPackages)' == 'true' and '$(SkipCliArtifacts)' != 'true'" />
 
-  <Target Name="_SignNonCliDistributionPackages" Condition="'$(BuildDistributionPackages)' == 'true' and '$(Sign)' == 'true' and '$(SkipCliArtifacts)' == 'true'">
     <!-- CLI publishing/packaging normally invokes shared signing, which picks up
          the new Dashboard/optional DCP NuGet packages. When skipped, use a fresh
          sign-only evaluation: these packages did not exist during component signing.
          Discovery is shared, not restricted to these packages. -->
     <Exec Command="$(_SignOnlyCommand) &quot;/bl:$(_ArtifactsLogDir)SignNonCliDistributionPackages.binlog&quot;"
-          EnvironmentVariables="$(_NuGetCacheEnvironmentVariables)" />
+          EnvironmentVariables="$(_NuGetCacheEnvironmentVariables)"
+          Condition="'$(BuildDistributionPackages)' == 'true' and '$(Sign)' == 'true' and '$(SkipCliArtifacts)' == 'true'" />
   </Target>
 
 </Project>
