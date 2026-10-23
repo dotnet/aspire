@@ -62,10 +62,11 @@ jobs:
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ matrix.target_branch }}
+          # Exercise PR code and scripts together in the merge commit.
+          ref: ${{ github.event_name == 'pull_request' && github.sha || matrix.target_branch }}
           persist-credentials: false
 
-      - name: Read target branch framework
+      - name: Read generation framework
         run: |
           framework=$(python3 -c "import xml.etree.ElementTree as ET; print(ET.parse('eng/Versions.props').find('.//DefaultTargetFramework').text)")
           echo "API_TARGET_FRAMEWORK=$framework" >> "$GITHUB_ENV"
