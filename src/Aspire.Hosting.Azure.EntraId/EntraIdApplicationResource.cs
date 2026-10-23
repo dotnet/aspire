@@ -9,6 +9,7 @@ using Aspire.Hosting.Azure.EntraId.Provisioning;
 using Aspire.Hosting.Pipelines;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
+using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting.Azure;
 
@@ -365,25 +366,24 @@ public class EntraIdApplicationResource : AzureProvisioningResource
         }
         infrastructure.Add(servicePrincipal);
 
-        // A parameter name must not collide with another parameter in the template, such as a user-supplied redirect URI
-        // parameter named "web-identity-principalId" and an identity named "web-identity". Only this generation's parameters
-        // count: resource.Parameters keeps the names from earlier generations, and reserving those would change the names
+        // A symbol name must not collide with another symbol in the template, such as a user-supplied redirect URI
+        // parameter named "web-identity-principalId" and an identity named "web-identity". Parameters and resources share
+        // one namespace, and the ARM deployment engine is not case sensitive, so Bicep rejects parameters that differ only
+        // in casing (BCP353); one case-insensitive set covers both. Only this generation's symbols count:
+        // resource.Parameters keeps the names from earlier generations, and reserving those would change the names
         // every time the template is generated.
-        var usedParameterNames = new HashSet<string>(
-            infrastructure.GetProvisionableResources().OfType<ProvisioningParameter>().Select(p => p.BicepIdentifier),
-            StringComparer.Ordinal);
+        var usedSymbolNames = new HashSet<string>(
+            infrastructure.GetProvisionableResources().OfType<ProvisioningParameter>().Select(p => p.BicepIdentifier)
+                .Concat(infrastructure.GetProvisionableResources().OfType<ProvisionableResource>().Select(r => r.BicepIdentifier)),
+            StringComparer.OrdinalIgnoreCase);
 
         foreach (var identity in resource.GetFederatedIdentities())
         {
             // The subject is the identity's object (principal) ID; the client ID is what consumers pass to Microsoft.Identity.Web.
             var identifier = Infrastructure.NormalizeBicepIdentifier(identity.Name);
-            var parameterName = $"{identifier}_principalId";
-            for (var suffix = 2; !usedParameterNames.Add(parameterName); suffix++)
-            {
-                parameterName = $"{identifier}_principalId_{suffix}";
-            }
-
+            var parameterName = AllocateSymbolName(usedSymbolNames, $"{identifier}_principalId");
             var principalId = identity.PrincipalId.AsProvisioningParameter(infrastructure, parameterName);
+            var credentialIdentifier = AllocateSymbolName(usedSymbolNames, $"federatedCredential_{identifier}");
 
             // Graph requires a federated credential's name to be 3-120 characters. Aspire resource names can be 1-64
             // characters, so a fixed prefix keeps a short name above the minimum and, unlike one that also includes the
@@ -392,7 +392,7 @@ public class EntraIdApplicationResource : AzureProvisioningResource
             // The Graph extension names a child as '{applicationUniqueName}/{credentialName}'. Referencing the
             // application's property, rather than reusing its name expression, makes the child depend on the application.
             BicepValue<string> applicationUniqueName = application.UniqueName.ToBicepExpression();
-            infrastructure.Add(new FederatedIdentityCredential($"federatedCredential_{identifier}")
+            infrastructure.Add(new FederatedIdentityCredential(credentialIdentifier)
             {
                 Name = BicepFunction.Interpolate($"{applicationUniqueName}/{credentialName}").Compile(),
                 Issuer = BicepFunction.Interpolate($"{EntraIdFederation.GetIssuerPrefix(resource.Instance)}/{BicepFunction.GetTenant().TenantId}/v2.0").Compile(),
@@ -407,6 +407,17 @@ public class EntraIdApplicationResource : AzureProvisioningResource
         infrastructure.Add(new ProvisioningOutput(EntraIdBicepConstants.ObjectIdOutputName, typeof(string)) { Value = application.Id.ToBicepExpression() });
         infrastructure.Add(new ProvisioningOutput(EntraIdBicepConstants.ServicePrincipalIdOutputName, typeof(string)) { Value = servicePrincipal.Id.ToBicepExpression() });
         infrastructure.Add(new ProvisioningOutput(EntraIdBicepConstants.UniqueNameOutputName, typeof(string)) { Value = application.UniqueName.ToBicepExpression() });
+    }
+
+    private static string AllocateSymbolName(HashSet<string> usedSymbolNames, string name)
+    {
+        var candidate = name;
+        for (var suffix = 2; !usedSymbolNames.Add(candidate); suffix++)
+        {
+            candidate = $"{name}_{suffix}";
+        }
+
+        return candidate;
     }
 
     // ── Core identity ──────────────────────────────────────────────────────

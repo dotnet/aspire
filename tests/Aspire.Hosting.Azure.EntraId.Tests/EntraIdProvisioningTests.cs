@@ -307,6 +307,41 @@ public class EntraIdProvisioningTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public void FederatedCredentialPrincipalIdParameter_DoesNotCollideWithParametersThatDifferOnlyInCasing()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        // Bicep rejects parameters that differ only in casing (BCP353).
+        var redirectUris = builder.AddParameter("WEB-identity-principalId");
+        var webIdentity = builder.AddAzureUserAssignedIdentity("web-identity");
+        var entra = builder.AddEntraIdApplication("entra-web")
+            .WithRedirectUris(redirectUris)
+            .PublishWithFederatedManagedIdentityCredential(webIdentity);
+
+        var bicep = entra.Resource.GetBicepTemplateString();
+
+        Assert.Same(redirectUris.Resource, entra.Resource.Parameters["WEB_identity_principalId"]);
+        Assert.Same(webIdentity.Resource, Assert.IsType<BicepOutputReference>(entra.Resource.Parameters["web_identity_principalId_2"]).Resource);
+        Assert.Contains("subject: web_identity_principalId_2", bicep);
+    }
+
+    [Fact]
+    public void FederatedCredentialResourceIdentifier_DoesNotCollideWithParameters()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        // Parameters and resources share one namespace, and this parameter normalizes to the credential's resource identifier.
+        var redirectUris = builder.AddParameter("federatedCredential-web-identity");
+        var webIdentity = builder.AddAzureUserAssignedIdentity("web-identity");
+        var entra = builder.AddEntraIdApplication("entra-web")
+            .WithRedirectUris(redirectUris)
+            .PublishWithFederatedManagedIdentityCredential(webIdentity);
+
+        var bicep = entra.Resource.GetBicepTemplateString();
+
+        Assert.Contains("param federatedCredential_web_identity string", bicep);
+        Assert.Contains("resource federatedCredential_web_identity_2 ", bicep);
+    }
+
+    [Fact]
     public void ValidateManagedIdentities_IgnoresResourcesExcludedFromTheManifest()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
