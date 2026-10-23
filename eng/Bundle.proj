@@ -74,18 +74,6 @@
 
   <PropertyGroup>
     <BuildDistributionPackages Condition="'$(BuildDistributionPackages)' == ''">false</BuildDistributionPackages>
-    <BuildDependsOn>
-      _InitializeBundleBuild;
-      _ShowBanner;
-      _CleanCaches;
-      _RestoreDcpPackage;
-      _PublishBundleComponents;
-      _SignBundleComponents;
-      _PackageBundlePayload;
-      _PublishNativeCliWithEmbeddedBundle;
-      _BuildCliDistributionPackages;
-      _SignBundlePayloadPackages
-    </BuildDependsOn>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -162,6 +150,22 @@
   <ItemGroup>
     <_SupportedBundleRid Include="win-x64;win-arm64;osx-x64;osx-arm64;linux-x64;linux-arm64;linux-musl-x64" />
   </ItemGroup>
+
+  <Target Name="Build"
+          DependsOnTargets="
+              _InitializeBundleBuild;
+              _ShowBanner;
+              _CleanCaches;
+              _RestoreDcpPackage;
+              _PublishBundleComponents;
+              _SignBundleComponents;
+              _PackageBundlePayload;
+              _PublishNativeCliWithEmbeddedBundle;
+              _BuildCliDistributionPackages;
+              _SignBundlePayloadPackages">
+    <Message Importance="high" Text="" />
+    <Message Importance="high" Text="Bundle created at: $(_BundleOutputDir)" />
+  </Target>
 
   <Target Name="_ValidateBundleConfiguration">
     <Error Condition="'$(BuildDistributionPackages)' != 'true' and '$(BuildDistributionPackages)' != 'false'"
@@ -260,11 +264,6 @@
            Text="Could not map TargetRid '$(TargetRid)' to DCP BuildOs/BuildArch." />
 
     <MakeDir Directories="$(_ArtifactsLogDir)" />
-  </Target>
-
-  <Target Name="Build" DependsOnTargets="$(BuildDependsOn)">
-    <Message Importance="high" Text="" />
-    <Message Importance="high" Text="Bundle created at: $(_BundleOutputDir)" />
   </Target>
 
   <Target Name="_ShowBanner" DependsOnTargets="_InitializeBundleBuild">
