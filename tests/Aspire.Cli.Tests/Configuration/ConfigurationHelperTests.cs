@@ -252,6 +252,22 @@ public class ConfigurationHelperTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public void AppendFinalNewline_AddsOneOsNewLineToSerializedJson()
+    {
+        var settings = new JsonObject
+        {
+            ["appHost"] = new JsonObject { ["path"] = "MyApp.csproj" },
+            ["channel"] = "daily"
+        };
+
+        // Serialized text is not normalized: System.Text.Json indents with the OS line break on its own and
+        // only lacks the final newline, so that is all that is added.
+        var json = JsonSerializer.Serialize(settings, JsonSourceGenerationContext.Default.JsonObject);
+
+        LineEndingAssert.UsesOsLineBreaksAndSingleFinalNewline(ConfigurationHelper.AppendFinalNewline(json));
+    }
+
+    [Fact]
     public void NormalizeJsonFileContent_ConvertsNonOsLineBreaksToOsLineBreaks()
     {
         var json = "{" + LineEndingAssert.NonOsNewLine + "  \"a\": 1" + LineEndingAssert.NonOsNewLine + "}";

@@ -645,7 +645,7 @@ internal sealed class InitCommand : BaseCommand
         }
 
         var configJson = JsonSerializer.Serialize(settings, JsonSourceGenerationContext.RelaxedEscaping.JsonObject);
-        File.WriteAllText(configPath, ConfigurationHelper.NormalizeJsonFileContent(configJson));
+        File.WriteAllText(configPath, ConfigurationHelper.AppendFinalNewline(configJson));
 
         InteractionService.DisplayMessage(KnownEmojis.CheckMarkButton, string.Format(CultureInfo.CurrentCulture, InitCommandStrings.CreatedFile, AspireConfigFile.FileName));
         return (CliExitCodes.Success, effectivePorts);
@@ -840,7 +840,7 @@ internal sealed class InitCommand : BaseCommand
         };
 
         var runJson = JsonSerializer.Serialize(settings, JsonSourceGenerationContext.RelaxedEscaping.JsonObject);
-        File.WriteAllText(path, ConfigurationHelper.NormalizeJsonFileContent(runJson));
+        File.WriteAllText(path, ConfigurationHelper.AppendFinalNewline(runJson));
 
         InteractionService.DisplayMessage(KnownEmojis.CheckMarkButton, string.Format(CultureInfo.CurrentCulture, InitCommandStrings.CreatedFile, fileName));
     }

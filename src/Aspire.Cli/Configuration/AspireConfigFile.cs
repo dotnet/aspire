@@ -196,7 +196,7 @@ internal sealed class AspireConfigFile
         Directory.CreateDirectory(directory);
         var filePath = Path.Combine(directory, FileName);
         var json = JsonSerializer.Serialize(this, JsonSourceGenerationContext.RelaxedEscaping.AspireConfigFile);
-        File.WriteAllText(filePath, ConfigurationHelper.NormalizeJsonFileContent(json));
+        File.WriteAllText(filePath, ConfigurationHelper.AppendFinalNewline(json));
     }
 
     /// <summary>

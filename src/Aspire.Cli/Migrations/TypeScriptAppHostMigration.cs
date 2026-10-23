@@ -219,7 +219,7 @@ internal sealed class TypeScriptAppHostMigration : IMigration
                 LegacyTypeScriptAppHost.ModernAppHostFileName);
 
             var json = root.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(configPath, ConfigurationHelper.NormalizeJsonFileContent(json));
+            File.WriteAllText(configPath, ConfigurationHelper.AppendFinalNewline(json));
         }
         catch (JsonException ex)
         {
