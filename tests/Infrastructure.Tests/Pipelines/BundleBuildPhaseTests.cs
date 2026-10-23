@@ -205,8 +205,6 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         }
         if (rid.StartsWith("osx-", StringComparison.Ordinal))
         {
-            Assert.Equal(signType == "real" ? "true" : "false",
-                File.ReadAllText(Path.Combine(root, "require-tray-signature")).Trim());
             expected.AddRange(["tray", "adhoc"]);
             if (signType == "real")
             {
@@ -561,7 +559,6 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
 
         await RunAsync(project, "PackageBundlePayload", rid, "BuildDistributionPackages=true", "SkipNativeCliWithEmbeddedBundle=true");
 
-        Assert.Equal("false", File.ReadAllText(Path.Combine(root, "require-tray-signature")).Trim());
         Assert.Equal(["restore", "package", "layout", "verify"],
             File.ReadAllLines(Path.Combine(root, "events")));
         Assert.Equal("signed prepared bytes", File.ReadAllText(Path.Combine(root, "package-dashboard")));
@@ -1279,9 +1276,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
                 rid.StartsWith("linux-", StringComparison.Ordinal) ? null : new XElement("Error",
                     new XAttribute("Condition", $"Exists('{Path.Combine(root, "fail-verify")}')"),
                     new XAttribute("Text", "Failed verify")),
-                rid.StartsWith("linux-", StringComparison.Ordinal) ? null : Record("verify"),
-                rid.StartsWith("linux-", StringComparison.Ordinal) ? null : Write(Path.Combine(root, "require-tray-signature"),
-                    rid.StartsWith("osx-", StringComparison.Ordinal) ? "$(_RequireMacTraySignature)" : "$(_RequireWindowsTraySignature)")),
+                rid.StartsWith("linux-", StringComparison.Ordinal) ? null : Record("verify")),
             new XElement("Target", new XAttribute("Name", "_PublishNativeCliWithEmbeddedBundle"),
                 new XAttribute("Condition", "'$(BuildDistributionPackages)' == 'false' and '$(SkipNativeCliWithEmbeddedBundle)' != 'true'"),
                 Record("cli")),
@@ -1356,12 +1351,6 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
             new XElement("Error", new XAttribute("Text", "The CLI must not publish twice."))));
         bundle.Save(project);
         var trayProject = XDocument.Load(tray);
-        trayProject.Root!.Add(new XElement("Target", new XAttribute("Name", "ValidateChildPublishControls"),
-            new XAttribute("BeforeTargets", "PrepareTraySigning;RestoreSignedTray"),
-            new[] { "SkipAspireManagedPublish", "SkipDashboardPublish", "SkipTerminalHostPublish",
-                "SkipAppHostServerPublish", "SkipTrayPublish", "SkipNativeCliWithEmbeddedBundle" }
-                .Select(control => new XElement("Error", new XAttribute("Condition", $"'$({control})' != ''"),
-                    new XAttribute("Text", "Tray signing children must not inherit " + control)))));
         trayProject.Root!.Add(Phase("PrepareTraySigning", "prepare-tray", Copy(trayExecutable, "$(TraySigningArchive)")),
             Phase("RestoreSignedTray", "restore-tray", Copy("$(TraySigningArchive)", "$(TrayAppPath)/Contents/MacOS/aspire-tray")));
         trayProject.Save(tray);
