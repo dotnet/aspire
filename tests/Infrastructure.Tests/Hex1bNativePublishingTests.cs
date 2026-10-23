@@ -428,7 +428,7 @@ public sealed class Hex1bNativePublishingTests : IDisposable
         }
         var project = CreateBundlePublishProject(dashboard);
         var result = await RunDotNetAsync(
-            ["msbuild", project, "-nologo", "-t:_PublishBundleComponents", "-p:SkipAppHostServerBuild=true", "-p:SkipTrayBuild=true", "-p:Configuration=Release",
+            ["msbuild", project, "-nologo", "-t:_PublishBundleComponents", "-p:SkipAppHostServerPublish=true", "-p:SkipTrayPublish=true", "-p:Configuration=Release",
              $"-p:TargetRid={rid}", "-p:AspireDashboardTargetFramework=net11.0", "-p:SkipDashboardPublish=true"]);
 
         Assert.Equal(!missingDashboard, result.ExitCode == 0);
@@ -450,7 +450,7 @@ public sealed class Hex1bNativePublishingTests : IDisposable
         var dashboard = Path.Combine(_workspace.Path, "dashboard");
         var project = CreateBundlePublishProject(dashboard);
         var result = await RunDotNetAsync(
-            ["msbuild", project, "-nologo", "-t:_PublishBundleComponents", "-p:SkipAppHostServerBuild=true", "-p:SkipTrayBuild=true", "-p:Configuration=Release"]);
+            ["msbuild", project, "-nologo", "-t:_PublishBundleComponents", "-p:SkipAppHostServerPublish=true", "-p:SkipTrayPublish=true", "-p:Configuration=Release"]);
 
         Assert.True(result.ExitCode == 0, result.Output);
         Assert.Equal(["managed", "dashboard", "terminalhost"],

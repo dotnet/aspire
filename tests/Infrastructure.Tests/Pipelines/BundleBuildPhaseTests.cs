@@ -10,6 +10,73 @@ namespace Infrastructure.Tests;
 
 public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
 {
+    [Theory]
+    [InlineData("SkipAspireManagedPublish", "managed")]
+    [InlineData("SkipDashboardPublish", "dashboard")]
+    [InlineData("SkipTerminalHostPublish", "terminalhost")]
+    [InlineData("SkipAppHostServerPublish", "apphost-server")]
+    [InlineData("SkipTrayPublish", "tray")]
+    public async Task ComponentPublishControlsReuseOnlyTheirOwnPreparedBytes(string control, string component)
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        const string rid = "osx-arm64";
+        var project = CreateProject(workspace.Path, rid);
+        await RunAsync(project, "PublishBundleComponents", rid);
+        var paths = new Dictionary<string, string>
+        {
+            ["managed"] = ManagedPath(workspace.Path, rid),
+            ["dashboard"] = DashboardPath(workspace.Path, rid),
+            ["terminalhost"] = TerminalHostPath(workspace.Path, rid),
+            ["apphost-server"] = AppHostServerPath(workspace.Path, rid),
+            ["tray"] = Path.Combine(workspace.Path, "artifacts", "tray", "Aspire Tray.app", "Contents", "MacOS", "aspire-tray")
+        };
+        File.WriteAllText(paths[component], "prepared bytes");
+        File.Delete(Path.Combine(workspace.Path, "events"));
+
+        await RunAsync(project, "PublishBundleComponents", rid, control + "=true");
+
+        Assert.Equal(paths.Keys.Where(name => name != component),
+            File.ReadAllLines(Path.Combine(workspace.Path, "events")));
+        Assert.Equal("prepared bytes", File.ReadAllText(paths[component]));
+    }
+
+    [Theory]
+    [InlineData("SkipNativeBuild", "SkipNativeCliWithEmbeddedBundle")]
+    [InlineData("SkipManagedBuild", "SkipAspireManagedPublish")]
+    [InlineData("SkipAppHostServerBuild", "SkipAppHostServerPublish")]
+    [InlineData("SkipTrayBuild", "SkipTrayPublish")]
+    public async Task RetiredBundleControlsFailBeforeAnyWork(string retired, string replacement)
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        var project = CreateProject(workspace.Path, "linux-x64");
+
+        var result = await ExecuteAsync(project, "Build", "linux-x64", retired + "=false");
+
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains(retired + " is no longer a Bundle.proj input.", result.Output);
+        Assert.Contains(replacement, result.Output);
+        Assert.False(File.Exists(Path.Combine(workspace.Path, "events")));
+    }
+
+    [Theory]
+    [InlineData("SkipAspireManagedPublish")]
+    [InlineData("SkipDashboardPublish")]
+    [InlineData("SkipTerminalHostPublish")]
+    [InlineData("SkipAppHostServerPublish")]
+    [InlineData("SkipTrayPublish")]
+    [InlineData("SkipNativeCliWithEmbeddedBundle")]
+    public async Task InvalidPublishControlsFailBeforeAnyWork(string control)
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        var project = CreateProject(workspace.Path, "linux-x64");
+
+        var result = await ExecuteAsync(project, "Build", "linux-x64", control + "=invalid");
+
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains(control + " must be true or false.", result.Output);
+        Assert.False(File.Exists(Path.Combine(workspace.Path, "events")));
+    }
+
     [Fact]
     public async Task DcpRestoreFailureStopsBeforePublishingAnyComponents()
     {
@@ -17,7 +84,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         var project = CreateProject(workspace.Path, "linux-x64");
         File.WriteAllText(Path.Combine(workspace.Path, "fail-restore"), "");
 
-        var result = await ExecuteAsync(project, "Build", "linux-x64", "SkipNativeCliBuild=true");
+        var result = await ExecuteAsync(project, "Build", "linux-x64", "SkipNativeCliWithEmbeddedBundle=true");
 
         Assert.NotEqual(0, result.ExitCode);
         Assert.Contains("Failed publishing restore", result.Output);
@@ -26,9 +93,8 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
 
     [Theory]
     [InlineData("BuildDistributionPackages=invalid", "BuildDistributionPackages must be true or false.")]
-    [InlineData("SkipNativeCliBuild=invalid", "SkipNativeCliBuild must be true or false.")]
+    [InlineData("SkipNativeCliWithEmbeddedBundle=invalid", "SkipNativeCliWithEmbeddedBundle must be true or false.")]
     [InlineData("BuildDistributionPackages=true;Pack=false", "Pack and BuildDistributionPackages must agree")]
-    [InlineData("SkipNativeCliBuild=true;SkipNativeBuild=false", "SkipNativeBuild and SkipNativeCliBuild must agree")]
     public async Task BundleRejectsInvalidOrConflictingBuildSwitches(string settings, string message)
     {
         var result = await ExecuteAsync(Path.Combine(RepoRoot.Path, "eng", "Bundle.proj"),
@@ -55,7 +121,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         var windows = rid.StartsWith("win-", StringComparison.Ordinal);
         if (windows)
         {
-            await RunAsync(project, "PublishBundleComponents", rid, "SkipTrayBuild=true");
+            await RunAsync(project, "PublishBundleComponents", rid, "SkipTrayPublish=true");
             var tray = Path.Combine(root, "artifacts", "tray");
             Directory.CreateDirectory(tray);
             File.WriteAllText(Path.Combine(tray, "aspire-tray.exe"), "tray");
@@ -66,7 +132,8 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
 
         await RunAsync(project, "Build", rid, "Pack=true",
             $"Sign={sign}", $"DotNetSignType={signType}",
-            $"SkipManagedBuild={windows}", $"SkipAppHostServerBuild={windows}", $"SkipTrayBuild={windows}", "SkipNativeBuild=false",
+            $"SkipAspireManagedPublish={windows}", $"SkipDashboardPublish={windows}", $"SkipTerminalHostPublish={windows}",
+            $"SkipAppHostServerPublish={windows}", $"SkipTrayPublish={windows}", "SkipNativeCliWithEmbeddedBundle=false",
             "BundleVersion=ci-bundlepayload", "RestorePackagesPath=" + Path.Combine(root, "restore cache"), "PackDcpPackage=true");
 
         var expected = new List<string> { "restore" };
@@ -304,10 +371,10 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         var root = workspace.CreateDirectory("bundle inputs with spaces").FullName;
         var project = CreateProject(root, rid);
 
-        await RunAsync(project, "PublishBundleComponents", rid, "SkipNativeBuild=true", "SuppressAOT=true");
+        await RunAsync(project, "PublishBundleComponents", rid, "SkipNativeCliWithEmbeddedBundle=true", "SuppressAOT=true");
         var dashboard = DashboardPath(root, rid);
         File.WriteAllText(dashboard, "signed Dashboard");
-        await RunAsync(project, "PackageBundlePayload", rid, "Pack=true", $"PackDcpPackage={packDcp}", "SkipNativeBuild=true", "SuppressAOT=true");
+        await RunAsync(project, "PackageBundlePayload", rid, "Pack=true", $"PackDcpPackage={packDcp}", "SkipNativeCliWithEmbeddedBundle=true", "SuppressAOT=true");
 
         Assert.Equal("signed Dashboard", File.ReadAllText(dashboard));
         Assert.Equal("signed Dashboard", File.ReadAllText(Path.Combine(root, "package-dashboard")));
@@ -431,7 +498,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
             File.WriteAllText(file, "signed prepared bytes");
         }
 
-        await RunAsync(project, "PackageBundlePayload", rid, "Pack=true", "SkipNativeBuild=true");
+        await RunAsync(project, "PackageBundlePayload", rid, "Pack=true", "SkipNativeCliWithEmbeddedBundle=true");
 
         Assert.Equal("false", File.ReadAllText(Path.Combine(root, "require-tray-signature")).Trim());
         Assert.Equal(["restore", "package", "layout", "verify"],
@@ -455,12 +522,13 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         using var workspace = TemporaryWorkspace.Create(output);
         const string rid = "linux-x64";
         var project = CreateProject(workspace.Path, rid);
-        await RunAsync(project, "Build", rid, "SkipNativeBuild=true");
+        await RunAsync(project, "Build", rid, "SkipNativeCliWithEmbeddedBundle=true");
         Assert.Equal(["restore", "managed", "dashboard", "terminalhost", "apphost-server", "layout"],
             File.ReadAllLines(Path.Combine(workspace.Path, "events")).Select(line => line.Split('|')[0]));
 
         File.Delete(Path.Combine(workspace.Path, "events"));
-        await RunAsync(project, "Build", rid, "SkipManagedBuild=true", "SkipAppHostServerBuild=true", "SkipNativeBuild=true", "SkipTrayBuild=true");
+        await RunAsync(project, "Build", rid, "SkipAspireManagedPublish=true", "SkipDashboardPublish=true", "SkipTerminalHostPublish=true",
+            "SkipAppHostServerPublish=true", "SkipNativeCliWithEmbeddedBundle=true", "SkipTrayPublish=true");
         Assert.Equal(["restore", "layout"],
             File.ReadAllLines(Path.Combine(workspace.Path, "events")).Select(line => line.Split('|')[0]));
     }
@@ -474,23 +542,22 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
     [InlineData(false, true, false)]
     [InlineData(true, false, false)]
     [InlineData(true, true, false)]
-    public async Task BuildSelectsExactlyOneCliBackendUnlessNativeBuildIsSkipped(bool pack, bool skipNative, bool legacyNames)
+    public async Task BuildSelectsExactlyOneCliBackendUnlessEmbeddedCliIsSkipped(bool pack, bool skipNative, bool legacyNames)
     {
         using var workspace = TemporaryWorkspace.Create(output);
         const string rid = "linux-x64";
         var project = CreateProject(workspace.Path, rid);
         var bundle = XDocument.Load(project);
-        bundle.Root!.Add(new XElement("Target", new XAttribute("Name", "_BuildNativePackages"),
+        bundle.Root!.Add(new XElement("Target", new XAttribute("Name", "_BuildCliDistributionPackages"),
             Write(Path.Combine(workspace.Path, "distribution-cli"), "distribution CLI")));
         bundle.Save(project);
 
         // Omit both target and the packaging switch in the default case. CI identity and a
         // distribution-only modifier must not implicitly enable packaging.
         var packagingProperty = legacyNames ? "Pack" : "BuildDistributionPackages";
-        var skipProperty = legacyNames ? "SkipNativeBuild" : "SkipNativeCliBuild";
         string[] properties = pack
-            ? [$"{packagingProperty}=true", $"{skipProperty}={skipNative}", "PackDcpPackage=true"]
-            : [$"{skipProperty}={skipNative}", "PackDcpPackage=true"];
+            ? [$"{packagingProperty}=true", $"SkipNativeCliWithEmbeddedBundle={skipNative}", "PackDcpPackage=true"]
+            : [$"SkipNativeCliWithEmbeddedBundle={skipNative}", "PackDcpPackage=true"];
         await RunAsync(project, pack ? "Build" : "", rid, properties);
 
         var expected = new List<string> { "restore", "managed", "dashboard", "terminalhost", "apphost-server" };
@@ -612,11 +679,11 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         File.Delete(Path.Combine(workspace.Path, "artifacts", "log", "Release", "PublishNativeDashboard.log"));
         File.WriteAllText(Path.Combine(workspace.Path, "fail-warning"), "");
 
-        await RunAsync(project, "Build", rid, "Pack=true", "SkipNativeBuild=true",
-            $"SkipManagedBuild={skipManaged}", $"SkipDashboardPublish={!skipManaged}");
+        await RunAsync(project, "Build", rid, "Pack=true", "SkipNativeCliWithEmbeddedBundle=true",
+            $"SkipAspireManagedPublish={skipManaged}", "SkipDashboardPublish=true");
 
         Assert.Equal(skipManaged
-                ? ["restore", "apphost-server", "package", "layout"]
+                ? ["restore", "terminalhost", "apphost-server", "package", "layout"]
                 : ["restore", "managed", "terminalhost", "apphost-server", "package", "layout"],
             File.ReadAllLines(Path.Combine(workspace.Path, "events")));
         Assert.False(File.Exists(Path.Combine(workspace.Path, "artifacts", "log", "Release", "PublishNativeDashboard.log")));
@@ -634,7 +701,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         File.WriteAllText(Path.Combine(workspace.Path, "fail-cli-pack"), "");
 
         await RunAsync(project, "Build", rid, "Pack=true", "Sign=true", "DotNetSignType=real",
-            "SkipNativeBuild=true", $"PackDcpPackage={packDcp}", "BundleVersion=ci-bundlepayload");
+            "SkipNativeCliWithEmbeddedBundle=true", $"PackDcpPackage={packDcp}", "BundleVersion=ci-bundlepayload");
 
         var expected = new List<string>
         {
@@ -672,7 +739,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         File.WriteAllText(Path.Combine(workspace.Path, "fail-sign-packages"), "");
 
         var result = await ExecuteAsync(project, "Build", rid, "Pack=true", "Sign=true",
-            "DotNetSignType=real", "SkipNativeBuild=true");
+            "DotNetSignType=real", "SkipNativeCliWithEmbeddedBundle=true");
 
         Assert.NotEqual(0, result.ExitCode);
         Assert.Contains("Failed sign-packages", result.Output);
@@ -682,17 +749,44 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task SkippingManagedBuildStillPublishesAppHostServerUnlessExplicitlySkipped()
+    public async Task ReusingAllComponentsStillSignsPreparedInputsAndPayloadPackages()
+    {
+        using var workspace = TemporaryWorkspace.Create(output);
+        const string rid = "osx-arm64";
+        var project = CreateOrchestrationProject(workspace.Path, rid);
+        await RunAsync(project, "PublishBundleComponents", rid);
+        File.Delete(Path.Combine(workspace.Path, "events"));
+
+        await RunAsync(project, "Build", rid, "BuildDistributionPackages=true", "Sign=true", "DotNetSignType=real",
+            "SkipAspireManagedPublish=true", "SkipDashboardPublish=true", "SkipTerminalHostPublish=true",
+            "SkipAppHostServerPublish=true", "SkipTrayPublish=true", "SkipNativeCliWithEmbeddedBundle=true",
+            "PackDcpPackage=true");
+
+        Assert.Equal(["restore", "adhoc", "prepare-tray", "sign-components", "sign-tray", "notarize-tray",
+            "restore-tray", "package", "dcp-package", "layout", "verify", "sign-packages"],
+            File.ReadAllLines(Path.Combine(workspace.Path, "events")));
+        Assert.Equal("signed Dashboard", File.ReadAllText(Path.Combine(workspace.Path, "layout-dashboard")).Trim());
+        Assert.Equal("signed AppHost Server", File.ReadAllText(Path.Combine(workspace.Path, "layout-apphost-server")).Trim());
+        Assert.Equal("signed tray", File.ReadAllText(Path.Combine(workspace.Path, "layout-tray")).Trim());
+        Assert.Equal("signed Dashboard package", File.ReadAllText(Path.Combine(workspace.Path, "shipping", "dashboard.nupkg")).Trim());
+        Assert.Equal("signed DCP package", File.ReadAllText(Path.Combine(workspace.Path, "shipping", "dcp.nupkg")).Trim());
+    }
+
+    [Fact]
+    public async Task AspireManagedPublishSkipDoesNotSkipDashboardOrTerminalHost()
     {
         using var workspace = TemporaryWorkspace.Create(output);
         const string rid = "linux-x64";
         var project = CreateProject(workspace.Path, rid);
         await RunAsync(project, "PublishBundleComponents", rid);
         File.Delete(Path.Combine(workspace.Path, "events"));
-        await RunAsync(project, "Build", rid, "SkipManagedBuild=true", "SkipNativeBuild=true", "SkipTrayBuild=true");
+        var managed = ManagedPath(workspace.Path, rid);
+        File.WriteAllText(managed, "prepared managed helper");
+        await RunAsync(project, "Build", rid, "SkipAspireManagedPublish=true", "SkipNativeCliWithEmbeddedBundle=true");
 
-        Assert.Equal(["restore", "apphost-server", "layout"],
+        Assert.Equal(["restore", "dashboard", "terminalhost", "apphost-server", "layout"],
             File.ReadAllLines(Path.Combine(workspace.Path, "events")));
+        Assert.Equal("prepared managed helper", File.ReadAllText(managed));
     }
 
     [Fact]
@@ -701,12 +795,13 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         using var workspace = TemporaryWorkspace.Create(output);
         const string rid = "osx-arm64";
         var project = CreateProject(workspace.Path, rid);
-        await RunAsync(project, "Build", rid, "SkipNativeBuild=true");
+        await RunAsync(project, "Build", rid, "SkipNativeCliWithEmbeddedBundle=true");
         Assert.Equal(["restore", "managed", "dashboard", "terminalhost", "apphost-server", "tray", "layout", "verify"],
             File.ReadAllLines(Path.Combine(workspace.Path, "events")));
 
         File.Delete(Path.Combine(workspace.Path, "events"));
-        await RunAsync(project, "Build", rid, "SkipManagedBuild=true", "SkipAppHostServerBuild=true", "SkipNativeBuild=true", "SkipTrayBuild=true");
+        await RunAsync(project, "Build", rid, "SkipAspireManagedPublish=true", "SkipDashboardPublish=true", "SkipTerminalHostPublish=true",
+            "SkipAppHostServerPublish=true", "SkipNativeCliWithEmbeddedBundle=true", "SkipTrayPublish=true");
         Assert.Equal(["restore", "layout", "verify"], File.ReadAllLines(Path.Combine(workspace.Path, "events")));
     }
 
@@ -719,14 +814,14 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
     [InlineData(false, true, false, true, "managed,terminalhost,apphost-server")]
     [InlineData(false, true, true, false, "managed,terminalhost,tray")]
     [InlineData(false, true, true, true, "managed,terminalhost")]
-    [InlineData(true, false, false, false, "apphost-server,tray")]
-    [InlineData(true, false, false, true, "apphost-server")]
-    [InlineData(true, false, true, false, "tray")]
-    [InlineData(true, false, true, true, "")]
-    [InlineData(true, true, false, false, "apphost-server,tray")]
-    [InlineData(true, true, false, true, "apphost-server")]
-    [InlineData(true, true, true, false, "tray")]
-    [InlineData(true, true, true, true, "")]
+    [InlineData(true, false, false, false, "dashboard,terminalhost,apphost-server,tray")]
+    [InlineData(true, false, false, true, "dashboard,terminalhost,apphost-server")]
+    [InlineData(true, false, true, false, "dashboard,terminalhost,tray")]
+    [InlineData(true, false, true, true, "dashboard,terminalhost")]
+    [InlineData(true, true, false, false, "terminalhost,apphost-server,tray")]
+    [InlineData(true, true, false, true, "terminalhost,apphost-server")]
+    [InlineData(true, true, true, false, "terminalhost,tray")]
+    [InlineData(true, true, true, true, "terminalhost")]
     public async Task ComponentPublishSkipOptionsAreIndependent(
         bool skipManaged, bool skipDashboard, bool skipServer, bool skipTray, string expected)
     {
@@ -737,35 +832,33 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         File.WriteAllText(dashboard, "prepared Dashboard");
 
         await RunAsync(project, "PublishBundleComponents", rid,
-            $"SkipManagedBuild={skipManaged}", $"SkipDashboardPublish={skipDashboard}",
-            $"SkipAppHostServerBuild={skipServer}", $"SkipTrayBuild={skipTray}", "SkipNativeBuild=true");
+            $"SkipAspireManagedPublish={skipManaged}", $"SkipDashboardPublish={skipDashboard}",
+            $"SkipAppHostServerPublish={skipServer}", $"SkipTrayPublish={skipTray}", "SkipNativeCliWithEmbeddedBundle=true");
 
         var events = Path.Combine(workspace.Path, "events");
         Assert.Equal(expected.Split(',', StringSplitOptions.RemoveEmptyEntries),
             File.Exists(events) ? File.ReadAllLines(events) : []);
-        Assert.Equal(skipManaged || skipDashboard ? "prepared Dashboard" : "dashboard",
+        Assert.Equal(skipDashboard ? "prepared Dashboard" : "dashboard",
             File.ReadAllText(dashboard).Trim());
     }
 
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task MissingPreparedDashboardIsCheckedOnlyWhenManagedPublishingIsEnabled(bool skipManaged)
+    public async Task MissingPreparedDashboardIsCheckedIndependentlyOfManagedPublishing(bool skipManaged)
     {
         using var workspace = TemporaryWorkspace.Create(output);
         const string rid = "linux-x64";
         var project = CreateProject(workspace.Path, rid);
 
         var result = await ExecuteAsync(project, "PublishBundleComponents", rid,
-            $"SkipManagedBuild={skipManaged}", "SkipDashboardPublish=true");
+            $"SkipAspireManagedPublish={skipManaged}", "SkipDashboardPublish=true");
 
-        Assert.Equal(skipManaged, result.ExitCode == 0);
-        Assert.Equal(skipManaged ? ["apphost-server"] : ["managed"],
-            File.ReadAllLines(Path.Combine(workspace.Path, "events")));
-        if (!skipManaged)
-        {
-            Assert.Contains("Prepared Native AOT Dashboard was not found", result.Output);
-        }
+        Assert.NotEqual(0, result.ExitCode);
+        var events = Path.Combine(workspace.Path, "events");
+        Assert.Equal(skipManaged ? [] : new[] { "managed" },
+            File.Exists(events) ? File.ReadAllLines(events) : []);
+        Assert.Contains("Prepared Native AOT Dashboard was not found", result.Output);
     }
 
     [Theory]
@@ -798,15 +891,17 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         Assert.SkipWhen(OperatingSystem.IsWindows(), "This exercises rejection on a non-Windows host.");
         using var workspace = TemporaryWorkspace.Create(output);
         var project = CreateProject(workspace.Path, rid);
+        File.WriteAllText(DashboardPath(workspace.Path, rid), "prepared Dashboard");
 
         var result = await ExecuteAsync(project, "PublishBundleComponents", rid,
-            "SkipManagedBuild=true", "SkipAppHostServerBuild=true");
+            "SkipAspireManagedPublish=true", "SkipDashboardPublish=true", "SkipTerminalHostPublish=true", "SkipAppHostServerPublish=true");
 
         Assert.NotEqual(0, result.ExitCode);
         Assert.Contains("Windows NativeAOT tray publishing requires a Windows build lane.", result.Output);
         Assert.False(File.Exists(Path.Combine(workspace.Path, "events")));
         await RunAsync(project, "PublishBundleComponents", rid,
-            "SkipManagedBuild=true", "SkipAppHostServerBuild=true", "SkipTrayBuild=true");
+            "SkipAspireManagedPublish=true", "SkipDashboardPublish=true", "SkipTerminalHostPublish=true",
+            "SkipAppHostServerPublish=true", "SkipTrayPublish=true");
         Assert.False(File.Exists(Path.Combine(workspace.Path, "events")));
     }
 
@@ -818,9 +913,11 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows tray publishing requires a Windows host.");
         using var workspace = TemporaryWorkspace.Create(output);
         var project = CreateProject(workspace.Path, rid);
+        File.WriteAllText(DashboardPath(workspace.Path, rid), "prepared Dashboard");
 
         await RunAsync(project, "PublishBundleComponents", rid,
-            "SkipManagedBuild=true", "SkipAppHostServerBuild=true", "SkipNativeBuild=true");
+            "SkipAspireManagedPublish=true", "SkipDashboardPublish=true", "SkipTerminalHostPublish=true",
+            "SkipAppHostServerPublish=true", "SkipNativeCliWithEmbeddedBundle=true");
 
         Assert.Equal(["windows-tray"], File.ReadAllLines(Path.Combine(workspace.Path, "events")));
         Assert.Equal("windows-tray",
@@ -912,7 +1009,7 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         using var workspace = TemporaryWorkspace.Create(output);
         var root = workspace.Path;
         var project = CreateProject(root, rid);
-        await RunAsync(project, "PublishBundleComponents", rid, "SkipTrayBuild=true");
+        await RunAsync(project, "PublishBundleComponents", rid, "SkipTrayPublish=true");
         var tray = Path.Combine(root, "artifacts", "tray");
         WindowsTrayTestPayload.Create(tray, rid);
         if (!invalidIcon)
@@ -924,8 +1021,9 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         var cache = PrepareRealLayout(project, root, rid);
 
         var result = await ExecuteAsync(project, "Build", rid, "Pack=false",
-            "SkipManagedBuild=true", "SkipAppHostServerBuild=true", "SkipTrayBuild=true",
-            $"SkipNativeBuild={skipNative}", "BundleVersion=verifier-test", "RestorePackagesPath=" + cache);
+            "SkipAspireManagedPublish=true", "SkipDashboardPublish=true", "SkipTerminalHostPublish=true",
+            "SkipAppHostServerPublish=true", "SkipTrayPublish=true",
+            $"SkipNativeCliWithEmbeddedBundle={skipNative}", "BundleVersion=verifier-test", "RestorePackagesPath=" + cache);
 
         Assert.True(File.Exists(Path.Combine(root, "artifacts", "bundle", $"aspire-verifier-test-{rid}.tar.gz")), result.Output);
         if (invalidIcon)
@@ -951,13 +1049,14 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
         var root = workspace.Path;
         const string rid = "osx-arm64";
         var project = CreateProject(root, rid);
-        await RunAsync(project, "PublishBundleComponents", rid, "SkipTrayBuild=true");
+        await RunAsync(project, "PublishBundleComponents", rid, "SkipTrayPublish=true");
         var tray = MacTrayTestPayload.Create(root);
         File.Delete(Path.Combine(root, "events"));
         var cache = PrepareRealLayout(project, root, rid);
 
         var result = await ExecuteAsync(project, "Build", rid, "Pack=false",
-            "SkipManagedBuild=true", "SkipAppHostServerBuild=true", "SkipTrayBuild=true",
+            "SkipAspireManagedPublish=true", "SkipDashboardPublish=true", "SkipTerminalHostPublish=true",
+            "SkipAppHostServerPublish=true", "SkipTrayPublish=true",
             "TrayAppPath=" + tray, "BundleVersion=verifier-test", "RestorePackagesPath=" + cache);
 
         Assert.True(File.Exists(Path.Combine(root, "artifacts", "bundle", $"aspire-verifier-test-{rid}.tar.gz")), result.Output);
@@ -1198,6 +1297,12 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
             new XElement("Error", new XAttribute("Text", "The CLI must not publish twice."))));
         bundle.Save(project);
         var trayProject = XDocument.Load(tray);
+        trayProject.Root!.Add(new XElement("Target", new XAttribute("Name", "ValidateChildPublishControls"),
+            new XAttribute("BeforeTargets", "PrepareTraySigning;RestoreSignedTray"),
+            new[] { "SkipAspireManagedPublish", "SkipDashboardPublish", "SkipTerminalHostPublish",
+                "SkipAppHostServerPublish", "SkipTrayPublish", "SkipNativeCliWithEmbeddedBundle" }
+                .Select(control => new XElement("Error", new XAttribute("Condition", $"'$({control})' != ''"),
+                    new XAttribute("Text", "Tray signing children must not inherit " + control)))));
         trayProject.Root!.Add(Phase("PrepareTraySigning", "prepare-tray", Copy(trayExecutable, "$(TraySigningArchive)")),
             Phase("RestoreSignedTray", "restore-tray", Copy("$(TraySigningArchive)", "$(TrayAppPath)/Contents/MacOS/aspire-tray")));
         trayProject.Save(tray);
@@ -1233,6 +1338,8 @@ public sealed class BundleBuildPhaseTests(ITestOutputHelper output)
             Phase("SignTray", "sign-tray", Write("$(TraySigningArchive)", "signed tray")),
             Phase("NotarizeTray", "notarize-tray"),
             Phase("BuildCli", "cli",
+                new XElement("Error", new XAttribute("Condition", "'$(SkipManagedBuild)' != 'true'"),
+                    new XAttribute("Text", "Final CLI packaging must not rebuild managed components.")),
                 new XElement("Error", new XAttribute("Condition", "'$(SkipAppHostServerBuild)' != 'true'"),
                     new XAttribute("Text", "Final CLI packaging must preserve the signed AppHost Server.")),
                 new XElement("Error", new XAttribute("Condition", "'$(SkipNativeBuild)' != ''"),

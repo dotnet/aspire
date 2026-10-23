@@ -407,25 +407,58 @@ The assembled directories are under `artifacts/bundle/{rid}/`; the payload archi
 
 `Configuration` defaults to Debug for local bundle builds. The GitHub Actions native-archive workflow defaults to Release and passes it explicitly; CI bundle creation rejects non-Release configurations so distributed payloads use Native AOT optimizations. CI identity does not enable packaging.
 
-`SkipManagedBuild=true` reuses existing Managed, Dashboard, and TerminalHost publishes.
-`SkipNativeCliBuild=true` skips the final CLI and its packages, but still assembles
-the payload and produces and signs requested payload packages. These switches do
-not make missing payload components optional. `CliPublishDir` overrides the
-lightweight CLI publish directory only; distribution outputs keep their standard paths.
+Bundle publishing has six independent controls, all false when unset.
+Explicit non-boolean values fail validation before restore or publishing:
 
-`SkipNativeBuild` remains a compatibility input for `SkipNativeCliBuild`.
-Supplying both with different values fails validation. This bundle-level switch
-does not skip native Dashboard, TerminalHost, AppHost Server, or tray publishing;
-their existing skip options remain independent. Child build projects can give
-`SkipNativeBuild` a broader meaning, so the bundle does not forward this input
-to those projects.
+| Bundle property | Effect when true |
+|---|---|
+| `SkipAspireManagedPublish` | Reuse the prepared Aspire.Managed helper. |
+| `SkipDashboardPublish` | Reuse the RID-specific Dashboard publish; skip publish-warning verification, but still validate the prepared executable. |
+| `SkipTerminalHostPublish` | Reuse the prepared TerminalHost publish and dependencies. |
+| `SkipAppHostServerPublish` | Reuse the native AppHost Server publish and its ATS contract. |
+| `SkipTrayPublish` | Reuse the prepared macOS app or Windows tray publish; no effect on Linux. |
+| `SkipNativeCliWithEmbeddedBundle` | Omit the final embedded CLI and its archive/tool/npm packages; never consume or repackage an existing CLI. |
+
+Component skips affect only their respective publishers and do not make missing
+payload inputs optional. Payload assembly always runs. CLI omission does not
+disable component publishing or requested Dashboard/DCP packages.
+`CliPublishDir` overrides the lightweight CLI publish directory only;
+distribution outputs keep their standard paths.
+
+Component skips suppress publishing, not signing: `Sign=true` still selects
+prepared outputs for signing, and real macOS signing still signs/notarizes the
+prepared tray app. With the final CLI skipped, a fresh sign-only pass signs
+requested Dashboard/DCP packages instead of relying on the CLI packaging
+backend's signing pass.
+
+These controls belong to `eng/Bundle.proj`, not repository build selection.
+Bundle rejects the retired `SkipNativeBuild`, `SkipManagedBuild`,
+`SkipAppHostServerBuild`, and `SkipTrayBuild` inputs with migration diagnostics;
+there is no grouped managed-publishing compatibility alias. Repository builds
+and child packaging calls retain their existing build properties.
+
+`eng/build.sh --bundle` and `eng/build.ps1 -bundle` forward explicit bundle
+controls in `/p:` or `-p:` form. At that boundary only, repository
+`SkipNativeBuild=true` (command line or environment) supplies the CLI-omission
+fallback. An explicit `SkipNativeCliWithEmbeddedBundle=false` overrides it.
+CLI assignments take precedence over a nonempty new CLI environment property,
+which in turn takes precedence over the legacy fallback. Property names and
+environment names are matched case-insensitively. Semicolon- or comma-separated
+property lists are split only for the Bundle call; repository arguments remain
+unchanged.
+The wrappers remove retired environment properties only for the Bundle call,
+leaving repository-build children and the caller's environment unchanged.
+For PowerShell, splat an argument array when passing `-p:` properties;
+direct `pwsh -File ... -p:` arguments collide with common-parameter binding.
+Use `/p:` to avoid that ambiguity.
 
 Distribution builds also run the stricter Dashboard warning check and prepared
 input preflight. Local bundle assembly retains CreateLayout's input validation
 without requiring the distribution warning-check toolchain. Both modes verify
 the macOS or Windows tray payload in the assembled archive.
 
-`SkipDashboardPublish=true` reuses an existing Dashboard publish for the requested RID and configuration. Missing required assets fail the build.
+Dashboard reuse validates the prepared executable even when
+`SkipAspireManagedPublish=true`. Missing required assets fail the build.
 
 ### CreateLayout
 

@@ -33,17 +33,41 @@
     Options:
     - BuildDistributionPackages=true: Produce Dashboard and CLI archive/tool/npm packages (default: false)
     - Sign=true: Sign distribution outputs (requires BuildDistributionPackages=true and DotNetSignType)
-    - SkipNativeCliBuild=true: Skip the final CLI and its packages, not native payload components
-    - Pack and SkipNativeBuild: Compatibility inputs for BuildDistributionPackages and SkipNativeCliBuild
-    - SkipManagedBuild=true: Skip building managed projects (use pre-built)
-    - SkipAppHostServerBuild=true: Use the pre-built AppHost Server v2 payload (required after official signing)
-    - SkipDashboardPublish=true: Reuse the prepared RID-specific Dashboard publish
+    - Pack: Compatibility input for BuildDistributionPackages
     - PackDcpPackage=true: Also produce the RID-specific DCP package during native payload packaging
-    - SkipTrayBuild=true: Use a pre-built native tray (required after official signing)
     - TrayAppPath: Override the pre-built macOS app directory
     - WindowsTrayPath: Override the pre-built Windows tray publish directory
     - CliPublishDir: Override the final native CLI publish directory (e.g. for isolated local validation)
     - BundleVersion: Version string for the bundle (auto-computed in CI if not set)
+
+    Bundle-only skip switches (all default to false):
+    - SkipNativeCliWithEmbeddedBundle=true
+      - Skips the final native CLI publish and its archive/tool/npm packages.
+      - Does not load or repackage an existing CLI.
+      - Still publishes components, assembles/verifies the payload, and creates
+        requested Dashboard/DCP packages.
+      - With Sign=true, still signs components and runs a fresh sign-only pass
+        for new payload packages in place of the omitted CLI packaging pass.
+    - SkipAspireManagedPublish=true
+      - Reuses the prepared managed helper without publishing it.
+    - SkipDashboardPublish=true
+      - Reuses the RID-specific Dashboard publish and skips publish-warning verification.
+      - Always checks that the prepared Dashboard executable exists.
+    - SkipTerminalHostPublish=true
+      - Reuses the prepared TerminalHost publish and its dependencies.
+    - SkipAppHostServerPublish=true
+      - Reuses the prepared AppHost Server v2 publish, including its ATS contract.
+      - Does not republish AppHost Server.
+    - SkipTrayPublish=true
+      - Reuses the prepared macOS app or Windows tray publish without rebuilding it.
+      - Has no tray work to skip on Linux.
+    - Shared behavior
+      - Each component switch affects only its own publisher.
+      - Required payload inputs must exist; reuse does not make components optional.
+      - Component skip switches prevent republishing, not re-signing:
+        - With Sign=true, prepared outputs remain eligible for shared component signing.
+        - Real macOS signing still signs/notarizes the prepared tray app.
+      - macOS distribution builds still prepare the managed helper's signing entitlements.
   -->
 
   <!-- Import Versions.props for version info -->
@@ -52,11 +76,9 @@
   <PropertyGroup>
     <BuildDistributionPackages Condition="'$(BuildDistributionPackages)' == '' and '$(Pack)' != ''">$(Pack)</BuildDistributionPackages>
     <BuildDistributionPackages Condition="'$(BuildDistributionPackages)' == ''">false</BuildDistributionPackages>
-    <SkipNativeCliBuild Condition="'$(SkipNativeCliBuild)' == '' and '$(SkipNativeBuild)' != ''">$(SkipNativeBuild)</SkipNativeCliBuild>
-    <SkipNativeCliBuild Condition="'$(SkipNativeCliBuild)' == ''">false</SkipNativeCliBuild>
     <!-- Select one final CLI producer, or neither when only the payload is requested. -->
-    <_BundleCliTarget Condition="'$(BuildDistributionPackages)' == 'false' and '$(SkipNativeCliBuild)' != 'true'">_PublishNativeCli</_BundleCliTarget>
-    <_BundleCliTarget Condition="'$(BuildDistributionPackages)' == 'true' and '$(SkipNativeCliBuild)' != 'true'">_BuildNativePackages</_BundleCliTarget>
+    <_BundleCliTarget Condition="'$(BuildDistributionPackages)' == 'false' and '$(SkipNativeCliWithEmbeddedBundle)' != 'true'">_PublishNativeCli</_BundleCliTarget>
+    <_BundleCliTarget Condition="'$(BuildDistributionPackages)' == 'true' and '$(SkipNativeCliWithEmbeddedBundle)' != 'true'">_BuildCliDistributionPackages</_BundleCliTarget>
 
     <BuildDependsOn>
       _ValidateAndSetNativeBundleSigningProperties;
@@ -117,8 +139,8 @@
     <_AppHostServerPublishDir Condition="'$(_AppHostServerPublishDir)' == ''">$([MSBuild]::NormalizeDirectory('$(_ArtifactsDir)', 'bin', 'Aspire.Hosting.Native.Server', '$(Configuration)', 'net11.0', '$(TargetRid)', 'publish'))</_AppHostServerPublishDir>
 
     <!-- Exec does not inherit MSBuild properties. Forward build identity explicitly,
-         but not SkipNativeCliBuild or its SkipNativeBuild compatibility input.
-         Child projects use SkipNativeBuild for more than just the CLI. -->
+         but not bundle-only skip controls: they select producers in this project,
+         while child projects retain repository build-selection semantics. -->
     <_BundleChildArgs>/p:Configuration=$(Configuration) /p:TargetRid=$(TargetRid) /p:ContinuousIntegrationBuild=$(ContinuousIntegrationBuild) /p:VersionPrefix=$(VersionPrefix)</_BundleChildArgs>
     <!-- Arcade imports package build targets from .packages in CI, but direct
          dotnet restore otherwise uses the user cache. Match those locations on
@@ -163,12 +185,26 @@
            Text="BuildDistributionPackages must be true or false." />
     <Error Condition="'$(Pack)' != '' and '$(Pack)' != '$(BuildDistributionPackages)'"
            Text="Pack and BuildDistributionPackages must agree when both are supplied." />
-    <Error Condition="'$(SkipNativeBuild)' != '' and '$(SkipNativeBuild)' != 'true' and '$(SkipNativeBuild)' != 'false'"
-           Text="SkipNativeBuild must be true or false." />
-    <Error Condition="'$(SkipNativeCliBuild)' != 'true' and '$(SkipNativeCliBuild)' != 'false'"
-           Text="SkipNativeCliBuild must be true or false." />
-    <Error Condition="'$(SkipNativeBuild)' != '' and '$(SkipNativeBuild)' != '$(SkipNativeCliBuild)'"
-           Text="SkipNativeBuild and SkipNativeCliBuild must agree when both are supplied." />
+    <Error Condition="'$(SkipNativeBuild)' != ''"
+           Text="SkipNativeBuild is no longer a Bundle.proj input. Use SkipNativeCliWithEmbeddedBundle to omit the final CLI output." />
+    <Error Condition="'$(SkipManagedBuild)' != ''"
+           Text="SkipManagedBuild is no longer a Bundle.proj input. Use SkipAspireManagedPublish, SkipDashboardPublish, and SkipTerminalHostPublish independently to reuse prepared components." />
+    <Error Condition="'$(SkipAppHostServerBuild)' != ''"
+           Text="SkipAppHostServerBuild is no longer a Bundle.proj input. Use SkipAppHostServerPublish to reuse the prepared AppHost Server." />
+    <Error Condition="'$(SkipTrayBuild)' != ''"
+           Text="SkipTrayBuild is no longer a Bundle.proj input. Use SkipTrayPublish to reuse the prepared tray." />
+    <Error Condition="'$(SkipAspireManagedPublish)' != '' and '$(SkipAspireManagedPublish)' != 'true' and '$(SkipAspireManagedPublish)' != 'false'"
+           Text="SkipAspireManagedPublish must be true or false." />
+    <Error Condition="'$(SkipDashboardPublish)' != '' and '$(SkipDashboardPublish)' != 'true' and '$(SkipDashboardPublish)' != 'false'"
+           Text="SkipDashboardPublish must be true or false." />
+    <Error Condition="'$(SkipTerminalHostPublish)' != '' and '$(SkipTerminalHostPublish)' != 'true' and '$(SkipTerminalHostPublish)' != 'false'"
+           Text="SkipTerminalHostPublish must be true or false." />
+    <Error Condition="'$(SkipAppHostServerPublish)' != '' and '$(SkipAppHostServerPublish)' != 'true' and '$(SkipAppHostServerPublish)' != 'false'"
+           Text="SkipAppHostServerPublish must be true or false." />
+    <Error Condition="'$(SkipTrayPublish)' != '' and '$(SkipTrayPublish)' != 'true' and '$(SkipTrayPublish)' != 'false'"
+           Text="SkipTrayPublish must be true or false." />
+    <Error Condition="'$(SkipNativeCliWithEmbeddedBundle)' != '' and '$(SkipNativeCliWithEmbeddedBundle)' != 'true' and '$(SkipNativeCliWithEmbeddedBundle)' != 'false'"
+           Text="SkipNativeCliWithEmbeddedBundle must be true or false." />
     <ItemGroup>
       <_MatchingBundleRid Include="@(_SupportedBundleRid)"
                           Condition="$([System.String]::Equals('%(_SupportedBundleRid.Identity)', '$(TargetRid)'))" />
@@ -270,7 +306,7 @@
   <Target Name="_PublishBundleComponents"
           DependsOnTargets="_ValidateBundleConfiguration;_PublishManaged;_PublishDashboard;_PublishTerminalHost;_PublishAppHostServer;_PublishTray" />
 
-  <Target Name="_PublishManaged" Condition="'$(SkipManagedBuild)' != 'true'">
+  <Target Name="_PublishManaged" Condition="'$(SkipAspireManagedPublish)' != 'true'">
     <MakeDir Directories="$(_ArtifactsLogDir)" />
     <PropertyGroup>
       <_ManagedBinlogArg>-bl:$(_ArtifactsLogDir)PublishManaged.binlog</_ManagedBinlogArg>
@@ -282,11 +318,12 @@
           EnvironmentVariables="$(_NuGetCacheEnvironmentVariables)" />
   </Target>
 
-  <Target Name="_PublishDashboard" Condition="'$(SkipManagedBuild)' != 'true'">
+  <Target Name="_PublishDashboard">
     <MakeDir Directories="$(_ArtifactsLogDir)" />
     <PropertyGroup>
       <_DashboardProjectPath Condition="'$(_DashboardProjectPath)' == ''">$(_RepoRoot)src\Aspire.Dashboard\Aspire.Dashboard.csproj</_DashboardProjectPath>
-      <DashboardPublishLogPath Condition="'$(DashboardPublishLogPath)' == ''">$([MSBuild]::NormalizePath('$(_ArtifactsLogDir)', 'PublishNativeDashboard.log'))</DashboardPublishLogPath> <!-- TODO: this should be private -->
+      <!-- Public override supplied by the native signing pipeline. -->
+      <DashboardPublishLogPath Condition="'$(DashboardPublishLogPath)' == ''">$([MSBuild]::NormalizePath('$(_ArtifactsLogDir)', 'PublishNativeDashboard.log'))</DashboardPublishLogPath>
       <_DashboardBinlogArg>-bl:$(_ArtifactsLogDir)PublishDashboard.binlog</_DashboardBinlogArg>
     </PropertyGroup>
     <PropertyGroup Condition="'$(SkipDashboardPublish)' == 'true'">
@@ -303,10 +340,10 @@
           EnvironmentVariables="$(_NuGetCacheEnvironmentVariables)"
           Condition="'$(SkipDashboardPublish)' != 'true'" />
     <Exec Command="pwsh -NoProfile -File &quot;$(_BundleEngineeringDir)scripts/verify-native-dashboard-warnings.ps1&quot; -BuildLog &quot;$(DashboardPublishLogPath)&quot;"
-          Condition="'$(BuildDistributionPackages)' == 'true' and '$(SkipDashboardPublish)' != 'true'" /><!-- TODO: reverse the order of the conditions -->
+          Condition="'$(SkipDashboardPublish)' != 'true' and '$(BuildDistributionPackages)' == 'true'" />
   </Target>
 
-  <Target Name="_PublishTerminalHost" Condition="'$(SkipManagedBuild)' != 'true'">
+  <Target Name="_PublishTerminalHost" Condition="'$(SkipTerminalHostPublish)' != 'true'">
     <MakeDir Directories="$(_ArtifactsLogDir)" />
     <PropertyGroup>
       <_TerminalHostProjectPath Condition="'$(_TerminalHostProjectPath)' == ''">$(_RepoRoot)src\Aspire.TerminalHost\Aspire.TerminalHost.csproj</_TerminalHostProjectPath>
@@ -317,20 +354,19 @@
           EnvironmentVariables="$(_NuGetCacheEnvironmentVariables)" />
   </Target>
 
-  <Target Name="_PublishAppHostServer" Condition="'$(SkipAppHostServerBuild)' != 'true'">
+  <Target Name="_PublishAppHostServer" Condition="'$(SkipAppHostServerPublish)' != 'true'">
     <MakeDir Directories="$(_ArtifactsLogDir)" />
     <PropertyGroup>
       <_AppHostServerProjectPath Condition="'$(_AppHostServerProjectPath)' == ''">$(_RepoRoot)src\Aspire.Hosting.Native.Server\Aspire.Hosting.Native.Server.csproj</_AppHostServerProjectPath>
       <_AppHostServerBinlogArg>-bl:$(_ArtifactsLogDir)PublishAppHostServer.binlog</_AppHostServerBinlogArg>
     </PropertyGroup>
-    <!-- AppHost Server reuse is independent of SkipManagedBuild. Never
-         republish this component after official signing. -->
+    <!-- Never republish this component after official signing. -->
     <Exec Command="dotnet publish &quot;$(_AppHostServerProjectPath)&quot; -r $(TargetRid) /p:UseLdClassicXCodeLinker=false $(_BundleChildArgs) &quot;$(_AppHostServerBinlogArg)&quot;"
           EnvironmentVariables="$(_NuGetCacheEnvironmentVariables)" />
   </Target>
 
   <Target Name="_PublishTray"
-          Condition="'$(SkipTrayBuild)' != 'true' and ($(TargetRid.StartsWith('osx-')) or $(TargetRid.StartsWith('win-')))">
+          Condition="'$(SkipTrayPublish)' != 'true' and ($(TargetRid.StartsWith('osx-')) or $(TargetRid.StartsWith('win-')))">
     <MakeDir Directories="$(_ArtifactsLogDir)" />
     <PropertyGroup>
       <_TrayWindowsProjectPath Condition="'$(_TrayWindowsProjectPath)' == ''">$(_RepoRoot)src\Aspire.Tray\Windows\Aspire.Tray.Windows.csproj</_TrayWindowsProjectPath>
@@ -385,7 +421,7 @@
     <MSBuild Projects="$(_TrayProjectPath)"
              Targets="PrepareTraySigning"
              Properties="$(_TrayBuildProperties)"
-             RemoveProperties="SkipNativeBuild;SkipNativeCliBuild;SkipManagedBuild;SkipTrayBuild" />
+             RemoveProperties="SkipNativeBuild;SkipManagedBuild;SkipAppHostServerBuild;SkipTrayBuild;SkipAspireManagedPublish;SkipDashboardPublish;SkipTerminalHostPublish;SkipAppHostServerPublish;SkipTrayPublish;SkipNativeCliWithEmbeddedBundle" />
   </Target>
 
   <Target Name="_RemoveMacOSBundleDebugSymbols" Condition="'$(BuildDistributionPackages)' == 'true' and $(TargetRid.StartsWith('osx-')) and '$(Sign)' == 'true'">
@@ -425,7 +461,7 @@
     <MSBuild Projects="$(_TrayProjectPath)"
              Targets="RestoreSignedTray"
              Properties="$(_TrayBuildProperties)"
-             RemoveProperties="SkipNativeBuild;SkipNativeCliBuild;SkipManagedBuild;SkipTrayBuild" />
+             RemoveProperties="SkipNativeBuild;SkipManagedBuild;SkipAppHostServerBuild;SkipTrayBuild;SkipAspireManagedPublish;SkipDashboardPublish;SkipTerminalHostPublish;SkipAppHostServerPublish;SkipTrayPublish;SkipNativeCliWithEmbeddedBundle" />
   </Target>
 
   <Target Name="_RestoreBundleExecutablePermissions"
@@ -500,7 +536,7 @@
           Condition="$(TargetRid.StartsWith('win-'))" />
   </Target>
 
-  <Target Name="_PublishNativeCli" Condition="'$(SkipNativeCliBuild)' != 'true'">
+  <Target Name="_PublishNativeCli" Condition="'$(SkipNativeCliWithEmbeddedBundle)' != 'true'">
     <MakeDir Directories="$(_ArtifactsLogDir)" />
     <PropertyGroup>
       <_CliProjectPath Condition="'$(_CliProjectPath)' == ''">$(_RepoRoot)src\Aspire.Cli\Aspire.Cli.csproj</_CliProjectPath>
@@ -512,19 +548,24 @@
           EnvironmentVariables="$(_NuGetCacheEnvironmentVariables)" />
   </Target>
 
-  <Target Name="_BuildNativePackages">
+  <Target Name="_BuildCliDistributionPackages">
     <PropertyGroup>
       <_BundleSignSwitch Condition="'$(Sign)' == 'true'">-sign</_BundleSignSwitch>
     </PropertyGroup>
     <MakeDir Directories="$(_ArtifactsLogDir)" />
-    <Exec Command="&quot;$(_BuildScriptPath)&quot; -ci -restore -build -pack -configuration $(Configuration) $(_BundleSignSwitch) /p:SkipManagedBuild=true /p:SkipAppHostServerBuild=true /p:TargetRids=$(TargetRid) &quot;/p:BundlePayloadPath=$(_ArtifactsDir)$(_BundleArchiveRelativePath)&quot; $(_BundleChildArgs) $(_BundleSigningArgs) &quot;/bl:$(_ArtifactsLogDir)BuildNativePackages.binlog&quot;"
+    <!-- Publish the CLI with the prepared payload embedded, then create its
+         archive/tool/npm packages through the repository build/sign/pack pipeline.
+         SkipManagedBuild is that child pipeline's project-selection switch:
+         exclude normal source/playground/test and Dashboard/DCP packaging projects,
+         while retaining the CLI project and RID-specific CLI packaging project.
+         It is not a Bundle.proj input and does not select individual payload components. -->
+    <Exec Command="&quot;$(_BuildScriptPath)&quot; -ci -restore -build -pack -configuration $(Configuration) $(_BundleSignSwitch) /p:SkipManagedBuild=true /p:SkipAppHostServerBuild=true /p:TargetRids=$(TargetRid) &quot;/p:BundlePayloadPath=$(_ArtifactsDir)$(_BundleArchiveRelativePath)&quot; $(_BundleChildArgs) $(_BundleSigningArgs) &quot;/bl:$(_ArtifactsLogDir)BuildCliDistributionPackages.binlog&quot;"
           EnvironmentVariables="$(_NuGetCacheEnvironmentVariables)" />
   </Target>
-
-  <Target Name="_SignBundlePayloadPackages" Condition="'$(BuildDistributionPackages)' == 'true' and '$(Sign)' == 'true' and '$(SkipNativeCliBuild)' == 'true'">
-    <!-- Without the CLI backend there is no final Arcade signing pass. Start a
-         fresh sign-only evaluation so Signing.props discovers the new packages;
-         rerunning _SignBundleComponents in this evaluation would do nothing. -->
+  <Target Name="_SignBundlePayloadPackages" Condition="'$(BuildDistributionPackages)' == 'true' and '$(Sign)' == 'true' and '$(SkipNativeCliWithEmbeddedBundle)' == 'true'">
+    <!-- The CLI packaging backend normally signs these new payload packages.
+         When it is skipped, use a fresh sign-only evaluation to discover them:
+         the earlier component signing pass ran before these packages existed. -->
     <Exec Command="&quot;$(_BuildScriptPath)&quot; -restore -sign -configuration $(Configuration) -projects &quot;$(_ManagedProjectPath)&quot; $(_BundleChildArgs) $(_BundleSigningArgs) &quot;/bl:$(_ArtifactsLogDir)SignBundlePayloadPackages.binlog&quot;"
           EnvironmentVariables="$(_NuGetCacheEnvironmentVariables)" />
   </Target>

@@ -58,7 +58,10 @@ Unsupported runtime identifiers, including `win-x86`, are rejected before the ou
 
 When `--dashboard` is omitted, Dashboard discovery uses the existing RID-specific `net11.0` paths for the requested configuration, preferring platform-scoped output, then RID publish output, then native output. An explicit directory never falls back to discovery, even if discoverable output exists. Empty or whitespace arguments are rejected. Explicit and discovered payloads receive the same asset validation and debug-symbol filtering.
 
-`eng/Bundle.proj` passes its RID- and configuration-specific Dashboard publish directory explicitly, including when publishing is skipped or layout assembly is invoked directly. With `SkipDashboardPublish=true`, it also retains the early prepared-executable check unless `SkipManagedBuild=true` skips the publishing targets.
+`eng/Bundle.proj` passes its RID- and configuration-specific Dashboard publish
+directory explicitly, including when publishing is skipped or layout assembly
+is invoked directly. `SkipDashboardPublish=true` retains the early
+prepared-executable check independently of `SkipAspireManagedPublish`.
 
 ### Examples
 
