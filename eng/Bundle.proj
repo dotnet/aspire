@@ -4,49 +4,70 @@
 
     Usage: dotnet msbuild eng/Bundle.proj /p:TargetRid=linux-x64 /p:Configuration=Release
 
-    Embedded layout (one target RID per bundle):
-      aspire[.exe]                  Native CLI containing the payload archive
+    Artifacts (one target RID per bundle):
+    - Components: Published binaries, runtime dependencies, and assets; restored DCP tools.
+    - Bundle archive: A tar.gz containing the components arranged as:
         managed/                    Self-contained managed helper with embedded .NET runtime
         apphost-server/             Native AppHost Server v2, ATS contract, and dependencies
         dashboard/                  Native Dashboard server, web assets, and dependencies
         terminalhost/               Native terminal relay and platform PTY dependencies
         dcp/                        Restored Developer Control Plane tools
         tray/                       macOS app or Windows executable/icon; absent on Linux
+    - CLI with embedded bundle: Native aspire[.exe] containing the bundle archive.
+    - Distribution packages (optional): Standalone component packages and CLI packages.
 
     Build lifecycle:
       Validate -> restore DCP -> publish components -> prepare/sign components
-      -> package Dashboard/optional DCP for distribution -> assemble/verify payload
-      -> publish CLI with the payload embedded; distribution builds also sign/package CLI.
+      -> build standalone component packages (distribution mode only)
+      -> assemble layout and create/verify bundle archive
+      -> publish CLI with the bundle archive embedded; distribution builds also
+         optionally sign the CLI and create its distribution packages.
     Publishing runs Managed, Dashboard, TerminalHost, AppHost Server, then tray.
     Signing uses a shared component-binary pass (including Windows tray), followed
     by separate whole-app signing/notarization for macOS tray. There is no
     guaranteed per-file order within the shared signing pass.
 
-    BuildDistributionPackages=true additionally produces Dashboard NuGet/runtime
-    ZIP outputs and CLI archive/tool/npm packages through clipack/AfterSigning.
-    PackDcpPackage=true also requests the DCP NuGet package. These are distribution
-    artifacts, not extra embedded components. The payload archive is created in both modes.
+    BuildDistributionPackages=true additionally produces:
+    - Standalone Dashboard NuGet package and runtime ZIP.
+    - Standalone DCP NuGet package when PackDcpPackage=true.
+    - CLI distribution archive (Windows ZIP; tar.gz elsewhere), RID-specific and
+      pointer .NET tool packages, and wrapper/RID-specific npm packages.
+    - CLI native-symbol outputs: Windows PDB or Linux/macOS symbols NuGet package.
+    CLI packages and CLI symbol staging are omitted when CLI publishing is skipped.
+    Standalone component packages are separate distribution artifacts, not inputs
+    to the bundle archive. Both modes create the bundle archive and, unless
+    explicitly skipped, publish the CLI with that archive embedded.
     Packaging consumes prepared files without republishing signed inputs.
+    With Sign=true, signing selects component binaries before bundle assembly,
+    then the final CLI and available distribution packages. The bundle archive
+    is not separately signed. Distribution ZIP/tar.gz archives contain signed
+    binaries, not archive signatures. Tool/npm packages are created after the
+    signing pass from the processed CLI archive; this invocation does not sign
+    those newly created package containers.
     Later restore invocations initialize signing tools in fresh evaluations;
     they are separate from the initial DCP restore.
 
     Options:
-    - BuildDistributionPackages=true: Produce Dashboard and CLI archive/tool/npm packages (default: false)
-    - Sign=true: Sign distribution outputs (requires BuildDistributionPackages=true and DotNetSignType)
-    - PackDcpPackage=true: Also produce the RID-specific DCP package during native payload packaging
+    - BuildDistributionPackages=true: Produce the distribution outputs listed above (default: false)
+    - Sign=true: Run component, CLI, and distribution-package signing passes
+      (requires BuildDistributionPackages=true and DotNetSignType=test or real;
+      supported only for Windows/macOS; not every package container is signed)
+    - PackDcpPackage=true: Also produce the standalone RID-specific DCP NuGet package
+      (only effective with BuildDistributionPackages=true)
     - TrayAppPath: Override the pre-built macOS app directory
     - WindowsTrayPath: Override the pre-built Windows tray publish directory
-    - CliPublishDir: Override the final native CLI publish directory (e.g. for isolated local validation)
+    - CliPublishDir: Override the native CLI publish directory in non-distribution mode
     - BundleVersion: Version string for the bundle (auto-computed in CI if not set)
 
     Bundle-only skip switches (all default to false):
     - SkipNativeCliWithEmbeddedBundle=true
       - Skips the final native CLI publish and its archive/tool/npm packages.
       - Does not load or repackage an existing CLI.
-      - Still publishes components, assembles/verifies the payload, and creates
-        requested Dashboard/DCP packages.
+      - Still publishes components, creates/verifies the bundle archive, and builds
+        requested standalone Dashboard/DCP packages.
       - With Sign=true, still signs components and runs a fresh sign-only pass
-        for new payload packages in place of the omitted CLI packaging pass.
+        for new Dashboard/optional DCP NuGet packages in place of the omitted
+        CLI publishing/packaging pass.
     - SkipAspireManagedPublish=true
       - Reuses the prepared managed helper without publishing it.
     - SkipDashboardPublish=true
@@ -62,7 +83,7 @@
       - Has no tray work to skip on Linux.
     - Shared behavior
       - Each component switch affects only its own publisher.
-      - Required payload inputs must exist; reuse does not make components optional.
+      - Required component inputs must exist; reuse does not make components optional.
       - Component skip switches prevent republishing, not re-signing:
         - With Sign=true, prepared outputs remain eligible for shared component signing.
         - Real macOS signing still signs/notarizes the prepared tray app.
@@ -91,7 +112,7 @@
     <_BundleEngineeringDir>$(MSBuildThisFileDirectory)</_BundleEngineeringDir>
     <_ArtifactsDir>$(_RepoRoot)artifacts\</_ArtifactsDir>
     <_ArtifactsLogDir>$(_ArtifactsDir)log\$(Configuration)\</_ArtifactsLogDir>
-    <_BundleOutputDir>$(_ArtifactsDir)bundle\$(TargetRid)\</_BundleOutputDir>
+    <_BundleLayoutDir>$(_ArtifactsDir)bundle\$(TargetRid)\</_BundleLayoutDir>
 
     <!-- Shared project paths -->
     <_ManagedProjectPath>$(_RepoRoot)src\Aspire.Managed\Aspire.Managed.csproj</_ManagedProjectPath>
@@ -159,12 +180,12 @@
               _RestoreDcpPackage;
               _PublishBundleComponents;
               _SignBundleComponents;
-              _PackageBundlePayload;
+              _PrepareBundleArtifacts;
               _PublishNativeCliWithEmbeddedBundle;
-              _BuildCliDistributionPackages;
-              _SignBundlePayloadPackages">
+              _PublishAndPackageCli;
+              _SignDistributionPackages">
     <Message Importance="high" Text="" />
-    <Message Importance="high" Text="Bundle created at: $(_BundleOutputDir)" />
+    <Message Importance="high" Text="Bundle layout created at: $(_BundleLayoutDir)" />
   </Target>
 
   <Target Name="_ValidateBundleConfiguration">
@@ -238,7 +259,7 @@
       <_SignOnlyCommand>&quot;$(_BuildScriptPath)&quot; -restore -sign -configuration $(Configuration) -projects &quot;$(_ManagedProjectPath)&quot; $(_BundleChildArgs) $(_BundleSigningArgs)</_SignOnlyCommand>
     </PropertyGroup>
 
-    <!-- Resolve shared payload paths after importing projects have overridden
+    <!-- Resolve shared component and bundle archive paths after importing projects have overridden
          artifact and publish directories. Target-only paths stay with their consumers. -->
     <PropertyGroup>
       <_ExecutableExtension></_ExecutableExtension>
@@ -274,7 +295,7 @@
     <Message Importance="high" Text="  RID: $(TargetRid)" />
     <Message Importance="high" Text="  Configuration: $(Configuration)" />
     <Message Importance="high" Text="  Version: $(BundleVersion)" />
-    <Message Importance="high" Text="  Output: $(_BundleOutputDir)" />
+    <Message Importance="high" Text="  Bundle layout: $(_BundleLayoutDir)" />
     <Message Importance="high" Text="========================================" />
     <Message Importance="high" Text="" />
   </Target>
@@ -297,8 +318,8 @@
           EnvironmentVariables="$(_NuGetCacheEnvironmentVariables)" />
   </Target>
 
-  <!-- Publish each payload component independently; skip switches reuse that
-       component's prepared output. Signing and payload assembly happen afterward. -->
+  <!-- Publish each component independently; skip switches reuse that component's
+       prepared output. Signing and bundle assembly happen afterward. -->
   <Target Name="_PublishBundleComponents"
           DependsOnTargets="
               _InitializeBundleBuild;
@@ -422,7 +443,7 @@
     <RemoveDir Directories="$(_DashboardSymbolsPath);$(_TerminalHostSymbolsPath);$(_AppHostServerSymbolsPath)"
                Condition="'$(BuildDistributionPackages)' == 'true' and $(TargetRid.StartsWith('osx-')) and '$(Sign)' == 'true'" />
 
-    <!-- Sign the prepared component binaries before assembling their payload. -->
+    <!-- Sign the prepared component binaries before assembling the bundle archive. -->
     <Exec Command="$(_SignOnlyCommand) &quot;/bl:$(_ArtifactsLogDir)SignBundleComponents.binlog&quot;"
           EnvironmentVariables="$(_NuGetCacheEnvironmentVariables)"
           Condition="'$(Sign)' == 'true'" />
@@ -446,13 +467,14 @@
           Condition="'$(Sign)' == 'true' and !$(TargetRid.StartsWith('win-'))" />
   </Target>
 
-  <!-- Never publish here: republishing would overwrite signed inputs. -->
-  <Target Name="_PackageBundlePayload"
+  <!-- Build standalone component packages when requested, then create the bundle
+       archive. Never publish here: republishing would overwrite signed inputs. -->
+  <Target Name="_PrepareBundleArtifacts"
           DependsOnTargets="_InitializeBundleBuild;
                             _ValidateBundleInputs;
                             _RestoreDcpPackage;
-                            _PackBundleComponents;
-                            _RunCreateLayout" />
+                            _BuildStandaloneComponentPackages;
+                            _CreateAndVerifyBundleArchive" />
 
   <Target Name="_ValidateBundleInputs" Condition="'$(BuildDistributionPackages)' == 'true'">
     <PropertyGroup>
@@ -476,7 +498,7 @@
            Text="Prepared bundle input is missing: %(_RequiredPreparedBundleFile.Identity). Publish bundle components before signing and packaging." />
   </Target>
 
-  <Target Name="_PackBundleComponents" Condition="'$(BuildDistributionPackages)' == 'true'">
+  <Target Name="_BuildStandaloneComponentPackages" Condition="'$(BuildDistributionPackages)' == 'true'">
     <PropertyGroup>
       <_DashboardPackProjectPath Condition="'$(_DashboardPackProjectPath)' == ''">$([MSBuild]::NormalizePath('$(_BundleEngineeringDir)', 'dashboardpack', 'Aspire.Dashboard.Sdk.$(TargetRid).csproj'))</_DashboardPackProjectPath>
       <_DcpPackProjectPath Condition="'$(_DcpPackProjectPath)' == ''">$([MSBuild]::NormalizePath('$(_BundleEngineeringDir)', 'dcppack', 'Aspire.Hosting.Orchestration.$(TargetRid).csproj'))</_DcpPackProjectPath>
@@ -489,31 +511,31 @@
           Condition="'$(PackDcpPackage)' == 'true'" />
   </Target>
 
-  <Target Name="_RunCreateLayout">
+  <Target Name="_CreateAndVerifyBundleArchive">
     <PropertyGroup>
       <_RequireWindowsTraySignature>false</_RequireWindowsTraySignature>
       <_RequireMacTraySignature>false</_RequireMacTraySignature>
       <_RequireWindowsTraySignature Condition="$(TargetRid.StartsWith('win-')) and '$(Sign)' == 'true' and '$(DotNetSignType)' == 'real'">true</_RequireWindowsTraySignature>
       <_RequireMacTraySignature Condition="$(TargetRid.StartsWith('osx-')) and '$(Sign)' == 'true' and '$(DotNetSignType)' == 'real'">true</_RequireMacTraySignature>
-      <_RequireBundleSignature>false</_RequireBundleSignature>
-      <_RequireBundleSignature Condition="'$(Sign)' == 'true' and '$(DotNetSignType)' == 'real'">true</_RequireBundleSignature>
+      <_RequireComponentSignatures>false</_RequireComponentSignatures>
+      <_RequireComponentSignatures Condition="'$(Sign)' == 'true' and '$(DotNetSignType)' == 'real'">true</_RequireComponentSignatures>
       <_CreateLayoutProjectPath Condition="'$(_CreateLayoutProjectPath)' == ''">$(_RepoRoot)tools\CreateLayout\CreateLayout.csproj</_CreateLayoutProjectPath>
       <!-- Remove trailing slashes for command line arguments -->
-      <_BundleOutputDirArg>$(_BundleOutputDir.TrimEnd('\').TrimEnd('/'))</_BundleOutputDirArg>
+      <_BundleLayoutDirArg>$(_BundleLayoutDir.TrimEnd('\').TrimEnd('/'))</_BundleLayoutDirArg>
       <_ArtifactsDirArg>$(_ArtifactsDir.TrimEnd('\').TrimEnd('/'))</_ArtifactsDirArg>
       <_DashboardPublishDirArg>$(_DashboardPublishDir.TrimEnd('\').TrimEnd('/'))</_DashboardPublishDirArg>
 
-      <_CreateLayoutArgs>--output "$(_BundleOutputDirArg)" --artifacts "$(_ArtifactsDirArg)" --dashboard "$(_DashboardPublishDirArg)" --rid $(TargetRid) --configuration $(Configuration) --bundle-version $(BundleVersion) --verbose --archive</_CreateLayoutArgs>
+      <_CreateLayoutArgs>--output "$(_BundleLayoutDirArg)" --artifacts "$(_ArtifactsDirArg)" --dashboard "$(_DashboardPublishDirArg)" --rid $(TargetRid) --configuration $(Configuration) --bundle-version $(BundleVersion) --verbose --archive</_CreateLayoutArgs>
       <_CreateLayoutArgs Condition="$(TargetRid.StartsWith('osx-'))">$(_CreateLayoutArgs) --tray-app "$(TrayAppPath.TrimEnd('\').TrimEnd('/'))/"</_CreateLayoutArgs>
       <_CreateLayoutArgs Condition="$(TargetRid.StartsWith('win-'))">$(_CreateLayoutArgs) --tray-windows "$(WindowsTrayPath.TrimEnd('\').TrimEnd('/'))/"</_CreateLayoutArgs>
     </PropertyGroup>
 
-    <Message Importance="high" Text="Creating bundle layout..." />
+    <Message Importance="high" Text="Creating bundle layout and archive..." />
     <Exec Command="dotnet run --project &quot;$(_CreateLayoutProjectPath)&quot; $(_BundleChildArgs) -- $(_CreateLayoutArgs)"
           EnvironmentVariables="$(_NuGetCacheEnvironmentVariables)" />
 
-    <!-- Verify the produced archive after signing and assembly, before CLI embedding. -->
-    <Exec Command="pwsh -NoProfile -File &quot;$(_BundleEngineeringDir)scripts/verify-bundle-payload.ps1&quot; -Archive &quot;$(_BundleArchivePath)&quot; -Rid &quot;$(TargetRid)&quot; -RequireSignature $(_RequireBundleSignature)"
+    <!-- Verify archive contents, including required component signatures, before CLI embedding. -->
+    <Exec Command="pwsh -NoProfile -File &quot;$(_BundleEngineeringDir)scripts/verify-bundle-payload.ps1&quot; -Archive &quot;$(_BundleArchivePath)&quot; -Rid &quot;$(TargetRid)&quot; -RequireSignature $(_RequireComponentSignatures)"
           Condition="'$(BuildDistributionPackages)' == 'true'" />
 
     <Exec Command="bash &quot;$(_RepoRoot)tools/CreateLayout/verify-tray-payload.sh&quot; &quot;$(_BundleArchivePath)&quot; &quot;$(TargetRid)&quot; &quot;$(_RequireMacTraySignature)&quot;"
@@ -534,27 +556,30 @@
           EnvironmentVariables="$(_NuGetCacheEnvironmentVariables)" />
   </Target>
 
-  <Target Name="_BuildCliDistributionPackages"
+  <Target Name="_PublishAndPackageCli"
           Condition="'$(BuildDistributionPackages)' == 'true' and '$(SkipNativeCliWithEmbeddedBundle)' != 'true'">
     <PropertyGroup>
       <_BundleSignSwitch Condition="'$(Sign)' == 'true'">-sign</_BundleSignSwitch>
     </PropertyGroup>
 
-    <!-- Publish the CLI with the prepared payload embedded, then create its
+    <!-- Publish the CLI with the bundle archive embedded, then create its
          archive/tool/npm packages through the repository build/sign/pack pipeline.
+         With Sign=true, shared signing also picks up the standalone component
+         packages created earlier. Tool/npm packages are created after that pass.
          SkipManagedBuild is that child pipeline's project-selection switch:
          exclude normal source/playground/test and Dashboard/DCP packaging projects,
          while retaining the CLI project and RID-specific CLI packaging project.
-         It is not a Bundle.proj input and does not select individual payload components. -->
-    <Exec Command="&quot;$(_BuildScriptPath)&quot; -ci -restore -build -pack -configuration $(Configuration) $(_BundleSignSwitch) /p:SkipManagedBuild=true /p:SkipAppHostServerBuild=true /p:TargetRids=$(TargetRid) &quot;/p:BundlePayloadPath=$(_BundleArchivePath)&quot; $(_BundleChildArgs) $(_BundleSigningArgs) &quot;/bl:$(_ArtifactsLogDir)BuildCliDistributionPackages.binlog&quot;"
+         It is not a Bundle.proj input and does not select individual bundle components. -->
+    <Exec Command="&quot;$(_BuildScriptPath)&quot; -ci -restore -build -pack -configuration $(Configuration) $(_BundleSignSwitch) /p:SkipManagedBuild=true /p:SkipAppHostServerBuild=true /p:TargetRids=$(TargetRid) &quot;/p:BundlePayloadPath=$(_BundleArchivePath)&quot; $(_BundleChildArgs) $(_BundleSigningArgs) &quot;/bl:$(_ArtifactsLogDir)PublishAndPackageCli.binlog&quot;"
           EnvironmentVariables="$(_NuGetCacheEnvironmentVariables)" />
   </Target>
 
-  <Target Name="_SignBundlePayloadPackages" Condition="'$(BuildDistributionPackages)' == 'true' and '$(Sign)' == 'true' and '$(SkipNativeCliWithEmbeddedBundle)' == 'true'">
-    <!-- The CLI packaging backend normally signs these new payload packages.
-         When it is skipped, use a fresh sign-only evaluation to discover them:
-         the earlier component signing pass ran before these packages existed. -->
-    <Exec Command="$(_SignOnlyCommand) &quot;/bl:$(_ArtifactsLogDir)SignBundlePayloadPackages.binlog&quot;"
+  <Target Name="_SignDistributionPackages" Condition="'$(BuildDistributionPackages)' == 'true' and '$(Sign)' == 'true' and '$(SkipNativeCliWithEmbeddedBundle)' == 'true'">
+    <!-- CLI publishing/packaging normally invokes shared signing, which picks up
+         the new Dashboard/optional DCP NuGet packages. When skipped, use a fresh
+         sign-only evaluation: these packages did not exist during component signing.
+         Discovery is shared, not restricted to these packages. -->
+    <Exec Command="$(_SignOnlyCommand) &quot;/bl:$(_ArtifactsLogDir)SignDistributionPackages.binlog&quot;"
           EnvironmentVariables="$(_NuGetCacheEnvironmentVariables)" />
   </Target>
 
