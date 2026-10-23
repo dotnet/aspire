@@ -132,6 +132,96 @@ test("discovery still uses environment credentials when gh is unavailable", asyn
   ]);
 });
 
+test("Windows sidebar discovery restores missing APPDATA for account and token reads", async () => {
+  const env = { PATH: "cli-path", USERPROFILE: "C:\\Users\\octo" };
+  const calls = [];
+  const candidates = await detectCandidates({
+    env,
+    platform: "win32",
+    run: async (command, args, options) => {
+      calls.push({ command, args, env: { ...options.env } });
+      if (command === "powershell.exe") {
+        assert.deepEqual(args, [
+          "-NoLogo", "-NoProfile", "-NonInteractive", "-Command",
+          "[Environment]::GetFolderPath('ApplicationData')",
+        ]);
+        return { stdout: "D:\\Redirected AppData\\octo\r\n" };
+      }
+      if (args[1] === "status") {
+        return { stdout: JSON.stringify({ hosts: options.env.APPDATA
+          ? { "github.com": [{ host: "github.com", login: "octo", state: "success" }] }
+          : {} }) };
+      }
+      return { stdout: "stored-token\n" };
+    },
+  });
+
+  assert.deepEqual(candidates.map(({ source, login, token }) => ({ source, login, token })), [
+    { source: "gh", login: "octo", token: "stored-token" },
+  ]);
+  assert.deepEqual(calls.map(({ command, args }) => [command, args[1]]), [
+    ["gh", "status"], ["powershell.exe", "-NoProfile"], ["gh", "status"], ["gh", "token"],
+  ]);
+  assert.deepEqual(calls.map(({ env: childEnv }) => childEnv.APPDATA), [
+    undefined, undefined, "D:\\Redirected AppData\\octo", "D:\\Redirected AppData\\octo",
+  ]);
+  assert.deepEqual(env, { PATH: "cli-path", USERPROFILE: "C:\\Users\\octo" });
+});
+
+test("discovery preserves explicit config locations and non-Windows defaults", async () => {
+  for (const config of [
+    { platform: "win32", env: { APPDATA: "custom-appdata" } },
+    { platform: "win32", env: { AppData: "custom-appdata" } },
+    { platform: "win32", env: { GH_CONFIG_DIR: "custom-config" } },
+    { platform: "win32", env: { XDG_CONFIG_HOME: "custom-xdg" } },
+    { platform: "linux", env: {} },
+    { platform: "darwin", env: {} },
+  ]) {
+    const calls = [];
+    const candidates = await detectCandidates({
+      ...config,
+      run: async (command, args) => {
+        calls.push({ command, args });
+        return { stdout: JSON.stringify({ hosts: {} }) };
+      },
+    });
+
+    assert.deepEqual(candidates, []);
+    assert.deepEqual(calls, [{ command: "gh", args: ["auth", "status", "--json", "hosts"] }]);
+  }
+});
+
+test("Windows discovery keeps existing home-directory accounts without resolving APPDATA", async () => {
+  const candidates = await detectCandidates({
+    env: {},
+    platform: "win32",
+    run: async (command, args) => {
+      assert.equal(command, "gh");
+      return { stdout: args[1] === "status"
+        ? JSON.stringify({ hosts: { "github.com": [{ host: "github.com", login: "octo", state: "success" }] } })
+        : "stored-token" };
+    },
+  });
+
+  assert.deepEqual(candidates.map(({ source, login }) => ({ source, login })), [
+    { source: "gh", login: "octo" },
+  ]);
+});
+
+test("Windows discovery surfaces known-folder lookup failures", async () => {
+  for (const fail of [false, true]) {
+    await assert.rejects(detectCandidates({
+      env: {},
+      platform: "win32",
+      run: async (command) => {
+        if (command === "gh") return { stdout: JSON.stringify({ hosts: {} }) };
+        if (fail) throw new Error("Known-folder lookup failed");
+        return { stdout: "\r\n" };
+      },
+    }), fail ? /Known-folder lookup failed/ : /Unable to locate Windows application data/);
+  }
+});
+
 test("resolveAccounts keys accounts by normalized host and login", async () => {
   resetAccountEnv({
     COPILOT_GH_ACCOUNT_github_2E_com_octo: "token-dotcom",

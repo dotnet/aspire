@@ -54,18 +54,41 @@ function tokenHash(token) {
 // Candidate enumeration
 // ---------------------------------------------------------------------------
 
-async function ghAccounts(run, env) {
+async function ghAccounts(run, env, platform) {
+  let stdout;
   try {
     // JSON status keeps all accounts even when one host fails authentication:
     // { "hosts": { "github.com": [{ "host": "github.com", "login": "octo", "state": "success" }] } }.
     // Human-readable status instead exits with 1 and moves its output to stderr.
-    const { stdout } = await run("gh", ["auth", "status", "--json", "hosts"], { timeout: 8000, env });
-    return Object.values(JSON.parse(stdout).hosts).flat()
-      .filter((account) => account.state === "success" && account.host && account.login)
-      .map(({ host, login }) => ({ host, login }));
+    ({ stdout } = await run("gh", ["auth", "status", "--json", "hosts"], { timeout: 8000, env }));
   } catch {
     return [];
   }
+
+  const accounts = Object.values(JSON.parse(stdout).hosts).flat();
+  const hasConfigLocation = Object.entries(env).some(([name, value]) =>
+    ["APPDATA", "GH_CONFIG_DIR", "XDG_CONFIG_HOME"].includes(name.toUpperCase()) && value);
+  if (accounts.length === 0 && platform === "win32" && !hasConfigLocation) {
+    // App-hosted canvases can omit APPDATA. gh then searches a different config directory
+    // and reports no accounts despite an existing Windows login. Resolve the actual known
+    // folder (which may be redirected), rather than guessing USERPROFILE\AppData\Roaming.
+    // gh configuration precedence: https://cli.github.com/manual/gh_help_environment
+    const { stdout: appData } = await run(
+      "powershell.exe",
+      ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", "[Environment]::GetFolderPath('ApplicationData')"],
+      { timeout: 8000, env },
+    );
+    const folder = appData.trim();
+    if (!folder) {
+      throw new Error("Unable to locate Windows application data for GitHub CLI. Set GH_CONFIG_DIR to the existing GitHub CLI configuration directory.");
+    }
+    env.APPDATA = folder;
+    return ghAccounts(run, env, platform);
+  }
+
+  return accounts
+    .filter((account) => account.state === "success" && account.host && account.login)
+    .map(({ host, login }) => ({ host, login }));
 }
 
 async function ghToken(host, login, run, env) {
@@ -104,7 +127,7 @@ function decodeCopilotAccount(varName) {
   return { host, login };
 }
 
-export async function detectCandidates({ run = execFileAsync, env = process.env } = {}) {
+export async function detectCandidates({ run = execFileAsync, env = process.env, platform = process.platform } = {}) {
   const out = [];
   const seenHash = new Set();
   const add = (source, token, login, host) => {
@@ -122,7 +145,7 @@ export async function detectCandidates({ run = execFileAsync, env = process.env 
   for (const name of ["GH_TOKEN", "GITHUB_TOKEN", "GH_ENTERPRISE_TOKEN", "GITHUB_ENTERPRISE_TOKEN"]) {
     delete ghEnv[name];
   }
-  const accounts = await ghAccounts(run, ghEnv);
+  const accounts = await ghAccounts(run, ghEnv, platform);
   for (const a of accounts) {
     add("gh", await ghToken(a.host, a.login, run, ghEnv), a.login, a.host);
   }

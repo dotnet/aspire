@@ -204,6 +204,12 @@ injected by the Copilot app, and an expired account on another host does not hid
 healthy accounts. The `gh` executable must be on the app's `PATH`; sign in with
 `gh auth login` only if no usable credentials are available.
 
+On Windows, sidebar providers can omit `APPDATA`, causing `gh` to miss its saved
+logins. If discovery finds no accounts and no explicit configuration location is
+set, the canvas resolves the Windows application-data known folder and retries
+using that location for both account discovery and token retrieval. Existing
+`APPDATA`, `GH_CONFIG_DIR`, and `XDG_CONFIG_HOME` settings are preserved.
+
 ## Notes
 
 - Notifications are **in-canvas + live in-session** (SSE). A canvas iframe is not a
