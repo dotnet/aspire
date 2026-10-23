@@ -104,6 +104,7 @@ test("injected tokens do not override stored CLI credentials and remain separate
   const before = { ...env };
   const candidates = await detectCandidates({
     env,
+    platform: "linux",
     run: async (_command, args, { env: childEnv }) => {
       assert.deepEqual(childEnv, { COPILOT_GH_ACCOUNT_github_2E_com_octo: "copilot-token" });
       return { stdout: args[1] === "status"
@@ -218,8 +219,114 @@ test("Windows discovery surfaces known-folder lookup failures", async () => {
         if (fail) throw new Error("Known-folder lookup failed");
         return { stdout: "\r\n" };
       },
-    }), fail ? /Known-folder lookup failed/ : /Unable to locate Windows application data/);
+    }), /Unable to locate Windows application data/);
   }
+});
+
+test("legacy gh status retains accounts from either stream when a host fails", async () => {
+  for (const exit of [0, 1]) {
+    const calls = [];
+    const candidates = await detectCandidates({
+      env: { GH_TOKEN: "injected-token", APPDATA: "config" },
+      platform: "win32",
+      run: async (command, args, { env }) => {
+        calls.push(args);
+        assert.equal(command, "gh");
+        assert.deepEqual(env, { APPDATA: "config" });
+        if (args.includes("--json")) {
+          throw Object.assign(new Error("unsupported"), { code: 1, stderr: "unknown flag: --json" });
+        }
+        if (args[1] === "status") {
+          const output = {
+            stdout: "  ✓ Logged in to github.com account octo (keyring)\n",
+            stderr: "Failed to log in to broken.example.com\n  ✓ Logged in to ghe.example.com account enterprise (keyring)\n",
+          };
+          if (exit) throw Object.assign(new Error("one host failed"), { code: exit, ...output });
+          return output;
+        }
+        return { stdout: args.at(-1) === "octo" ? "stored-dotcom" : "stored-enterprise" };
+      },
+    });
+    assert.deepEqual(candidates.map(({ source, host, login }) => ({ source, host, login })), [
+      { source: "gh", host: "github.com", login: "octo" },
+      { source: "gh", host: "ghe.example.com", login: "enterprise" },
+      { source: "env", host: "github.com", login: null },
+    ]);
+    assert.equal(calls.length, 4);
+  }
+});
+
+test("Windows lookup failures retain independent tokens and a safe diagnostic", async () => {
+  for (const empty of [true, false]) {
+    const diagnostics = [];
+    const candidates = await detectCandidates({
+      env: { GH_TOKEN: "env-token", COPILOT_GH_ACCOUNT_github_2E_com_octo: "copilot-token" },
+      platform: "win32",
+      diagnostics,
+      run: async (command) => {
+        if (command === "gh") return { stdout: JSON.stringify({ hosts: {} }) };
+        if (!empty) throw new Error("private subprocess error");
+        return { stdout: "" };
+      },
+    });
+    assert.deepEqual(candidates.map(({ source, token }) => ({ source, token })), [
+      { source: "env", token: "env-token" },
+      { source: "copilot", token: "copilot-token" },
+    ]);
+    assert.equal(diagnostics.length, 1);
+    assert.match(diagnostics[0].message, /^Unable to locate Windows application data/);
+  }
+});
+
+test("Windows token overrides are removed and collected case-insensitively", async () => {
+  const env = {
+    Gh_ToKeN: "dotcom", Github_Token: "github",
+    Gh_Enterprise_Token: "enterprise", Github_Enterprise_Token: "github-enterprise",
+    Gh_Host: "ghe.example.com", AppData: "custom-config",
+  };
+  const candidates = await detectCandidates({
+    env,
+    platform: "win32",
+    run: async (_command, _args, { env: childEnv }) => {
+      assert.deepEqual(childEnv, { GH_HOST: "ghe.example.com", APPDATA: "custom-config" });
+      return { stdout: JSON.stringify({ hosts: {} }) };
+    },
+  });
+  assert.deepEqual(candidates.map(({ token, host }) => ({ token, host })), [
+    { token: "dotcom", host: "ghe.example.com" },
+    { token: "github", host: "ghe.example.com" },
+    { token: "enterprise", host: "ghe.example.com" },
+    { token: "github-enterprise", host: "ghe.example.com" },
+  ]);
+  assert.equal(env.Gh_ToKeN, "dotcom");
+  assert.equal(Object.hasOwn(env, "GH_TOKEN"), false);
+});
+
+test("enterprise-only tokens are discovered for the configured enterprise host", async () => {
+  for (const name of ["GH_ENTERPRISE_TOKEN", "GITHUB_ENTERPRISE_TOKEN"]) {
+    for (const host of ["ghe.example.com", "msft.ghe.com", "github.com"]) {
+      const candidates = await detectCandidates({
+        env: { GH_HOST: host, [name]: "enterprise-token" },
+        platform: "linux",
+        run: async () => ({ stdout: JSON.stringify({ hosts: {} }) }),
+      });
+      assert.deepEqual(candidates.map(({ source, token, host }) => ({ source, token, host })),
+        host === "github.com" ? [] : [{ source: "env", token: "enterprise-token", host }]);
+    }
+  }
+});
+
+test("unexpected CLI failures surface a safe diagnostic rather than using legacy parsing", async () => {
+  const calls = [];
+  await assert.rejects(detectCandidates({
+    env: {},
+    platform: "linux",
+    run: async (_command, args) => {
+      calls.push(args);
+      throw Object.assign(new Error("private error"), { code: 2, stderr: "private details" });
+    },
+  }), /GitHub CLI account discovery failed/);
+  assert.deepEqual(calls, [["auth", "status", "--json", "hosts"]]);
 });
 
 test("resolveAccounts keys accounts by normalized host and login", async () => {
