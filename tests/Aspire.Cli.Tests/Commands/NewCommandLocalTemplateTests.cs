@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Text.Json;
 using System.Xml.Linq;
+using Aspire.Cli.Bundles;
 using Aspire.Cli.Commands;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Git;
@@ -114,6 +115,53 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
         Assert.Empty(interaction.BooleanPromptCalls);
         Assert.Empty(interaction.DisplayedErrors);
         await Verify(ReadOutput(workspace)).ScrubInlineGuids();
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task LocalTemplate_WaitsForBundleExtractionOnlyAfterSuccessfulCreation(bool succeeds)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        await CreateTemplateAsync(workspace, "template", requiredGreeting: !succeeds);
+        var interaction = new TestInteractionService();
+        var extractionStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var allowExtraction = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var bundleService = new TestBundleService(isBundle: true)
+        {
+            EnsureExtractedAsyncCallback = async cancellationToken =>
+            {
+                extractionStarted.SetResult();
+                await allowExtraction.Task.WaitAsync(cancellationToken);
+            }
+        };
+        var services = CreateServices(workspace, interaction, interactive: false);
+        services.AddSingleton<IBundleService>(bundleService);
+        using var provider = services.BuildServiceProvider();
+
+        var invocationTask = provider.GetRequiredService<RootCommand>()
+            .Parse("new --template-path template --name Demo --output out --suppress-agent-init")
+            .InvokeAsync();
+
+        bool outputCreated;
+        bool waitsForExtraction;
+        try
+        {
+            await Task.WhenAny(extractionStarted.Task, invocationTask).DefaultTimeout();
+            outputCreated = File.Exists(Path.Combine(workspace.Path, "out", "Demo.cs"));
+            waitsForExtraction = extractionStarted.Task.IsCompletedSuccessfully && !invocationTask.IsCompleted;
+        }
+        finally
+        {
+            allowExtraction.SetResult();
+        }
+
+        var exitCode = await invocationTask.DefaultTimeout();
+
+        Assert.Equal(succeeds ? CliExitCodes.Success : CliExitCodes.FailedToCreateNewProject, exitCode);
+        Assert.Equal(succeeds, outputCreated);
+        Assert.Equal(succeeds, extractionStarted.Task.IsCompletedSuccessfully);
+        Assert.Equal(succeeds, waitsForExtraction);
     }
 
     [Theory]
@@ -513,6 +561,15 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
         var interaction = new TestInteractionService();
         var services = CreateServices(workspace, interaction, interactive: false);
         services.AddSingleton<IProcessExecutionFactory>(new ProcessExecutionFactory(new HostEnvironment(), NullLogger<ProcessExecutionFactory>.Instance));
+        var extractionRequested = false;
+        services.AddSingleton<IBundleService>(new TestBundleService(isBundle: true)
+        {
+            EnsureExtractedAsyncCallback = _ =>
+            {
+                extractionRequested = true;
+                return Task.CompletedTask;
+            }
+        });
         var cacheRoot = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "tmpl");
         using (var provider = services.BuildServiceProvider())
         {
@@ -526,6 +583,7 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
             var exitCode = await provider.GetRequiredService<RootCommand>().Parse(arguments.ToArray()).InvokeAsync().DefaultTimeout();
 
             Assert.Equal(CliExitCodes.Success, exitCode);
+            Assert.True(extractionRequested);
             Assert.Empty(interaction.DisplayedErrors);
             Assert.Empty(interaction.StringPromptCalls);
             var checkout = Assert.Single(Directory.GetDirectories(cacheRoot));

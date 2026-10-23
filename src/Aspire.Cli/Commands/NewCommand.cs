@@ -635,13 +635,6 @@ internal sealed class NewCommand : BaseCommand
         };
         var templateResult = await template.ApplyTemplateAsync(inputs, parseResult, cancellationToken);
 
-        // Generated AppHosts can be run directly by dotnet, which cannot trigger lazy bundle
-        // extraction. Ensure the bundle is ready instead of relying on best-effort prefetching.
-        if (templateResult.ExitCode == CliExitCodes.Success)
-        {
-            await _bundleService.EnsureExtractedAsync(cancellationToken);
-        }
-
         return await CompleteTemplateAsync(templateResult, parseResult, cancellationToken);
     }
 
@@ -685,6 +678,13 @@ internal sealed class NewCommand : BaseCommand
 
     private async Task<CommandResult> CompleteTemplateAsync(TemplateResult templateResult, ParseResult parseResult, CancellationToken cancellationToken)
     {
+        // Generated AppHosts can be run directly by dotnet, which cannot trigger lazy bundle
+        // extraction. Ensure the bundle is ready instead of relying on best-effort prefetching.
+        if (templateResult.ExitCode == CliExitCodes.Success)
+        {
+            await _bundleService.EnsureExtractedAsync(cancellationToken);
+        }
+
         var workspaceRoot = new DirectoryInfo(templateResult.OutputPath ?? ExecutionContext.WorkingDirectory.FullName);
         var agentInitBinding = PromptBinding.CreateInvertedBoolConfirm(parseResult, s_suppressAgentInitOption, defaultValue: true);
         // New projects get the complete default skill set, including aspireify. This chained flow
