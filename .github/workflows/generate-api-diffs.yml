@@ -13,7 +13,7 @@ on:
         type: string
       dry_run:
         description: 'Generate changes without creating a pull request'
-        default: true
+        default: false
         type: boolean
   schedule:
     - cron: '0 16 * * *' # 8am PST (16:00 UTC)
@@ -49,7 +49,7 @@ jobs:
             *) echo "::error::Target branch must be main or release/*"; exit 1 ;;
           esac
 
-      - name: Validate publishing target
+      - name: Validate workflow_dispatch publishing target
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run == false }}
         env:
           TARGET_BRANCH: ${{ matrix.target_branch }}
@@ -66,16 +66,13 @@ jobs:
           ref: ${{ github.event_name == 'pull_request' && github.sha || matrix.target_branch }}
           persist-credentials: false
 
-      - name: Read generation framework
-        run: |
-          framework=$(python3 -c "import xml.etree.ElementTree as ET; print(ET.parse('eng/Versions.props').find('.//DefaultTargetFramework').text)")
-          echo "API_TARGET_FRAMEWORK=$framework" >> "$GITHUB_ENV"
-
       - name: Restore and build (main)
         if: ${{ matrix.target_branch == 'main' }}
         env:
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
+          API_TARGET_FRAMEWORK=$(python3 -c "import xml.etree.ElementTree as ET; print(ET.parse('eng/Versions.props').find('.//DefaultTargetFramework').text)")
+
           # Keep scheduled and publishing runs best-effort; validation runs must fail on build errors.
           if [[ "$GITHUB_EVENT_NAME" == "schedule" || "$DRY_RUN" == "false" ]]; then
             set +e
@@ -103,6 +100,7 @@ jobs:
         if: ${{ matrix.target_branch != 'main' }}
         run: |
           set -euo pipefail
+          API_TARGET_FRAMEWORK=$(python3 -c "import xml.etree.ElementTree as ET; print(ET.parse('eng/Versions.props').find('.//DefaultTargetFramework').text)")
 
           # Exclude projects that do not generate a release API baseline.
           find src -name '*.csproj' | grep -Ev '/(Aspire.ProjectTemplates|Aspire.Cli|Aspire.Dashboard|Aspire.Hosting.Analyzers|Aspire.Hosting.Azure.Provisioning.Generators|Aspire.Hosting.Integration.Analyzers|Aspire.Hosting.RemoteHost|Aspire.Managed|Aspire.AppHost.Sdk|Aspire.TerminalHost|Tools)/' | while IFS= read -r proj; do

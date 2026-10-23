@@ -13,7 +13,7 @@ on:
         type: string
       dry_run:
         description: 'Generate changes without creating a pull request'
-        default: true
+        default: false
         type: boolean
   schedule:
     - cron: '0 16 * * *' # 8am PST (16:00 UTC)
@@ -49,7 +49,7 @@ jobs:
             *) echo "::error::Target branch must be main or release/*"; exit 1 ;;
           esac
 
-      - name: Validate publishing target
+      - name: Validate workflow_dispatch publishing target
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run == false }}
         env:
           TARGET_BRANCH: ${{ matrix.target_branch }}
@@ -66,11 +66,6 @@ jobs:
           ref: ${{ github.event_name == 'pull_request' && github.sha || matrix.target_branch }}
           persist-credentials: false
 
-      - name: Read generation framework
-        run: |
-          framework=$(python3 -c "import xml.etree.ElementTree as ET; print(ET.parse('eng/Versions.props').find('.//DefaultTargetFramework').text)")
-          echo "API_TARGET_FRAMEWORK=$framework" >> "$GITHUB_ENV"
-
       - name: Restore
         run: ./restore.sh
 
@@ -81,6 +76,7 @@ jobs:
         env:
           ASPIRE_REPO_ROOT: ${{ github.workspace }}
         run: |
+          API_TARGET_FRAMEWORK=$(python3 -c "import xml.etree.ElementTree as ET; print(ET.parse('eng/Versions.props').find('.//DefaultTargetFramework').text)")
           ASPIRE_CLI="./dotnet.sh run --no-build --project src/Aspire.Cli/Aspire.Cli.csproj --configuration Release -- --nologo"
 
           # Dump core Aspire.Hosting capabilities (no integration argument)
