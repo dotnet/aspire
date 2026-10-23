@@ -1,0 +1,9 @@
+{
+  "author": "DamianEdwards",
+  "comment": "Surfaces setup errors in ASPIRE009",
+  "mergedAt": "2026-10-23T14:40:33Z",
+  "number": 21281,
+  "runDate": "2026-10-23T18:05:00Z",
+  "status": "included",
+  "title": "Surface DNX acquisition errors in AppHost bundle setup diagnostics"
+}
