@@ -3,6 +3,8 @@
 
 using System.CommandLine;
 using System.Globalization;
+using System.IO.Hashing;
+using System.Text;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
@@ -45,7 +47,7 @@ internal sealed class TemplateEngineFactory(
         cancellationToken.ThrowIfCancellationRequested();
         var fullPath = source.Repository is null
             ? Path.GetFullPath(source.Path, executionContext.WorkingDirectory.FullName)
-            : await CloneRepositoryAsync(source.Repository, source.Path, cancellationToken);
+            : await GetRepositoryTemplateAsync(source.Repository, source.Path, source.RepositoryRef, cancellationToken);
         if (!Directory.Exists(fullPath))
         {
             throw new TemplateDiscoveryException(CliExitCodes.InvalidCommand,
@@ -90,20 +92,16 @@ internal sealed class TemplateEngineFactory(
                 string.Format(CultureInfo.CurrentCulture, NewCommandStrings.NoLocalTemplatesFound, fullPath));
         }
 
-        // The returned callbacks still use the engine's mounts and, for repository sources,
-        // the checkout. Keep both alive until the invocation's service provider is disposed.
+        // Returned callbacks still use the engine's mounts. Keep them alive through generation;
+        // immutable repository checkouts are retained in the SHA-keyed cache across invocations.
         return templates;
     }
 
-    private async Task<string> CloneRepositoryAsync(string repository, string templatePath, CancellationToken cancellationToken)
+    private async Task<string> GetRepositoryTemplateAsync(string repository, string templatePath, string? reference, CancellationToken cancellationToken)
     {
         var cacheRoot = Path.Combine(executionContext.CacheDirectory.FullName, "templates");
-        Directory.CreateDirectory(cacheRoot);
-        var checkout = TemporaryCacheDirectory.Create(cacheRoot, "repo", DeleteCheckout, DeleteLease);
-        _resources.Add(checkout);
-        var repositoryRoot = Path.Combine(checkout.FullName, "repository");
-        var fullPath = Path.GetFullPath(templatePath, repositoryRoot);
-        var relativePath = Path.GetRelativePath(repositoryRoot, fullPath);
+        var pathRoot = Path.Combine(cacheRoot, "repository");
+        var relativePath = Path.GetRelativePath(pathRoot, Path.GetFullPath(templatePath, pathRoot));
         if (Path.IsPathRooted(templatePath) || relativePath == ".." ||
             relativePath.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
         {
@@ -112,27 +110,65 @@ internal sealed class TemplateEngineFactory(
 
         try
         {
+            var sha = await interactionService.ShowStatusAsync(NewCommandStrings.ResolvingTemplateRepository,
+                () => gitRunner.ResolveReferenceAsync(repository, reference, cancellationToken));
+            cancellationToken.ThrowIfCancellationRequested();
+            // NUL separates the repository and normalized path without ambiguities from URL/path delimiters.
+            var identity = $"{repository}\0{relativePath.Replace(Path.DirectorySeparatorChar, '/')}\0{sha}";
+            var key = Convert.ToHexString(XxHash3.Hash(Encoding.UTF8.GetBytes(identity))).ToLowerInvariant();
+            var cacheDirectory = Path.Combine(cacheRoot, $"{key}-{sha}");
+            if (Directory.Exists(cacheDirectory))
+            {
+                return GetRepositoryTemplatePath(cacheDirectory, relativePath);
+            }
+
+            Directory.CreateDirectory(cacheRoot);
+            using var checkout = TemporaryCacheDirectory.Create(cacheRoot, "repo", DeleteCheckout, DeleteLease);
+            var repositoryRoot = new DirectoryInfo(Path.Combine(checkout.FullName, "repository"));
             await interactionService.ShowStatusAsync(NewCommandStrings.CloningTemplateRepository, async () =>
             {
-                await gitRunner.CloneAsync(repository, new DirectoryInfo(repositoryRoot), cancellationToken);
+                await gitRunner.CloneAsync(repository, repositoryRoot, sha, cancellationToken);
                 return true;
             });
             cancellationToken.ThrowIfCancellationRequested();
+
+            // Root templates must not copy Git history/configuration into generated projects.
+            Directory.Move(Path.Combine(repositoryRoot.FullName, ".git"), Path.Combine(checkout.FullName, ".git"));
+            GetRepositoryTemplatePath(checkout.FullName, relativePath);
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                // Publish only complete checkouts. Concurrent invocations can safely use the winner;
+                // the losing temporary checkout is removed by its lease owner on disposal.
+                checkout.MoveTo(cacheDirectory);
+            }
+            catch (IOException) when (Directory.Exists(cacheDirectory))
+            {
+                logger.LogDebug("Template checkout was already cached at {Path}.", cacheDirectory);
+            }
+
+            return GetRepositoryTemplatePath(cacheDirectory, relativePath);
         }
-        catch (GitCloneException ex)
+        catch (GitReferenceException ex)
+        {
+            throw new TemplateDiscoveryException(CliExitCodes.FailedToInstallTemplates,
+                string.Format(CultureInfo.CurrentCulture, NewCommandStrings.TemplateRepositoryRefNotFound, ex.Reference));
+        }
+        catch (GitCommandException ex)
         {
             var message = ex.ExitCode is int exitCode
-                ? string.Format(CultureInfo.CurrentCulture, NewCommandStrings.TemplateRepositoryCloneExited, exitCode, ex.Message)
+                ? string.Format(CultureInfo.CurrentCulture, NewCommandStrings.TemplateRepositoryGitExited, exitCode, ex.Message)
                 : ex.InnerException is not null
-                    ? string.Format(CultureInfo.CurrentCulture, NewCommandStrings.TemplateRepositoryCloneFailed, ex.Message)
+                    ? string.Format(CultureInfo.CurrentCulture, NewCommandStrings.TemplateRepositoryGitFailed, ex.Message)
                     : NewCommandStrings.TemplateRepositoryGitUnavailable;
             throw new TemplateDiscoveryException(CliExitCodes.FailedToInstallTemplates, message);
         }
+    }
 
-        // Root templates must not copy the clone's history, remote URLs, or Git configuration
-        // into the generated project. Preserve that metadata outside the template tree.
-        Directory.Move(Path.Combine(repositoryRoot, ".git"), Path.Combine(checkout.FullName, ".git"));
-
+    private static string GetRepositoryTemplatePath(string checkout, string relativePath)
+    {
+        var repositoryRoot = Path.Combine(checkout, "repository");
+        var fullPath = Path.GetFullPath(relativePath, repositoryRoot);
         // A repository-relative path must not escape through a checked-out symbolic link.
         for (var directory = new DirectoryInfo(fullPath); directory is not null && directory.FullName != repositoryRoot; directory = directory.Parent)
         {
@@ -140,6 +176,12 @@ internal sealed class TemplateEngineFactory(
             {
                 throw new TemplateDiscoveryException(CliExitCodes.InvalidCommand, NewCommandStrings.TemplateRepositoryPathInvalid);
             }
+        }
+
+        if (!Directory.Exists(fullPath))
+        {
+            throw new TemplateDiscoveryException(CliExitCodes.InvalidCommand,
+                string.Format(CultureInfo.CurrentCulture, NewCommandStrings.TemplateDirectoryNotFound, fullPath));
         }
 
         return fullPath;

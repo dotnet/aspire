@@ -122,6 +122,11 @@
         <target state="new">The output path '{0}' contains invalid characters.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResolvingTemplateRepository">
+        <source>Resolving template repository ref...</source>
+        <target state="new">Resolving template repository ref...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResolvingTemplateVersion">
         <source>Resolving template version...</source>
         <target state="translated">Résolution en cours de la version du modèle…</target>
@@ -172,14 +177,14 @@
         <target state="new">Path to an unpacked .NET template package directory (relative to the repository when --template-repository is specified)</target>
         <note />
       </trans-unit>
-      <trans-unit id="TemplateRepositoryCloneExited">
-        <source>Git clone failed with exit code {0}: {1}</source>
-        <target state="new">Git clone failed with exit code {0}: {1}</target>
+      <trans-unit id="TemplateRepositoryGitExited">
+        <source>Git failed with exit code {0}: {1}</source>
+        <target state="new">Git failed with exit code {0}: {1}</target>
         <note />
       </trans-unit>
-      <trans-unit id="TemplateRepositoryCloneFailed">
-        <source>Could not clone the template repository: {0}</source>
-        <target state="new">Could not clone the template repository: {0}</target>
+      <trans-unit id="TemplateRepositoryGitFailed">
+        <source>Could not access the template repository: {0}</source>
+        <target state="new">Could not access the template repository: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="TemplateRepositoryGitUnavailable">
@@ -195,6 +200,21 @@
       <trans-unit id="TemplateRepositoryPathInvalid">
         <source>When --template-repository is specified, --template-path must be relative and stay within the repository without traversing symbolic links.</source>
         <target state="new">When --template-repository is specified, --template-path must be relative and stay within the repository without traversing symbolic links.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TemplateRepositoryRefNotFound">
+        <source>Could not resolve template repository ref '{0}' to a commit SHA. Specify a branch, tag, or full commit SHA.</source>
+        <target state="new">Could not resolve template repository ref '{0}' to a commit SHA. Specify a branch, tag, or full commit SHA.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TemplateRepositoryRefOptionDescription">
+        <source>Template repository branch, tag, or full commit SHA (requires --template-repository; defaults to the remote HEAD)</source>
+        <target state="new">Template repository branch, tag, or full commit SHA (requires --template-repository; defaults to the remote HEAD)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TemplateRepositoryRefRequiresRepository">
+        <source>--template-repository-ref requires --template-repository and a non-empty ref value.</source>
+        <target state="new">--template-repository-ref requires --template-repository and a non-empty ref value.</target>
         <note />
       </trans-unit>
       <trans-unit id="UsePrereleaseTemplates">

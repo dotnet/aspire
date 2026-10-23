@@ -124,11 +124,23 @@
   <data name="CloningTemplateRepository" xml:space="preserve">
     <value>Cloning template repository...</value>
   </data>
-  <data name="TemplateRepositoryCloneFailed" xml:space="preserve">
-    <value>Could not clone the template repository: {0}</value>
+  <data name="TemplateRepositoryRefOptionDescription" xml:space="preserve">
+    <value>Template repository branch, tag, or full commit SHA (requires --template-repository; defaults to the remote HEAD)</value>
   </data>
-  <data name="TemplateRepositoryCloneExited" xml:space="preserve">
-    <value>Git clone failed with exit code {0}: {1}</value>
+  <data name="TemplateRepositoryRefRequiresRepository" xml:space="preserve">
+    <value>--template-repository-ref requires --template-repository and a non-empty ref value.</value>
+  </data>
+  <data name="ResolvingTemplateRepository" xml:space="preserve">
+    <value>Resolving template repository ref...</value>
+  </data>
+  <data name="TemplateRepositoryRefNotFound" xml:space="preserve">
+    <value>Could not resolve template repository ref '{0}' to a commit SHA. Specify a branch, tag, or full commit SHA.</value>
+  </data>
+  <data name="TemplateRepositoryGitFailed" xml:space="preserve">
+    <value>Could not access the template repository: {0}</value>
+  </data>
+  <data name="TemplateRepositoryGitExited" xml:space="preserve">
+    <value>Git failed with exit code {0}: {1}</value>
   </data>
   <data name="TemplateRepositoryGitUnavailable" xml:space="preserve">
     <value>Git could not be started. Install Git and ensure it is on PATH.</value>

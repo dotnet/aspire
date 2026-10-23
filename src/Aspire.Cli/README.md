@@ -50,6 +50,7 @@ To use a template from a Git repository:
 ```bash
 aspire new --template-repository https://github.com/example/templates.git --template-path templates/my-template
 aspire new --template-repository git@github.com:example/templates.git --template-path templates/my-template --name MyApp --output ./MyApp
+aspire new --template-repository https://github.com/example/templates.git --template-path templates/my-template --template-repository-ref v1.0
 ```
 
 With `--template-repository`, `--template-path` is relative to the repository
@@ -57,14 +58,26 @@ root and defaults to `.` when omitted. It cannot be absolute, escape the
 repository, or traverse symbolic links. Without `--template-repository`, paths
 remain relative to the working directory or absolute.
 
-Git must be on `PATH`. Each repository invocation performs a fresh shallow
-clone of the default branch into a unique directory under
-`~/.aspire/cache/templates/`. The checkout stays available through template
-discovery and generation, then is removed when the invocation ends, including
-on failure or cancellation. Git's normal authentication configuration applies;
-Git terminal credential prompts are disabled in non-interactive mode. Branch
-selection, persistent checkout reuse, submodule cloning, and repository catalogs
-are not supported.
+`--template-repository-ref` requires `--template-repository` and accepts a branch,
+tag, or full commit SHA. If omitted, it selects the remote `HEAD`. Branches and
+tags are resolved to a commit SHA on every invocation before creating a cache
+entry. Annotated tags resolve to their target commit; an unqualified branch name
+takes precedence over a tag with the same name. Use `refs/tags/name` to select
+that tag explicitly.
+
+Git must be on `PATH` when resolving named refs or downloading a checkout.
+Successful checkouts are retained under `~/.aspire/cache/templates/`, keyed by
+the repository, normalized template path, and resolved commit SHA. Different
+refs pointing to the same commit share an entry; moving a branch or tag selects
+a new entry. Cache misses fetch only the resolved commit with depth one and
+check it out detached, so a branch moving during the download cannot change
+the selected version. Incomplete downloads are never published to the cache
+and are cleaned up on failure or cancellation. Existing entries remain available.
+Cached versions can be removed manually when no invocation is using them.
+
+Git's normal authentication configuration applies; Git terminal credential
+prompts are disabled in non-interactive mode. Submodule cloning and repository
+catalogs are not supported.
 
 Git process execution is isolated behind `Aspire.Cli.Git.IGitRunner`, backed by
 `IProcessExecutionFactory`. The template factory owns checkout lifetime, template

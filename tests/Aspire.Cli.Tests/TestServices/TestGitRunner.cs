@@ -8,14 +8,26 @@ namespace Aspire.Cli.Tests.TestServices;
 
 internal sealed class TestGitRunner : IGitRunner
 {
-    public Func<string, DirectoryInfo, CancellationToken, Task> CloneAsyncCallback { get; set; } =
-        (_, _, _) => throw new InvalidOperationException("Unexpected Git clone invocation.");
+    public const string DefaultCommitSha = "0123456789abcdef0123456789abcdef01234567";
 
-    public ConcurrentQueue<(string Repository, DirectoryInfo Destination)> CloneCalls { get; } = new();
+    public Func<string, string?, CancellationToken, Task<string>> ResolveReferenceAsyncCallback { get; set; } =
+        (_, _, _) => Task.FromResult(DefaultCommitSha);
 
-    public Task CloneAsync(string repository, DirectoryInfo destination, CancellationToken cancellationToken)
+    public Func<string, DirectoryInfo, string, CancellationToken, Task> CloneAsyncCallback { get; set; } =
+        (_, _, _, _) => throw new InvalidOperationException("Unexpected Git clone invocation.");
+
+    public ConcurrentQueue<(string Repository, string? Reference)> ResolveCalls { get; } = new();
+    public ConcurrentQueue<(string Repository, DirectoryInfo Destination, string CommitSha)> CloneCalls { get; } = new();
+
+    public Task<string> ResolveReferenceAsync(string repository, string? reference, CancellationToken cancellationToken)
     {
-        CloneCalls.Enqueue((repository, destination));
-        return CloneAsyncCallback(repository, destination, cancellationToken);
+        ResolveCalls.Enqueue((repository, reference));
+        return ResolveReferenceAsyncCallback(repository, reference, cancellationToken);
+    }
+
+    public Task CloneAsync(string repository, DirectoryInfo destination, string commitSha, CancellationToken cancellationToken)
+    {
+        CloneCalls.Enqueue((repository, destination, commitSha));
+        return CloneAsyncCallback(repository, destination, commitSha, cancellationToken);
     }
 }

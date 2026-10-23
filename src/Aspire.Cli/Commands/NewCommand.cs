@@ -66,6 +66,11 @@ internal sealed class NewCommand : BaseCommand
         Description = NewCommandStrings.TemplateRepositoryOptionDescription,
         Recursive = true
     };
+    internal static readonly Option<string?> s_templateRepositoryRefOption = new("--template-repository-ref")
+    {
+        Description = NewCommandStrings.TemplateRepositoryRefOptionDescription,
+        Recursive = true
+    };
 
     internal static readonly Option<bool?> s_suppressAgentInitOption = new("--suppress-agent-init")
     {
@@ -100,6 +105,7 @@ internal sealed class NewCommand : BaseCommand
         Options.Add(s_versionOption);
         Options.Add(s_templatePathOption);
         Options.Add(s_templateRepositoryOption);
+        Options.Add(s_templateRepositoryRefOption);
         Options.Add(s_suppressAgentInitOption);
         Options.Add(AgentInitCommand.s_agentsOption);
         Options.Add(AgentInitCommand.s_scopeOption);
@@ -147,7 +153,8 @@ internal sealed class NewCommand : BaseCommand
     {
         if (!string.IsNullOrWhiteSpace(parseResult.GetValue(s_sourceOption)) ||
             parseResult.GetValue(s_templatePathOption) is not null ||
-            parseResult.GetValue(s_templateRepositoryOption) is not null)
+            parseResult.GetValue(s_templateRepositoryOption) is not null ||
+            parseResult.GetValue(s_templateRepositoryRefOption) is not null)
         {
             // Directory/repository templates do not use feeds, and --source limits foreground package lookup.
             // Background prefetch does not know about either override and would contact fallback feeds.
@@ -518,6 +525,12 @@ internal sealed class NewCommand : BaseCommand
 
         var templatePath = parseResult.GetValue(s_templatePathOption);
         var templateRepository = parseResult.GetValue(s_templateRepositoryOption);
+        var templateRepositoryRef = parseResult.GetValue(s_templateRepositoryRefOption);
+        if (templateRepositoryRef is not null &&
+            (string.IsNullOrWhiteSpace(templateRepository) || string.IsNullOrWhiteSpace(templateRepositoryRef)))
+        {
+            return CommandResult.Failure(CliExitCodes.InvalidCommand, NewCommandStrings.TemplateRepositoryRefRequiresRepository);
+        }
         if (templatePath is not null || templateRepository is not null)
         {
             if (templatePath is not null && string.IsNullOrWhiteSpace(templatePath) ||
@@ -529,7 +542,7 @@ internal sealed class NewCommand : BaseCommand
                 return CommandResult.Failure(CliExitCodes.InvalidCommand, NewCommandStrings.TemplatePathConflictingOptions);
             }
 
-            return await CreateFromSourceAsync(new TemplateSource(templatePath ?? ".", templateRepository), parseResult, cancellationToken);
+            return await CreateFromSourceAsync(new TemplateSource(templatePath ?? ".", templateRepository, templateRepositoryRef), parseResult, cancellationToken);
         }
 
         var source = parseResult.GetValue(s_sourceOption);

@@ -302,7 +302,7 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
         var templateProvider = provider.GetRequiredService<ITemplateProvider>();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            templateProvider.GetTemplatesAsync(new TemplateSource("template", null), new CancellationToken(canceled: true)));
+            templateProvider.GetTemplatesAsync(new TemplateSource("template", null, null), new CancellationToken(canceled: true)));
 
         Assert.False(Directory.Exists(Path.Combine(workspace.Path, "out")));
     }
@@ -319,7 +319,7 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
         Assert.Empty(engineFactory.GetTemplates());
         Assert.Empty(await engineFactory.GetInitTemplatesAsync());
         Assert.Empty(await engineFactory.GetTemplatesAsync(null));
-        var templates = await provider.GetRequiredService<ITemplateProvider>().GetTemplatesAsync(new TemplateSource("template", null));
+        var templates = await provider.GetRequiredService<ITemplateProvider>().GetTemplatesAsync(new TemplateSource("template", null, null));
 
         Assert.Equal("template", Assert.Single(templates).Name);
         Assert.False(Directory.Exists(Path.Combine(workspace.Path, "out")));
@@ -344,6 +344,7 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
 
         Assert.Equal(CliExitCodes.Success, exitCode);
         Assert.Empty(gitRunner.CloneCalls);
+        Assert.Empty(gitRunner.ResolveCalls);
         Assert.Empty(interaction.DisplayedErrors);
         await Verify(ReadOutput(workspace)).ScrubInlineGuids();
     }
@@ -386,7 +387,7 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
             await Verify(ReadOutput(workspace)).ScrubInlineGuids().UseParameters(specifyTemplatePath);
         }
 
-        Assert.Empty(Directory.GetFileSystemEntries(cacheRoot));
+        Assert.Single(Directory.GetFileSystemEntries(cacheRoot));
         Assert.True(Directory.Exists(repository.FullName));
     }
 
@@ -400,13 +401,13 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
         var interaction = new TestInteractionService();
         var exception = failure switch
         {
-            0 => new GitCloneException("fatal: repository not found", 128, null),
-            1 => new GitCloneException(new Win32Exception(2).Message, null, new Win32Exception(2)),
-            _ => new GitCloneException("Git could not be started.", null, null)
+            0 => new GitCommandException("fatal: repository not found", 128, null),
+            1 => new GitCommandException(new Win32Exception(2).Message, null, new Win32Exception(2)),
+            _ => new GitCommandException("Git could not be started.", null, null)
         };
         var gitRunner = new TestGitRunner
         {
-            CloneAsyncCallback = (_, _, _) => throw exception
+            CloneAsyncCallback = (_, _, _, _) => throw exception
         };
 
         var services = CreateServices(workspace, interaction, interactive: false);
@@ -420,8 +421,8 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
             Assert.Equal(CliExitCodes.FailedToInstallTemplates, exitCode);
             var expectedError = failure switch
             {
-                0 => string.Format(NewCommandStrings.TemplateRepositoryCloneExited, 128, "fatal: repository not found"),
-                1 => string.Format(NewCommandStrings.TemplateRepositoryCloneFailed, new Win32Exception(2).Message),
+                0 => string.Format(NewCommandStrings.TemplateRepositoryGitExited, 128, "fatal: repository not found"),
+                1 => string.Format(NewCommandStrings.TemplateRepositoryGitFailed, new Win32Exception(2).Message),
                 _ => NewCommandStrings.TemplateRepositoryGitUnavailable
             };
             Assert.Equal(expectedError, Assert.Single(interaction.DisplayedErrors));
@@ -454,10 +455,11 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
             Assert.Equal(CliExitCodes.InvalidCommand, exitCode);
             Assert.Equal(NewCommandStrings.TemplateRepositoryPathInvalid, Assert.Single(interaction.DisplayedErrors));
             Assert.Empty(gitRunner.CloneCalls);
+            Assert.Empty(gitRunner.ResolveCalls);
             Assert.False(Directory.Exists(Path.Combine(workspace.Path, "out")));
         }
 
-        Assert.Empty(Directory.GetFileSystemEntries(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "templates")));
+        Assert.False(Directory.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "templates")));
     }
 
     [Fact]
@@ -467,7 +469,7 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
         var interaction = new TestInteractionService();
         var gitRunner = new TestGitRunner
         {
-            CloneAsyncCallback = (_, destination, _) =>
+            CloneAsyncCallback = (_, destination, _, _) =>
             {
                 Directory.CreateDirectory(Path.Combine(destination.FullName, ".git"));
                 try
@@ -507,10 +509,14 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
         var interaction = new TestInteractionService();
         var gitRunner = new TestGitRunner
         {
-            CloneAsyncCallback = (_, _, token) =>
+            CloneAsyncCallback = async (_, destination, _, token) =>
             {
+                var gitDirectory = destination.CreateSubdirectory(".git");
+                var gitObject = Path.Combine(gitDirectory.FullName, "partial-object");
+                await File.WriteAllTextAsync(gitObject, "partial download", token);
+                File.SetAttributes(gitObject, FileAttributes.ReadOnly);
                 cancellation.Cancel();
-                return Task.FromCanceled(token);
+                token.ThrowIfCancellationRequested();
             }
         };
         var services = CreateServices(workspace, interaction, interactive: false);
@@ -519,7 +525,7 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
         {
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
                 provider.GetRequiredService<ITemplateProvider>().GetTemplatesAsync(
-                    new TemplateSource("template", "https://example.test/templates.git"), cancellation.Token));
+                    new TemplateSource("template", "https://example.test/templates.git", null), cancellation.Token));
 
             Assert.Single(gitRunner.CloneCalls);
             Assert.False(Directory.Exists(Path.Combine(workspace.Path, "out")));
@@ -529,16 +535,17 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task RepositoryTemplate_UsesUniqueCheckoutsAndLiteralGitArguments()
+    public async Task RepositoryTemplate_UsesCachedCheckoutAndKeepsTemplatesAlive()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var interaction = new TestInteractionService();
         List<string> checkouts = [];
         var gitRunner = new TestGitRunner
         {
-            CloneAsyncCallback = async (repository, destination, token) =>
+            CloneAsyncCallback = async (repository, destination, sha, token) =>
             {
                 Assert.Equal("-repository", repository);
+                Assert.Equal(TestGitRunner.DefaultCommitSha, sha);
                 checkouts.Add(destination.FullName);
                 Directory.CreateDirectory(Path.Combine(destination.FullName, ".git"));
                 var readOnlyFile = Path.Combine(destination.FullName, ".git", "read-only-object");
@@ -552,9 +559,10 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
         using (var provider = services.BuildServiceProvider())
         {
             var templates = provider.GetRequiredService<ITemplateProvider>();
-            var first = Assert.Single(await templates.GetTemplatesAsync(new TemplateSource("template", "-repository")));
-            Assert.Single(await templates.GetTemplatesAsync(new TemplateSource("template", "-repository")));
-            Assert.Equal(2, checkouts.Distinct().Count());
+            var first = Assert.Single(await templates.GetTemplatesAsync(new TemplateSource("template", "-repository", "main")));
+            Assert.Single(await templates.GetTemplatesAsync(new TemplateSource("./template", "-repository", "v1")));
+            Assert.Single(checkouts);
+            Assert.Equal(2, gitRunner.ResolveCalls.Count);
             var cacheRoot = Path.Combine(provider.GetRequiredService<CliExecutionContext>().CacheDirectory.FullName, "templates");
             Assert.All(checkouts, path => Assert.Equal(cacheRoot, Directory.GetParent(path)!.Parent!.FullName));
 
@@ -570,6 +578,225 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
             Assert.False(Directory.Exists(path));
             Assert.False(File.Exists(TemporaryCacheDirectory.GetLeasePath(Directory.GetParent(path)!.FullName)));
         });
+        Assert.Single(Directory.GetFileSystemEntries(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "templates")));
+    }
+
+    [Fact]
+    public async Task RepositoryTemplate_ResolvesRefsAndReusesPinnedCheckoutsAcrossInvocations()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        await GitTestHelper.EnsureGitAvailableAsync(outputHelper);
+        var repository = workspace.CreateDirectory("repository");
+        await CreateTemplateAsync(workspace, "repository/template");
+        var identityFile = Path.Combine(repository.FullName, "template", "identity.txt");
+        await File.WriteAllTextAsync(identityFile, "first");
+        await GitTestHelper.RunGitAsync(repository.FullName, outputHelper, "init", "--initial-branch=main");
+        await GitTestHelper.ConfigureGitIdentityAsync(repository.FullName, outputHelper);
+        await GitTestHelper.RunGitAsync(repository.FullName, outputHelper, "config", "tag.gpgsign", "false");
+        await GitTestHelper.RunGitAsync(repository.FullName, outputHelper, "add", ".");
+        await GitTestHelper.RunGitAsync(repository.FullName, outputHelper, "commit", "-m", "First template");
+        var firstSha = (await File.ReadAllTextAsync(Path.Combine(repository.FullName, ".git", "refs", "heads", "main"))).Trim();
+        await GitTestHelper.RunGitAsync(repository.FullName, outputHelper, "tag", "v1");
+        await GitTestHelper.RunGitAsync(repository.FullName, outputHelper, "tag", "-a", "annotated", "-m", "Annotated version");
+        await GitTestHelper.RunGitAsync(repository.FullName, outputHelper, "branch", "feature/templates");
+        await File.WriteAllTextAsync(identityFile, "second");
+        await GitTestHelper.RunGitAsync(repository.FullName, outputHelper, "commit", "-am", "Second template");
+        var secondSha = (await File.ReadAllTextAsync(Path.Combine(repository.FullName, ".git", "refs", "heads", "main"))).Trim();
+
+        Dictionary<string, Dictionary<string, string>> outputs = [];
+        (string Label, string? Reference)[] requests =
+        [
+            ("default", null),
+            ("branch", "main"),
+            ("branch-with-slash", "feature/templates"),
+            ("tag", "v1"),
+            ("annotated-tag", "annotated"),
+            ("qualified-tag", "refs/tags/annotated"),
+            ("sha", firstSha)
+        ];
+        var cacheRoot = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "templates");
+        foreach (var (label, reference) in requests)
+        {
+            await GenerateAsync(label, reference);
+        }
+
+        var cachedVersions = Directory.GetDirectories(cacheRoot);
+        Assert.Equal(2, cachedVersions.Length);
+        foreach (var directory in cachedVersions)
+        {
+            var sha = (await File.ReadAllTextAsync(Path.Combine(directory, ".git", "shallow"))).Trim();
+            Assert.Contains(sha, new[] { firstSha, secondSha });
+            Assert.EndsWith($"-{sha}", directory);
+        }
+
+        await File.WriteAllTextAsync(identityFile, "third");
+        await GitTestHelper.RunGitAsync(repository.FullName, outputHelper, "commit", "-am", "Move branch");
+        await GenerateAsync("moved-branch", "main");
+        Assert.Equal(3, Directory.GetFileSystemEntries(cacheRoot).Length);
+        await Verify(outputs).ScrubInlineGuids();
+
+        async Task GenerateAsync(string label, string? reference)
+        {
+            var interaction = new TestInteractionService();
+            var services = CreateServices(workspace, interaction, interactive: false);
+            services.AddSingleton<IProcessExecutionFactory>(new ProcessExecutionFactory(new HostEnvironment(), NullLogger<ProcessExecutionFactory>.Instance));
+            using var provider = services.BuildServiceProvider();
+            var repositoryPath = Path.GetRelativePath(provider.GetRequiredService<CliExecutionContext>().WorkingDirectory.FullName, repository.FullName);
+            List<string> arguments = ["new", "--template-repository", repositoryPath,
+                "--template-path", "template", "--name", "Demo", "--output", $"out/{label}", "--suppress-agent-init"];
+            if (reference is not null)
+            {
+                arguments.AddRange(["--template-repository-ref", reference]);
+            }
+
+            var exitCode = await provider.GetRequiredService<RootCommand>().Parse(arguments.ToArray()).InvokeAsync().DefaultTimeout();
+
+            Assert.Equal(CliExitCodes.Success, exitCode);
+            Assert.Empty(interaction.DisplayedErrors);
+            outputs[label] = ReadOutput(Path.Combine(workspace.Path, "out", label));
+        }
+    }
+
+    [Fact]
+    public async Task RepositoryTemplate_CacheIdentityIncludesRepositoryPathAndResolvedSha()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var interaction = new TestInteractionService();
+        var gitRunner = new TestGitRunner
+        {
+            ResolveReferenceAsyncCallback = (_, reference, _) => Task.FromResult(reference == "changed" ? new string('a', 40) : TestGitRunner.DefaultCommitSha),
+            CloneAsyncCallback = async (_, destination, _, _) =>
+            {
+                Directory.CreateDirectory(Path.Combine(destination.FullName, ".git"));
+                await CreateTemplateAsync(workspace, Path.GetRelativePath(workspace.Path, Path.Combine(destination.FullName, "one")));
+                await CreateTemplateAsync(workspace, Path.GetRelativePath(workspace.Path, Path.Combine(destination.FullName, "two")));
+            }
+        };
+        var services = CreateServices(workspace, interaction, interactive: false);
+        services.AddSingleton<IGitRunner>(gitRunner);
+        using var provider = services.BuildServiceProvider();
+        var templates = provider.GetRequiredService<ITemplateProvider>();
+        TemplateSource[] sources =
+        [
+            new("one", "repository-a", "main"),
+            new("two", "repository-a", "main"),
+            new("one", "repository-b", "main"),
+            new("one", "repository-a", "changed")
+        ];
+        foreach (var source in sources)
+        {
+            Assert.Single(await templates.GetTemplatesAsync(source));
+        }
+
+        Assert.Single(await templates.GetTemplatesAsync(new TemplateSource("./one", "repository-a", "same-commit-tag")));
+        Assert.Equal(5, gitRunner.ResolveCalls.Count);
+        Assert.Equal(4, gitRunner.CloneCalls.Count);
+        var cacheRoot = Path.Combine(provider.GetRequiredService<CliExecutionContext>().CacheDirectory.FullName, "templates");
+        Assert.Equal(4, Directory.GetFileSystemEntries(cacheRoot).Length);
+    }
+
+    [Fact]
+    public async Task RepositoryTemplate_ConcurrentInvocationsPublishOnlyOneCompleteEntry()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var bothStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var cloneCount = 0;
+        var gitRunner = new TestGitRunner
+        {
+            CloneAsyncCallback = async (_, destination, _, token) =>
+            {
+                if (Interlocked.Increment(ref cloneCount) == 2)
+                {
+                    bothStarted.SetResult();
+                }
+
+                await bothStarted.Task.WaitAsync(token).DefaultTimeout();
+                Directory.CreateDirectory(Path.Combine(destination.FullName, ".git"));
+                await CreateTemplateAsync(workspace, Path.GetRelativePath(workspace.Path, Path.Combine(destination.FullName, "template")));
+            }
+        };
+        var firstServices = CreateServices(workspace, new TestInteractionService(), interactive: false);
+        firstServices.AddSingleton<IGitRunner>(gitRunner);
+        using var firstProvider = firstServices.BuildServiceProvider();
+        var secondServices = CreateServices(workspace, new TestInteractionService(), interactive: false);
+        secondServices.AddSingleton<IGitRunner>(gitRunner);
+        using var secondProvider = secondServices.BuildServiceProvider();
+        var source = new TemplateSource("template", "repository", "main");
+
+        var results = await Task.WhenAll(
+            firstProvider.GetRequiredService<ITemplateProvider>().GetTemplatesAsync(source),
+            secondProvider.GetRequiredService<ITemplateProvider>().GetTemplatesAsync(source)).DefaultTimeout();
+
+        Assert.All(results, result => Assert.Equal("template", Assert.Single(result).Name));
+        Assert.Equal(2, gitRunner.CloneCalls.Count);
+        var cacheRoot = Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "templates");
+        var cached = Assert.Single(Directory.GetFileSystemEntries(cacheRoot));
+        Assert.True(Directory.Exists(Path.Combine(cached, ".git")));
+        Assert.True(File.Exists(Path.Combine(cached, "repository", "template", ".template.config", "template.json")));
+        Assert.All(gitRunner.CloneCalls, call => Assert.False(Directory.Exists(call.Destination.FullName)));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RepositoryTemplate_RefResolutionFailureDoesNotCreateCache(bool canceled)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        using var cancellation = new CancellationTokenSource();
+        var gitRunner = new TestGitRunner
+        {
+            ResolveReferenceAsyncCallback = (_, reference, token) =>
+            {
+                if (canceled)
+                {
+                    cancellation.Cancel();
+                    return Task.FromCanceled<string>(token);
+                }
+
+                throw new GitReferenceException(reference ?? "HEAD");
+            }
+        };
+        var services = CreateServices(workspace, new TestInteractionService(), interactive: false);
+        services.AddSingleton<IGitRunner>(gitRunner);
+        using var provider = services.BuildServiceProvider();
+        var templateProvider = provider.GetRequiredService<ITemplateProvider>();
+        var source = new TemplateSource("template", "repository", "missing");
+        if (canceled)
+        {
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => templateProvider.GetTemplatesAsync(source, cancellation.Token));
+        }
+        else
+        {
+            var exception = await Assert.ThrowsAsync<TemplateDiscoveryException>(() => templateProvider.GetTemplatesAsync(source));
+            Assert.Equal(string.Format(NewCommandStrings.TemplateRepositoryRefNotFound, "missing"), exception.Message);
+        }
+
+        Assert.Single(gitRunner.ResolveCalls);
+        Assert.Empty(gitRunner.CloneCalls);
+        Assert.False(Directory.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "templates")));
+    }
+
+    [Theory]
+    [InlineData("--template-repository-ref main")]
+    [InlineData("--template-path template --template-repository-ref main")]
+    [InlineData("--template-repository repository --template-repository-ref \"\"")]
+    [InlineData("--template-repository \"\" --template-repository-ref main")]
+    public async Task RepositoryTemplate_RefRequiresRepositoryAndNonemptyValue(string options)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var interaction = new TestInteractionService();
+        var gitRunner = new TestGitRunner();
+        var services = CreateServices(workspace, interaction, interactive: false);
+        services.AddSingleton<IGitRunner>(gitRunner);
+        using var provider = services.BuildServiceProvider();
+
+        var exitCode = await provider.GetRequiredService<RootCommand>().Parse($"new {options} --suppress-agent-init").InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(CliExitCodes.InvalidCommand, exitCode);
+        Assert.Equal(NewCommandStrings.TemplateRepositoryRefRequiresRepository, Assert.Single(interaction.DisplayedErrors));
+        Assert.Empty(gitRunner.ResolveCalls);
+        Assert.Empty(gitRunner.CloneCalls);
+        Assert.False(Directory.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "templates")));
     }
 
     [Theory]
@@ -590,6 +817,7 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
         Assert.Equal(CliExitCodes.InvalidCommand, exitCode);
         Assert.Equal(NewCommandStrings.TemplatePathConflictingOptions, Assert.Single(interaction.DisplayedErrors));
         Assert.Empty(gitRunner.CloneCalls);
+        Assert.Empty(gitRunner.ResolveCalls);
     }
 
     [Theory]
@@ -627,6 +855,7 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
 
         Assert.Equal(CliExitCodes.Success, exitCode);
         Assert.Empty(gitRunner.CloneCalls);
+        Assert.Empty(gitRunner.ResolveCalls);
         Assert.False(Directory.Exists(Path.Combine(workspace.WorkspaceRoot.FullName, ".aspire", "cache", "templates")));
     }
 
@@ -654,9 +883,11 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
         });
     }
 
-    private static Dictionary<string, string> ReadOutput(TemporaryWorkspace workspace)
+    private static Dictionary<string, string> ReadOutput(TemporaryWorkspace workspace) =>
+        ReadOutput(Path.Combine(workspace.Path, "out"));
+
+    private static Dictionary<string, string> ReadOutput(string directory)
     {
-        var directory = Path.Combine(workspace.Path, "out");
         return Directory.GetFiles(directory, "*", SearchOption.AllDirectories)
             .Order(StringComparer.Ordinal)
             .ToDictionary(path => Path.GetRelativePath(directory, path).Replace('\\', '/'), File.ReadAllText);

@@ -340,20 +340,56 @@ namespace Aspire.Cli.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Could not clone the template repository: {0}.
+        ///   Looks up a localized string similar to Template repository branch, tag, or full commit SHA (requires --template-repository; defaults to the remote HEAD).
         /// </summary>
-        internal static string TemplateRepositoryCloneFailed {
+        internal static string TemplateRepositoryRefOptionDescription {
             get {
-                return ResourceManager.GetString("TemplateRepositoryCloneFailed", resourceCulture);
+                return ResourceManager.GetString("TemplateRepositoryRefOptionDescription", resourceCulture);
             }
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Git clone failed with exit code {0}: {1}.
+        ///   Looks up a localized string similar to --template-repository-ref requires --template-repository and a non-empty ref value..
         /// </summary>
-        internal static string TemplateRepositoryCloneExited {
+        internal static string TemplateRepositoryRefRequiresRepository {
             get {
-                return ResourceManager.GetString("TemplateRepositoryCloneExited", resourceCulture);
+                return ResourceManager.GetString("TemplateRepositoryRefRequiresRepository", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Resolving template repository ref....
+        /// </summary>
+        internal static string ResolvingTemplateRepository {
+            get {
+                return ResourceManager.GetString("ResolvingTemplateRepository", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Could not resolve template repository ref &apos;{0}&apos; to a commit SHA. Specify a branch, tag, or full commit SHA..
+        /// </summary>
+        internal static string TemplateRepositoryRefNotFound {
+            get {
+                return ResourceManager.GetString("TemplateRepositoryRefNotFound", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Could not access the template repository: {0}.
+        /// </summary>
+        internal static string TemplateRepositoryGitFailed {
+            get {
+                return ResourceManager.GetString("TemplateRepositoryGitFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Git failed with exit code {0}: {1}.
+        /// </summary>
+        internal static string TemplateRepositoryGitExited {
+            get {
+                return ResourceManager.GetString("TemplateRepositoryGitExited", resourceCulture);
             }
         }
 

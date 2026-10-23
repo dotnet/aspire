@@ -3,7 +3,7 @@
 
 namespace Aspire.Cli.Git;
 
-internal sealed class GitCloneException(string message, int? exitCode, Exception? innerException)
+internal sealed class GitCommandException(string message, int? exitCode, Exception? innerException)
     : Exception(message, innerException)
 {
     /// <summary>

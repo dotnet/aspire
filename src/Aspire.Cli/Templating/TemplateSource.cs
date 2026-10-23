@@ -3,4 +3,4 @@
 
 namespace Aspire.Cli.Templating;
 
-internal sealed record TemplateSource(string Path, string? Repository);
+internal sealed record TemplateSource(string Path, string? Repository, string? RepositoryRef);
