@@ -172,7 +172,9 @@ Interactive prompts honor parameter `isEnabled` and `isRequired` expressions usi
 the template engine's typed values and expression evaluator. Parameters controlling
 these conditions are collected before their dependents, regardless of declaration
 order. Disabled parameters are omitted, and conditional requiredness applies to
-text and multiple-choice prompts.
+text, single-choice, and multiple-choice prompts. Optional single-choice parameters
+without a default offer **Skip** as the initial selection; skipping leaves the
+parameter unset for the template engine.
 
 ### Resource Management
 

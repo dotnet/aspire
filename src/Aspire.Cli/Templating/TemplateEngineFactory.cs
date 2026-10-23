@@ -294,7 +294,7 @@ internal sealed class TemplateEngineFactory(
                     continue;
                 }
 
-                string value;
+                string? value;
                 if (parameter.Name.Equals("AspireVersion", StringComparison.OrdinalIgnoreCase))
                 {
                     value = executionContext.IdentitySdkVersion;
@@ -327,6 +327,11 @@ internal sealed class TemplateEngineFactory(
                 {
                     value = await PromptForParameterAsync(
                         parameter, promptState?.IsRequired(parameter) ?? parameter.Precedence.IsRequired, cancellationToken);
+                }
+
+                if (value is null)
+                {
+                    continue;
                 }
 
                 if (promptState is not null && !promptState.TrySetValue(parameter, value))
@@ -365,7 +370,7 @@ internal sealed class TemplateEngineFactory(
         return new TemplateResult(CliExitCodes.Success, outputPath);
     }
 
-    private async Task<string> PromptForParameterAsync(ITemplateParameter parameter, bool required, CancellationToken cancellationToken)
+    private async Task<string?> PromptForParameterAsync(ITemplateParameter parameter, bool required, CancellationToken cancellationToken)
     {
         var prompt = (!string.IsNullOrWhiteSpace(parameter.DisplayName)
             ? parameter.DisplayName
@@ -393,6 +398,23 @@ internal sealed class TemplateEngineFactory(
                     optional: !required,
                     cancellationToken: cancellationToken);
                 return string.Join('|', selected);
+            }
+
+            if (!required && string.IsNullOrEmpty(parameter.DefaultValue))
+            {
+                // The extension identifies choices by display text, so the skip label must also be unique.
+                var skipLabel = TemplatingStrings.Skip.EscapeMarkup();
+                while (keys.Any(key => FormatChoice(key) == skipLabel))
+                {
+                    skipLabel = $"({skipLabel})";
+                }
+
+                // Omission is distinct from an empty value or a template choice whose key is "Skip".
+                var optionalChoices = keys.Select(key => (Value: (string?)key, DisplayName: FormatChoice(key)))
+                    .Prepend((Value: (string?)null, DisplayName: skipLabel));
+                var selected = await interactionService.PromptForSelectionAsync(
+                    prompt, optionalChoices, choice => choice.DisplayName, cancellationToken: cancellationToken);
+                return selected.Value;
             }
 
             return await interactionService.PromptForSelectionAsync(prompt, keys, FormatChoice, cancellationToken: cancellationToken);

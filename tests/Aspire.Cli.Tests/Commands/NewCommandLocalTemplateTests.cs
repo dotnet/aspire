@@ -62,6 +62,131 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
     }
 
     [Theory]
+    [InlineData(0, null)]
+    [InlineData(0, "")]
+    [InlineData(1, null)]
+    [InlineData(2, null)]
+    public async Task LocalTemplate_OptionalSingleChoiceCanBeSkippedOrSelected(int selectedIndex, string? defaultValue)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        await CreateSingleChoiceTemplateAsync(workspace, required: false, defaultValue);
+        var interaction = new TestInteractionService();
+        var promptCount = 0;
+        interaction.PromptForSelectionCallback = (prompt, choices, formatter, _) =>
+        {
+            promptCount++;
+            Assert.Equal("Service kind", prompt);
+            var options = choices.Cast<object>().ToArray();
+            Assert.Equal(["(Skip)", "HTTP API", "Skip"], options.Select(formatter));
+            return options[selectedIndex];
+        };
+        using var provider = CreateServices(workspace, interaction, interactive: true).BuildServiceProvider();
+
+        var exitCode = await provider.GetRequiredService<RootCommand>()
+            .Parse("new --template-path template --name Demo --output out --suppress-agent-init")
+            .InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(CliExitCodes.Success, exitCode);
+        Assert.Empty(interaction.DisplayedErrors);
+        Assert.Equal(1, promptCount);
+        if (selectedIndex == 0)
+        {
+            var nonInteractive = new TestInteractionService();
+            using var nonInteractiveProvider = CreateServices(workspace, nonInteractive, interactive: false).BuildServiceProvider();
+            var nonInteractiveExitCode = await nonInteractiveProvider.GetRequiredService<RootCommand>()
+                .Parse("new --template-path template --name Demo --output non-interactive-out --suppress-agent-init")
+                .InvokeAsync().DefaultTimeout();
+
+            Assert.Equal(CliExitCodes.Success, nonInteractiveExitCode);
+            Assert.Empty(nonInteractive.DisplayedErrors);
+            Assert.Equal(ReadOutput(Path.Combine(workspace.Path, "non-interactive-out")), ReadOutput(workspace));
+        }
+        await Verify(ReadOutput(workspace)).UseParameters(selectedIndex, defaultValue);
+    }
+
+    [Theory]
+    [InlineData(true, null)]
+    [InlineData(true, "api")]
+    [InlineData(false, "Skip")]
+    public async Task LocalTemplate_RequiredOrDefaultedSingleChoiceDoesNotOfferSkip(bool required, string? defaultValue)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        await CreateSingleChoiceTemplateAsync(workspace, required, defaultValue);
+        var interaction = new TestInteractionService();
+        var promptCount = 0;
+        interaction.PromptForSelectionCallback = (prompt, choices, formatter, _) =>
+        {
+            promptCount++;
+            Assert.Equal("Service kind", prompt);
+            var options = choices.Cast<object>().ToArray();
+            Assert.Equal(defaultValue == "Skip" ? ["Skip", "HTTP API"] : ["HTTP API", "Skip"], options.Select(formatter));
+            return options[0];
+        };
+        using var provider = CreateServices(workspace, interaction, interactive: true).BuildServiceProvider();
+
+        var exitCode = await provider.GetRequiredService<RootCommand>()
+            .Parse("new --template-path template --name Demo --output out --suppress-agent-init")
+            .InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(CliExitCodes.Success, exitCode);
+        Assert.Empty(interaction.DisplayedErrors);
+        Assert.Equal(1, promptCount);
+        await Verify(ReadOutput(workspace)).UseParameters(required, defaultValue);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task LocalTemplate_ConditionalSingleChoiceOffersSkipOnlyWhenOptional(bool requireMode)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var config = workspace.CreateDirectory("template/.template.config");
+        await File.WriteAllTextAsync(Path.Combine(config.FullName, "template.json"), """
+            {
+              "identity": "Aspire.Local.ConditionalSingleChoice",
+              "name": "Conditional single choice",
+              "shortName": "conditional-single-choice",
+              "symbols": {
+                "Mode": {
+                  "type": "parameter", "datatype": "choice", "displayName": "Service kind",
+                  "isRequired": "(RequireMode)", "replaces": "ModeValue",
+                  "choices": [
+                    { "choice": "api", "displayName": "HTTP API" },
+                    { "choice": "Skip", "displayName": "Literal skip" }
+                  ]
+                },
+                "RequireMode": {
+                  "type": "parameter", "datatype": "bool", "defaultValue": "false"
+                }
+              }
+            }
+            """);
+        await File.WriteAllTextAsync(Path.Combine(workspace.Path, "template", "settings.txt"), "Mode: [ModeValue]\n");
+        var interaction = new TestInteractionService();
+        interaction.SetupBooleanResponse(requireMode);
+        var promptCount = 0;
+        interaction.PromptForSelectionCallback = (prompt, choices, formatter, _) =>
+        {
+            promptCount++;
+            Assert.Single(interaction.BooleanPromptCalls);
+            Assert.Equal("Service kind", prompt);
+            var options = choices.Cast<object>().ToArray();
+            Assert.Equal(requireMode ? ["HTTP API", "Literal skip"] : ["Skip", "HTTP API", "Literal skip"], options.Select(formatter));
+            return options[0];
+        };
+        using var provider = CreateServices(workspace, interaction, interactive: true).BuildServiceProvider();
+
+        var exitCode = await provider.GetRequiredService<RootCommand>()
+            .Parse("new --template-path template --name Demo --output out --suppress-agent-init")
+            .InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(CliExitCodes.Success, exitCode);
+        Assert.Empty(interaction.DisplayedErrors);
+        Assert.Equal(1, promptCount);
+        await Verify(ReadOutput(workspace)).UseParameters(requireMode);
+    }
+
+    [Theory]
     [InlineData(false, false)]
     [InlineData(true, false)]
     [InlineData(false, true)]
@@ -1407,6 +1532,32 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
         return Directory.GetFiles(directory, "*", SearchOption.AllDirectories)
             .Order(StringComparer.Ordinal)
             .ToDictionary(path => Path.GetRelativePath(directory, path).Replace('\\', '/'), File.ReadAllText);
+    }
+
+    private static async Task CreateSingleChoiceTemplateAsync(TemporaryWorkspace workspace, bool required, string? defaultValue)
+    {
+        var config = workspace.CreateDirectory("template/.template.config");
+        var defaultProperty = defaultValue is null ? "" : $"\"defaultValue\": {JsonSerializer.Serialize(defaultValue)},";
+        await File.WriteAllTextAsync(Path.Combine(config.FullName, "template.json"), $$"""
+            {
+              "identity": "Aspire.Local.SingleChoice",
+              "name": "Single choice template",
+              "shortName": "single-choice",
+              "symbols": {
+                "Mode": {
+                  "type": "parameter", "datatype": "choice", "displayName": "Service kind",
+                  "isRequired": {{required.ToString().ToLowerInvariant()}},
+                  {{defaultProperty}}
+                  "replaces": "ModeValue",
+                  "choices": [
+                    { "choice": "api", "displayName": "HTTP API" },
+                    { "choice": "Skip" }
+                  ]
+                }
+              }
+            }
+            """);
+        await File.WriteAllTextAsync(Path.Combine(workspace.Path, "template", "settings.txt"), "Mode: [ModeValue]\n");
     }
 
     private static async Task CreateConditionalTemplateAsync(
