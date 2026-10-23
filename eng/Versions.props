@@ -97,7 +97,7 @@
     <MicrosoftExtensionsPrimitivesNet10Version>10.0.12</MicrosoftExtensionsPrimitivesNet10Version>
     <MicrosoftExtensionsHttpNet10Version>10.0.12</MicrosoftExtensionsHttpNet10Version>
     <SystemFormatsAsn1Net10Version>10.0.12</SystemFormatsAsn1Net10Version>
-    <SystemSecurityCryptographyPkcsNet10Version>10.0.12</SystemSecurityCryptographyPkcsNet10Version>
+    <SystemSecurityCryptographyPkcsNet10Version>10.0.13</SystemSecurityCryptographyPkcsNet10Version>
     <SystemTextJsonNet10Version>10.0.12</SystemTextJsonNet10Version>
   </PropertyGroup>
   <!-- .NET 11 package versions use Darc's package-name-without-punctuation + Version convention. -->
