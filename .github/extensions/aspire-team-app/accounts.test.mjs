@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { accountId, endpoints, isEmuAccountId, isEmuLogin, isProximaAccountId } from "./accounts.mjs";
+import { accountId, detectCandidates, endpoints, isEmuAccountId, isEmuLogin, isProximaAccountId } from "./accounts.mjs";
 import { accountConfig } from "./state.mjs";
 
 const originalEnv = { ...process.env };
@@ -56,6 +56,80 @@ test("endpoints use the API origin for GHE.com and GHES paths for server hosts",
     rest: "https://ghe.example.com/api/v3",
     graphql: "https://ghe.example.com/api/graphql",
   });
+});
+
+test("standalone discovery retains healthy CLI accounts when another host fails", async () => {
+  const calls = [];
+  const candidates = await detectCandidates({
+    env: { PATH: "cli-path", GH_CONFIG_DIR: "cli-config" },
+    run: async (command, args, options) => {
+      calls.push({ command, args, options });
+      if (args[1] === "status") {
+        assert.deepEqual(args, ["auth", "status", "--json", "hosts"]);
+        return { stdout: JSON.stringify({ hosts: {
+          "github.com": [
+            { host: "github.com", login: "octo", state: "success" },
+            { host: "github.com", login: "expired", state: "error" },
+          ],
+          "ghe.example.com": [{ host: "ghe.example.com", login: "octo-enterprise", state: "success" }],
+          "broken.example.com": [{ host: "broken.example.com", state: "error" }],
+        } }) };
+      }
+      return { stdout: args.at(-1) === "octo" ? "stored-dotcom\n" : "stored-enterprise\n" };
+    },
+  });
+
+  assert.deepEqual(candidates.map(({ source, host, login, token }) => ({ source, host, login, token })), [
+    { source: "gh", host: "github.com", login: "octo", token: "stored-dotcom" },
+    { source: "gh", host: "ghe.example.com", login: "octo-enterprise", token: "stored-enterprise" },
+  ]);
+  assert.deepEqual(calls.map(({ command, args }) => ({ command, args })), [
+    { command: "gh", args: ["auth", "status", "--json", "hosts"] },
+    { command: "gh", args: ["auth", "token", "--hostname", "github.com", "--user", "octo"] },
+    { command: "gh", args: ["auth", "token", "--hostname", "ghe.example.com", "--user", "octo-enterprise"] },
+  ]);
+  for (const { options } of calls) {
+    assert.deepEqual(options, { timeout: 8000, env: { PATH: "cli-path", GH_CONFIG_DIR: "cli-config" } });
+  }
+});
+
+test("injected tokens do not override stored CLI credentials and remain separate candidates", async () => {
+  const env = {
+    GH_TOKEN: "injected-dotcom",
+    GITHUB_TOKEN: "injected-github",
+    GH_ENTERPRISE_TOKEN: "injected-enterprise",
+    GITHUB_ENTERPRISE_TOKEN: "injected-github-enterprise",
+    COPILOT_GH_ACCOUNT_github_2E_com_octo: "copilot-token",
+  };
+  const before = { ...env };
+  const candidates = await detectCandidates({
+    env,
+    run: async (_command, args, { env: childEnv }) => {
+      assert.deepEqual(childEnv, { COPILOT_GH_ACCOUNT_github_2E_com_octo: "copilot-token" });
+      return { stdout: args[1] === "status"
+        ? JSON.stringify({ hosts: { "github.com": [{ host: "github.com", login: "octo", state: "success" }] } })
+        : "stored-token\n" };
+    },
+  });
+
+  assert.deepEqual(candidates.map(({ source, token }) => ({ source, token })), [
+    { source: "gh", token: "stored-token" },
+    { source: "env", token: "injected-dotcom" },
+    { source: "env", token: "injected-github" },
+    { source: "copilot", token: "copilot-token" },
+  ]);
+  assert.deepEqual(env, before);
+});
+
+test("discovery still uses environment credentials when gh is unavailable", async () => {
+  const candidates = await detectCandidates({
+    env: { GH_TOKEN: "env-token" },
+    run: async () => { throw Object.assign(new Error("gh unavailable"), { code: "ENOENT" }); },
+  });
+
+  assert.deepEqual(candidates.map(({ source, token }) => ({ source, token })), [
+    { source: "env", token: "env-token" },
+  ]);
 });
 
 test("resolveAccounts keys accounts by normalized host and login", async () => {

@@ -198,6 +198,12 @@ install_extension url: https://github.com/IEvangelist/canvas-marketplace/tree/ma
 
 Once loaded, open it from chat, or via `open_canvas` with `canvasId: "aspire-team-app"`.
 
+The standalone canvas can also run from the top-level sidebar without an Aspire
+repository session. It discovers stored `gh` accounts independently of tokens
+injected by the Copilot app, and an expired account on another host does not hide
+healthy accounts. The `gh` executable must be on the app's `PATH`; sign in with
+`gh auth login` only if no usable credentials are available.
+
 ## Notes
 
 - Notifications are **in-canvas + live in-session** (SSE). A canvas iframe is not a

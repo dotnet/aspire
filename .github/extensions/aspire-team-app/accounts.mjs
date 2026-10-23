@@ -54,27 +54,26 @@ function tokenHash(token) {
 // Candidate enumeration
 // ---------------------------------------------------------------------------
 
-async function ghAccounts() {
+async function ghAccounts(run, env) {
   try {
-    const { stdout } = await execFileAsync("gh", ["auth", "status"], { timeout: 8000 });
-    const accounts = [];
-    const re = /Logged in to (\S+) account (\S+)/g;
-    let m;
-    while ((m = re.exec(stdout)) !== null) {
-      accounts.push({ host: m[1], login: m[2] });
-    }
-    return accounts;
+    // JSON status keeps all accounts even when one host fails authentication:
+    // { "hosts": { "github.com": [{ "host": "github.com", "login": "octo", "state": "success" }] } }.
+    // Human-readable status instead exits with 1 and moves its output to stderr.
+    const { stdout } = await run("gh", ["auth", "status", "--json", "hosts"], { timeout: 8000, env });
+    return Object.values(JSON.parse(stdout).hosts).flat()
+      .filter((account) => account.state === "success" && account.host && account.login)
+      .map(({ host, login }) => ({ host, login }));
   } catch {
     return [];
   }
 }
 
-async function ghToken(host, login) {
+async function ghToken(host, login, run, env) {
   try {
-    const { stdout } = await execFileAsync(
+    const { stdout } = await run(
       "gh",
       ["auth", "token", "--hostname", host, "--user", login],
-      { timeout: 8000 },
+      { timeout: 8000, env },
     );
     return stdout.trim() || null;
   } catch {
@@ -105,7 +104,7 @@ function decodeCopilotAccount(varName) {
   return { host, login };
 }
 
-export async function detectCandidates() {
+export async function detectCandidates({ run = execFileAsync, env = process.env } = {}) {
   const out = [];
   const seenHash = new Set();
   const add = (source, token, login, host) => {
@@ -117,18 +116,24 @@ export async function detectCandidates() {
   };
 
   // gh CLI accounts (each may have distinct scopes / hosts).
-  const accounts = await ghAccounts();
+  // gh prioritizes environment tokens even with --user. Enumerate stored credentials
+  // independently so an app-injected, host-limited token cannot hide keyring accounts.
+  const ghEnv = { ...env };
+  for (const name of ["GH_TOKEN", "GITHUB_TOKEN", "GH_ENTERPRISE_TOKEN", "GITHUB_ENTERPRISE_TOKEN"]) {
+    delete ghEnv[name];
+  }
+  const accounts = await ghAccounts(run, ghEnv);
   for (const a of accounts) {
-    add("gh", await ghToken(a.host, a.login), a.login, a.host);
+    add("gh", await ghToken(a.host, a.login, run, ghEnv), a.login, a.host);
   }
 
   // Plain env tokens (host from GH_HOST when targeting an enterprise instance).
-  const envHost = normalizeHost(process.env.GH_HOST || "github.com");
-  add("env", process.env.GH_TOKEN, null, envHost);
-  add("env", process.env.GITHUB_TOKEN, null, envHost);
+  const envHost = normalizeHost(env.GH_HOST || "github.com");
+  add("env", env.GH_TOKEN, null, envHost);
+  add("env", env.GITHUB_TOKEN, null, envHost);
 
   // Per-account Copilot tokens injected by the host (host encoded in the var name).
-  for (const [k, v] of Object.entries(process.env)) {
+  for (const [k, v] of Object.entries(env)) {
     if (k.startsWith("COPILOT_GH_ACCOUNT_") && v) {
       const { host, login } = decodeCopilotAccount(k);
       add("copilot", v, login, host);
