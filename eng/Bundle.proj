@@ -44,8 +44,9 @@
     binaries, not archive signatures. Tool/npm packages are created after the
     signing pass from the processed CLI archive; this invocation does not sign
     those newly created package containers.
-    Later restore invocations initialize signing tools in fresh evaluations;
-    they are separate from the initial DCP restore.
+    Signing tools are restored once before component signing, separately from
+    DCP and component restores. Later signing passes use fresh evaluations to
+    discover new packages without restoring component projects again.
 
     Options:
     - BuildDistributionPackages=true: Produce the distribution outputs listed above (default: false)
@@ -179,6 +180,7 @@
               _CleanCaches;
               _RestoreDcpPackage;
               _PublishBundleComponents;
+              _RestoreSigningTools;
               _SignBundleComponents;
               _BuildStandaloneComponentPackages;
               _CreateAndVerifyBundleArchive;
@@ -256,7 +258,7 @@
       <_BundleSigningArgs Condition="'$(TeamName)' != ''">$(_BundleSigningArgs) "/p:TeamName=$(TeamName)"</_BundleSigningArgs>
       <_BundleSigningArgs Condition="'$(DotNetPublishUsingPipelines)' != ''">$(_BundleSigningArgs) /p:DotNetPublishUsingPipelines=$(DotNetPublishUsingPipelines)</_BundleSigningArgs>
 
-      <_SignOnlyCommand>&quot;$(_BuildScriptPath)&quot; -restore -sign -configuration $(Configuration) -projects &quot;$(_ManagedProjectPath)&quot; $(_BundleChildArgs) $(_BundleSigningArgs)</_SignOnlyCommand>
+      <_SignOnlyCommand>&quot;$(_BuildScriptPath)&quot; -sign -configuration $(Configuration) $(_BundleChildArgs) $(_BundleSigningArgs)</_SignOnlyCommand>
     </PropertyGroup>
 
     <!-- Resolve shared component and bundle archive paths after importing projects have overridden
@@ -411,6 +413,14 @@
       <_TrayBuildProperties Condition="'$(OfficialBuild)' != ''"          >$(_TrayBuildProperties);OfficialBuild=$(OfficialBuild)</_TrayBuildProperties>
       <_TrayBuildProperties Condition="'$(AspireCliChannel)' != ''"       >$(_TrayBuildProperties);AspireCliChannel=$(AspireCliChannel)</_TrayBuildProperties>
     </PropertyGroup>
+  </Target>
+
+  <Target Name="_RestoreSigningTools"
+          Condition="'$(Sign)' == 'true'">
+    <!-- Tool-only restore initializes Arcade signing dependencies without selecting
+         a component project. Signing runs in a fresh evaluation after restore. -->
+    <Exec Command="dotnet msbuild &quot;$(_BundleEngineeringDir)RestoreSigningTools.proj&quot; /t:Restore $(_BundleChildArgs) $(_BundleSigningArgs) &quot;/bl:$(_ArtifactsLogDir)RestoreSigningTools.binlog&quot;"
+          EnvironmentVariables="$(_NuGetCacheEnvironmentVariables)" />
   </Target>
 
   <Target Name="_SignBundleComponents"

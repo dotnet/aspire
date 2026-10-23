@@ -446,6 +446,12 @@ In distribution mode, component publishing finishes by checking that selected
 required prepared files exist, including when publishers are skipped. This check
 runs before signing; assembled archive verification runs separately afterward.
 
+Signed bundle builds restore Arcade's signing tools once, after preparing
+component files and before component signing. `eng/RestoreSigningTools.proj`
+restores only the tool dependencies, not an arbitrary component project.
+Subsequent sign-only invocations use fresh evaluations to discover newly built
+packages without repeating project restore.
+
 These controls belong to `eng/Bundle.proj`, not repository build selection.
 Repository builds and child packaging calls use their own build properties.
 

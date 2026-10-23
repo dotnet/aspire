@@ -592,6 +592,7 @@ path_rules:
     reason: Infrastructure.Tests WorkflowScripts/Pipelines assert on workflow & pipeline files; NpmCliPackageTests reads eng/Signing.props, and Publishing.props is AzDO-publish-only infra grouped with it (no GH-CI build/test path -> not ALL)
   - paths:
       - eng/Bundle.proj
+      - eng/RestoreSigningTools.proj
       - tools/CreateLayout/**
     targets: [CLI_BUNDLE, test:Infrastructure.Tests]
     reason: assembles and validates native CLI bundle payloads
