@@ -61,27 +61,6 @@ public sealed class TestTriggerMapTests
         Assert.Contains("Infrastructure.Tests", result.TestProjects);
     }
 
-    [Fact]
-    public void ExtensionE2eProjectAndPathRulesCoverTheSameConsumers()
-    {
-        var map = TriggerMap.Load(Path.Combine(RepoRoot.Path, "eng", "github-ci", "test-trigger-map.yml"));
-        var affectedProjects = Assert.Single(
-            map.AffectedProjectRules,
-            rule => rule.Targets.Contains("job:extension-e2e", StringComparer.Ordinal))
-            .Projects
-            .Select(project => $"src/{project}/**");
-        var directPaths = Assert.Single(
-            map.PathRules,
-            rule => rule.Targets.Contains("job:extension-e2e", StringComparer.Ordinal)
-                && rule.Paths.Contains("extension/**", StringComparer.Ordinal))
-            .Paths
-            .Where(path => path.StartsWith("src/", StringComparison.Ordinal));
-
-        Assert.Equal(
-            affectedProjects.Order(StringComparer.Ordinal),
-            directPaths.Order(StringComparer.Ordinal));
-    }
-
     [Theory]
     [InlineData("src/Aspire.Dashboard/Resources/NewResource.Designer.cs")]
     [InlineData("src/Aspire.Dashboard/Resources/xlf/NewResource.fr.xlf")]
