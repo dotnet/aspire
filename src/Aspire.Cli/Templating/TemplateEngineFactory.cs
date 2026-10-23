@@ -59,10 +59,10 @@ internal sealed class TemplateEngineFactory(
 
         // Register concrete built-ins instead of loading engine extensions dynamically, which
         // Native AOT cannot support. A virtual hive keeps these templates out of dotnet new's state.
-        // https://github.com/dotnet/templating/blob/main/src/Microsoft.TemplateEngine.Edge/DefaultTemplateEngineHost.cs
+        // https://github.com/dotnet/sdk/blob/main/src/TemplateEngine/Microsoft.TemplateEngine.Edge/DefaultTemplateEngineHost.cs
         var components = Microsoft.TemplateEngine.Edge.Components.AllComponents
             .Concat(Microsoft.TemplateEngine.Orchestrator.RunnableProjects.Components.AllComponents).ToList();
-        var host = new DefaultTemplateEngineHost("aspire", "1.0.0", builtIns: components);
+        var host = new TemplateEngineHost(components);
         _resources.Add(host);
         var settings = new EngineEnvironmentSettings(host, virtualizeSettings: true);
         _resources.Add(settings);

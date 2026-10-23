@@ -91,6 +91,10 @@ prompts for a selection. Template parameter metadata drives text, Boolean,
 single-choice, and multiple-choice prompts. The .NET template engine handles
 defaults, replacements, generated symbols, conditional content, and file renames.
 Template post-actions (including restore and scripts) are not executed.
+Git metadata (`.git` directories and worktree/submodule pointer files) is excluded
+from the engine's source view for both directory and Git templates without changing
+the original files. Other Git-related files, such as `.gitignore`,
+`.gitattributes`, and `.github` contents, are preserved.
 
 `AspireVersion` is a well-known template parameter (case-insensitive). When a
 template declares it as a parameter symbol, Aspire supplies the running CLI's

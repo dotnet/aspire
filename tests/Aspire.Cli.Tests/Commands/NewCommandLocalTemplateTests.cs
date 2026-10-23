@@ -60,6 +60,44 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
         await Verify(ReadOutput(workspace)).ScrubInlineGuids().UseParameters(includeMessage);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task LocalTemplate_ExcludesGitMetadataWithoutChangingSource(bool gitFile)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        await CreateTemplateAsync(workspace, "template");
+        var gitDirectory = workspace.CreateDirectory(gitFile ? "git-storage" : "template/.git");
+        await File.WriteAllTextAsync(Path.Combine(gitDirectory.FullName, "config"), "Original repository configuration");
+        if (gitFile)
+        {
+            await File.WriteAllTextAsync(Path.Combine(workspace.Path, "template", ".git"), "gitdir: ../git-storage");
+        }
+
+        var nestedGitDirectory = workspace.CreateDirectory("template/nested/.git");
+        await File.WriteAllTextAsync(Path.Combine(nestedGitDirectory.FullName, "config"), "Nested repository configuration");
+        var nestedWorktree = workspace.CreateDirectory("template/worktree");
+        await File.WriteAllTextAsync(Path.Combine(nestedWorktree.FullName, ".git"), "gitdir: ../../git-storage");
+        await File.WriteAllTextAsync(Path.Combine(nestedWorktree.FullName, "content.txt"), "Keep worktree content");
+        await File.WriteAllTextAsync(Path.Combine(workspace.Path, "template", ".gitignore"), "bin/");
+        await File.WriteAllTextAsync(Path.Combine(workspace.Path, "template", ".gitattributes"), "* text=auto");
+        var github = workspace.CreateDirectory("template/.github");
+        await File.WriteAllTextAsync(Path.Combine(github.FullName, "content.txt"), "Keep GitHub content");
+        var originalSource = ReadOutput(Path.Combine(workspace.Path, "template"));
+        var interaction = new TestInteractionService();
+        using var provider = CreateServices(workspace, interaction, interactive: false).BuildServiceProvider();
+
+        var exitCode = await provider.GetRequiredService<RootCommand>()
+            .Parse("new --template-path template --name Demo --output out --suppress-agent-init")
+            .InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(CliExitCodes.Success, exitCode);
+        Assert.Empty(interaction.DisplayedErrors);
+        Assert.Equal(originalSource, ReadOutput(Path.Combine(workspace.Path, "template")));
+        Assert.Equal("Original repository configuration", await File.ReadAllTextAsync(Path.Combine(gitDirectory.FullName, "config")));
+        await Verify(ReadOutput(workspace)).ScrubInlineGuids().UseParameters(gitFile);
+    }
+
     [Fact]
     public async Task LocalTemplate_NonInteractiveUsesEngineDefaults()
     {
