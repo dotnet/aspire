@@ -238,41 +238,34 @@ public class EntraIdDownstreamApiTests
         Assert.Equal(expected, env["DownstreamApis__api__Scopes__0"]);
     }
 
-    [Theory]
-    [InlineData(DistributedApplicationOperation.Run, "api://custom-api/access_as_user")]
-    [InlineData(DistributedApplicationOperation.Publish, "{api-uri.value}/access_as_user")]
-    public async Task WithDownstreamApi_ApplicationIdUriParameter_StaysAReference(
-        DistributedApplicationOperation operation,
-        string expected)
+    [Fact]
+    public async Task WithDownstreamApi_CreatedRegistrationWithScope_PublishUsesTheProvisionedApplicationIdUri()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(operation);
-        var uri = builder.AddParameter("api-uri", "api://custom-api");
-        var apiRegistration = builder.AddExistingEntraApplication("entra-api", TenantId, ApiClientId)
-            .WithApplicationIdUri(uri);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var apiRegistration = builder.AddEntraIdApplication("entra-api")
+            .WithScope("access_as_user", "Access the API as the signed-in user.");
         var web = builder.AddResource(new ProjectResource("web"))
             .WithDownstreamApi(apiRegistration, AddApi(builder), scopes: ["access_as_user"]);
 
-        var env = await GetEnvironmentAsync(web.Resource, operation);
+        var env = await GetEnvironmentAsync(web.Resource, DistributedApplicationOperation.Publish);
 
-        Assert.Equal(expected, env["DownstreamApis__api__Scopes__0"]);
+        // The registration's own application ID URI is used, so a custom URI or default set during provisioning is honored.
+        Assert.Equal("{entra-api.outputs.applicationIdUri}/access_as_user", env["DownstreamApis__api__Scopes__0"]);
     }
 
     [Fact]
-    public async Task WithDownstreamApi_ApplicationIdUriParameter_TakesPrecedenceOverLiteral()
+    public async Task WithDownstreamApi_CreatedRegistrationWithCustomApplicationIdUri_UsesTheCustomUri()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var uri = builder.AddParameter("api-uri", "api://from-parameter");
-        var apiRegistration = builder.AddExistingEntraApplication("entra-api", TenantId, ApiClientId)
-            .WithApplicationIdUri("api://literal")
-            .WithApplicationIdUri(uri);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var apiRegistration = builder.AddEntraIdApplication("entra-api")
+            .WithApplicationIdUri("api://contoso-orders");
         var web = builder.AddResource(new ProjectResource("web"))
             .WithDownstreamApi(apiRegistration, AddApi(builder), scopes: ["access_as_user"]);
 
-        var env = await GetEnvironmentAsync(web.Resource, DistributedApplicationOperation.Run);
+        var env = await GetEnvironmentAsync(web.Resource, DistributedApplicationOperation.Publish);
 
-        Assert.Equal("api://from-parameter/access_as_user", env["DownstreamApis__api__Scopes__0"]);
+        Assert.Equal("api://contoso-orders/access_as_user", env["DownstreamApis__api__Scopes__0"]);
     }
-
     [Theory]
     [InlineData(DistributedApplicationOperation.Run, $"api://{ApiClientId}/access_as_user")]
     [InlineData(DistributedApplicationOperation.Publish, "api://{entra-api-client-id.value}/access_as_user")]
@@ -424,33 +417,6 @@ public class EntraIdDownstreamApiTests
         var exception = Assert.Throws<InvalidOperationException>(resource.CreateApplicationIdUriExpression);
 
         Assert.Contains("has no application ID URI or client ID", exception.Message);
-    }
-
-    [Fact]
-    public void WithApplicationIdUri_ValidatesArguments()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var entra = builder.AddExistingEntraApplication("entra-api", TenantId, ApiClientId);
-
-        Assert.Throws<ArgumentNullException>("builder", () => EntraIdResourceExtensions.WithApplicationIdUri(null!, "api://x"));
-        Assert.Throws<ArgumentNullException>("builder", () => EntraIdResourceExtensions.WithApplicationIdUri(null!, builder.AddParameter("p", "v")));
-        Assert.Throws<ArgumentNullException>("applicationIdUri", () => entra.WithApplicationIdUri((IResourceBuilder<ParameterResource>)null!));
-        Assert.Throws<ArgumentException>("applicationIdUri", () => entra.WithApplicationIdUri(""));
-        Assert.Throws<ArgumentException>("applicationIdUri", () => entra.WithApplicationIdUri("not a uri"));
-    }
-
-    [Fact]
-    public void WithApplicationIdUri_SetsTheResourceProperties()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var parameter = builder.AddParameter("api-uri", "api://custom");
-        var entra = builder.AddExistingEntraApplication("entra-api", TenantId, ApiClientId);
-
-        Assert.Same(entra, entra.WithApplicationIdUri("api://custom-api"));
-        Assert.Equal("api://custom-api", entra.Resource.ApplicationIdUri);
-
-        Assert.Same(entra, entra.WithApplicationIdUri(parameter));
-        Assert.Same(parameter.Resource, entra.Resource.ApplicationIdUriParameter);
     }
 
     [Fact]

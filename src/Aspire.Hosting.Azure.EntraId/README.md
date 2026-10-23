@@ -312,8 +312,8 @@ set `name` to use another one.
 * **Scopes.** A scope without a URI scheme, such as `access_as_user` or `.default`, is qualified with the API registration's application
   ID URI. A fully qualified scope, such as `api://00001111-aaaa-2222-bbbb-3333cccc4444/access_as_user` or
   `https://graph.microsoft.com/User.Read`, is used as is, and so are `openid`, `profile`, `email` and `offline_access`.
-* **Application ID URI.** The default is `api://{clientId}`. For an existing registration that uses another URI, call
-  `WithApplicationIdUri` on the API registration with a literal value or a parameter.
+* **Application ID URI.** The default is `api://{clientId}`. When the API registration has an application ID URI, from
+  `WithApplicationIdUri` or provisioned with its scopes, that URI is used instead.
 * **`.default`.** `.default` requests the permissions already granted to the caller on the API. It doesn't make the call app-only;
   `WithDownstreamApi` never sets `RequestAppToken`, so the request uses the signed-in user's delegated token.
 * **Deferred values.** Parameters and provisioned outputs for the client ID or application ID URI stay unresolved until the
