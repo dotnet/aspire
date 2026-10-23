@@ -18,6 +18,7 @@ using Microsoft.TemplateEngine.Abstractions.Installer;
 using Microsoft.TemplateEngine.Edge;
 using Microsoft.TemplateEngine.Edge.Settings;
 using Microsoft.TemplateEngine.Edge.Template;
+using Microsoft.TemplateEngine.Utils;
 using Spectre.Console;
 
 namespace Aspire.Cli.Templating;
@@ -86,7 +87,7 @@ internal sealed class TemplateEngineFactory(
                 template.Name,
                 (context, name) => OutputPathHelper.GetUniqueDefaultOutputPath(name, context.WorkingDirectory.FullName),
                 _ => { },
-                (_, templateInputs, result, token) => ApplyAsync(creator, template, templateInputs, result, token)))
+                (_, templateInputs, result, token) => ApplyAsync(settings, creator, template, templateInputs, result, token)))
             .ToArray();
         cancellationToken.ThrowIfCancellationRequested();
         if (templates.Length == 0)
@@ -248,7 +249,7 @@ internal sealed class TemplateEngineFactory(
         _resources.Clear();
     }
 
-    private async Task<TemplateResult> ApplyAsync(TemplateCreator creator, ITemplateInfo template, TemplateInputs inputs, ParseResult parseResult, CancellationToken cancellationToken)
+    private async Task<TemplateResult> ApplyAsync(IEngineEnvironmentSettings settings, TemplateCreator creator, ITemplateInfo template, TemplateInputs inputs, ParseResult parseResult, CancellationToken cancellationToken)
     {
         var name = inputs.Name is { } explicitName && ProjectNameValidator.IsProjectNameValid(explicitName)
             ? explicitName
@@ -273,49 +274,72 @@ internal sealed class TemplateEngineFactory(
         }
 
         var parameters = new Dictionary<string, string?>(StringComparer.Ordinal);
-        foreach (var parameter in template.ParameterDefinitions)
+        try
         {
-            if (parameter.IsName || parameter.Type != "parameter" ||
-                parameter.Precedence.PrecedenceDefinition is PrecedenceDefinition.Implicit or PrecedenceDefinition.Disabled)
+            var promptState = hostEnvironment.SupportsInteractiveInput && template.ParameterDefinitions.Any(parameter =>
+                !string.IsNullOrEmpty(parameter.Precedence.IsEnabledCondition) || !string.IsNullOrEmpty(parameter.Precedence.IsRequiredCondition))
+                ? new TemplateParameterPromptState(settings, template, name, logger)
+                : null;
+            foreach (var parameter in promptState?.Parameters ?? template.ParameterDefinitions)
             {
-                continue;
-            }
-
-            cancellationToken.ThrowIfCancellationRequested();
-            if (parameter.Name.Equals("AspireVersion", StringComparison.OrdinalIgnoreCase))
-            {
-                parameters[parameter.Name] = executionContext.IdentitySdkVersion;
-                continue;
-            }
-
-            if (parameter.Name.Equals("AspireNuGetSource", StringComparison.OrdinalIgnoreCase))
-            {
-                // Resolve policy without querying feeds, using the same identity as AspireVersion.
-                // PackagingService also handles PR hives and local package/source overrides.
-                var channels = (await packagingService.GetChannelsAsync(cancellationToken, executionContext.IdentityChannel)).ToArray();
-                var channel = channels.FirstOrDefault(channel =>
-                    string.Equals(channel.Name, executionContext.IdentityChannel, StringComparisons.ChannelName) &&
-                    channel.Mappings is { Length: > 0 });
-                if (channel is null)
+                if (parameter.IsName || parameter.Type != "parameter" ||
+                    parameter.Precedence.PrecedenceDefinition is PrecedenceDefinition.Implicit or PrecedenceDefinition.Disabled)
                 {
-                    interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture,
-                        NewCommandStrings.NoChannelFoundMatching,
-                        executionContext.IdentityChannel,
-                        string.Join(", ", channels.Select(channel => channel.Name))));
-                    return new TemplateResult(CliExitCodes.InvalidCommand);
+                    continue;
                 }
 
-                parameters[parameter.Name] = channel.SourceDetails;
-                continue;
-            }
+                cancellationToken.ThrowIfCancellationRequested();
+                if (promptState is not null && !promptState.IsEnabled(parameter))
+                {
+                    continue;
+                }
 
-            if (!hostEnvironment.SupportsInteractiveInput)
-            {
-                // Leave unset values to the engine, including conditional requirements and defaults.
-                continue;
-            }
+                string value;
+                if (parameter.Name.Equals("AspireVersion", StringComparison.OrdinalIgnoreCase))
+                {
+                    value = executionContext.IdentitySdkVersion;
+                }
+                else if (parameter.Name.Equals("AspireNuGetSource", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Resolve policy without querying feeds, using the same identity as AspireVersion.
+                    // PackagingService also handles PR hives and local package/source overrides.
+                    var channels = (await packagingService.GetChannelsAsync(cancellationToken, executionContext.IdentityChannel)).ToArray();
+                    var channel = channels.FirstOrDefault(channel =>
+                        string.Equals(channel.Name, executionContext.IdentityChannel, StringComparisons.ChannelName) &&
+                        channel.Mappings is { Length: > 0 });
+                    if (channel is null)
+                    {
+                        interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture,
+                            NewCommandStrings.NoChannelFoundMatching,
+                            executionContext.IdentityChannel,
+                            string.Join(", ", channels.Select(channel => channel.Name))));
+                        return new TemplateResult(CliExitCodes.InvalidCommand);
+                    }
 
-            parameters[parameter.Name] = await PromptForParameterAsync(parameter, cancellationToken);
+                    value = channel.SourceDetails;
+                }
+                else if (!hostEnvironment.SupportsInteractiveInput)
+                {
+                    // Leave unset values to the engine, including conditional requirements and defaults.
+                    continue;
+                }
+                else
+                {
+                    value = await PromptForParameterAsync(
+                        parameter, promptState?.IsRequired(parameter) ?? parameter.Precedence.IsRequired, cancellationToken);
+                }
+
+                if (promptState is not null && !promptState.TrySetValue(parameter, value))
+                {
+                    return CreationFailed(CreationResultStatus.InvalidParamValues, parameter.Name);
+                }
+
+                parameters[parameter.Name] = value;
+            }
+        }
+        catch (TemplateAuthoringException ex)
+        {
+            return CreationFailed(CreationResultStatus.TemplateIssueDetected, ex.Message);
         }
 
         // Validate through the engine before it creates the output directory. TemplateCreator
@@ -341,7 +365,7 @@ internal sealed class TemplateEngineFactory(
         return new TemplateResult(CliExitCodes.Success, outputPath);
     }
 
-    private async Task<string> PromptForParameterAsync(ITemplateParameter parameter, CancellationToken cancellationToken)
+    private async Task<string> PromptForParameterAsync(ITemplateParameter parameter, bool required, CancellationToken cancellationToken)
     {
         var prompt = (!string.IsNullOrWhiteSpace(parameter.DisplayName)
             ? parameter.DisplayName
@@ -366,7 +390,7 @@ internal sealed class TemplateEngineFactory(
                 var selected = await interactionService.PromptForSelectionsAsync(
                     prompt, keys, FormatChoice,
                     preSelected: keys.Where(key => defaults.Contains(key, StringComparer.OrdinalIgnoreCase)),
-                    optional: !parameter.Precedence.IsRequired,
+                    optional: !required,
                     cancellationToken: cancellationToken);
                 return string.Join('|', selected);
             }
@@ -376,14 +400,16 @@ internal sealed class TemplateEngineFactory(
 
         return await interactionService.PromptForStringAsync(
             prompt,
-            required: parameter.Precedence.IsRequired,
+            required: required,
             binding: PromptBinding.CreateDefault<string?>(parameter.DefaultValue ?? string.Empty),
             cancellationToken: cancellationToken);
     }
 
-    private TemplateResult CreationFailed(ITemplateCreationResult result)
+    private TemplateResult CreationFailed(ITemplateCreationResult result) => CreationFailed(result.Status, result.ErrorMessage);
+
+    private TemplateResult CreationFailed(CreationResultStatus status, string? errorMessage)
     {
-        interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, NewCommandStrings.LocalTemplateCreationFailed, result.Status, result.ErrorMessage));
+        interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, NewCommandStrings.LocalTemplateCreationFailed, status, errorMessage));
         return new TemplateResult(CliExitCodes.FailedToCreateNewProject);
     }
 

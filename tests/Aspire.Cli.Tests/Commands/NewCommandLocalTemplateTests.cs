@@ -62,6 +62,246 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
     }
 
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task LocalTemplate_ConditionalEnablementUsesCollectedValues(bool useDatabase, bool dependentFirst)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        await CreateConditionalTemplateAsync(workspace, "isEnabled", "(UseDatabase)", !useDatabase, dependentFirst);
+        var interaction = new TestInteractionService();
+        interaction.SetupBooleanResponse(useDatabase);
+        if (useDatabase)
+        {
+            interaction.SetupStringPromptResponse("Database=Demo");
+        }
+        using var provider = CreateServices(workspace, interaction, interactive: true).BuildServiceProvider();
+
+        var exitCode = await provider.GetRequiredService<RootCommand>()
+            .Parse("new --template-path template --name Demo --output out --suppress-agent-init")
+            .InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(CliExitCodes.Success, exitCode);
+        Assert.Empty(interaction.DisplayedErrors);
+        Assert.Equal("Use database", Assert.Single(interaction.BooleanPromptCalls).PromptText);
+        if (useDatabase)
+        {
+            var prompt = Assert.Single(interaction.StringPromptCalls);
+            Assert.Equal("Connection string", prompt.PromptText);
+            Assert.True(prompt.Required);
+        }
+        else
+        {
+            Assert.Empty(interaction.StringPromptCalls);
+        }
+        await Verify(ReadOutput(workspace)).UseParameters(useDatabase, dependentFirst);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task LocalTemplate_ConditionalRequirednessUsesCollectedValues(bool useDatabase, bool dependentFirst)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        await CreateConditionalTemplateAsync(workspace, "isRequired", "(UseDatabase)", !useDatabase, dependentFirst);
+        var interaction = new TestInteractionService();
+        interaction.SetupBooleanResponse(useDatabase);
+        interaction.SetupStringPromptResponse(useDatabase ? "Database=Demo" : string.Empty);
+        using var provider = CreateServices(workspace, interaction, interactive: true).BuildServiceProvider();
+
+        var exitCode = await provider.GetRequiredService<RootCommand>()
+            .Parse("new --template-path template --name Demo --output out --suppress-agent-init")
+            .InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(CliExitCodes.Success, exitCode);
+        Assert.Empty(interaction.DisplayedErrors);
+        Assert.Equal("Use database", Assert.Single(interaction.BooleanPromptCalls).PromptText);
+        var prompt = Assert.Single(interaction.StringPromptCalls);
+        Assert.Equal("Connection string", prompt.PromptText);
+        Assert.Equal(useDatabase, prompt.Required);
+        await Verify(ReadOutput(workspace)).UseParameters(useDatabase, dependentFirst);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task LocalTemplate_ConditionalEnablementRemainsEngineValidatedWithoutInteraction(bool useDatabase)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        await CreateConditionalTemplateAsync(workspace, "isEnabled", "(UseDatabase)", useDatabase, dependentFirst: true);
+        var interaction = new TestInteractionService();
+        using var provider = CreateServices(workspace, interaction, interactive: false).BuildServiceProvider();
+
+        var exitCode = await provider.GetRequiredService<RootCommand>()
+            .Parse("new --template-path template --name Demo --output out --suppress-agent-init")
+            .InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(useDatabase ? CliExitCodes.FailedToCreateNewProject : CliExitCodes.Success, exitCode);
+        Assert.Empty(interaction.StringPromptCalls);
+        Assert.Empty(interaction.BooleanPromptCalls);
+        Assert.Equal(!useDatabase, Directory.Exists(Path.Combine(workspace.Path, "out")));
+        await Verify(new
+        {
+            interaction.DisplayedErrors,
+            Files = useDatabase ? null : ReadOutput(workspace)
+        }).UseParameters(useDatabase);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task LocalTemplate_ConditionalEnablementRemovesDisabledDefaults(bool useDatabase)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var config = workspace.CreateDirectory("template/.template.config");
+        await File.WriteAllTextAsync(Path.Combine(config.FullName, "template.json"), """
+            {
+              "identity": "Aspire.Local.ConditionalChain",
+              "name": "Conditional chain",
+              "shortName": "conditional-chain",
+              "symbols": {
+                "Token": {
+                  "type": "parameter", "datatype": "string", "isRequired": true,
+                  "isEnabled": "(Mode == \"cloud\")", "replaces": "TokenValue"
+                },
+                "Mode": {
+                  "type": "parameter", "datatype": "string", "defaultValue": "cloud",
+                  "isEnabled": "(UseDatabase)", "replaces": "ModeValue"
+                },
+                "UseDatabase": {
+                  "type": "parameter", "datatype": "bool", "defaultValue": "true",
+                  "replaces": "UseDatabaseValue"
+                }
+              }
+            }
+            """);
+        await File.WriteAllTextAsync(Path.Combine(workspace.Path, "template", "settings.txt"),
+            "Database enabled: UseDatabaseValue\nMode: ModeValue\nToken: TokenValue\n");
+        var interaction = new TestInteractionService();
+        interaction.SetupBooleanResponse(useDatabase);
+        if (useDatabase)
+        {
+            interaction.SetupStringPromptResponse("cloud");
+            interaction.SetupStringPromptResponse("template-token");
+        }
+        using var provider = CreateServices(workspace, interaction, interactive: true).BuildServiceProvider();
+
+        var exitCode = await provider.GetRequiredService<RootCommand>()
+            .Parse("new --template-path template --name Demo --output out --suppress-agent-init")
+            .InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(CliExitCodes.Success, exitCode);
+        Assert.Empty(interaction.DisplayedErrors);
+        Assert.Equal(useDatabase ? ["Mode", "Token"] : [], interaction.StringPromptCalls.Select(call => call.PromptText));
+        await Verify(ReadOutput(workspace)).UseParameters(useDatabase);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task LocalTemplate_ConditionalRequirednessControlsMultiSelection(bool useDatabase)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var config = workspace.CreateDirectory("template/.template.config");
+        await File.WriteAllTextAsync(Path.Combine(config.FullName, "template.json"), """
+            {
+              "identity": "Aspire.Local.ConditionalMultiChoice",
+              "name": "Conditional choices",
+              "shortName": "conditional-choices",
+              "symbols": {
+                "Features": {
+                  "type": "parameter", "datatype": "choice", "allowMultipleValues": true,
+                  "isRequired": "(UseDatabase)", "replaces": "FeaturesValue",
+                  "choices": [{ "choice": "web" }, { "choice": "worker" }]
+                },
+                "UseDatabase": {
+                  "type": "parameter", "datatype": "bool", "defaultValue": "false",
+                  "replaces": "UseDatabaseValue"
+                }
+              }
+            }
+            """);
+        await File.WriteAllTextAsync(Path.Combine(workspace.Path, "template", "settings.txt"),
+            "Database enabled: UseDatabaseValue\nFeatures: [FeaturesValue]\n");
+        var interaction = new TestInteractionService();
+        interaction.SetupBooleanResponse(useDatabase);
+        interaction.PromptForSelectionsCallback = (_, _, _, _) => useDatabase ? ["web"] : [];
+        using var provider = CreateServices(workspace, interaction, interactive: true).BuildServiceProvider();
+
+        var exitCode = await provider.GetRequiredService<RootCommand>()
+            .Parse("new --template-path template --name Demo --output out --suppress-agent-init")
+            .InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(CliExitCodes.Success, exitCode);
+        Assert.Empty(interaction.DisplayedErrors);
+        var prompt = Assert.Single(interaction.MultiSelectionPromptCalls);
+        Assert.Equal("Features", prompt.PromptText);
+        Assert.Equal(!useDatabase, prompt.Optional);
+        await Verify(ReadOutput(workspace)).UseParameters(useDatabase);
+    }
+
+    [Theory]
+    [InlineData("isEnabled")]
+    [InlineData("isRequired")]
+    public async Task LocalTemplate_ConditionalEvaluationErrorFailsBeforeWriting(string conditionProperty)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        await CreateConditionalTemplateAsync(workspace, conditionProperty, "\"not-a-boolean\"", defaultUseDatabase: true, dependentFirst: false);
+        var interaction = new TestInteractionService();
+        using var provider = CreateServices(workspace, interaction, interactive: true).BuildServiceProvider();
+
+        var exitCode = await provider.GetRequiredService<RootCommand>()
+            .Parse("new --template-path template --name Demo --output out --suppress-agent-init")
+            .InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(CliExitCodes.FailedToCreateNewProject, exitCode);
+        Assert.Empty(interaction.StringPromptCalls);
+        Assert.False(Directory.Exists(Path.Combine(workspace.Path, "out")));
+        await Verify(interaction.DisplayedErrors).UseParameters(conditionProperty);
+    }
+
+    [Fact]
+    public async Task LocalTemplate_ConditionalCycleStillUsesEngineValidation()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var config = workspace.CreateDirectory("template/.template.config");
+        await File.WriteAllTextAsync(Path.Combine(config.FullName, "template.json"), """
+            {
+              "identity": "Aspire.Local.ConditionalCycle",
+              "name": "Conditional cycle",
+              "shortName": "conditional-cycle",
+              "symbols": {
+                "First": {
+                  "type": "parameter", "datatype": "bool", "defaultValue": "true",
+                  "isEnabled": "(Second)", "replaces": "FirstValue"
+                },
+                "Second": {
+                  "type": "parameter", "datatype": "bool", "defaultValue": "true",
+                  "isEnabled": "(First)", "replaces": "SecondValue"
+                }
+              }
+            }
+            """);
+        await File.WriteAllTextAsync(Path.Combine(workspace.Path, "template", "settings.txt"), "First: FirstValue\nSecond: SecondValue\n");
+        var interaction = new TestInteractionService();
+        interaction.SetupBooleanResponse(true);
+        interaction.SetupBooleanResponse(true);
+        using var provider = CreateServices(workspace, interaction, interactive: true).BuildServiceProvider();
+
+        var exitCode = await provider.GetRequiredService<RootCommand>()
+            .Parse("new --template-path template --name Demo --output out --suppress-agent-init")
+            .InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(CliExitCodes.Success, exitCode);
+        Assert.Empty(interaction.DisplayedErrors);
+        Assert.Equal(["First", "Second"], interaction.BooleanPromptCalls.Select(call => call.PromptText));
+        await Verify(ReadOutput(workspace));
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task LocalTemplate_ExcludesGitMetadataWithoutChangingSource(bool gitFile)
@@ -1167,6 +1407,47 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
         return Directory.GetFiles(directory, "*", SearchOption.AllDirectories)
             .Order(StringComparer.Ordinal)
             .ToDictionary(path => Path.GetRelativePath(directory, path).Replace('\\', '/'), File.ReadAllText);
+    }
+
+    private static async Task CreateConditionalTemplateAsync(
+        TemporaryWorkspace workspace, string conditionProperty, string condition, bool defaultUseDatabase, bool dependentFirst)
+    {
+        var config = workspace.CreateDirectory("template/.template.config");
+        var symbols = new Dictionary<string, object>();
+        var dependent = new Dictionary<string, object>
+        {
+            ["type"] = "parameter",
+            ["datatype"] = "string",
+            ["displayName"] = "Connection string",
+            ["isRequired"] = true,
+            ["replaces"] = "ConnectionStringValue",
+            [conditionProperty] = condition
+        };
+        if (dependentFirst)
+        {
+            symbols["ConnectionString"] = dependent;
+        }
+        symbols["UseDatabase"] = new
+        {
+            type = "parameter",
+            datatype = "bool",
+            displayName = "Use database",
+            defaultValue = defaultUseDatabase.ToString().ToLowerInvariant(),
+            replaces = "UseDatabaseValue"
+        };
+        if (!dependentFirst)
+        {
+            symbols["ConnectionString"] = dependent;
+        }
+        await File.WriteAllTextAsync(Path.Combine(config.FullName, "template.json"), JsonSerializer.Serialize(new
+        {
+            identity = "Aspire.Local.Conditional",
+            name = "Conditional template",
+            shortName = "conditional",
+            symbols
+        }));
+        await File.WriteAllTextAsync(Path.Combine(workspace.Path, "template", "settings.txt"),
+            "Database enabled: UseDatabaseValue\nConnection: ConnectionStringValue\n");
     }
 
     private static async Task CreateTemplateAsync(TemporaryWorkspace workspace, string directory, bool requiredGreeting = false, bool displayNames = true)

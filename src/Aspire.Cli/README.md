@@ -168,6 +168,12 @@ In non-interactive mode, point to a single template and provide `--name` and
 missing required values produce an error. Custom parameter values are currently
 collected interactively, not through dynamically generated CLI options.
 
+Interactive prompts honor parameter `isEnabled` and `isRequired` expressions using
+the template engine's typed values and expression evaluator. Parameters controlling
+these conditions are collected before their dependents, regardless of declaration
+order. Disabled parameters are omitted, and conditional requiredness applies to
+text and multiple-choice prompts.
+
 ### Resource Management
 
 | Command | Description |
