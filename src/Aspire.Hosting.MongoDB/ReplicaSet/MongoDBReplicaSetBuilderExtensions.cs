@@ -215,11 +215,12 @@ public static class MongoDBReplicaSetBuilderExtensions
                                 // Keep probing. A newly inserted member can be uninitialized while another declared member
                                 // still holds the persisted replica set configuration that must be preserved.
                             }
-                            catch (MongoCommandException ex) when (IsTransientReplicaSetConfigurationProbeError(ex.CodeName))
+                            catch (MongoCommandException ex) when (IsTransientReplicaSetConfigurationError(ex.CodeName))
                             {
                                 // A member can interrupt config reads while transitioning during initialization. Its persisted
                                 // configuration is unknown, so retry before deciding whether the set needs to be initialized.
                                 allMembersUninitialized = false;
+                                lastConfigurationError = ex;
                                 logger.LogInformation("MongoDB replica set member '{MemberName}' is recovering", memberConnection.Resource.Name);
                             }
                         }
@@ -279,7 +280,7 @@ public static class MongoDBReplicaSetBuilderExtensions
                                 configured = true;
                                 break;
                             }
-                            catch (MongoCommandException ex) when (ex.CodeName is NewReplicaSetConfigurationIncompatibleCodeName or ConfigurationInProgressCodeName)
+                            catch (MongoCommandException ex) when (ex.CodeName is NewReplicaSetConfigurationIncompatibleCodeName or ConfigurationInProgressCodeName || IsTransientReplicaSetConfigurationError(ex.CodeName))
                             {
                                 // NOTE: `ConfigurationInProgress` is always transient. `NewReplicaSetConfigurationIncompatible`
                                 // is returned both for a version that another update has already moved past, which a retry
@@ -332,9 +333,10 @@ public static class MongoDBReplicaSetBuilderExtensions
                                 configured = true;
                                 break;
                             }
-                            catch (MongoCommandException initiateEx) when (initiateEx.CodeName is ReplicaSetAlreadyInitializedCodeName or NewReplicaSetConfigurationIncompatibleCodeName or ConfigurationInProgressCodeName)
+                            catch (MongoCommandException initiateEx) when (initiateEx.CodeName is ReplicaSetAlreadyInitializedCodeName or NewReplicaSetConfigurationIncompatibleCodeName or ConfigurationInProgressCodeName || IsTransientReplicaSetConfigurationError(initiateEx.CodeName))
                             {
-                                // NOTE: Happens when in race with another concurrent process trying to initialize the replica set; so we retry the whole operation
+                                // Re-probe after a recovery interruption, including when initiation succeeded but the
+                                // following reconfiguration failed, so the persisted configuration is preserved.
                                 lastConfigurationError = initiateEx;
                                 logger.LogInformation("Initiating the replica set failed: {Reason}", initiateEx.Message);
                             }
@@ -670,7 +672,10 @@ public static class MongoDBReplicaSetBuilderExtensions
         return result;
     }
 
-    internal static bool IsTransientReplicaSetConfigurationProbeError(string? codeName)
+    /// <summary>
+    /// Identifies recovery interruptions that can be retried while configuring a replica set.
+    /// </summary>
+    internal static bool IsTransientReplicaSetConfigurationError(string? codeName)
     {
         return codeName is ReplicaSetInterruptedDueToReplStateChangeCodeName;
     }
