@@ -1,0 +1,9 @@
+{
+  "author": "mitchdenny",
+  "comment": "Owner-only permissions for CLI diagnostic logs",
+  "mergedAt": "2026-10-23T01:29:19Z",
+  "number": 21276,
+  "runDate": "2026-10-23T06:05:00Z",
+  "status": "included",
+  "title": "Use shared helper for CLI log creation"
+}

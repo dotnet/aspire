@@ -1,0 +1,19 @@
+{
+  "area": "CLI",
+  "areaEmoji": "💻",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Improvements",
+  "communityContributors": [],
+  "description": "CLI diagnostic log files are now created with owner-only permissions on Unix (0600, including reused files) and the dedicated logs directory is restricted to 0700, since logs can contain sensitive data such as dashboard login URLs.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "🔒",
+  "firstMergedAt": "2026-10-23T01:29:19Z",
+  "lastMergedAt": "2026-10-23T01:29:19Z",
+  "name": "Private CLI diagnostic logs",
+  "owner": "mitchdenny",
+  "prs": [
+    21276
+  ]
+}
