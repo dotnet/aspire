@@ -804,7 +804,10 @@ public static class EntraIdResourceExtensions
             return builder;
         }
 
-        builder.Resource.ClientCredentials.Add(new EntraIdFederatedIdentityCredential(identity.Resource));
+        builder.Resource.ClientCredentials.Add(new EntraIdFederatedIdentityCredential
+        {
+            ManagedIdentity = identity.Resource
+        });
 
         return builder;
     }
@@ -821,6 +824,7 @@ public static class EntraIdResourceExtensions
                 "Add that credential to the registration yourself, then call WithFederatedManagedIdentityCredential with the identity's client ID.");
         }
     }
+
     // Referencing the application needs an identity the way referencing an Azure resource needs a role assignment,
     // so ask the Azure resource preparer to give the resource one even though it has no role assignments.
     private static void EnsureManagedIdentityRequired(IResource consumer)
@@ -830,6 +834,7 @@ public static class EntraIdResourceExtensions
             consumer.Annotations.Add(new ManagedIdentityRequiredAnnotation());
         }
     }
+
     /// <summary>
     /// Adds a certificate credential from Azure Key Vault to this Entra ID application.
     /// </summary>

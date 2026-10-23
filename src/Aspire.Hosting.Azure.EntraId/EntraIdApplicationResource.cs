@@ -725,12 +725,6 @@ public sealed class EntraIdFederatedIdentityCredential : EntraIdClientCredential
     {
     }
 
-    // Aspire provisions the trust for this identity.
-    internal EntraIdFederatedIdentityCredential(AzureUserAssignedIdentityResource managedIdentity)
-    {
-        ManagedIdentity = managedIdentity;
-    }
-
     /// <inheritdoc />
     public override string SourceType => "SignedAssertionFromManagedIdentity";
 
@@ -744,9 +738,6 @@ public sealed class EntraIdFederatedIdentityCredential : EntraIdClientCredential
     /// user-assigned managed identity or the one it was configured with.
     /// </remarks>
     public string? ManagedIdentityClientId { get; }
-
-    // The identity's principal ID is the federated credential's subject, and its client ID is what consumers receive.
-    internal AzureUserAssignedIdentityResource? ManagedIdentity { get; }
 
     /// <summary>
     /// Gets or sets the token exchange URL for federated identity credential scenarios.
@@ -764,6 +755,9 @@ public sealed class EntraIdFederatedIdentityCredential : EntraIdClientCredential
     /// Used when the issuer for token exchange differs from the application's authority.
     /// </remarks>
     public string? TokenExchangeAuthority { get; set; }
+
+    // The identity's principal ID is the federated credential's subject, and its client ID is what consumers receive.
+    internal AzureUserAssignedIdentityResource? ManagedIdentity { get; set; }
 
     // When set, the credential trusts and applies to only this compute resource, using the identity it has when published.
     internal IResource? ComputeTarget { get; set; }
