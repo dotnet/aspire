@@ -42,10 +42,12 @@ public sealed class CustomTemplateTests(ITestOutputHelper output)
 
         if (repository)
         {
+            // The bind-mounted template belongs to the host UID. Trust only this fixture for Git setup.
             await auto.RunCommandAsync(
-                "git -C template init && git -C template add . && " +
-                "git -C template -c user.name='Aspire tests' -c user.email=tests@example.com -c commit.gpgsign=false commit -m 'Add template' && " +
-                "git clone --bare template template.git",
+                "git -C template init && git -c safe.directory=\"$PWD/template\" -C template add . && " +
+                "git -c safe.directory=\"$PWD/template\" -C template -c user.name='Aspire tests' " +
+                "-c user.email=tests@example.com -c commit.gpgsign=false commit -m 'Add template' && " +
+                "git -c safe.directory=\"$PWD/template\" clone --bare template template.git",
                 counter);
         }
 
