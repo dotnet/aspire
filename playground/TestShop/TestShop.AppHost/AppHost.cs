@@ -6,6 +6,73 @@ using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+var storefrontPromotion = builder.AddParameter("storefront-promotion", "Free shipping over $50");
+var lowStockThreshold = builder.AddParameter("low-stock-threshold", "5");
+var checkoutSigningKey = builder.AddParameter("checkout-signing-key", () => Guid.NewGuid().ToString(), secret: true);
+builder.AddParameter("support-contact-email")
+       .WithDescription("The customer support email address displayed by the storefront.");
+builder.AddParameter("storefront-theme", "system")
+       .WithDescription("Choose the storefront color theme.")
+       .WithCustomInput(parameter => new()
+       {
+           Name = parameter.Name,
+           InputType = InputType.Choice,
+           Label = parameter.Name,
+           Description = parameter.Description,
+           Options =
+           [
+               KeyValuePair.Create("system", "System"),
+               KeyValuePair.Create("light", "Light"),
+               KeyValuePair.Create("dark", "Dark")
+           ]
+       });
+builder.AddParameter("storefront-accent", "blue")
+       .WithDescription("Choose a suggested accent or enter a custom value.")
+       .WithCustomInput(parameter => new()
+       {
+           Name = parameter.Name,
+           InputType = InputType.Choice,
+           Label = parameter.Name,
+           Description = parameter.Description,
+           AllowCustomChoice = true,
+           Options =
+           [
+               KeyValuePair.Create("blue", "Blue"),
+               KeyValuePair.Create("green", "Green"),
+               KeyValuePair.Create("orange", "Orange")
+           ]
+       });
+builder.AddParameter("recommendation-limit", "12")
+       .WithDescription("The maximum number of recommendations to display.")
+       .WithCustomInput(parameter => new()
+       {
+           Name = parameter.Name,
+           InputType = InputType.Number,
+           Label = parameter.Name,
+           Description = parameter.Description,
+           Placeholder = "Enter a number"
+       });
+builder.AddParameter("maintenance-mode", "false")
+       .WithDescription("Temporarily show the storefront maintenance experience.")
+       .WithCustomInput(parameter => new()
+       {
+           Name = parameter.Name,
+           InputType = InputType.Boolean,
+           Label = parameter.Name,
+           Description = parameter.Description
+       });
+builder.AddParameter("storefront-certificate")
+       .WithDescription("Upload the certificate used by the storefront.")
+       .WithCustomInput(parameter => new()
+       {
+           Name = parameter.Name,
+           InputType = InputType.File,
+           Label = parameter.Name,
+           Description = parameter.Description,
+           Placeholder = "Choose certificate",
+           FileFilter = ".pem,.pfx,.crt"
+       });
+
 var catalogDb = builder.AddPostgres("postgres")
                        .WithDataVolume()
                        .WithPgAdmin(resource =>
@@ -57,6 +124,7 @@ var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice
                             .WithTags("Backend", "API")
                             .WithTrait("Owner", "Finance")
                             .WithTrait("Owner", "Platform")
+                            .WithEnvironment("Inventory__LowStockThreshold", lowStockThreshold)
                             .WithDashboardPosition(10)
                             .WithReference(catalogDb)
                             .WaitFor(catalogDb)
@@ -86,6 +154,7 @@ var messaging = builder.AddRabbitMQ("messaging")
 
 var basketService = builder.AddProject("basketservice", @"..\BasketService\BasketService.csproj")
                            .WithTags("Backend")
+                           .WithEnvironment("Checkout__SigningKey", checkoutSigningKey)
                            .WithDashboardPosition(20)
                            .WithReference(basketCache)
                            .WaitFor(basketCache)
@@ -94,6 +163,7 @@ var basketService = builder.AddProject("basketservice", @"..\BasketService\Baske
 
 var frontend = builder.AddProject<Projects.MyFrontend>("frontend")
     .WithTags("Frontend")
+    .WithEnvironment("Storefront__Promotion", storefrontPromotion)
     .WithDashboardPosition(0)
     .WithExternalHttpEndpoints()
     .WithReference(basketService)

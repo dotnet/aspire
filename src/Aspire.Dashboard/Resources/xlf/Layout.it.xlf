@@ -367,6 +367,11 @@
         <target state="new">Resources</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcePaneMixedCount">
+        <source>{0}, {1}</source>
+        <target state="new">{0}, {1}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcePaneMovedAfter">
         <source>{0} moved after {1}.</source>
         <target state="new">{0} moved after {1}.</target>
@@ -423,13 +428,13 @@
         <note>{0} is the group name</note>
       </trans-unit>
       <trans-unit id="ResourcePaneTelemetryOnly">
-        <source>Sends telemetry, not part of the app model</source>
-        <target state="new">Sends telemetry, not part of the app model</target>
+        <source>Telemetry sources</source>
+        <target state="new">Telemetry sources</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcePaneTelemetryOnlyGroup">
-        <source>Telemetry only</source>
-        <target state="new">Telemetry only</target>
+        <source>Telemetry sources</source>
+        <target state="new">Telemetry sources</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcePaneUntaggedGroup">
@@ -468,13 +473,13 @@
         <note />
       </trans-unit>
       <trans-unit id="TelemetryPaneCountPlural">
-        <source>{0} sources</source>
-        <target state="new">{0} sources</target>
+        <source>{0} telemetry sources</source>
+        <target state="new">{0} telemetry sources</target>
         <note />
       </trans-unit>
       <trans-unit id="TelemetryPaneCountSingular">
-        <source>{0} source</source>
-        <target state="new">{0} source</target>
+        <source>{0} telemetry source</source>
+        <target state="new">{0} telemetry source</target>
         <note />
       </trans-unit>
       <trans-unit id="TelemetryPaneNoSources">

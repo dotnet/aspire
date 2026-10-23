@@ -68,9 +68,11 @@
                     // Collapsed property only allows us to show Panel1 (which is the metric selector)
                     // but we want to only show Panel2 on mobile. So, hide the bar handle and reduce width to 0
                     // on mobile.
+                    <div class="metrics-splitter" @ref="_metricsSplitterElement">
                     <FluentMultiSplitter Style="height:100%"
-                                         BarSize="@(ViewportInformation.IsDesktop ? "5px" : "0")">
-                        <FluentMultiSplitterPane Size="@(ViewportInformation.IsDesktop ? "20%" : "0")"
+                                         BarSize="@(ViewportInformation.IsDesktop ? "calc(var(--spacingHorizontalS) + var(--strokeWidthThin))" : "0")"
+                                         OnResize="HandleMetricsSplitterResize">
+                        <FluentMultiSplitterPane Size="@(ViewportInformation.IsDesktop ? _metricGroupsPaneSize : "0")"
                                                  Collapsed="@(!ViewportInformation.IsDesktop)">
                             @if (ViewportInformation.IsDesktop)
                             {
@@ -82,7 +84,7 @@
                                     TextFilterChanged="@OnTextFilterChanged"/>
                             }
                         </FluentMultiSplitterPane>
-                        <FluentMultiSplitterPane Size="80%">
+                        <FluentMultiSplitterPane Size="@_metricsContentPaneSize">
                             <div class="metrics-content">
                                     @if (PageViewModel is { SelectedResource.Id: { } filterResourceId } && (PageViewModel.ShowFilterResults || (PageViewModel.ShowAll && PageViewModel.SelectedInstrument is null)))
                                     {
@@ -167,6 +169,7 @@
                                 </div>
                         </FluentMultiSplitterPane>
                     </FluentMultiSplitter>
+                    </div>
                 }
                 else if (PageViewModel.Instruments == null)
                 {
@@ -205,7 +208,7 @@
 @code {
     private void RenderToolbar(RenderTreeBuilder __builder)
     {
-        @if (ResourcesLayout is null || ResourcesLayout.SelectedResourceNames.Count == 0 || _selectionResourceViewModels is not null)
+        @if (ResourcesLayout is null)
         {
             <ResourceSelect Resources="@(_selectionResourceViewModels ?? _resourceViewModels)"
                             AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAResource)]"

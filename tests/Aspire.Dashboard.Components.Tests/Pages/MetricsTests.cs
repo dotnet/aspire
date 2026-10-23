@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Web;
+using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Components.Resize;
@@ -289,6 +290,28 @@ public partial class MetricsTests : DashboardTestContext
     }
 
     [Fact]
+    public void ResourcesLayout_HidesResourceSelect()
+    {
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        MetricsSetupHelpers.SetupMetricsPage(this);
+        ResourceSetupHelpers.SetupResourcesLayout(this, viewport, new TestDashboardClient(isEnabled: false));
+        Services.GetRequiredService<NavigationManager>().NavigateTo(DashboardUrls.MetricsUrl());
+        Render<FluentToastProvider>();
+
+        var cut = Render<ResourcesLayout>(builder =>
+        {
+            builder.AddCascadingValue(viewport);
+            builder.Add(layout => layout.Body, bodyBuilder =>
+            {
+                bodyBuilder.OpenComponent<Metrics>(0);
+                bodyBuilder.CloseComponent();
+            });
+        });
+
+        cut.WaitForAssertion(() => Assert.Empty(cut.FindComponents<ResourceSelect>()));
+    }
+
+    [Fact]
     public async Task ChangeResource_MeterAndInstrumentOnNewResource_InstrumentSet()
     {
         await ChangeResourceAndAssertInstrument(
@@ -299,13 +322,13 @@ public partial class MetricsTests : DashboardTestContext
     }
 
     [Fact]
-    public async Task ChangeResource_MeterAndInstrumentNotOnNewResource_DefaultInstrumentSelected()
+    public async Task ChangeResource_MeterAndInstrumentNotOnNewResource_MeterOverviewSelected()
     {
         await ChangeResourceAndAssertInstrument(
             app1InstrumentName: "test1",
             app2InstrumentName: "test2",
             expectedMeterNameAfterChange: "test-meter",
-            expectedInstrumentNameAfterChange: "test2");
+            expectedInstrumentNameAfterChange: null);
     }
 
     [Fact]
@@ -1437,7 +1460,7 @@ public partial class MetricsTests : DashboardTestContext
         cut.WaitForAssertion(() =>
         {
             Assert.True(cut.Instance.PageViewModel.ShowAll);
-            Assert.Equal("All metrics", cut.Find(".meter-name-title").TextContent);
+            Assert.Equal("All instruments", cut.Find(".meter-name-title").TextContent);
             Assert.Equal(["test-meter1: http.request.count", "test-meter1: memory.usage", "test-meter2: queue.length"], GetFilterResultsByMeter(cut));
             Assert.Equal("page", cut.Find(".metric-group-all").GetAttribute("aria-current"));
             Assert.Empty(cut.FindAll(".metric-group.selected:not(.metric-group-all)"));
@@ -1611,17 +1634,6 @@ public partial class MetricsTests : DashboardTestContext
             builder.AddCascadingValue(new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
         });
 
-        navigationManager.LocationChanged += (sender, e) =>
-        {
-            var expectedUrl = DashboardUrls.MetricsUrl(resource: "TestApp2", meter: expectedMeterNameAfterChange, instrument: expectedInstrumentNameAfterChange, duration: 720, view: "Table");
-            Assert.EndsWith(expectedUrl, e.Location);
-
-            cut.Render(builder =>
-            {
-                builder.Add(m => m.ResourceName, "TestApp2");
-            });
-        };
-
         var viewModel = cut.Instance.PageViewModel;
 
         // Assert 1
@@ -1629,12 +1641,16 @@ public partial class MetricsTests : DashboardTestContext
         Assert.Equal(app1InstrumentName, viewModel.SelectedInstrument!.Name);
 
         // Act 2
-        var resourceSelect = cut.FindComponent<ResourceSelect>();
-        var selectedResource = resourceSelect.Instance.Resources!.Single(resource => resource.Name == "TestApp2");
-        await resourceSelect.InvokeAsync(() => resourceSelect.Instance.SelectedResourceChanged.InvokeAsync(selectedResource));
+        cut.Render(builder =>
+        {
+            builder.Add(m => m.ResourceName, "TestApp2");
+        });
 
-        cut.WaitForAssertion(() => Assert.Equal("TestApp2", viewModel.SelectedResource.Name));
+        cut.WaitForAssertion(() => Assert.Equal("TestApp2", cut.Instance.PageViewModel.SelectedResource.Name));
+        await cut.InvokeAsync(cut.Instance.HandleSelectedResourceChangedAsync);
+        viewModel = cut.Instance.PageViewModel;
 
+        Assert.Equal("TestApp2", viewModel.SelectedResource.Name);
         Assert.Equal(expectedInstrumentNameAfterChange, viewModel.SelectedInstrument?.Name);
         Assert.Equal(expectedMeterNameAfterChange, viewModel.SelectedMeter);
 

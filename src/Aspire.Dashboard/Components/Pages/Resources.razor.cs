@@ -668,11 +668,13 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
             UpdateFromResource(resourceViewModel.Value);
         }
 
+        var preserveResourceQuery = false;
         if (ResourceName is not null)
         {
             if (_resourceByName.TryGetValue(ResourceName, out var selectedResource))
             {
                 await ShowResourceDetailsAsync(selectedResource, focusElementId: null);
+                preserveResourceQuery = selectedResource.IsParameter;
                 if (!selectedResource.IsParameter && PageViewModel.SelectedViewKind is ResourceViewKind.Graph or ResourceViewKind.Parameters)
                 {
                     // Showing details navigated to the resource overview.
@@ -684,10 +686,13 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
                 Logger.LogDebug("Can't navigate to {ResourceName} from URL. Resource not found.", ResourceName);
             }
 
-            // Navigate to remove ?resource=xxx in the URL. A small delay is required here, otherwise the page rendering breaks.
-            await Task.Delay(200, _cts.Token);
+            if (!preserveResourceQuery)
+            {
+                // Navigate to remove ?resource=xxx in the URL. A small delay is required here, otherwise the page rendering breaks.
+                await Task.Delay(200, _cts.Token);
 
-            NavigationManager.NavigateTo($"/{BasePath}", new NavigationOptions { ReplaceHistoryEntry = true });
+                NavigationManager.NavigateTo($"/{BasePath}", new NavigationOptions { ReplaceHistoryEntry = true });
+            }
         }
 
         if (viewChanged)
@@ -1059,25 +1064,31 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
         public bool Filter(ResourceViewModel resource) => Filter(resource, TextFilter);
 
+        public bool FilterAllResourceKinds(ResourceViewModel resource, string textFilter) =>
+            FilterCore(resource, textFilter, filterBySelectedView: false);
+
         /// <summary>
         /// Filters a resource with a text filter other than <see cref="TextFilter"/>. Views that match the text
         /// against more than the resource, such as the tags a resource is grouped by, pass an empty text filter and
         /// match the text themselves.
         /// </summary>
-        public bool Filter(ResourceViewModel resource, string textFilter)
+        public bool Filter(ResourceViewModel resource, string textFilter) =>
+            FilterCore(resource, textFilter, filterBySelectedView: true);
+
+        private bool FilterCore(ResourceViewModel resource, string textFilter, bool filterBySelectedView)
         {
             // In Parameters view, only show parameters; in Table and Graph views, exclude parameters
-            if (SelectedViewKind == ResourceViewKind.Parameters && !resource.IsParameter)
+            if (filterBySelectedView && SelectedViewKind == ResourceViewKind.Parameters && !resource.IsParameter)
             {
                 return false;
             }
-            if (SelectedViewKind is ResourceViewKind.Table or ResourceViewKind.Graph && resource.IsParameter)
+            if (filterBySelectedView && SelectedViewKind is ResourceViewKind.Table or ResourceViewKind.Graph && resource.IsParameter)
             {
                 return false;
             }
 
-            // In Parameters view, ignore resource type filtering since we always show only parameters
-            return (SelectedViewKind == ResourceViewKind.Parameters || IsKeyValueTrue(resource.ResourceType, ResourceTypesToVisibility))
+            // In Parameters view, ignore resource type filtering since we always show only parameters.
+            return (filterBySelectedView && SelectedViewKind == ResourceViewKind.Parameters || IsKeyValueTrue(resource.ResourceType, ResourceTypesToVisibility))
                    && IsKeyValueTrue(resource.State ?? string.Empty, ResourceStatesToVisibility)
                    && IsKeyValueTrue(resource.HealthStatus?.Humanize() ?? string.Empty, ResourceHealthStatusesToVisibility)
                    && IsResourceTagVisible(resource)

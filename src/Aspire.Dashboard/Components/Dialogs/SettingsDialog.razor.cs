@@ -71,6 +71,7 @@ public partial class SettingsDialog : IDisposable
         [
             new(GroupOverview.Summary, new Icons.Regular.Size20.Home(), Loc[nameof(Dashboard.Resources.Dialogs.SettingsDialogGroupOverviewSummary)]),
             new(GroupOverview.Graph, new Icons.Regular.Size20.ShareAndroid(), ResourcesLoc[nameof(Dashboard.Resources.Resources.GraphPageTitle)]),
+            new(GroupOverview.Cards, new Icons.Regular.Size20.Grid(), Loc[nameof(Dashboard.Resources.Dialogs.SettingsDialogGroupOverviewCards)]),
             new(GroupOverview.Resources, new Icons.Regular.Size20.AppsListDetail(), Loc[nameof(Dashboard.Resources.Dialogs.SettingsDialogGroupOverviewResources)]),
         ];
         _recordingsStyleOptions =

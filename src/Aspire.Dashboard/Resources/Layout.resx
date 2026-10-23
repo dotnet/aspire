@@ -313,16 +313,19 @@
     <value>{0} unviewed error logs</value>
   </data>
   <data name="ResourcePaneTelemetryOnlyGroup" xml:space="preserve">
-    <value>Telemetry only</value>
+    <value>Telemetry sources</value>
   </data>
   <data name="ResourcePaneTelemetryOnly" xml:space="preserve">
-    <value>Sends telemetry, not part of the app model</value>
+    <value>Telemetry sources</value>
   </data>
   <data name="ResourcePaneCountSingular" xml:space="preserve">
     <value>{0} resource</value>
   </data>
   <data name="ResourcePaneCountPlural" xml:space="preserve">
     <value>{0} resources</value>
+  </data>
+  <data name="ResourcePaneMixedCount" xml:space="preserve">
+    <value>{0}, {1}</value>
   </data>
   <data name="ResourceHeaderStarted" xml:space="preserve">
     <value>Started</value>
@@ -340,10 +343,10 @@
     <value>{0} sources selected</value>
   </data>
   <data name="TelemetryPaneCountSingular" xml:space="preserve">
-    <value>{0} source</value>
+    <value>{0} telemetry source</value>
   </data>
   <data name="TelemetryPaneCountPlural" xml:space="preserve">
-    <value>{0} sources</value>
+    <value>{0} telemetry sources</value>
   </data>
   <data name="TelemetryPaneNoSources" xml:space="preserve">
     <value>No telemetry sources</value>

@@ -33,9 +33,9 @@ public enum ResourceListDensity
 public enum GroupOverview
 {
     /// <summary>
-    /// A table of the resources, with their state, endpoints and actions.
+    /// The app's health, live activity, insights and recent problems.
     /// </summary>
-    Resources,
+    Summary,
 
     /// <summary>
     /// A relationship graph of the resources.
@@ -43,9 +43,14 @@ public enum GroupOverview
     Graph,
 
     /// <summary>
-    /// The app's health, live activity, insights and recent problems.
+    /// A responsive grid of cards for resources and parameters.
     /// </summary>
-    Summary
+    Cards,
+
+    /// <summary>
+    /// A table of the resources, with their state, endpoints and actions.
+    /// </summary>
+    Resources
 }
 
 /// <summary>

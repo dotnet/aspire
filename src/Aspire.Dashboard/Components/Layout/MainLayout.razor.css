@@ -184,7 +184,7 @@
         flex: 0 0 24px;
         width: 24px;
         height: 100%;
-        transform: translateX(4px);
+        margin-right: 4px;
     }
 
     ::deep.layout > header > .brand-logo-container > a.logo {

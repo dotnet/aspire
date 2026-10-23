@@ -12,16 +12,24 @@ using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
+using Microsoft.FluentUI.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSessionAndUrlState<Metrics.MetricsViewModel, Metrics.MetricsPageState>
+public partial class Metrics : IAsyncDisposable, IComponentWithTelemetry, IPageWithSessionAndUrlState<Metrics.MetricsViewModel, Metrics.MetricsPageState>
 {
     private SelectViewModel<ResourceTypeDetails> _selectResource = null!;
     private List<SelectViewModel<TimeSpan>> _durations = null!;
     private static readonly TimeSpan s_defaultDuration = TimeSpan.FromMinutes(5);
     private AspirePageContentLayout? _contentLayout;
     private MetricGroupList? _metricGroupList;
+    private ElementReference _metricsSplitterElement;
+    private IJSObjectReference? _jsModule;
+    private DotNetObjectReference<Metrics>? _selfRef;
+    private string? _registeredMetricsSplitterElementId;
+    private string _metricGroupsPaneSize = "20%";
+    private string _metricsContentPaneSize = "80%";
     private readonly string _selectDurationId = $"select-duration-{Guid.NewGuid():N}";
 
     private List<OtlpResource> _resources = default!;
@@ -102,6 +110,9 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
     [Inject]
     public required MetricPinStore PinStore { get; init; }
 
+    [Inject]
+    public required IJSRuntime JS { get; init; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
 
@@ -111,6 +122,46 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
     /// </summary>
     [CascadingParameter]
     public ResourcesLayout? ResourcesLayout { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!ViewportInformation.IsDesktop || PageViewModel.Instruments is not { Count: > 0 } ||
+            _registeredMetricsSplitterElementId == _metricsSplitterElement.Id)
+        {
+            return;
+        }
+
+        _jsModule ??= await JS.InvokeAsync<IJSObjectReference>("import", $"/{Assets["Components/Pages/Metrics.razor.js"]}");
+        _selfRef ??= DotNetObjectReference.Create(this);
+        if (await _jsModule.InvokeAsync<bool>("registerMetricsSplitter", _metricsSplitterElement, _selfRef))
+        {
+            // Selecting another resource can replace the splitter element while the Metrics component remains alive.
+            _registeredMetricsSplitterElementId = _metricsSplitterElement.Id;
+        }
+    }
+
+    private void HandleMetricsSplitterResize(FluentMultiSplitterResizeEventArgs args)
+    {
+        if (args.PaneIndex == 0)
+        {
+            SetMetricGroupsPaneSize(args.NewSize);
+        }
+    }
+
+    [JSInvokable]
+    public Task SetMetricGroupsPaneSizeAsync(double percent)
+    {
+        SetMetricGroupsPaneSize(percent);
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private void SetMetricGroupsPaneSize(double percent)
+    {
+        var clampedPercent = Math.Clamp(percent, 0, 100);
+        _metricGroupsPaneSize = string.Create(CultureInfo.InvariantCulture, $"{clampedPercent}%");
+        _metricsContentPaneSize = string.Create(CultureInfo.InvariantCulture, $"{100 - clampedPercent}%");
+    }
 
     protected override void OnInitialized()
     {
@@ -256,9 +307,8 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
     /// <summary>
     /// Selects what to show when nothing is selected, so the page doesn't open on an empty pane. The pinned group
     /// comes first when this resource reports pinned instruments, because the user chose them as the ones to watch.
-    /// Otherwise an instrument is selected: instruments that describe request traffic and latency come first because
-    /// they're the most useful signals for most apps, followed by connection, CPU and memory instruments, and then
-    /// the first instrument.
+    /// Otherwise every instrument is shown, grouped by meter, so entering the page doesn't arbitrarily prioritize
+    /// one signal over the rest.
     /// </summary>
     private void SelectDefaultView(MetricsViewModel viewModel)
     {
@@ -273,34 +323,8 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
             return;
         }
 
-        var instrument = s_preferredInstrumentNames
-            .Select(name => instruments.FirstOrDefault(i => string.Equals(i.Name, name, StringComparison.Ordinal)))
-            .FirstOrDefault(i => i is not null)
-            ?? instruments.OrderBy(i => i.Parent.Name, StringComparer.Ordinal).ThenBy(i => i.Name, StringComparer.Ordinal).First();
-
-        viewModel.SelectedMeter = instrument.Parent.Name;
-        viewModel.SelectedInstrument = instrument;
+        viewModel.ShowAll = true;
     }
-
-    // Instrument names follow the OpenTelemetry semantic conventions:
-    // https://opentelemetry.io/docs/specs/semconv/http/http-metrics/
-    // https://opentelemetry.io/docs/specs/semconv/database/database-metrics/
-    // https://opentelemetry.io/docs/specs/semconv/runtime/dotnet-metrics/
-    private static readonly string[] s_preferredInstrumentNames =
-    [
-        "http.server.request.duration",
-        "http.client.request.duration",
-        "db.client.operation.duration",
-        "db.client.commands.duration",
-        "rpc.server.duration",
-        "messaging.process.duration",
-        "kestrel.active_connections",
-        "http.server.active_requests",
-        "dotnet.process.cpu.time",
-        "process.cpu.time",
-        "dotnet.gc.heap.total_allocated",
-        "process.runtime.dotnet.gc.allocations.size",
-    ];
 
     private void UpdateInstruments(MetricsViewModel viewModel)
     {
@@ -375,7 +399,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
         StateHasChanged();
     }
 
-    private async Task HandleSelectedResourceChangedAsync()
+    internal async Task HandleSelectedResourceChangedAsync()
     {
         UpdateInstruments(PageViewModel);
 
@@ -678,7 +702,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
         }
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         PinStore.Changed -= OnPinsChanged;
         if (ResourcesLayout is { } layout)
@@ -688,6 +712,21 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
         _resourcesSubscription?.Dispose();
         _metricsSubscription?.Dispose();
         TelemetryContext.Dispose();
+
+        if (_jsModule is not null)
+        {
+            try
+            {
+                await _jsModule.InvokeVoidAsync("unregisterMetricsSplitter", _metricsSplitterElement);
+                await _jsModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // The browser has already discarded the splitter and its event handlers.
+            }
+        }
+
+        _selfRef?.Dispose();
     }
 
     // IComponentWithTelemetry impl

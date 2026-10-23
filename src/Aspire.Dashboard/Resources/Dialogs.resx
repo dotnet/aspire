@@ -548,6 +548,9 @@
   <data name="SettingsDialogGroupOverviewSummary" xml:space="preserve">
     <value>Summary</value>
   </data>
+  <data name="SettingsDialogGroupOverviewCards" xml:space="preserve">
+    <value>Cards</value>
+  </data>
   <data name="SettingsDialogGroupOverviewResources" xml:space="preserve">
     <value>Resource list</value>
   </data>

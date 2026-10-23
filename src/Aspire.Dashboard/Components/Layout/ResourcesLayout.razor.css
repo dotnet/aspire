@@ -20,6 +20,7 @@
 /* Resource pane */
 
 .resource-pane {
+    container: resource-pane / inline-size;
     display: flex;
     flex-direction: column;
     flex: 0 0 var(--resource-pane-width);
@@ -124,6 +125,49 @@
     font-weight: var(--fontWeightSemibold);
     line-height: 16px;
     text-transform: uppercase;
+}
+
+.resource-pane-section-header {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin: 4px 0 0;
+    padding: 8px 6px 5px;
+    border: 0;
+    background: transparent;
+    color: var(--colorNeutralForeground3);
+    font: inherit;
+    font-size: 11px;
+    font-weight: var(--fontWeightSemibold);
+    line-height: 16px;
+    text-align: left;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.resource-pane-section-header:hover {
+    color: var(--colorNeutralForeground2);
+}
+
+.resource-pane-section-count {
+    min-width: 20px;
+    margin-left: 6px;
+    padding-inline: 5px;
+    border-radius: 10px;
+    background: var(--colorNeutralBackground3);
+    color: var(--colorNeutralForeground2);
+    line-height: 18px;
+    text-align: center;
+}
+
+.resource-pane-section-chevron {
+    display: inline-flex;
+    margin-left: auto;
+    transition: transform .15s ease;
+}
+
+.resource-pane-section-chevron.collapsed {
+    transform: rotate(-90deg);
 }
 
 .resource-pane-message {
@@ -520,6 +564,7 @@
         grid-column: 1 / -1;
         grid-row: 2;
         grid-template-columns: var(--resource-pane-width) minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1fr);
         min-width: 0;
         border-top: 1px solid var(--colorNeutralStroke3);
         background: var(--aspire-page-background);
@@ -564,6 +609,15 @@
     .resource-footer-status .resource-header-urls {
         overflow: hidden;
         text-overflow: ellipsis;
+    }
+
+    .resource-footer-page-status {
+        flex: 0 0 auto;
+        min-width: 0;
+        margin-left: auto;
+        color: var(--colorNeutralForeground2);
+        font-size: 12px;
+        white-space: nowrap;
     }
 }
 
@@ -875,11 +929,17 @@
 .resource-tabs-nav ::deep fluent-tab[aria-disabled="true"] {
     cursor: not-allowed;
     opacity: 0.45;
+    pointer-events: auto;
 }
 
 .resource-tabs-nav ::deep fluent-tab[disabled] *,
 .resource-tabs-nav ::deep fluent-tab[aria-disabled="true"] * {
     cursor: not-allowed;
+}
+
+.resource-tabs-nav ::deep fluent-menu-item.resource-tab-menu-item:state(disabled) {
+    cursor: not-allowed;
+    pointer-events: auto;
 }
 
 .resource-tabs-nav ::deep .resource-tab-error-count {
@@ -1204,6 +1264,43 @@
     min-width: 24px;
     height: 24px;
     padding: 0;
+}
+
+.resource-row-actions > a.resource-row-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    color: var(--colorBrandForeground1);
+    text-decoration: none;
+}
+
+.resource-row-actions > a.resource-row-action:hover {
+    background: var(--colorSubtleBackgroundHover);
+}
+
+@container resource-pane (max-width: 239px) {
+    .resource-row-actions ::deep .resource-row-action-priority-0 {
+        display: none;
+    }
+}
+
+@container resource-pane (max-width: 299px) {
+    .resource-row-actions ::deep .resource-row-action-priority-1 {
+        display: none;
+    }
+}
+
+@container resource-pane (max-width: 359px) {
+    .resource-row-actions ::deep .resource-row-action-priority-2 {
+        display: none;
+    }
+}
+
+@container resource-pane (max-width: 419px) {
+    .resource-row-actions ::deep .resource-row-action-priority-3 {
+        display: none;
+    }
 }
 
 /* Compact rows show the actions only while hovered or focused, in place of their state and type columns. They stay

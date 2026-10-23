@@ -76,7 +76,7 @@ public sealed class SettingsDialogTests : DashboardTestContext
 
         cut.WaitForAssertion(() => Assert.Equal(["Compact", "Resource list", "Live run menu"], cut.FindAll(".icon-toggle-current").Select(e => e.TextContent)));
         Assert.Equal(
-            ["Spacious", "Comfortable", "Compact", "Resource list", "Graph", "Summary", "Recordings panel", "Live run menu"],
+            ["Spacious", "Comfortable", "Compact", "Summary", "Graph", "Cards", "Resource list", "Recordings panel", "Live run menu"],
             cut.FindAll(".icon-toggle").Select(e => e.GetAttribute("aria-label")));
         Assert.Equal(["Compact", "Resource list", "Live run menu"], cut.FindAll(".icon-toggle[aria-pressed='true']").Select(e => e.GetAttribute("aria-label")));
 

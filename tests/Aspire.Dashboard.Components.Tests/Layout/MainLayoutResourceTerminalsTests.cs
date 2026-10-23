@@ -89,7 +89,7 @@ public partial class MainLayoutTests
         Assert.Equal(2, client.ResourceSubscriptionCount);
 
         bool HasTerminals() => isDesktop
-            ? cut.FindComponent<DesktopNavMenu>().Instance.HasResourceTerminals
+            ? shortcuts.IsShortcutAvailable(AspireKeyboardShortcut.GoToTerminals)
             : cut.FindComponent<MobileNavMenu>().Instance.HasResourceTerminals;
     }
 
@@ -131,11 +131,7 @@ public partial class MainLayoutTests
         {
             Assert.Equal(expected, cut.Instance.SubscribedShortcuts.Contains(AspireKeyboardShortcut.GoToTerminals));
             Assert.Equal(expected, shortcuts.IsShortcutAvailable(AspireKeyboardShortcut.GoToTerminals));
-            if (isDesktop)
-            {
-                Assert.Equal(expected, cut.FindComponent<DesktopNavMenu>().Instance.HasResourceTerminals);
-            }
-            else
+            if (!isDesktop)
             {
                 Assert.Equal(expected, cut.FindComponent<MobileNavMenu>().Instance.HasResourceTerminals);
             }

@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="zh-Hant" original="../Metrics.resx">
     <body>
       <trans-unit id="MetricsAllInstrumentsTitle">
-        <source>All metrics</source>
-        <target state="new">All metrics</target>
+        <source>All instruments</source>
+        <target state="new">All instruments</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsBackTo">
@@ -143,8 +143,8 @@
         <note />
       </trans-unit>
       <trans-unit id="MetricsShowAllInstruments">
-        <source>Show all metrics</source>
-        <target state="new">Show all metrics</target>
+        <source>Show all instruments</source>
+        <target state="new">Show all instruments</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsUnpinInstrument">

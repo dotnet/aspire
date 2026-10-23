@@ -601,7 +601,7 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to {0} source.
+        ///   Looks up a localized string similar to {0} telemetry source.
         /// </summary>
         public static string TelemetryPaneCountSingular {
             get {
@@ -610,7 +610,7 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to {0} sources.
+        ///   Looks up a localized string similar to {0} telemetry sources.
         /// </summary>
         public static string TelemetryPaneCountPlural {
             get {
@@ -678,6 +678,15 @@ namespace Aspire.Dashboard.Resources {
         public static string ResourcePaneCountPlural {
             get {
                 return ResourceManager.GetString("ResourcePaneCountPlural", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0}, {1}.
+        /// </summary>
+        public static string ResourcePaneMixedCount {
+            get {
+                return ResourceManager.GetString("ResourcePaneMixedCount", resourceCulture);
             }
         }
 
@@ -799,7 +808,7 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Sends telemetry, not part of the app model.
+        ///   Looks up a localized string similar to Telemetry sources.
         /// </summary>
         public static string ResourcePaneTelemetryOnly {
             get {
@@ -808,7 +817,7 @@ namespace Aspire.Dashboard.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Telemetry only.
+        ///   Looks up a localized string similar to Telemetry sources.
         /// </summary>
         public static string ResourcePaneTelemetryOnlyGroup {
             get {

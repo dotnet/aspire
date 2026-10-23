@@ -9,6 +9,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Tests.Shared;
 using Aspire.Tests.Shared.DashboardModel;
 using Bunit;
+using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -18,41 +19,92 @@ namespace Aspire.Dashboard.Components.Tests.Controls;
 public class ApplicationSummaryTests : DashboardTestContext
 {
     [Fact]
-    public async Task Render_SummarySetting_SummarizesTheAppWithoutListingResources()
+    public void Render_DefaultSetting_SummarizesTheAppWithoutListingResources()
     {
         var cut = RenderSummary();
-        await cut.InvokeAsync(() => Services.GetRequiredService<DashboardViewPreferences>().SetGroupOverviewAsync(GroupOverview.Summary));
 
         cut.WaitForAssertion(() => Assert.Single(cut.FindAll(".home-hero")));
         Assert.Equal("1 of 2 resources need attention", cut.Find(".home-hero-headline").TextContent);
         Assert.Single(cut.FindAll(".home-activity"));
         Assert.Single(cut.FindAll(".home-insights"));
         Assert.Equal(["home-errors-title", "home-traces-title"], cut.FindAll(".home-problems h2").Select(h => h.Id));
-        Assert.Equal(["Summary"], cut.FindAll(".icon-toggle[aria-pressed='true']").Select(e => e.GetAttribute("aria-label")));
         // The resource table is the other choice of the "overview of several resources" setting.
         Assert.Empty(cut.FindAll(".home-resource-table"));
     }
 
     [Fact]
-    public void Render_DefaultSetting_ShowsOnlyTheResourceTable()
+    public async Task Render_CardsSetting_ShowsResourceCardsAndCardActions()
     {
         var cut = RenderSummary();
+        await cut.InvokeAsync(() => Services.GetRequiredService<DashboardViewPreferences>().SetGroupOverviewAsync(GroupOverview.Cards));
 
-        cut.WaitForAssertion(() => Assert.Single(cut.FindAll(".home-resource-table")));
+        cut.WaitForAssertion(() => Assert.Equal(2, cut.FindAll(".resource-card").Count));
         Assert.Empty(cut.FindAll(".home-hero"));
         Assert.Empty(cut.FindAll(".home-activity"));
         Assert.Empty(cut.FindAll(".home-insights"));
         Assert.Empty(cut.FindAll(".home-problems"));
-        // The same columns and actions as the resources grid, ordered by type then name.
-        Assert.Equal(
-            ["Name", "State", "Start time", "Type", "Source", "URLs", "Actions"],
-            cut.FindAll(".home-resource-table thead th").Select(th => th.TextContent));
-        Assert.Equal(
-            ["Container", "Project"],
-            cut.FindAll(".home-resource-table tbody .home-table-type").Select(type => type.TextContent));
+        Assert.Empty(cut.FindAll(".home-resource-table"));
+        Assert.Equal(["broken", "api"], cut.FindAll(".resource-card-title").Select(title => title.TextContent.Trim()));
         Assert.Equal(2, cut.FindComponents<ResourceActions>().Count);
-        Assert.Equal(["Summary", "Resource graph"], cut.FindAll(".icon-toggle").Select(e => e.GetAttribute("aria-label")));
-        Assert.Empty(cut.FindAll(".icon-toggle[aria-pressed='true']"));
+        Assert.All(cut.FindComponents<ResourceActions>(), action => Assert.True(action.Instance.CardMode));
+    }
+
+    [Fact]
+    public async Task Render_CardsSetting_UsesSelectedDensity()
+    {
+        var cut = RenderSummary();
+        var preferences = Services.GetRequiredService<DashboardViewPreferences>();
+        await cut.InvokeAsync(() => preferences.SetGroupOverviewAsync(GroupOverview.Cards));
+
+        cut.WaitForAssertion(() => Assert.Contains("resource-card-grid-comfortable", cut.Find(".resource-card-grid").ClassList));
+
+        await cut.InvokeAsync(() => preferences.SetDensityAsync(ResourceListDensity.Compact));
+        Assert.Contains("resource-card-grid-compact", cut.Find(".resource-card-grid").ClassList);
+
+        await cut.InvokeAsync(() => preferences.SetDensityAsync(ResourceListDensity.Spacious));
+        Assert.Contains("resource-card-grid-spacious", cut.Find(".resource-card-grid").ClassList);
+    }
+
+    [Fact]
+    public async Task Render_CardsSetting_ParameterCopyActionRequiresResolvedValue()
+    {
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        var channel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        ResourceSetupHelpers.SetupResourcesLayout(this, viewport, new TestDashboardClient(isEnabled: true,
+            initialResources:
+            [
+                ModelTestHelpers.CreateResource(
+                    "resolved",
+                    resourceType: KnownResourceTypes.Parameter,
+                    state: KnownResourceState.Running,
+                    properties: new()
+                    {
+                        [KnownProperties.Parameter.Value] = new(
+                            KnownProperties.Parameter.Value,
+                            Value.ForString("parameter-value"),
+                            isValueSensitive: true,
+                            knownProperty: null,
+                            sortOrder: 0,
+                            displayName: null,
+                            isHighlighted: false)
+                    }),
+                ModelTestHelpers.CreateResource(
+                    "unresolved",
+                    resourceType: KnownResourceTypes.Parameter,
+                    state: KnownResourceState.ValueMissing)
+            ],
+            resourceChannelProvider: () => channel));
+        var cut = Render<ApplicationSummary>(builder => builder.AddCascadingValue(viewport));
+
+        await cut.InvokeAsync(() => Services.GetRequiredService<DashboardViewPreferences>().SetGroupOverviewAsync(GroupOverview.Cards));
+
+        cut.WaitForAssertion(() => Assert.Equal(2, cut.FindAll(".resource-card-parameter").Count));
+        var cards = cut.FindAll(".resource-card-parameter");
+        Assert.Single(cards.Single(card => card.QuerySelector(".resource-card-title")!.TextContent.Trim() == "resolved").QuerySelectorAll(".resource-card-copy-value"));
+        Assert.Empty(cards.Single(card => card.QuerySelector(".resource-card-title")!.TextContent.Trim() == "unresolved").QuerySelectorAll(".resource-card-copy-value"));
+        var copyButton = cut.Find(".resource-card-copy-value");
+        Assert.Equal("parameter-value", copyButton.GetAttribute("data-text"));
+        Assert.Equal("Copy to clipboard", copyButton.GetAttribute("aria-label"));
     }
 
     [Fact]

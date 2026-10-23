@@ -46,7 +46,7 @@ public class TextVisualizerDialogTests : DashboardTestContext
         Assert.True(cut.FindComponent<TextVisualizer>().Instance.NoWrap);
         Assert.Equal("false", cut.Find(".text-visualizer-word-wrap").GetAttribute("aria-pressed"));
         Assert.Single(cut.FindAll(".log-container.text-visualizer-no-wrap"));
-        Assert.Equal(formattedText, cut.Find("[data-copybutton='true']").GetAttribute("data-text"));
+        Assert.Equal(formattedText.ReplaceLineEndings("\n"), cut.Find("[data-copybutton='true']").GetAttribute("data-text"));
 
         cut.FindComponent<TextVisualizerDialog>().Render(parameters => parameters.Add(p => p.Content, content));
         Assert.True(cut.FindComponent<TextVisualizer>().Instance.NoWrap);

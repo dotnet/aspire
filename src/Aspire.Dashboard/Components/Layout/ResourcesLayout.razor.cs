@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
@@ -38,6 +39,9 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
     internal const int MinimumPaneWidthPx = 200;
     internal const int MaximumPaneWidthPx = 560;
     internal const int DefaultPaneWidthPx = 290;
+    private const string ResourcesSectionKey = "section:resources";
+    private const string ParametersSectionKey = "section:parameters";
+    private const string TelemetrySectionKey = "section:telemetry";
 
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly HashSet<string> _collapsedResourceNames = new(StringComparers.ResourceName);
@@ -174,6 +178,11 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
     /// The name of the section where the current page renders actions beside the resource title.
     /// </summary>
     internal const string HeaderActionsSectionName = "resource-header-actions";
+
+    /// <summary>
+    /// The name of the section where the current page renders status in the desktop workspace footer.
+    /// </summary>
+    internal const string FooterStatusSectionName = "resource-footer-status";
 
     /// <summary>
     /// Gets the app model resource that matches <see cref="SelectedResourceName"/>, if any.
@@ -367,10 +376,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
         _resourceByName[resource.Name] = resource;
 
         // New types and states are visible unless the user has hidden them already.
-        if (!resource.IsParameter)
-        {
-            _filter.ResourceTypesToVisibility.TryAdd(resource.ResourceType, true);
-        }
+        _filter.ResourceTypesToVisibility.TryAdd(resource.ResourceType, true);
         _filter.ResourceStatesToVisibility.TryAdd(resource.State ?? string.Empty, true);
         _filter.ResourceHealthStatusesToVisibility.TryAdd(resource.HealthStatus?.Humanize() ?? string.Empty, true);
     }
@@ -490,6 +496,12 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
     /// </summary>
     internal string GetTabUrl(ResourceTab tab)
     {
+        if (tab == ResourceTab.Metrics && _selectedResourceNames.Count == 0 && !DashboardClient.IsEnabled &&
+            _telemetryOnlyResources.FirstOrDefault(resource => resource.Resource.HasMetrics) is { } metricsResource)
+        {
+            return GetTabUrl(tab, [metricsResource.Name], metricsResource.Name);
+        }
+
         return GetTabUrl(tab, _selectedResourceNames, RouteResourceName);
     }
 
@@ -804,7 +816,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
     {
         var positions = OrderStore.GetPositions();
         var filteredResources = _resourceByName.Values
-            .Where(_filter.Filter)
+            .Where(r => !r.IsParameter && _filter.FilterAllResourceKinds(r, _filter.TextFilter))
             .Select(r => new ResourceGridViewModel { Resource = r })
             .OrderBy(r => positions.GetValueOrDefault(r.Resource.PersistentKey, long.MaxValue))
             .ThenBy(r => r.Resource, ResourceViewModelNameComparer.Instance)
@@ -815,13 +827,20 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
             .Where(r => !r.IsHidden);
     }
 
+    private List<ResourceViewModel> GetParameterPaneRows() =>
+        _resourceByName.Values
+            .Where(r => r.IsParameter && _filter.FilterAllResourceKinds(r, _filter.TextFilter))
+            .OrderBy(r => r.HasMissingParameterValueState() ? 0 : 1)
+            .ThenBy(r => r, ResourceViewModelNameComparer.Instance)
+            .ToList();
+
     /// <summary>
     /// Gets the filtered resources grouped by the selected property. Text search matches group names or resources.
     /// </summary>
     private List<ResourceGroup> GetResourceGroups()
     {
         var groups = _grouping == ResourceGrouping.Tags ? GetTagGroups() : _resourceByName.Values
-            .Where(r => _filter.Filter(r, textFilter: string.Empty))
+            .Where(r => _filter.FilterAllResourceKinds(r, textFilter: string.Empty))
             .GroupBy(r => _grouping == ResourceGrouping.ResourceType ? r.ResourceType
                 : string.IsNullOrEmpty(r.State) ? nameof(KnownResourceState.Unknown) : r.State, StringComparer.OrdinalIgnoreCase)
             .Select(group => new ResourceGroup(group.Key,
@@ -848,7 +867,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
     {
         // Register groups independently of search/type/state/health filters, so a filtered view cannot change
         // their saved order. Hidden resources participate once the user chooses to show them.
-        var resources = _resourceByName.Values.Where(r => !r.IsParameter && !r.IsResourceHidden(_filter.ShowHiddenResources)).ToList();
+        var resources = _resourceByName.Values.Where(r => !r.IsResourceHidden(_filter.ShowHiddenResources)).ToList();
         var tagsByResource = TagStore.GetTagsByResource(resources);
         var tags = TagStore.GetAllTags(resources)
             .Where(tag => resources.Any(r => tagsByResource.TryGetValue(r.DisplayName, out var resourceTags) && resourceTags.Contains(tag, StringComparer.OrdinalIgnoreCase)))
@@ -899,7 +918,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
     {
         var textFilter = _filter.TextFilter;
         var resources = _resourceByName.Values
-            .Where(r => _filter.Filter(r, textFilter: string.Empty))
+            .Where(r => _filter.FilterAllResourceKinds(r, textFilter: string.Empty))
             .OrderBy(r => r.ResourceType)
             .ThenBy(r => r, ResourceViewModelNameComparer.Instance)
             .ToList();
@@ -935,9 +954,20 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
 
     private bool IsGroupCollapsed(ResourceGroup group) => _collapsedGroups.Contains(GetGroupKey(group));
 
+    private bool IsSectionCollapsed(string sectionKey) => _collapsedGroups.Contains(sectionKey);
+
     private void ToggleGroup(ResourceGroup group)
     {
-        var key = GetGroupKey(group);
+        ToggleCollapsedGroup(GetGroupKey(group));
+    }
+
+    private void ToggleSection(string sectionKey)
+    {
+        ToggleCollapsedGroup(sectionKey);
+    }
+
+    private void ToggleCollapsedGroup(string key)
+    {
         if (!_collapsedGroups.Remove(key))
         {
             _collapsedGroups.Add(key);
@@ -984,7 +1014,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
 
     private void UpdateResourceTagFilters()
     {
-        var resources = _resourceByName.Values.Where(r => !r.IsParameter).ToList();
+        var resources = _resourceByName.Values.ToList();
         var tagsByResource = TagStore.GetTagsByResource(resources);
         var filterKeys = TagStore.GetAllTags(resources).ToHashSet(StringComparer.OrdinalIgnoreCase);
         if (resources.Any(r => !tagsByResource.ContainsKey(r.DisplayName)))
@@ -1041,7 +1071,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
         var counts = new Dictionary<string, int>(values.Comparer);
         foreach (var resource in _resourceByName.Values)
         {
-            if (!resource.IsParameter && !resource.IsResourceHidden(_filter.ShowHiddenResources))
+            if (!resource.IsResourceHidden(_filter.ShowHiddenResources))
             {
                 foreach (var key in getKeys(resource))
                 {
@@ -1380,10 +1410,27 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
         ? _telemetryOnlyResources.Select(r => r.Resource.ResourceKey).Distinct().ToList()
         : _resourceByName.Values.Select(GetTelemetryResource).OfType<OtlpResource>().Select(r => r.ResourceKey).Distinct().ToList();
 
-    private string GetPaneCountText(int count) => string.Format(CultureInfo.CurrentCulture,
-        Loc[IsTelemetryPane
-            ? count == 1 ? nameof(Resources.Layout.TelemetryPaneCountSingular) : nameof(Resources.Layout.TelemetryPaneCountPlural)
-            : count == 1 ? nameof(Resources.Layout.ResourcePaneCountSingular) : nameof(Resources.Layout.ResourcePaneCountPlural)], count);
+    private string GetPaneCountText(int resourceCount, int telemetrySourceCount)
+    {
+        var resourceCountText = resourceCount > 0
+            ? string.Format(CultureInfo.CurrentCulture,
+                Loc[resourceCount == 1 ? nameof(Resources.Layout.ResourcePaneCountSingular) : nameof(Resources.Layout.ResourcePaneCountPlural)],
+                resourceCount)
+            : null;
+        var telemetrySourceCountText = telemetrySourceCount > 0
+            ? string.Format(CultureInfo.CurrentCulture,
+                Loc[telemetrySourceCount == 1 ? nameof(Resources.Layout.TelemetryPaneCountSingular) : nameof(Resources.Layout.TelemetryPaneCountPlural)],
+                telemetrySourceCount)
+            : null;
+
+        return (resourceCountText, telemetrySourceCountText) switch
+        {
+            ({ } resources, { } sources) => string.Format(CultureInfo.CurrentCulture, Loc[nameof(Resources.Layout.ResourcePaneMixedCount)], resources, sources),
+            ({ } resources, null) => resources,
+            (null, { } sources) => sources,
+            _ => string.Format(CultureInfo.CurrentCulture, Loc[nameof(Resources.Layout.ResourcePaneCountPlural)], 0)
+        };
+    }
 
     /// <summary>
     /// Gets a value indicating whether an app model resource is one of the named resources. Names are either the
@@ -1405,7 +1452,9 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
     {
         if (tab == ResourceTab.Parameters)
         {
-            return DashboardClient.IsEnabled && selection.Count == 0 && _resourceByName.Values.Any(r => r.IsParameter);
+            return DashboardClient.IsEnabled &&
+                selection.Count == 0 &&
+                _resourceByName.Values.Any(r => r.IsParameter);
         }
 
         if (IsTelemetryPane && tab is ResourceTab.Overview or ResourceTab.Console)
@@ -1428,6 +1477,11 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
     {
         if (item.Resource is { } resource)
         {
+            if (resource.IsParameter)
+            {
+                return tab == ResourceTab.Overview;
+            }
+
             var telemetryResource = GetTelemetryResource(resource);
             return tab switch
             {
@@ -1470,7 +1524,9 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
         return tab switch
         {
             ResourceTab.Overview => DashboardUrls.ResourceOverviewUrl(resourceName),
-            ResourceTab.Parameters => DashboardUrls.ParametersUrl(),
+            ResourceTab.Parameters => resourceName is null
+                ? DashboardUrls.ParametersUrl()
+                : DashboardUrls.AddResourceSelection(DashboardUrls.ParametersUrl(), [resourceName]),
             ResourceTab.Console => DashboardUrls.ConsoleLogsUrl(resourceName),
             ResourceTab.StructuredLogs => DashboardUrls.StructuredLogsUrl(resourceName),
             ResourceTab.Traces => DashboardUrls.TracesUrl(resourceName),
@@ -1500,6 +1556,10 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
         {
             tab = CurrentTab;
         }
+        else if (selection is [{ Resource: { IsParameter: true } }])
+        {
+            tab = ResourceTab.Overview;
+        }
         else if (!IsTelemetryPane && (selection.Any(i => i.Resource is not null) || selection.Count == 0))
         {
             tab = ResourceTab.Overview;
@@ -1525,6 +1585,13 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
     /// </summary>
     private async Task OnRowClickAsync(MouseEventArgs e, string resourceName)
     {
+        if (_resourceByName.TryGetValue(resourceName, out var clickedResource) && clickedResource.IsParameter)
+        {
+            _selectionAnchor = resourceName;
+            NavigationManager.NavigateTo(GetSelectionUrl([resourceName]));
+            return;
+        }
+
         // The selection can also change by navigating, for example with a link to a resource. Ranges then start at
         // the last selected resource.
         var anchor = _selectionAnchor is not null && IsSelected(_selectionAnchor) ? _selectionAnchor : _selectedResourceNames is [.., var last] ? last : null;
@@ -1623,7 +1690,7 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
         }
 
         var names = _resourceByName.Values
-            .Where(r => !r.IsParameter && !r.IsResourceHidden(_filter.ShowHiddenResources))
+            .Where(r => !r.IsResourceHidden(_filter.ShowHiddenResources))
             .OrderBy(r => r.ResourceType)
             .ThenBy(r => r, ResourceViewModelNameComparer.Instance)
             .Select(GetResourceName)
@@ -1647,10 +1714,20 @@ public sealed partial class ResourcesLayout : LayoutComponentBase, IAsyncDisposa
         }
         else
         {
-            names = GetPaneRows().Select(r => GetResourceName(r.Resource)).ToList();
+            names = IsSectionCollapsed(ResourcesSectionKey)
+                ? []
+                : GetPaneRows().Select(r => GetResourceName(r.Resource)).ToList();
+
+            if (!IsSectionCollapsed(ParametersSectionKey))
+            {
+                names.AddRange(GetParameterPaneRows().Select(GetResourceName));
+            }
         }
 
-        names.AddRange(GetVisibleTelemetryResources().Select(r => r.Name));
+        if (!IsSectionCollapsed(TelemetrySectionKey))
+        {
+            names.AddRange(GetVisibleTelemetryResources().Select(r => r.Name));
+        }
         return names;
     }
 

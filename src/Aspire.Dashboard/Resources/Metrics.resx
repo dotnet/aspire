@@ -208,10 +208,10 @@
     <comment>{0} is the filter text</comment>
   </data>
   <data name="MetricsAllInstrumentsTitle" xml:space="preserve">
-    <value>All metrics</value>
+    <value>All instruments</value>
   </data>
   <data name="MetricsShowAllInstruments" xml:space="preserve">
-    <value>Show all metrics</value>
+    <value>Show all instruments</value>
   </data>
   <data name="MetricsBackTo" xml:space="preserve">
     <value>Back to {0}</value>

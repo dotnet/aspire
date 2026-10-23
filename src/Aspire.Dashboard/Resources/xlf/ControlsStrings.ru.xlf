@@ -167,6 +167,21 @@
         <target state="translated">Экспорт .env</target>
         <note />
       </trans-unit>
+      <trans-unit id="ParameterDeleteShortAction">
+        <source>Delete</source>
+        <target state="new">Delete</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParameterEditShortAction">
+        <source>Edit</source>
+        <target state="new">Edit</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParameterSetShortAction">
+        <source>Set</source>
+        <target state="new">Set</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ScrollToBottom">
         <source>Scroll to bottom</source>
         <target state="new">Scroll to bottom</target>

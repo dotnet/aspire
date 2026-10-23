@@ -13,6 +13,7 @@ using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.Localization;
 using Microsoft.JSInterop;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
@@ -101,6 +102,9 @@ public sealed partial class ApplicationSummary : ComponentBase, IAsyncDisposable
     public required IStringLocalizer<Dashboard.Resources.Dialogs> DialogsLoc { get; init; }
 
     [Inject]
+    public required IStringLocalizer<Dashboard.Resources.Layout> LayoutLoc { get; init; }
+
+    [Inject]
     public required IJSRuntime JS { get; init; }
 
     [Inject]
@@ -110,8 +114,27 @@ public sealed partial class ApplicationSummary : ComponentBase, IAsyncDisposable
     private IReadOnlyList<IconToggleOption<GroupOverview>> OverviewOptions =>
     [
         new(GroupOverview.Summary, new Icons.Regular.Size20.Home(), DialogsLoc[nameof(Dashboard.Resources.Dialogs.SettingsDialogGroupOverviewSummary)]),
-        new(GroupOverview.Graph, new Icons.Regular.Size20.ShareAndroid(), Loc[nameof(Dashboard.Resources.Resources.GraphPageTitle)])
+        new(GroupOverview.Graph, new Icons.Regular.Size20.ShareAndroid(), Loc[nameof(Dashboard.Resources.Resources.GraphPageTitle)]),
+        new(GroupOverview.Cards, new Icons.Regular.Size20.Grid(), DialogsLoc[nameof(Dashboard.Resources.Dialogs.SettingsDialogGroupOverviewCards)])
     ];
+
+    private string CardDensityClass => ViewPreferences.Density switch
+    {
+        ResourceListDensity.Spacious => "resource-card-grid-spacious",
+        ResourceListDensity.Compact => "resource-card-grid-compact",
+        _ => "resource-card-grid-comfortable"
+    };
+
+    private string? GetResourceStartTimeTooltip(ResourceViewModel resource)
+    {
+        if (resource.StartTimeStamp is not { } startTimeStamp)
+        {
+            return null;
+        }
+
+        var age = DashboardRunSelect.FormatRunAge(new DateTimeOffset(startTimeStamp), TimeProvider.GetUtcNow(), LayoutLoc);
+        return $"{LayoutLoc[nameof(Dashboard.Resources.Layout.ResourceHeaderStarted)]} {age}";
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -523,8 +546,27 @@ public sealed partial class ApplicationSummary : ComponentBase, IAsyncDisposable
 
     private void NavigateToResource(ResourceViewModel resource) => NavigationManager.NavigateTo(DashboardUrls.ResourceOverviewUrl(GetResourceName(resource)));
 
+    private void OnResourceCardKeyDown(KeyboardEventArgs args, ResourceViewModel resource)
+    {
+        if (args.Key is "Enter" or " ")
+        {
+            NavigateToResource(resource);
+        }
+    }
+
     private Task ExecuteCommandAsync(ResourceViewModel resource, CommandViewModel command) =>
         DashboardCommandExecutor.ExecuteAsync(resource, command, GetResourceName);
+
+    private Task ExecuteCardCommandAsync(ResourceViewModel resource, CommandViewModel command)
+    {
+        if (string.Equals(command.Name, CommandViewModel.SetParameterCommand, StringComparisons.CommandName))
+        {
+            NavigateToResource(resource);
+            return Task.CompletedTask;
+        }
+
+        return ExecuteCommandAsync(resource, command);
+    }
 
     private List<ResourceViewModel> GetResources()
     {
@@ -534,6 +576,29 @@ public sealed partial class ApplicationSummary : ComponentBase, IAsyncDisposable
             .ThenBy(r => r.ResourceType)
             .ThenBy(r => r, ResourceViewModelNameComparer.Instance)
             .ToList();
+    }
+
+    private List<ResourceViewModel> GetCardResources()
+    {
+        return _resourceByName.Values
+            .Where(r => !r.IsResourceHidden(showHiddenResources: false) && IsInScope(r))
+            .OrderBy(r => r.IsParameter ? 1 : 0)
+            .ThenBy(r => NeedsAttention(r) ? 0 : 1)
+            .ThenBy(r => r.ResourceType)
+            .ThenBy(r => r, ResourceViewModelNameComparer.Instance)
+            .ToList();
+    }
+
+    private static (string? Value, bool IsSensitive, bool IsUnresolved) GetParameterValue(ResourceViewModel resource)
+    {
+        var isUnresolved = !resource.IsRunningState();
+        if (resource.Properties.TryGetValue(KnownProperties.Parameter.Value, out var property))
+        {
+            var value = isUnresolved ? null : property.Value.HasStringValue ? property.Value.StringValue : null;
+            return (value, property.IsValueSensitive, isUnresolved);
+        }
+
+        return (null, false, isUnresolved);
     }
 
     private async Task UpdateResourceGraphResourcesAsync()

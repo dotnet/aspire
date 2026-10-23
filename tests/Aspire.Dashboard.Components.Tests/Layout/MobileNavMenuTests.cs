@@ -17,21 +17,17 @@ namespace Aspire.Dashboard.Components.Tests.Layout;
 [UseCulture("en-US")]
 public class MobileNavMenuTests : DashboardTestContext
 {
-    [Theory]
-    [InlineData("/structuredlogs?logLevel=error")]
-    [InlineData("/traces/detail/abc")]
-    [InlineData("/metrics/resource/api")]
-    public void Standalone_TelemetryPagesSelectTelemetryEntry(string path)
+    [Fact]
+    public void Standalone_ShowsUtilityEntries()
     {
-        var cut = RenderMobileNavMenu(path, hasResourceService: false);
+        var cut = RenderMobileNavMenu("/structuredlogs?logLevel=error", hasResourceService: false);
 
-        AssertMenuItemIsActive(cut, Resources.Layout.NavMenuTelemetrySourcesTab);
         Assert.Equal(
-            [Resources.Layout.NavMenuTelemetrySourcesTab, Resources.Layout.MainLayoutAspireRepoLink,
-                Resources.Layout.MainLayoutKeyboardShortcuts,
+            [Resources.Layout.MainLayoutAspireRepoLink, Resources.Layout.MainLayoutKeyboardShortcuts,
                 Resources.Layout.MainLayoutAspireDashboardHelpLink, Resources.Layout.MainLayoutLaunchNotifications,
                 Resources.Layout.MainLayoutLaunchSettings],
             cut.FindAll("fluent-menu-item").Select(item => item.GetAttribute("data-tooltip")));
+        Assert.Empty(cut.FindAll("""fluent-menu-item[aria-current="page"]"""));
     }
 
     [Fact]
@@ -60,63 +56,20 @@ public class MobileNavMenuTests : DashboardTestContext
         var titles = cut.FindAll("fluent-menu-item").Select(i => i.GetAttribute("data-tooltip")).Take(hasTerminals ? 5 : 4);
         var expected = new List<string>
         {
-            Resources.Layout.NavMenuResourcesTab,
-            Resources.Layout.NavMenuParametersTab
+            Resources.Layout.MainLayoutAspireRepoLink,
+            Resources.Layout.MainLayoutKeyboardShortcuts,
+            Resources.Layout.MainLayoutAspireDashboardHelpLink
         };
         if (hasTerminals)
         {
-            expected.Add(Resources.Layout.NavMenuTerminalsTab);
+            expected.Insert(0, Resources.Layout.NavMenuTerminalsTab);
         }
-        expected.Add(Resources.Layout.NavMenuTelemetrySourcesTab);
-        expected.Add(Resources.Layout.MainLayoutAspireRepoLink);
+        expected.Add(Resources.Layout.MainLayoutLaunchNotifications);
         Assert.Equal(expected, titles);
         if (hasTerminals)
         {
             AssertMenuItemIsActive(cut, Resources.Layout.NavMenuTerminalsTab);
         }
-    }
-
-    [Fact]
-    public void AppHost_TelemetryPaneSelectsTelemetryEntry()
-    {
-        var cut = RenderMobileNavMenu(DashboardUrls.TelemetrySourcesUrl());
-        AssertMenuItemIsActive(cut, Resources.Layout.NavMenuTelemetrySourcesTab);
-    }
-
-    [Fact]
-    public void Render_OpenMenu_TelemetryPageWithQueryStringSelectsResourcesEntry()
-    {
-        var cut = RenderMobileNavMenu(DashboardUrls.StructuredLogsUrl(logLevel: "warning"));
-
-        AssertMenuItemIsActive(cut, Resources.Layout.NavMenuResourcesTab);
-    }
-
-    [Theory]
-    [InlineData("/consolelogs/resource/api")]
-    [InlineData("/structuredlogs")]
-    [InlineData("/traces")]
-    [InlineData("/metrics/resource/api")]
-    public void Render_OpenMenu_SelectionPageSelectsResourcesEntry(string path)
-    {
-        var cut = RenderMobileNavMenu(path);
-
-        AssertMenuItemIsActive(cut, Resources.Layout.NavMenuResourcesTab);
-    }
-
-    [Fact]
-    public void Render_OpenMenu_ResourceOverviewPageHasSemanticAndVisualSelectedState()
-    {
-        var cut = RenderMobileNavMenu(DashboardUrls.ResourceOverviewUrl("foo"));
-
-        AssertMenuItemIsActive(cut, Resources.Layout.NavMenuResourcesTab);
-    }
-
-    [Fact]
-    public void Render_OpenMenu_ParametersPageHasSemanticAndVisualSelectedState()
-    {
-        var cut = RenderMobileNavMenu(DashboardUrls.ParametersUrl(hiddenStates: "Running"));
-
-        AssertMenuItemIsActive(cut, Resources.Layout.NavMenuParametersTab);
     }
 
     [Fact]

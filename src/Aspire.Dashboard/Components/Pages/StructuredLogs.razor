@@ -35,6 +35,13 @@
     </StableSectionContent>
 }
 
+@if (ResourcesLayout is not null)
+{
+    <StableSectionContent SectionName="@Aspire.Dashboard.Components.Layout.ResourcesLayout.FooterStatusSectionName">
+        @GetTotalItemsFooter()
+    </StableSectionContent>
+}
+
 <div class="page-content-container">
     <AspirePageContentLayout @ref="@_contentLayout"
                              AddNewlineOnToolbar="true"
@@ -148,18 +155,24 @@
             </SummaryDetailsView>
         </MainSection>
         <FooterSection>
-            <TotalItemsFooter @ref="_totalItemsFooter"
-                              TotalItemCount="@_totalItemsCount"
-                              DisplayedItemCount="@_displayedItemCount"
-                              SingularText="@Loc[nameof(Dashboard.Resources.StructuredLogs.TotalItemsFooterSingularText)]"
-                              PluralText="@Loc[nameof(Dashboard.Resources.StructuredLogs.TotalItemsFooterPluralText)]"
-                              PartialText="@Loc[nameof(Dashboard.Resources.StructuredLogs.VirtualizedLimitText)]"
-                              PauseText="@PauseText"/>
+            @if (ResourcesLayout is null)
+            {
+                @GetTotalItemsFooter()
+            }
         </FooterSection>
     </AspirePageContentLayout>
 </div>
 
 @code {
+    private RenderFragment GetTotalItemsFooter() =>
+        @<TotalItemsFooter @ref="_totalItemsFooter"
+                           TotalItemCount="@_totalItemsCount"
+                           DisplayedItemCount="@_displayedItemCount"
+                           SingularText="@Loc[nameof(Dashboard.Resources.StructuredLogs.TotalItemsFooterSingularText)]"
+                           PluralText="@Loc[nameof(Dashboard.Resources.StructuredLogs.TotalItemsFooterPluralText)]"
+                           PartialText="@Loc[nameof(Dashboard.Resources.StructuredLogs.VirtualizedLimitText)]"
+                           PauseText="@PauseText" />;
+
     private RenderFragment GetFilterToolbar()
     {
         return @<text>

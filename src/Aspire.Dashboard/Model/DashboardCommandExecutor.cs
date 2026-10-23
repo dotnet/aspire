@@ -37,7 +37,11 @@ public sealed class DashboardCommandExecutor(
         }
     }
 
-    public async Task ExecuteAsync(ResourceViewModel resource, CommandViewModel command, Func<ResourceViewModel, string> getResourceName)
+    public async Task ExecuteAsync(
+        ResourceViewModel resource,
+        CommandViewModel command,
+        Func<ResourceViewModel, string> getResourceName,
+        ExecuteResourceCommandOptions? options = null)
     {
         var executingCommandKey = (resource.Name, command.Name);
         lock (_lock)
@@ -57,7 +61,7 @@ public sealed class DashboardCommandExecutor(
 
             try
             {
-                await ExecuteAsyncCore(resource, command, getResourceName).ConfigureAwait(false);
+                await ExecuteAsyncCore(resource, command, getResourceName, options).ConfigureAwait(false);
                 telemetryService.SetOperationStatus(activity, ActivityStatusCode.Ok);
             }
             catch (Exception)
@@ -84,7 +88,11 @@ public sealed class DashboardCommandExecutor(
         }
     }
 
-    public async Task ExecuteAsyncCore(ResourceViewModel resource, CommandViewModel command, Func<ResourceViewModel, string> getResourceName)
+    public async Task ExecuteAsyncCore(
+        ResourceViewModel resource,
+        CommandViewModel command,
+        Func<ResourceViewModel, string> getResourceName,
+        ExecuteResourceCommandOptions? commandOptions = null)
     {
         if (!string.IsNullOrWhiteSpace(command.ConfirmationMessage))
         {
@@ -140,7 +148,7 @@ public sealed class DashboardCommandExecutor(
                 resource.Name,
                 resource.ResourceType,
                 command,
-                new ExecuteResourceCommandOptions(),
+                commandOptions ?? new ExecuteResourceCommandOptions(),
                 executeCommandCts.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (executeCommandCts.IsCancellationRequested)

@@ -232,6 +232,11 @@
     overflow: auto;
 }
 
+.metrics-splitter {
+    width: 100%;
+    height: 100%;
+}
+
 /* Reserve the scrollbar's space even when the content fits, so the content's width (and the pin button's
    alignment with the toolbar above) doesn't shift when a scrollbar appears. A thinner scrollbar keeps the
    reserved space small. --scrollbar-size sizes the dashboard's WebKit scrollbars; Firefox already uses thin. */

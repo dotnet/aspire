@@ -748,6 +748,11 @@ For more information about using AI agents with the dashboard, including setting
         <target state="new">Overview of several resources</target>
         <note />
       </trans-unit>
+      <trans-unit id="SettingsDialogGroupOverviewCards">
+        <source>Cards</source>
+        <target state="new">Cards</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SettingsDialogGroupOverviewResources">
         <source>Resource list</source>
         <target state="new">Resource list</target>

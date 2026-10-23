@@ -640,6 +640,9 @@ public sealed partial class ResourceOverview : ComponentBase, IAsyncDisposable
     private Task ExecuteResourceCommandAsync(ResourceViewModel resource, CommandViewModel command)
         => DashboardCommandExecutor.ExecuteAsync(resource, command, GetResourceName);
 
+    private Task ExecuteResourceCommandAsync(ResourceViewModel resource, CommandViewModel command, ExecuteResourceCommandOptions options)
+        => DashboardCommandExecutor.ExecuteAsync(resource, command, GetResourceName, options);
+
     public ValueTask DisposeAsync()
     {
         _subscribedLayout?.ResourcesChanged -= OnResourcesChanged;

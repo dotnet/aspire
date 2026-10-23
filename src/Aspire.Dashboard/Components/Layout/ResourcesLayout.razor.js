@@ -52,6 +52,36 @@ export function registerPaneResizer(layoutElement, dotNetRef, minimumWidth, maxi
         });
     };
 
+    const getActionsWidth = () => {
+        const actions = pane.querySelectorAll(
+            '.resource-row-action-priority-0, .resource-row-action-priority-1');
+        if (actions.length === 0) {
+            return width;
+        }
+
+        const { min, max } = bounds();
+        let lower = min;
+        let upper = max;
+        let fittedWidth = max;
+
+        // Let the pane's container queries determine the smallest width where the endpoint and primary command
+        // are visible. Reading computed styles after each width change forces the browser to evaluate those rules.
+        while (lower <= upper) {
+            const candidate = Math.floor((lower + upper) / 2);
+            layoutElement.style.setProperty('--resource-pane-expanded-width', `${candidate}px`);
+
+            if ([...actions].every(action => getComputedStyle(action).display !== 'none')) {
+                fittedWidth = candidate;
+                upper = candidate - 1;
+            }
+            else {
+                lower = candidate + 1;
+            }
+        }
+
+        return fittedWidth;
+    };
+
     const onPointerDown = e => {
         if (e.button !== 0 || !e.isPrimary) {
             return;
@@ -122,12 +152,11 @@ export function registerPaneResizer(layoutElement, dotNetRef, minimumWidth, maxi
         }
     };
 
-    // Double-clicking the handle restores the default width.
+    // Double-clicking fits the pane to the action disclosure rules instead of duplicating their breakpoints here.
     const onDoubleClick = e => {
         e.preventDefault();
-        layoutElement.style.removeProperty('--resource-pane-expanded-width');
-        const defaultWidth = Math.round(pane.getBoundingClientRect().width);
-        if (resizeTo(defaultWidth) || defaultWidth === width) {
+        const actionsWidth = getActionsWidth();
+        if (resizeTo(actionsWidth) || actionsWidth === width) {
             commit();
         }
     };

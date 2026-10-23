@@ -498,7 +498,12 @@ public partial class MainLayoutTests : DashboardTestContext
             content = Assert.IsType<DashboardRunsDialogContent>(dialogContent);
             return Task.CompletedTask;
         });
-        SetupMainLayoutServices(dialogService: dialogService, dashboardRunStore: runStore, sessionStorage: sessionStorage);
+        var localStorage = new TestLocalStorage
+        {
+            OnGetUnprotectedAsync = key => key == BrowserStorageKeys.RecordingsStyle ? (true, "Panel") : (false, null)
+        };
+        SetupMainLayoutServices(localStorage: localStorage, dialogService: dialogService, dashboardRunStore: runStore, sessionStorage: sessionStorage);
+        await Services.GetRequiredService<DashboardViewPreferences>().EnsureLoadedAsync();
         var expectedHistoricalRunText = FormatHelpers.FormatDateTime(
             Services.GetRequiredService<BrowserTimeProvider>(),
             historicalRun.StartedAtUtc.UtcDateTime);
@@ -528,10 +533,6 @@ public partial class MainLayoutTests : DashboardTestContext
         Assert.False(navigationOccurred);
         Assert.Equal(2, initializedCount);
         Assert.Equal(1, disposedCount);
-        var button = cut.Find($"#{MainLayout.RunSelectButtonId}");
-        Assert.Equal(expectedHistoricalRunText, button.GetAttribute("data-tooltip"));
-        Assert.Equal($"Recordings, viewing {expectedHistoricalRunText}", button.GetAttribute("aria-label"));
-        Assert.Single(cut.FindAll($"#{MainLayout.RunSelectButtonId} .dashboard-run-indicator.recording"));
         var pill = cut.Find(".dashboard-run-pill");
         Assert.Equal(expectedHistoricalRunText, pill.QuerySelector(".dashboard-run-pill-text")!.TextContent);
         Assert.Equal($"Recordings, viewing {expectedHistoricalRunText}", pill.GetAttribute("aria-label"));
@@ -738,7 +739,11 @@ public partial class MainLayoutTests : DashboardTestContext
         {
             OnGetTaskAsync = _ => runSelectionSource.Task
         };
-        SetupMainLayoutServices(dashboardRunStore: runStore, sessionStorage: sessionStorage);
+        var localStorage = new TestLocalStorage
+        {
+            OnGetUnprotectedAsync = key => key == BrowserStorageKeys.RecordingsStyle ? (true, "Panel") : (false, null)
+        };
+        SetupMainLayoutServices(localStorage: localStorage, dashboardRunStore: runStore, sessionStorage: sessionStorage);
         var runSelection = Assert.IsType<FluentUISetupHelpers.TestDashboardRunSelection>(Services.GetRequiredService<IDashboardRunSelection>());
         var getRunsCallCount = runStore.GetRunsCallCount;
 
@@ -789,6 +794,7 @@ public partial class MainLayoutTests : DashboardTestContext
             OnGetTaskAsync = _ => runSelectionSource.Task
         };
         SetupMainLayoutServices(dashboardRunStore: runStore, sessionStorage: sessionStorage);
+        await Services.GetRequiredService<DashboardViewPreferences>().EnsureLoadedAsync();
 
         var cut = Render<MainLayout>(builder =>
         {
@@ -806,7 +812,6 @@ public partial class MainLayoutTests : DashboardTestContext
         cut.WaitForAssertion(() =>
         {
             Assert.Equal(expectedHistoricalRunDate, cut.Find(".dashboard-run-pill-text").TextContent);
-            Assert.Equal(expectedHistoricalRunDate, cut.Find($"#{MainLayout.RunSelectButtonId}").GetAttribute("data-tooltip"));
         });
     }
 

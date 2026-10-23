@@ -22,6 +22,14 @@
         @* All resources, or several selected resources: summarize them, with their endpoints. *@
         <ApplicationSummary ResourceNames="@(ResourcesLayout.IsMultiSelection ? ResourcesLayout.SelectedResourceNames : null)" />
     }
+    else if (Resource is { IsParameter: true } parameter)
+    {
+        <ParameterOverview Resource="parameter"
+                           ResourceByName="ResourcesLayout.ResourceByName"
+                           OnExecuteCommandAsync="ExecuteResourceCommandAsync"
+                           OnExecuteCommandWithOptionsAsync="ExecuteResourceCommandAsync"
+                           IsCommandExecuting="@((resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name))" />
+    }
     else if (Resource is not { } resource)
     {
         <div class="overview-message">
