@@ -279,7 +279,7 @@ jobs:
               & "$(Build.SourcesDirectory)/eng/scripts/verify-cli-npm-package.ps1" @verifyParams
             displayName: 🟣Verify CLI npm package (${{ targetRid }})
 
-          # Verify the signed CLI archive can execute and create a project.
+          # Verify the CLI archive executes and extracts a complete bundle.
           # Only runs when the target RID architecture matches the build agent
           # (i.e. the binary can execute natively without emulation).
           - ${{ if eq(parameters.agentOs, 'windows') }}:
@@ -293,7 +293,8 @@ jobs:
                   exit 1
                 }
                 Write-Host "Found archive: $($archive.FullName)"
-                & "$(Build.SourcesDirectory)/eng/scripts/verify-cli-archive.ps1" -ArchivePath $archive.FullName
+                $verifySignature = '${{ parameters.codeSign }}' -eq 'True' -and '$(_SignType)' -eq 'real'
+                & "$(Build.SourcesDirectory)/eng/scripts/verify-cli-archive.ps1" -ArchivePath $archive.FullName -VerifyBundle -VerifySignature:$verifySignature
                 if ($LASTEXITCODE -ne 0) {
                   Write-Host "##[error]CLI archive verification failed"
                   exit 1
@@ -315,7 +316,8 @@ jobs:
                   exit 1
                 }
                 Write-Host "Found archive: $($archive.FullName)"
-                & "$(Build.SourcesDirectory)/eng/scripts/verify-cli-archive.ps1" -ArchivePath $archive.FullName
+                $verifySignature = '${{ parameters.codeSign }}' -eq 'True' -and '$(_SignType)' -eq 'real'
+                & "$(Build.SourcesDirectory)/eng/scripts/verify-cli-archive.ps1" -ArchivePath $archive.FullName -VerifyBundle -VerifySignature:$verifySignature
                 if ($LASTEXITCODE -ne 0) {
                   Write-Host "##[error]CLI archive verification failed"
                   exit 1

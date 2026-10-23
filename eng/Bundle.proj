@@ -235,6 +235,7 @@
       <_BundleSigningArgs>$(_BundleSigningArgs) "/p:ArtifactsDir=$(_ArtifactsDir.TrimEnd('\').TrimEnd('/'))/"</_BundleSigningArgs>
       <_BundleSigningArgs Condition="'$(TeamName)' != ''">$(_BundleSigningArgs) "/p:TeamName=$(TeamName)"</_BundleSigningArgs>
       <_BundleSigningArgs Condition="'$(DotNetPublishUsingPipelines)' != ''">$(_BundleSigningArgs) /p:DotNetPublishUsingPipelines=$(DotNetPublishUsingPipelines)</_BundleSigningArgs>
+      <_SignOnlyCommand>&quot;$(_BuildScriptPath)&quot; -restore -sign -configuration $(Configuration) -projects &quot;$(_ManagedProjectPath)&quot; $(_BundleChildArgs) $(_BundleSigningArgs)</_SignOnlyCommand>
     </PropertyGroup>
 
     <!-- Resolve shared payload paths after importing projects have overridden
@@ -422,7 +423,7 @@
                Condition="'$(BuildDistributionPackages)' == 'true' and $(TargetRid.StartsWith('osx-')) and '$(Sign)' == 'true'" />
 
     <!-- Sign the prepared component binaries before assembling their payload. -->
-    <Exec Command="&quot;$(_BuildScriptPath)&quot; -restore -sign -configuration $(Configuration) -projects &quot;$(_ManagedProjectPath)&quot; $(_BundleChildArgs) $(_BundleSigningArgs) &quot;/bl:$(_ArtifactsLogDir)SignBundleComponents.binlog&quot;"
+    <Exec Command="$(_SignOnlyCommand) &quot;/bl:$(_ArtifactsLogDir)SignBundleComponents.binlog&quot;"
           EnvironmentVariables="$(_NuGetCacheEnvironmentVariables)"
           Condition="'$(Sign)' == 'true'" />
 
@@ -494,6 +495,8 @@
       <_RequireMacTraySignature>false</_RequireMacTraySignature>
       <_RequireWindowsTraySignature Condition="$(TargetRid.StartsWith('win-')) and '$(Sign)' == 'true' and '$(DotNetSignType)' == 'real'">true</_RequireWindowsTraySignature>
       <_RequireMacTraySignature Condition="$(TargetRid.StartsWith('osx-')) and '$(Sign)' == 'true' and '$(DotNetSignType)' == 'real'">true</_RequireMacTraySignature>
+      <_RequireBundleSignature>false</_RequireBundleSignature>
+      <_RequireBundleSignature Condition="'$(Sign)' == 'true' and '$(DotNetSignType)' == 'real'">true</_RequireBundleSignature>
       <_CreateLayoutProjectPath Condition="'$(_CreateLayoutProjectPath)' == ''">$(_RepoRoot)tools\CreateLayout\CreateLayout.csproj</_CreateLayoutProjectPath>
       <!-- Remove trailing slashes for command line arguments -->
       <_BundleOutputDirArg>$(_BundleOutputDir.TrimEnd('\').TrimEnd('/'))</_BundleOutputDirArg>
@@ -510,6 +513,9 @@
           EnvironmentVariables="$(_NuGetCacheEnvironmentVariables)" />
 
     <!-- Verify the produced archive after signing and assembly, before CLI embedding. -->
+    <Exec Command="pwsh -NoProfile -File &quot;$(_BundleEngineeringDir)scripts/verify-bundle-payload.ps1&quot; -Archive &quot;$(_BundleArchivePath)&quot; -Rid &quot;$(TargetRid)&quot; -RequireSignature $(_RequireBundleSignature)"
+          Condition="'$(BuildDistributionPackages)' == 'true'" />
+
     <Exec Command="bash &quot;$(_RepoRoot)tools/CreateLayout/verify-tray-payload.sh&quot; &quot;$(_BundleArchivePath)&quot; &quot;$(TargetRid)&quot; &quot;$(_RequireMacTraySignature)&quot;"
           Condition="$(TargetRid.StartsWith('osx-'))" />
     <Exec Command="pwsh -NoProfile -File &quot;$(_RepoRoot)tools/CreateLayout/verify-windows-tray-payload.ps1&quot; -Archive &quot;$(_BundleArchivePath)&quot; -Rid &quot;$(TargetRid)&quot; -RequireSignature $(_RequireWindowsTraySignature)"
@@ -548,7 +554,7 @@
     <!-- The CLI packaging backend normally signs these new payload packages.
          When it is skipped, use a fresh sign-only evaluation to discover them:
          the earlier component signing pass ran before these packages existed. -->
-    <Exec Command="&quot;$(_BuildScriptPath)&quot; -restore -sign -configuration $(Configuration) -projects &quot;$(_ManagedProjectPath)&quot; $(_BundleChildArgs) $(_BundleSigningArgs) &quot;/bl:$(_ArtifactsLogDir)SignBundlePayloadPackages.binlog&quot;"
+    <Exec Command="$(_SignOnlyCommand) &quot;/bl:$(_ArtifactsLogDir)SignBundlePayloadPackages.binlog&quot;"
           EnvironmentVariables="$(_NuGetCacheEnvironmentVariables)" />
   </Target>
 

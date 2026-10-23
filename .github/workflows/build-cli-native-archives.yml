@@ -138,6 +138,15 @@ jobs:
             -Rid $rid `
             -ArchivePath $archive[0].FullName
 
+          # Exercise self-extraction from the final CLI, not only the input payload.
+          $architecture = [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToLowerInvariant()
+          if ($rid.EndsWith("-$architecture") -and -not $rid.Contains('musl')) {
+            & ./eng/scripts/verify-cli-archive.ps1 -ArchivePath $archive[0].FullName -VerifyBundle
+            if ($LASTEXITCODE -ne 0) { throw 'Final CLI bundle verification failed.' }
+          } else {
+            Write-Host "::notice::Embedded bundle execution skipped for cross-built $rid; payload archive validation still runs."
+          }
+
       - name: Check Windows tray desktop availability
         id: windows_tray_desktop
         if: runner.os == 'Windows'
