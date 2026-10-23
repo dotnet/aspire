@@ -19,7 +19,7 @@ public sealed class BuildWarningPolicyTests(ITestOutputHelper output)
     {
         using var workspace = TemporaryWorkspace.Create(output);
         var script = Path.Combine(workspace.Path, "evaluate.ps1");
-        var resultPath = Path.Combine(workspace.Path, "evaluation results.json");
+        var resultPath = Path.Combine(workspace.Path, "evaluation_results.json");
         await File.WriteAllTextAsync(script, """
             & $env:TEST_DOTNET msbuild (Join-Path $env:TEST_REPO 'eng/WarningPolicy.proj') -nologo `
               -getProperty:WarningsNotAsErrors,NoWarn,NuGetAuditMode,NuGetAudit,TreatWarningsAsErrors `

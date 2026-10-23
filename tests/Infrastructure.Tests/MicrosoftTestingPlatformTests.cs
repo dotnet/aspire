@@ -19,7 +19,7 @@ public sealed class MicrosoftTestingPlatformTests(ITestOutputHelper output)
     {
         using var workspace = TemporaryWorkspace.Create(output);
         var script = Path.Combine(workspace.Path, "evaluate.ps1");
-        var resultPath = Path.Combine(workspace.Path, "evaluation results.json");
+        var resultPath = Path.Combine(workspace.Path, "evaluation_results.json");
         await File.WriteAllTextAsync(script, """
             [Console]::Error.WriteLine('MSBuild server unavailable: could not connect to the server within the timeout window; the server may have failed to start. Falling back to an in-process build.')
             & $env:TEST_DOTNET msbuild (Join-Path $env:TEST_REPO 'tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj') -nologo `
