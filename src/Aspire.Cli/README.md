@@ -74,6 +74,8 @@ check it out detached, so a branch moving during the download cannot change
 the selected version. Incomplete downloads are never published to the cache
 and are cleaned up on failure or cancellation. Existing entries remain available.
 Cached versions can be removed manually when no invocation is using them.
+On Unix and macOS, the templates cache root is created with owner-only (`0700`)
+permissions. Existing root permissions are repaired on cache reuse.
 
 Git's normal authentication configuration applies; Git terminal credential
 prompts are disabled in non-interactive mode. Submodule cloning and repository
@@ -103,6 +105,48 @@ build metadata (`+...`). It also honors CLI identity overrides. For example:
       "type": "parameter",
       "datatype": "string",
       "replaces": "{{aspireVersion}}"
+    }
+  }
+}
+```
+
+`AspireNuGetSource` is another well-known parameter (case-insensitive). If declared,
+Aspire supplies the Aspire package source for the same CLI identity used by
+`AspireVersion`, overriding its default without prompting or querying package
+feeds. This is the nuget.org service index for stable, the appropriate feed for
+daily/staging, or a local package directory for a PR/local hive. CLI identity
+package-directory and NuGet service-index overrides are honored. If the identity's
+package channel cannot be resolved, creation fails before writing files rather
+than using an unrelated feed.
+
+The value is a raw URL or directory path. Templates must encode it for their
+output format and use matching source and package-source-mapping keys. For
+double-quoted XML attributes, `xmlEncode` also needs a quote-escaping form:
+
+```json
+{
+  "symbols": {
+    "AspireNuGetSource": {
+      "type": "parameter",
+      "datatype": "string",
+      "defaultValue": "https://api.nuget.org/v3/index.json"
+    },
+    "aspireNuGetSourceXml": {
+      "type": "derived",
+      "valueSource": "AspireNuGetSource",
+      "valueTransform": "xmlAttribute",
+      "replaces": "{{aspireNuGetSourceXml}}"
+    }
+  },
+  "forms": {
+    "xmlQuotes": {
+      "identifier": "replace",
+      "pattern": "\"",
+      "replacement": "&quot;"
+    },
+    "xmlAttribute": {
+      "identifier": "chain",
+      "steps": ["xmlEncode", "xmlQuotes"]
     }
   }
 }

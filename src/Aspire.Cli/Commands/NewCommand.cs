@@ -58,18 +58,15 @@ internal sealed class NewCommand : BaseCommand
     };
     internal static readonly Option<string?> s_templatePathOption = new("--template-path")
     {
-        Description = NewCommandStrings.TemplatePathOptionDescription,
-        Recursive = true
+        Description = NewCommandStrings.TemplatePathOptionDescription
     };
     internal static readonly Option<string?> s_templateRepositoryOption = new("--template-repository")
     {
-        Description = NewCommandStrings.TemplateRepositoryOptionDescription,
-        Recursive = true
+        Description = NewCommandStrings.TemplateRepositoryOptionDescription
     };
     internal static readonly Option<string?> s_templateRepositoryRefOption = new("--template-repository-ref")
     {
-        Description = NewCommandStrings.TemplateRepositoryRefOptionDescription,
-        Recursive = true
+        Description = NewCommandStrings.TemplateRepositoryRefOptionDescription
     };
 
     internal static readonly Option<bool?> s_suppressAgentInitOption = new("--suppress-agent-init")

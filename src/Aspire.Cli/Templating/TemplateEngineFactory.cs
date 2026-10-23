@@ -8,8 +8,10 @@ using System.Text;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Git;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Packaging;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
+using Aspire.Shared;
 using Microsoft.Extensions.Logging;
 using Microsoft.TemplateEngine.Abstractions;
 using Microsoft.TemplateEngine.Abstractions.Installer;
@@ -26,6 +28,7 @@ internal sealed class TemplateEngineFactory(
     INewCommandPrompter prompter,
     ICliHostEnvironment hostEnvironment,
     IGitRunner gitRunner,
+    IPackagingService packagingService,
     ILogger<TemplateEngineFactory> logger) : ITemplateFactory, IDisposable
 {
     private readonly List<IDisposable> _resources = [];
@@ -117,12 +120,12 @@ internal sealed class TemplateEngineFactory(
             var identity = $"{repository}\0{relativePath.Replace(Path.DirectorySeparatorChar, '/')}\0{sha}";
             var key = Convert.ToHexString(XxHash3.Hash(Encoding.UTF8.GetBytes(identity))).ToLowerInvariant();
             var cacheDirectory = Path.Combine(cacheRoot, $"{key}-{sha}");
+            DirectoryHelper.CreateWithOwnerOnlyPermissions(cacheRoot);
             if (Directory.Exists(cacheDirectory))
             {
                 return GetRepositoryTemplatePath(cacheDirectory, relativePath);
             }
 
-            Directory.CreateDirectory(cacheRoot);
             using var checkout = TemporaryCacheDirectory.Create(cacheRoot, "repo", DeleteCheckout, DeleteLease);
             var repositoryRoot = new DirectoryInfo(Path.Combine(checkout.FullName, "repository"));
             await interactionService.ShowStatusAsync(NewCommandStrings.CloningTemplateRepository, async () =>
@@ -282,6 +285,27 @@ internal sealed class TemplateEngineFactory(
             if (parameter.Name.Equals("AspireVersion", StringComparison.OrdinalIgnoreCase))
             {
                 parameters[parameter.Name] = executionContext.IdentitySdkVersion;
+                continue;
+            }
+
+            if (parameter.Name.Equals("AspireNuGetSource", StringComparison.OrdinalIgnoreCase))
+            {
+                // Resolve policy without querying feeds, using the same identity as AspireVersion.
+                // PackagingService also handles PR hives and local package/source overrides.
+                var channels = (await packagingService.GetChannelsAsync(cancellationToken, executionContext.IdentityChannel)).ToArray();
+                var channel = channels.FirstOrDefault(channel =>
+                    string.Equals(channel.Name, executionContext.IdentityChannel, StringComparisons.ChannelName) &&
+                    channel.Mappings is { Length: > 0 });
+                if (channel is null)
+                {
+                    interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture,
+                        NewCommandStrings.NoChannelFoundMatching,
+                        executionContext.IdentityChannel,
+                        string.Join(", ", channels.Select(channel => channel.Name))));
+                    return new TemplateResult(CliExitCodes.InvalidCommand);
+                }
+
+                parameters[parameter.Name] = channel.SourceDetails;
                 continue;
             }
 
