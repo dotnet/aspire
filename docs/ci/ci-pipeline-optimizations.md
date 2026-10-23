@@ -131,16 +131,14 @@ That keeps `build_packages` focused on the shared package feed, and because `ext
 
 ### `build-cli-native-archives.yml`
 
-Each CLI archive job:
+Each CLI archive job owns the components, packages, and validation for its RID.
+Keeping that work together makes the job self-sufficient and lets downstream
+consumers use a matching set of artifacts without waiting for another platform.
 
-1. Builds RID-specific bundle components and native CLI packages through `eng/Bundle.proj`
-2. Smoke-tests the bundle and verifies the packages
-3. Uploads packages as `built-nugets-for-{rid}`
-4. Uploads native archives as `cli-native-archives-{rid}`
-
-This makes the archive job self-sufficient for the RID-specific artifacts it needs.
-GitHub Actions and Azure Pipelines use the same bundle build process in
-`eng/Bundle.proj` rather than maintaining separate implementations.
+GitHub Actions and Azure Pipelines share the bundle orchestration so publishing,
+signing, and assembly cannot drift into different implementations. Components
+are signed before assembly and are not republished afterward, because replacing
+signed files would invalidate the distributed payload's signing guarantees.
 
 ### Native CLI packaging
 
