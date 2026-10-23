@@ -1,0 +1,9 @@
+{
+  "author": "joperezr",
+  "comment": "Playground-only Dockerfile comment for supply chain analysis",
+  "mergedAt": "2026-10-22T19:31:28Z",
+  "number": 21240,
+  "runDate": "2026-10-23T00:10:00Z",
+  "status": "excluded",
+  "title": "Suppress registry analysis for nonshipping Compose web sample"
+}
