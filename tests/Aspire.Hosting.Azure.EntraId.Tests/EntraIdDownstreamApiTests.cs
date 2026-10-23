@@ -32,14 +32,12 @@ public class EntraIdDownstreamApiTests
 
         // Only the downstream API and the service discovery settings are added. The API's own registration settings
         // aren't copied to the caller.
-        // WithReference also adds the endpoint's plain "{service}_{scheme}" variable.
         Assert.Equal(new Dictionary<string, string>
         {
             ["DownstreamApis__api__BaseUrl"] = "https+http://api",
             ["DownstreamApis__api__Scopes__0"] = $"api://{ApiClientId}/access_as_user",
             ["DownstreamApis__api__Scopes__1"] = $"api://{ApiClientId}/Files.Read",
-            ["services__api__https__0"] = "https://localhost:7081",
-            ["API_HTTPS"] = "https://localhost:7081"
+            ["services__api__https__0"] = "https://localhost:7081"
         }, env);
     }
 

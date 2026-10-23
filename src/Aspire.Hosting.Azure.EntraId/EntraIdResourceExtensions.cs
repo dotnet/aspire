@@ -2201,7 +2201,7 @@ public static class EntraIdResourceExtensions
     public static IResourceBuilder<T> WithDownstreamApi<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<EntraIdApplicationResource> apiRegistration,
-        IResourceBuilder<IResourceWithServiceDiscovery> apiService,
+        IResourceBuilder<IResourceWithEndpoints> apiService,
         string[] scopes,
         string? name = null)
         where T : IResourceWithEnvironment
@@ -2250,16 +2250,7 @@ public static class EntraIdResourceExtensions
 
         builder.WithAnnotation(new EntraIdDownstreamApiAnnotation(downstreamApiName));
         builder.WithReferenceRelationship(apiRegistration.Resource);
-
-        if (useServiceDiscovery)
-        {
-            // Adds the services__{api}__{scheme}__{index} settings that the https+http://{api} base URL resolves through.
-            builder.WithReference(apiService);
-        }
-        else
-        {
-            builder.WithReferenceRelationship(apiService.Resource);
-        }
+        builder.WithReferenceRelationship(apiService.Resource);
 
         var entra = apiRegistration.Resource;
         var service = apiService.Resource;
@@ -2268,12 +2259,21 @@ public static class EntraIdResourceExtensions
 
         builder.WithEnvironment(context =>
         {
+            var endpoint = GetDownstreamApiEndpoint(service);
             var environmentVariables = new Dictionary<string, object>
             {
                 [$"{keyPrefix}BaseUrl"] = useServiceDiscovery
                     ? $"https+http://{service.Name}"
-                    : GetDownstreamApiEndpoint(service)
+                    : endpoint
             };
+
+            if (useServiceDiscovery)
+            {
+                // The base URL above resolves through the .NET service discovery setting for the same endpoint. It's set here
+                // rather than with WithReference so that any service with HTTP endpoints works, not only those that support
+                // service discovery, and so that only the endpoint the token is sent to is exposed.
+                context.EnvironmentVariables[$"services__{service.Name}__{endpoint.EndpointAnnotation.UriScheme}__0"] = endpoint;
+            }
 
             var applicationIdUri = entra.CreateApplicationIdUriExpression();
             for (var i = 0; i < scopes.Length; i++)
