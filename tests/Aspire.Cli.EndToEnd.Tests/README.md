@@ -11,8 +11,11 @@ These tests simulate real user interactions with the Aspire CLI by automating te
 `CustomTemplateTests` uses the test-only template in `Fixtures/CustomTemplate`, independently
 of the shipped project templates. It exercises required text, Boolean, single-choice defaults,
 multi-choice preselection, name replacement, and conditional files through the installed CLI.
-Directory and local Git sources run in the SDK-free polyglot container, with generated files
-verified against snapshots.
+Directory and HTTP Git sources run in the SDK-free polyglot container, with generated files
+verified against snapshots. The Git scenario serves an isolated bare repository through
+`git http-backend` in a test-process `WebApplication`, bound to a dynamically assigned loopback
+port. Host networking lets the container reach the server. Smart HTTP supports the CLI's
+shallow fetches, unlike static-file Git hosting.
 
 ## Architecture
 

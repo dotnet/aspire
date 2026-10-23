@@ -27,8 +27,10 @@ public sealed class CustomTemplateTests(ITestOutputHelper output)
             Path.Combine(testDirectory, "Fixtures", "CustomTemplate"),
             Path.Combine(workspace.WorkspaceRoot.FullName, "template"));
 
+        // The Git server runs in the test process; host networking makes its loopback address reachable.
         using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(
-            repoRoot, strategy, output, variant: CliE2ETestHelpers.DockerfileVariant.Polyglot, workspace: workspace);
+            repoRoot, strategy, output, variant: CliE2ETestHelpers.DockerfileVariant.Polyglot,
+            workspace: workspace, network: repository ? "host" : null);
         var counter = new SequenceCounter();
         var auto = new Hex1bTerminalAutomator(terminal, defaultTimeout: TimeSpan.FromSeconds(500));
         await using var terminalRun = CliE2ETestHelpers.StartRun(
@@ -42,11 +44,15 @@ public sealed class CustomTemplateTests(ITestOutputHelper output)
         {
             await auto.RunCommandAsync(
                 "git -C template init && git -C template add . && " +
-                "git -C template -c user.name='Aspire tests' -c user.email=tests@example.com -c commit.gpgsign=false commit -m 'Add template'",
+                "git -C template -c user.name='Aspire tests' -c user.email=tests@example.com -c commit.gpgsign=false commit -m 'Add template' && " +
+                "git clone --bare template template.git",
                 counter);
         }
 
-        var source = repository ? "--template-repository \"file://$PWD/template\"" : "--template-path template";
+        await using var server = repository
+            ? await GitHttpServer.StartAsync(workspace.Path, TestContext.Current.CancellationToken)
+            : null;
+        var source = server is not null ? $"--template-repository \"{server.RepositoryUrl}\"" : "--template-path template";
         await auto.TypeAsync($"aspire new {source} --name PromptDemo --output out --suppress-agent-init --nologo");
         await auto.EnterAsync();
 
