@@ -1,6 +1,27 @@
 name: Build native CLI archives
 
 on:
+  workflow_dispatch:
+    inputs:
+      versionOverrideArg:
+        required: false
+        type: string
+      configuration:
+        required: false
+        type: string
+        default: Release
+      targets:
+        required: false
+        type: string
+        default: >-
+          [
+            {"os": "ubuntu-latest", "runner": "8-core-ubuntu-latest", "rids": "linux-x64"},
+            {"os": "ubuntu-latest", "runner": "ubuntu-24.04-arm", "rids": "linux-arm64"},
+            {"os": "windows-latest", "runner": "windows-latest", "rids": "win-x64"},
+            {"os": "windows-latest", "runner": "windows-11-vs2026-arm", "rids": "win-arm64"},
+            {"os": "macos-latest", "runner": "macos-latest", "rids": "osx-arm64"},
+            {"os": "macos-15-intel", "runner": "macos-15-intel", "rids": "osx-x64"}
+          ]
   workflow_call:
     inputs:
       versionOverrideArg:
