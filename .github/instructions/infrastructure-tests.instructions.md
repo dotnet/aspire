@@ -8,6 +8,19 @@ Use these rules when authoring or reviewing tests in `tests/Infrastructure.Tests
 The goal is to catch incorrect infrastructure behavior, not to preserve its
 current implementation.
 
+## Choose the right test owner and entry point
+
+- When a regression belongs to a repository-internal tool, prefer coverage in
+  that tool's own test project over adding it to `Infrastructure.Tests`.
+- Do not add infrastructure tests for internal MSBuild target or project
+  implementation details, whether exercised through private targets or a public
+  build entry point. Product and artifact correctness checks belong in the
+  producing build or CI stage, as described below.
+- An exceptional MSBuild regression test needs a critical failure that existing
+  build or CI validation would not catch. Explain that gap and why a check in
+  the producing build is unsuitable; do not add a test just because the target
+  or project file changed.
+
 ## Test behavior, not source text
 
 - Start with the regression the test should catch. Exercise the real tool,
@@ -38,6 +51,26 @@ current implementation.
 - Checked-in configuration is valid production input. For test selection, load
   the real trigger map through the production selector and assert broad routing
   expectations and deliberate exclusions, not configuration-list equality.
+  Retain cross-configuration checks that independently discover consumers from
+  workflow dependencies, evaluated project metadata, or fixture declarations
+  and verify that the production selector reaches them. These catch missing
+  routing for future consumers; they are not assertions that configuration must
+  retain a fixed command, property value, or layout. Keep discovery assumptions
+  explicit and guard against an empty or incomplete discovery silently passing.
+- Cover distinct routing boundaries, not every member of an audited consumer
+  list. Reuse existing assertions for behavior already covered.
+  Keep broad Layer 1 integration coverage that verifies actual graph changes
+  select the dependent .NET test projects, not just supplied affected-project
+  names. Use one or two representative inputs per special routing mechanism
+  (for example CLI-bundle consumers or Polyglot validation), not every source.
+  Preserve distinct mechanisms, deliberate exclusions, and failure cases when
+  reducing examples with the same expected targets.
+  Representation-only regrouping does not require new tests when existing
+  cases exercise the affected routes. Do not assert rule counts, ordering, or
+  group names.
+- Selector-only tests establish routing after filtering, not end-to-end
+  selection. Include the production changed-file prefilter for filtering-sensitive
+  inputs, and validate any upstream workflow skip gate separately.
 - Configuration validity belongs to the consuming tool: malformed rules and
   unresolved explicit references should produce actionable diagnostics. Test
   that production validation with invalid inputs rather than duplicating it in
@@ -66,24 +99,25 @@ current implementation.
 
 ## Justify expensive build and publish tests
 
-Add tests that invoke expensive operations such as `dotnet build` or
-`dotnet publish` only when they provide meaningful regression coverage that
-justifies their cost. Identify the failure they would catch and why existing
-build validation or a cheaper behavioral test does not already cover it. Merely
-rerunning a build or publish and asserting success is not sufficient value when
-the same operation is already validated elsewhere. Use the smallest project and
-operation that exercise the behavior.
+Do not add infrastructure tests that repeat product builds or publishes to
+check artifact correctness. Put those checks in the producing build or CI stage.
+For an exceptional critical regression described above, or a test of an internal
+tool's behavior that genuinely requires a build, identify the failure and why
+existing validation or a cheaper behavioral test cannot catch it. Use the
+smallest project and operation that exercise the behavior.
 
 ## Put essential production checks in the build
 
-When a verification is important to producing a correct product, consider making
-it part of the build or packaging step that produces the result, rather than
-checking the implementation text in a test. Validate the actual result at the
-appropriate point and fail with an actionable diagnostic when it is incorrect.
-For example, a requirement on a release artifact should be checked against the
-produced artifact, not against the YAML or script intended to create it. Do not
-add a test solely to confirm that YAML passes a particular property; check that
-the resulting product has the required behavior or contents instead.
+Validation required to produce a correct product belongs in the build, packaging,
+or CI stage that produces the artifact, not in `Infrastructure.Tests`. Run the
+check as part of each applicable build or publish so correctness does not depend
+on a separate test run. Validate the actual result at the appropriate point and
+fail with an actionable diagnostic when it is incorrect.
+
+For example, check a release artifact's required contents or behavior against the
+produced artifact, not against the YAML, project properties, or script intended
+to create it. Invoking MSBuild from a test does not make that test the right
+place for production validation.
 
 ## Validate the product in the appropriate CI lane
 
@@ -94,7 +128,8 @@ those builds.
 The official Azure Pipelines build adds signing-specific behavior and does not
 run the general repository test suite, but does run dedicated validations,
 including basic template tests against produced packages. Reuse those lanes
-where applicable. Checks of unsigned GitHub CI outputs cannot establish
+where applicable; an `Infrastructure.Tests` assertion cannot protect a build
+that does not run that suite. Checks of unsigned GitHub CI outputs cannot establish
 signing-dependent correctness. Focused smoke checks of the actual post-signing
 outputs can add value in the official pipeline, for example by verifying that a
 produced executable starts or that a signed package can be consumed. Choose checks

@@ -2,7 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Xunit;
+using YamlDotNet.RepresentationModel;
 
 namespace Infrastructure.Tests.TestTriggerMap;
 
@@ -812,6 +814,83 @@ public sealed class SelectTestsCliTests
             Assert.Contains("run_extension_e2e", keys);
             Assert.Contains("run_group_job", keys);
             Assert.Contains("run_derived_only_job", keys);
+        });
+    }
+
+    [Fact]
+    public void RealWorkflowJobGatesReachProductionSelectorBooleans()
+    {
+        using var reader = File.OpenText(Path.Combine(RepoRoot.Path, ".github", "workflows", "tests.yml"));
+        var workflow = new YamlStream();
+        workflow.Load(reader);
+        var root = Assert.IsType<YamlMappingNode>(workflow.Documents[0].RootNode);
+        var jobs = Assert.IsType<YamlMappingNode>(root.Children[new YamlScalarNode("jobs")]);
+        var gates = new List<(string Job, string Producer, string Gate)>();
+
+        // Gates currently use needs.setup_for_tests.outputs.run_polyglot, optionally
+        // combined with other conditions. Reject unrecognized run_* references rather
+        // than silently losing coverage if the workflow switches expression syntax.
+        foreach (var (jobId, jobNode) in jobs.Children)
+        {
+            var job = Assert.IsType<YamlMappingNode>(jobNode);
+            if (!job.Children.TryGetValue(new YamlScalarNode("if"), out var condition))
+            {
+                continue;
+            }
+
+            var gateNames = Regex.Matches(condition.ToString(), @"\brun_[a-z0-9_]+\b");
+            var references = Regex.Matches(condition.ToString(), @"needs\.([a-zA-Z0-9_-]+)\.outputs\.(run_[a-z0-9_]+)\b");
+            Assert.True(gateNames.Count == references.Count,
+                $"{jobId} contains an unrecognized run_* gate expression: {condition}");
+
+            gates.AddRange(references.Select(match =>
+                (jobId.ToString(), match.Groups[1].Value, match.Groups[2].Value)));
+        }
+
+        Assert.NotEmpty(gates);
+
+        RunInTempRepo((_, propsPath, output) =>
+        {
+            var options = Options(RepoRoot.Path, propsPath, skipLayer1: true, forceAll: true, enforce: true) with
+            {
+                MapPath = Path.Combine(RepoRoot.Path, "eng", "github-ci", "test-trigger-map.yml")
+            };
+            Assert.Equal(0, Selection.Run(options));
+            using var selection = JsonDocument.Parse(output()["selection"]);
+
+            foreach (var (jobId, producerId, gate) in gates)
+            {
+                var consumer = Assert.IsType<YamlMappingNode>(jobs.Children[new YamlScalarNode(jobId)]);
+                Assert.True(consumer.Children.TryGetValue(new YamlScalarNode("needs"), out var needs),
+                    $"{jobId} reads {producerId}.{gate}, but has no job dependencies.");
+                var dependencies = needs is YamlScalarNode scalar
+                    ? [scalar.ToString()]
+                    : Assert.IsType<YamlSequenceNode>(needs).Children.Select(node => node.ToString()).ToArray();
+                Assert.Contains(producerId, dependencies);
+
+                Assert.True(jobs.Children.TryGetValue(new YamlScalarNode(producerId), out var producerNode),
+                    $"{jobId} reads {gate} from missing job {producerId}.");
+                var producer = Assert.IsType<YamlMappingNode>(producerNode);
+                var outputs = Assert.IsType<YamlMappingNode>(producer.Children[new YamlScalarNode("outputs")]);
+                Assert.True(outputs.Children.TryGetValue(new YamlScalarNode(gate), out var expression),
+                    $"{jobId} reads {producerId}.{gate}, but that job does not publish it.");
+
+                // Resolve e.g. ${{ fromJSON(steps.select_tests.outputs.selection).run_polyglot }}.
+                // The step id is discovered, not fixed; the run_* name must keep its meaning.
+                var mapping = Regex.Match(expression.ToString(),
+                    @"^\s*\$\{\{\s*fromJSON\(\s*steps\.([a-zA-Z0-9_-]+)\.outputs\.selection\s*\)\.(run_[a-z0-9_]+)\s*\}\}\s*$");
+                Assert.True(mapping.Success, $"{producerId}.{gate} has an unrecognized selector output mapping: {expression}");
+                Assert.Equal(gate, mapping.Groups[2].Value);
+
+                var steps = Assert.IsType<YamlSequenceNode>(producer.Children[new YamlScalarNode("steps")]);
+                var step = Assert.Single(steps.Children.OfType<YamlMappingNode>(), step =>
+                    step.Children.TryGetValue(new YamlScalarNode("id"), out var id)
+                    && id.ToString() == mapping.Groups[1].Value);
+                Assert.Equal("./.github/actions/select-tests", step.Children[new YamlScalarNode("uses")].ToString());
+                Assert.True(selection.RootElement.TryGetProperty(gate, out var value),
+                    $"{jobId} reads {gate}, but the production selector does not emit it.");
+                Assert.Equal(JsonValueKind.True, value.ValueKind);
+            }
         });
     }
 

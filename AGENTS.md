@@ -53,7 +53,18 @@ needs to change if the diff:
   `OuterloopTest` on an E2E scenario with runtime-only dependencies.
 
 Do not request manual mappings for files evaluated by projects in the
-`Aspire.slnx`-rooted ProjectGraph; Layer 1 owns them. For Layer 2 blind spots,
+`Aspire.slnx`-rooted ProjectGraph; Layer 1 owns them. Verify evaluated items,
+imports, and dependency edges before claiming coverage. A file under `src/`
+or beside a .NET project is not necessarily a project input; excluded assets,
+runtime-read files, and non-.NET inputs may still need curated routes.
+The selector's project-directory ownership heuristic suppresses fallback;
+it does not prove that the graph selects the file's consumers.
+Before adding a path rule,
+check existing Layer 2 conventions and overlapping rules as well. Do not add
+or retain a redundant entry merely to confirm selection another route already
+provides. Keep an explicit rule only for additional consumers or another
+necessary routing purpose, not to duplicate the graph or a convention.
+For Layer 2 blind spots,
 verify that the map routes each path to its actual consumer, uses `ALL` for
 broad shared inputs, or explicitly classifies paths handled by unconditional or
 dedicated workflows and paths with no PR-CI consumer. A gated job implemented by
@@ -69,9 +80,21 @@ production projects and never match projects under `tests/`, a runtime-only test
 or test-support consumer must use path or derived-target routing instead.
 Project-name patterns use globs, not regular expressions. For expensive or
 class-sharded targets, prefer exact project names; use a family glob only when
-every current and future matching project should run that target. When a PR
-changes the packages or fixtures an E2E scenario consumes, add or remove the
-corresponding trigger-map entry in the same PR.
+every current and future matching project should run that target. Audit routing
+when a PR changes the packages or fixtures an E2E scenario consumes. Update the
+map when the required target set changes; do not require YAML churn when an
+existing rule already covers the consumer.
+
+Keep the map organized by shared consumers and purpose, not one rule per file
+or dependency. Combine related inputs with the same target set in one rule's
+`paths` or `projects` list; keep separate rules when consumers or routing
+constraints differ. Prefer a logical dependency list that a reviewer can scan
+for incorrect or missing members over separate entries with individual reasons.
+Use one concise shared reason, with a short comment for a non-obvious dependency
+when needed.
+Reuse an existing target group when it represents the same consumer set. Add a
+new group only for a meaningful, reused set, not for every dependency. Grouping
+must preserve routing boundaries; do not broaden a glob just to shorten the map.
 
 For a dedicated package-input directory in `path_rules`, prefer one stable
 directory glob when enumerating individual files or RIDs would let a new input
@@ -98,19 +121,45 @@ them when their workflow or routing is intentionally in scope.
 
 Match runtime-only edges to the target's execution lane. A regular-PR target is
 justified only by scenarios that run in regular PR CI; quarantined, disabled,
-and outerloop-only consumers do not qualify. When a scheduling attribute moves
-a scenario into or out of regular PR CI, update the exact trigger-map edge and
-focused regression coverage in the same PR.
+and outerloop-only consumers do not qualify. Audit routing when a scheduling
+attribute moves a scenario into or out of regular PR CI. Update the edge and
+focused regression coverage when the required target set changes; another
+eligible scenario may still require the same edge.
+This concerns curated runtime-only dependencies, not Layer 1 project references:
+if the last regular-PR scenario using a package becomes quarantined, disabled,
+or outerloop-only, that package no longer justifies the manual edge to that job.
+
+Do not add project or path dependencies merely because a project contains
+quarantined tests, or to select a quarantine workload. Quarantine-workload
+discovery and scheduling should be automated separately, not maintained as
+per-project entries in this map. This does not exclude real dependencies of
+regular-PR scenarios or infrastructure that implements the quarantine runner.
 
 Selector behavior changes should include focused coverage in
-`tests/Infrastructure.Tests/TestTriggerMap/`. Audit the complete curated
-consumer and path lists whenever a PR changes routing or runtime consumption;
-tests are regression guards, not a second copy of that audit. Cover each
+`tests/Infrastructure.Tests/TestTriggerMap/`. Audit the complete affected
+consumer lists and corresponding loose-input routes against their consuming
+workflows and execution lanes, not unrelated map sections.
+Tests are regression guards, not a second copy of that audit. Cover each
 distinct heavy-target routing boundary with a representative positive and record
 deliberate exclusions in focused negative cases. When the same consumer list is
 intentionally duplicated across rule types, audit the lists for consistency and
 exercise the selector behavior through each route rather than asserting equality
-of the configuration lists.
+of the configuration lists. Representation-only regrouping does not require new
+tests when existing cases exercise the affected routes. Do not assert rule
+counts, ordering, or group names.
+Keep broad Layer 1 coverage that exercises the graph and verifies selection of
+dependent .NET test projects. For special routes such as CLI-bundle consumers
+and Polyglot validation, one or two representative inputs per distinct routing
+mechanism are sufficient; do not enumerate every source file. Keep tests of
+different mechanisms, exclusions, and failure modes even when their selected
+targets overlap. Before removing a case, identify the retained assertion that
+guards its regression or state the remaining gap; fewer tests must not mean
+less behavioral coverage.
+Preserve checks that independently discover consumers from workflow dependencies,
+evaluated project metadata, or fixture declarations and verify production
+selection reaches them. These protect future additions without a hardcoded
+consumer inventory; distinguish them from assertions that freeze YAML layout
+or command text, and guard against discovery silently finding no consumers.
 Treat a relaxed negative expectation as a signal to verify the consuming
 workflow's artifacts and execution lane. See `docs/ci/test-trigger-map.md` for
 the map vocabulary and maintenance guidance.

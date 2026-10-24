@@ -125,19 +125,36 @@ actual consumers before deciding whether the map needs to change.
 Flag concrete selection gaps:
 
 - Treat files evaluated by the `Aspire.slnx` ProjectGraph as Layer 1-owned and
-  projects outside that graph as Layer 2 blind spots.
+  projects outside that graph as Layer 2 blind spots. Verify evaluated items,
+  imports, and consumer edges; directory containment under `src/` or a .NET
+  project is not proof of coverage. A project-directory fallback exemption
+  does not prove graph attribution or consumer selection.
+- Check existing conventions and overlapping rules before requesting explicit
+  paths. Do not request entries merely to confirm selection already provided
+  by the graph or another Layer 2 route; identify the additional consumer or
+  necessary routing purpose.
 - Route Layer 2 inputs to their precise consumer, to `ALL` for broad impact, or
   explicitly outside the selector. Do not allow `ignore` or prefilter entries
   to hide a real PR-CI consumer.
 - Inspect runtime-only package and fixture consumption in E2E tests, including
   `aspire add`, generated AppHost package sets, package filters, templates, and
-  workspace copies. If a PR adds or removes one of these consumers, require the
-  corresponding exact `affected_project_rules` or `path_rules` entry to change
-  in the same PR.
+  workspace copies. Audit routing when these consumers change; require map
+  changes only when the required target set changes, not when an existing rule
+  already covers the consumer.
 - Inspect changes to `QuarantinedTest`, `ActiveIssue`, and `OuterloopTest` on
   runtime-consuming E2E scenarios. Regular-PR targets must include only
-  consumers eligible for regular PR CI; require the exact map edge and focused
-  regression coverage to change when eligibility changes.
+  consumers eligible for regular PR CI. Update the map edge and focused
+  regression coverage when the required target set changes; another eligible
+  scenario may still require the same edge.
+  For example, quarantining the last regular-PR scenario using a package can
+  remove the need for its curated runtime-only edge to that job; quarantining
+  one of several consumers does not. This does not change Layer 1 project
+  references or require unrelated quarantine-test changes.
+- Do not request manual project/path edges to a quarantine workload merely
+  because a project contains quarantined tests. Quarantine discovery and
+  scheduling belong to separate automation, not a curated project inventory.
+  Preserve actual regular-PR dependencies and quarantine-runner infrastructure
+  routing; neither is a per-project quarantine inventory.
 - Project-name patterns are globs, not regular expressions. For expensive or
   class-sharded selector-gated targets, flag family globs that include projects
   the target does not exercise. Use a family glob only when every current and
@@ -153,6 +170,11 @@ Flag concrete selection gaps:
   is the explicit resilience tradeoff, and do not flag that over-selection as a
   routing defect. Require focused exclusions only when a split has material
   savings and can be maintained safely.
+- Apply the grouping guidance in `AGENTS.md`: combine related inputs sharing
+  consumers and routing constraints, not unrelated rules with coincidentally
+  identical targets. Prefer a scannable dependency list with one shared reason
+  over one entry and reason per dependency; comments can explain non-obvious
+  members. Do not broaden routing merely to shorten the YAML.
 - Keep each trigger-map `reason` concise: it should state what the rule covers
   or why the target consumes the input. Request more detail only for a
   non-obvious relationship or constraint. Do not turn `reason` into PR prose,
@@ -172,11 +194,24 @@ curated routing changes: a representative positive per distinct routing
 boundary and focused negatives for deliberately excluded consumers. Audit
 intentionally duplicated consumer lists for consistency and exercise selector
 behavior through each routing mechanism, rather than asserting equality of
-configuration lists. Do not
-request an acceptance case per consumer; instead audit the complete curated
-list against the consuming workflow. Treat a widened or relaxed negative
-expectation as a finding until the workflow's artifacts and execution lane
-justify it. Require focused synthetic-map tests for engine or CLI behavior.
+configuration lists. Do not request an acceptance case per consumer; instead
+audit the complete affected consumer lists and loose-input routes against their
+consuming workflows and execution lanes, not unrelated map sections.
+Representation-only regrouping needs no new tests when existing cases exercise
+the affected routes; do not request rule-count, ordering, or group-name checks.
+Recheck the workflow's artifacts and execution lane when a negative expectation
+is relaxed; report a finding only when the new selection is unjustified.
+Require focused synthetic-map tests for engine or CLI behavior.
+Retain broad integration coverage from actual Layer 1 graph changes to selected
+.NET test projects. For CLI-bundle and Polyglot routes, one or two representative
+inputs per distinct mechanism suffice; do not request a source-file inventory.
+When cases are removed, verify which retained assertion guards each regression.
+Matching target sets alone do not make graph, path, affected-project, negative,
+or failure-path tests interchangeable.
+Preserve independent consumer-discovery checks that compare workflow dependencies,
+evaluated project metadata, or fixture declarations with production selector
+results. These protect future consumers without freezing configuration layout
+or command text. Check that discovery cannot silently pass with no consumers.
 See `docs/ci/test-trigger-map.md` for the complete contract.
 
 ### Test Coverage Review
