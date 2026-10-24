@@ -66,15 +66,15 @@ takes precedence over a tag with the same name. Use `refs/tags/name` to select
 that tag explicitly.
 
 Git must be on `PATH` when resolving named refs or downloading a checkout.
-Successful checkouts are retained under `~/.aspire/cache/tmpl/`, keyed by
-the repository, normalized template path, and resolved commit SHA. Different
-refs pointing to the same commit share an entry; moving a branch or tag selects
-a new entry. Cache misses fetch only the resolved commit with depth one and
+Successful checkouts are retained under `~/.aspire/cache/git/<hash>/`, keyed by
+the repository and resolved commit SHA. Different paths and refs pointing to
+the same repository commit share an entry; moving a branch or tag selects a
+new entry. Cache misses fetch only the resolved commit with depth one and
 check it out detached, so a branch moving during the download cannot change
 the selected version. Incomplete downloads are never published to the cache
 and are cleaned up on failure or cancellation. Existing entries remain available.
 Cached versions can be removed manually when no invocation is using them.
-On Unix and macOS, the templates cache root is created with owner-only (`0700`)
+On Unix and macOS, the Git cache root is created with owner-only (`0700`)
 permissions. Existing root permissions are repaired on cache reuse.
 
 Git's normal authentication configuration applies; Git terminal credential

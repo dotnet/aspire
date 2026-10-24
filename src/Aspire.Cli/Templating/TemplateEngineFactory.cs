@@ -103,7 +103,7 @@ internal sealed class TemplateEngineFactory(
 
     private async Task<string> GetRepositoryTemplateAsync(string repository, string templatePath, string? reference, CancellationToken cancellationToken)
     {
-        var cacheRoot = Path.Combine(executionContext.CacheDirectory.FullName, "tmpl");
+        var cacheRoot = Path.Combine(executionContext.CacheDirectory.FullName, "git");
         var pathRoot = Path.Combine(cacheRoot, "repository");
         var relativePath = Path.GetRelativePath(pathRoot, Path.GetFullPath(templatePath, pathRoot));
         if (Path.IsPathRooted(templatePath) || relativePath == ".." ||
@@ -117,10 +117,11 @@ internal sealed class TemplateEngineFactory(
             var sha = await interactionService.ShowStatusAsync(NewCommandStrings.ResolvingTemplateRepository,
                 () => gitRunner.ResolveReferenceAsync(repository, reference, cancellationToken));
             cancellationToken.ThrowIfCancellationRequested();
-            // NUL separates the repository and normalized path without ambiguities from URL/path delimiters.
-            var identity = $"{repository}\0{relativePath.Replace(Path.DirectorySeparatorChar, '/')}\0{sha}";
+            // Different paths and refs at the same commit share the complete repository snapshot.
+            // NUL separates the repository address and SHA without ambiguous delimiters.
+            var identity = $"{repository}\0{sha}";
             var key = Convert.ToHexString(XxHash3.Hash(Encoding.UTF8.GetBytes(identity))).ToLowerInvariant();
-            var cacheDirectory = Path.Combine(cacheRoot, $"{key}-{sha}");
+            var cacheDirectory = Path.Combine(cacheRoot, key);
             DirectoryHelper.CreateWithOwnerOnlyPermissions(cacheRoot);
             if (Directory.Exists(cacheDirectory))
             {
