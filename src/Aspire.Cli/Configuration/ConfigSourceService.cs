@@ -278,15 +278,9 @@ internal sealed class ConfigSourceService(
                 }
                 _projectChecked = true;
             }
-            var configPath = ConfigurationHelper.FindNearestConfigFilePath(directory);
-            if (configPath is null)
-            {
-                if (force)
-                {
-                    throw new ConfigSourceException(ConfigSourceStrings.NoBinding);
-                }
-                return;
-            }
+            // Bindings are not inherited. Only update/check the file that declares
+            // the source; its materialized settings still inherit through normal lookup.
+            var configPath = Path.Combine(directory.FullName, AspireConfigFile.FileName);
             var source = await ReadBindingAsync(configPath, cancellationToken);
             if (source is null)
             {

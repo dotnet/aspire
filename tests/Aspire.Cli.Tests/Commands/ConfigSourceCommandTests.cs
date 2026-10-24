@@ -413,9 +413,11 @@ public class ConfigSourceCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task UpdateConfigSource_UsesConfiguredProjectInsteadOfParentBinding(bool bound)
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task UpdateConfigSource_UsesConfiguredProjectInsteadOfParentBinding(bool bound, bool childConfigExists)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         await TestConfigSourceServices.SaveBindingAsync(s_source, workspace.WorkspaceRoot, CancellationToken.None);
@@ -426,7 +428,7 @@ public class ConfigSourceCommandTests(ITestOutputHelper outputHelper)
         {
             await TestConfigSourceServices.SaveBindingAsync(selectedSource, selected, CancellationToken.None);
         }
-        else
+        else if (childConfigExists)
         {
             await File.WriteAllTextAsync(Path.Combine(selected.FullName, AspireConfigFile.FileName), "{}");
         }
@@ -449,6 +451,45 @@ public class ConfigSourceCommandTests(ITestOutputHelper outputHelper)
 
         Assert.Equal(bound ? CliExitCodes.Success : CliExitCodes.InvalidCommand, await result.InvokeAsync().DefaultTimeout());
         Assert.Equal(bound ? 1 : 0, git.Calls);
+    }
+
+    [Fact]
+    public async Task ProjectSelection_DoesNotInheritSourceButInheritsMaterializedSettings()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var inheritedUrl = "https://parent.example/llms.txt";
+        var initial = TestConfigSourceServices.Create(workspace.CreateExecutionContext(), git: new TestConfigSourceGitClient
+        {
+            Acquire = (_, _) => Task.FromResult(("commit-1", "version-1", new JsonObject
+            {
+                ["docs"] = new JsonObject { ["llmsTxtUrl"] = inheritedUrl }
+            }))
+        });
+        await initial.MaterializeAsync(s_source, workspace.WorkspaceRoot, CancellationToken.None);
+        var parentPath = Path.Combine(workspace.Path, AspireConfigFile.FileName);
+        await ConfigurationService.SetConfigurationInFileAsync(parentPath, "appHost.path", "A/apphost.cs");
+        var parentConfiguration = await File.ReadAllTextAsync(parentPath);
+        var selected = workspace.CreateDirectory("B");
+        var projectFile = new FileInfo(Path.Combine(selected.FullName, "apphost.cs"));
+        await File.WriteAllTextAsync(projectFile.FullName, "#:sdk Aspire.AppHost.Sdk");
+        using var provider = CliTestHelper.CreateServiceCollection(workspace, outputHelper).BuildServiceProvider();
+        var git = Assert.IsType<TestConfigSourceGitClient>(provider.GetRequiredService<IConfigSourceGitClient>());
+
+        var project = await provider.GetRequiredService<IProjectLocator>().UseOrFindAppHostProjectFileAsync(
+            projectFile, createSettingsFile: false, CancellationToken.None);
+        var sources = provider.GetRequiredService<ConfigSourceService>();
+        await sources.WaitForChecksAsync().DefaultTimeout();
+
+        Assert.Equal(projectFile.FullName, project?.FullName);
+        var inherited = await provider.GetRequiredService<IConfigurationService>().GetConfigurationFromDirectoryAsync(
+            "docs.llmsTxtUrl", selected, continueSearchWhenKeyMissing: true, cancellationToken: CancellationToken.None);
+        Assert.Equal(inheritedUrl, inherited);
+        var error = await Assert.ThrowsAsync<ConfigSourceException>(() => sources.CheckProjectAsync(selected, force: true, CancellationToken.None));
+        Assert.Equal(ConfigSourceStrings.NoBinding, error.Message);
+        Assert.Equal(0, git.Calls);
+        Assert.Equal(0, git.CheckCalls);
+        Assert.Equal(parentConfiguration, await File.ReadAllTextAsync(parentPath));
+        Assert.False(File.Exists(Path.Combine(selected.FullName, AspireConfigFile.FileName)));
     }
 
     [Theory]

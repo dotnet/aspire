@@ -13,6 +13,8 @@ This specification focuses on the first phase. Content acquisition is summarized
 
 The application's `aspire.config.json` is the runtime configuration, including values previously copied from a source. Normal CLI configuration precedence and explicit parent-setting inheritance continue to apply. The source is not an additional runtime configuration provider, and ordinary commands never load the cached source JSON to supply settings.
 
+The `configSource` binding itself is not inherited. Source checks and explicit refresh use only the binding in the selected project's own `aspire.config.json` and update only that file. A child project without its own binding does not check or refresh a parent's source. Values materialized into the parent configuration continue to inherit through normal settings lookup.
+
 Source-driven writes to the app configuration and the user-directory tracking copy happen only during initial materialization by `aspire new` or `aspire init`, or an explicit `aspire update --config-source`. Other commands may check for updates and report their availability, but must not apply them. This restriction does not prohibit explicit local configuration edits or a command's unrelated project bookkeeping.
 
 ## Phase 1: Acquire remote configuration
@@ -240,7 +242,7 @@ aspire update --config-source --apphost MyApp.AppHost.csproj
 This is a configuration-update mode of `aspire update`, separate from its package-update workflow:
 
 - Resolve the project using the existing project-selection behavior, including `--apphost`, and use its saved `configSource`. Do not select a source from environment variables or employee detection. If the project has no saved source, report an error and exit nonzero without Git acquisition.
-- When `--apphost` names a directory, discover and select an AppHost within that directory before considering an ancestor configuration binding. If discovery finds no AppHost, retain the configuration-only fallback; discovery ambiguity or unsupported-project errors must not silently select an ancestor binding.
+- When `--apphost` names a directory, discover and select an AppHost within that directory before considering a configuration-only fallback in the requested directory. If discovery finds no AppHost, retain that fallback without inheriting ancestor bindings; discovery ambiguity or unsupported-project errors must not silently select another binding.
 - Acquire the saved branch's current commit, the saved exact commit, or the repository's current default branch when the binding has no ref, even when a recent check found no update. Validate it, merge only supplied allowlisted values into the selected app file, and save its applied version with those values.
 - Publish the fetched source JSON and fetch metadata in Aspire home as tracking data. Record a successful fetch/check time even if the selected file's version is unchanged. If tracking publication fails, report it explicitly; do not use shared tracking as proof that an app was updated.
 - Report the source, resolved commit, and whether the app configuration changed. Make clear that supplied allowlisted values can replace local edits.

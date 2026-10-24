@@ -183,9 +183,10 @@ internal sealed class UpdateCommand : BaseCommand
         {
             return configuredFile.Directory!;
         }
-        // An explicit directory must select its AppHost before an ancestor binding
-        // can short-circuit discovery and refresh a different project's settings.
-        if (requestedFile is null && ConfigurationHelper.FindNearestConfigFilePath(directory) is { } path && await ConfigSources.ReadBindingAsync(path, cancellationToken) is not null)
+        // Explicit directory targets must discover their AppHost first. Config-only
+        // refresh can use a binding in this directory, but never inherit one.
+        var path = Path.Combine(directory.FullName, AspireConfigFile.FileName);
+        if (requestedFile is null && await ConfigSources.ReadBindingAsync(path, cancellationToken) is not null)
         {
             return directory;
         }
