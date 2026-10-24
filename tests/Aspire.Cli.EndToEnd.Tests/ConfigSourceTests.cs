@@ -16,6 +16,23 @@ public sealed class ConfigSourceTests(ITestOutputHelper output)
     public Task New_AppliesEnvironmentConfigurationSource()
         => RunScenarioAsync(Scenario.Create);
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    [CaptureWorkspaceOnFailure]
+    public Task New_PromptsForConfigurationSourceConsent(bool accept)
+        => RunScenarioAsync(accept ? Scenario.Accept : Scenario.Decline);
+
+    [Fact]
+    [CaptureWorkspaceOnFailure]
+    public Task New_NonInteractiveRequiresExplicitConfigurationSourceConsent()
+        => RunScenarioAsync(Scenario.MissingConsent);
+
+    [Fact]
+    [CaptureWorkspaceOnFailure]
+    public Task New_GitAuthenticationPromptReceivesTerminalInput()
+        => RunScenarioAsync(Scenario.Authenticate);
+
     [Fact]
     [CaptureWorkspaceOnFailure]
     public Task Run_NotifiesWhenConfigurationSourceUpdateIsAvailable()
@@ -104,6 +121,8 @@ public sealed class ConfigSourceTests(ITestOutputHelper output)
         await auto.PrepareDockerEnvironmentAsync(counter, workspace);
         await auto.InstallAspireCliAsync(strategy, counter);
         await auto.RunCommandAsync("aspire config set features.updateNotificationsEnabled false -g", counter);
+        // The bind-mounted directory belongs to the host runner, not the container's root user.
+        await auto.RunCommandAsync("git config --global --add safe.directory \"$ASPIRE_E2E_WORKSPACE/configuration source\"", counter);
         await auto.RunCommandAsync("git -C 'configuration source' init --initial-branch=main", counter);
         await auto.RunCommandAsync("git -C 'configuration source' config user.name 'Aspire E2E'", counter);
         await auto.RunCommandAsync("git -C 'configuration source' config user.email aspire-e2e@example.com", counter);
@@ -111,23 +130,81 @@ public sealed class ConfigSourceTests(ITestOutputHelper output)
         await auto.RunCommandAsync(
             "export ASPIRE_INIT_SOURCE_URL=\"$ASPIRE_E2E_WORKSPACE/configuration source\" " +
             "ASPIRE_INIT_SOURCE_PATH=teams/platform.json ASPIRE_INIT_SOURCE_REF=main", counter);
-        await auto.RunCommandAsync(
-            "aspire new aspire-empty --language csharp --name SourceApp --output SourceApp " +
-            "--suppress-agent-init --localhost-tld false --use-config-source true --non-interactive", counter,
-            timeout: TimeSpan.FromMinutes(3));
+        const string newCommand = "aspire new aspire-empty --language csharp --name SourceApp --output SourceApp " +
+            "--suppress-agent-init --localhost-tld false";
+        if (scenario is Scenario.MissingConsent)
+        {
+            await auto.RunCommandAsync(
+                $"{newCommand} --non-interactive > \"$ASPIRE_E2E_WORKSPACE/consent.log\" 2>&1; " +
+                $"result=$?; cat \"$ASPIRE_E2E_WORKSPACE/consent.log\"; test \"$result\" -eq {CliExitCodes.InvalidCommand}",
+                counter, timeout: TimeSpan.FromMinutes(3));
+            var consentOutput = await File.ReadAllTextAsync(Path.Combine(root, "consent.log"), cancellationToken);
+            Assert.Contains("Specify --use-config-source true to accept it or --use-config-source false",
+                Regex.Replace(consentOutput, @"\s+", " "));
+            Assert.False(Directory.Exists(Path.Combine(root, "SourceApp")));
+            await auto.RunCommandAsync("test ! -d \"$HOME/.aspire/configsources\"", counter);
+            return;
+        }
+
+        if (scenario is Scenario.Accept or Scenario.Decline)
+        {
+            await auto.TypeAsync(newCommand);
+            await auto.EnterAsync();
+            var consentPrompt = new CellPatternSearcher().Find("Use configuration from this source?");
+            await auto.WaitUntilAsync(snapshot => consentPrompt.Search(snapshot).Count > 0,
+                timeout: TimeSpan.FromMinutes(2), description: "waiting for configuration source consent");
+            if (scenario is Scenario.Decline)
+            {
+                await auto.DownAsync();
+            }
+            await auto.EnterAsync();
+            await auto.WaitForSuccessPromptAsync(counter, timeout: TimeSpan.FromMinutes(3));
+        }
+        else if (scenario is Scenario.Authenticate)
+        {
+            await AuthenticateGitSourceAsync(auto, counter, root, cancellationToken);
+            await auto.TypeAsync($"{newCommand} --use-config-source true");
+            await auto.EnterAsync();
+            var authenticationPrompt = new CellPatternSearcher().Find("Configuration source Git authentication code:");
+            await auto.WaitUntilAsync(snapshot => authenticationPrompt.Search(snapshot).Count > 0,
+                timeout: TimeSpan.FromMinutes(2), description: "waiting for the Git authentication prompt without a trailing newline");
+            await auto.TypeAsync("allow-source");
+            await auto.EnterAsync();
+            var authenticated = new CellPatternSearcher().Find("Configuration source Git authentication accepted.");
+            await auto.WaitUntilAsync(snapshot => authenticated.Search(snapshot).Count > 0,
+                timeout: TimeSpan.FromSeconds(30), description: "waiting for Git to acknowledge terminal input");
+            await auto.WaitForSuccessPromptAsync(counter, timeout: TimeSpan.FromMinutes(3));
+            Assert.Equal("accepted", await File.ReadAllTextAsync(Path.Combine(root, "git-authenticated.txt"), cancellationToken));
+        }
+        else
+        {
+            await auto.RunCommandAsync($"{newCommand} --use-config-source true --non-interactive", counter,
+                timeout: TimeSpan.FromMinutes(3));
+        }
+
         await auto.RunCommandAsync("cd SourceApp", counter);
         await auto.RunCommandAsync("aspire config set docs.custom keep", counter);
         // Source materialization creates an owner-only file inside the container. Export its
         // contents without changing those permissions so the host can assert the saved values.
         await auto.RunCommandAsync("cat aspire.config.json > \"$ASPIRE_E2E_WORKSPACE/actual-config.json\"", counter);
         var original = JsonNode.Parse(await File.ReadAllTextAsync(configCopy, cancellationToken))!.AsObject();
+        if (scenario is Scenario.Decline)
+        {
+            Assert.Null(original["configSource"]);
+            Assert.Equal("""{"custom":"keep"}""", original["docs"]!.ToJsonString());
+            await auto.RunCommandAsync("test ! -d \"$HOME/.aspire/configsources\"", counter);
+            return;
+        }
+
         var originalVersion = (await File.ReadAllTextAsync(versionFile, cancellationToken)).Trim();
         AssertSourceValues(original, "original", originalVersion);
-        Assert.Equal(CliE2ETestHelpers.ToContainerPath(sourceDirectory.FullName, workspace),
+        Assert.Equal(scenario is Scenario.Authenticate
+                ? "ssh://git@config-source.example/config"
+                : CliE2ETestHelpers.ToContainerPath(sourceDirectory.FullName, workspace),
             original["configSource"]!["repository"]!.GetValue<string>());
         Assert.Equal("teams/platform.json", original["configSource"]!["path"]!.GetValue<string>());
         Assert.Equal("main", original["configSource"]!["ref"]!.GetValue<string>());
-        if (scenario is Scenario.Create)
+        if (scenario is Scenario.Create or Scenario.Accept or Scenario.Authenticate)
         {
             return;
         }
@@ -181,6 +258,63 @@ public sealed class ConfigSourceTests(ITestOutputHelper output)
         Assert.Equal(original.ToJsonString(), actual.ToJsonString());
     }
 
+    private static async Task AuthenticateGitSourceAsync(
+        Hex1bTerminalAutomator auto, SequenceCounter counter, string root, CancellationToken cancellationToken)
+    {
+        // Substitute only SSH authentication, not Git acquisition. The launcher challenges the
+        // terminal, then serves the local repository with real git-upload-pack. No network or
+        // real credentials are needed, and stdout remains exclusively Git's wire protocol.
+        await File.WriteAllTextAsync(Path.Combine(root, "ssh-probe.cs"), """
+            using System.Diagnostics;
+
+            var workspace = Environment.GetEnvironmentVariable("ASPIRE_E2E_WORKSPACE")
+                ?? throw new InvalidOperationException("ASPIRE_E2E_WORKSPACE is not set.");
+            if (Environment.GetEnvironmentVariable("GIT_TERMINAL_PROMPT") != "1")
+            {
+                throw new InvalidOperationException("Git terminal authentication was not enabled.");
+            }
+
+            Console.Error.Write("Configuration source Git authentication code: ");
+            Console.Error.Flush();
+            // SSH's stdin carries Git protocol traffic. Like an SSH authentication prompt,
+            // read the challenge response from the controlling terminal instead.
+            using (var terminal = new StreamReader(new FileStream("/dev/tty", FileMode.Open, FileAccess.Read, FileShare.ReadWrite)))
+            {
+                if (await terminal.ReadLineAsync() != "allow-source")
+                {
+                    Console.Error.WriteLine("Configuration source Git authentication failed.");
+                    return 1;
+                }
+            }
+
+            Console.Error.WriteLine("Configuration source Git authentication accepted.");
+            await File.WriteAllTextAsync(Path.Combine(workspace, "git-authenticated.txt"), "accepted");
+            var startInfo = new ProcessStartInfo("git")
+            {
+                UseShellExecute = false
+            };
+            startInfo.ArgumentList.Add("upload-pack");
+            startInfo.ArgumentList.Add(Path.Combine(workspace, "configuration source"));
+            // A real SSH server does not inherit the client's repository environment.
+            foreach (var name in new[] { "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES" })
+            {
+                startInfo.Environment.Remove(name);
+            }
+
+            using var process = Process.Start(startInfo)
+                ?? throw new InvalidOperationException("Could not start git-upload-pack.");
+            await process.WaitForExitAsync();
+            return process.ExitCode;
+            """, cancellationToken);
+        await auto.RunCommandAsync(
+            "dotnet publish \"$ASPIRE_E2E_WORKSPACE/ssh-probe.cs\" -p:PublishAot=false --output \"$ASPIRE_E2E_WORKSPACE/ssh-probe\"",
+            counter, timeout: TimeSpan.FromMinutes(2));
+        // Skip Git's SSH-variant discovery so the launcher is invoked only for the fetch.
+        await auto.RunCommandAsync(
+            "export GIT_SSH_VARIANT=ssh GIT_SSH_COMMAND=\"dotnet '$ASPIRE_E2E_WORKSPACE/ssh-probe/ssh-probe.dll'\" " +
+            "ASPIRE_INIT_SOURCE_URL=ssh://git@config-source.example/config", counter);
+    }
+
     private static Task CommitSourceAsync(Hex1bTerminalAutomator auto, SequenceCounter counter)
         => auto.RunCommandAsync(
             "git -C \"$ASPIRE_E2E_WORKSPACE/configuration source\" add teams/platform.json && " +
@@ -210,6 +344,10 @@ public sealed class ConfigSourceTests(ITestOutputHelper output)
     private enum Scenario
     {
         Create,
+        Accept,
+        Decline,
+        MissingConsent,
+        Authenticate,
         Notify,
         Update,
         Unchanged
