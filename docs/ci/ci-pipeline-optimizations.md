@@ -124,7 +124,17 @@ That keeps `build_packages` focused on the shared package feed, and because `ext
 `build_packages` uses:
 
 ```bash
-./build.sh -restore -build -ci -pack -bl -p:InstallBrowsersForPlaywright=false -p:SkipTestProjects=true -p:SkipPlaygroundProjects=true -p:SkipBundleDeps=true -p:SkipNativeBuild=true
+./build.sh \
+  -restore \
+  -build \
+  -ci \
+  -pack \
+  -bl \
+  -p:InstallBrowsersForPlaywright=false \
+  -p:SkipTestProjects=true \
+  -p:SkipPlaygroundProjects=true \
+  -p:SkipBundleDeps=true \
+  -p:SkipNativeBuild=true
 ```
 
 `SkipBundleDeps=true` matters because the RID-specific bundle dependencies are produced by the per-OS CLI archive jobs, not by the shared package build.
