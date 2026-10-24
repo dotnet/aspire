@@ -35,6 +35,49 @@ namespace Aspire.Dashboard.Tests.Integration;
 
 public class StartupTests(ITestOutputHelper testOutputHelper)
 {
+    [Theory]
+    [InlineData("*")]
+    [InlineData("+")]
+    [InlineData("0.0.0.0")]
+    [InlineData("[::]")]
+    [InlineData("localhost")]
+    public void ResolvedEndpointInfo_WildcardAddressesUseLocalhost(string host)
+    {
+        var endpoint = new ResolvedEndpointInfo(
+            Microsoft.AspNetCore.Http.BindingAddress.Parse($"http://{host}:0"),
+            new IPEndPoint(IPAddress.IPv6Any, 4317),
+            IsHttps: false);
+
+        Assert.Equal("http://localhost:4317", endpoint.GetResolvedAddress(replaceIPAnyWithLocalhost: true));
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task OtlpEndpointInfo_OnlyExposesEnabledResolvedEndpoints(bool grpc, bool http)
+    {
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                data[DashboardConfigNames.DashboardOtlpGrpcUrlName.ConfigKey] = grpc ? "http://0.0.0.0:0" : string.Empty;
+                data[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = http ? "http://0.0.0.0:0" : string.Empty;
+            });
+
+        await app.StartAsync().DefaultTimeout();
+
+        var endpoints = app.Services.GetRequiredService<OtlpEndpointInfo>();
+        Assert.Equal(grpc ? app.OtlpServiceGrpcEndPointAccessor().GetResolvedAddress(replaceIPAnyWithLocalhost: true) : null, endpoints.GrpcAddress);
+        Assert.Equal(http ? app.OtlpServiceHttpEndPointAccessor().GetResolvedAddress(replaceIPAnyWithLocalhost: true) : null, endpoints.HttpAddress);
+        foreach (var address in new[] { endpoints.GrpcAddress, endpoints.HttpAddress }.OfType<string>())
+        {
+            var uri = new Uri(address);
+            Assert.Equal("localhost", uri.Host);
+            Assert.True(uri.Port > 0);
+        }
+    }
+
     [Fact]
     public async Task Startup_HttpJsonWithoutReflection_UsesGeneratedMetadata()
     {
@@ -371,7 +414,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
             additionalConfiguration: initialData =>
             {
-                initialData[DashboardTelemetryService.TelemetryOptOutConfigKey] = "false";
+                initialData[KnownConfigNames.DashboardTelemetryOptOut] = "false";
                 initialData[DashboardConfigNames.Legacy.DebugSessionPortName.ConfigKey] = "not-a-port";
                 initialData[DashboardConfigNames.Legacy.DebugSessionServerCertificateName.ConfigKey] = "not base64";
                 initialData[DashboardConfigNames.Legacy.DebugSessionTokenName.ConfigKey] = "token!";
@@ -1141,7 +1184,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 RemoveEnvironmentVariableSources(builder);
                 builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    [DashboardTelemetryService.TelemetryOptOutConfigKey] = "true",
+                    [KnownConfigNames.DashboardTelemetryOptOut] = "true",
                     [DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = "http://127.0.0.1:0",
                     [DashboardConfigNames.DashboardOtlpGrpcUrlName.ConfigKey] = "http://127.0.0.1:0",
                     [DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey] = nameof(OtlpAuthMode.Unsecured),

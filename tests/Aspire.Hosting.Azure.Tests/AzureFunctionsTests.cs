@@ -457,6 +457,18 @@ public class AzureFunctionsTests(ITestOutputHelper outputHelper)
         );
     }
 
+    [Fact]
+    public void AddAzureFunctionsApp_DoesNotModelNodeDebugEndpoint()
+    {
+        using var tempDir = TemporaryWorkspace.Create(outputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        builder.AddAzureFunctionsApp("funcapp", tempDir.Path, AzureFunctionsLanguage.TypeScript);
+
+        var functionsResource = Assert.Single(builder.Resources.OfType<AzureFunctionsAppResource>());
+        Assert.DoesNotContain(functionsResource.Annotations.OfType<EndpointAnnotation>(), e => e.Name == "debug");
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -476,6 +488,8 @@ public class AzureFunctionsTests(ITestOutputHelper outputHelper)
         Assert.Equal("node", manifest["env"]?["FUNCTIONS_WORKER_RUNTIME"]?.GetValue<string>());
         Assert.Equal("OpenTelemetry", manifest["env"]?["AzureFunctionsJobHost__telemetryMode"]?.GetValue<string>());
         Assert.Equal(80, manifest["bindings"]?["http"]?["targetPort"]?.GetValue<int>());
+        Assert.Null(manifest["bindings"]?["debug"]);
+
         var container = Assert.Single(builder.Resources.OfType<ContainerResource>(), r => r.Name == "funcapp");
         Assert.Single(container.Annotations.OfType<AzureFunctionsAnnotation>());
 

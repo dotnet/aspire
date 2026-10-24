@@ -371,7 +371,7 @@ public class AspireAzurePostgreSqlNpgsqlExtensionsTests
     private static void ConfigureBase64UrlTokenCredentials(AzureNpgsqlSettings settings)
     {
         // The payload segment contains the Base64Url-only characters '-' and '_'.
-        const string token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJJc3N1ZXIiOiJJc3N1ZXIiLCJJc3N1ZWQgQXQiOiIyMDI1LTAzLTIxVDAxOjM3OjAwLjE5OFoiLCJFeHBpcmF0aW9uIjoiMjAyNS0wMy0yMVQwMTozNzowMC4xOThaIiwicHJlZmVycmVkX3VzZXJuYW1lIjoibWlrZXlAbW91c2UuY29tIiwibmFtZSI6Ik1pa2V5IH5-IE1vdXNlPz8_IiwiUm9sZSI6IkFkbWluIn0.fzFHyY-rZqLuqZej-jVxID4xiN44-Lg17KgAY_gio7o";
+        const string token = "dummy-header.eyJJc3N1ZXIiOiJJc3N1ZXIiLCJJc3N1ZWQgQXQiOiIyMDI1LTAzLTIxVDAxOjM3OjAwLjE5OFoiLCJFeHBpcmF0aW9uIjoiMjAyNS0wMy0yMVQwMTozNzowMC4xOThaIiwicHJlZmVycmVkX3VzZXJuYW1lIjoibWlrZXlAbW91c2UuY29tIiwibmFtZSI6Ik1pa2V5IH5-IE1vdXNlPz8_IiwiUm9sZSI6IkFkbWluIn0.dummy-signature";
         var accesstoken = new AccessToken(token, DateTimeOffset.Now.AddHours(1));
 
         // {
