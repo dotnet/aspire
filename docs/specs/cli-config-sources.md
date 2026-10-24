@@ -117,7 +117,7 @@ Only explicitly allowlisted leaf settings may be copied. The initial allowlist i
 | `docs.llmsTxtUrl` | General documentation source URL |
 | `docs.api.sitemapUrl` | API documentation sitemap URL |
 
-Normalize supported key notation before matching the allowlist, and match keys case-insensitively like other CLI settings. Allowing a leaf does not allow its entire parent object. Everything else is excluded unless a later specification change explicitly adds it to this list.
+Normalize supported key notation before matching the allowlist, and match keys case-insensitively like other CLI settings. Flat colon-separated keys merge into existing nested sections regardless of casing, preserving the existing key spelling and preferring an existing non-null nested value over a flat value for the same leaf. Allowing a leaf does not allow its entire parent object. Everything else is excluded unless a later specification change explicitly adds it to this list.
 
 In particular, do not copy `$schema`, `configSource`, AppHost identity or paths, SDK/channel selection, language, package references, launch profiles, or arbitrary feature/content settings. The CLI creates and maintains its own source binding; the remote file cannot supply or replace it. The proposed content schema does not implicitly extend this allowlist.
 

@@ -282,6 +282,25 @@ public class ConfigurationHelperTests(ITestOutputHelper outputHelper)
         Assert.False(config.Features["showAllTemplates"]);
     }
 
+    [Theory]
+    [InlineData("""{"DOCS":{"API":{"SITEMAPURL":"nested"}},"docs:api:other":"flat","docs:api:sitemapUrl":"flat"}""", "nested")]
+    [InlineData("""{"DOCS":{"API":{"SITEMAPURL":null}},"docs:api:other":"flat","docs:api:sitemapUrl":"flat"}""", "flat")]
+    public void NormalizeSettings_MergesMixedCaseSegmentsAndPreservesNestedPrecedence(string json, string expectedValue)
+    {
+        var settings = JsonNode.Parse(json)!.AsObject();
+
+        Assert.True(ConfigurationHelper.NormalizeSettings(settings));
+
+        Assert.Equal("DOCS", Assert.Single(settings).Key);
+        var docs = settings["DOCS"]!.AsObject();
+        Assert.Equal("API", Assert.Single(docs).Key);
+        var api = docs["API"]!.AsObject();
+        Assert.Equal(["SITEMAPURL", "other"], api.Select(property => property.Key));
+        Assert.Equal(expectedValue, api["SITEMAPURL"]!.GetValue<string>());
+        Assert.Equal("flat", api["other"]!.GetValue<string>());
+        Assert.False(ConfigurationHelper.NormalizeSettings(settings));
+    }
+
     [Fact]
     public void GetConfigRootDirectory_UsesNearestAspireConfigDirectory()
     {

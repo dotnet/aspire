@@ -177,7 +177,9 @@ public class ConfigSourceGitClientTests(ITestOutputHelper outputHelper)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var custom = new string('x', 70 * 1024) + "\u65e5\u672c\u8a9e";
-        await CreateRepositoryAsync(workspace, path, "{\"features\":{\"test\":true},\"custom\":\"" + custom + "\"}");
+        await CreateRepositoryAsync(workspace, path, """
+            {"DOCS":{"llmsTxtUrl":"https://example.com/llms.txt","API":{"custom":"preserved"}},"docs:api:sitemapUrl":"https://example.com/sitemap.xml",
+            """ + "\"features\":{\"test\":true},\"custom\":\"" + custom + "\"}");
         var cache = workspace.CreateDirectory("cache");
         var client = new ConfigSourceGitClient(interactive
             ? TestHelpers.CreateInteractiveHostEnvironment()
@@ -192,6 +194,10 @@ public class ConfigSourceGitClientTests(ITestOutputHelper outputHelper)
         Assert.Equal((await RunGitOutputAsync(workspace.Path, ["rev-parse", $"HEAD:{path}"])).Trim(), version);
         Assert.True(configuration["features"]!["test"]!.GetValue<bool>());
         Assert.Equal(custom, configuration["custom"]!.GetValue<string>());
+        Assert.Equal("https://example.com/llms.txt", configuration["DOCS"]!["llmsTxtUrl"]!.GetValue<string>());
+        Assert.Equal("https://example.com/sitemap.xml", configuration["DOCS"]!["API"]!["sitemapUrl"]!.GetValue<string>());
+        Assert.Equal("preserved", configuration["DOCS"]!["API"]!["custom"]!.GetValue<string>());
+        Assert.Equal(["DOCS", "features", "custom"], configuration.Select(property => property.Key));
         Assert.False(File.Exists(Path.Combine(cache.FullName, path)));
     }
 

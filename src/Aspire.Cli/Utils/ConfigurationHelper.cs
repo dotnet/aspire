@@ -439,7 +439,9 @@ internal static class ConfigurationHelper
         {
             settings.Remove(key);
 
-            // Convert "a:b:c" to nested {"a": {"b": {"c": value}}}
+            // Convert "a:b:c" to nested {"a": {"b": {"c": value}}}.
+            // Match existing casing so "DOCS" and "docs:api:sitemapUrl" merge into
+            // one section, consistent with case-insensitive configuration lookup.
             var parts = key.Split(':');
             var currentObject = settings;
             var pathConflict = false;
@@ -447,7 +449,8 @@ internal static class ConfigurationHelper
             // Walk all but the last segment, creating objects as needed.
             for (int i = 0; i < parts.Length - 1; i++)
             {
-                var part = parts[i];
+                var part = currentObject.Select(property => property.Key)
+                    .FirstOrDefault(existing => existing.Equals(parts[i], StringComparison.OrdinalIgnoreCase)) ?? parts[i];
 
                 if (!currentObject.ContainsKey(part) || currentObject[part] is null)
                 {
@@ -474,7 +477,8 @@ internal static class ConfigurationHelper
                 continue;
             }
 
-            var finalKey = parts[parts.Length - 1];
+            var finalKey = currentObject.Select(property => property.Key)
+                .FirstOrDefault(existing => existing.Equals(parts[^1], StringComparison.OrdinalIgnoreCase)) ?? parts[^1];
 
             // If the final key already exists, keep its value and drop the flat key.
             if (currentObject.ContainsKey(finalKey) && currentObject[finalKey] is not null)
