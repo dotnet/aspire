@@ -408,6 +408,10 @@ boundary, without enumerating every implementation dependency.
 
 ## Maintenance
 
+Agents authoring or reviewing selection changes should first read the scoped
+[test-selection checklist](../../.github/instructions/test-trigger-map.instructions.md).
+This section is the detailed routing contract and maintenance reference.
+
 The map is hand-curated; there is no generator. Do not add a rule only because a
 file changed or a verifier failed. First trace the file to the work that consumes
 it.
@@ -466,12 +470,19 @@ it.
    `run_*` output in `tests.yml`, a gate that consumes that output, and a route
    from any reusable workflow that implements the job. Targets outside those PR
    gates must remain advisory rather than appearing as PR-runnable work.
-   `RealWorkflowJobGatesReachProductionSelectorBooleans` discovers live job gates,
+   `RealWorkflowJobGatesReachProductionSelectorBooleans` discovers `run_*`
+   references in job-level `if:` conditions,
    checks their job dependencies and setup-output mappings, and runs the
    production selector against the real map to verify the referenced booleans
-   exist. It recognizes `needs.<job>.outputs.run_*` gates and
-   `fromJSON(steps.<step>.outputs.selection).run_*` mappings; unsupported
-   `run_*` references fail rather than silently disappearing from coverage.
+   exist. YAML parsing handles comments and scalar quoting; expression
+   recognition supports whitespace and multiline values, dot access, and
+   static single-quoted bracket access such as
+   `needs['setup_for_tests'].outputs['run_polyglot']`. String literals are not
+   output references. It resolves
+   `fromJSON(steps.<step>.outputs.selection).run_*` mappings using the same
+   normalization. Unsupported `run_*` references and dynamic `needs` output
+   access fail with diagnostics rather than silently disappearing from
+   coverage. Step-level conditions are outside this check's scan scope.
    This checks wiring consistency, not GitHub expression evaluation or actual
    workflow execution.
 5. **Add focused regressions for the routing boundary.**
@@ -485,11 +496,13 @@ it.
      coverage distinct even when selected targets overlap;
    - intentionally duplicated consumer lists are audited for consistency and
      exercised through each routing mechanism, not compared for equality;
-   - retain checks that independently discover consumers from workflow
-     dependencies, evaluated project metadata, or fixture declarations and
-     verify production selection reaches them. These protect future consumers
-     without a copied inventory. Guard against discovery silently returning no
-     consumers, and document which dependency and gate forms it recognizes;
+   - prefer independent consumer-discovery checks when reliable workflow
+     dependencies, evaluated project metadata, or fixture declarations expose
+     the relationship. Compare discovered consumers with production selection
+     so future additions are protected without a copied inventory, and retain
+     existing checks of this kind. Guard against empty or incomplete discovery,
+     document recognized dependency/gate forms, and cover representative
+     formatting and unsupported-reference cases;
    - representation-only regrouping reuses existing cases that exercise the
      affected routes. Compare expanded selections before and after cleanup;
      do not add assertions about rule counts, ordering, group names, or

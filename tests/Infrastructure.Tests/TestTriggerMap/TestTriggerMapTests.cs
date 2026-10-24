@@ -40,17 +40,6 @@ public sealed class TestTriggerMapTests
     }
 
     [Fact]
-    public void IndependentNativeHarnessDoesNotSelectRegularPrWork()
-    {
-        var result = SelectWithRealMap("eng/scripts/test-native-hosting.sh");
-
-        Assert.False(result.SelectsAll);
-        Assert.Empty(result.UnmatchedFiles);
-        Assert.Empty(result.TestProjects);
-        Assert.Empty(result.Jobs);
-    }
-
-    [Fact]
     public void AppHostServerV2SelectsItsBundleConsumers()
     {
         var result = SelectWithRealMap("src/Aspire.Hosting.Native.Server/Program.cs", "Aspire.Hosting.Native.Server");

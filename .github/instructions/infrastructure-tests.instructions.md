@@ -30,10 +30,12 @@ current implementation.
   testing it does not require launching its entire host.
   Copying a complete, unmodified production file into a fixture is valid when
   it runs through its normal entry point.
-- Never search YAML, Markdown, project files, or scripts for expected strings.
-  Checking that source contains a command, property, step name, or comment does
-  not prove that it works. Do not replace such checks with snapshots, regular
-  expressions, or parsed-value assertions that merely restate the implementation.
+- Assert behavior rather than searching YAML, Markdown, project files, or
+  scripts for expected strings. Parsing metadata to independently discover
+  consumers and compare them with production results is valid; checking a fixed
+  command, property, step name, or comment is not evidence that it works.
+  Snapshots, regular expressions, and parsed-value assertions do not change
+  that distinction.
 - Dependency and pinning policy checks belong to dedicated validation tooling
   or build validation, not assertions in infrastructure tests. This includes
   checks of GitHub Actions references.
@@ -48,29 +50,9 @@ current implementation.
   assertions on the source text that implements the behavior. Copying, printing,
   or serializing source/configuration does not make implementation-restating
   assertions behavioral.
-- Checked-in configuration is valid production input. For test selection, load
-  the real trigger map through the production selector and assert broad routing
-  expectations and deliberate exclusions, not configuration-list equality.
-  Retain cross-configuration checks that independently discover consumers from
-  workflow dependencies, evaluated project metadata, or fixture declarations
-  and verify that the production selector reaches them. These catch missing
-  routing for future consumers; they are not assertions that configuration must
-  retain a fixed command, property value, or layout. Keep discovery assumptions
-  explicit and guard against an empty or incomplete discovery silently passing.
-- Cover distinct routing boundaries, not every member of an audited consumer
-  list. Reuse existing assertions for behavior already covered.
-  Keep broad Layer 1 integration coverage that verifies actual graph changes
-  select the dependent .NET test projects, not just supplied affected-project
-  names. Use one or two representative inputs per special routing mechanism
-  (for example CLI-bundle consumers or Polyglot validation), not every source.
-  Preserve distinct mechanisms, deliberate exclusions, and failure cases when
-  reducing examples with the same expected targets.
-  Representation-only regrouping does not require new tests when existing
-  cases exercise the affected routes. Do not assert rule counts, ordering, or
-  group names.
-- Selector-only tests establish routing after filtering, not end-to-end
-  selection. Include the production changed-file prefilter for filtering-sensitive
-  inputs, and validate any upstream workflow skip gate separately.
+- Checked-in configuration is valid production input. When testing selection,
+  read `.github/instructions/test-trigger-map.instructions.md` for the routing
+  contract, discovery-based checks, and representative regression coverage.
 - Configuration validity belongs to the consuming tool: malformed rules and
   unresolved explicit references should produce actionable diagnostics. Test
   that production validation with invalid inputs rather than duplicating it in
@@ -141,10 +123,8 @@ configuration.
 - Search for existing helpers before adding new utilities. Reuse or extend
   `RepoRoot`, `TemporaryWorkspace`, `NodeCommand`, `PowerShellCommand`, and
   applicable shared test utilities.
-- For test-selection scenarios, use the production selector and existing
-  real-map helpers rather than traversing configuration with test-owned matching
-  logic. Include the production changed-file prefilter when the scenario depends
-  on files being filtered before selection.
+- For test-selection scenarios, reuse the production selector and existing
+  real-map helpers.
 - Put repeated repository-root, process, workspace, parsing, and harness logic
   in a shared location within `Infrastructure.Tests` instead of adding another
   file-local copy. Sharing within this project is sufficient; do not create a
