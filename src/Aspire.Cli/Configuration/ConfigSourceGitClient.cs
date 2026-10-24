@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
@@ -9,6 +8,7 @@ using System.Text.Json.Nodes;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Cli.Configuration;
 
@@ -142,56 +142,54 @@ internal sealed class ConfigSourceGitClient(ICliHostEnvironment hostEnvironment)
         return startInfo;
     }
 
-    private async Task<string> RunAsync(string directory, string[] arguments, CancellationToken cancellationToken, bool allowInteractive = true)
+    private Task<string> RunAsync(string directory, string[] arguments, CancellationToken cancellationToken, bool allowInteractive = true)
     {
         var startInfo = CreateStartInfo(directory, arguments, allowInteractive);
-        try
-        {
-            if (!startInfo.RedirectStandardOutput)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                using var process = Process.Start(startInfo)
-                    ?? throw new InvalidOperationException("Could not start Git.");
-                try
-                {
-                    await process.WaitForExitAsync(cancellationToken);
-                }
-                catch (OperationCanceledException)
-                {
-                    try
-                    {
-                        process.Kill(entireProcessTree: true);
-                    }
-                    catch (InvalidOperationException) when (process.HasExited)
-                    {
-                        // Git can exit between cancellation and termination.
-                    }
-                    throw;
-                }
-                if (process.ExitCode != 0)
-                {
-                    // Git already displayed its diagnostics directly to the terminal.
-                    // Do not capture or forward potentially sensitive authentication output.
-                    throw new ConfigSourceException(ConfigSourceStrings.RepositoryUnavailable);
-                }
-                return string.Empty;
-            }
+        return RunProcessAsync(startInfo, cancellationToken);
+    }
 
-            var result = await Process.RunAndCaptureTextAsync(startInfo, cancellationToken);
-            if (result.ExitStatus.ExitCode != 0)
+    internal static async Task<string> RunProcessAsync(ProcessStartInfo startInfo, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        // The caller's token includes the overall Git timeout. Reuse tree-aware termination
+        // and bounded draining for both captured queries and terminal-owned fetches.
+        // Suppress runner diagnostics because capture exceptions can include private Git output.
+        var result = await ProcessCaptureRunner.RunAsync<GitOutput?>(
+            startInfo, Timeout.InfiniteTimeSpan,
+            async (process, token) =>
             {
-                // Git stderr can contain private repository URLs and credentials. Classify it
-                // locally instead of copying it into exceptions, logs, or telemetry.
-                var authenticationFailure = result.StandardError.Contains("authentication", StringComparison.OrdinalIgnoreCase)
-                    || result.StandardError.Contains("permission denied", StringComparison.OrdinalIgnoreCase)
-                    || result.StandardError.Contains("could not read Username", StringComparison.OrdinalIgnoreCase);
-                throw new ConfigSourceException(authenticationFailure ? ConfigSourceStrings.AuthenticationFailed : ConfigSourceStrings.RepositoryUnavailable);
-            }
-            return result.StandardOutput;
-        }
-        catch (Win32Exception)
+                if (!startInfo.RedirectStandardOutput)
+                {
+                    return new GitOutput(string.Empty, string.Empty);
+                }
+                // Read both pipes concurrently so a full stderr pipe cannot block stdout.
+                var standardOutput = process.StandardOutput.ReadToEndAsync(token);
+                var standardError = process.StandardError.ReadToEndAsync(token);
+                await Task.WhenAll(standardOutput, standardError);
+                return new GitOutput(await standardOutput, await standardError);
+            },
+            () => null, NullLogger.Instance, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (result.FailureKind is ProcessCaptureFailureKind.StartFailed)
         {
             throw new ConfigSourceException(ConfigSourceStrings.GitNotFound);
         }
+        if (result.Capture is not { } capture || result.FailureKind is not null)
+        {
+            // An incomplete drain is a failure, not successful empty Git output.
+            throw new ConfigSourceException(ConfigSourceStrings.RepositoryUnavailable);
+        }
+        if (result.ExitCode != 0)
+        {
+            // Git stderr can contain private repository URLs and credentials. Classify it
+            // locally instead of copying it into exceptions, logs, or telemetry.
+            var authenticationFailure = capture.StandardError.Contains("authentication", StringComparison.OrdinalIgnoreCase)
+                || capture.StandardError.Contains("permission denied", StringComparison.OrdinalIgnoreCase)
+                || capture.StandardError.Contains("could not read Username", StringComparison.OrdinalIgnoreCase);
+            throw new ConfigSourceException(authenticationFailure ? ConfigSourceStrings.AuthenticationFailed : ConfigSourceStrings.RepositoryUnavailable);
+        }
+        return capture.StandardOutput;
     }
+
+    private sealed record GitOutput(string StandardOutput, string StandardError);
 }

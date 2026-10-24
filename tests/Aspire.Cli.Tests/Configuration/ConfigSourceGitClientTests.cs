@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Tests.Utils;
@@ -11,6 +12,86 @@ namespace Aspire.Cli.Tests.Configuration;
 
 public class ConfigSourceGitClientTests(ITestOutputHelper outputHelper)
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RunProcess_DescendantHoldingOutputCannotBlockShutdown(bool parentExits)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var pidFile = Path.Combine(workspace.Path, "child.pid");
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = OperatingSystem.IsWindows() ? "powershell.exe" : "/bin/sh",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        if (OperatingSystem.IsWindows())
+        {
+            startInfo.ArgumentList.Add("-NoProfile");
+            startInfo.ArgumentList.Add("-Command");
+            // The child inherits both output pipes. Either leave its parent running for
+            // cancellation, or exit the parent to exercise the bounded post-exit drain.
+            startInfo.ArgumentList.Add(
+                "$child = Start-Process powershell.exe -NoNewWindow -PassThru -ArgumentList '-NoProfile -Command Start-Sleep -Seconds 60'; " +
+                $"[IO.File]::WriteAllText('{pidFile.Replace("'", "''")}', [string]$child.Id); " +
+                (parentExits ? "exit 0" : "Start-Sleep -Seconds 60"));
+        }
+        else
+        {
+            startInfo.ArgumentList.Add("-c");
+            startInfo.ArgumentList.Add("sleep 60 & echo $! > \"$1\"; " + (parentExits ? "exit 0" : "wait"));
+            startInfo.ArgumentList.Add("test-parent");
+            startInfo.ArgumentList.Add(pidFile);
+        }
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        cancellation.CancelAfter(TimeSpan.FromSeconds(30));
+        var run = ConfigSourceGitClient.RunProcessAsync(startInfo, cancellation.Token);
+        Process? child = null;
+        try
+        {
+            while (child is null)
+            {
+                if (File.Exists(pidFile) && int.TryParse(await File.ReadAllTextAsync(pidFile, cancellation.Token), out var pid))
+                {
+                    child = Process.GetProcessById(pid);
+                }
+                else
+                {
+                    await Task.Delay(20, cancellation.Token);
+                }
+            }
+
+            if (parentExits)
+            {
+                var error = await Assert.ThrowsAsync<ConfigSourceException>(() => run.WaitAsync(TimeSpan.FromSeconds(10)));
+                Assert.Equal(ConfigSourceStrings.RepositoryUnavailable, error.Message);
+            }
+            else
+            {
+                cancellation.Cancel();
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => run.WaitAsync(TimeSpan.FromSeconds(10)));
+                await child.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10));
+                Assert.True(child.HasExited);
+            }
+        }
+        finally
+        {
+            cancellation.Cancel();
+            if (child is not null)
+            {
+                if (!child.HasExited)
+                {
+                    child.Kill(entireProcessTree: true);
+                    await child.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10));
+                }
+                child.Dispose();
+            }
+            await Record.ExceptionAsync(() => run.WaitAsync(TimeSpan.FromSeconds(10)));
+        }
+    }
+
     [Fact]
     public void CreateStartInfo_AdvisoryFetchNeverOwnsTerminal()
     {
