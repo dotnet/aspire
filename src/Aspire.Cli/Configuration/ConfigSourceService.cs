@@ -210,6 +210,9 @@ internal sealed class ConfigSourceService(
             ?? throw new ConfigSourceException(ConfigSourceStrings.ConfigLockFailed);
         // Re-read after fetching and under the workspace-writer lock, so intervening
         // changes to unrelated settings survive this read/merge/write operation.
+        // Users should not edit aspire.config.json while the command is running.
+        // Concurrent edits can cause unexpected behavior, such as restoring a
+        // configSource binding removed while fetching.
         var configuration = await ReadConfigurationFileAsync(path, cancellationToken) ?? new JsonObject();
         if (ReadBinding(configuration) is { } current && !ConfigSource.HasSameIdentity(current, source))
         {

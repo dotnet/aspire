@@ -397,11 +397,6 @@ internal sealed class AgentInitCommand : BaseCommand
                 cancellationToken: cancellationToken);
         }
 
-        if (scope is AgentConfigurationScope.Project)
-        {
-            ConfigSources.CheckForConfigSourceUpdates(workspaceRoot, cancellationToken);
-        }
-
         if (scope is AgentConfigurationScope.Global && detectedEnvironments is null)
         {
             // Capture hook evidence before configuration can create new detection markers.

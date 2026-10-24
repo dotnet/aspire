@@ -22,7 +22,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task AgentInitCommand_ChecksSourceOnlyAfterInteractiveProjectScopeSelection(bool global)
+    public async Task AgentInitCommand_DoesNotCheckWorkspaceSourceAfterInteractiveScopeSelection(bool global)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var scope = global ? AgentConfigurationScope.Global : AgentConfigurationScope.Project;
@@ -52,7 +52,7 @@ public class AgentInitCommandTests(ITestOutputHelper outputHelper)
 
         var git = Assert.IsType<TestConfigSourceGitClient>(provider.GetRequiredService<IConfigSourceGitClient>());
         Assert.Equal(0, git.Calls);
-        Assert.Equal(scope is AgentConfigurationScope.Project ? 1 : 0, git.CheckCalls);
+        Assert.Equal(0, git.CheckCalls);
     }
 
     [Fact]
