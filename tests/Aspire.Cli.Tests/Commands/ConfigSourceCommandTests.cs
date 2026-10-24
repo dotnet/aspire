@@ -290,20 +290,34 @@ public class ConfigSourceCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task ProjectSelection_CheckFailureDoesNotFailOrReplaceSavedSettings(bool malformedBinding)
+    [InlineData(null)]
+    [InlineData("ref")]
+    [InlineData("repository")]
+    [InlineData("path")]
+    [InlineData("both")]
+    public async Task ProjectSelection_CheckFailureDoesNotFailOrReplaceSavedSettings(string? invalidField)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         await TestConfigSourceServices.SaveBindingAsync(new()
         {
             Repository = s_source.Repository,
             Path = s_source.Path,
-            Ref = malformedBinding ? "HEAD" : null,
+            Ref = invalidField == "ref" ? "HEAD" : null,
             AppliedVersion = s_source.AppliedVersion
         }, workspace.WorkspaceRoot, CancellationToken.None);
         var path = Path.Combine(workspace.Path, AspireConfigFile.FileName);
         await ConfigurationService.SetConfigurationInFileAsync(path, "docs.llmsTxtUrl", "https://local.example/llms.txt");
+        await ConfigurationService.SetConfigurationInFileAsync(path, "appHost.path", "apphost.cs");
+        if (invalidField is "repository" or "path" or "both")
+        {
+            var configuration = JsonNode.Parse(await File.ReadAllTextAsync(path))!.AsObject();
+            var binding = configuration["configSource"]!.AsObject();
+            foreach (var field in invalidField == "both" ? new[] { "repository", "path" } : [invalidField])
+            {
+                Assert.True(binding.Remove(field));
+            }
+            await File.WriteAllTextAsync(path, configuration.ToJsonString());
+        }
         var previous = await File.ReadAllTextAsync(path);
         var projectFile = new FileInfo(Path.Combine(workspace.Path, "apphost.cs"));
         await File.WriteAllTextAsync(projectFile.FullName, "#:sdk Aspire.AppHost.Sdk");
@@ -316,7 +330,7 @@ public class ConfigSourceCommandTests(ITestOutputHelper outputHelper)
         git.Check = (_, _) => throw new ConfigSourceException(ConfigSourceStrings.AuthenticationFailed);
 
         var project = await provider.GetRequiredService<IProjectLocator>().UseOrFindAppHostProjectFileAsync(
-            projectFile, createSettingsFile: false, CancellationToken.None);
+            projectFile, createSettingsFile: true, CancellationToken.None);
         await provider.GetRequiredService<ConfigSourceService>().WaitForChecksAsync().DefaultTimeout();
         Assert.Equal(projectFile.FullName, project?.FullName);
         var result = provider.GetRequiredService<RootCommand>().Parse("config get docs.llmsTxtUrl");
@@ -324,10 +338,24 @@ public class ConfigSourceCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
         Assert.Equal(previous, await File.ReadAllTextAsync(path));
         Assert.Equal(0, git.Calls);
-        Assert.Equal(malformedBinding ? 0 : 1, git.CheckCalls);
+        Assert.Equal(invalidField is not null ? 0 : 1, git.CheckCalls);
+        var expectedError = invalidField switch
+        {
+            null => ConfigSourceStrings.AuthenticationFailed,
+            "ref" => ConfigSourceStrings.InvalidRef,
+            _ => ConfigSourceStrings.InvalidBinding
+        };
         var warning = Assert.Single(interaction.DisplayedMessages, message => message.ConsoleOverride is Aspire.Cli.Interaction.ConsoleOutput.Error);
         Assert.Equal(string.Format(System.Globalization.CultureInfo.CurrentCulture, ConfigSourceStrings.CheckFailed,
-            malformedBinding ? ConfigSourceStrings.InvalidRef : ConfigSourceStrings.AuthenticationFailed), warning.Message);
+            expectedError), warning.Message);
+        if (invalidField is not null)
+        {
+            var refresh = provider.GetRequiredService<RootCommand>().Parse("update --config-source --yes --non-interactive");
+            Assert.Equal(CliExitCodes.InvalidCommand, await refresh.InvokeAsync().DefaultTimeout());
+            Assert.Equal(expectedError, Assert.Single(interaction.DisplayedErrors));
+            Assert.Equal(0, git.Calls);
+            Assert.Equal(previous, await File.ReadAllTextAsync(path));
+        }
     }
 
     [Fact]

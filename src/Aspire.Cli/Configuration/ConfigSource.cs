@@ -9,11 +9,13 @@ namespace Aspire.Cli.Configuration;
 
 internal sealed class ConfigSource
 {
+    // General configuration loading must tolerate incomplete advisory bindings.
+    // Validate rejects missing values before a source operation uses them.
     [JsonPropertyName("repository")]
-    public required string Repository { get; init; }
+    public string Repository { get; init; } = string.Empty;
 
     [JsonPropertyName("path")]
-    public required string Path { get; init; }
+    public string Path { get; init; } = string.Empty;
 
     [JsonPropertyName("ref")]
     public string? Ref { get; init; }

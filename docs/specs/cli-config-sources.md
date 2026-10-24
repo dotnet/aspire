@@ -179,6 +179,8 @@ Publish fetched tracking data before changing the app file. A tracking-publicati
 
 A tracking copy is shared by source identity, not a record of what every application has applied. An ordinary command must work from its app file even when this directory is missing, another app refreshed the same source, or the retained JSON is unreadable. Problems with the tracking/version check are reported separately; they do not make cached values a fallback runtime provider.
 
+Missing `configSource.repository` or `configSource.path` must not prevent general configuration loading or discard the app's saved settings. Validate these fields when the binding is used: an advisory check reports the invalid binding without failing the project operation, while an explicit configuration-source refresh fails before Git acquisition or application-file changes.
+
 ### Check for updates without applying them
 
 For a source-bound app, operations that resolve an Aspire project or select a running AppHost explicitly check that project's source for a newer version. Initialization of an already-bound project also checks the resolved project directory. Commands that do not resolve a project, such as agent setup, configuration inspection, and documentation lookup, do not perform an ambient source check. Agent setup targets an agent workspace, which is not necessarily the AppHost directory. The check is advisory: the requested operation uses the app's saved configuration whether the source is newer, unavailable, or has never been fetched on this machine.
