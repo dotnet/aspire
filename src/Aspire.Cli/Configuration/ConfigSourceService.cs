@@ -32,7 +32,7 @@ internal sealed class ConfigSourceService(
     private ConfigSourceSnapshot? _snapshot;
     private string? _projectDirectory;
     private bool _projectChecked;
-    private string? _notification;
+    private (string Message, string? GitOutput)? _notification;
     private readonly Lock _checksLock = new();
     private readonly CancellationTokenSource _stopping = new();
     private Task? _check;
@@ -103,15 +103,25 @@ internal sealed class ConfigSourceService(
 
     public void NotifyIfUpdateAvailable()
     {
-        string? message;
+        (string Message, string? GitOutput)? notification;
         lock (_checksLock)
         {
-            message = _notification;
+            notification = _notification;
             _notification = null;
         }
-        if (message is not null)
+        if (notification is { } pending)
         {
-            interaction.DisplayMessage(KnownEmojis.Warning, message, consoleOverride: ConsoleOutput.Error);
+            interaction.DisplayMessage(KnownEmojis.Warning, pending.Message, consoleOverride: ConsoleOutput.Error);
+            DisplayGitTimeoutOutput(interaction, pending.GitOutput);
+        }
+    }
+
+    internal static void DisplayGitTimeoutOutput(IInteractionService interaction, string? output)
+    {
+        const int outputLimit = 64 * 1024;
+        if (output is { Length: > 0 })
+        {
+            interaction.DisplayRawText(output.Length > outputLimit ? output[^outputLimit..] : output, ConsoleOutput.Error);
         }
     }
 
@@ -315,7 +325,7 @@ internal sealed class ConfigSourceService(
         logger.LogDebug("Configuration source version check failed ({FailureType}).", exception.GetType().Name);
         var message = string.Format(CultureInfo.CurrentCulture, ConfigSourceStrings.CheckFailed,
             exception is ConfigSourceException ? exception.Message : ConfigSourceStrings.InvalidCache);
-        ReportOnce(message);
+        ReportOnce(message, (exception as ConfigSourceException)?.GitOutput);
     }
 
     internal async Task<ConfigSource?> ReadBindingAsync(string configPath, CancellationToken cancellationToken)
@@ -506,11 +516,11 @@ internal sealed class ConfigSourceService(
         return ConfigurationHelper.WriteSettingsFileAtomicallyAsync(Path.Combine(directory, "check.json"), json, cancellationToken);
     }
 
-    private void ReportOnce(string message)
+    private void ReportOnce(string message, string? gitOutput = null)
     {
         lock (_checksLock)
         {
-            _notification ??= message;
+            _notification ??= (message, gitOutput);
         }
     }
 

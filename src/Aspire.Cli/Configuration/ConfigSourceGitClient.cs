@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Cli.Resources;
@@ -60,9 +61,12 @@ internal sealed class ConfigSourceGitClient(ICliHostEnvironment hostEnvironment)
                 throw new ConfigSourceException(ConfigSourceStrings.InvalidConfiguration);
             }
         }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {
-            throw new ConfigSourceException(ConfigSourceStrings.GitTimeout);
+            throw new ConfigSourceException(ConfigSourceStrings.GitTimeout)
+            {
+                GitOutput = (ex as GitProcessCanceledException)?.Output
+            };
         }
     }
 
@@ -75,9 +79,12 @@ internal sealed class ConfigSourceGitClient(ICliHostEnvironment hostEnvironment)
             var (_, commit, version) = await FetchVersionAsync(source, directory, allowInteractive: false, timeout.Token);
             return (commit, version);
         }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {
-            throw new ConfigSourceException(ConfigSourceStrings.GitTimeout);
+            throw new ConfigSourceException(ConfigSourceStrings.GitTimeout)
+            {
+                GitOutput = (ex as GitProcessCanceledException)?.Output
+            };
         }
     }
 
@@ -132,6 +139,10 @@ internal sealed class ConfigSourceGitClient(ICliHostEnvironment hostEnvironment)
             // Git's terminal-prompt setting does not disable Git Credential Manager UI.
             // https://github.com/git-ecosystem/git-credential-manager/blob/release/docs/environment.md#gcm_interactive
             startInfo.Environment["GCM_INTERACTIVE"] = "never";
+            // These settings do not govern SSH launchers, which may still prompt.
+            // Preserve the user's launcher instead of rewriting its command/options.
+            // A blocked fetch is bounded by the two-minute timeout, and its captured
+            // output is displayed on timeout so the user can correct authentication.
         }
         // Keep Git diagnostics stable for the local failure classification below.
         startInfo.Environment["LC_ALL"] = "C";
@@ -145,10 +156,10 @@ internal sealed class ConfigSourceGitClient(ICliHostEnvironment hostEnvironment)
     private Task<string> RunAsync(string directory, string[] arguments, CancellationToken cancellationToken, bool allowInteractive = true)
     {
         var startInfo = CreateStartInfo(directory, arguments, allowInteractive);
-        return RunProcessAsync(startInfo, cancellationToken);
+        return RunProcessAsync(startInfo, captureTimeoutOutput: arguments[0] == "fetch" && startInfo.RedirectStandardOutput, cancellationToken);
     }
 
-    internal static async Task<string> RunProcessAsync(ProcessStartInfo startInfo, CancellationToken cancellationToken)
+    internal static async Task<string> RunProcessAsync(ProcessStartInfo startInfo, bool captureTimeoutOutput, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         // The caller's token includes the overall Git timeout. Reuse tree-aware termination
@@ -163,12 +174,18 @@ internal sealed class ConfigSourceGitClient(ICliHostEnvironment hostEnvironment)
                     return new GitOutput(string.Empty, string.Empty);
                 }
                 // Read both pipes concurrently so a full stderr pipe cannot block stdout.
-                var standardOutput = process.StandardOutput.ReadToEndAsync(token);
-                var standardError = process.StandardError.ReadToEndAsync(token);
+                var standardOutput = ReadOutputAsync(process.StandardOutput, token);
+                var standardError = ReadOutputAsync(process.StandardError, token);
                 await Task.WhenAll(standardOutput, standardError);
                 return new GitOutput(await standardOutput, await standardError);
             },
             () => null, NullLogger.Instance, cancellationToken);
+        if (cancellationToken.IsCancellationRequested && captureTimeoutOutput && result.Capture is { } interrupted)
+        {
+            // Keep diagnostics separate from exception messages, logs and telemetry.
+            // The caller displays them only for timeout, never user/shutdown cancellation.
+            throw new GitProcessCanceledException(interrupted.StandardOutput + interrupted.StandardError, cancellationToken);
+        }
         cancellationToken.ThrowIfCancellationRequested();
         if (result.FailureKind is ProcessCaptureFailureKind.StartFailed)
         {
@@ -189,6 +206,39 @@ internal sealed class ConfigSourceGitClient(ICliHostEnvironment hostEnvironment)
             throw new ConfigSourceException(authenticationFailure ? ConfigSourceStrings.AuthenticationFailed : ConfigSourceStrings.RepositoryUnavailable);
         }
         return capture.StandardOutput;
+    }
+
+    private static async Task<string> ReadOutputAsync(StreamReader reader, CancellationToken cancellationToken)
+    {
+        var output = new StringBuilder();
+        var buffer = new char[4096];
+        try
+        {
+            // Prompts such as "Enter passphrase for key '/home/user/.ssh/id_ed25519': "
+            // need not end in a newline. Retain chunks, including partial lines.
+            // Local query results must remain complete; truncate only for display.
+            while (true)
+            {
+                var count = await reader.ReadAsync(buffer.AsMemory(), cancellationToken);
+                if (count == 0)
+                {
+                    break;
+                }
+                output.Append(buffer, 0, count);
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // ProcessCaptureRunner terminates the process tree and bounds draining.
+            // Return what was already read instead of losing it with ReadToEndAsync.
+        }
+
+        return output.ToString();
+    }
+
+    internal sealed class GitProcessCanceledException(string output, CancellationToken cancellationToken) : OperationCanceledException(cancellationToken)
+    {
+        public string Output { get; } = output;
     }
 
     private sealed record GitOutput(string StandardOutput, string StandardError);

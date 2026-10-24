@@ -13,9 +13,11 @@ namespace Aspire.Cli.Tests.Configuration;
 public class ConfigSourceGitClientTests(ITestOutputHelper outputHelper)
 {
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task RunProcess_DescendantHoldingOutputCannotBlockShutdown(bool parentExits)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task RunProcess_DescendantHoldingOutputCannotBlockShutdown(bool parentExits, bool captureTimeoutOutput)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var pidFile = Path.Combine(workspace.Path, "child.pid");
@@ -34,6 +36,7 @@ public class ConfigSourceGitClientTests(ITestOutputHelper outputHelper)
             // The child inherits both output pipes. Either leave its parent running for
             // cancellation, or exit the parent to exercise the bounded post-exit drain.
             startInfo.ArgumentList.Add(
+                "[Console]::Error.Write('Enter passphrase: '); [Console]::Out.Write(('x' * 1048576)); " +
                 "$child = Start-Process powershell.exe -NoNewWindow -PassThru -ArgumentList '-NoProfile -Command Start-Sleep -Seconds 60'; " +
                 $"[IO.File]::WriteAllText('{pidFile.Replace("'", "''")}', [string]$child.Id); " +
                 (parentExits ? "exit 0" : "Start-Sleep -Seconds 60"));
@@ -41,13 +44,13 @@ public class ConfigSourceGitClientTests(ITestOutputHelper outputHelper)
         else
         {
             startInfo.ArgumentList.Add("-c");
-            startInfo.ArgumentList.Add("sleep 60 & echo $! > \"$1\"; " + (parentExits ? "exit 0" : "wait"));
+            startInfo.ArgumentList.Add("printf 'Enter passphrase: ' >&2; printf '%1048576s' '' | tr ' ' x; sleep 60 & echo $! > \"$1\"; " + (parentExits ? "exit 0" : "wait"));
             startInfo.ArgumentList.Add("test-parent");
             startInfo.ArgumentList.Add(pidFile);
         }
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         cancellation.CancelAfter(TimeSpan.FromSeconds(30));
-        var run = ConfigSourceGitClient.RunProcessAsync(startInfo, cancellation.Token);
+        var run = ConfigSourceGitClient.RunProcessAsync(startInfo, captureTimeoutOutput, cancellation.Token);
         Process? child = null;
         try
         {
@@ -71,7 +74,15 @@ public class ConfigSourceGitClientTests(ITestOutputHelper outputHelper)
             else
             {
                 cancellation.Cancel();
-                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => run.WaitAsync(TimeSpan.FromSeconds(10)));
+                var error = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => run.WaitAsync(TimeSpan.FromSeconds(10)));
+                if (captureTimeoutOutput)
+                {
+                    var interrupted = Assert.IsType<ConfigSourceGitClient.GitProcessCanceledException>(error);
+                    const string prompt = "Enter passphrase: ";
+                    Assert.InRange(interrupted.Output.Length, 64 * 1024 + prompt.Length + 1, 1048576 + prompt.Length);
+                    Assert.Equal(new string('x', interrupted.Output.Length - prompt.Length) + prompt, interrupted.Output);
+                    Assert.Equal(new OperationCanceledException(cancellation.Token).Message, interrupted.Message);
+                }
                 await child.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10));
                 Assert.True(child.HasExited);
             }
@@ -165,7 +176,8 @@ public class ConfigSourceGitClientTests(ITestOutputHelper outputHelper)
     public async Task Acquire_ReadsDefaultBranchSnapshotWithoutCheckingOut(string path, bool interactive)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
-        await CreateRepositoryAsync(workspace, path, "{\"features\":{\"test\":true},\"custom\":\"\u65e5\u672c\u8a9e\"}");
+        var custom = new string('x', 70 * 1024) + "\u65e5\u672c\u8a9e";
+        await CreateRepositoryAsync(workspace, path, "{\"features\":{\"test\":true},\"custom\":\"" + custom + "\"}");
         var cache = workspace.CreateDirectory("cache");
         var client = new ConfigSourceGitClient(interactive
             ? TestHelpers.CreateInteractiveHostEnvironment()
@@ -179,7 +191,7 @@ public class ConfigSourceGitClientTests(ITestOutputHelper outputHelper)
         Assert.Matches("^[a-f0-9]{40,64}$", commit);
         Assert.Equal((await RunGitOutputAsync(workspace.Path, ["rev-parse", $"HEAD:{path}"])).Trim(), version);
         Assert.True(configuration["features"]!["test"]!.GetValue<bool>());
-        Assert.Equal("\u65e5\u672c\u8a9e", configuration["custom"]!.GetValue<string>());
+        Assert.Equal(custom, configuration["custom"]!.GetValue<string>());
         Assert.False(File.Exists(Path.Combine(cache.FullName, path)));
     }
 

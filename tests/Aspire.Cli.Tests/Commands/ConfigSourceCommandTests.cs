@@ -7,6 +7,7 @@ using Aspire.Cli.Commands;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Documentation.ApiDocs;
 using Aspire.Cli.Documentation.Docs;
+using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Tests.TestServices;
@@ -29,9 +30,11 @@ public class ConfigSourceCommandTests(ITestOutputHelper outputHelper)
     };
 
     [Theory]
-    [InlineData("stop", true)]
-    [InlineData("ps --format json", false)]
-    public async Task CompletedCheck_NotifiesAtExitAfterCliUpdateUnlessMachineReadable(string commandLine, bool notify)
+    [InlineData("stop", true, false)]
+    [InlineData("ps --format json", false, false)]
+    [InlineData("stop", true, true)]
+    [InlineData("ps --format json", false, true)]
+    public async Task CompletedCheck_NotifiesAtExitAfterCliUpdateUnlessMachineReadable(string commandLine, bool notify, bool timeout)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         await TestConfigSourceServices.SaveBindingAsync(s_source, workspace.WorkspaceRoot, CancellationToken.None);
@@ -42,6 +45,7 @@ public class ConfigSourceCommandTests(ITestOutputHelper outputHelper)
             NotifyIfUpdateAvailableCallback = () =>
             {
                 Assert.Equal(0, interaction.DisplayedMessages.Count(message => message.Message == ConfigSourceStrings.UpdateAvailable));
+                Assert.Empty(interaction.DisplayedRawText);
                 cliNoticeShown = true;
             }
         };
@@ -51,16 +55,37 @@ public class ConfigSourceCommandTests(ITestOutputHelper outputHelper)
             options.CliUpdateNotifierFactory = _ => notifier;
         }).BuildServiceProvider();
         var git = Assert.IsType<TestConfigSourceGitClient>(provider.GetRequiredService<IConfigSourceGitClient>());
-        git.Check = (_, _) => Task.FromResult(("commit-2", "version-2"));
+        var prompt = new string('x', 70 * 1024) + "Enter passphrase: ";
+        git.Check = (_, _) => timeout
+            ? throw new ConfigSourceException(ConfigSourceStrings.GitTimeout) { GitOutput = prompt }
+            : Task.FromResult(("commit-2", "version-2"));
         var service = provider.GetRequiredService<ConfigSourceService>();
         service.CheckForConfigSourceUpdates(workspace.WorkspaceRoot, CancellationToken.None);
         await service.WaitForChecksAsync().DefaultTimeout();
         Assert.Empty(interaction.DisplayedMessages);
+        Assert.Empty(interaction.DisplayedRawText);
 
         await provider.GetRequiredService<RootCommand>().Parse(commandLine).InvokeAsync().DefaultTimeout();
 
         Assert.Equal(notify, cliNoticeShown);
-        Assert.Equal(notify ? 1 : 0, interaction.DisplayedMessages.Count(message => message.Message == ConfigSourceStrings.UpdateAvailable));
+        var expectedMessage = timeout
+            ? string.Format(System.Globalization.CultureInfo.CurrentCulture, ConfigSourceStrings.CheckFailed, ConfigSourceStrings.GitTimeout)
+            : ConfigSourceStrings.UpdateAvailable;
+        Assert.Equal(notify ? 1 : 0, interaction.DisplayedMessages.Count(message => message.Message == expectedMessage));
+        if (notify && timeout)
+        {
+            Assert.Equal((prompt[^(64 * 1024)..], (ConsoleOutput?)ConsoleOutput.Error), Assert.Single(interaction.DisplayedRawText));
+            service.NotifyIfUpdateAvailable();
+            Assert.Single(interaction.DisplayedRawText);
+        }
+        else if (!notify)
+        {
+            Assert.Equal(("[]", (ConsoleOutput?)ConsoleOutput.Standard), Assert.Single(interaction.DisplayedRawText));
+        }
+        else
+        {
+            Assert.Empty(interaction.DisplayedRawText);
+        }
     }
 
     [Fact]
@@ -224,14 +249,26 @@ public class ConfigSourceCommandTests(ITestOutputHelper outputHelper)
         Assert.False(Assert.IsType<UpdateCommand>(result.CommandResult.Command).RequiresCliPackageMetadata);
     }
 
-    [Fact]
-    public async Task UpdateConfigSource_AcquisitionFailureRemainsCommandFailure()
+    [Theory]
+    [InlineData(false, 0)]
+    [InlineData(true, 0)]
+    [InlineData(true, 64 * 1024)]
+    [InlineData(true, 64 * 1024 + 1)]
+    public async Task UpdateConfigSource_AcquisitionFailureRemainsCommandFailure(bool timeout, int outputLength)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         await TestConfigSourceServices.SaveBindingAsync(s_source, workspace.WorkspaceRoot, CancellationToken.None);
-        using var provider = CliTestHelper.CreateServiceCollection(workspace, outputHelper).BuildServiceProvider();
+        var interaction = new TestInteractionService();
+        using var provider = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.InteractionServiceFactory = _ => interaction;
+        }).BuildServiceProvider();
         var git = Assert.IsType<TestConfigSourceGitClient>(provider.GetRequiredService<IConfigSourceGitClient>());
-        git.Acquire = (_, _) => throw new ConfigSourceException(ConfigSourceStrings.AuthenticationFailed);
+        var prompt = outputLength == 0 ? "Enter passphrase: " : new string('x', outputLength - 1) + "?";
+        git.Acquire = (_, _) => throw new ConfigSourceException(timeout ? ConfigSourceStrings.GitTimeout : ConfigSourceStrings.AuthenticationFailed)
+        {
+            GitOutput = timeout ? prompt : null
+        };
         var path = Path.Combine(workspace.Path, AspireConfigFile.FileName);
         var previous = await File.ReadAllTextAsync(path);
         var result = provider.GetRequiredService<RootCommand>().Parse("update --config-source --yes --non-interactive");
@@ -241,6 +278,15 @@ public class ConfigSourceCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(1, git.Calls);
         Assert.Equal(0, git.CheckCalls);
         Assert.Equal(previous, await File.ReadAllTextAsync(path));
+        if (timeout)
+        {
+            var expectedOutput = outputLength > 64 * 1024 ? prompt[^(64 * 1024)..] : prompt;
+            Assert.Equal((expectedOutput, (ConsoleOutput?)ConsoleOutput.Error), Assert.Single(interaction.DisplayedRawText));
+        }
+        else
+        {
+            Assert.Empty(interaction.DisplayedRawText);
+        }
     }
 
     [Theory]
