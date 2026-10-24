@@ -4,9 +4,11 @@
 using System.ComponentModel;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Git;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Aspire.Cli.Tests.Git;
 
@@ -17,7 +19,7 @@ public class GitRunnerTests(ITestOutputHelper outputHelper)
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task CloneAsync_UsesLiteralArgumentsAndHostAuthenticationPolicy(bool interactive)
+    public async Task CloneAsync_UsesLiteralArgumentsAndDisablesCredentialPrompts(bool interactive)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var destination = new DirectoryInfo(Path.Combine(workspace.Path, "clone with spaces"));
@@ -35,47 +37,49 @@ public class GitRunnerTests(ITestOutputHelper outputHelper)
         Assert.Collection(commands,
             command =>
             {
-                Assert.Equal(["init", "--quiet", "--object-format=sha1", "--", destination.FullName], command.Arguments);
+                Assert.Equal(["--literal-pathspecs", "init", "--quiet", "--object-format=sha1", "--", destination.FullName], command.Arguments);
                 Assert.Equal(workspace.WorkspaceRoot.FullName, command.WorkingDirectory);
             },
             command =>
             {
-                Assert.Equal(["fetch", "--depth", "1", "--no-tags", "--", "-repository with spaces", CommitSha], command.Arguments);
+                Assert.Equal(["--literal-pathspecs", "fetch", "--depth", "1", "--no-tags", "--", "-repository with spaces", CommitSha], command.Arguments);
                 Assert.Equal(destination.FullName, command.WorkingDirectory);
             },
             command =>
             {
-                Assert.Equal(["checkout", "--detach", "--force", "FETCH_HEAD"], command.Arguments);
+                Assert.Equal(["--literal-pathspecs", "checkout", "--detach", "--force", "FETCH_HEAD"], command.Arguments);
                 Assert.Equal(destination.FullName, command.WorkingDirectory);
             },
             command =>
             {
-                Assert.Equal(["rev-parse", "--verify", "HEAD"], command.Arguments);
+                Assert.Equal(["--literal-pathspecs", "rev-parse", "--verify", "HEAD"], command.Arguments);
                 Assert.Equal(destination.FullName, command.WorkingDirectory);
             });
-        if (interactive)
-        {
-            Assert.Null(processFactory.LastEnvironmentVariables);
-        }
-        else
-        {
-            var environment = Assert.Single(Assert.IsAssignableFrom<IDictionary<string, string>>(processFactory.LastEnvironmentVariables));
-            Assert.Equal(new KeyValuePair<string, string>("GIT_TERMINAL_PROMPT", "0"), environment);
-        }
+        Assert.Equal(new Dictionary<string, string> { ["GIT_TERMINAL_PROMPT"] = "0", ["LC_ALL"] = "C" }, processFactory.LastEnvironmentVariables);
+        Assert.True(processFactory.LastProcessInvocationOptions!.SuppressLogging);
 
         Assert.All(processFactory.CreatedExecutions, execution => Assert.Equal(1, Assert.IsType<TestProcessExecution>(execution).DisposeCount));
     }
 
-    [Fact]
-    public async Task CloneAsync_NonzeroExitPreservesExitCodeAndDiagnostics()
+    [Theory]
+    [InlineData("fatal: repository not found", nameof(GitFailure.RepositoryUnavailable))]
+    [InlineData("fatal: could not resolve host", nameof(GitFailure.RepositoryUnavailable))]
+    [InlineData("fatal: unable to access repository", nameof(GitFailure.RepositoryUnavailable))]
+    [InlineData("fatal: could not read from remote repository", nameof(GitFailure.RepositoryUnavailable))]
+    [InlineData("fatal: Authentication failed", nameof(GitFailure.AuthenticationFailed))]
+    [InlineData("Permission denied (publickey).", nameof(GitFailure.AuthenticationFailed))]
+    [InlineData("fatal: could not read Username", nameof(GitFailure.AuthenticationFailed))]
+    [InlineData("fatal: could not read Password", nameof(GitFailure.AuthenticationFailed))]
+    [InlineData("fatal: unexpected failure", nameof(GitFailure.CommandFailed))]
+    public async Task CloneAsync_NonzeroExitClassifiesDiagnosticsWithoutExposingPrivateDetails(string diagnostic, string failure)
     {
+        var expectedFailure = Enum.Parse<GitFailure>(failure);
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var processFactory = new TestProcessExecutionFactory
         {
             AttemptCallback = (_, options) =>
             {
-                options.StandardErrorCallback?.Invoke("Cloning into 'destination'...");
-                options.StandardErrorCallback?.Invoke("fatal: repository not found");
+                options.StandardErrorCallback?.Invoke($"{diagnostic}: https://user:secret@example.test/private-repository");
                 return (128, null);
             }
         };
@@ -85,15 +89,22 @@ public class GitRunnerTests(ITestOutputHelper outputHelper)
             provider.GetRequiredService<IGitRunner>().CloneAsync("repository", workspace.WorkspaceRoot, CommitSha, TestContext.Current.CancellationToken));
 
         Assert.Equal(128, exception.ExitCode);
-        Assert.Equal($"Cloning into 'destination'...{Environment.NewLine}fatal: repository not found", exception.Message);
+        Assert.Equal(expectedFailure, exception.Failure);
+        Assert.Equal(expectedFailure switch
+        {
+            GitFailure.RepositoryUnavailable => ErrorStrings.GitRepositoryUnavailable,
+            GitFailure.AuthenticationFailed => ErrorStrings.GitAuthenticationFailed,
+            _ => ErrorStrings.GitCommandFailed
+        }, exception.Message);
         Assert.Null(exception.InnerException);
+        Assert.True(processFactory.LastProcessInvocationOptions!.SuppressLogging);
         Assert.Equal(1, Assert.IsType<TestProcessExecution>(Assert.Single(processFactory.CreatedExecutions)).DisposeCount);
     }
 
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task CloneAsync_MissingGitPreservesStartupFailure(bool failDuringStart)
+    public async Task CloneAsync_MissingGitReportsSafeStartupFailure(bool failDuringStart)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var startupException = new Win32Exception(2);
@@ -111,8 +122,9 @@ public class GitRunnerTests(ITestOutputHelper outputHelper)
             provider.GetRequiredService<IGitRunner>().CloneAsync("repository", workspace.WorkspaceRoot, CommitSha, TestContext.Current.CancellationToken));
 
         Assert.Null(exception.ExitCode);
-        Assert.Equal(startupException.Message, exception.Message);
-        Assert.Same(startupException, exception.InnerException);
+        Assert.Equal(GitFailure.Unavailable, exception.Failure);
+        Assert.Equal(ErrorStrings.GitUnavailable, exception.Message);
+        Assert.Null(exception.InnerException);
         if (failDuringStart)
         {
             Assert.Equal(1, Assert.IsType<TestProcessExecution>(Assert.Single(processFactory.CreatedExecutions)).DisposeCount);
@@ -169,8 +181,9 @@ public class GitRunnerTests(ITestOutputHelper outputHelper)
         {
             AsyncAttemptCallback = (_, _, token) =>
             {
-                Assert.Equal(cancellation.Token, token);
+                Assert.True(token.CanBeCanceled);
                 cancellation.Cancel();
+                Assert.True(token.IsCancellationRequested);
                 return processReportsSuccess
                     ? Task.FromResult((0, (string?)null))
                     : Task.FromCanceled<(int ExitCode, string? Stdout)>(token);
@@ -210,7 +223,7 @@ public class GitRunnerTests(ITestOutputHelper outputHelper)
         var candidates = requestedRef == "HEAD" || requestedRef.StartsWith("refs/", StringComparison.Ordinal)
             ? new[] { $"{requestedRef}^{{}}", requestedRef }
             : [$"refs/heads/{requestedRef}", $"refs/tags/{requestedRef}^{{}}", $"refs/tags/{requestedRef}"];
-        Assert.Equal(["ls-remote", "--", "-repository with spaces", .. candidates], process.Arguments);
+        Assert.Equal(["--literal-pathspecs", "ls-remote", "--", "-repository with spaces", .. candidates], process.Arguments);
         Assert.Equal("0", process.EnvironmentVariables["GIT_TERMINAL_PROMPT"]);
         Assert.Equal(1, process.DisposeCount);
     }
@@ -312,6 +325,116 @@ public class GitRunnerTests(ITestOutputHelper outputHelper)
         Assert.Equal(128, exception.ExitCode);
         Assert.Equal(failingCommand, processFactory.CreatedExecutions.Count);
         Assert.All(processFactory.CreatedExecutions, process => Assert.Equal(1, Assert.IsType<TestProcessExecution>(process).DisposeCount));
+    }
+
+    [Theory]
+    [InlineData("GIT_DIR", true)]
+    [InlineData("GIT_WORK_TREE", true)]
+    [InlineData("GIT_INDEX_FILE", true)]
+    [InlineData("GIT_OBJECT_DIRECTORY", true)]
+    [InlineData("GIT_ALTERNATE_OBJECT_DIRECTORIES", true)]
+    [InlineData("GIT_COMMON_DIR", true)]
+    [InlineData("GIT_NAMESPACE", true)]
+    [InlineData("GIT_SHALLOW_FILE", true)]
+    [InlineData("git_dir", true)]
+    [InlineData("GIT_ASKPASS", false)]
+    [InlineData("GIT_SSH_COMMAND", false)]
+    [InlineData("GIT_CONFIG_COUNT", false)]
+    [InlineData("HOME", false)]
+    [InlineData("PATH", false)]
+    public async Task ResolveReferenceAsync_FiltersRepositoryEnvironmentButPreservesAuthentication(string name, bool removed)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var processFactory = new TestProcessExecutionFactory { AttemptCallback = (_, _) => (0, $"{CommitSha}\tHEAD") };
+        using var provider = CreateServices(workspace, processFactory, interactive: true).BuildServiceProvider();
+
+        await provider.GetRequiredService<IGitRunner>().ResolveReferenceAsync("repository", null, TestContext.Current.CancellationToken);
+
+        Assert.Equal(removed, processFactory.LastProcessInvocationOptions!.EnvironmentVariableFilter!(name));
+    }
+
+    [Fact]
+    public async Task CloneAsync_TimeoutBudgetCoversAllCommandsAndDisposesProcesses()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var time = new FakeTimeProvider();
+        var processFactory = new TestProcessExecutionFactory
+        {
+            AsyncAttemptCallback = (_, _, token) =>
+            {
+                time.Advance(TimeSpan.FromSeconds(50));
+                token.ThrowIfCancellationRequested();
+                return Task.FromResult((0, (string?)CommitSha));
+            }
+        };
+        var services = CreateServices(workspace, processFactory, interactive: true);
+        services.AddSingleton<TimeProvider>(time);
+        using var provider = services.BuildServiceProvider();
+
+        var exception = await Assert.ThrowsAsync<GitCommandException>(() =>
+            provider.GetRequiredService<IGitRunner>().CloneAsync("repository", workspace.WorkspaceRoot, CommitSha, TestContext.Current.CancellationToken));
+
+        Assert.Equal(GitFailure.TimedOut, exception.Failure);
+        Assert.Null(exception.ExitCode);
+        Assert.Equal(3, processFactory.CreatedExecutions.Count);
+        Assert.All(processFactory.CreatedExecutions, process => Assert.Equal(1, Assert.IsType<TestProcessExecution>(process).DisposeCount));
+    }
+
+    [Fact]
+    public async Task ResolveReferenceAsync_TimeoutCancelsPendingCommand()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var time = new FakeTimeProvider();
+        var processFactory = new TestProcessExecutionFactory
+        {
+            AsyncAttemptCallback = async (_, _, token) =>
+            {
+                time.Advance(TimeSpan.FromMinutes(2));
+                await Task.Delay(Timeout.InfiniteTimeSpan, token);
+                return (0, (string?)null);
+            }
+        };
+        var services = CreateServices(workspace, processFactory, interactive: false);
+        services.AddSingleton<TimeProvider>(time);
+        using var provider = services.BuildServiceProvider();
+
+        var exception = await Assert.ThrowsAsync<GitCommandException>(() =>
+            provider.GetRequiredService<IGitRunner>().ResolveReferenceAsync("repository", null, TestContext.Current.CancellationToken));
+
+        Assert.Equal(GitFailure.TimedOut, exception.Failure);
+        Assert.Equal(1, Assert.IsType<TestProcessExecution>(Assert.Single(processFactory.CreatedExecutions)).DisposeCount);
+    }
+
+    [Fact]
+    public async Task ReadBlobAsync_RejectsOversizedBlobBeforeRequestingContent()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var processFactory = new TestProcessExecutionFactory { AttemptCallback = (_, _) => (0, "1025") };
+        using var provider = CreateServices(workspace, processFactory, interactive: false).BuildServiceProvider();
+
+        var exception = await Assert.ThrowsAsync<GitCommandException>(() => provider.GetRequiredService<IGitRunner>()
+            .ReadBlobAsync(workspace.WorkspaceRoot, CommitSha, 1024, TestContext.Current.CancellationToken));
+
+        Assert.Equal(GitFailure.BlobTooLarge, exception.Failure);
+        var execution = Assert.IsType<TestProcessExecution>(Assert.Single(processFactory.CreatedExecutions));
+        Assert.Equal(["--literal-pathspecs", $"--git-dir={workspace.WorkspaceRoot.FullName}", "cat-file", "-s", CommitSha], execution.Arguments);
+    }
+
+    [Theory]
+    [InlineData("-1")]
+    [InlineData("not a size")]
+    [InlineData("9223372036854775808")]
+    public async Task ReadBlobAsync_RejectsInvalidSizes(string size)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var processFactory = new TestProcessExecutionFactory { AttemptCallback = (_, _) => (0, size) };
+        using var provider = CreateServices(workspace, processFactory, interactive: false).BuildServiceProvider();
+
+        var exception = await Assert.ThrowsAsync<GitCommandException>(() => provider.GetRequiredService<IGitRunner>()
+            .ReadBlobAsync(workspace.WorkspaceRoot, CommitSha, 1024, TestContext.Current.CancellationToken));
+
+        Assert.Equal(GitFailure.InvalidOutput, exception.Failure);
+        Assert.Single(processFactory.CreatedExecutions);
     }
 
     private IServiceCollection CreateServices(TemporaryWorkspace workspace, TestProcessExecutionFactory processFactory, bool interactive)

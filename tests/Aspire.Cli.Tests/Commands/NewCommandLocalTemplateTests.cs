@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.ComponentModel;
 using System.Globalization;
 using System.Text.Json;
 using System.Xml.Linq;
@@ -1014,15 +1013,17 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(2)]
+    [InlineData(3)]
     public async Task RepositoryTemplate_CloneFailureIsReportedAndCleanedUp(int failure)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var interaction = new TestInteractionService();
         var exception = failure switch
         {
-            0 => new GitCommandException("fatal: repository not found", 128, null),
-            1 => new GitCommandException(new Win32Exception(2).Message, null, new Win32Exception(2)),
-            _ => new GitCommandException("Git could not be started.", null, null)
+            0 => new GitCommandException(GitFailure.RepositoryUnavailable, 128),
+            1 => new GitCommandException(GitFailure.Unavailable, null),
+            2 => new GitCommandException(GitFailure.AuthenticationFailed, 128),
+            _ => new GitCommandException(GitFailure.TimedOut, null)
         };
         var gitRunner = new TestGitRunner
         {
@@ -1040,9 +1041,10 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
             Assert.Equal(CliExitCodes.FailedToInstallTemplates, exitCode);
             var expectedError = failure switch
             {
-                0 => string.Format(NewCommandStrings.TemplateRepositoryGitExited, 128, "fatal: repository not found"),
-                1 => string.Format(NewCommandStrings.TemplateRepositoryGitFailed, new Win32Exception(2).Message),
-                _ => NewCommandStrings.TemplateRepositoryGitUnavailable
+                0 => string.Format(NewCommandStrings.TemplateRepositoryGitExited, 128, ErrorStrings.GitRepositoryUnavailable),
+                1 => ErrorStrings.GitUnavailable,
+                2 => string.Format(NewCommandStrings.TemplateRepositoryGitExited, 128, ErrorStrings.GitAuthenticationFailed),
+                _ => ErrorStrings.GitTimedOut
             };
             Assert.Equal(expectedError, Assert.Single(interaction.DisplayedErrors));
             Assert.Single(gitRunner.CloneCalls);

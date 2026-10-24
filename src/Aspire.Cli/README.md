@@ -77,13 +77,23 @@ Cached versions can be removed manually when no invocation is using them.
 On Unix and macOS, the Git cache root is created with owner-only (`0700`)
 permissions. Existing root permissions are repaired on cache reuse.
 
-Git's normal authentication configuration applies; Git terminal credential
-prompts are disabled in non-interactive mode. Submodule cloning and repository
-catalogs are not supported.
+Git's normal credential helpers and SSH authentication configuration apply, but
+Git terminal credential prompts are always disabled (`GIT_TERMINAL_PROMPT=0`),
+including during interactive Aspire commands. Configure authentication before
+running the command. Each Git operation has a two-minute timeout; cloning shares
+one timeout across initialization, fetching, checkout, and verification.
+Submodule cloning and repository catalogs are not supported.
 
 Git process execution is isolated behind `Aspire.Cli.Git.IGitRunner`, backed by
 `IProcessExecutionFactory`. The template factory owns checkout lifetime, template
 path validation, Git metadata exclusion, and template-engine discovery.
+The Git runner also supports fetching an exact commit into a bare repository,
+looking up a regular file's blob ID without checkout, and reading byte-preserving
+blob content with a caller-specified size limit. JSON parsing and configuration
+validation remain the caller's responsibility. Repository-routing Git environment
+variables are excluded from child processes, and private Git arguments, output,
+and raw error diagnostics are not logged. Failures are reported through localized
+messages and a classified `GitFailure` value.
 
 The directory must contain `.template.config/template.json`, either directly or
 under its template subdirectories. If it contains multiple templates, Aspire

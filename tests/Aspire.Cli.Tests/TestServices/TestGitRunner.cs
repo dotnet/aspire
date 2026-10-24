@@ -30,4 +30,13 @@ internal sealed class TestGitRunner : IGitRunner
         CloneCalls.Enqueue((repository, destination, commitSha));
         return CloneAsyncCallback(repository, destination, commitSha, cancellationToken);
     }
+
+    public Task FetchAsync(string repository, DirectoryInfo destination, string commitSha, CancellationToken cancellationToken) =>
+        throw new InvalidOperationException("Unexpected Git fetch invocation.");
+
+    public Task<string> GetBlobIdAsync(DirectoryInfo gitDirectory, string commitSha, string path, CancellationToken cancellationToken) =>
+        throw new InvalidOperationException("Unexpected Git blob lookup.");
+
+    public Task<byte[]> ReadBlobAsync(DirectoryInfo gitDirectory, string blobId, int maximumBytes, CancellationToken cancellationToken) =>
+        throw new InvalidOperationException("Unexpected Git blob read.");
 }

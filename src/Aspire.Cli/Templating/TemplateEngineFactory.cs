@@ -163,9 +163,7 @@ internal sealed class TemplateEngineFactory(
         {
             var message = ex.ExitCode is int exitCode
                 ? string.Format(CultureInfo.CurrentCulture, NewCommandStrings.TemplateRepositoryGitExited, exitCode, ex.Message)
-                : ex.InnerException is not null
-                    ? string.Format(CultureInfo.CurrentCulture, NewCommandStrings.TemplateRepositoryGitFailed, ex.Message)
-                    : NewCommandStrings.TemplateRepositoryGitUnavailable;
+                : ex.Message;
             throw new TemplateDiscoveryException(CliExitCodes.FailedToInstallTemplates, message);
         }
     }
