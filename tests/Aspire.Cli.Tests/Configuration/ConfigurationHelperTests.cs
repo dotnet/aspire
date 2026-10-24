@@ -252,7 +252,7 @@ public class ConfigurationHelperTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public void AppendFinalNewline_AddsOneOsNewLineToSerializedJson()
+    public void EnsureFinalNewline_AddsOneOsNewLineToSerializedJson()
     {
         var settings = new JsonObject
         {
@@ -264,7 +264,16 @@ public class ConfigurationHelperTests(ITestOutputHelper outputHelper)
         // only lacks the final newline, so that is all that is added.
         var json = JsonSerializer.Serialize(settings, JsonSourceGenerationContext.Default.JsonObject);
 
-        LineEndingAssert.UsesOsLineBreaksAndSingleFinalNewline(ConfigurationHelper.AppendFinalNewline(json));
+        LineEndingAssert.UsesOsLineBreaksAndSingleFinalNewline(ConfigurationHelper.EnsureFinalNewline(json));
+    }
+
+    // Both line breaks are covered on every OS, so a second newline is never added after an existing final one.
+    [Theory]
+    [InlineData("{}\n")]
+    [InlineData("{}\r\n")]
+    public void EnsureFinalNewline_KeepsExistingFinalNewline(string json)
+    {
+        Assert.Equal(json, ConfigurationHelper.EnsureFinalNewline(json));
     }
 
     [Fact]

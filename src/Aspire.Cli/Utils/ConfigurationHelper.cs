@@ -223,13 +223,20 @@ internal static class ConfigurationHelper
     }
 
     /// <summary>
-    /// Returns JSON that <see cref="JsonSerializer"/> produced followed by the final newline it does not write.
+    /// Returns JSON that <see cref="JsonSerializer"/> produced with the final newline it does not write.
     /// </summary>
-    internal static string AppendFinalNewline(string json)
+    internal static string EnsureFinalNewline(string json)
     {
         // System.Text.Json already indents with Environment.NewLine, so serialized text needs no line break
         // normalization and only lacks the trailing newline. Text that was not serialized, such as a file copied
         // from the embedded templates, goes through NormalizeJsonFileContent instead.
+        //
+        // An existing final line break (LF or CRLF) is kept as is, so the result never ends with a second one.
+        if (json.EndsWith('\n'))
+        {
+            return json;
+        }
+
         return json + Environment.NewLine;
     }
 
@@ -265,7 +272,7 @@ internal static class ConfigurationHelper
     /// </summary>
     internal static async Task WriteSettingsFileAsync(string filePath, JsonObject settings, CancellationToken cancellationToken = default)
     {
-        var jsonContent = AppendFinalNewline(JsonSerializer.Serialize(settings, JsonSourceGenerationContext.Default.JsonObject));
+        var jsonContent = EnsureFinalNewline(JsonSerializer.Serialize(settings, JsonSourceGenerationContext.Default.JsonObject));
 
         EnsureDirectoryExists(filePath);
         await File.WriteAllTextAsync(filePath, jsonContent, cancellationToken);
@@ -276,7 +283,7 @@ internal static class ConfigurationHelper
     /// </summary>
     internal static void WriteSettingsFile(string filePath, JsonObject settings)
     {
-        var jsonContent = AppendFinalNewline(JsonSerializer.Serialize(settings, JsonSourceGenerationContext.Default.JsonObject));
+        var jsonContent = EnsureFinalNewline(JsonSerializer.Serialize(settings, JsonSourceGenerationContext.Default.JsonObject));
 
         EnsureDirectoryExists(filePath);
         File.WriteAllText(filePath, jsonContent);
