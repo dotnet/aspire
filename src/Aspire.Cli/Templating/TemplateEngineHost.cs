@@ -81,7 +81,7 @@ internal sealed class TemplateEngineHost(IReadOnlyList<(Type InterfaceType, IIde
         }
 
         private static bool IsGitMetadata(string path) =>
-            path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            path.Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar])
                 .Any(segment => string.Equals(segment, ".git", StringComparison.OrdinalIgnoreCase));
 
         private static string ReadablePath(string path) =>

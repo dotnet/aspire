@@ -19,6 +19,7 @@ using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.TemplateEngine.Abstractions;
 using RootCommand = Aspire.Cli.Commands.RootCommand;
 
 namespace Aspire.Cli.Tests.Commands;
@@ -462,6 +463,55 @@ public class NewCommandLocalTemplateTests(ITestOutputHelper outputHelper)
         Assert.Equal(originalSource, ReadOutput(Path.Combine(workspace.Path, "template")));
         Assert.Equal("Original repository configuration", await File.ReadAllTextAsync(Path.Combine(gitDirectory.FullName, "config")));
         await Verify(ReadOutput(workspace)).ScrubInlineGuids().UseParameters(gitFile);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task LocalTemplate_ExcludesGitMetadataFromDeepSourcePaths(bool gitFile)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var templateDirectory = Path.Combine(Enumerable.Repeat("d", 50).Append("template").ToArray());
+        var templatePath = Path.Combine(workspace.Path, templateDirectory);
+        Assert.True(templatePath.Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar]).Length > 47);
+        var config = workspace.CreateDirectory(Path.Combine(templateDirectory, ".template.config"));
+        await File.WriteAllTextAsync(Path.Combine(config.FullName, "template.json"), """
+            { "identity": "Aspire.Local.DeepPath", "name": "Deep path template", "shortName": "deep-path" }
+            """);
+        if (gitFile)
+        {
+            await File.WriteAllTextAsync(Path.Combine(templatePath, ".git"), "gitdir: ../git-storage");
+        }
+        else
+        {
+            var git = workspace.CreateDirectory(Path.Combine(templateDirectory, ".git"));
+            await File.WriteAllTextAsync(Path.Combine(git.FullName, "config"), "Original repository configuration");
+        }
+        var nestedGit = workspace.CreateDirectory(Path.Combine(templateDirectory, "nested", ".git"));
+        await File.WriteAllTextAsync(Path.Combine(nestedGit.FullName, "config"), "Nested repository configuration");
+        await File.WriteAllTextAsync(Path.Combine(templatePath, "content.txt"), "Keep template content");
+        await File.WriteAllTextAsync(Path.Combine(templatePath, ".gitignore"), "bin/");
+        var github = workspace.CreateDirectory(Path.Combine(templateDirectory, ".github"));
+        await File.WriteAllTextAsync(Path.Combine(github.FullName, "content.txt"), "Keep GitHub content");
+        var originalSource = ReadOutput(templatePath);
+        using var host = new TemplateEngineHost([]);
+        var fileSystem = ((ITemplateEngineHost)host).FileSystem;
+        // Engine source defaults can also hide .git; verify the host's absolute-path filtering directly.
+        Assert.False(fileSystem.FileExists(Path.Combine(templatePath, ".git")));
+        Assert.False(fileSystem.DirectoryExists(Path.Combine(templatePath, ".git")));
+        Assert.False(fileSystem.FileExists(Path.Combine(nestedGit.FullName, "config")));
+        Assert.Throws<FileNotFoundException>(() => fileSystem.ReadAllText(Path.Combine(nestedGit.FullName, "config")));
+        var interaction = new TestInteractionService();
+        using var provider = CreateServices(workspace, interaction, interactive: false).BuildServiceProvider();
+
+        var exitCode = await provider.GetRequiredService<RootCommand>()
+            .Parse(["new", "--template-path", templatePath, "--name", "Demo", "--output", "out", "--suppress-agent-init"])
+            .InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(CliExitCodes.Success, exitCode);
+        Assert.Empty(interaction.DisplayedErrors);
+        Assert.Equal(originalSource, ReadOutput(templatePath));
+        await Verify(ReadOutput(workspace)).UseParameters(gitFile);
     }
 
     [Fact]
