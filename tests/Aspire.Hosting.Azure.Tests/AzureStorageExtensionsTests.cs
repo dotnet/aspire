@@ -480,6 +480,22 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public async Task ResourceNamesMatchingServiceIdentifiersBicepValid()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(output);
+        var storage = builder.AddAzureStorage("queues");
+
+        var blob = storage.AddBlobContainer(name: "blobs", blobContainerName: "plantdata");
+        var queue = storage.AddQueue(name: "myqueue", queueName: "my-queue");
+        var files = storage.AddFiles("myfiles");
+        var fileShare = files.AddFileShare(name: "files", fileShareName: "my-file-share");
+
+        var manifest = await AzureManifestUtils.GetManifestWithBicep(storage.Resource);
+
+        await Verify(manifest.BicepText, extension: "bicep");
+    }
+
+    [Fact]
     public async Task AddAzureFiles_GeneratesSmbOAuthAndFileShare()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
