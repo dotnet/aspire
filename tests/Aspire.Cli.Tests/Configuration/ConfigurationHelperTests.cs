@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Cli.Configuration;
@@ -11,6 +13,59 @@ namespace Aspire.Cli.Tests.Configuration;
 
 public class ConfigurationHelperTests(ITestOutputHelper outputHelper)
 {
+    [Theory]
+    [InlineData(false, UnixFileMode.UserRead | UnixFileMode.UserWrite)]
+    [InlineData(true, UnixFileMode.UserRead | UnixFileMode.UserWrite)]
+    [InlineData(true, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead)]
+    public async Task WriteSettingsFileAtomically_PreservesUnixPermissions(bool existing, UnixFileMode mode)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            Assert.Skip("Unix file permissions are not available on Windows.");
+            return;
+        }
+
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var path = Path.Combine(workspace.Path, AspireConfigFile.FileName);
+        if (existing)
+        {
+            await File.WriteAllTextAsync(path, "{}");
+            File.SetUnixFileMode(path, mode);
+        }
+
+        await ConfigurationHelper.WriteSettingsFileAtomicallyAsync(path, new JsonObject { ["custom"] = "updated" }, CancellationToken.None);
+
+        Assert.Equal(mode, File.GetUnixFileMode(path));
+        Assert.Equal("updated", JsonNode.Parse(await File.ReadAllTextAsync(path))!["custom"]!.GetValue<string>());
+        Assert.Equal(path, Assert.Single(Directory.GetFiles(workspace.Path)));
+    }
+
+    [Fact]
+    public async Task WriteSettingsFileAtomically_PreservesWindowsAccessRestrictions()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.Skip("Windows ACLs are not available on this platform.");
+            return;
+        }
+
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var file = new FileInfo(Path.Combine(workspace.Path, AspireConfigFile.FileName));
+        await File.WriteAllTextAsync(file.FullName, "{}");
+        using var identity = WindowsIdentity.GetCurrent();
+        var security = new FileSecurity();
+        security.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
+        security.AddAccessRule(new FileSystemAccessRule(identity.User!, FileSystemRights.FullControl, AccessControlType.Allow));
+        file.SetAccessControl(security);
+        var expected = file.GetAccessControl(AccessControlSections.Access).GetSecurityDescriptorSddlForm(AccessControlSections.Access);
+
+        await ConfigurationHelper.WriteSettingsFileAtomicallyAsync(file.FullName, new JsonObject { ["custom"] = "updated" }, CancellationToken.None);
+
+        Assert.Equal(expected, file.GetAccessControl(AccessControlSections.Access).GetSecurityDescriptorSddlForm(AccessControlSections.Access));
+        Assert.Equal("updated", JsonNode.Parse(await File.ReadAllTextAsync(file.FullName))!["custom"]!.GetValue<string>());
+        Assert.Equal(file.FullName, Assert.Single(Directory.GetFiles(workspace.Path)));
+    }
+
     private static IConfiguration BuildConfigurationFromSettingsFile(
         TemporaryWorkspace workspace, string content)
     {
@@ -225,6 +280,25 @@ public class ConfigurationHelperTests(ITestOutputHelper outputHelper)
         Assert.NotNull(config?.Features);
         Assert.True(config.Features["polyglotSupportEnabled"]);
         Assert.False(config.Features["showAllTemplates"]);
+    }
+
+    [Theory]
+    [InlineData("""{"DOCS":{"API":{"SITEMAPURL":"nested"}},"docs:api:other":"flat","docs:api:sitemapUrl":"flat"}""", "nested")]
+    [InlineData("""{"DOCS":{"API":{"SITEMAPURL":null}},"docs:api:other":"flat","docs:api:sitemapUrl":"flat"}""", "flat")]
+    public void NormalizeSettings_MergesMixedCaseSegmentsAndPreservesNestedPrecedence(string json, string expectedValue)
+    {
+        var settings = JsonNode.Parse(json)!.AsObject();
+
+        Assert.True(ConfigurationHelper.NormalizeSettings(settings));
+
+        Assert.Equal("DOCS", Assert.Single(settings).Key);
+        var docs = settings["DOCS"]!.AsObject();
+        Assert.Equal("API", Assert.Single(docs).Key);
+        var api = docs["API"]!.AsObject();
+        Assert.Equal(["SITEMAPURL", "other"], api.Select(property => property.Key));
+        Assert.Equal(expectedValue, api["SITEMAPURL"]!.GetValue<string>());
+        Assert.Equal("flat", api["other"]!.GetValue<string>());
+        Assert.False(ConfigurationHelper.NormalizeSettings(settings));
     }
 
     [Fact]

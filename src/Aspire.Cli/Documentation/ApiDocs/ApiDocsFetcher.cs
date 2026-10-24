@@ -29,9 +29,11 @@ internal sealed class ApiDocsFetcher(HttpClient httpClient, IApiDocsCache cache,
 {
     private readonly HttpClient _httpClient = httpClient;
     private readonly IApiDocsCache _cache = cache;
-    private readonly string _sitemapUrl = ApiDocsSourceConfiguration.GetSitemapUrl(configuration);
-    private readonly string _sitemapCacheKey = ApiDocsSourceConfiguration.GetSitemapContentCacheKey(ApiDocsSourceConfiguration.GetSitemapUrl(configuration));
     private readonly ILogger<ApiDocsFetcher> _logger = logger;
+
+    // Commands construct documentation services before their project's config source is applied.
+    private string SitemapUrl => field ??= ApiDocsSourceConfiguration.GetSitemapUrl(configuration);
+    private string SitemapCacheKey => field ??= ApiDocsSourceConfiguration.GetSitemapContentCacheKey(SitemapUrl);
 
     /// <summary>
     /// Fetches the sitemap used to build the API catalog.
@@ -39,7 +41,7 @@ internal sealed class ApiDocsFetcher(HttpClient httpClient, IApiDocsCache cache,
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The sitemap content, or <c>null</c> when it cannot be retrieved.</returns>
     public Task<string?> FetchSitemapAsync(CancellationToken cancellationToken = default)
-        => CachedHttpDocumentFetcher.FetchAsync(_httpClient, _cache, _sitemapUrl, _sitemapCacheKey, _logger, cancellationToken);
+        => CachedHttpDocumentFetcher.FetchAsync(_httpClient, _cache, SitemapUrl, SitemapCacheKey, _logger, cancellationToken);
 
     /// <summary>
     /// Fetches markdown content for the specified API page.
@@ -49,8 +51,8 @@ internal sealed class ApiDocsFetcher(HttpClient httpClient, IApiDocsCache cache,
     /// <returns>The markdown content, or <c>null</c> when it cannot be retrieved.</returns>
     public Task<string?> FetchPageAsync(string pageUrl, CancellationToken cancellationToken = default)
     {
-        var markdownUrl = ApiDocsSourceConfiguration.BuildMarkdownUrl(pageUrl, _sitemapUrl);
-        var cacheKey = ApiDocsSourceConfiguration.GetPageContentCacheKey(pageUrl, _sitemapUrl);
+        var markdownUrl = ApiDocsSourceConfiguration.BuildMarkdownUrl(pageUrl, SitemapUrl);
+        var cacheKey = ApiDocsSourceConfiguration.GetPageContentCacheKey(pageUrl, SitemapUrl);
         return CachedHttpDocumentFetcher.FetchAsync(_httpClient, _cache, markdownUrl, cacheKey, _logger, cancellationToken);
     }
 }

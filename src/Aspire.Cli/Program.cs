@@ -317,6 +317,8 @@ public class Program
         var globalSettingsFile = new FileInfo(globalSettingsFilePath);
         var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
         ConfigurationHelper.RegisterSettingsFiles(builder.Configuration, workingDirectory, globalSettingsFile, persistNormalization: !isCompletion);
+        builder.Services.AddSingleton<IConfigSourceGitClient, ConfigSourceGitClient>();
+        builder.Services.AddSingleton<ConfigSourceService>();
 
         if (configurationValues is not null)
         {

@@ -110,6 +110,7 @@ internal sealed class InitCommand : BaseCommand
         Options.Add(_channelOption);
         Options.Add(_languageOption);
         Options.Add(_fileBasedOption);
+        Options.Add(ConfigSourceService.s_useSourceOption);
         Options.Add(NewCommand.s_suppressAgentInitOption);
         Options.Add(AgentInitCommand.s_agentsOption);
         Options.Add(AgentInitCommand.s_scopeOption);
@@ -144,6 +145,11 @@ internal sealed class InitCommand : BaseCommand
             solutionFile = await _solutionLocator.FindSolutionFileAsync(workingDirectory, cancellationToken);
         }
 
+        // Solution-mode initialization explicitly manages the solution-root configuration,
+        // not a separate binding in the generated AppHost directory.
+        var configurationDirectory = solutionFile?.Directory ?? workingDirectory;
+        var configSource = await ConfigSources.SelectForInitializationAsync(configurationDirectory, parseResult, cancellationToken);
+
         // Step 3: Drop the skeleton AppHost and any related config files needed for that mode.
         var dropResult = isCSharp
             ? await DropCSharpSkeletonAsync(workingDirectory, solutionFile, cancellationToken)
@@ -152,6 +158,11 @@ internal sealed class InitCommand : BaseCommand
         if (dropResult != CliExitCodes.Success)
         {
             return CommandResult.Failure(dropResult, InteractionServiceStrings.ProjectCouldNotBeCreated);
+        }
+
+        if (configSource is not null)
+        {
+            await ConfigSources.MaterializeAsync(configSource, configurationDirectory, cancellationToken);
         }
 
         // Persist the prompted language selection now that the skeleton drop succeeded.

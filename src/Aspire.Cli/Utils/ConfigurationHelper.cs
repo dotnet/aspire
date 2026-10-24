@@ -2,17 +2,24 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using System.IO.Hashing;
+using System.Security.AccessControl;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Resources;
+using Aspire.Hosting.Utils;
+using Aspire.Shared;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Utils;
 
 internal static class ConfigurationHelper
 {
     internal const string IntegrationCacheFolderName = "integrations";
+    private static readonly TimeSpan s_workspaceConfigLockTimeout = TimeSpan.FromSeconds(30);
 
     /// <summary>
     /// Standard options for parsing JSON that may contain non-spec features like comments and trailing commas.
@@ -83,6 +90,30 @@ internal static class ConfigurationHelper
         if (localSettingsFile is not null)
         {
             AddSettingsFile(configuration, localSettingsFile.FullName, persistNormalization);
+        }
+    }
+
+    internal static async Task<FileLock?> TryAcquireWorkspaceConfigLockAsync(
+        CliExecutionContext executionContext, FileInfo settingsFile, ILogger logger, CancellationToken cancellationToken)
+    {
+        // Lock files live in the cache so read-only workspaces remain usable. Canonicalizing and
+        // folding the config path makes aliases on symlinked or case-insensitive volumes contend;
+        // on a case-sensitive volume this can only serialize two otherwise independent writes.
+        var normalizedSettingsPath = PathNormalizer.ResolveSymlinks(settingsFile.FullName)
+            .Normalize(NormalizationForm.FormC)
+            .ToUpperInvariant();
+        var lockFileName = Convert.ToHexString(XxHash3.Hash(Encoding.UTF8.GetBytes(normalizedSettingsPath))).ToLowerInvariant();
+        var lockPath = Path.Combine(executionContext.CacheDirectory.FullName, "workspace-config-locks", $"{lockFileName}.lock");
+        try
+        {
+            return await FileLock.AcquireAsync(lockPath, cancellationToken, s_workspaceConfigLockTimeout);
+        }
+        catch (Exception ex) when (ex is TimeoutException or IOException or UnauthorizedAccessException)
+        {
+            // Preserve the existing best-effort workspace bookkeeping when the cache
+            // cannot host a lock. Reads use the same policy as workspace-default writes.
+            logger.LogDebug(ex, "Proceeding without the workspace config lock at {LockPath}.", lockPath);
+            return null;
         }
     }
 
@@ -233,6 +264,62 @@ internal static class ConfigurationHelper
         await File.WriteAllTextAsync(filePath, jsonContent, cancellationToken);
     }
 
+    internal static async Task WriteSettingsFileAtomicallyAsync(string filePath, JsonObject settings, CancellationToken cancellationToken)
+    {
+        EnsureDirectoryExists(filePath);
+        // A sibling is required for atomic replacement even when the workspace and
+        // system temp directory are on different volumes. CreateNew rejects existing links/files.
+        var temporaryPath = $"{filePath}.{Guid.NewGuid():N}.tmp";
+        var created = false;
+        try
+        {
+            var destinationExists = File.Exists(filePath);
+            var options = new FileStreamOptions
+            {
+                Mode = FileMode.CreateNew,
+                Access = FileAccess.Write,
+                Share = FileShare.None,
+                Options = FileOptions.Asynchronous
+            };
+            UnixFileMode? destinationMode = null;
+            if (!OperatingSystem.IsWindows())
+            {
+                // Protect the temporary contents from creation, even in a shared directory.
+                options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+                destinationMode = destinationExists ? File.GetUnixFileMode(filePath) : null;
+            }
+            await using (var stream = OperatingSystem.IsWindows() && destinationExists
+                ? new FileInfo(temporaryPath).Create(FileMode.CreateNew, FileSystemRights.Write, FileShare.None,
+                    4096, FileOptions.Asynchronous, new FileInfo(filePath).GetAccessControl(AccessControlSections.Access))
+                : new FileStream(temporaryPath, options))
+            {
+                created = true;
+                await JsonSerializer.SerializeAsync(stream, settings, JsonSourceGenerationContext.Default.JsonObject, cancellationToken);
+            }
+            if (!OperatingSystem.IsWindows() && destinationMode is { } mode)
+            {
+                File.SetUnixFileMode(temporaryPath, mode);
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            if (OperatingSystem.IsWindows() && destinationExists)
+            {
+                // Replace preserves the destination DACL and other Windows file metadata.
+                File.Replace(temporaryPath, filePath, destinationBackupFileName: null);
+            }
+            else
+            {
+                File.Move(temporaryPath, filePath, overwrite: true);
+            }
+        }
+        finally
+        {
+            if (created)
+            {
+                File.Delete(temporaryPath);
+            }
+        }
+    }
+
     /// <summary>
     /// Serializes a JsonObject and writes it to a settings file, creating the directory if needed.
     /// </summary>
@@ -253,7 +340,7 @@ internal static class ConfigurationHelper
         }
     }
 
-    private static void AddSettingsFile(IConfigurationBuilder configuration, string filePath, bool persistNormalization)
+    private static JsonObject? AddSettingsFile(IConfigurationBuilder configuration, string filePath, bool persistNormalization)
     {
         // Proactively normalize the settings file to prevent duplicate key errors.
         // This handles files corrupted by mixing colon and dot notation
@@ -282,7 +369,7 @@ internal static class ConfigurationHelper
                 var cleanJson = node.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
                 var bytes = System.Text.Encoding.UTF8.GetBytes(cleanJson);
                 configuration.AddJsonStream(new MemoryStream(bytes));
-                return;
+                return node as JsonObject;
             }
         }
         catch (JsonException ex)
@@ -293,6 +380,7 @@ internal static class ConfigurationHelper
         }
 
         configuration.AddJsonFile(filePath, optional: true);
+        return null;
     }
 
     /// <summary>
@@ -326,7 +414,7 @@ internal static class ConfigurationHelper
         }
     }
 
-    private static bool NormalizeSettings(JsonObject settings)
+    internal static bool NormalizeSettings(JsonObject settings)
     {
         // Find all colon-separated keys at root level
         var colonKeys = new List<(string key, JsonNode? value)>();
@@ -351,7 +439,9 @@ internal static class ConfigurationHelper
         {
             settings.Remove(key);
 
-            // Convert "a:b:c" to nested {"a": {"b": {"c": value}}}
+            // Convert "a:b:c" to nested {"a": {"b": {"c": value}}}.
+            // Match existing casing so "DOCS" and "docs:api:sitemapUrl" merge into
+            // one section, consistent with case-insensitive configuration lookup.
             var parts = key.Split(':');
             var currentObject = settings;
             var pathConflict = false;
@@ -359,7 +449,8 @@ internal static class ConfigurationHelper
             // Walk all but the last segment, creating objects as needed.
             for (int i = 0; i < parts.Length - 1; i++)
             {
-                var part = parts[i];
+                var part = currentObject.Select(property => property.Key)
+                    .FirstOrDefault(existing => existing.Equals(parts[i], StringComparison.OrdinalIgnoreCase)) ?? parts[i];
 
                 if (!currentObject.ContainsKey(part) || currentObject[part] is null)
                 {
@@ -386,7 +477,8 @@ internal static class ConfigurationHelper
                 continue;
             }
 
-            var finalKey = parts[parts.Length - 1];
+            var finalKey = currentObject.Select(property => property.Key)
+                .FirstOrDefault(existing => existing.Equals(parts[^1], StringComparison.OrdinalIgnoreCase)) ?? parts[^1];
 
             // If the final key already exists, keep its value and drop the flat key.
             if (currentObject.ContainsKey(finalKey) && currentObject[finalKey] is not null)
