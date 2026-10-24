@@ -145,10 +145,10 @@ internal sealed class InitCommand : BaseCommand
             solutionFile = await _solutionLocator.FindSolutionFileAsync(workingDirectory, cancellationToken);
         }
 
-        var projectDirectory = solutionFile is null
-            ? workingDirectory
-            : new DirectoryInfo(Path.Combine(solutionFile.Directory!.FullName, $"{Path.GetFileNameWithoutExtension(solutionFile.Name)}.AppHost"));
-        var configSource = await ConfigSources.SelectForInitializationAsync(projectDirectory, parseResult, cancellationToken);
+        // Solution-mode initialization explicitly manages the solution-root configuration,
+        // not a separate binding in the generated AppHost directory.
+        var configurationDirectory = solutionFile?.Directory ?? workingDirectory;
+        var configSource = await ConfigSources.SelectForInitializationAsync(configurationDirectory, parseResult, cancellationToken);
 
         // Step 3: Drop the skeleton AppHost and any related config files needed for that mode.
         var dropResult = isCSharp
@@ -162,7 +162,7 @@ internal sealed class InitCommand : BaseCommand
 
         if (configSource is not null)
         {
-            await ConfigSources.MaterializeAsync(configSource, projectDirectory, cancellationToken);
+            await ConfigSources.MaterializeAsync(configSource, configurationDirectory, cancellationToken);
         }
 
         // Persist the prompted language selection now that the skeleton drop succeeded.

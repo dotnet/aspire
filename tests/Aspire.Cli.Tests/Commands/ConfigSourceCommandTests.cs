@@ -707,6 +707,85 @@ public class ConfigSourceCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(0, git.CheckCalls);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Init_SolutionModeUsesSolutionRootSourceConfiguration(bool existingBinding)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        await File.WriteAllTextAsync(Path.Combine(workspace.Path, "Test.sln"), "Fake solution file");
+        var childPath = Path.Combine(workspace.Path, "Test.AppHost");
+        var configPath = Path.Combine(workspace.Path, AspireConfigFile.FileName);
+        if (existingBinding)
+        {
+            Directory.CreateDirectory(childPath);
+            await TestConfigSourceServices.SaveBindingAsync(s_source, workspace.WorkspaceRoot, CancellationToken.None);
+            await ConfigurationService.SetConfigurationInFileAsync(configPath, "appHost.path", "Test.AppHost/Test.AppHost.csproj");
+            await ConfigurationService.SetConfigurationInFileAsync(configPath, "docs.llmsTxtUrl", "https://local.example/llms.txt");
+        }
+        var originalConfiguration = existingBinding ? await File.ReadAllTextAsync(configPath) : null;
+        var services = CreateCreationServices(workspace);
+        services.AddSingleton(workspace.CreateExecutionContext(identityChannel: "default"));
+        var cache = new FakeNuGetPackageCache
+        {
+            GetTemplatePackagesAsyncCallback = (_, _, _, _) =>
+                Task.FromResult<IEnumerable<Aspire.Shared.NuGetPackageCli>>(
+                    [new() { Id = "Aspire.ProjectTemplates", Source = "nuget.org", Version = "17.0.0" }])
+        };
+        services.AddSingleton<Aspire.Cli.Packaging.IPackagingService>(new TestPackagingService
+        {
+            GetChannelsAsyncCallback = _ => Task.FromResult<IEnumerable<Aspire.Cli.Packaging.PackageChannel>>(
+                [Aspire.Cli.Packaging.PackageChannel.CreateImplicitChannel(cache, new TestFeatures(), NullLogger.Instance)])
+        });
+        services.AddSingleton<Aspire.Cli.DotNet.IDotNetCliRunner>(new TestDotNetCliRunner
+        {
+            NewProjectAsyncCallback = (_, _, outputPath, _, _) =>
+            {
+                Directory.CreateDirectory(outputPath);
+                return 0;
+            }
+        });
+        services.AddSingleton<Aspire.Cli.Certificates.ICertificateService>(provider => new TestCertificateService
+        {
+            EnsureCertificatesTrustedAsyncCallback = async cancellationToken =>
+            {
+                // Keep init alive until its advisory check finishes instead of racing shutdown.
+                await provider.GetRequiredService<ConfigSourceService>().WaitForChecksAsync().DefaultTimeout();
+                return await new TestCertificateService().EnsureCertificatesTrustedAsync(cancellationToken);
+            }
+        });
+        if (existingBinding)
+        {
+            services.AddSingleton<IEnvironment>(new TestEnvironment(new Dictionary<string, string?>
+            {
+                [CliConfigNames.InitSourceUrl] = "https://other.example/configuration"
+            }));
+        }
+        using var provider = services.BuildServiceProvider();
+        var command = existingBinding
+            ? "init --language csharp --suppress-agent-init --non-interactive"
+            : "init --language csharp --suppress-agent-init --use-config-source true --non-interactive";
+
+        var exitCode = await provider.GetRequiredService<RootCommand>().Parse(command).InvokeAsync().DefaultTimeout();
+        Assert.True(exitCode == CliExitCodes.Success, string.Join(Environment.NewLine,
+            Assert.IsType<TestInteractionService>(provider.GetRequiredService<IInteractionService>()).DisplayedErrors));
+        var sources = provider.GetRequiredService<ConfigSourceService>();
+        await sources.WaitForChecksAsync().DefaultTimeout();
+
+        var configuration = AspireConfigFile.Load(workspace.Path)!;
+        Assert.Equivalent(s_source, configuration.ConfigSource, strict: true);
+        Assert.Equal(existingBinding ? "https://local.example/llms.txt" : "https://docs.example/llms.txt", configuration.Docs?.LlmsTxtUrl);
+        Assert.True(Directory.Exists(childPath));
+        Assert.False(File.Exists(Path.Combine(childPath, AspireConfigFile.FileName)));
+        var git = Assert.IsType<TestConfigSourceGitClient>(provider.GetRequiredService<IConfigSourceGitClient>());
+        Assert.Equal(existingBinding ? 0 : 1, git.Calls);
+        Assert.Equal(existingBinding ? 1 : 0, git.CheckCalls);
+        if (existingBinding)
+        {
+            Assert.Equal(originalConfiguration, await File.ReadAllTextAsync(configPath));
+        }
+    }
+
     [Fact]
     public async Task New_AcquisitionFailureDoesNotCreateProjectOrFallBack()
     {
