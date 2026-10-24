@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json.Nodes;
 using Aspire.Cli.EndToEnd.Tests.Helpers;
 using Hex1b.Automation;
 using Xunit;
@@ -11,13 +12,17 @@ public sealed class CustomTemplateTests(ITestOutputHelper output)
 {
     [Fact]
     [CaptureWorkspaceOnFailure]
-    public Task DirectoryTemplatePromptsWithoutDotNetSdk() => CreateFromTemplateAsync(repository: false);
+    public Task DirectoryTemplatePromptsWithoutDotNetSdk() => CreateFromTemplateAsync(repository: false, nonInteractive: false);
 
     [Fact]
     [CaptureWorkspaceOnFailure]
-    public Task RepositoryTemplatePromptsWithoutDotNetSdk() => CreateFromTemplateAsync(repository: true);
+    public Task RepositoryTemplatePromptsWithoutDotNetSdk() => CreateFromTemplateAsync(repository: true, nonInteractive: false);
 
-    private async Task CreateFromTemplateAsync(bool repository)
+    [Fact]
+    [CaptureWorkspaceOnFailure]
+    public Task RepositoryTemplateUsesDefaultsNonInteractivelyWithoutDotNetSdk() => CreateFromTemplateAsync(repository: true, nonInteractive: true);
+
+    private async Task CreateFromTemplateAsync(bool repository, bool nonInteractive)
     {
         var repoRoot = CliE2ETestHelpers.GetRepoRoot();
         var testDirectory = Path.Combine(repoRoot, "tests", "Aspire.Cli.EndToEnd.Tests");
@@ -26,6 +31,17 @@ public sealed class CustomTemplateTests(ITestOutputHelper output)
         TestDirectoryHelpers.CopyDirectory(
             Path.Combine(testDirectory, "Fixtures", "CustomTemplate"),
             Path.Combine(workspace.WorkspaceRoot.FullName, "template"));
+
+        if (nonInteractive)
+        {
+            // The interactive fixture requires an explicit greeting; unattended generation uses a default instead.
+            var configPath = Path.Combine(workspace.WorkspaceRoot.FullName, "template", ".template.config", "template.json");
+            var config = JsonNode.Parse(await File.ReadAllTextAsync(configPath))!;
+            var greeting = config["symbols"]!["Greeting"]!;
+            greeting["isRequired"] = false;
+            greeting["defaultValue"] = "Hello from template defaults";
+            await File.WriteAllTextAsync(configPath, config.ToJsonString());
+        }
 
         // The Git server runs in the test process; host networking makes its loopback address reachable.
         using var terminal = CliE2ETestHelpers.CreateDockerTestTerminal(
@@ -55,37 +71,41 @@ public sealed class CustomTemplateTests(ITestOutputHelper output)
             ? await GitHttpServer.StartAsync(workspace.Path, TestContext.Current.CancellationToken)
             : null;
         var source = server is not null ? $"--template-repository \"{server.RepositoryUrl}\"" : "--template-path template";
-        await auto.TypeAsync($"aspire new {source} --name PromptDemo --output out --suppress-agent-init --nologo");
+        var mode = nonInteractive ? " --non-interactive" : "";
+        await auto.TypeAsync($"aspire new {source} --name PromptDemo --output out --suppress-agent-init --nologo{mode}");
         await auto.EnterAsync();
 
-        await auto.WaitUntilTextAsync("Greeting text", timeout: TimeSpan.FromSeconds(60));
-        await auto.TypeAsync("Hello from the terminal");
-        await auto.EnterAsync();
+        if (!nonInteractive)
+        {
+            await auto.WaitUntilTextAsync("Greeting text", timeout: TimeSpan.FromSeconds(60));
+            await auto.TypeAsync("Hello from the terminal");
+            await auto.EnterAsync();
 
-        await auto.WaitUntilTextAsync("Include readme", timeout: TimeSpan.FromSeconds(30));
-        if (!repository)
-        {
-            // Confirmation accepts y/n immediately; a trailing Enter would answer the next prompt.
-            await auto.TypeAsync("n");
-        }
-        else
-        {
+            await auto.WaitUntilTextAsync("Include readme", timeout: TimeSpan.FromSeconds(30));
+            if (!repository)
+            {
+                // Confirmation accepts y/n immediately; a trailing Enter would answer the next prompt.
+                await auto.TypeAsync("n");
+            }
+            else
+            {
+                await auto.EnterAsync();
+            }
+
+            await auto.WaitUntilTextAsync("> HTTP API", timeout: TimeSpan.FromSeconds(30));
+            if (repository)
+            {
+                await auto.DownAsync();
+            }
+            await auto.EnterAsync();
+
+            await auto.WaitUntilTextAsync("Included features", timeout: TimeSpan.FromSeconds(30));
+            await auto.WaitUntilTextAsync("> [X] Web support", timeout: TimeSpan.FromSeconds(30));
+            await auto.DownAsync();
+            await auto.TypeAsync(" ");
             await auto.EnterAsync();
         }
-
-        await auto.WaitUntilTextAsync("> HTTP API", timeout: TimeSpan.FromSeconds(30));
-        if (repository)
-        {
-            await auto.DownAsync();
-        }
-        await auto.EnterAsync();
-
-        await auto.WaitUntilTextAsync("Included features", timeout: TimeSpan.FromSeconds(30));
-        await auto.WaitUntilTextAsync("> [X] Web support", timeout: TimeSpan.FromSeconds(30));
-        await auto.DownAsync();
-        await auto.TypeAsync(" ");
-        await auto.EnterAsync();
-        await auto.WaitForSuccessPromptAsync(counter);
+        await auto.WaitForSuccessPromptAsync(counter, timeout: nonInteractive ? TimeSpan.FromSeconds(60) : null);
         await auto.RunCommandAsync("! command -v dotnet", counter);
 
         var outputDirectory = Path.Combine(workspace.WorkspaceRoot.FullName, "out");
