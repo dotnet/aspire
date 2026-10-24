@@ -89,6 +89,8 @@ The choice applies to the project being created or initialized, not every projec
 
 In C# solution mode, `aspire init` explicitly manages `aspire.config.json` in the solution directory for source selection, advisory checks, and materialization. An existing solution-root binding is reused without renewed consent or reapplying source values, even when the initialization environment proposes another source. Initialization does not create a second source binding in the generated AppHost directory. This is explicit configuration-file selection, not inheritance of the source binding. File-based and polyglot initialization use the working-directory configuration.
 
+When run from that solution directory without `--apphost`, `aspire update --config-source` refreshes the root binding if the root configuration's `appHost.path` identifies the configured AppHost. An explicit AppHost file or directory still selects that project's own binding instead; it does not inherit the solution-root binding.
+
 Other commands, including standalone `aspire agent init` and `aspire add`, do not prompt to enable a source. Without a saved project `configSource`, they ignore the initialization-source environment variables and employee default.
 
 Non-interactive creation requires `--use-config-source true` to accept the candidate or `--use-config-source false` to decline it. When a candidate is available and neither value is supplied, fail with instructions rather than waiting for input or silently treating employee detection as consent. The same option can bypass the source prompt during interactive creation:

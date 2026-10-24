@@ -390,6 +390,12 @@ public class ConfigSourceCommandTests(ITestOutputHelper outputHelper)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var project = workspace.CreateDirectory("selected-project");
+        await TestConfigSourceServices.SaveBindingAsync(
+            new ConfigSource { Repository = "https://parent.example/configuration", Path = "parent.json", AppliedVersion = "parent-version" },
+            workspace.WorkspaceRoot, CancellationToken.None);
+        var parentPath = Path.Combine(workspace.Path, AspireConfigFile.FileName);
+        await ConfigurationService.SetConfigurationInFileAsync(parentPath, "appHost.path", "selected-project/apphost.cs");
+        var parentConfiguration = await File.ReadAllTextAsync(parentPath);
         await TestConfigSourceServices.SaveBindingAsync(s_source, project, CancellationToken.None);
         using var provider = CliTestHelper.CreateServiceCollection(workspace, outputHelper).BuildServiceProvider();
         var command = provider.GetRequiredService<RootCommand>();
@@ -398,6 +404,7 @@ public class ConfigSourceCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
         Assert.Equal(1, Assert.IsType<TestConfigSourceGitClient>(provider.GetRequiredService<IConfigSourceGitClient>()).Calls);
         Assert.Equal(0, Assert.IsType<TestConfigSourceDetector>(provider.GetRequiredService<IInternalMicrosoftDetector>()).Calls);
+        Assert.Equal(parentConfiguration, await File.ReadAllTextAsync(parentPath));
     }
 
     [Fact]
@@ -539,6 +546,8 @@ public class ConfigSourceCommandTests(ITestOutputHelper outputHelper)
         if (hasAppHost)
         {
             await File.WriteAllTextAsync(Path.Combine(projectDirectory.FullName, "apphost.cs"), "#:sdk Aspire.AppHost.Sdk");
+            await ConfigurationService.SetConfigurationInFileAsync(parentPath, "appHost.path", "selected/AppHost/apphost.cs");
+            parentConfiguration = await File.ReadAllTextAsync(parentPath);
         }
         var selectedSource = new ConfigSource
         {
@@ -710,7 +719,7 @@ public class ConfigSourceCommandTests(ITestOutputHelper outputHelper)
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task Init_SolutionModeUsesSolutionRootSourceConfiguration(bool existingBinding)
+    public async Task Init_SolutionModeUsesSolutionRootSourceConfigurationAndRefreshesIt(bool existingBinding)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         await File.WriteAllTextAsync(Path.Combine(workspace.Path, "Test.sln"), "Fake solution file");
@@ -784,6 +793,32 @@ public class ConfigSourceCommandTests(ITestOutputHelper outputHelper)
         {
             Assert.Equal(originalConfiguration, await File.ReadAllTextAsync(configPath));
         }
+
+        var projectPath = Path.Combine(childPath, "Test.AppHost.csproj");
+        await File.WriteAllTextAsync(projectPath, "<Project />");
+        await ConfigurationService.SetConfigurationInFileAsync(configPath, "appHost.path", "Test.AppHost/Test.AppHost.csproj");
+        using var refreshProvider = CreateCreationServices(workspace).BuildServiceProvider();
+        var refreshGit = Assert.IsType<TestConfigSourceGitClient>(refreshProvider.GetRequiredService<IConfigSourceGitClient>());
+        refreshGit.Acquire = (source, _) =>
+        {
+            Assert.True(ConfigSource.HasSameIdentity(s_source, source));
+            return Task.FromResult(("commit-2", "version-2", new JsonObject
+            {
+                ["docs"] = new JsonObject { ["llmsTxtUrl"] = "https://updated.example/llms.txt" }
+            }));
+        };
+        var refresh = refreshProvider.GetRequiredService<RootCommand>().Parse(
+            "update --config-source --yes --non-interactive");
+
+        Assert.Equal(CliExitCodes.Success, await refresh.InvokeAsync().DefaultTimeout());
+
+        var refreshed = AspireConfigFile.Load(workspace.Path)!;
+        Assert.Equal("version-2", refreshed.ConfigSource!.AppliedVersion);
+        Assert.Equal("https://updated.example/llms.txt", refreshed.Docs!.LlmsTxtUrl);
+        Assert.Equal("Test.AppHost/Test.AppHost.csproj", refreshed.AppHost!.Path);
+        Assert.False(File.Exists(Path.Combine(childPath, AspireConfigFile.FileName)));
+        Assert.Equal(1, refreshGit.Calls);
+        Assert.Equal(0, refreshGit.CheckCalls);
     }
 
     [Fact]
