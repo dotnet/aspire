@@ -147,6 +147,8 @@ internal sealed class AppHostConnectionResolver(
                 };
             }
 
+            // Resolving a project for dynamic resource help may also check its configuration
+            // source. This is intentional: the check is advisory and does not apply settings.
             configSources.CheckForConfigSourceUpdates(projectFile.Directory!, cancellationToken);
             var matchingSockets = AppHostSocketManager.FindSockets(
                 projectFile.FullName,

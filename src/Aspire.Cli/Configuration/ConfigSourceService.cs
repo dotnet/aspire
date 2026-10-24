@@ -427,6 +427,22 @@ internal sealed class ConfigSourceService(
             {
                 _snapshot = snapshot;
             }
+            // Callers retain configuration in memory. After publication, older snapshots
+            // can be removed while the cache lock excludes other acquisitions.
+            try
+            {
+                foreach (var directory in Directory.GetDirectories(cacheDirectory))
+                {
+                    if (directory != snapshotDirectory && Guid.TryParseExact(Path.GetFileName(directory), "N", out _))
+                    {
+                        DeleteAcquisitionDirectory(directory);
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                logger.LogDebug("Configuration source snapshot cleanup failed ({FailureType}).", ex.GetType().Name);
+            }
             return snapshot;
         }
         finally

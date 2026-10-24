@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using System.IO.Hashing;
+using System.Security.AccessControl;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -272,13 +273,43 @@ internal static class ConfigurationHelper
         var created = false;
         try
         {
-            await using (var stream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 4096, FileOptions.Asynchronous))
+            var destinationExists = File.Exists(filePath);
+            var options = new FileStreamOptions
+            {
+                Mode = FileMode.CreateNew,
+                Access = FileAccess.Write,
+                Share = FileShare.None,
+                Options = FileOptions.Asynchronous
+            };
+            UnixFileMode? destinationMode = null;
+            if (!OperatingSystem.IsWindows())
+            {
+                // Protect the temporary contents from creation, even in a shared directory.
+                options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+                destinationMode = destinationExists ? File.GetUnixFileMode(filePath) : null;
+            }
+            await using (var stream = OperatingSystem.IsWindows() && destinationExists
+                ? new FileInfo(temporaryPath).Create(FileMode.CreateNew, FileSystemRights.Write, FileShare.None,
+                    4096, FileOptions.Asynchronous, new FileInfo(filePath).GetAccessControl(AccessControlSections.Access))
+                : new FileStream(temporaryPath, options))
             {
                 created = true;
                 await JsonSerializer.SerializeAsync(stream, settings, JsonSourceGenerationContext.Default.JsonObject, cancellationToken);
             }
+            if (!OperatingSystem.IsWindows() && destinationMode is { } mode)
+            {
+                File.SetUnixFileMode(temporaryPath, mode);
+            }
             cancellationToken.ThrowIfCancellationRequested();
-            File.Move(temporaryPath, filePath, overwrite: true);
+            if (OperatingSystem.IsWindows() && destinationExists)
+            {
+                // Replace preserves the destination DACL and other Windows file metadata.
+                File.Replace(temporaryPath, filePath, destinationBackupFileName: null);
+            }
+            else
+            {
+                File.Move(temporaryPath, filePath, overwrite: true);
+            }
         }
         finally
         {

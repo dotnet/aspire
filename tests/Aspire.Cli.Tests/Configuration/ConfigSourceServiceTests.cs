@@ -868,26 +868,40 @@ public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
         Assert.Equal(ConsoleOutput.Error, Assert.Single(interaction.DisplayedMessages).ConsoleOverride);
     }
 
-    [Fact]
-    public async Task Update_ForcesFetchAndAdvancesUnchangedFetchTime()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Update_ForcesFetchAndRetainsOnlyLatestSnapshot(bool changed)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var context = workspace.CreateExecutionContext();
         var clock = new AdjustableTimeProvider();
         var git = new TestConfigSourceGitClient();
-        var first = TestConfigSourceServices.Create(context, git: git, clock: clock);
+        using var first = TestConfigSourceServices.Create(context, git: git, clock: clock);
         await first.MaterializeAsync(s_source, workspace.WorkspaceRoot, CancellationToken.None);
+        var retained = await first.AcquireAsync(s_source, force: false, CancellationToken.None);
+        var cache = first.GetCacheDirectory(s_source);
+        var stale = Directory.CreateDirectory(Path.Combine(cache, Guid.NewGuid().ToString("N")));
+        await File.WriteAllTextAsync(Path.Combine(stale.FullName, "stale.txt"), "obsolete snapshot");
+        File.SetAttributes(Path.Combine(stale.FullName, "stale.txt"), FileAttributes.ReadOnly);
+        if (changed)
+        {
+            git.Acquire = (_, _) => Task.FromResult(("commit-2", "version-2", new JsonObject()));
+        }
         clock.UtcNow += TimeSpan.FromSeconds(1);
-        var next = TestConfigSourceServices.Create(context, git: git, clock: clock);
+        using var next = TestConfigSourceServices.Create(context, git: git, clock: clock);
 
         await next.CheckProjectAsync(workspace.WorkspaceRoot, true, CancellationToken.None);
 
         Assert.Equal(2, git.Calls);
         Assert.Equal(0, git.CheckCalls);
         var pointer = await File.ReadAllTextAsync(Path.Combine(next.GetCacheDirectory(s_source), "current"));
+        Assert.Equal(Path.Combine(cache, pointer), Assert.Single(Directory.GetDirectories(cache)));
         var metadata = JsonSerializer.Deserialize(await File.ReadAllTextAsync(
             Path.Combine(next.GetCacheDirectory(s_source), pointer, "metadata.json")), JsonSourceGenerationContext.Default.ConfigSourceMetadata)!;
         Assert.Equal(clock.UtcNow, metadata.FetchedAt);
+        Assert.Equal(changed ? "version-2" : "version-1", metadata.Version);
+        Assert.Equal("version-1", retained.Metadata.Version);
     }
 
     [Fact]
