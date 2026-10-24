@@ -71,7 +71,7 @@ public class TerminalViewTests : DashboardTestContext
         Assert.Empty(cut.FindAll(".terminal-status-panel"));
         cut.Find(".terminal-status-toggle").Click();
         Assert.Single(cut.FindAll(".terminal-status-panel"));
-        Assert.Equal($"Program{Environment.NewLine}{Resources.TerminalStrings.TerminalStatusDone}",
+        Assert.Equal($"Program\n{Resources.TerminalStrings.TerminalStatusDone}",
             cut.Find(".terminal-status-node").GetAttribute("aria-label"));
 
         await cut.InvokeAsync(() => cut.Instance.OnTerminalProgramStatusChanged(status with { Generation = 2, Records = [] }));
@@ -214,17 +214,17 @@ public class TerminalViewTests : DashboardTestContext
             cut.FindAll("fluent-tree-item").Select(item => item.GetAttribute("data-status-id")));
         var parent = cut.Find("[data-status-id=deploy]");
         Assert.Equal("deploy", parent.QuerySelector(".terminal-status-title")!.TextContent);
-        Assert.Equal($"deploy{Environment.NewLine}{Resources.TerminalStrings.TerminalStatusUnfinishedChildren}",
+        Assert.Equal($"deploy\n{Resources.TerminalStrings.TerminalStatusUnfinishedChildren}",
             parent.GetAttribute("aria-label"));
-        Assert.Equal($"Program{Environment.NewLine}{Resources.TerminalStrings.TerminalStatusIdle}",
+        Assert.Equal($"Program\n{Resources.TerminalStrings.TerminalStatusIdle}",
             cut.Find("[data-status-id='']").GetAttribute("aria-label"));
         var child = cut.Find("[data-status-id='deploy/east']");
-        Assert.Equal(string.Join(Environment.NewLine, "east", Resources.TerminalStrings.TerminalStatusBlocked,
+        Assert.Equal(string.Join("\n", "east", Resources.TerminalStrings.TerminalStatusBlocked,
             Resources.TerminalStrings.TerminalStatusPermission, "100%", "demo"), child.GetAttribute("title"));
         Assert.Equal(child.GetAttribute("title"), child.GetAttribute("aria-label"));
         Assert.Equal("100%", cut.Find(".terminal-status-progress").TextContent);
         Assert.Equal("<script>bad()</script>", cut.Find("[data-status-id=deployment] .terminal-status-title").TextContent);
-        Assert.Equal(string.Join(Environment.NewLine, "<script>bad()</script>", Resources.TerminalStrings.TerminalStatusError,
+        Assert.Equal(string.Join("\n", "<script>bad()</script>", Resources.TerminalStrings.TerminalStatusError,
             "Hello world \U0001f680"), cut.Find("[data-status-id=deployment]").GetAttribute("aria-label"));
         Assert.Empty(cut.FindAll(".terminal-status-panel script"));
 
@@ -266,7 +266,7 @@ public class TerminalViewTests : DashboardTestContext
             if (unfinished)
             {
                 Assert.Null(rings[0].GetAttribute("aria-valuenow"));
-                Assert.Equal($"{id.Split('/')[^1]}{Environment.NewLine}{Resources.TerminalStrings.TerminalStatusUnfinishedChildren}",
+                Assert.Equal($"{id.Split('/')[^1]}\n{Resources.TerminalStrings.TerminalStatusUnfinishedChildren}",
                     cut.Find($"[data-status-id='{id}']").GetAttribute("aria-label"));
             }
         }
@@ -339,7 +339,7 @@ public class TerminalViewTests : DashboardTestContext
             TerminalId = 1, Generation = 1, HasStatus = true,
             Records = [new() { Id = "", State = state, Kind = kind }]
         }));
-        var expected = string.Join(Environment.NewLine,
+        var expected = string.Join("\n",
             kindLabel is null ? ["Program", label] : new[] { "Program", label, kindLabel });
         Assert.Equal(expected, cut.Find(".terminal-status-node").GetAttribute("aria-label"));
         Assert.Equal(expected, cut.Find(".terminal-status-node").GetAttribute("title"));

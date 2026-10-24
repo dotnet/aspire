@@ -66,7 +66,8 @@ public partial class TerminalProgramStatusTree : ComponentBase
         {
             details.Add(Loc[nameof(Resources.TerminalStrings.TerminalStatusUnfinishedChildren)]);
         }
-        return string.Join(Environment.NewLine, details);
+        // HTML normalizes attribute newlines to LF, including tooltip and accessibility text.
+        return string.Join("\n", details);
     }
 
     private static bool HasGroupingProgress(TerminalProgramStatusNode node) =>
