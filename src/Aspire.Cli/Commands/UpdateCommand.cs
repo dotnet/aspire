@@ -183,7 +183,9 @@ internal sealed class UpdateCommand : BaseCommand
         {
             return configuredFile.Directory!;
         }
-        if (ConfigurationHelper.FindNearestConfigFilePath(directory) is { } path && await ConfigSources.ReadBindingAsync(path, cancellationToken) is not null)
+        // An explicit directory must select its AppHost before an ancestor binding
+        // can short-circuit discovery and refresh a different project's settings.
+        if (requestedFile is null && ConfigurationHelper.FindNearestConfigFilePath(directory) is { } path && await ConfigSources.ReadBindingAsync(path, cancellationToken) is not null)
         {
             return directory;
         }
@@ -192,7 +194,7 @@ internal sealed class UpdateCommand : BaseCommand
             var selectedFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(configuredFile, createSettingsFile: false, cancellationToken);
             return selectedFile?.Directory ?? directory;
         }
-        catch (ProjectLocatorException ex) when (ex.FailureReason == ProjectLocatorFailureReason.NoProjectFileFound)
+        catch (ProjectLocatorException ex) when (ex.FailureReason is ProjectLocatorFailureReason.NoProjectFileFound or ProjectLocatorFailureReason.ProjectFileDoesntExist)
         {
             // Config refresh does not need a buildable AppHost. Let the source lookup
             // report the missing binding rather than attempting package/SDK recovery.

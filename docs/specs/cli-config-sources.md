@@ -240,6 +240,7 @@ aspire update --config-source --apphost MyApp.AppHost.csproj
 This is a configuration-update mode of `aspire update`, separate from its package-update workflow:
 
 - Resolve the project using the existing project-selection behavior, including `--apphost`, and use its saved `configSource`. Do not select a source from environment variables or employee detection. If the project has no saved source, report an error and exit nonzero without Git acquisition.
+- When `--apphost` names a directory, discover and select an AppHost within that directory before considering an ancestor configuration binding. If discovery finds no AppHost, retain the configuration-only fallback; discovery ambiguity or unsupported-project errors must not silently select an ancestor binding.
 - Acquire the saved branch's current commit, the saved exact commit, or the repository's current default branch when the binding has no ref, even when a recent check found no update. Validate it, merge only supplied allowlisted values into the selected app file, and save its applied version with those values.
 - Publish the fetched source JSON and fetch metadata in Aspire home as tracking data. Record a successful fetch/check time even if the selected file's version is unchanged. If tracking publication fails, report it explicitly; do not use shared tracking as proof that an app was updated.
 - Report the source, resolved commit, and whether the app configuration changed. Make clear that supplied allowlisted values can replace local edits.
