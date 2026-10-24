@@ -1,0 +1,9 @@
+{
+  "author": "joperezr",
+  "comment": "Internal CI pipeline timeout change",
+  "mergedAt": "2026-10-23T21:40:08Z",
+  "number": 21272,
+  "runDate": "2026-10-24T00:10:00Z",
+  "status": "excluded",
+  "title": "Increase macOS native build timeout to 90 minutes"
+}

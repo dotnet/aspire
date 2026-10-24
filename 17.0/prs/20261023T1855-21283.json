@@ -1,0 +1,9 @@
+{
+  "author": "Laurianti",
+  "comment": "Fixes FormatException from unescaped braces in ReferenceExpressionBuilder",
+  "mergedAt": "2026-10-23T18:55:22Z",
+  "number": 21283,
+  "runDate": "2026-10-24T00:10:00Z",
+  "status": "included",
+  "title": "Escape braces in ReferenceExpressionBuilder string appends"
+}

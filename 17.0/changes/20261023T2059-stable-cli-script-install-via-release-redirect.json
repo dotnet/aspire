@@ -1,0 +1,19 @@
+{
+  "area": "CLI",
+  "areaEmoji": "💻",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Improvements",
+  "communityContributors": [],
+  "description": "`get-aspire-cli.sh` and `get-aspire-cli.ps1` now resolve the stable version through GitHub's latest-release redirect instead of the rate-limited REST API, falling back to the aka.ms stable-channel URL if the redirect can't be resolved.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "📥",
+  "firstMergedAt": "2026-10-23T20:59:34Z",
+  "lastMergedAt": "2026-10-23T20:59:34Z",
+  "name": "Rate-limit-proof stable CLI script installs",
+  "owner": "radical",
+  "prs": [
+    20168
+  ]
+}

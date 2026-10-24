@@ -1,0 +1,9 @@
+{
+  "author": "johnkaram02",
+  "comment": "Fixes invalid Bicep for Azure Storage resource names",
+  "mergedAt": "2026-10-23T23:04:03Z",
+  "number": 21295,
+  "runDate": "2026-10-24T00:10:00Z",
+  "status": "included",
+  "title": "Avoid duplicate Bicep identifiers for Azure Storage services"
+}

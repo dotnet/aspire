@@ -1,0 +1,21 @@
+{
+  "area": "AppHost",
+  "areaEmoji": "🏠",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Bug fixes",
+  "communityContributors": [
+    "@Laurianti"
+  ],
+  "description": "`ReferenceExpressionBuilder.AppendLiteral` and `AppendFormatted(string)` now escape literal `{` and `}` characters, so JSON-like text no longer causes a `FormatException` when evaluating the expression.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "🧱",
+  "firstMergedAt": "2026-10-23T18:55:22Z",
+  "lastMergedAt": "2026-10-23T18:55:22Z",
+  "name": "Braces escaped in ReferenceExpressionBuilder appends",
+  "owner": "eerhardt",
+  "prs": [
+    21283
+  ]
+}

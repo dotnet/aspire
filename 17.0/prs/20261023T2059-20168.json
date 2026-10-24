@@ -1,0 +1,9 @@
+{
+  "author": "app/copilot-swe-agent",
+  "comment": "CLI install scripts avoid GitHub REST API rate limit",
+  "mergedAt": "2026-10-23T20:59:34Z",
+  "number": 20168,
+  "runDate": "2026-10-24T00:10:00Z",
+  "status": "included",
+  "title": "Resolve stable Aspire CLI script installs via GitHub release redirect, not rate-limited REST API"
+}

@@ -1,0 +1,9 @@
+{
+  "author": "unknown",
+  "comment": "aspire.dev site infrastructure; no matching changelog entry",
+  "mergedAt": "2026-10-23T18:17:09Z",
+  "number": 1942,
+  "runDate": "2026-10-24T00:10:00Z",
+  "status": "excluded",
+  "title": "Replace SSE live-status stream with WebSocket (AFD does not relay SSE)"
+}

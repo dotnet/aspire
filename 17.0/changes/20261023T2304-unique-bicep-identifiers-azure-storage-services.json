@@ -1,0 +1,21 @@
+{
+  "area": "Integrations",
+  "areaEmoji": "🔌",
+  "backport": false,
+  "breaking": false,
+  "changeType": "Bug fixes",
+  "communityContributors": [
+    "@johnkaram02"
+  ],
+  "description": "`AddAzureStorage` no longer generates invalid Bicep with duplicate identifiers when a blob container, queue, file system, or storage account resource is named like the built-in `blobs` or `queues` service.",
+  "docsPrs": [],
+  "docsRequired": false,
+  "emoji": "🗄️",
+  "firstMergedAt": "2026-10-23T23:04:03Z",
+  "lastMergedAt": "2026-10-23T23:04:03Z",
+  "name": "No duplicate Bicep identifiers for Azure Storage",
+  "owner": "eerhardt",
+  "prs": [
+    21295
+  ]
+}

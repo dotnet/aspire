@@ -1,0 +1,9 @@
+{
+  "author": "DamianEdwards",
+  "comment": "Repository-internal team app extension, not a shipped product",
+  "mergedAt": "2026-10-23T22:19:04Z",
+  "number": 21294,
+  "runDate": "2026-10-24T00:10:00Z",
+  "status": "excluded",
+  "title": "Fix standalone Aspire Team App credential discovery"
+}
