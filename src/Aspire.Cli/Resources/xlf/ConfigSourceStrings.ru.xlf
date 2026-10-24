@@ -109,8 +109,8 @@ Source origin: {3}</target>
         <note />
       </trans-unit>
       <trans-unit id="InvalidRepository">
-        <source>The configuration source must be an HTTPS or SSH Git repository address without passwords, tokens, queries, or fragments. Local paths are not supported.</source>
-        <target state="new">The configuration source must be an HTTPS or SSH Git repository address without passwords, tokens, queries, or fragments. Local paths are not supported.</target>
+        <source>The configuration source must be an absolute local repository path or an HTTPS or SSH Git repository address without passwords, tokens, queries, or fragments.</source>
+        <target state="new">The configuration source must be an absolute local repository path or an HTTPS or SSH Git repository address without passwords, tokens, queries, or fragments.</target>
         <note />
       </trans-unit>
       <trans-unit id="MissingFile">
@@ -144,8 +144,8 @@ Source origin: {3}</target>
         <note />
       </trans-unit>
       <trans-unit id="RefreshedUnchanged">
-        <source>app configuration unchanged</source>
-        <target state="new">app configuration unchanged</target>
+        <source>app configuration already up to date</source>
+        <target state="new">app configuration already up to date</target>
         <note />
       </trans-unit>
       <trans-unit id="RepositoryUnavailable">

@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Configuration;
@@ -185,10 +186,10 @@ public class ConfigSourceGitClientTests(ITestOutputHelper outputHelper)
             ? TestHelpers.CreateInteractiveHostEnvironment()
             : TestHelpers.CreateNonInteractiveHostEnvironment());
 
-        // Source-address validation is covered separately. A local transport exercises
-        // real Git snapshot acquisition without contacting a network repository.
+        var source = new ConfigSource { Repository = workspace.Path, Path = path };
+        source.Validate();
         var (commit, version, configuration) = await client.AcquireAsync(
-            new() { Repository = workspace.Path, Path = path }, cache.FullName, TestContext.Current.CancellationToken);
+            source, cache.FullName, TestContext.Current.CancellationToken);
 
         Assert.Matches("^[a-f0-9]{40,64}$", commit);
         Assert.Equal((await RunGitOutputAsync(workspace.Path, ["rev-parse", $"HEAD:{path}"])).Trim(), version);
@@ -199,6 +200,29 @@ public class ConfigSourceGitClientTests(ITestOutputHelper outputHelper)
         Assert.Equal("preserved", configuration["DOCS"]!["API"]!["custom"]!.GetValue<string>());
         Assert.Equal(["DOCS", "features", "custom"], configuration.Select(property => property.Key));
         Assert.False(File.Exists(Path.Combine(cache.FullName, path)));
+    }
+
+    [Fact]
+    public async Task Materialize_AppliesConfigurationFromAbsoluteLocalRepositoryWithSpaces()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        const string path = "teams/platform.json";
+        await CreateRepositoryAsync(workspace, path, """{"docs":{"llmsTxtUrl":"https://docs.example/local/llms.txt"}}""");
+        var repository = workspace.CreateDirectory("local repository");
+        await RunGitOutputAsync(workspace.Path, ["clone", "--", workspace.Path, repository.FullName]);
+        var source = new ConfigSource { Repository = repository.FullName, Path = path };
+        var project = workspace.CreateDirectory("project");
+        using var service = TestConfigSourceServices.Create(workspace.CreateExecutionContext(),
+            git: new ConfigSourceGitClient(TestHelpers.CreateNonInteractiveHostEnvironment()));
+
+        await service.MaterializeAsync(source, project, TestContext.Current.CancellationToken);
+
+        var config = AspireConfigFile.Load(project.FullName)!;
+        Assert.Equal("https://docs.example/local/llms.txt", config.Docs!.LlmsTxtUrl);
+        Assert.Equal(repository.FullName, config.ConfigSource!.Repository);
+        Assert.Equal(path, config.ConfigSource.Path);
+        Assert.Equal((await RunGitOutputAsync(repository.FullName, ["rev-parse", $"HEAD:{path}"])).Trim(),
+            config.ConfigSource.AppliedVersion);
     }
 
     [Theory]

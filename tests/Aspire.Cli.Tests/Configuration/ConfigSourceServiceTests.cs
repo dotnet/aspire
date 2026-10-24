@@ -241,10 +241,20 @@ public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
         new ConfigSource { Repository = repository, Path = s_source.Path }.Validate();
     }
 
+    [Fact]
+    public void Validate_AcceptsAbsoluteLocalRepositoryWithSpaces()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var repository = workspace.CreateDirectory("local repository");
+
+        new ConfigSource { Repository = repository.FullName, Path = s_source.Path }.Validate();
+    }
+
     [Theory]
     [InlineData("")]
-    [InlineData("C:\\local\\repo")]
-    [InlineData("/local/repo")]
+    [InlineData("local/repo")]
+    [InlineData("./local/repo")]
+    [InlineData("C:local\\repo")]
     [InlineData("file:///local/repo")]
     [InlineData("https://user:password@git.example/repo")]
     [InlineData("https://git.example/repo?token=example")]
@@ -256,6 +266,15 @@ public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
     [InlineData("ssh://git:password@git.example/repo")]
     public void Validate_RejectsInvalidRepositories(string repository)
     {
+        Assert.Throws<ConfigSourceException>(() => new ConfigSource { Repository = repository, Path = s_source.Path }.Validate());
+    }
+
+    [Fact]
+    public void Validate_RejectsControlsInAbsoluteLocalRepository()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var repository = System.IO.Path.Combine(workspace.Path, "local\nrepository");
+
         Assert.Throws<ConfigSourceException>(() => new ConfigSource { Repository = repository, Path = s_source.Path }.Validate());
     }
 
@@ -889,10 +908,13 @@ public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
             git.Acquire = (_, _) => Task.FromResult(("commit-2", "version-2", new JsonObject()));
         }
         clock.UtcNow += TimeSpan.FromSeconds(1);
-        using var next = TestConfigSourceServices.Create(context, git: git, clock: clock);
+        var interaction = new TestInteractionService();
+        using var next = TestConfigSourceServices.Create(context, git: git, clock: clock, interaction: interaction);
 
         await next.CheckProjectAsync(workspace.WorkspaceRoot, true, CancellationToken.None);
 
+        Assert.Contains(changed ? ConfigSourceStrings.Refreshed : ConfigSourceStrings.RefreshedUnchanged,
+            Assert.Single(interaction.DisplayedMessages).Message);
         Assert.Equal(2, git.Calls);
         Assert.Equal(0, git.CheckCalls);
         var pointer = await File.ReadAllTextAsync(Path.Combine(next.GetCacheDirectory(s_source), "current"));

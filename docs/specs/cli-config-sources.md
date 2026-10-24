@@ -31,7 +31,7 @@ During `aspire new` or `aspire init`, resolve a candidate source:
 
 | Environment variable | Purpose | Default |
 |---|---|---|
-| `ASPIRE_INIT_SOURCE_URL` | Git repository address, not a local file path or raw JSON URL | Microsoft repository for detected employees; otherwise none |
+| `ASPIRE_INIT_SOURCE_URL` | Git repository address or absolute local repository path, not a raw JSON URL | Microsoft repository for detected employees; otherwise none |
 | `ASPIRE_INIT_SOURCE_PATH` | Repository-relative configuration file path; only applies when `ASPIRE_INIT_SOURCE_URL` is explicitly set | `aspire.config.json` at the repository root |
 | `ASPIRE_INIT_SOURCE_REF` | Branch name or full commit SHA; only applies when `ASPIRE_INIT_SOURCE_URL` is explicitly set | The repository's current default branch |
 
@@ -46,7 +46,7 @@ $env:ASPIRE_INIT_SOURCE_REF = 'main'
 aspire new
 ```
 
-When enabled by an explicit source URL, repository-relative paths use `/` separators on every platform. Reject empty or absolute paths, `.` or `..` segments, empty segments, backslashes, and control characters. Git addresses may use HTTPS, SSH URLs, or SCP-style SSH syntax. Local paths, Git remote-helper syntax, embedded passwords/tokens, query strings, and fragments are not supported.
+When enabled by an explicit source URL, repository-relative paths use `/` separators on every platform. Reject empty or absolute paths, `.` or `..` segments, empty segments, backslashes, and control characters. Git addresses may use HTTPS, SSH URLs, or SCP-style SSH syntax. Absolute local repository paths are also supported, including paths with spaces; they use the current platform's path syntax and remain machine-specific when saved in a binding. Relative repository paths and `file://` URLs are not supported. Git remote-helper syntax, control characters, and remote addresses with embedded passwords/tokens, query strings, or fragments are not supported.
 
 Reuse `IInternalMicrosoftDetector` directly, independently of telemetry opt-in. An explicit source bypasses employee detection. Detection selects a default, not authorization or consent: Git still authenticates repository access. An inconclusive or failed detection does not select the Microsoft source.
 
@@ -156,7 +156,7 @@ For example, after applying a source that supplies documentation URLs:
 
 This is an excerpt; other generated or existing app settings remain in the same file. Once saved, these documentation settings are ordinary project settings. Editing them locally changes subsequent command behavior without editing the source or its tracking copy. A later explicit source update may overwrite them according to the rules above.
 
-Stage and validate an update before replacing the project file. Write the settings and their applied version together so the file cannot claim a version whose values were not saved. Acquisition, validation, or project-write failure must be reported, without claiming a successful update or leaving a partially written app file.
+Stage and validate an update before replacing the project file. Write the settings and their applied version together so the file cannot claim a version whose values were not saved. If neither the supplied settings nor the saved binding change, report that the app configuration is already up to date and leave the project file untouched. Acquisition, validation, or project-write failure must be reported, without claiming a successful update or leaving a partially written app file.
 
 ### Store a tracking copy in Aspire home
 

@@ -290,7 +290,7 @@ namespace Aspire.Cli.Resources
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to The configuration source must be an HTTPS or SSH Git repository address without passwords, tokens, queries, or fragments. Local paths are not supported..
+        ///   Looks up a localized string similar to The configuration source must be an absolute local repository path or an HTTPS or SSH Git repository address without passwords, tokens, queries, or fragments..
         /// </summary>
         internal static string InvalidRepository
         {
@@ -356,7 +356,7 @@ namespace Aspire.Cli.Resources
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to app configuration unchanged.
+        ///   Looks up a localized string similar to app configuration already up to date.
         /// </summary>
         internal static string RefreshedUnchanged
         {

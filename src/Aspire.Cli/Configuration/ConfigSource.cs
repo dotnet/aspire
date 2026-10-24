@@ -44,8 +44,10 @@ internal sealed class ConfigSource
         {
             throw new ConfigSourceException(ConfigSourceStrings.InvalidBinding);
         }
-        // Git accepts https://host/repo, ssh://git@host/repo, and git@host:repo.
-        // Do not accept local paths, remote helpers, or URL credentials that would be persisted.
+        // Git accepts https://host/repo, ssh://git@host/repo, git@host:repo, and local paths.
+        // Require fully qualified local paths so a saved binding cannot change repositories
+        // when a later command runs in a different working directory.
+        var isLocal = System.IO.Path.IsPathFullyQualified(Repository);
         var isUrl = Uri.TryCreate(Repository, UriKind.Absolute, out var uri)
             && uri.Scheme is "https" or "ssh"
             && !string.IsNullOrEmpty(uri.Host)
@@ -61,9 +63,10 @@ internal sealed class ConfigSource
             && Repository[0] != '-'
             && Repository[..at].All(c => char.IsAsciiLetterOrDigit(c) || c is '.' or '_' or '-')
             && Uri.CheckHostName(Repository[(at + 1)..colon]) != UriHostNameType.Unknown;
-        if (Repository.Any(c => char.IsWhiteSpace(c) || char.IsControl(c))
-            || Repository.Contains('?') || Repository.Contains('#')
-            || Repository.StartsWith('-') || (!isUrl && !isScp))
+        if (Repository.Any(char.IsControl)
+            || (!isLocal && (Repository.Any(char.IsWhiteSpace)
+                || Repository.Contains('?') || Repository.Contains('#')
+                || Repository.StartsWith('-') || (!isUrl && !isScp))))
         {
             throw new ConfigSourceException(ConfigSourceStrings.InvalidRepository);
         }

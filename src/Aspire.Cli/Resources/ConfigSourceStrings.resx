@@ -67,7 +67,7 @@
     <value>Apply allowed settings from the project's saved Git configuration source, replacing local edits to supplied settings, without updating packages or the CLI.</value>
   </data>
   <data name="InvalidRepository" xml:space="preserve">
-    <value>The configuration source must be an HTTPS or SSH Git repository address without passwords, tokens, queries, or fragments. Local paths are not supported.</value>
+    <value>The configuration source must be an absolute local repository path or an HTTPS or SSH Git repository address without passwords, tokens, queries, or fragments.</value>
   </data>
   <data name="InvalidPath" xml:space="preserve">
     <value>The configuration file must be a nonempty repository-relative path using '/' separators, without '.', '..', or empty path segments.</value>
@@ -147,7 +147,7 @@ Source origin: {3}</value>
     <value>app configuration updated</value>
   </data>
   <data name="RefreshedUnchanged" xml:space="preserve">
-    <value>app configuration unchanged</value>
+    <value>app configuration already up to date</value>
   </data>
   <data name="UpdateAvailable" xml:space="preserve">
     <value>A new version of this project's configuration source is available. Run `aspire update --config-source` to apply it.</value>
