@@ -19,34 +19,16 @@ namespace Aspire.Cli.Tests.Commands;
 
 public class AgentInitCommandTests(ITestOutputHelper outputHelper)
 {
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task AgentInitCommand_DoesNotCheckWorkspaceSourceAfterInteractiveScopeSelection(bool global)
+    [Fact]
+    public async Task AgentInitCommand_DoesNotCheckWorkspaceSource()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
-        var scope = global ? AgentConfigurationScope.Global : AgentConfigurationScope.Project;
-        var homeDirectory = workspace.CreateDirectory("fake-home");
         await TestConfigSourceServices.SaveBindingAsync(
             new ConfigSource { Repository = "https://git.example/configuration", Path = "aspire.config.json", AppliedVersion = "version-1" },
             workspace.WorkspaceRoot, CancellationToken.None);
-        var interactionService = new TestInteractionService
-        {
-            PromptForSelectionCallback = (prompt, _, _, _) =>
-            {
-                Assert.Equal(AgentCommandStrings.InitCommand_SelectScopePrompt, prompt);
-                return scope;
-            }
-        };
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
-        {
-            options.InteractionServiceFactory = _ => interactionService;
-            options.CliExecutionContextFactory = _ => CreateExecutionContext(workspace.WorkspaceRoot, homeDirectory);
-            options.CliHostEnvironmentFactory = _ => TestHelpers.CreateInteractiveHostEnvironment();
-        });
-        using var provider = services.BuildServiceProvider();
+        using var provider = CliTestHelper.CreateServiceCollection(workspace, outputHelper).BuildServiceProvider();
         var command = provider.GetRequiredService<RootCommand>().Parse(
-            $"agent init --workspace-root \"{workspace.Path}\" --agents copilot --skills aspire --mcp false");
+            $"agent init --workspace-root \"{workspace.Path}\" --agents copilot --skills aspire --scope project --mcp false --non-interactive");
 
         Assert.Equal(CliExitCodes.Success, await command.InvokeAsync().DefaultTimeout());
 

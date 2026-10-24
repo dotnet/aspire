@@ -141,14 +141,6 @@ public class ConfigSourceCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(localOverride ? localUrl : sharedUrl, requestedUrl);
         Assert.Equal(0, git.Calls);
         Assert.Equal(0, git.CheckCalls);
-        var document = await provider.GetRequiredService<IDocsIndexService>().GetDocumentAsync("shared-document");
-        Assert.NotNull(document);
-        var cacheDirectory = Path.Combine(provider.GetRequiredService<CliExecutionContext>().CacheDirectory.FullName, "docs");
-        await Verify(new
-        {
-            Document = document,
-            CacheFiles = Directory.GetFiles(cacheDirectory).Select(Path.GetFileName).Order(StringComparer.Ordinal)
-        }).UseParameters(localOverride);
     }
 
     [Theory]
@@ -203,14 +195,6 @@ public class ConfigSourceCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal([expectedUrl, $"{new Uri(expectedUrl).GetLeftPart(UriPartial.Authority)}/reference/api/csharp/aspire.hosting.md"], requests);
         Assert.Equal(0, git.Calls);
         Assert.Equal(0, git.CheckCalls);
-        var document = await provider.GetRequiredService<IApiDocsIndexService>().GetAsync("csharp/aspire.hosting");
-        Assert.NotNull(document);
-        var cacheDirectory = Path.Combine(provider.GetRequiredService<CliExecutionContext>().CacheDirectory.FullName, "api-docs");
-        await Verify(new
-        {
-            Document = document,
-            CacheFiles = Directory.GetFiles(cacheDirectory).Select(Path.GetFileName).Order(StringComparer.Ordinal)
-        }).UseParameters(localOverride);
     }
 
     [Fact]

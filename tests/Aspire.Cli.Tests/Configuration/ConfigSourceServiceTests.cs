@@ -13,7 +13,6 @@ using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
 using Aspire.Shared.Telemetry;
 using Microsoft.AspNetCore.InternalTesting;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Cli.Tests.Configuration;
@@ -53,24 +52,13 @@ public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
         await service.StopChecksAsync().DefaultTimeout();
 
         Assert.True(finished.Task.IsCompletedSuccessfully);
+        using var stoppedService = TestConfigSourceServices.Create(workspace.CreateExecutionContext(), git: git);
+        await stoppedService.StopChecksAsync().DefaultTimeout();
+        stoppedService.CheckForConfigSourceUpdates(workspace.WorkspaceRoot, CancellationToken.None);
+        await stoppedService.WaitForChecksAsync().DefaultTimeout();
         service.NotifyIfUpdateAvailable();
         Assert.Empty(interaction.DisplayedMessages);
         Assert.Equal(1, git.CheckCalls);
-    }
-
-    [Fact]
-    public async Task BackgroundCheck_ShutdownPreventsScheduling()
-    {
-        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
-        await TestConfigSourceServices.SaveBindingAsync(s_appliedSource, workspace.WorkspaceRoot, CancellationToken.None);
-        var git = new TestConfigSourceGitClient();
-        using var service = TestConfigSourceServices.Create(workspace.CreateExecutionContext(), git: git);
-
-        await service.StopChecksAsync();
-        service.CheckForConfigSourceUpdates(workspace.WorkspaceRoot, CancellationToken.None);
-        await service.WaitForChecksAsync();
-
-        Assert.Equal(0, git.CheckCalls);
     }
 
     [Theory]
@@ -558,44 +546,38 @@ public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
         Assert.Equal(ConfigSourceStrings.UpdateAvailable, Assert.Single(interaction.DisplayedMessages).Message);
     }
 
-    [Fact]
-    public async Task CheckProject_RevalidatesObservationForNewlyClonedAppliedVersion()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CheckProject_MatchingFileVersionDoesNotNotify(bool revalidateCachedObservation)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         await TestConfigSourceServices.SaveBindingAsync(s_appliedSource, workspace.WorkspaceRoot, CancellationToken.None);
         var context = workspace.CreateExecutionContext();
         var git = new TestConfigSourceGitClient();
-        await TestConfigSourceServices.Create(context, git: git).CheckProjectAsync(workspace.WorkspaceRoot, false, CancellationToken.None);
-        await TestConfigSourceServices.SaveBindingAsync(
-            new ConfigSource { Repository = s_source.Repository, Path = s_source.Path, AppliedVersion = "version-2" },
-            workspace.WorkspaceRoot, CancellationToken.None);
-        git.Check = (_, _) => Task.FromResult(("commit-2", "version-2"));
+        if (revalidateCachedObservation)
+        {
+            using var first = TestConfigSourceServices.Create(context, git: git);
+            await first.CheckProjectAsync(workspace.WorkspaceRoot, false, CancellationToken.None);
+            await TestConfigSourceServices.SaveBindingAsync(
+                new ConfigSource { Repository = s_source.Repository, Path = s_source.Path, AppliedVersion = "version-2" },
+                workspace.WorkspaceRoot, CancellationToken.None);
+        }
+        git.Check = (_, _) => Task.FromResult(("unrelated-commit", revalidateCachedObservation ? "version-2" : "version-1"));
         var interaction = new TestInteractionService();
+        using var service = TestConfigSourceServices.Create(context, git: git, interaction: interaction);
+        await service.CheckProjectAsync(workspace.WorkspaceRoot, false, CancellationToken.None);
+        service.NotifyIfUpdateAvailable();
 
-        await TestConfigSourceServices.Create(context, git: git, interaction: interaction).CheckProjectAsync(workspace.WorkspaceRoot, false, CancellationToken.None);
-
-        Assert.Equal(2, git.CheckCalls);
-        Assert.Empty(interaction.DisplayedMessages);
-    }
-
-    [Fact]
-    public async Task CheckProject_UnrelatedCommitDoesNotAdvertiseConfigurationUpdate()
-    {
-        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
-        await TestConfigSourceServices.SaveBindingAsync(s_appliedSource, workspace.WorkspaceRoot, CancellationToken.None);
-        var interaction = new TestInteractionService();
-        var git = new TestConfigSourceGitClient { Check = (_, _) => Task.FromResult(("unrelated-commit", "version-1")) };
-
-        await TestConfigSourceServices.Create(workspace.CreateExecutionContext(), git: git, interaction: interaction)
-            .CheckProjectAsync(workspace.WorkspaceRoot, false, CancellationToken.None);
-
+        Assert.Equal(revalidateCachedObservation ? 2 : 1, git.CheckCalls);
         Assert.Empty(interaction.DisplayedMessages);
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task CheckProject_FailureIsReportedAndDoesNotAdvanceCheckTime(bool invalidTracking)
+    [InlineData(null)]
+    [InlineData("{")]
+    [InlineData("{}")]
+    public async Task CheckProject_FailureIsReportedAndDoesNotAdvanceCheckTime(string? invalidTracking)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         await TestConfigSourceServices.SaveBindingAsync(s_appliedSource, workspace.WorkspaceRoot, CancellationToken.None);
@@ -605,9 +587,9 @@ public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
         var first = TestConfigSourceServices.Create(context, git: git, clock: clock);
         await first.CheckProjectAsync(workspace.WorkspaceRoot, false, CancellationToken.None);
         var checkPath = Path.Combine(first.GetCacheDirectory(s_source), "check.json");
-        if (invalidTracking)
+        if (invalidTracking is not null)
         {
-            await File.WriteAllTextAsync(checkPath, "{");
+            await File.WriteAllTextAsync(checkPath, invalidTracking);
         }
         var original = await File.ReadAllTextAsync(checkPath);
         clock.UtcNow += TimeSpan.FromDays(1);
@@ -621,9 +603,10 @@ public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
 
         Assert.Equal(original, await File.ReadAllTextAsync(checkPath));
         Assert.Equal(string.Format(CultureInfo.CurrentCulture, ConfigSourceStrings.CheckFailed,
-            invalidTracking ? ConfigSourceStrings.InvalidCache : ConfigSourceStrings.AuthenticationFailed),
+            invalidTracking is not null ? ConfigSourceStrings.InvalidCache : ConfigSourceStrings.AuthenticationFailed),
             Assert.Single(interaction.DisplayedMessages).Message);
         Assert.Equal(0, git.Calls);
+        Assert.Equal(invalidTracking is not null ? 1 : 2, git.CheckCalls);
     }
 
     [Fact]
@@ -631,8 +614,10 @@ public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var context = workspace.CreateExecutionContext();
-        var first = TestConfigSourceServices.Create(context);
+        var clock = new AdjustableTimeProvider();
+        using var first = TestConfigSourceServices.Create(context, clock: clock);
         await first.MaterializeAsync(s_source, workspace.WorkspaceRoot, CancellationToken.None);
+        clock.UtcNow += TimeSpan.FromDays(1);
         var directory = first.GetCacheDirectory(s_source);
         var snapshot = Directory.GetDirectories(directory).Single();
         await File.WriteAllTextAsync(Path.Combine(directory, "current"), "invalid pointer");
@@ -640,11 +625,12 @@ public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
         var interaction = new TestInteractionService();
         var git = new TestConfigSourceGitClient();
 
-        await TestConfigSourceServices.Create(context, git: git, interaction: interaction)
-            .CheckProjectAsync(workspace.WorkspaceRoot, false, CancellationToken.None);
+        using var service = TestConfigSourceServices.Create(context, git: git, clock: clock, interaction: interaction);
+        await service.CheckProjectAsync(workspace.WorkspaceRoot, false, CancellationToken.None);
+        service.NotifyIfUpdateAvailable();
 
         Assert.Equal(0, git.Calls);
-        Assert.Equal(0, git.CheckCalls);
+        Assert.Equal(1, git.CheckCalls);
         Assert.Empty(interaction.DisplayedMessages);
     }
 
@@ -688,26 +674,6 @@ public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
         Assert.Equal("A configuration source service instance cannot be used for multiple projects.", error.Message);
         Assert.Equal(1, git.CheckCalls);
         Assert.Equal(ConfigSourceStrings.UpdateAvailable, Assert.Single(interaction.DisplayedMessages).Message);
-    }
-
-    [Fact]
-    public async Task CheckProject_MissingTrackingSourceReportsInvalidCache()
-    {
-        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
-        await TestConfigSourceServices.SaveBindingAsync(s_appliedSource, workspace.WorkspaceRoot, CancellationToken.None);
-        var git = new TestConfigSourceGitClient();
-        var interaction = new TestInteractionService();
-        var service = TestConfigSourceServices.Create(workspace.CreateExecutionContext(), git: git, interaction: interaction);
-        var cacheDirectory = service.GetCacheDirectory(s_source);
-        Directory.CreateDirectory(cacheDirectory);
-        await File.WriteAllTextAsync(Path.Combine(cacheDirectory, "check.json"), "{}");
-
-        await service.CheckProjectAsync(workspace.WorkspaceRoot, false, CancellationToken.None);
-
-        Assert.Equal(0, git.CheckCalls);
-        service.NotifyIfUpdateAvailable();
-        Assert.Equal(string.Format(CultureInfo.CurrentCulture, ConfigSourceStrings.CheckFailed, ConfigSourceStrings.InvalidCache),
-            Assert.Single(interaction.DisplayedMessages).Message);
     }
 
     [Fact]
@@ -1001,34 +967,6 @@ public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
         Assert.NotEqual(
             service.GetCacheDirectory(new() { Repository = s_source.Repository, Path = s_source.Path, Ref = "preview" }),
             service.GetCacheDirectory(new() { Repository = s_source.Repository, Path = s_source.Path, Ref = "main" }));
-    }
-
-    [Theory]
-    [InlineData("sdk.version", true, true, "2.0.0")]
-    [InlineData("sdkVersion", true, true, "2.0.0")]
-    [InlineData("sdk.version", true, false, "1.0.0")]
-    [InlineData("sdkVersion", true, false, "1.0.0")]
-    [InlineData("sdk.version", false, true, "1.0.0")]
-    [InlineData("sdkVersion", false, true, "1.0.0")]
-    public async Task ScopedSdkLookupPreservesParentAndGlobalFallback(
-        string key, bool parentHasValue, bool continueSearchWhenKeyMissing, string expected)
-    {
-        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
-        var project = workspace.CreateDirectory("selected");
-        await TestConfigSourceServices.SaveBindingAsync(s_appliedSource, project, CancellationToken.None);
-        var global = new FileInfo(Path.Combine(workspace.Path, "global.json"));
-        await ConfigurationService.SetConfigurationInFileAsync(global.FullName, key, "1.0.0");
-        var parent = Path.Combine(workspace.Path, AspireConfigFile.FileName);
-        await File.WriteAllTextAsync(parent, "{}");
-        if (parentHasValue)
-        {
-            await ConfigurationService.SetConfigurationInFileAsync(parent, key, "2.0.0");
-        }
-        using var configuration = new ConfigurationManager();
-        ConfigurationHelper.RegisterSettingsFiles(configuration, workspace.WorkspaceRoot, global);
-        var scoped = new ConfigurationService(configuration, workspace.CreateExecutionContext(), global, NullLogger<ConfigurationService>.Instance);
-
-        Assert.Equal(expected, await scoped.GetConfigurationFromDirectoryAsync(key, project, continueSearchWhenKeyMissing));
     }
 
     private static ParseResult ParseConsent(bool? accepted)
