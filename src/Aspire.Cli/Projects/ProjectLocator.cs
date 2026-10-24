@@ -881,7 +881,7 @@ internal sealed class ProjectLocator(
         var result = await UseOrFindAppHostProjectFileCoreAsync(projectFile, multipleAppHostProjectsFoundBehavior, createSettingsFile, displayProgress, cancellationToken);
         if (result.SelectedProjectFile?.Directory is { } directory)
         {
-            await configSources.CheckProjectAsync(directory, force: false, cancellationToken);
+            configSources.CheckForConfigSourceUpdates(directory, cancellationToken);
         }
         return result;
     }
@@ -1234,7 +1234,7 @@ internal sealed class ProjectLocator(
 
     private async Task CreateSettingsFileAsync(FileInfo projectFile, bool preserveExistingDefault, CancellationToken cancellationToken)
     {
-        await configSources.CheckProjectAsync(projectFile.Directory!, force: false, cancellationToken);
+        configSources.CheckForConfigSourceUpdates(projectFile.Directory!, cancellationToken);
         var configuredSelectionOrigin = configuration[KnownConfigNames.CliAppHostSelectionOrigin];
         var isExplicitLaunchConfigurationSelection = string.Equals(
             configuredSelectionOrigin,

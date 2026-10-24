@@ -504,7 +504,7 @@ internal sealed class NewCommand : BaseCommand
     {
         using var activity = Telemetry.StartDiagnosticActivity(this.Name);
 
-        var configSource = await ConfigSources.SelectForCreationAsync(parseResult, cancellationToken);
+        var configSource = await ConfigSources.ResolveAndAcquireConfigSourceAsync(parseResult, cancellationToken);
         var source = parseResult.GetValue(s_sourceOption);
         if (!string.IsNullOrWhiteSpace(source) && PackageSourceOverrideMappings.HasCredentialMaterial(source))
         {

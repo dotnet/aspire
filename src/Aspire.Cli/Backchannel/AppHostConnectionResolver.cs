@@ -147,7 +147,7 @@ internal sealed class AppHostConnectionResolver(
                 };
             }
 
-            await configSources.CheckProjectAsync(projectFile.Directory!, force: false, cancellationToken);
+            configSources.CheckForConfigSourceUpdates(projectFile.Directory!, cancellationToken);
             var matchingSockets = AppHostSocketManager.FindSockets(
                 projectFile.FullName,
                 executionContext.HomeDirectory.FullName,
@@ -282,7 +282,7 @@ internal sealed class AppHostConnectionResolver(
         var selectedResult = new AppHostConnectionResult { Connection = selectedConnection };
         if (selectedConnection.AppHostInfo?.AppHostPath is { Length: > 0 } selectedPath)
         {
-            await configSources.CheckProjectAsync(new FileInfo(selectedPath).Directory!, force: false, cancellationToken);
+            configSources.CheckForConfigSourceUpdates(new FileInfo(selectedPath).Directory!, cancellationToken);
         }
         StoreAppHostCliLogFilePath(selectedResult);
         return selectedResult;

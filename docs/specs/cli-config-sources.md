@@ -98,11 +98,13 @@ aspire init --use-config-source false
 
 Use the user's Git installation and normal credential helpers or SSH authentication. Do not introduce a separate login flow or reuse credentials from employee detection.
 
-Allow Git terminal credential prompts when the CLI host supports interactive input. Disable terminal prompts for `--non-interactive`, `ASPIRE_NON_INTERACTIVE`, and CI environments where the host disables input; those invocations need authentication configured beforehand. Keep the existing acquisition timeout and cancellation behavior, including while waiting for credentials.
+When the CLI host supports interactive input, fetch with inherited terminal input and output so Git and credential helpers can display instructions immediately and handle credentials directly. Keep local Git queries captured, including configuration-file contents. Do not copy interactive Git diagnostics into Aspire logs or telemetry; report a failed interactive fetch as an inaccessible repository after Git displays its own diagnostics.
+
+Disable terminal prompts and Git Credential Manager interaction for `--non-interactive`, `ASPIRE_NON_INTERACTIVE`, and CI environments where the host disables input; those invocations need authentication configured beforehand. Other credential helpers must also be configured for unattended use. Keep the existing acquisition timeout and cancellation behavior, including while waiting for credentials.
 
 For creation, initialization, and explicit updates, acquire the selected branch or exact commit, using the current default branch only when no ref was selected. Resolve a branch to one commit and read the selected configuration file from that snapshot. Validate it before applying values to the project or publishing a tracking copy. Record the configured selector, source-file version, and resolved commit separately; a branch name is not the immutable commit actually fetched. Do not turn the tracking copy into runtime configuration.
 
-Git acquisition supports cancellation and has a two-minute timeout. Read the Git blob without checking out the repository, reject symlink configuration entries, and validate the JSON object and known Aspire settings before use. Configuration files are limited to 4 MiB and cannot declare another configuration source. Report missing Git, authentication failures, inaccessible repositories, missing files, and invalid configuration distinctly. Do not silently substitute standard configuration after the user accepts a source.
+Git acquisition supports cancellation and has a two-minute timeout. Read the Git blob without checking out the repository, reject symlink configuration entries, and validate the JSON object and known Aspire settings before use. Configuration files are limited to 4 MiB and cannot declare another configuration source. Report missing Git, inaccessible repositories, missing files, and invalid configuration distinctly; classify authentication failures separately when diagnostics are captured non-interactively. Do not silently substitute standard configuration after the user accepts a source.
 
 ### Materialize an allowlist into the app configuration
 
@@ -177,7 +179,13 @@ A tracking copy is shared by source identity, not a record of what every applica
 
 ### Check for updates without applying them
 
-For a source-bound app, ordinary commands continue checking for a newer version, including lifecycle, inspection, and content commands. The check is advisory: the requested operation uses the app's saved configuration whether the source is newer, unavailable, or has never been fetched on this machine.
+For a source-bound app, operations that resolve an Aspire project or select a running AppHost explicitly check that project's source for a newer version. Project-scoped agent setup and initialization of an already-bound project also check the resolved project directory. Commands that do not resolve a project, such as configuration inspection and documentation lookup, do not perform an ambient source check. The check is advisory: the requested operation uses the app's saved configuration whether the source is newer, unavailable, or has never been fetched on this machine.
+
+Advisory checks run in the background without delaying project operations or prompting for Git credentials. At command exit, unfinished checks are cancelled and their child processes are cleaned up. Completed update notices and advisory warnings are displayed after the CLI version update notification, never concurrently with command output; machine-readable invocations suppress these notices. A fast command may exit before a check produces a result, in which case no notice is shown. Explicit `aspire update --config-source` remains a synchronous fetch-and-apply operation, including its normal credential prompts and failure reporting.
+
+Each configuration-source service instance handles one project and one source. Repeated calls for the same project reuse a single background check; attempting to reuse the instance for another project is an error.
+
+Directory cleanup failures are logged at debug level without displaying a UI warning or replacing the check's notification.
 
 | Command scope | Source behavior |
 |---|---|

@@ -2,15 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.Collections.Concurrent;
 using System.Globalization;
 using System.IO.Hashing;
-using System.Security.AccessControl;
-using System.Security.Principal;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Aspire.Cli.Agents;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
@@ -29,13 +25,17 @@ internal sealed class ConfigSourceService(
     TimeProvider timeProvider,
     IInteractionService interaction,
     ICliHostEnvironment hostEnvironment,
-    ILogger<ConfigSourceService> logger)
+    ILogger<ConfigSourceService> logger) : IDisposable
 {
     internal const string MicrosoftRepository = "https://msft.ghe.com/coreai/aspire-1p-init";
     private static readonly string[][] s_allowedSettings = [["docs", "llmsTxtUrl"], ["docs", "api", "sitemapUrl"]];
-    private readonly ConcurrentDictionary<ConfigSourceKey, ConfigSourceSnapshot> _snapshots = [];
-    private readonly ConcurrentDictionary<ConfigSourceKey, byte> _reported = [];
-    private readonly ConcurrentDictionary<string, byte> _checkedProjects = new(StringComparers.FileSystemPath);
+    private ConfigSourceSnapshot? _snapshot;
+    private string? _projectDirectory;
+    private bool _projectChecked;
+    private string? _notification;
+    private readonly Lock _checksLock = new();
+    private readonly CancellationTokenSource _stopping = new();
+    private Task? _check;
 
     internal static readonly Option<bool?> s_useSourceOption = new("--use-config-source")
     {
@@ -44,66 +44,88 @@ internal sealed class ConfigSourceService(
         Arity = ArgumentArity.ExactlyOne
     };
 
-    public async Task CheckInvocationAsync(BaseCommand command, ParseResult parseResult, CancellationToken cancellationToken)
+    /// <summary>
+    /// Checks the resolved project's saved configuration source for updates without applying changes.
+    /// Runs in the background and defers advisory messages until command exit.
+    /// </summary>
+    /// <param name="projectDirectory">The directory of the project already resolved by the caller.</param>
+    /// <param name="cancellationToken">A token to cancel the source update check.</param>
+    /// <exception cref="InvalidOperationException">The service has already been used for a different project.</exception>
+    public void CheckForConfigSourceUpdates(DirectoryInfo projectDirectory, CancellationToken cancellationToken)
     {
-        // These operations do not select a project. In particular, global agent setup
-        // must never require access to an organization's private project configuration.
-        if (command is NewCommand or InitCommand or TemplateCommand or PsCommand
-            or LsCommand or DoctorCommand or SetupCommand or CompletionsCommand
-            or DashboardRunCommand or CacheCommand or AgentTelemetryCommand
-            or CertificatesCleanCommand or CertificatesTrustCommand
-            or TrayStartCommand or TrayStopCommand
-            || command.Options.OfType<Option<bool>>().Any(option =>
-                option.Name == "--global" && parseResult.GetValue(option))
-            || command is StopCommand && command.Options.OfType<Option<bool>>().Any(option =>
-                option.Name == "--all" && parseResult.GetValue(option))
-            || command is StopCommand && command.Options.Any(option => option.Name == "--pid" && parseResult.GetResult(option) is not null)
-            || command is UpdateCommand && command.Options.OfType<Option<bool>>().Any(option =>
-                option.Name == "--self" && parseResult.GetValue(option))
-            || command is UpdateCommand && parseResult.GetValue(UpdateCommand.s_configSourceOption)
-            || command is AgentInitCommand &&
-                (parseResult.GetResult(AgentInitCommand.s_scopeOption) is not { Implicit: false }
-                    || parseResult.GetValue(AgentInitCommand.s_scopeOption) is not AgentConfigurationScope.Project))
+        lock (_checksLock)
         {
-            return;
-        }
-
-        var directory = executionContext.WorkingDirectory;
-        var appHostOption = command.Options.OfType<Option<FileInfo?>>().FirstOrDefault(option => option.Name is "--apphost" or "--project");
-        if (appHostOption is not null && parseResult.GetValue(appHostOption) is { } appHost)
-        {
-            directory = Directory.Exists(appHost.FullName) ? new DirectoryInfo(appHost.FullName) : appHost.Directory!;
-        }
-        else if (appHostOption is not null
-            && ConfigurationHelper.FindNearestConfigFilePath(directory) is { } configPath
-            && Path.GetFileName(configPath) == AspireConfigFile.FileName)
-        {
-            try
+            EnsureSameProject(projectDirectory);
+            if (_check is not null || _stopping.IsCancellationRequested || executionContext.Command is UpdateCommand { IsConfigSourceRefresh: true })
             {
-                var projectSettings = await ReadProjectConfigurationAsync(configPath, cancellationToken);
-                if (projectSettings?.Deserialize(JsonSourceGenerationContext.Default.AspireConfigFile)?.AppHost?.Path is { Length: > 0 } configuredPath)
-                {
-                    var configuredFile = new FileInfo(Path.GetFullPath(configuredPath, Path.GetDirectoryName(configPath)!));
-                    if (configuredFile.Exists)
-                    {
-                        directory = configuredFile.Directory!;
-                    }
-                }
-            }
-            catch (Exception ex) when (ex is ConfigSourceException or JsonException or IOException or UnauthorizedAccessException)
-            {
-                ReportCheckFailure(null, ex);
                 return;
             }
+
+            _check = Task.Run(async () =>
+            {
+                using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _stopping.Token);
+                try
+                {
+                    await CheckProjectAsync(projectDirectory, force: false, cancellation.Token);
+                }
+                catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+                {
+                    logger.LogTrace("Configuration source check cancelled because the CLI is shutting down.");
+                }
+                catch (Exception ex)
+                {
+                    // Advisory work must never fail the command. Log only the type: source
+                    // failures can contain private repository URLs or credentials.
+                    logger.LogDebug("Non-fatal configuration source check failure ({FailureType}).", ex.GetType().Name);
+                }
+            }, CancellationToken.None);
         }
-        if (command is AgentInitCommand && parseResult.GetValue(AgentInitCommand.s_workspaceRootOption) is { } workspaceRoot)
-        {
-            directory = new DirectoryInfo(Path.GetFullPath(workspaceRoot, executionContext.WorkingDirectory.FullName));
-        }
-        await CheckProjectAsync(directory, force: false, cancellationToken);
     }
 
-    public async Task<ConfigSource?> SelectForCreationAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    public async Task StopChecksAsync()
+    {
+        lock (_checksLock)
+        {
+            _stopping.Cancel();
+        }
+
+        // Cancel and join, rather than abandoning Git or credential-helper child processes.
+        await WaitForChecksAsync();
+    }
+
+    internal Task WaitForChecksAsync()
+    {
+        lock (_checksLock)
+        {
+            return _check ?? Task.CompletedTask;
+        }
+    }
+
+    public void NotifyIfUpdateAvailable()
+    {
+        string? message;
+        lock (_checksLock)
+        {
+            message = _notification;
+            _notification = null;
+        }
+        if (message is not null)
+        {
+            interaction.DisplayMessage(KnownEmojis.Warning, message, consoleOverride: ConsoleOutput.Error);
+        }
+    }
+
+    public void Dispose()
+    {
+        StopChecksAsync().GetAwaiter().GetResult();
+        _stopping.Dispose();
+    }
+
+    /// <summary>
+    /// Resolves a candidate configuration source from the environment or employee detection,
+    /// obtains consent, and acquires the accepted source.
+    /// </summary>
+    public async Task<ConfigSource?> ResolveAndAcquireConfigSourceAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         var repository = environment.GetEnvironmentVariable(CliConfigNames.InitSourceUrl);
         var explicitSource = repository is not null;
@@ -142,9 +164,12 @@ internal sealed class ConfigSourceService(
             {
                 throw new ConfigSourceException(ConfigSourceStrings.ConsentRequired);
             }
-            accepted = await interaction.PromptForSelectionAsync(ConfigSourceStrings.UseSourcePrompt,
-                new[] { true, false }, choice => choice ? ConfigSourceStrings.Accept : ConfigSourceStrings.Decline,
+            // Boolean choices let the prompt select default(bool), highlighting decline
+            // even when accept is first. String choices preserve the first-item default.
+            var selection = await interaction.PromptForSelectionAsync(ConfigSourceStrings.UseSourcePrompt,
+                new[] { ConfigSourceStrings.Accept, ConfigSourceStrings.Decline }, choice => choice,
                 cancellationToken: cancellationToken);
+            accepted = selection == ConfigSourceStrings.Accept;
         }
         if (!accepted.Value)
         {
@@ -158,19 +183,21 @@ internal sealed class ConfigSourceService(
     public async Task<ConfigSource?> SelectForInitializationAsync(
         DirectoryInfo projectDirectory, ParseResult parseResult, CancellationToken cancellationToken)
     {
+        EnsureSameProject(projectDirectory);
         var path = Path.Combine(projectDirectory.FullName, AspireConfigFile.FileName);
         var configuration = await ReadProjectConfigurationAsync(path, cancellationToken);
         if (configuration is not null && TryGetValue(configuration, ["configSource"], out _))
         {
-            await CheckProjectAsync(projectDirectory, force: false, cancellationToken);
+            CheckForConfigSourceUpdates(projectDirectory, cancellationToken);
             return null;
         }
 
-        return await SelectForCreationAsync(parseResult, cancellationToken);
+        return await ResolveAndAcquireConfigSourceAsync(parseResult, cancellationToken);
     }
 
     public async Task MaterializeAsync(ConfigSource source, DirectoryInfo projectDirectory, CancellationToken cancellationToken)
     {
+        EnsureSameProject(projectDirectory);
         var snapshot = await AcquireAsync(source, force: false, cancellationToken);
         await ApplySnapshotAsync(source, snapshot, projectDirectory, cancellationToken);
     }
@@ -210,7 +237,10 @@ internal sealed class ConfigSourceService(
         {
             await ConfigurationHelper.WriteSettingsFileAtomicallyAsync(path, configuration, cancellationToken);
         }
-        _checkedProjects.TryAdd(path, 0);
+        lock (_checksLock)
+        {
+            _projectChecked = true;
+        }
         interaction.DisplayMessage(KnownEmojis.Information, string.Format(CultureInfo.CurrentCulture, ConfigSourceStrings.UseNotice,
             source.Repository, source.Path, snapshot.Metadata.Commit,
             changed ? ConfigSourceStrings.Refreshed : ConfigSourceStrings.RefreshedUnchanged), consoleOverride: ConsoleOutput.Error);
@@ -218,17 +248,25 @@ internal sealed class ConfigSourceService(
 
     public async Task CheckProjectAsync(DirectoryInfo directory, bool force, CancellationToken cancellationToken)
     {
+        EnsureSameProject(directory);
         if (!force && executionContext.Command is UpdateCommand { IsConfigSourceRefresh: true })
         {
             // Project selection must not perform an automatic fetch immediately before
             // refresh-only mode makes its one unconditional fetch.
             return;
         }
-        ConfigSource? source = null;
         try
         {
+            lock (_checksLock)
+            {
+                if (!force && _projectChecked)
+                {
+                    return;
+                }
+                _projectChecked = true;
+            }
             var configPath = ConfigurationHelper.FindNearestConfigFilePath(directory);
-            if (configPath is null || (!force && !_checkedProjects.TryAdd(configPath, 0)))
+            if (configPath is null)
             {
                 if (force)
                 {
@@ -236,7 +274,7 @@ internal sealed class ConfigSourceService(
                 }
                 return;
             }
-            source = await ReadBindingAsync(configPath, cancellationToken);
+            var source = await ReadBindingAsync(configPath, cancellationToken);
             if (source is null)
             {
                 if (force)
@@ -252,36 +290,29 @@ internal sealed class ConfigSourceService(
             }
             else if (string.IsNullOrEmpty(source.AppliedVersion))
             {
-                ReportOnce(source, ConfigSourceStrings.AppliedVersionMissing);
+                ReportOnce(ConfigSourceStrings.AppliedVersionMissing);
             }
             else
             {
                 var observed = await CheckVersionAsync(source, cancellationToken);
                 if (observed.Version != source.AppliedVersion)
                 {
-                    ReportOnce(source, ConfigSourceStrings.UpdateAvailable);
+                    ReportOnce(ConfigSourceStrings.UpdateAvailable);
                 }
             }
         }
         catch (Exception ex) when (!force && ex is ConfigSourceException or JsonException or IOException or UnauthorizedAccessException or TimeoutException)
         {
-            ReportCheckFailure(source, ex);
+            ReportCheckFailure(ex);
         }
     }
 
-    private void ReportCheckFailure(ConfigSource? source, Exception exception)
+    private void ReportCheckFailure(Exception exception)
     {
         logger.LogDebug("Configuration source version check failed ({FailureType}).", exception.GetType().Name);
         var message = string.Format(CultureInfo.CurrentCulture, ConfigSourceStrings.CheckFailed,
             exception is ConfigSourceException ? exception.Message : ConfigSourceStrings.InvalidCache);
-        if (source is null)
-        {
-            interaction.DisplayMessage(KnownEmojis.Warning, message, consoleOverride: ConsoleOutput.Error);
-        }
-        else
-        {
-            ReportOnce(source, message);
-        }
+        ReportOnce(message);
     }
 
     internal async Task<ConfigSource?> ReadBindingAsync(string configPath, CancellationToken cancellationToken)
@@ -342,21 +373,30 @@ internal sealed class ConfigSourceService(
     internal async Task<ConfigSourceSnapshot> AcquireAsync(ConfigSource source, bool force, CancellationToken cancellationToken)
     {
         source.Validate();
-        var key = new ConfigSourceKey(source.Repository, source.Path, source.Ref);
-        if (!force && _snapshots.TryGetValue(key, out var existing))
+        lock (_checksLock)
         {
-            return existing;
+            if (_snapshot is { } existing)
+            {
+                if (!ConfigSource.HasSameIdentity(existing.Metadata.Source, source))
+                {
+                    throw new InvalidOperationException("A configuration source service instance cannot be used for multiple configuration sources.");
+                }
+                if (!force)
+                {
+                    return existing;
+                }
+            }
         }
 
         var cacheDirectory = GetCacheDirectory(source);
-        CreatePrivateDirectory(Path.GetDirectoryName(cacheDirectory)!);
-        CreatePrivateDirectory(cacheDirectory);
+        DirectoryHelper.CreateWithOwnerOnlyPermissions(Path.GetDirectoryName(cacheDirectory)!);
+        DirectoryHelper.CreateWithOwnerOnlyPermissions(cacheDirectory);
         using var cacheLock = await FileLock.AcquireAsync(Path.Combine(cacheDirectory, "cache.lock"), cancellationToken);
         var pointer = Path.Combine(cacheDirectory, "current");
         var snapshotName = Guid.NewGuid().ToString("N");
         var snapshotDirectory = Path.Combine(cacheDirectory, snapshotName);
         var temporaryPointer = Path.Combine(cacheDirectory, $"{snapshotName}.tmp");
-        CreatePrivateDirectory(snapshotDirectory);
+        DirectoryHelper.CreateWithOwnerOnlyPermissions(snapshotDirectory);
         var published = false;
         try
         {
@@ -380,7 +420,10 @@ internal sealed class ConfigSourceService(
             // failures or cancellation cannot publish half a configuration/metadata pair.
             File.Move(temporaryPointer, pointer, overwrite: true);
             published = true;
-            _snapshots[key] = snapshot;
+            lock (_checksLock)
+            {
+                _snapshot = snapshot;
+            }
             return snapshot;
         }
         finally
@@ -396,8 +439,8 @@ internal sealed class ConfigSourceService(
     private async Task<ConfigSourceCheckMetadata> CheckVersionAsync(ConfigSource source, CancellationToken cancellationToken)
     {
         var cacheDirectory = GetCacheDirectory(source);
-        CreatePrivateDirectory(Path.GetDirectoryName(cacheDirectory)!);
-        CreatePrivateDirectory(cacheDirectory);
+        DirectoryHelper.CreateWithOwnerOnlyPermissions(Path.GetDirectoryName(cacheDirectory)!);
+        DirectoryHelper.CreateWithOwnerOnlyPermissions(cacheDirectory);
         using var cacheLock = await FileLock.AcquireAsync(Path.Combine(cacheDirectory, "cache.lock"), cancellationToken);
         var path = Path.Combine(cacheDirectory, "check.json");
         if (File.Exists(path))
@@ -444,11 +487,24 @@ internal sealed class ConfigSourceService(
         return ConfigurationHelper.WriteSettingsFileAtomicallyAsync(Path.Combine(directory, "check.json"), json, cancellationToken);
     }
 
-    private void ReportOnce(ConfigSource source, string message)
+    private void ReportOnce(string message)
     {
-        if (_reported.TryAdd(new ConfigSourceKey(source.Repository, source.Path, source.Ref), 0))
+        lock (_checksLock)
         {
-            interaction.DisplayMessage(KnownEmojis.Warning, message, consoleOverride: ConsoleOutput.Error);
+            _notification ??= message;
+        }
+    }
+
+    private void EnsureSameProject(DirectoryInfo directory)
+    {
+        var path = Path.TrimEndingDirectorySeparator(directory.FullName);
+        lock (_checksLock)
+        {
+            if (_projectDirectory is not null && !StringComparers.FileSystemPath.Equals(_projectDirectory, path))
+            {
+                throw new InvalidOperationException("A configuration source service instance cannot be used for multiple projects.");
+            }
+            _projectDirectory = path;
         }
     }
 
@@ -465,7 +521,7 @@ internal sealed class ConfigSourceService(
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            interaction.DisplayMessage(KnownEmojis.Warning, ConfigSourceStrings.CleanupFailed, consoleOverride: ConsoleOutput.Error);
+            logger.LogDebug("Configuration source directory cleanup failed ({FailureType}).", ex.GetType().Name);
         }
     }
 
@@ -503,26 +559,4 @@ internal sealed class ConfigSourceService(
         current[GetKey(current, path[^1])] = value?.DeepClone();
     }
 
-    private static void CreatePrivateDirectory(string path)
-    {
-        if (OperatingSystem.IsWindows())
-        {
-            var security = new DirectorySecurity();
-            var user = WindowsIdentity.GetCurrent().User!;
-            security.SetOwner(user);
-            security.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
-            security.AddAccessRule(new FileSystemAccessRule(user, FileSystemRights.FullControl,
-                InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
-            var directory = new DirectoryInfo(path);
-            directory.Create(security);
-            directory.SetAccessControl(security);
-        }
-        else
-        {
-            Directory.CreateDirectory(path, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
-            File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
-        }
-    }
-
-    private readonly record struct ConfigSourceKey(string Repository, string Path, string? Ref);
 }

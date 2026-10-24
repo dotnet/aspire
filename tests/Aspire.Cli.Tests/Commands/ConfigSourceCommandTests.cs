@@ -7,6 +7,7 @@ using Aspire.Cli.Commands;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Documentation.ApiDocs;
 using Aspire.Cli.Documentation.Docs;
+using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
@@ -26,6 +27,76 @@ public class ConfigSourceCommandTests(ITestOutputHelper outputHelper)
         Path = "aspire.config.json",
         AppliedVersion = "version-1"
     };
+
+    [Theory]
+    [InlineData("stop", true)]
+    [InlineData("ps --format json", false)]
+    public async Task CompletedCheck_NotifiesAtExitAfterCliUpdateUnlessMachineReadable(string commandLine, bool notify)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        await TestConfigSourceServices.SaveBindingAsync(s_source, workspace.WorkspaceRoot, CancellationToken.None);
+        var interaction = new TestInteractionService();
+        var cliNoticeShown = false;
+        var notifier = new TestCliUpdateNotifier
+        {
+            NotifyIfUpdateAvailableCallback = () =>
+            {
+                Assert.Equal(0, interaction.DisplayedMessages.Count(message => message.Message == ConfigSourceStrings.UpdateAvailable));
+                cliNoticeShown = true;
+            }
+        };
+        using var provider = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.InteractionServiceFactory = _ => interaction;
+            options.CliUpdateNotifierFactory = _ => notifier;
+        }).BuildServiceProvider();
+        var git = Assert.IsType<TestConfigSourceGitClient>(provider.GetRequiredService<IConfigSourceGitClient>());
+        git.Check = (_, _) => Task.FromResult(("commit-2", "version-2"));
+        var service = provider.GetRequiredService<ConfigSourceService>();
+        service.CheckForConfigSourceUpdates(workspace.WorkspaceRoot, CancellationToken.None);
+        await service.WaitForChecksAsync().DefaultTimeout();
+        Assert.Empty(interaction.DisplayedMessages);
+
+        await provider.GetRequiredService<RootCommand>().Parse(commandLine).InvokeAsync().DefaultTimeout();
+
+        Assert.Equal(notify, cliNoticeShown);
+        Assert.Equal(notify ? 1 : 0, interaction.DisplayedMessages.Count(message => message.Message == ConfigSourceStrings.UpdateAvailable));
+    }
+
+    [Fact]
+    public async Task ProjectSelection_DoesNotWaitForAdvisoryCheck()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        await TestConfigSourceServices.SaveBindingAsync(s_source, workspace.WorkspaceRoot, CancellationToken.None);
+        var projectFile = new FileInfo(Path.Combine(workspace.Path, "apphost.cs"));
+        await File.WriteAllTextAsync(projectFile.FullName, "#:sdk Aspire.AppHost.Sdk");
+        using var provider = CliTestHelper.CreateServiceCollection(workspace, outputHelper).BuildServiceProvider();
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var stopped = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var git = Assert.IsType<TestConfigSourceGitClient>(provider.GetRequiredService<IConfigSourceGitClient>());
+        git.Check = async (_, token) =>
+        {
+            started.SetResult();
+            try
+            {
+                await Task.Delay(Timeout.InfiniteTimeSpan, token);
+                return ("commit-2", "version-2");
+            }
+            finally
+            {
+                stopped.SetResult();
+            }
+        };
+
+        var project = await provider.GetRequiredService<IProjectLocator>().UseOrFindAppHostProjectFileAsync(
+            projectFile, createSettingsFile: false, CancellationToken.None).DefaultTimeout();
+        await started.Task.DefaultTimeout();
+
+        Assert.Equal(projectFile.FullName, project?.FullName);
+        Assert.False(stopped.Task.IsCompleted);
+        await provider.GetRequiredService<RootCommand>().Parse("config list").InvokeAsync().DefaultTimeout();
+        Assert.True(stopped.Task.IsCompletedSuccessfully);
+    }
 
     [Theory]
     [InlineData(false)]
@@ -169,10 +240,29 @@ public class ConfigSourceCommandTests(ITestOutputHelper outputHelper)
         Assert.False(Assert.IsType<UpdateCommand>(result.CommandResult.Command).RequiresCliPackageMetadata);
     }
 
+    [Fact]
+    public async Task UpdateConfigSource_AcquisitionFailureRemainsCommandFailure()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        await TestConfigSourceServices.SaveBindingAsync(s_source, workspace.WorkspaceRoot, CancellationToken.None);
+        using var provider = CliTestHelper.CreateServiceCollection(workspace, outputHelper).BuildServiceProvider();
+        var git = Assert.IsType<TestConfigSourceGitClient>(provider.GetRequiredService<IConfigSourceGitClient>());
+        git.Acquire = (_, _) => throw new ConfigSourceException(ConfigSourceStrings.AuthenticationFailed);
+        var path = Path.Combine(workspace.Path, AspireConfigFile.FileName);
+        var previous = await File.ReadAllTextAsync(path);
+        var result = provider.GetRequiredService<RootCommand>().Parse("update --config-source --yes --non-interactive");
+
+        Assert.NotEqual(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
+
+        Assert.Equal(1, git.Calls);
+        Assert.Equal(0, git.CheckCalls);
+        Assert.Equal(previous, await File.ReadAllTextAsync(path));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task OrdinaryCommand_CheckFailureDoesNotFailOrReplaceSavedSettings(bool malformedBinding)
+    public async Task ProjectSelection_CheckFailureDoesNotFailOrReplaceSavedSettings(bool malformedBinding)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         await TestConfigSourceServices.SaveBindingAsync(new()
@@ -185,6 +275,8 @@ public class ConfigSourceCommandTests(ITestOutputHelper outputHelper)
         var path = Path.Combine(workspace.Path, AspireConfigFile.FileName);
         await ConfigurationService.SetConfigurationInFileAsync(path, "docs.llmsTxtUrl", "https://local.example/llms.txt");
         var previous = await File.ReadAllTextAsync(path);
+        var projectFile = new FileInfo(Path.Combine(workspace.Path, "apphost.cs"));
+        await File.WriteAllTextAsync(projectFile.FullName, "#:sdk Aspire.AppHost.Sdk");
         var interaction = new TestInteractionService();
         using var provider = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
@@ -193,6 +285,10 @@ public class ConfigSourceCommandTests(ITestOutputHelper outputHelper)
         var git = Assert.IsType<TestConfigSourceGitClient>(provider.GetRequiredService<IConfigSourceGitClient>());
         git.Check = (_, _) => throw new ConfigSourceException(ConfigSourceStrings.AuthenticationFailed);
 
+        var project = await provider.GetRequiredService<IProjectLocator>().UseOrFindAppHostProjectFileAsync(
+            projectFile, createSettingsFile: false, CancellationToken.None);
+        await provider.GetRequiredService<ConfigSourceService>().WaitForChecksAsync().DefaultTimeout();
+        Assert.Equal(projectFile.FullName, project?.FullName);
         var result = provider.GetRequiredService<RootCommand>().Parse("config get docs.llmsTxtUrl");
 
         Assert.Equal(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
@@ -297,13 +393,16 @@ public class ConfigSourceCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(bound ? 1 : 0, git.Calls);
     }
 
-    [Fact]
-    public async Task ProjectCommands_FollowConfiguredProjectBeforeAcquiringSource()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ProjectSelection_ChecksResolvedProjectSource(bool explicitProject)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         await TestConfigSourceServices.SaveBindingAsync(s_source, workspace.WorkspaceRoot, CancellationToken.None);
         var selected = workspace.CreateDirectory("selected");
-        await File.WriteAllTextAsync(Path.Combine(selected.FullName, "apphost.cs"), "");
+        var projectFile = new FileInfo(Path.Combine(selected.FullName, "apphost.cs"));
+        await File.WriteAllTextAsync(projectFile.FullName, "#:sdk Aspire.AppHost.Sdk");
         var selectedSource = new ConfigSource { Repository = s_source.Repository, Path = "selected.json", AppliedVersion = s_source.AppliedVersion };
         await TestConfigSourceServices.SaveBindingAsync(selectedSource, selected, CancellationToken.None);
         await ConfigurationService.SetConfigurationInFileAsync(
@@ -316,48 +415,40 @@ public class ConfigSourceCommandTests(ITestOutputHelper outputHelper)
             Assert.Null(source.AppliedVersion);
             return Task.FromResult(("commit-1", "version-1"));
         };
-        var result = provider.GetRequiredService<RootCommand>().Parse("run");
+        var project = await provider.GetRequiredService<IProjectLocator>().UseOrFindAppHostProjectFileAsync(
+            explicitProject ? projectFile : null, createSettingsFile: false, CancellationToken.None);
+        await provider.GetRequiredService<ConfigSourceService>().WaitForChecksAsync().DefaultTimeout();
 
-        await provider.GetRequiredService<ConfigSourceService>().CheckInvocationAsync(
-            Assert.IsAssignableFrom<BaseCommand>(result.CommandResult.Command), result, CancellationToken.None);
-
+        Assert.Equal(projectFile.FullName, project?.FullName);
         Assert.Equal(1, git.CheckCalls);
+        Assert.Equal(0, git.Calls);
+    }
+
+    [Theory]
+    [InlineData("run")]
+    [InlineData("start")]
+    [InlineData("restore")]
+    public async Task ProjectCommands_DoNotCheckSourceWhenProjectResolutionFails(string commandLine)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        await TestConfigSourceServices.SaveBindingAsync(s_source, workspace.WorkspaceRoot, CancellationToken.None);
+        using var provider = CliTestHelper.CreateServiceCollection(workspace, outputHelper).BuildServiceProvider();
+        var missingProject = Path.Combine(workspace.Path, "missing.csproj");
+        var result = provider.GetRequiredService<RootCommand>().Parse($"{commandLine} --apphost \"{missingProject}\"");
+        Assert.Empty(result.Errors);
+
+        Assert.NotEqual(CliExitCodes.Success, await result.InvokeAsync().DefaultTimeout());
+
+        var git = Assert.IsType<TestConfigSourceGitClient>(provider.GetRequiredService<IConfigSourceGitClient>());
+        Assert.Equal(0, git.CheckCalls);
         Assert.Equal(0, git.Calls);
     }
 
     [Theory]
     [InlineData("config get features.shared")]
     [InlineData("config list --all")]
-    [InlineData("run")]
-    [InlineData("start")]
-    [InlineData("logs")]
-    [InlineData("describe")]
-    [InlineData("agent init --scope project")]
-    [InlineData("add")]
-    [InlineData("update --yes")]
-    public async Task ProjectCommands_CheckSavedSourceBeforeExecution(string commandLine)
-    {
-        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
-        await TestConfigSourceServices.SaveBindingAsync(s_source, workspace.WorkspaceRoot, CancellationToken.None);
-        using var provider = CliTestHelper.CreateServiceCollection(workspace, outputHelper).BuildServiceProvider();
-        var result = provider.GetRequiredService<RootCommand>().Parse(commandLine);
-        Assert.Empty(result.Errors);
-
-        await provider.GetRequiredService<ConfigSourceService>().CheckInvocationAsync(
-            Assert.IsAssignableFrom<BaseCommand>(result.CommandResult.Command), result, CancellationToken.None);
-
-        Assert.Equal(1, Assert.IsType<TestConfigSourceGitClient>(provider.GetRequiredService<IConfigSourceGitClient>()).CheckCalls);
-    }
-
-    [Theory]
-    [InlineData("ps")]
-    [InlineData("stop --all")]
-    [InlineData("stop --pid 1234")]
-    [InlineData("doctor")]
-    [InlineData("update --self --yes")]
     [InlineData("config set --global features.shared true")]
-    [InlineData("agent init --scope global")]
-    public async Task GlobalCommands_DoNotAcquireSavedSource(string commandLine)
+    public async Task CommandsWithoutProjectResolution_DoNotCheckSavedSource(string commandLine)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         await TestConfigSourceServices.SaveBindingAsync(s_source, workspace.WorkspaceRoot, CancellationToken.None);
@@ -365,10 +456,11 @@ public class ConfigSourceCommandTests(ITestOutputHelper outputHelper)
         var result = provider.GetRequiredService<RootCommand>().Parse(commandLine);
         Assert.Empty(result.Errors);
 
-        await provider.GetRequiredService<ConfigSourceService>().CheckInvocationAsync(
-            Assert.IsAssignableFrom<BaseCommand>(result.CommandResult.Command), result, CancellationToken.None);
+        await result.InvokeAsync().DefaultTimeout();
 
-        Assert.Equal(0, Assert.IsType<TestConfigSourceGitClient>(provider.GetRequiredService<IConfigSourceGitClient>()).Calls);
+        var git = Assert.IsType<TestConfigSourceGitClient>(provider.GetRequiredService<IConfigSourceGitClient>());
+        Assert.Equal(0, git.Calls);
+        Assert.Equal(0, git.CheckCalls);
     }
 
     [Theory]

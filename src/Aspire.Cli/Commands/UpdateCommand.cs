@@ -284,7 +284,7 @@ internal sealed class UpdateCommand : BaseCommand
             }
 
             var updateDirectory = projectFile?.Directory ?? ExecutionContext.WorkingDirectory;
-            await ConfigSources.CheckProjectAsync(updateDirectory, force: false, cancellationToken);
+            ConfigSources.CheckForConfigSourceUpdates(updateDirectory, cancellationToken);
             toolManifests ??= await _repositoryToolUpdater.FindManifestsAsync(updateDirectory, cancellationToken);
             if (projectFile is null && toolManifests.Count == 0)
             {

@@ -399,7 +399,7 @@ internal sealed class AgentInitCommand : BaseCommand
 
         if (scope is AgentConfigurationScope.Project)
         {
-            await ConfigSources.CheckProjectAsync(workspaceRoot, force: false, cancellationToken);
+            ConfigSources.CheckForConfigSourceUpdates(workspaceRoot, cancellationToken);
         }
 
         if (scope is AgentConfigurationScope.Global && detectedEnvironments is null)

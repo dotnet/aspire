@@ -26,7 +26,7 @@ internal sealed class ConfigSourceGitClient(ICliHostEnvironment hostEnvironment)
         timeout.CancelAfter(TimeSpan.FromMinutes(2));
         try
         {
-            var (repositoryDirectory, commit, version) = await FetchVersionAsync(source, directory, timeout.Token);
+            var (repositoryDirectory, commit, version) = await FetchVersionAsync(source, directory, allowInteractive: true, timeout.Token);
             var length = await RunAsync(repositoryDirectory, ["cat-file", "-s", version], timeout.Token);
             if (!long.TryParse(length.Trim(), CultureInfo.InvariantCulture, out var size) || size > 4 * 1024 * 1024)
             {
@@ -72,7 +72,7 @@ internal sealed class ConfigSourceGitClient(ICliHostEnvironment hostEnvironment)
         timeout.CancelAfter(TimeSpan.FromMinutes(2));
         try
         {
-            var (_, commit, version) = await FetchVersionAsync(source, directory, timeout.Token);
+            var (_, commit, version) = await FetchVersionAsync(source, directory, allowInteractive: false, timeout.Token);
             return (commit, version);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -82,14 +82,14 @@ internal sealed class ConfigSourceGitClient(ICliHostEnvironment hostEnvironment)
     }
 
     private async Task<(string Directory, string Commit, string Version)> FetchVersionAsync(
-        ConfigSource source, string directory, CancellationToken cancellationToken)
+        ConfigSource source, string directory, bool allowInteractive, CancellationToken cancellationToken)
     {
         var repositoryDirectory = Path.Combine(directory, "repository.git");
         await RunAsync(directory, ["init", "--bare", "--", repositoryDirectory], cancellationToken);
         // Fetch accepts both a fully qualified branch ref and a full commit ID. Unlike
         // clone --branch, this also acquires commits outside the default branch's shallow history.
         // https://git-scm.com/docs/git-fetch
-        await RunAsync(repositoryDirectory, ["fetch", "--depth", "1", "--no-tags", "--", source.Repository, source.GetGitRef()], cancellationToken);
+        await RunAsync(repositoryDirectory, ["fetch", "--depth", "1", "--no-tags", "--", source.Repository, source.GetGitRef()], cancellationToken, allowInteractive);
         var commit = (await RunAsync(repositoryDirectory, ["rev-parse", "FETCH_HEAD^{commit}"], cancellationToken)).Trim();
         var treeEntry = await RunAsync(repositoryDirectory, ["ls-tree", "-z", commit, "--", source.Path], cancellationToken);
         // git ls-tree -z emits "100644 blob <object-id>\tpath\0". Inspecting the tree
@@ -105,24 +105,34 @@ internal sealed class ConfigSourceGitClient(ICliHostEnvironment hostEnvironment)
         return (repositoryDirectory, commit, header[2]);
     }
 
-    internal ProcessStartInfo CreateStartInfo(string directory, string[] arguments)
+    internal ProcessStartInfo CreateStartInfo(string directory, string[] arguments, bool allowInteractive = true)
     {
         // Explicitly identify our bare repository. Discovery inside it is intentionally
         // disabled when a user sets safe.bareRepository=explicit.
         // https://git-scm.com/docs/git-config#Documentation/git-config.txt-safebareRepository
         var gitArguments = arguments[0] is "clone" or "init" ? arguments : [$"--git-dir={directory}", .. arguments];
+        // Advisory checks share the terminal with the command, so even interactive hosts
+        // must capture their output and disable Git/credential-manager prompts.
+        var interactive = allowInteractive && hostEnvironment.SupportsInteractiveInput;
+        var interactiveFetch = arguments[0] == "fetch" && interactive;
         var startInfo = new ProcessStartInfo("git", ["--literal-pathspecs", .. gitArguments])
         {
             WorkingDirectory = directory,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            StandardOutputEncoding = System.Text.Encoding.UTF8,
-            StandardErrorEncoding = System.Text.Encoding.UTF8,
-            // Git prompts use the controlling terminal even though diagnostics are captured.
-            // On Windows, keep that console attached when interactive input is allowed.
-            CreateNoWindow = !hostEnvironment.SupportsInteractiveInput
+            // Let Git and credential helpers own the terminal during interactive fetches.
+            // Prompts need not end in a newline, and Git must control password echo.
+            RedirectStandardOutput = !interactiveFetch,
+            RedirectStandardError = !interactiveFetch,
+            StandardOutputEncoding = interactiveFetch ? null : System.Text.Encoding.UTF8,
+            StandardErrorEncoding = interactiveFetch ? null : System.Text.Encoding.UTF8,
+            CreateNoWindow = !interactive
         };
-        startInfo.Environment["GIT_TERMINAL_PROMPT"] = hostEnvironment.SupportsInteractiveInput ? "1" : "0";
+        startInfo.Environment["GIT_TERMINAL_PROMPT"] = interactive ? "1" : "0";
+        if (!interactive)
+        {
+            // Git's terminal-prompt setting does not disable Git Credential Manager UI.
+            // https://github.com/git-ecosystem/git-credential-manager/blob/release/docs/environment.md#gcm_interactive
+            startInfo.Environment["GCM_INTERACTIVE"] = "never";
+        }
         // Keep Git diagnostics stable for the local failure classification below.
         startInfo.Environment["LC_ALL"] = "C";
         foreach (var key in new[] { "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES" })
@@ -132,11 +142,41 @@ internal sealed class ConfigSourceGitClient(ICliHostEnvironment hostEnvironment)
         return startInfo;
     }
 
-    private async Task<string> RunAsync(string directory, string[] arguments, CancellationToken cancellationToken)
+    private async Task<string> RunAsync(string directory, string[] arguments, CancellationToken cancellationToken, bool allowInteractive = true)
     {
-        var startInfo = CreateStartInfo(directory, arguments);
+        var startInfo = CreateStartInfo(directory, arguments, allowInteractive);
         try
         {
+            if (!startInfo.RedirectStandardOutput)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                using var process = Process.Start(startInfo)
+                    ?? throw new InvalidOperationException("Could not start Git.");
+                try
+                {
+                    await process.WaitForExitAsync(cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    try
+                    {
+                        process.Kill(entireProcessTree: true);
+                    }
+                    catch (InvalidOperationException) when (process.HasExited)
+                    {
+                        // Git can exit between cancellation and termination.
+                    }
+                    throw;
+                }
+                if (process.ExitCode != 0)
+                {
+                    // Git already displayed its diagnostics directly to the terminal.
+                    // Do not capture or forward potentially sensitive authentication output.
+                    throw new ConfigSourceException(ConfigSourceStrings.RepositoryUnavailable);
+                }
+                return string.Empty;
+            }
+
             var result = await Process.RunAndCaptureTextAsync(startInfo, cancellationToken);
             if (result.ExitStatus.ExitCode != 0)
             {

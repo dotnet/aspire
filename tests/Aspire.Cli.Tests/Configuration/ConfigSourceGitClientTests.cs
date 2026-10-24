@@ -11,6 +11,22 @@ namespace Aspire.Cli.Tests.Configuration;
 
 public class ConfigSourceGitClientTests(ITestOutputHelper outputHelper)
 {
+    [Fact]
+    public void CreateStartInfo_AdvisoryFetchNeverOwnsTerminal()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var client = new ConfigSourceGitClient(TestHelpers.CreateInteractiveHostEnvironment());
+
+        var startInfo = client.CreateStartInfo(workspace.Path, ["fetch"], allowInteractive: false);
+
+        Assert.Equal("0", startInfo.Environment["GIT_TERMINAL_PROMPT"]);
+        Assert.Equal("never", startInfo.Environment["GCM_INTERACTIVE"]);
+        Assert.True(startInfo.CreateNoWindow);
+        Assert.True(startInfo.RedirectStandardOutput);
+        Assert.True(startInfo.RedirectStandardError);
+        Assert.False(startInfo.RedirectStandardInput);
+    }
+
     [Theory]
     [InlineData(false, null, null, true)]
     [InlineData(true, null, null, false)]
@@ -26,24 +42,53 @@ public class ConfigSourceGitClientTests(ITestOutputHelper outputHelper)
         var hostEnvironment = new CliHostEnvironment(configuration, nonInteractive, isOutputRedirected: true);
         var client = new ConfigSourceGitClient(hostEnvironment);
 
-        var startInfo = client.CreateStartInfo(workspace.Path, ["clone", "--bare", "--", "https://example.com/configuration", "repository.git"]);
+        var startInfo = client.CreateStartInfo(workspace.Path, ["fetch", "--depth", "1", "--", "https://example.com/configuration", "HEAD"]);
 
         Assert.Equal(expectedInteractive ? "1" : "0", startInfo.Environment["GIT_TERMINAL_PROMPT"]);
         Assert.Equal(!expectedInteractive, startInfo.CreateNoWindow);
         Assert.False(startInfo.RedirectStandardInput);
-        Assert.True(startInfo.RedirectStandardOutput);
-        Assert.True(startInfo.RedirectStandardError);
+        Assert.Equal(!expectedInteractive, startInfo.RedirectStandardOutput);
+        Assert.Equal(!expectedInteractive, startInfo.RedirectStandardError);
+        Assert.Equal(!expectedInteractive, startInfo.StandardOutputEncoding is not null);
+        Assert.Equal(!expectedInteractive, startInfo.StandardErrorEncoding is not null);
+        if (!expectedInteractive)
+        {
+            Assert.Equal("never", startInfo.Environment["GCM_INTERACTIVE"]);
+        }
     }
 
     [Theory]
-    [InlineData("aspire.config.json")]
-    [InlineData("teams/platform config.json")]
-    public async Task Acquire_ReadsDefaultBranchSnapshotWithoutCheckingOut(string path)
+    [InlineData("init")]
+    [InlineData("rev-parse")]
+    [InlineData("ls-tree")]
+    [InlineData("cat-file")]
+    public void CreateStartInfo_LocalQueriesRemainCapturedWhenInteractive(string command)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var client = new ConfigSourceGitClient(TestHelpers.CreateInteractiveHostEnvironment());
+
+        var startInfo = client.CreateStartInfo(workspace.Path, [command]);
+
+        Assert.False(startInfo.RedirectStandardInput);
+        Assert.True(startInfo.RedirectStandardOutput);
+        Assert.True(startInfo.RedirectStandardError);
+        Assert.Equal(System.Text.Encoding.UTF8, startInfo.StandardOutputEncoding);
+        Assert.Equal(System.Text.Encoding.UTF8, startInfo.StandardErrorEncoding);
+    }
+
+    [Theory]
+    [InlineData("aspire.config.json", false)]
+    [InlineData("aspire.config.json", true)]
+    [InlineData("teams/platform config.json", false)]
+    [InlineData("teams/platform config.json", true)]
+    public async Task Acquire_ReadsDefaultBranchSnapshotWithoutCheckingOut(string path, bool interactive)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         await CreateRepositoryAsync(workspace, path, "{\"features\":{\"test\":true},\"custom\":\"\u65e5\u672c\u8a9e\"}");
         var cache = workspace.CreateDirectory("cache");
-        var client = new ConfigSourceGitClient(TestHelpers.CreateNonInteractiveHostEnvironment());
+        var client = new ConfigSourceGitClient(interactive
+            ? TestHelpers.CreateInteractiveHostEnvironment()
+            : TestHelpers.CreateNonInteractiveHostEnvironment());
 
         // Source-address validation is covered separately. A local transport exercises
         // real Git snapshot acquisition without contacting a network repository.
@@ -181,13 +226,17 @@ public class ConfigSourceGitClientTests(ITestOutputHelper outputHelper)
     }
 
     [Theory]
-    [InlineData("missing-branch")]
-    [InlineData("0000000000000000000000000000000000000000")]
-    public async Task Acquire_UnavailableRefFailsWithoutFallingBack(string reference)
+    [InlineData("missing-branch", false)]
+    [InlineData("missing-branch", true)]
+    [InlineData("0000000000000000000000000000000000000000", false)]
+    [InlineData("0000000000000000000000000000000000000000", true)]
+    public async Task Acquire_UnavailableRefFailsWithoutFallingBack(string reference, bool interactive)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         await CreateRepositoryAsync(workspace, AspireConfigFile.FileName, "{}");
-        var client = new ConfigSourceGitClient(TestHelpers.CreateNonInteractiveHostEnvironment());
+        var client = new ConfigSourceGitClient(interactive
+            ? TestHelpers.CreateInteractiveHostEnvironment()
+            : TestHelpers.CreateNonInteractiveHostEnvironment());
 
         var error = await Assert.ThrowsAsync<ConfigSourceException>(() => client.AcquireAsync(
             new() { Repository = workspace.Path, Path = AspireConfigFile.FileName, Ref = reference },

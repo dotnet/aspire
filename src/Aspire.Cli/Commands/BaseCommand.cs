@@ -96,6 +96,7 @@ internal abstract class BaseCommand : Command
             }
             finally
             {
+                await ConfigSources.StopChecksAsync().ConfigureAwait(false);
                 await FlushExtensionInteractionServiceAsync(InteractionService).ConfigureAwait(false);
             }
         }));
@@ -142,7 +143,6 @@ internal abstract class BaseCommand : Command
             // override GracefulShutdownBudget get the zero default (force-kill on cancel).
             services.CancellationManager.ConfigureForCommand(GracefulShutdownBudget);
 
-            await ConfigSources.CheckInvocationAsync(this, parseResult, cancellationToken);
             var handlerTask = ExecuteAsync(parseResult, cancellationToken);
             services.CancellationManager.SetStartedHandler(handlerTask);
 
@@ -258,6 +258,8 @@ internal abstract class BaseCommand : Command
             }
         }
 
+        await ConfigSources.StopChecksAsync().ConfigureAwait(false);
+
         if (UpdateNotificationsEnabled && !_isMachineReadableFormatRequested && services.Features.IsFeatureEnabled(KnownFeatures.UpdateNotificationsEnabled, true))
         {
             try
@@ -272,6 +274,11 @@ internal abstract class BaseCommand : Command
             {
                 // Ignore any errors during update check to avoid impacting the main command
             }
+        }
+
+        if (!_isMachineReadableFormatRequested)
+        {
+            ConfigSources.NotifyIfUpdateAvailable();
         }
 
         return result.ExitCode;

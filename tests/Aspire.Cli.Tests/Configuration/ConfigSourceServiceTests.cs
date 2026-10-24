@@ -20,6 +20,142 @@ namespace Aspire.Cli.Tests.Configuration;
 
 public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
 {
+    [Fact]
+    public async Task BackgroundCheck_DoesNotBlockAndShutdownCancelsAndJoins()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        await TestConfigSourceServices.SaveBindingAsync(s_appliedSource, workspace.WorkspaceRoot, CancellationToken.None);
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var interaction = new TestInteractionService();
+        var git = new TestConfigSourceGitClient
+        {
+            Check = async (_, token) =>
+            {
+                started.SetResult();
+                try
+                {
+                    await Task.Delay(Timeout.InfiniteTimeSpan, token);
+                    return ("commit-2", "version-2");
+                }
+                finally
+                {
+                    finished.SetResult();
+                }
+            }
+        };
+        using var service = TestConfigSourceServices.Create(workspace.CreateExecutionContext(), git: git, interaction: interaction);
+
+        service.CheckForConfigSourceUpdates(workspace.WorkspaceRoot, CancellationToken.None);
+        await started.Task.DefaultTimeout();
+        Assert.False(finished.Task.IsCompleted);
+
+        await service.StopChecksAsync().DefaultTimeout();
+
+        Assert.True(finished.Task.IsCompletedSuccessfully);
+        service.NotifyIfUpdateAvailable();
+        Assert.Empty(interaction.DisplayedMessages);
+        Assert.Equal(1, git.CheckCalls);
+    }
+
+    [Fact]
+    public async Task BackgroundCheck_ShutdownPreventsScheduling()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        await TestConfigSourceServices.SaveBindingAsync(s_appliedSource, workspace.WorkspaceRoot, CancellationToken.None);
+        var git = new TestConfigSourceGitClient();
+        using var service = TestConfigSourceServices.Create(workspace.CreateExecutionContext(), git: git);
+
+        await service.StopChecksAsync();
+        service.CheckForConfigSourceUpdates(workspace.WorkspaceRoot, CancellationToken.None);
+        await service.WaitForChecksAsync();
+
+        Assert.Equal(0, git.CheckCalls);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task BackgroundCheck_UnexpectedFailuresAreObserved(bool cancel)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        await TestConfigSourceServices.SaveBindingAsync(s_appliedSource, workspace.WorkspaceRoot, CancellationToken.None);
+        var git = new TestConfigSourceGitClient
+        {
+            Check = (_, _) => cancel
+                ? throw new OperationCanceledException()
+                : throw new InvalidOperationException("Unexpected failure")
+        };
+        var interaction = new TestInteractionService();
+        using var service = TestConfigSourceServices.Create(workspace.CreateExecutionContext(), git: git, interaction: interaction);
+
+        service.CheckForConfigSourceUpdates(workspace.WorkspaceRoot, CancellationToken.None);
+        await service.WaitForChecksAsync().DefaultTimeout();
+        await service.StopChecksAsync().DefaultTimeout();
+        service.NotifyIfUpdateAvailable();
+
+        Assert.Equal(1, git.CheckCalls);
+        Assert.Empty(interaction.DisplayedMessages);
+    }
+
+    [Fact]
+    public async Task BackgroundCheck_RepeatedCallsForSameProjectShareOneTask()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        await TestConfigSourceServices.SaveBindingAsync(s_appliedSource, workspace.WorkspaceRoot, CancellationToken.None);
+        var git = new TestConfigSourceGitClient();
+        using var service = TestConfigSourceServices.Create(workspace.CreateExecutionContext(), git: git);
+
+        service.CheckForConfigSourceUpdates(workspace.WorkspaceRoot, CancellationToken.None);
+        var check = service.WaitForChecksAsync();
+        service.CheckForConfigSourceUpdates(
+            new DirectoryInfo(workspace.Path + Path.DirectorySeparatorChar), CancellationToken.None);
+        Assert.Same(check, service.WaitForChecksAsync());
+        await check.DefaultTimeout();
+
+        Assert.Equal(1, git.CheckCalls);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task BackgroundCheck_DifferentProjectIsRejectedBeforeScheduling(bool bound)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        if (bound)
+        {
+            await TestConfigSourceServices.SaveBindingAsync(s_appliedSource, workspace.WorkspaceRoot, CancellationToken.None);
+        }
+        var other = workspace.CreateDirectory("other-app");
+        var git = new TestConfigSourceGitClient();
+        using var service = TestConfigSourceServices.Create(workspace.CreateExecutionContext(), git: git);
+
+        service.CheckForConfigSourceUpdates(workspace.WorkspaceRoot, CancellationToken.None);
+        var error = Assert.Throws<InvalidOperationException>(() =>
+            service.CheckForConfigSourceUpdates(other, CancellationToken.None));
+        await service.WaitForChecksAsync().DefaultTimeout();
+
+        Assert.Equal("A configuration source service instance cannot be used for multiple projects.", error.Message);
+        Assert.Equal(bound ? 1 : 0, git.CheckCalls);
+    }
+
+    [Fact]
+    public async Task Materialize_DifferentProjectIsRejectedBeforeAcquisition()
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var git = new TestConfigSourceGitClient();
+        using var service = TestConfigSourceServices.Create(workspace.CreateExecutionContext(), git: git);
+        await service.MaterializeAsync(s_source, workspace.WorkspaceRoot, CancellationToken.None);
+        var other = workspace.CreateDirectory("other-app");
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.MaterializeAsync(s_source, other, CancellationToken.None));
+
+        Assert.Equal("A configuration source service instance cannot be used for multiple projects.", error.Message);
+        Assert.Equal(1, git.Calls);
+        Assert.False(File.Exists(Path.Combine(other.FullName, AspireConfigFile.FileName)));
+    }
+
     private static readonly ConfigSource s_source = new()
     {
         Repository = "https://git.example/organization/config",
@@ -31,6 +167,60 @@ public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
         Path = s_source.Path,
         AppliedVersion = "version-1"
     };
+
+    [Theory]
+    [InlineData(false, "\n\n")]
+    [InlineData(false, "\r\n\r\n")]
+    [InlineData(true, "\n\n")]
+    [InlineData(true, "\r\n\r\n")]
+    public async Task CheckProject_AllowsCommentsTrailingCommasAndNewlines(bool update, string trailingNewlines)
+    {
+        using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
+        var path = Path.Combine(workspace.Path, AspireConfigFile.FileName);
+        var content = $$"""
+            {
+                // This configuration is maintained by the user.
+                "configSource": {
+                    "repository": "{{s_source.Repository}}",
+                    "path": "{{s_source.Path}}",
+                    "appliedVersion": "version-1",
+                },
+                /* Keep local settings when applying a source update. */
+                "docs": {
+                    "llmsTxtUrl": "https://local.example/llms.txt",
+                },
+                "custom": "preserved",
+            }
+            """ + trailingNewlines;
+        await File.WriteAllTextAsync(path, content);
+        var git = new TestConfigSourceGitClient
+        {
+            Acquire = (_, _) => Task.FromResult(("commit-2", "version-2", new JsonObject
+            {
+                ["docs"] = new JsonObject { ["llmsTxtUrl"] = "https://shared.example/llms.txt" }
+            }))
+        };
+        var interaction = new TestInteractionService();
+        using var service = TestConfigSourceServices.Create(workspace.CreateExecutionContext(), git: git, interaction: interaction);
+
+        Assert.Equivalent(s_appliedSource, await service.ReadBindingAsync(path, CancellationToken.None), strict: true);
+        await service.CheckProjectAsync(workspace.WorkspaceRoot, force: update, CancellationToken.None);
+        service.NotifyIfUpdateAvailable();
+
+        var configuration = JsonNode.Parse(await File.ReadAllTextAsync(path), documentOptions: ConfigurationHelper.ParseOptions)!;
+        Assert.Equal("preserved", configuration["custom"]!.GetValue<string>());
+        Assert.Equal(update ? "https://shared.example/llms.txt" : "https://local.example/llms.txt",
+            configuration["docs"]!["llmsTxtUrl"]!.GetValue<string>());
+        Assert.Equal(update ? "version-2" : "version-1",
+            configuration["configSource"]!["appliedVersion"]!.GetValue<string>());
+        Assert.Equal(update ? 1 : 0, git.Calls);
+        Assert.Equal(update ? 0 : 1, git.CheckCalls);
+        if (!update)
+        {
+            Assert.Equal(content, await File.ReadAllTextAsync(path));
+            Assert.Empty(interaction.DisplayedMessages);
+        }
+    }
 
     [Theory]
     [InlineData("https://git.example/organization/config", "teams/platform.json", null, "version-1", true)]
@@ -143,7 +333,7 @@ public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
                 [CliConfigNames.InitSourceRef] = expected.Ref
             }));
 
-        Assert.Equivalent(expected, await service.SelectForCreationAsync(ParseConsent(true), CancellationToken.None), strict: true);
+        Assert.Equivalent(expected, await service.ResolveAndAcquireConfigSourceAsync(ParseConsent(true), CancellationToken.None), strict: true);
         Assert.Equal(0, detector.Calls);
         Assert.Equal(1, git.Calls);
         Assert.False(File.Exists(Path.Combine(workspace.Path, AspireConfigFile.FileName)));
@@ -166,7 +356,7 @@ public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
                 ["ASPIRE_INIT_CONFIG"] = "invalid-legacy-variable"
             }));
 
-        var selected = await service.SelectForCreationAsync(ParseConsent(detected ? true : null), CancellationToken.None);
+        var selected = await service.ResolveAndAcquireConfigSourceAsync(ParseConsent(detected ? true : null), CancellationToken.None);
 
         Assert.Equivalent(detected ? new ConfigSource { Repository = ConfigSourceService.MicrosoftRepository, Path = AspireConfigFile.FileName } : null,
             selected, strict: true);
@@ -183,7 +373,7 @@ public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
         var service = TestConfigSourceServices.Create(workspace.CreateExecutionContext(), git: git,
             detector: new TestConfigSourceDetector { IsInternal = true, Outcome = outcome });
 
-        Assert.Null(await service.SelectForCreationAsync(ParseConsent(null), CancellationToken.None));
+        Assert.Null(await service.ResolveAndAcquireConfigSourceAsync(ParseConsent(null), CancellationToken.None));
         Assert.Equal(0, git.Calls);
     }
 
@@ -195,7 +385,7 @@ public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
         var service = TestConfigSourceServices.Create(workspace.CreateExecutionContext(), git: git);
 
         var error = await Assert.ThrowsAsync<ConfigSourceException>(() =>
-            service.SelectForCreationAsync(ParseConsent(true), CancellationToken.None));
+            service.ResolveAndAcquireConfigSourceAsync(ParseConsent(true), CancellationToken.None));
 
         Assert.Equal(string.Format(CultureInfo.CurrentCulture, ConfigSourceStrings.NoCandidate, CliConfigNames.InitSourceUrl), error.Message);
         Assert.Equal(0, git.Calls);
@@ -209,7 +399,7 @@ public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
             detector: new TestConfigSourceDetector { IsInternal = true });
 
         Assert.Equal(ConfigSourceStrings.ConsentRequired, (await Assert.ThrowsAsync<ConfigSourceException>(() =>
-            service.SelectForCreationAsync(ParseConsent(null), CancellationToken.None))).Message);
+            service.ResolveAndAcquireConfigSourceAsync(ParseConsent(null), CancellationToken.None))).Message);
     }
 
     [Theory]
@@ -219,12 +409,19 @@ public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var git = new TestConfigSourceGitClient();
-        var interaction = new TestInteractionService { PromptForSelectionCallback = (_, _, _, _) => accepted };
+        var interaction = new TestInteractionService
+        {
+            PromptForSelectionCallback = (_, choices, _, _) =>
+            {
+                Assert.Equal([ConfigSourceStrings.Accept, ConfigSourceStrings.Decline], choices.Cast<string>());
+                return accepted ? ConfigSourceStrings.Accept : ConfigSourceStrings.Decline;
+            }
+        };
         var service = TestConfigSourceServices.Create(workspace.CreateExecutionContext(), git: git,
             detector: new TestConfigSourceDetector { IsInternal = true }, interaction: interaction, interactive: true);
 
         Assert.Equivalent(accepted ? new ConfigSource { Repository = ConfigSourceService.MicrosoftRepository, Path = AspireConfigFile.FileName } : null,
-            await service.SelectForCreationAsync(ParseConsent(null), CancellationToken.None), strict: true);
+            await service.ResolveAndAcquireConfigSourceAsync(ParseConsent(null), CancellationToken.None), strict: true);
         Assert.Equal(accepted ? 1 : 0, git.Calls);
     }
 
@@ -238,7 +435,7 @@ public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
         var service = TestConfigSourceServices.Create(workspace.CreateExecutionContext(), git: git,
             detector: new TestConfigSourceDetector { IsInternal = true }, interaction: interaction, interactive: true);
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.SelectForCreationAsync(ParseConsent(null), CancellationToken.None));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.ResolveAndAcquireConfigSourceAsync(ParseConsent(null), CancellationToken.None));
         Assert.Equal(0, git.Calls);
         Assert.False(File.Exists(Path.Combine(workspace.Path, AspireConfigFile.FileName)));
     }
@@ -328,12 +525,17 @@ public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
         await service.CheckProjectAsync(workspace.WorkspaceRoot, false, CancellationToken.None);
         await service.CheckProjectAsync(workspace.WorkspaceRoot, false, CancellationToken.None);
 
+        Assert.Empty(interaction.DisplayedMessages);
+        service.NotifyIfUpdateAvailable();
+
         Assert.Equal(previous, await File.ReadAllTextAsync(path));
         Assert.Equal(0, git.Calls);
         Assert.Equal(1, git.CheckCalls);
         var notice = Assert.Single(interaction.DisplayedMessages);
         Assert.Equal(ConfigSourceStrings.UpdateAvailable, notice.Message);
         Assert.Equal(ConsoleOutput.Error, notice.ConsoleOverride);
+        service.NotifyIfUpdateAvailable();
+        Assert.Single(interaction.DisplayedMessages);
         Assert.Equal(["check.json"], Directory.GetFiles(service.GetCacheDirectory(s_source)).Select(Path.GetFileName).Order());
         Assert.Empty(Directory.GetDirectories(service.GetCacheDirectory(s_source)));
     }
@@ -348,7 +550,9 @@ public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
         await TestConfigSourceServices.Create(context, git: git).CheckProjectAsync(workspace.WorkspaceRoot, false, CancellationToken.None);
         var interaction = new TestInteractionService();
 
-        await TestConfigSourceServices.Create(context, git: git, interaction: interaction).CheckProjectAsync(workspace.WorkspaceRoot, false, CancellationToken.None);
+        var service = TestConfigSourceServices.Create(context, git: git, interaction: interaction);
+        await service.CheckProjectAsync(workspace.WorkspaceRoot, false, CancellationToken.None);
+        service.NotifyIfUpdateAvailable();
 
         Assert.Equal(1, git.CheckCalls);
         Assert.Equal(ConfigSourceStrings.UpdateAvailable, Assert.Single(interaction.DisplayedMessages).Message);
@@ -413,6 +617,7 @@ public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
 
         await next.CheckProjectAsync(workspace.WorkspaceRoot, false, CancellationToken.None);
         await next.CheckProjectAsync(workspace.WorkspaceRoot, false, CancellationToken.None);
+        next.NotifyIfUpdateAvailable();
 
         Assert.Equal(original, await File.ReadAllTextAsync(checkPath));
         Assert.Equal(string.Format(CultureInfo.CurrentCulture, ConfigSourceStrings.CheckFailed,
@@ -460,7 +665,7 @@ public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task CheckProject_DifferentAppsAndAppliedVersionsReportSourceOnce()
+    public async Task CheckProject_DifferentProjectIsRejected()
     {
         using var workspace = TemporaryWorkspace.CreateForCli(outputHelper);
         var other = workspace.CreateDirectory("other-app");
@@ -476,9 +681,12 @@ public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
         var service = TestConfigSourceServices.Create(workspace.CreateExecutionContext(), git: git, interaction: interaction);
 
         await service.CheckProjectAsync(workspace.WorkspaceRoot, false, CancellationToken.None);
-        await service.CheckProjectAsync(other, false, CancellationToken.None);
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.CheckProjectAsync(other, false, CancellationToken.None));
+        service.NotifyIfUpdateAvailable();
 
-        Assert.Equal(2, git.CheckCalls);
+        Assert.Equal("A configuration source service instance cannot be used for multiple projects.", error.Message);
+        Assert.Equal(1, git.CheckCalls);
         Assert.Equal(ConfigSourceStrings.UpdateAvailable, Assert.Single(interaction.DisplayedMessages).Message);
     }
 
@@ -497,6 +705,7 @@ public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
         await service.CheckProjectAsync(workspace.WorkspaceRoot, false, CancellationToken.None);
 
         Assert.Equal(0, git.CheckCalls);
+        service.NotifyIfUpdateAvailable();
         Assert.Equal(string.Format(CultureInfo.CurrentCulture, ConfigSourceStrings.CheckFailed, ConfigSourceStrings.InvalidCache),
             Assert.Single(interaction.DisplayedMessages).Message);
     }
@@ -682,6 +891,9 @@ public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
             detector: detector, interaction: interaction);
 
         Assert.Null(await service.SelectForInitializationAsync(workspace.WorkspaceRoot, ParseConsent(true), CancellationToken.None));
+        await service.WaitForChecksAsync().DefaultTimeout();
+        Assert.Empty(interaction.DisplayedMessages);
+        service.NotifyIfUpdateAvailable();
 
         Assert.Equivalent(invalid, AspireConfigFile.Load(workspace.Path)!.ConfigSource, strict: true);
         Assert.Equal(0, detector.Calls);
@@ -727,7 +939,9 @@ public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
         await TestConfigSourceServices.Create(context, git: git).CheckProjectAsync(workspace.WorkspaceRoot, true, CancellationToken.None);
         var interaction = new TestInteractionService();
 
-        await TestConfigSourceServices.Create(context, git: git, interaction: interaction).CheckProjectAsync(other, false, CancellationToken.None);
+        var service = TestConfigSourceServices.Create(context, git: git, interaction: interaction);
+        await service.CheckProjectAsync(other, false, CancellationToken.None);
+        service.NotifyIfUpdateAvailable();
 
         Assert.Equal("version-1", AspireConfigFile.Load(other.FullName)!.ConfigSource!.AppliedVersion);
         Assert.Equal("version-2", AspireConfigFile.Load(workspace.Path)!.ConfigSource!.AppliedVersion);
@@ -746,6 +960,7 @@ public class ConfigSourceServiceTests(ITestOutputHelper outputHelper)
 
         await service.CheckProjectAsync(workspace.WorkspaceRoot, false, CancellationToken.None);
 
+        service.NotifyIfUpdateAvailable();
         Assert.Equal(0, git.CheckCalls);
         Assert.Equal(0, git.Calls);
         Assert.Equal(ConfigSourceStrings.AppliedVersionMissing, Assert.Single(interaction.DisplayedMessages).Message);
